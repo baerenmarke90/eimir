@@ -41,7 +41,9 @@ privacy remains non-paywallable.
 ## Validation
 
 Tested implementation: `6fef862ddd99aee3136f119c991c085292ff6b79`.
-The following commit adds only these captured images and this evidence index.
+The screenshots are pinned to evidence commit `1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de`,
+retained by `evidence/1654-diary-preview`. The final product tree contains this
+index; the images remain independently reviewable through the immutable links below.
 
 - The three new consumer regressions reproduce the original failures before
   runtime changes: missing happiness chronology identity and an unwanted reveal
@@ -55,7 +57,7 @@ The following commit adds only these captured images and this evidence index.
   return, comment chronology, preserved detail labels, axe and horizontal reflow.
   Privacy cases retain the independent Wir Show/Hide behavior and verify Diary
   concealment, keyboard detail opening, deliberate detail reveal and concealed
-  return. Additional complete-spec regression results are recorded in the PR.
+  return. The complete affected regression results are recorded in the PR.
 - Broader preflight found inherited #1652 fixture drift: month pinning still
   assumed a zero offset despite the intended safe-area/spacing offset, and one
   partner-signal case used a historical event without fixing browser time after
@@ -64,6 +66,21 @@ The following commit adds only these captured images and this evidence index.
   input; fix time only for that existing current-event settings case. The older
   Diary-category browser case now also asserts concealed media and absent reveal
   controls. Production sticky/attention behavior and expiry protection stay intact.
+- Hosted full regression on `1cfdacdf` passed 1,056 cases and found one remaining
+  obsolete Today expectation: it required the same comment in current attention
+  and quiet history simultaneously. Align that existing case with #1652: current
+  attention owns one link and the trace stays empty until consumption. The existing
+  `app-continuity-polish` journey still proves opening, consumed history, reload
+  and a later independent event. All 36 cases in those two complete specs pass
+  locally after the correction, bringing local affected evidence to 122 distinct
+  browser cases across eight specs.
+- The first hosted planner conservatively selected full regression because added
+  documentation PNGs are unmapped dependencies. Retain the screenshot snapshot
+  on the evidence branch and link its immutable commit here; remove only those
+  evidence images from the product tree. All product paths, changed surviving
+  specs, existing impact ownership, conservative fallback and required checks
+  remain subject to the unchanged planner. Record the final actual selection
+  and hosted outcome in the PR.
 - The affected specs retain their reviewed feature ownership in
   `test-groups.json` and `test-impact.json`: Story/Memory/Today roots already
   transitively own the changed consumers and their cross-surface continuations.
@@ -88,9 +105,9 @@ The same content and chronology remain available in both themes and on Expanded.
 
 | State | Happiness chronology | Sensitive Diary preview |
 | --- | --- | --- |
-| Compact Light, 360 px | [Answers and glyph](shared-answers-journal-360-light.png) | [Concealed without Show](diary-sensitive-360-light-concealed.png) |
-| Compact Dark, 390 px | [Answers and glyph](shared-answers-journal-390-dark.png) | [Concealed without Show](diary-sensitive-390-dark-concealed.png) |
-| Expanded Dark, 1280 px | [Same composition](shared-answers-journal-1280-dark.png) | [Concealed without Show](diary-sensitive-1280-dark-concealed.png) |
-| Narrow Dark, 320 px / 200% text | [Wrapping and glyph](shared-answers-journal-320-dark.png) | [Concealed and navigable](diary-sensitive-320-dark-concealed.png) |
+| Compact Light, 360 px | [Answers and glyph](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/shared-answers-journal-360-light.png) | [Concealed without Show](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/diary-sensitive-360-light-concealed.png) |
+| Compact Dark, 390 px | [Answers and glyph](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/shared-answers-journal-390-dark.png) | [Concealed without Show](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/diary-sensitive-390-dark-concealed.png) |
+| Expanded Dark, 1280 px | [Same composition](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/shared-answers-journal-1280-dark.png) | [Concealed without Show](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/diary-sensitive-1280-dark-concealed.png) |
+| Narrow Dark, 320 px / 200% text | [Wrapping and glyph](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/shared-answers-journal-320-dark.png) | [Concealed and navigable](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/diary-sensitive-320-dark-concealed.png) |
 
-[Canonical detail retains its shared-happiness label](shared-answers-detail-390-dark.png).
+[Canonical detail retains its shared-happiness label](https://github.com/baerenmarke90/eimir/blob/1cfdacdf13122530fdcf2f6850c45a9f4dd6a7de/docs/product/design/references/1653-diary-preview/shared-answers-detail-390-dark.png).

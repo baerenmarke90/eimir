@@ -1,6 +1,6 @@
 const dailyQuote = {
   kicker: 'Euer Impuls',
-  title: 'Zitat des Tages',
+  title: 'Ein Gedanke für heute',
   pro: 'Pro',
   loading: 'Dein Zitat für heute wird geladen …',
   discovery: 'Ein kleiner täglicher Impuls, der zu dir passt.',
@@ -12,13 +12,13 @@ const dailyQuote = {
     'Offline – dein Zitat des Tages wird nach dem Verbinden wieder angezeigt.',
   retry: 'Erneut versuchen',
   settingsAria: 'Deine Einstellungen für das Zitat des Tages öffnen',
-  settingsTitle: 'Zitat des Tages',
+  settingsTitle: 'Ein Gedanke für heute',
   selectionAction: 'Rubriken und Quellen',
   settingsIntro:
     'Blende deinen persönlichen täglichen Impuls auf „Wir“ ein oder aus. Rubriken und Quellen bleiben gespeichert.',
   settingsLoading: 'Deine Zitat-Einstellung wird geladen …',
   settingsSaved: 'Gespeichert.',
-  enabledLabel: 'Zitat des Tages anzeigen',
+  enabledLabel: 'Ein Gedanke für heute anzeigen',
   enabledDescription:
     'Wenn du es ausschaltest, verschwindet die Karte auf „Wir“. Deine Auswahl bleibt gespeichert.',
   enabledSettingsDescription:

@@ -29,18 +29,18 @@ const m5s5 = {
     retrospectiveEmpty:
       'Hier erscheint eine gemeinsame Erinnerung, sobald es etwas Passendes gibt.',
     upcomingKicker: 'Euer Ausblick',
-    upcomingTitle: 'Demnächst',
+    upcomingTitle: 'Was bei euch ansteht',
     upcomingEmpty: 'Gerade steht nichts Gemeinsames bevor.',
-    pinnedCollectionSettingsTitle: 'Angeheftete Liste',
+    pinnedCollectionSettingsTitle: 'Eure Liste',
     recentKicker: 'Aktivitäten',
-    recentTitle: 'Zuletzt bei euch',
+    recentTitle: 'Neues bei euch',
     allActivityAction: 'Alle Aktivitäten ansehen',
     recentEmpty: 'Noch keine gemeinsamen Einträge vorhanden.',
     storySummaryKicker: 'Was schon zu euch gehört',
-    storySummaryTitle: 'Eure Geschichte',
+    storySummaryTitle: 'Eure Geschichte in Zahlen',
     storySummaryIntro:
       'Hier könnt ihr einzelne Spuren wiederfinden und weiterblättern.',
-    storySummarySettingsTitle: 'Geschichte in Zahlen',
+    storySummarySettingsTitle: 'Eure Geschichte in Zahlen',
     storySummaryMemories: 'Momente',
     storySummaryMemoriesCount_one: '{{count}} Moment',
     storySummaryMemoriesCount_other: '{{count}} Momente',
@@ -55,7 +55,7 @@ const m5s5 = {
   },
   today: {
     roles: {
-      hero: 'Paar-Präsenz',
+      hero: 'Ihr beide',
       relationshipSignal: 'Bei euch passiert',
       sharedContent: 'Aktivitäten',
       editorial: 'Rückblick',
@@ -71,11 +71,11 @@ const m5s5 = {
       sharedTextContext: 'Von euch festgehalten',
     },
     upcoming: {
-      allAction: 'Alle anzeigen',
+      allAction: 'Pläne ansehen',
       allAriaLabel: 'Alle gemeinsamen Termine ansehen',
     },
     recent: {
-      allAction: 'Alle anzeigen',
+      allAction: 'Alle Aktivitäten',
     },
     pinnedCollection: {
       kicker: 'Gemeinsame Liste',
@@ -102,19 +102,19 @@ const m5s5 = {
     living: {
       kicker: 'Gerade bei euch',
       wishLabel: 'Einer eurer Wünsche',
-      wishAction: 'Zum Wunsch',
+      wishAction: 'Wunsch ansehen',
       planLabel: 'Einer eurer Pläne',
-      planAction: 'Zum Plan',
+      planAction: 'Plan ansehen',
       milestoneLabel: 'Ein gemeinsamer Meilenstein',
-      milestoneAction: 'Ansehen',
-      retrospectiveLabel: 'Weißt du noch?',
+      milestoneAction: 'Meilenstein ansehen',
+      retrospectiveLabel: 'Erinnert ihr euch?',
       retrospectiveAction: 'Erinnerung ansehen',
       retrospectiveDismissToday: 'Für heute ausblenden',
       retrospectiveDismissed: 'Rückblick für heute ausgeblendet',
     },
     monthly: {
-      title: 'Diesen Monat',
-      allAction: 'Alle anzeigen',
+      title: 'Euer Monat',
+      allAction: 'Momente ansehen',
       allAriaLabel: 'Alle gemeinsamen Momente ansehen',
     },
     relationshipSignal: {

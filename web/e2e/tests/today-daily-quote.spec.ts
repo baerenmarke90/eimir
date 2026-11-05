@@ -638,7 +638,7 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
 
 test('personal visibility hides the Wir card and Settings -> Wir restores it', async ({
   page,
-}) => {
+}, testInfo) => {
   const requests = await installMocks(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
@@ -682,6 +682,27 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
   await expect(settingsToggle).toBeChecked();
   expect(requests.patches.at(-1)?.body).toEqual({ enabled: true });
 
+  for (const [width, theme, large] of [
+    [390, 'light', false],
+    [320, 'dark', true],
+  ] as const) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme });
+    await page.evaluate((largeText) => {
+      document.documentElement.style.fontSize = largeText ? '200%' : '100%';
+    }, large);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.locator('#settings-dashboard').screenshot({
+      path: testInfo.outputPath(`wir-wording-settings-${width}-${theme}.png`),
+    });
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '100%';
+  });
   await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByText('A calm thought for today.')).toBeVisible();

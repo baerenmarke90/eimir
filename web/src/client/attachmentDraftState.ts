@@ -15,6 +15,7 @@ export interface AttachmentDraft {
   attachmentId?: string;
   hasThumbnail?: boolean;
   durationSeconds?: number | null;
+  processing?: boolean;
   isSensitive?: boolean;
   error?: string;
 }
@@ -36,6 +37,7 @@ export type AttachmentDraftAction =
       attachmentId: string;
       hasThumbnail?: boolean;
       durationSeconds?: number | null;
+      processing?: boolean;
     }
   | {
       type: 'failed';
@@ -116,6 +118,7 @@ export function attachmentDraftReducer(
           attachmentId: action.attachmentId,
           hasThumbnail: action.hasThumbnail,
           durationSeconds: action.durationSeconds,
+          processing: action.processing,
           error: undefined,
         }),
       );

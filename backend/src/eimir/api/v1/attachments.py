@@ -122,6 +122,7 @@ class AttachmentSummary(ApiModel):
 
     id: UUID
     status: str
+    failure_code: str | None = None
     media_type: MediaType
     mime_type: str | None
     size: int | None

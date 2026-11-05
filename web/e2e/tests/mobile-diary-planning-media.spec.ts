@@ -1,0 +1,491 @@
+import fixtures from '../fixtures/locales/de';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import de from '../../src/i18n/locales/de';
+import copy from '../../src/i18n/locales/m5s3';
+import tagCopy from '../../src/i18n/locales/contextTags';
+import photoCopy from '../../src/i18n/locales/photoSources';
+import placeCopy from '../../src/i18n/locales/photoPlaces';
+import storyCopy from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import {
+  ACCOUNT_ID,
+  SPACE_ID,
+  ME,
+  CAPABILITIES,
+  getTimelineItems,
+  installMocks,
+  signIn,
+  captureScreenshot,
+} from '../support/storyTimelineFixture';
+
+const base = `/api/v1/spaces/${SPACE_ID}`;
+const picture = readFileSync(
+  fileURLToPath(
+    new URL(
+      '../../../backend/demo_assets/images/lake-sunrise.jpg',
+      import.meta.url,
+    ),
+  ),
+);
+const attachment = (id = 'photo-one') => ({
+  id,
+  status: 'READY',
+  mediaType: 'IMAGE',
+  mimeType: 'image/jpeg',
+  size: picture.length,
+  width: 1200,
+  height: 800,
+  hasThumbnail: true,
+  isSensitive: false,
+  durationSeconds: null,
+  position: 0,
+});
+const fields = {
+  spaceId: SPACE_ID,
+  createdBy: ACCOUNT_ID,
+  creator: ME,
+  createdAt: '2026-05-12T08:30:00Z',
+  updatedAt: '2026-05-12T08:30:00Z',
+  version: 1,
+  capabilities: CAPABILITIES,
+};
+const place = {
+  ...fields,
+  id: 'garden',
+  name: fixtures.planningFollowup.place,
+  address: fixtures.planningFollowup.address,
+  latitude: 52.5,
+  longitude: 13.4,
+};
+const chapter = {
+  id: 'long-chapter',
+  title: fixtures.planningFollowup.chapter,
+  startOn: '2024-02-02',
+  endOn: '2026-10-31',
+};
+
+async function fixture(page: Page) {
+  await page.addInitScript(
+    ({ accountId, spaceId }) =>
+      localStorage.setItem(
+        `eimir:product-tour:v1:${accountId}:${spaceId}`,
+        'seen',
+      ),
+    { accountId: ACCOUNT_ID, spaceId: SPACE_ID },
+  );
+  const unknown = await installMocks(page, { strict: true });
+  const wishes: Array<Record<string, unknown>> = [];
+  const plans: Array<Record<string, unknown>> = [];
+  let placeCreates = 0;
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    const json = (body: unknown, status = 200) =>
+      route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+    if (path === `${base}/context-tag-suggestions`)
+      return json({
+        learned: [
+          ...new Set(
+            [...wishes, ...plans].flatMap(
+              (item) => (item.tags as string[]) ?? [],
+            ),
+          ),
+        ],
+        proposed: [],
+      });
+    if (await fulfillDefaultProductContext(route)) return;
+    if (path === `${base}/places`) {
+      if (request.method() === 'POST') placeCreates++;
+      return json({ items: [place], nextCursor: null, hasMore: false });
+    }
+    if (path === `${base}/places/garden`) return json(place);
+    for (const [kind, values] of [
+      ['wishes', wishes],
+      ['plans', plans],
+    ] as const) {
+      if (path === `${base}/${kind}`) {
+        if (request.method() === 'POST') {
+          const body = request.postDataJSON();
+          const item = {
+            ...fields,
+            id: `${kind}-new`,
+            status: kind === 'plans' ? 'IDEA' : 'OPEN',
+            description: null,
+            plannedOn: null,
+            plannedStart: null,
+            plannedEnd: null,
+            experiencedOn: null,
+            sourceWishId: null,
+            placeId: null,
+            anticipationEnabled: false,
+            ...body,
+            attachments:
+              body.attachments?.map(
+                (entry: { attachmentId: string; position: number }) => ({
+                  ...attachment(entry.attachmentId),
+                  position: entry.position,
+                }),
+              ) ?? [],
+          };
+          values.push(item);
+          return json(item, 201);
+        }
+        return json({ items: values, nextCursor: null, hasMore: false });
+      }
+      const item = values.find((item) => path === `${base}/${kind}/${item.id}`);
+      if (item) return json(item);
+    }
+    if (path === `${base}/timeline`) {
+      const items =
+        url.searchParams.get('year') === '2025'
+          ? []
+          : getTimelineItems().map((item) =>
+              item.kind === 'MEMORY' && item.memory?.id === 'mem-canal'
+                ? {
+                    ...item,
+                    memory: {
+                      ...item.memory,
+                      places: [{ id: place.id, name: place.name }],
+                    },
+                  }
+                : item,
+            );
+      return json({
+        items,
+        nextCursor: null,
+        hasMore: false,
+        availableYears: [2026, 2025, 2024],
+        chapterMarkers: [],
+        chapterPeriods: [chapter],
+      });
+    }
+    if (path === `${base}/memories/mem-canal`)
+      return json({
+        ...fields,
+        id: 'mem-canal',
+        authorId: ACCOUNT_ID,
+        author: ME,
+        title: fixtures.planningFollowup.memory,
+        body: fixtures.planningFollowup.body,
+        tags: [],
+        happenedOn: '2026-05-12',
+        happenedUntil: null,
+        placeIds: [],
+        attachments: [
+          attachment(),
+          { ...attachment('photo-two'), position: 1 },
+        ],
+      });
+    if (path === `${base}/attachments` && request.method() === 'POST')
+      return json(
+        {
+          attachment: { ...attachment(), version: 1 },
+          method: 'STREAM',
+          requiredHeaders: {},
+          uploadUrl: `${base}/attachments/photo-one/content`,
+        },
+        201,
+      );
+    if (path.includes('/attachments/')) {
+      if (path.endsWith('/content') && request.method() === 'PUT')
+        return route.fulfill({ status: 204 });
+      if (path.endsWith('/read-access'))
+        return json({
+          method: 'STREAM',
+          url: `${base}/attachments/photo-one/content`,
+          mediaType: 'IMAGE',
+        });
+      if (path.endsWith('/content'))
+        return route.fulfill({ contentType: 'image/jpeg', body: picture });
+      return json({ ...attachment(), version: 1 });
+    }
+    return route.fallback();
+  });
+  return { unknown, placeCreates: () => placeCreates };
+}
+
+test.use({ hasTouch: true });
+for (const view of [
+  { width: 360, theme: 'light', scale: 1 },
+  { width: 390, theme: 'dark', scale: 1 },
+  { width: 430, theme: 'light', scale: 1 },
+  { width: 1280, theme: 'dark', scale: 1 },
+  { width: 320, theme: 'dark', scale: 2 },
+] as const) {
+  test(`shared tags, native picker and saved Plan place at ${view.width} ${view.theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: 'reduce',
+    });
+    const state = await fixture(page);
+    await signIn(page);
+    await page.goto('/plan/wishes/new');
+    await page
+      .getByLabel(copy.wish.intentionLabel)
+      .fill(fixtures.planningFollowup.wishNew);
+    await page.getByLabel(tagCopy.newLabel).fill(fixtures.planningFollowup.tag);
+    await page
+      .getByRole('button', { name: copy.common.save, exact: true })
+      .click();
+    await expect(page.locator('.memory-tag-summary')).toContainText(
+      fixtures.planningFollowup.tag,
+    );
+    await page.goto('/plan/plans/new');
+    if (view.scale === 2)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await page
+      .getByLabel(copy.plan.intentionLabel)
+      .fill(fixtures.planningFollowup.planNew);
+    await page.getByText(tagCopy.suggestions, { exact: true }).click();
+    await page
+      .getByRole('checkbox', {
+        name: fixtures.planningFollowup.tag,
+        exact: true,
+      })
+      .check();
+    await page
+      .getByRole('button', { name: copy.common.place, exact: true })
+      .click();
+    const picker = page.getByRole('dialog');
+    await picker.getByLabel(placeCopy.savedSearch).fill('Garten');
+    await picker
+      .getByRole('button', {
+        name: new RegExp(fixtures.planningFollowup.place),
+      })
+      .click();
+    await expect(picker).not.toBeVisible();
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page
+      .getByRole('button', { name: photoCopy.addMedia, exact: true })
+      .click();
+    const chooser = await chooserPromise;
+    await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
+    await chooser.setFiles({
+      name: 'lake.jpg',
+      mimeType: 'image/jpeg',
+      buffer: picture,
+    });
+    const tile = page.locator('.photo-draft-tile');
+    await expect(tile).toHaveAttribute(
+      'aria-label',
+      new RegExp(de.memory.photoReady),
+    );
+    await tile.click();
+    const preview = page.getByRole('dialog');
+    await expect(
+      preview.locator('.photo-draft-large-preview img'),
+    ).toBeVisible();
+    await preview
+      .getByRole('button', { name: storyCopy.gallery.done, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: copy.common.save, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/plan\/plans\/plans-new$/);
+    await expect(page.locator('.planen-detail-when-where')).toContainText(
+      place.name,
+    );
+    await expect(page.locator('.memory-tag-summary')).toContainText(
+      fixtures.planningFollowup.tag,
+    );
+    expect(state.placeCreates()).toBe(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await captureScreenshot(
+      page,
+      info,
+      `followup-plan-${view.width}-${view.theme}.png`,
+      { fullPage: true },
+    );
+    expect(state.unknown).toEqual([]);
+  });
+
+  test(`Diary period, floating month, grouped More and touch gallery at ${view.width} ${view.theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: 'reduce',
+    });
+    const state = await fixture(page);
+    await signIn(page);
+    await page.goto('/story');
+    if (view.scale === 2)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await page
+      .getByRole('tab', { name: de.story.tabTimeline, exact: true })
+      .click();
+    await expect(page.locator('.story-card-place').first()).toContainText(
+      place.name,
+    );
+    const header = page.locator('.story-year-month-header').first();
+    await expect(header).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(header).toHaveCSS('position', 'sticky');
+    await expect(page.locator('.diary-chapter-periods').first()).toContainText(
+      chapter.title,
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `followup-diary-${view.width}-${view.theme}.png`,
+      { fullPage: true },
+    );
+    await page.goto('/story/years/2025');
+    await expect(page.locator('.diary-chapter-periods')).toContainText(
+      chapter.title,
+    );
+    await expect(page.locator('.story-timeline-item')).toHaveCount(0);
+    await page.goto('/more');
+    for (const label of [
+      de.more.groups.moments,
+      de.more.groups.shared,
+      de.more.groups.utility,
+    ])
+      await expect(
+        page.getByRole('heading', { name: label, exact: true }),
+      ).toBeVisible();
+    const momentGroup = page.locator('.more-group').filter({
+      has: page.getByRole('heading', {
+        name: de.more.groups.moments,
+        exact: true,
+      }),
+    });
+    expect(
+      await momentGroup
+        .locator('.more-destination-title-row strong')
+        .allTextContents(),
+    ).toEqual([
+      de.more.destinations.photos,
+      de.more.destinations.chapters,
+      de.more.destinations.years,
+      de.more.destinations.recaps,
+      de.more.destinations.insights,
+    ]);
+    await captureScreenshot(
+      page,
+      info,
+      `followup-more-${view.width}-${view.theme}.png`,
+      { fullPage: true },
+    );
+    await page.goto('/story/memories/mem-canal');
+    await page
+      .locator('.media-gallery-carousel-slide:not(.is-clone)')
+      .first()
+      .click();
+    const gallery = page.getByRole('dialog', {
+      name: storyCopy.gallery.dialogAria,
+    });
+    await expect(
+      gallery.getByRole('button', { name: storyCopy.gallery.close }),
+    ).toHaveText(storyCopy.gallery.done);
+    expect(
+      await gallery
+        .locator('.media-lightbox-nav')
+        .first()
+        .evaluate((node) => node.getBoundingClientRect().width),
+    ).toBeLessThanOrEqual(1);
+    await gallery
+      .locator('.media-lightbox-track')
+      .evaluate((node) =>
+        node.scrollBy({ left: node.clientWidth, behavior: 'instant' }),
+      );
+    await expect(gallery.locator('.media-lightbox-counter')).toContainText(
+      fixtures.planningFollowup.twoOfTwo,
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `followup-gallery-${view.width}-${view.theme}.png`,
+    );
+    await gallery
+      .getByRole('button', { name: storyCopy.gallery.close })
+      .click();
+    await expect(gallery).toHaveCount(0);
+    expect(state.unknown).toEqual([]);
+  });
+}
+
+test('late account metadata preserves the selected Space and a recoverable Memory draft', async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await signIn(page);
+  await expect(
+    page.getByRole('heading', { name: de.story.timelineTitle, exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    const raw = sessionStorage.getItem('eimir-session-v1');
+    if (!raw) throw new Error('Authenticated session is unavailable');
+    const session = JSON.parse(raw);
+    session.spaceId = null;
+    sessionStorage.setItem('eimir-session-v1', JSON.stringify(session));
+  });
+  let release!: () => void;
+  const metadata = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const verifiedName = `${ME.displayName} verified`;
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await metadata;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ ...ME, displayName: verifiedName }),
+    });
+  });
+  await page.goto('/story/memories/new');
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill(fixtures.planningFollowup.wishNew);
+  await expect(page.locator('.memory-draft-status')).toHaveText(
+    de.memory.diary.draft.saved,
+  );
+  const epoch = await page.evaluate(() =>
+    localStorage.getItem('eimir-memory-drafts-epoch-v1'),
+  );
+  release();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = sessionStorage.getItem('eimir-session-v1');
+        if (!raw) throw new Error('Authenticated session is unavailable');
+        return JSON.parse(raw).account.displayName;
+      }),
+    )
+    .toBe(verifiedName);
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem('eimir-memory-drafts-epoch-v1'),
+    ),
+  ).toBe(epoch);
+  expect(
+    await page.evaluate(() => {
+      const raw = sessionStorage.getItem('eimir-session-v1');
+      if (!raw) throw new Error('Authenticated session is unavailable');
+      return JSON.parse(raw).spaceId;
+    }),
+  ).toBe(SPACE_ID);
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toHaveValue(fixtures.planningFollowup.wishNew);
+  expect(state.unknown).toEqual([]);
+});

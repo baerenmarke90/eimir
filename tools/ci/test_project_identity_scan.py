@@ -155,6 +155,31 @@ class ProjectIdentityScanTest(unittest.TestCase):
             with self.subTest(path=candidate, match=match):
                 self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
 
+    def test_planning_prompts_preserve_only_their_exact_layout_provenance(self) -> None:
+        root = Path("docs/product/design/references/planning-search-private-profile")
+        for path, line in (
+            (
+                root / "prompt.txt",
+                "Four complete flat smartphone screen compositions, each 390 CSS pixels wide, "
+                "side by side, no device bezels.",
+            ),
+            (root / "follow-up-prompts.txt", "THREE complete smartphone app screens side by side."),
+            (root / "follow-up-prompts.txt", "THREE complete smartphone screens side by side."),
+        ):
+            with self.subTest(path=path, line=line):
+                self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+                for candidate, text, match in (
+                    (path, "Use side by side branding.", "side by side"),
+                    (path, line + " Use SideBySide branding.", "SideBySide"),
+                    (path, line + " Use side by side branding.", "side by side"),
+                    (root / "other-prompt.txt", line, "side by side"),
+                    (Path("backend/src/example.py"), line, "side by side"),
+                ):
+                    with self.subTest(candidate=candidate, match=match):
+                        self.assertEqual(
+                            classify(candidate, text, match)[0], Classification.MUST_RENAME
+                        )
+
     def test_required_patterns_are_case_insensitive_and_complete(self) -> None:
         samples = (
             "SideBySide-Next",

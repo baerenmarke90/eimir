@@ -13,6 +13,41 @@
 }
 .photo-draft-grid > li {
   min-inline-size: 0;
+  position: relative;
+}
+.photo-draft-drag-handle {
+  position: absolute;
+  inset: auto var(--space-1) var(--space-1) auto;
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  touch-action: none;
+  cursor: grab;
+}
+.photo-draft-item.is-dragging {
+  z-index: 3;
+}
+.photo-draft-large-preview {
+  display: grid;
+  place-items: center;
+  min-inline-size: 0;
+  max-block-size: 60svh;
+  overflow: hidden;
+}
+.photo-draft-large-preview img,
+.photo-draft-large-preview > * {
+  max-inline-size: 100%;
+  max-block-size: 60svh;
+  object-fit: contain;
+}
+.photo-draft-preview-sheet .short-task-sheet-close-icon {
+  display: none;
+}
+.photo-draft-preview-sheet .photo-draft-inspector {
+  background: transparent;
+  padding-inline: 0;
 }
 .photo-draft-tile {
   display: block;
@@ -121,5 +156,11 @@
 @media (prefers-reduced-motion: reduce) {
   .photo-draft-tile {
     transition: none;
+  }
+}
+
+@media (min-width: 840px) {
+  .photo-draft-preview-sheet .short-task-sheet-header {
+    display: none;
   }
 }

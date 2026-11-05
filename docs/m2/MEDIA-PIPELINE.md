@@ -232,6 +232,24 @@ Account B requests Attachment X
 - URL is not stored in Analytics, logs, Referrer, or persistent client caches.
 - After Membership/Privacy revocation, an already issued URL may technically remain valid only until TTL expiry; this bounded residual period is an accepted M2 adapter trade-off and is minimized to 5 minutes.
 
+## Finalized video binding extension (#1655)
+
+The PO-approved asynchronous intake narrowly extends READY-only parent binding:
+a fully uploaded, finalized VIDEO in VALIDATING or FAILED may be bound to a
+Memory/HeartMoment. Unbound admission expires sixty minutes after upload;
+PENDING/UPLOADING videos and non-READY images remain ineligible. Status never
+grants content/playback access: only validated READY media are readable.
+Declared video bytes reserve gallery capacity until final publication, when the
+worker rechecks the whole gallery under the canonical parent lock. Immutable
+upload identity and deletion barriers fence publication while annotation changes
+preserve the latest protected values. See [video operations](../operations/video-uploads.md).
+
+A bound failure keeps explicit metadata for replacement while unvalidated raw
+bytes retain the existing 24-hour cleanup bound. Its uploader receives at most
+one failure outcome targeting the currently authorized parent. No success event
+or shared partner notification is added. All other READY-only rules below retain
+their existing meaning.
+
 ## 10. READY binding window
 
 After successful validation an Attachment may temporarily be `READY` and still unbound so Upload and parent mutation remain decoupled.

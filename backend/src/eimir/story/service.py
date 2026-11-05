@@ -37,9 +37,11 @@ from sqlalchemy.orm import Session
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.authorization.guard import absence_of
 from eimir.chapters.models import Chapter
+from eimir.core import clock
 from eimir.core import cursor as cursor_codec
 from eimir.core.ids import parse_id
 from eimir.heart_moments.models import HeartMoment
+from eimir.identity.models import Account
 from eimir.memories import experiences
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
@@ -487,6 +489,11 @@ def _kind_of_rank(rank: int) -> StoryKind:
     raise RuntimeError(f"Unknown story kind rank: {rank}")
 
 
+def viewer_today(session: Session, context: AuthorizationContext) -> date:
+    zone = session.scalar(select(Account.timezone).where(Account.id == context.account_id))
+    return clock.today_in(zone or "UTC")
+
+
 def read_available_years(
     session: Session,
     context: AuthorizationContext,
@@ -519,10 +526,14 @@ def read_available_years(
         )
     if include_chapters and not kinds:
         start_year = cast(func.extract("year", Chapter.start_on), Integer)
+        end_year = cast(func.extract("year", Chapter.end_on), Integer)
+        through_year = func.greatest(
+            start_year, func.coalesce(end_year, viewer_today(session, context).year)
+        )
         legs.append(
             readable(Chapter, context)
             .where(Chapter.start_on.is_not(None))
-            .with_only_columns(start_year.label("first"), start_year.label("last"))
+            .with_only_columns(start_year.label("first"), through_year.label("last"))
         )
     combined = union_all(*legs).subquery("story_years")
     rows = session.execute(select(combined.c.first, combined.c.last).distinct()).all()

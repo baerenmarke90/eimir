@@ -257,21 +257,80 @@
   pointer-events: none;
 }
 
+/* Keep localized controls separate as text grows; each keeps its full target. */
+.media-lightbox-actions {
+  position: absolute;
+  z-index: 5;
+  inset: var(--space-3) var(--space-3) auto;
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-start;
+  pointer-events: none;
+}
+.media-lightbox-actions > button {
+  pointer-events: auto;
+}
+.media-lightbox-actions > .sensitive-media-control {
+  position: static;
+  max-inline-size: 100%;
+  margin: 0;
+  border: 0;
+  flex: 0 1 auto;
+}
+.media-lightbox-actions .sensitive-media-control-copy > span,
+.media-lightbox-actions .sensitive-media-control-copy::after {
+  overflow-wrap: break-word;
+}
+.media-lightbox-actions > .media-lightbox-close {
+  position: static;
+  flex: 0 0 auto;
+}
+
 .media-lightbox-close {
   position: absolute;
   z-index: 4;
   top: var(--space-3);
   right: var(--space-3);
-  width: 2.5rem;
+  width: auto;
   height: 2.5rem;
   display: grid;
   place-items: center;
   border: 0;
   border-radius: var(--radius-pill);
-  padding: 0;
-  font-size: 1.55rem;
+  padding-inline: var(--space-3);
+  font: var(--font-action-label);
   line-height: 1;
   transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+
+.media-processing-state .eimir-icon {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+
+.media-processing-state {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-inline-size: 0;
+  block-size: 100%;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.media-processing-state-compact {
+  padding: var(--space-2);
+  gap: var(--space-1);
+}
+.media-processing-state-compact .eimir-icon {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
 }
 
 .media-lightbox-nav {
@@ -440,14 +499,6 @@
   right: auto;
   bottom: auto;
 }
-.media-lightbox-stage.is-video .sensitive-media-control {
-  top: calc(var(--space-3) + var(--space-12) + var(--space-2));
-  right: var(--space-3);
-  bottom: auto;
-  left: auto;
-  max-width: calc(100% - var(--space-3) - var(--space-3));
-  transform: none;
-}
 .video-upload-action {
   display: grid;
   gap: var(--space-2);
@@ -461,4 +512,35 @@
 .media-gallery-carousel-slide .sensitive-media-label {
   position: absolute;
   inset: var(--space-3) var(--space-3) auto auto;
+}
+
+/* Native swipes own touch browsing. Keep precision controls reachable by
+ * keyboard and assistive technology without permanent overlaid arrows. */
+@media (max-width: 839px), (hover: none), (pointer: coarse) {
+  .media-lightbox button.media-lightbox-nav,
+  .media-gallery-carousel button.media-gallery-carousel-nav,
+  .media-lightbox-footer-nav {
+    display: block;
+    position: absolute;
+    min-inline-size: 0;
+    min-block-size: 0;
+    max-inline-size: 1px;
+    max-block-size: 1px;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .media-lightbox button.media-lightbox-nav:focus-visible,
+  .media-gallery-carousel button.media-gallery-carousel-nav:focus-visible,
+  .media-lightbox-footer-nav:focus-within {
+    max-inline-size: none;
+    max-block-size: none;
+    min-inline-size: var(--touch-target-web);
+    min-block-size: var(--touch-target-web);
+    inline-size: auto;
+    block-size: auto;
+    clip-path: none;
+    overflow: visible;
+  }
 }

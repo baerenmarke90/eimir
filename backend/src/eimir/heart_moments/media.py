@@ -72,6 +72,7 @@ def replace(
             space_id=context.space_id,
             account_id=candidate.owner_id if existing and candidate else context.account_id,
             already_bound=existing,
+            allow_submitted_video=True,
         )
         binding.ensure_unlinked(session, identifier, allow=("HEART_MOMENT", moment.id))
         selected.append(candidate)
@@ -108,6 +109,10 @@ def replace(
     for identifier in previous - set(ids):
         attachments.mark_for_deletion(session, locked[identifier])
     photo_locations.bind(session, context, moment, selected, heart=True)
+    session.flush()
+    for candidate in selected:
+        if candidate.id not in previous:
+            binding.notify_video_failure(session, candidate)
 
 
 def replace_primary(

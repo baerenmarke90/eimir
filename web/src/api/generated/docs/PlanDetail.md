@@ -24,6 +24,7 @@ Name | Type
 `sourceWishId` | string
 `spaceId` | string
 `status` | [PlanStatus](PlanStatus.md)
+`tags` | Array&lt;string&gt;
 `title` | string
 `updatedAt` | Date
 `version` | number
@@ -53,6 +54,7 @@ const example = {
   "sourceWishId": null,
   "spaceId": null,
   "status": null,
+  "tags": null,
   "title": null,
   "updatedAt": null,
   "version": null,

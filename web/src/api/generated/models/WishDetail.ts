@@ -85,6 +85,12 @@ export interface WishDetail {
     status: WishStatus;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof WishDetail
+     */
+    tags?: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof WishDetail
      */
@@ -139,6 +145,7 @@ export function WishDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'id': json['id'],
         'spaceId': json['spaceId'],
         'status': WishStatusFromJSON(json['status']),
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
@@ -163,6 +170,7 @@ export function WishDetailToJSONTyped(value?: WishDetail | null, ignoreDiscrimin
         'id': value['id'],
         'spaceId': value['spaceId'],
         'status': WishStatusToJSON(value['status']),
+        'tags': value['tags'],
         'title': value['title'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],

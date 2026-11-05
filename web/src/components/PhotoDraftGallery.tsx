@@ -1,10 +1,15 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
 import { useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import './PhotoDraftGallery.css';
-import { PhotoArrangeTask } from './PhotoArrangeTask';
+import { ShortTaskSheet } from './ShortTaskSheet';
+import {
+  PhotoDraftSorting,
+  SortablePhotoDraftItem,
+  insertMedia,
+} from './PhotoDraftSorting';
 
 export interface PhotoDraftGalleryItem {
   key: string;
@@ -13,6 +18,7 @@ export interface PhotoDraftGalleryItem {
   isSensitive: boolean;
   draft?: AttachmentDraft;
   mediaType?: 'IMAGE' | 'VIDEO';
+  status?: string;
   canRemove?: boolean;
   canEditSensitivity?: boolean;
 }
@@ -42,9 +48,10 @@ export function PhotoDraftGallery({
   removeLabel?: (key: string) => string;
 }) {
   const { t } = useTranslation();
+  const doneRef = useRef<HTMLButtonElement>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [arranging, setArranging] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const selected = items.find((item) => item.key === selectedKey) ?? items[0];
   if (!selected) return null;
@@ -75,6 +82,9 @@ export function PhotoDraftGallery({
     );
   }
   function status(item: PhotoDraftGalleryItem) {
+    if (item.status === 'PROCESSING') return t('video.processing');
+    if (item.status === 'FAILED') return t('video.savedFailed');
+    if (item.draft?.processing) return t('video.processing');
     if (item.draft && selectedPhotoUnavailable(item.draft.file))
       return t(
         isVideo(item) && item.draft.status !== 'ready'
@@ -99,80 +109,86 @@ export function PhotoDraftGallery({
   }
   return (
     <div className="photo-draft-gallery">
-      {onOrderChange && items.length > 1 ? (
-        <button
-          type="button"
-          className="secondary"
-          disabled={disabled}
-          onClick={() => setArranging(true)}
-        >
-          {t('experiences.arrange')}
-        </button>
-      ) : null}
-      {arranging && onOrderChange ? (
-        <PhotoArrangeTask
-          items={items}
-          onFinish={onOrderChange}
-          onClose={() => setArranging(false)}
-        />
-      ) : null}
-      <ol
-        className="photo-draft-grid"
-        aria-label={t(mixed ? 'video.selected' : 'memory.photoDraftsAria')}
+      <PhotoDraftSorting
+        onMove={(key, target) => {
+          if (!disabled)
+            onOrderChange?.(
+              insertMedia(
+                items.map((item) => item.key),
+                key,
+                target,
+              ),
+            );
+        }}
       >
-        {visibleItems.map((item, position) => (
-          <li key={item.key}>
-            <button
-              type="button"
-              className="photo-draft-tile"
+        <ol
+          className="photo-draft-grid"
+          aria-label={t(mixed ? 'video.selected' : 'memory.photoDraftsAria')}
+        >
+          {visibleItems.map((item, position) => (
+            <SortablePhotoDraftItem
+              key={item.key}
+              id={item.key}
+              index={position}
+              name={item.name}
               disabled={disabled}
-              aria-pressed={item.key === selected.key}
-              aria-label={t(
-                isVideo(item) ? 'video.selectItem' : 'memory.photoSelectItem',
-                {
-                  name: item.name,
-                  position: position + 1,
-                  count: items.length,
-                  status: status(item),
-                },
-              )}
-              onClick={() => setSelectedKey(item.key)}
+              reorderable={Boolean(onOrderChange && items.length > 1)}
             >
-              <span className="photo-draft-tile-preview">{item.preview}</span>
-              <span className="photo-draft-number" aria-hidden="true">
-                {position + 1}
-              </span>
-              {item.key === selected.key ? (
-                <span className="photo-draft-selected" aria-hidden="true">
-                  ✓
+              <button
+                type="button"
+                className="photo-draft-tile"
+                disabled={disabled}
+                aria-pressed={item.key === selected.key}
+                aria-label={t(
+                  isVideo(item) ? 'video.selectItem' : 'memory.photoSelectItem',
+                  {
+                    name: item.name,
+                    position: position + 1,
+                    count: items.length,
+                    status: status(item),
+                  },
+                )}
+                onClick={() => {
+                  setSelectedKey(item.key);
+                  setPreviewOpen(true);
+                }}
+              >
+                <span className="photo-draft-tile-preview">{item.preview}</span>
+                <span className="photo-draft-number" aria-hidden="true">
+                  {position + 1}
+                </span>
+                {item.key === selected.key ? (
+                  <span className="photo-draft-selected" aria-hidden="true">
+                    ✓
+                  </span>
+                ) : null}
+                {item.draft && item.draft.status !== 'ready' ? (
+                  <span
+                    className={`photo-draft-tile-status${item.draft.status === 'failed' ? ' is-failed' : ''}`}
+                    aria-hidden="true"
+                  >
+                    {item.draft.status === 'failed'
+                      ? t('memory.photoNeedsHelp')
+                      : item.draft.status === 'uploading'
+                        ? `${item.draft.progress}%`
+                        : t('memory.photoChecking')}
+                  </span>
+                ) : null}
+              </button>
+              {onSelectCover &&
+              item.key ===
+                (selectedCoverKey &&
+                items.some((entry) => entry.key === selectedCoverKey)
+                  ? selectedCoverKey
+                  : items[0].key) ? (
+                <span className="photo-draft-cover">
+                  {t('experiences.cover')}
                 </span>
               ) : null}
-              {item.draft && item.draft.status !== 'ready' ? (
-                <span
-                  className={`photo-draft-tile-status${item.draft.status === 'failed' ? ' is-failed' : ''}`}
-                  aria-hidden="true"
-                >
-                  {item.draft.status === 'failed'
-                    ? t('memory.photoNeedsHelp')
-                    : item.draft.status === 'uploading'
-                      ? `${item.draft.progress}%`
-                      : t('memory.photoChecking')}
-                </span>
-              ) : null}
-            </button>
-            {onSelectCover &&
-            item.key ===
-              (selectedCoverKey &&
-              items.some((entry) => entry.key === selectedCoverKey)
-                ? selectedCoverKey
-                : items[0].key) ? (
-              <span className="photo-draft-cover">
-                {t('experiences.cover')}
-              </span>
-            ) : null}
-          </li>
-        ))}
-      </ol>
+            </SortablePhotoDraftItem>
+          ))}
+        </ol>
+      </PhotoDraftSorting>
       {items.length > 6 ? (
         <button
           type="button"
@@ -212,142 +228,164 @@ export function PhotoDraftGallery({
             onClick={() => {
               if (items.indexOf(failed[0]) >= 6) setExpanded(true);
               setSelectedKey(failed[0].key);
+              setPreviewOpen(true);
             }}
           >
             {t('memory.photoReviewFailure')}
           </button>
         </div>
       ) : null}
-      <fieldset className="photo-draft-inspector">
-        <legend className="sr-only">
-          {t(isVideo(selected) ? 'video.selectedItem' : 'memory.photoSelected')}
-        </legend>
-        <div className="photo-draft-inspector-heading">
-          <strong>
-            {t(isVideo(selected) ? 'video.position' : 'memory.photoPosition', {
-              position: index + 1,
-              count: items.length,
-            })}
-          </strong>
-          <span className="photo-draft-filename">{selected.name}</span>
-        </div>
-        {onSelectCover ? (
-          <div className="field-group">
-            <button
-              type="button"
-              className="secondary"
+      <ShortTaskSheet
+        open={previewOpen}
+        title={t(
+          isVideo(selected) ? 'video.position' : 'memory.photoPosition',
+          { position: index + 1, count: items.length },
+        )}
+        onClose={() => setPreviewOpen(false)}
+        className="photo-draft-preview-sheet"
+        initialFocusRef={doneRef}
+        footer={
+          <button
+            type="button"
+            ref={doneRef}
+            className="secondary"
+            onClick={() => setPreviewOpen(false)}
+          >
+            {t('gallery.done')}
+          </button>
+        }
+      >
+        <div className="photo-draft-large-preview">{selected.preview}</div>
+        <fieldset className="photo-draft-inspector">
+          <legend className="sr-only">
+            {t(
+              isVideo(selected) ? 'video.selectedItem' : 'memory.photoSelected',
+            )}
+          </legend>
+          {draft ? (
+            <div className="photo-draft-inspector-heading">
+              <span className="photo-draft-filename">{selected.name}</span>
+            </div>
+          ) : null}
+          {onSelectCover ? (
+            <div className="field-group">
+              <button
+                type="button"
+                className="secondary"
+                disabled={disabled}
+                aria-pressed={selectedCoverKey === selected.key}
+                onClick={() => onSelectCover(selected.key)}
+              >
+                {t('experiences.chooseCover')}
+              </button>
+              <button
+                type="button"
+                className="tertiary"
+                disabled={disabled}
+                aria-pressed={!selectedCoverKey}
+                onClick={() => onSelectCover(null)}
+              >
+                {t('experiences.automaticCover')}
+              </button>
+            </div>
+          ) : null}
+          {onSensitive && selected.canEditSensitivity !== false ? (
+            <SensitiveMediaCheckbox
+              checked={selected.isSensitive}
               disabled={disabled}
-              aria-pressed={selectedCoverKey === selected.key}
-              onClick={() => onSelectCover(selected.key)}
-            >
-              {t('experiences.chooseCover')}
-            </button>
-            <button
-              type="button"
-              className="tertiary"
-              disabled={disabled}
-              aria-pressed={!selectedCoverKey}
-              onClick={() => onSelectCover(null)}
-            >
-              {t('experiences.automaticCover')}
-            </button>
-            <p className="field-help">{t('experiences.coverHelp')}</p>
-          </div>
-        ) : null}
-        {onSensitive && selected.canEditSensitivity !== false ? (
-          <SensitiveMediaCheckbox
-            checked={selected.isSensitive}
-            disabled={disabled}
-            onChange={(value) => onSensitive(selected.key, value)}
-          />
-        ) : null}
-        <span
-          className={`attachment-status attachment-status-${draft?.status ?? 'ready'}`}
-          role="status"
-        >
-          {status(selected)}
-        </span>
-        {draft?.status === 'uploading' || draft?.status === 'preparing' ? (
-          <progress
-            max={100}
-            value={draft.progress}
-            aria-label={t('upload.progress', { progress: draft.progress })}
-          />
-        ) : null}
-        {isVideo(selected) && pending ? (
-          <p className="field-help">{t('video.volatile')}</p>
-        ) : null}
-        {draft?.status === 'failed' ? (
-          <div className="photo-draft-error">
-            <p>{draft.error}</p>
-            {!unavailable ? (
-              <p>
-                {t(
-                  isVideo(selected)
-                    ? 'video.failedNotSaved'
-                    : 'memory.photoFailedNotSaved',
-                )}
-              </p>
+              onChange={(value) => onSensitive(selected.key, value)}
+            />
+          ) : null}
+          <span
+            className={`attachment-status attachment-status-${draft?.status ?? 'ready'}`}
+            role="status"
+          >
+            {status(selected)}
+          </span>
+          {draft?.status === 'uploading' || draft?.status === 'preparing' ? (
+            <progress
+              max={100}
+              value={draft.progress}
+              aria-label={t('upload.progress', { progress: draft.progress })}
+            />
+          ) : null}
+          {isVideo(selected) && pending ? (
+            <p className="field-help">{t('video.volatile')}</p>
+          ) : null}
+          {draft?.status === 'failed' ? (
+            <div className="photo-draft-error">
+              <p>{draft.error}</p>
+              {!unavailable ? (
+                <p>
+                  {t(
+                    isVideo(selected)
+                      ? 'video.failedNotSaved'
+                      : 'memory.photoFailedNotSaved',
+                  )}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="photo-draft-controls">
+            {onMove && items.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={disabled}
+                  aria-disabled={index === 0}
+                  aria-label={t('memory.photoMoveEarlier', {
+                    name: selected.name,
+                  })}
+                  onClick={() => move(-1)}
+                >
+                  {t('memory.photoEarlier')}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={disabled}
+                  aria-disabled={index === items.length - 1}
+                  aria-label={t('memory.photoMoveLater', {
+                    name: selected.name,
+                  })}
+                  onClick={() => move(1)}
+                >
+                  {t('memory.photoLater')}
+                </button>
+              </>
+            ) : null}
+            {draft?.status === 'failed' &&
+            onRetry &&
+            !(isVideo(selected) && unavailable) ? (
+              <button
+                type="button"
+                className="secondary"
+                disabled={disabled}
+                onClick={() => onRetry(selected.key)}
+              >
+                {t(unavailable ? 'memory.diary.photoRetry' : 'common.retry')}
+              </button>
+            ) : null}
+            {selected.canRemove !== false ? (
+              <button
+                type="button"
+                className="tertiary"
+                disabled={disabled}
+                onClick={() => {
+                  setSelectedKey(
+                    items[index + 1]?.key ?? items[index - 1]?.key ?? null,
+                  );
+                  onRemove(selected.key);
+                }}
+              >
+                {removeLabel?.(selected.key) ??
+                  t(pending ? 'upload.cancel' : 'memory.photoRemove')}
+              </button>
             ) : null}
           </div>
-        ) : null}
-        <div className="photo-draft-controls">
-          {onMove && items.length > 1 ? (
-            <>
-              <button
-                type="button"
-                className="secondary"
-                disabled={disabled}
-                aria-disabled={index === 0}
-                aria-label={t('memory.photoMoveEarlier', {
-                  name: selected.name,
-                })}
-                onClick={() => move(-1)}
-              >
-                {t('memory.photoEarlier')}
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                disabled={disabled}
-                aria-disabled={index === items.length - 1}
-                aria-label={t('memory.photoMoveLater', { name: selected.name })}
-                onClick={() => move(1)}
-              >
-                {t('memory.photoLater')}
-              </button>
-            </>
-          ) : null}
-          {draft?.status === 'failed' &&
-          onRetry &&
-          !(isVideo(selected) && unavailable) ? (
-            <button
-              type="button"
-              className="secondary"
-              disabled={disabled}
-              onClick={() => onRetry(selected.key)}
-            >
-              {t(unavailable ? 'memory.diary.photoRetry' : 'common.retry')}
-            </button>
-          ) : null}
-          {selected.canRemove !== false ? (
-            <button
-              type="button"
-              className="tertiary"
-              disabled={disabled}
-              onClick={() => {
-                setSelectedKey(
-                  items[index + 1]?.key ?? items[index - 1]?.key ?? null,
-                );
-                onRemove(selected.key);
-              }}
-            >
-              {removeLabel?.(selected.key) ??
-                t(pending ? 'upload.cancel' : 'memory.photoRemove')}
-            </button>
-          ) : null}
-        </div>
-      </fieldset>
+        </fieldset>
+      </ShortTaskSheet>
       <span className="sr-only" role="status" aria-live="polite">
         {announcement}
       </span>

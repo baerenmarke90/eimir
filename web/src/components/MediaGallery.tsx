@@ -1,3 +1,4 @@
+import { MediaProcessingState } from './MediaProcessingState';
 import {
   type ReactNode,
   useCallback,
@@ -46,6 +47,7 @@ export function GalleryExpandAction({
 }
 
 export interface GalleryMediaItem {
+  status?: string;
   id: string;
   mediaType: MediaTypeValue;
   isSensitive?: boolean;
@@ -62,7 +64,7 @@ export function MediaGallery({
   resourceScopeKey = 'gallery',
   renderPreviews,
   renderCaption,
-  dismissWithHistory = false,
+  dismissWithHistory = true,
   directSensitiveToggle = false,
   onPhotoLongPress,
   renderPhotoActions,
@@ -138,7 +140,11 @@ export function MediaGallery({
     activeIndex ?? (renderPreviews ? null : carouselIndex);
   const imageResourceIds = items
     .filter((item, index) => {
-      if (item.mediaType === MediaType.VIDEO) return false;
+      if (
+        item.mediaType === MediaType.VIDEO ||
+        (item.status && item.status !== 'READY')
+      )
+        return false;
       if (imageFocusIndex === null) return false;
       return [
         imageFocusIndex,
@@ -159,6 +165,7 @@ export function MediaGallery({
         .filter(
           (item, index) =>
             item.mediaType === MediaType.VIDEO &&
+            (!item.status || item.status === 'READY') &&
             (!item.isSensitive || reveals.isRevealed(item.id)) &&
             item.hasThumbnail !== false &&
             [
@@ -571,6 +578,8 @@ export function MediaGallery({
     className: string,
     activeVideo = false,
   ) {
+    if (item.status && item.status !== 'READY')
+      return <MediaProcessingState status={item.status} />;
     if (item.mediaType === MediaType.VIDEO) {
       const revealed =
         item.isSensitive === false || reveals.isRevealed(item.id);
@@ -613,6 +622,8 @@ export function MediaGallery({
   }
 
   function renderCarouselMedia(item: GalleryMediaItem) {
+    if (item.status && item.status !== 'READY')
+      return <MediaProcessingState status={item.status} />;
     if (item.mediaType === MediaType.VIDEO) return videoPoster(item);
     if (failed.has(item.id)) {
       return (
@@ -929,14 +940,6 @@ export function MediaGallery({
                     renderMedia(activeItem, 'media-lightbox-content', true)
                   )}
 
-                  {activeItem.isSensitive === true ? (
-                    <SensitiveMediaControl
-                      overlay
-                      video={activeItem.mediaType === MediaType.VIDEO}
-                      revealed={reveals.isRevealed(activeItem.id)}
-                      onToggle={() => reveals.toggle(activeItem.id)}
-                    />
-                  ) : null}
                   {items.length > 1 ? (
                     <span
                       className="media-lightbox-counter media-overlay"
@@ -949,15 +952,25 @@ export function MediaGallery({
                     </span>
                   ) : null}
 
-                  <button
-                    ref={closeButton}
-                    type="button"
-                    className="media-lightbox-close media-overlay"
-                    onClick={closeLightbox}
-                    aria-label={t('gallery.close')}
-                  >
-                    <span aria-hidden="true">×</span>
-                  </button>
+                  <div className="media-lightbox-actions">
+                    <button
+                      ref={closeButton}
+                      type="button"
+                      className="media-lightbox-close media-overlay"
+                      onClick={closeLightbox}
+                      aria-label={t('gallery.close')}
+                    >
+                      <span>{t('gallery.done')}</span>
+                    </button>
+                    {activeItem.isSensitive === true ? (
+                      <SensitiveMediaControl
+                        overlay
+                        video={activeItem.mediaType === MediaType.VIDEO}
+                        revealed={reveals.isRevealed(activeItem.id)}
+                        onToggle={() => reveals.toggle(activeItem.id)}
+                      />
+                    ) : null}
+                  </div>
 
                   {items.length > 1 ? (
                     <>

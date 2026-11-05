@@ -360,33 +360,25 @@ export function PhotoSourcePicker({
   const activeTask = task.current;
   return (
     <>
-      <button
-        ref={trigger}
-        type="button"
-        className="secondary photo-source-trigger"
-        disabled={disabled || remaining <= 0}
-        onClick={() => {
-          setMessage('');
-          setOpen(true);
-        }}
-      >
-        {devicePicker ? (
-          <>
-            <EimirIcon name="hinzufuegen" /> {t('photoSources.addMedia')}
-          </>
-        ) : (
-          <>
-            {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
-          </>
-        )}
-      </button>
+      {devicePicker?.(() => {})}
+      {availability &&
+      (availability.enabled || availability.immichConnected) ? (
+        <button
+          ref={trigger}
+          type="button"
+          className="secondary photo-source-trigger"
+          disabled={disabled || remaining <= 0}
+          onClick={() => {
+            setMessage('');
+            setOpen(true);
+          }}
+        >
+          {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
+        </button>
+      ) : null}
       <ShortTaskSheet
         open={open}
-        title={t(
-          devicePicker && !view
-            ? 'photoSources.addMedia'
-            : 'photoSources.title',
-        )}
+        title={t('photoSources.title')}
         closeLabel={t('taskSheets.close')}
         onClose={close}
         restoreFocusRef={trigger}
@@ -469,7 +461,6 @@ export function PhotoSourcePicker({
           </>
         ) : (
           <>
-            {devicePicker?.(close)}
             {canImport && availability?.googleAvailable ? (
               <button
                 type="button"

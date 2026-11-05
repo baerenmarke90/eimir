@@ -71,13 +71,17 @@ describe('MoreOverviewPage', () => {
     expect(html).not.toContain('more-destination-description');
     expect(html).not.toContain(de.more.intro);
 
-    const rowMatches = html.match(/class="more-destination"/g);
+    const rowMatches = html.match(
+      /class="more-destination(?: more-profile-destination)?"/g,
+    );
     expect(rowMatches).toHaveLength(14);
+    expect(html).toContain('more-profile-avatar');
+    expect(html).toContain('person-identity-avatar-medium');
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
     expect(badgeMatches).toHaveLength(3);
     expect(html).toContain(games.status.premium);
-    expect(html).toContain(dailyInsights.week.title);
+    expect(html).toContain(de.more.destinations.insights);
     expect(html).toContain(dailyInsights.pro);
     expect(html).not.toContain(dailyInsights.week.subtitle);
   });

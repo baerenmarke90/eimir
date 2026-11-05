@@ -72,6 +72,7 @@ it('revokes a late original response after dismissal without publishing it', asy
   fireEvent.click(screen.getByText('Open photo'));
   await waitFor(() => expect(load).toHaveBeenCalledOnce());
   fireEvent.keyDown(window, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   await act(async () => {
     resolve('blob:late');
   });

@@ -449,7 +449,7 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   await expect(page.getByRole('note')).toHaveCount(0);
 
   const cards = page.locator('.private-area-destination-card');
-  await expect(cards).toHaveCount(3);
+  await expect(cards).toHaveCount(4);
   await expect(cards.nth(0)).toHaveAttribute('href', '/more/private/notes');
   await expect(cards.nth(1)).toHaveAttribute(
     'href',
@@ -462,6 +462,11 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   await expect(cards.nth(0)).toContainText(privateArea.notes.title);
   await expect(cards.nth(1)).toContainText(privateArea.gifts.title);
   await expect(cards.nth(2)).toContainText(privateArea.collections.title);
+  await expect(cards.nth(3)).toHaveAttribute(
+    'href',
+    '/more/private/partner-notes',
+  );
+  await expect(cards.nth(3)).toContainText(privateArea.partnerNotes.title);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

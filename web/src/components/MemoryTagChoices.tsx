@@ -22,6 +22,7 @@ export function MemoryTagChoices({
   onDraftValueChange,
   editorRef,
   parentId,
+  parentType = 'MEMORY',
 }: {
   selected: readonly string[];
   onChange: (tags: string[]) => void;
@@ -31,12 +32,13 @@ export function MemoryTagChoices({
   onDraftValueChange?: (value: string) => void;
   editorRef?: Ref<ContextTagEditorHandle>;
   parentId?: string;
+  parentType?: 'MEMORY' | 'PLAN' | 'WISH';
 }) {
   const { t } = useTranslation();
   return (
     <ContextTagEditor
       parentId={parentId}
-      parentType="MEMORY"
+      parentType={parentType}
       ref={editorRef}
       selected={selected}
       onChange={onChange}

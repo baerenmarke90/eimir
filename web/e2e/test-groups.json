@@ -421,7 +421,7 @@
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9,
+      "baselineTests": 10,
       "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text."
     },
     "android-push-onboarding.spec.ts": {
@@ -462,6 +462,16 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 9,
       "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop and the real local video codec worker; broad theme/reflow variants do not expand the always-run core."
+    },
+    "planning-search-private-profile.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "Feature-owned complete scoped search, pagination failure/retry, Unicode matching, wishbook composition, return context, Plan place context and private navigation/More avatar evidence."
+    },
+    "mobile-diary-planning-media.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11,
+      "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, touch photo viewing and session-owned draft restoration."
     }
   }
 }

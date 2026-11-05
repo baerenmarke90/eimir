@@ -7,6 +7,7 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import taskBoundary from '../i18n/locales/taskBoundary';
+import { i18n } from '../i18n';
 import { PlanningCreatePage } from './PlanningCreatePage';
 
 beforeAll(() => {
@@ -105,6 +106,7 @@ describe('PlanningCreatePage', () => {
       idempotencyKey: expect.any(String),
       planCreate: {
         title: 'Park picnic',
+        tags: [],
         description: undefined,
         placeId: undefined,
         schedule: undefined,
@@ -133,38 +135,31 @@ describe('PlanningCreatePage', () => {
     });
   });
 
-  it('creates and selects a Place without leaving the focused Plan task', async () => {
-    const createPlace = vi
-      .fn()
-      .mockResolvedValue({ id: 'place-new', name: 'Rose garden' });
-    renderCreate('plan', {
+  it('selects a searchable saved Place without creating another one', async () => {
+    const createPlace = vi.fn();
+    const { createPlan } = renderCreate('plan', {
       places: {
         listPlaces: vi.fn().mockResolvedValue({
-          items: [],
+          items: [{ id: 'place-saved', name: 'Rose garden' }],
           nextCursor: null,
           hasMore: false,
         }),
         createPlace,
       } as unknown as SharedPlanningApis['places'],
     });
-
-    fireEvent.click(screen.getByText(m5s3.plan.addDetails));
-    fireEvent.click(
-      screen.getByRole('button', { name: m5s3.plan.addNewPlace }),
-    );
-    fireEvent.change(screen.getByLabelText(m5s3.place.name), {
-      target: { value: 'Rose garden' },
+    fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
+      target: { value: 'Picnic' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: m5s3.plan.newPlaceSave }),
-    );
-
-    await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(
-        (screen.getByLabelText(m5s3.common.place) as HTMLSelectElement).value,
-      ).toBe('place-new'),
-    );
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.place }));
+    fireEvent.change(screen.getByLabelText(i18n.t('photoPlaces.savedSearch')), {
+      target: { value: 'Rose' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Rose garden' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(createPlace).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
+    expect(createPlan.mock.calls[0][0].planCreate.placeId).toBe('place-saved');
   });
 
   it('keeps a failed Wish save editable and protects dirty cancellation', async () => {
@@ -180,7 +175,7 @@ describe('PlanningCreatePage', () => {
     expect(createWish).toHaveBeenCalledWith({
       spaceId: 'space-1',
       idempotencyKey: expect.any(String),
-      wishCreate: { title: 'See the northern lights' },
+      wishCreate: { title: 'See the northern lights', tags: [] },
     });
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
     expect((title as HTMLInputElement).value).toBe('See the northern lights');

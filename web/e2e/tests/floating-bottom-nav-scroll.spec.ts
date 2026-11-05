@@ -1,4 +1,3 @@
-import { fulfillEmptyPlanComments } from '../support/planComments';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +7,9 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { nextFrame } from '../support/mediaCarouselGesture';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -1033,6 +1034,7 @@ async function dragTouch(
       type: 'touchStart',
       touchPoints: [{ ...from, id: 1 }],
     });
+    await nextFrame(page);
     for (let step = 1; step <= 8; step++) {
       await session.send('Input.dispatchTouchEvent', {
         type: 'touchMove',
@@ -1049,6 +1051,7 @@ async function dragTouch(
       type: 'touchEnd',
       touchPoints: [],
     });
+    await nextFrame(page);
   } finally {
     await session.detach();
   }

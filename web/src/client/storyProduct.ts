@@ -99,6 +99,13 @@ export function aggregateStoryPages(pages: StoryPage[]): StoryPage {
     chapterMarkers: entries.flatMap((entry, position) =>
       entry.type === 'chapter' ? [{ ...entry.chapter, position }] : [],
     ),
+    chapterPeriods: [
+      ...new Map(
+        pages
+          .flatMap((page) => page.chapterPeriods ?? [])
+          .map((chapter) => [chapter.id, chapter]),
+      ).values(),
+    ],
     hasMore: lastPage?.hasMore ?? false,
     nextCursor: lastPage?.nextCursor ?? null,
     availableYears: pages[0]?.availableYears ?? [],

@@ -5,6 +5,7 @@ import {
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
+  PRIVATE_PARTNER_NOTES_PATH,
 } from '../client/privateArea';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -54,6 +55,9 @@ export function PrivateAreaFrame({
           </NavLink>
           <NavLink to={PRIVATE_COLLECTIONS_PATH}>
             {t('privateArea.navigation.collections')}
+          </NavLink>
+          <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
+            {t('privateArea.partnerNotes.shortTitle')}
           </NavLink>
         </nav>
       ) : null}

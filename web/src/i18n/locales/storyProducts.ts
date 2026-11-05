@@ -43,6 +43,7 @@ const storyProducts = {
     openItem: 'Medium {{index}} von {{count}} öffnen',
     counter: '{{index}} von {{count}}',
     close: 'Schließen',
+    done: 'Fertig',
     previous: 'Vorheriges Medium',
     next: 'Nächstes Medium',
   },

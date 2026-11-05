@@ -887,12 +887,12 @@ for (const view of [
       }
       await route.fallback();
     });
-    await page.goto('/more/profile');
+    await page.goto('/more/private');
     await signIn(page);
-    const partnerDetails = page.locator('.profile-partner-disclosure');
-    await expect(partnerDetails).not.toHaveAttribute('open');
-    await partnerDetails.locator(':scope > summary').click();
-    await expect(partnerDetails).toHaveAttribute('open');
+    await page
+      .getByRole('link', { name: privateArea.partnerNotes.title, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/private\/partner-notes$/);
     const trigger = page.getByRole('button', {
       name: profiles.addNoteShort,
       exact: true,
@@ -1024,6 +1024,15 @@ for (const view of [
         `private-area-profile-note-saved-${view.width}-${view.scheme}.png`,
       ),
     });
+    await page
+      .getByRole('link', { name: privateArea.backToHub, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/private$/);
+    await page.goto('/more/profile');
+    await expect(
+      page.getByText('Book the cabin for autumn', { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.locator('.private-partner-notes-panel')).toHaveCount(0);
     await page
       .getByRole('button', { name: profiles.addPreferenceShort, exact: true })
       .click();
@@ -1823,7 +1832,7 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
   await page.keyboard.press('Enter');
   await expect(page.locator('#planning-create-title')).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/\/plan$/);
+  await expect(page).toHaveURL(/\/plan#plans$/);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

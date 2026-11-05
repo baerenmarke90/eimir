@@ -107,3 +107,23 @@ describe('chapter diary projection', () => {
     expect(formatChapterPeriod({}, i18n.t.bind(i18n), 'de-DE')).toBeNull();
   });
 });
+
+it('shows continuing periods beside later months without duplicating start events', () => {
+  const later = { ...memory, effectiveDate: new Date('2027-02-01T00:00:00Z') };
+  const groups = groupDiaryEntries([later, memory], [chapter], 'en-GB', [
+    chapter,
+  ]);
+  expect(groups.find((group) => group.key === '2027-02')?.periods).toEqual([
+    chapter,
+  ]);
+  expect(groups.find((group) => group.key === '2026-06')?.periods).toEqual([]);
+  expect(
+    groups
+      .flatMap((group) => group.entries)
+      .filter((entry) => entry.type === 'chapter'),
+  ).toHaveLength(1);
+  const emptyYear = groupDiaryEntries([], [], 'en-GB', [chapter], 2027);
+  expect(emptyYear[0].key).toBe('2027-01');
+  expect(emptyYear[0].entries).toEqual([]);
+  expect(emptyYear[0].periods).toEqual([chapter]);
+});

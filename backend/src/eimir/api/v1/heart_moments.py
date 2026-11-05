@@ -217,7 +217,12 @@ def _heart_moment_detail(
             OrderedAttachmentSummary(
                 id=entry.attachment.id,
                 position=entry.position,
-                status="READY",
+                status="PROCESSING"
+                if entry.attachment.status == "VALIDATING"
+                else entry.attachment.status,
+                failure_code=entry.attachment.failure_code
+                if entry.attachment.status == "FAILED"
+                else None,
                 media_type=MediaType(entry.attachment.media_type),
                 mime_type=entry.attachment.mime_type,
                 size=entry.attachment.size,
@@ -232,7 +237,8 @@ def _heart_moment_detail(
         attachment=(
             AttachmentSummary(
                 id=attachment.id,
-                status="READY",
+                status="PROCESSING" if attachment.status == "VALIDATING" else attachment.status,
+                failure_code=attachment.failure_code if attachment.status == "FAILED" else None,
                 media_type=MediaType(attachment.media_type),
                 mime_type=attachment.mime_type,
                 size=attachment.size,

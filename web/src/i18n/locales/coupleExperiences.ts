@@ -20,6 +20,7 @@ export default {
       'Dein Datenauftrag ist bereit. Du kannst ihn jetzt ansehen.',
     TRANSFER_COMPLETED: 'Dein Datenimport ist abgeschlossen.',
     TRANSFER_FAILED: 'Dein Datenauftrag konnte nicht abgeschlossen werden.',
+    VIDEO_PROCESSING_FAILED: 'Ein Video konnte nicht verarbeitet werden.',
   },
   share: 'Mit {{name}} teilen',
   shareHint:

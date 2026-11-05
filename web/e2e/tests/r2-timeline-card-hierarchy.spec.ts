@@ -629,10 +629,10 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     expect(Math.abs((pinned?.y ?? 999) - stickyTop)).toBeLessThanOrEqual(1);
     expect(
       await august.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).toBe(
-      await page
-        .locator('body')
-        .evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).toBe('rgba(0, 0, 0, 0)');
+    await expect(august.locator('h2')).not.toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)',
     );
     expect(
       await august

@@ -7,7 +7,7 @@ import {
   screen,
 } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { useAttentionReceipt } from './attentionReceipt';
+import { useAttentionReceipt, useAttentionReceipts } from './attentionReceipt';
 
 function Invitation({
   account = 'viewer',
@@ -71,4 +71,34 @@ it('hides a three-day-old invitation on its first render', () => {
     />,
   );
   expect(screen.queryByRole('button')).toBeNull();
+});
+
+it('consumes one event without hiding another and restores the receipts after remount', () => {
+  const expiresAt = Date.now() + 60_000;
+  function Signals() {
+    const receipts = useAttentionReceipts(
+      ['instance', 'signals-account', 'space'],
+      [
+        { id: 'first-comment', expiresAt },
+        { id: 'second-comment', expiresAt },
+      ],
+    );
+    return (
+      <>
+        {[...receipts.pendingIds].map((id) => (
+          <button type="button" key={id} onClick={() => receipts.consume(id)}>
+            {id}
+          </button>
+        ))}
+      </>
+    );
+  }
+  const view = render(<Signals />);
+  fireEvent.click(screen.getByRole('button', { name: 'first-comment' }));
+  expect(screen.queryByRole('button', { name: 'first-comment' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'second-comment' })).toBeTruthy();
+  view.unmount();
+  render(<Signals />);
+  expect(screen.queryByRole('button', { name: 'first-comment' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'second-comment' })).toBeTruthy();
 });

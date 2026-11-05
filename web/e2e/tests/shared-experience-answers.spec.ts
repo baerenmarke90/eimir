@@ -24,6 +24,7 @@ for (const [width, theme] of [
   [390, 'dark'],
   [430, 'light'],
   [1280, 'dark'],
+  [320, 'dark'],
 ] as const) {
   test(`shared answers retain authorship through own edit and chronological comments at ${width} ${theme}`, async ({
     page,
@@ -124,10 +125,28 @@ for (const [width, theme] of [
         }),
     );
     await signIn(page);
+    if (width === 320)
+      await page.addStyleTag({ content: ':root { font-size: 200%; }' });
     const timeline = page.locator('.story-timeline');
     await expect(timeline.locator('.experience-answer')).toHaveCount(2);
+    await expect(
+      timeline.locator('.story-timeline-marker .eimir-icon-highlights'),
+    ).toBeVisible();
+    await expect(timeline.locator('.experience-shared-label')).toHaveCount(0);
+    await expect(
+      timeline.locator('.story-card .eimir-icon-highlights'),
+    ).toHaveCount(0);
     await expect(timeline).toContainText(ownBody);
     await expect(timeline).toContainText(fixture.partnerAnswer);
+    await expect(timeline.getByRole('link')).toHaveAttribute(
+      'aria-label',
+      `${copy.sharedHappiness}: ${question}`,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
     await captureScreenshot(
       page,
       info,
@@ -136,6 +155,12 @@ for (const [width, theme] of [
     );
     await timeline.getByRole('link', { name: question }).click();
     await expect(page.locator('.experience-answer')).toHaveCount(2);
+    await expect(page.locator('.experience-shared-label')).toContainText(
+      copy.sharedHappiness,
+    );
+    await expect(
+      page.locator('.experience-shared-label .eimir-icon-highlights'),
+    ).toBeVisible();
     await expect(
       page.getByRole('link', { name: copy.editOwnAnswer }),
     ).toHaveCount(1);
@@ -183,6 +208,11 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
+    await expect(
+      timeline.locator('.story-timeline-marker .eimir-icon-highlights'),
+    ).toBeVisible();
+    await expect(timeline.locator('.experience-shared-label')).toHaveCount(0);
+    await expect(timeline).toContainText(fixture.ownEdited);
     expect(unknown).toEqual([]);
   });
 }

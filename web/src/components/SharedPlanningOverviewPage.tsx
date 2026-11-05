@@ -11,7 +11,6 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
-import { authorDisplayName } from '../client/authorPresentation';
 import { formatCalendarDate } from '../client/formatRecency';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
@@ -27,7 +26,7 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { textExcerpt } from '../client/textExcerpt';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
@@ -296,6 +295,27 @@ export function SharedPlanningOverviewPage({
     retry: false,
   });
 
+  // The API cursor intentionally sorts by creation, preserving protected titles.
+  // Complete this lightweight metadata snapshot before presenting an alphabet;
+  // sorting separate pages would insert earlier letters above the user's scroll.
+  useEffect(() => {
+    if (
+      activeSegment !== 'wishes' ||
+      !wishes.hasNextPage ||
+      wishes.isFetching ||
+      wishes.error
+    )
+      return;
+    void wishes.fetchNextPage({ cancelRefetch: false });
+  }, [
+    activeSegment,
+    wishes.hasNextPage,
+    wishes.isFetching,
+    wishes.error,
+    wishes.fetchNextPage,
+  ]);
+  const assemblingWishes = Boolean(wishes.hasNextPage && !wishes.error);
+
   const plans = useWarmInfiniteQuery(
     {
       queryKey: ['m5-s3', 'plans', spaceId, 'overview', planStatus],
@@ -320,13 +340,19 @@ export function SharedPlanningOverviewPage({
     { revalidateOnRestore: true },
   );
 
+  const wishOrder = new Intl.Collator(resolvedLocale(), {
+    sensitivity: 'base',
+    numeric: true,
+  });
   const wishItems = [
     ...new Map(
       (wishes.data?.pages.flatMap((page) => page.items) ?? [])
         .filter((wish) => wish.status === wishStatus)
         .map((wish) => [wish.id, wish]),
     ).values(),
-  ];
+  ].sort(
+    (a, b) => wishOrder.compare(a.title, b.title) || a.id.localeCompare(b.id),
+  );
   const planGroups = groupPlanningOverviewPlans([
     ...new Map(
       (plans.data?.pages.flatMap((page) => page.items) ?? []).map((plan) => [
@@ -596,7 +622,7 @@ export function SharedPlanningOverviewPage({
           onChange={(status) => changeStatus('wishes', status)}
         />
         <WishSelectionEntry segment="wishes" compact />
-        {wishes.isLoading && !wishes.data ? (
+        {(wishes.isLoading && !wishes.data) || assemblingWishes ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
         {wishes.error ? (
@@ -605,7 +631,10 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void wishes.refetch()}
           />
         ) : null}
-        {!wishes.isLoading && !wishes.error && wishItems.length === 0 ? (
+        {!wishes.isLoading &&
+        !assemblingWishes &&
+        !wishes.error &&
+        wishItems.length === 0 ? (
           <div className="planen-empty-state">
             <h2>
               {t(
@@ -616,7 +645,7 @@ export function SharedPlanningOverviewPage({
             </h2>
           </div>
         ) : null}
-        {wishItems.length ? (
+        {!assemblingWishes && wishItems.length ? (
           <ul className="planen-wish-list">
             {wishItems.map((wish) => (
               <li key={wish.id}>
@@ -633,17 +662,6 @@ export function SharedPlanningOverviewPage({
                     {wishStatus === 'COMPLETED' ? (
                       <span>{t('m5s3.wish.status.COMPLETED')}</span>
                     ) : null}
-                    <span>
-                      {t('m5s3.overview.createdBy', {
-                        name: wish.creator.isFormerMember
-                          ? authorDisplayName(wish.creator)
-                          : relationshipLabel(
-                              wish.creator.id,
-                              wish.creator.displayName,
-                              t('couplePresencePartnerFallback'),
-                            ),
-                      })}
-                    </span>
                   </span>
                   <span className="planen-wish-chevron" aria-hidden="true">
                     ›
@@ -653,7 +671,7 @@ export function SharedPlanningOverviewPage({
             ))}
           </ul>
         ) : null}
-        {activeSegment === 'wishes' && wishes.hasNextPage ? (
+        {activeSegment === 'wishes' && wishes.hasNextPage && wishes.error ? (
           <AutoLoadMore
             query={wishes}
             className="tertiary compact-action"

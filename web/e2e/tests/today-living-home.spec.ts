@@ -1228,7 +1228,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await capture(page, testInfo, 'text-first-no-photo-390-light');
   });
 
-  test('keeps the comment activity even when its target also owns the contextual signal', async ({
+  test('shows a current partner comment once while retaining the other monthly photos', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1255,19 +1255,17 @@ test.describe('Today R4: the living home of a relationship', () => {
     // photo already featured as `Euer Moment`.
     await expect(page.locator('.today-living-partner_signal')).toHaveCount(1);
 
-    // The activity remains a real event even when its target is featured.
-    // Monthly content still avoids repeating the contextual photo.
+    // Current attention owns this event until it is opened; its later quiet
+    // history is covered by app-continuity-polish.spec.ts. Monthly content
+    // still avoids repeating the contextual photo.
     const links = await page
       .locator('.today-content a')
       .evaluateAll((nodes) =>
         nodes.map((node) => node.getAttribute('href') ?? ''),
       );
     const commentedHref = `/story/memories/${STRIP_PHOTOS[0].id}`;
-    expect(links.filter((href) => href === commentedHref)).toHaveLength(2);
-    await expect(page.locator('.today-activity-trace a')).toHaveAttribute(
-      'href',
-      commentedHref,
-    );
+    expect(links.filter((href) => href === commentedHref)).toHaveLength(1);
+    await expect(page.locator('.today-activity-trace')).toHaveCount(0);
 
     // The other photos of the month are untouched, so nothing over-filtered.
     await expect(page.locator('.today-monthly-tile')).toHaveCount(2);

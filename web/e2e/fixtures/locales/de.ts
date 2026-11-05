@@ -3,6 +3,10 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  appContinuity: {
+    longRetrospective:
+      'Abends sind wir noch einmal zum Strand gegangen und haben ein Wettrennen bis ans Wasser gemacht. Danach saßen wir lange im Sand und haben gelacht, bis die Sonne verschwunden war. Einer dieser kleinen Momente, an die ich immer wieder gerne denke. ❤️',
+  },
   mediaPlanning: {
     wish: 'Ein Wochenende zu zweit – gemeinsam Neues entdecken und Zeit füreinander haben',
     plan: 'Unser gemeinsamer Ausflug',

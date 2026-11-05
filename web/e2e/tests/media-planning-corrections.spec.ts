@@ -255,7 +255,7 @@ for (const scenario of [
   { width: 1280, theme: 'dark' as const },
   { width: 320, theme: 'light' as const, large: true },
 ]) {
-  test(`progressive Wishes stay readable and preserve return at ${scenario.width} ${scenario.theme}`, async ({
+  test(`alphabetical Wishes stay readable and preserve return at ${scenario.width} ${scenario.theme}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: scenario.width, height: 760 });
@@ -269,8 +269,8 @@ for (const scenario of [
     if (scenario.large)
       await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     const rows = page.locator('.planen-wish-list > li');
-    await expect(rows).toHaveCount(20);
-    expect(state.wishReads).toEqual(['']);
+    await expect(rows).toHaveCount(32);
+    expect(state.wishReads).toEqual(['', '20']);
     expect(state.planReads).toEqual([]);
     const first = await rows.first().boundingBox(),
       second = await rows.nth(1).boundingBox();

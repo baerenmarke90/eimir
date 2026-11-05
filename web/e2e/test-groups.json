@@ -16,6 +16,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "app-continuity-polish.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 8,
+      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention and persistent preview bytes across browser/native restoration."
+    },
     "media-url-continuity.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,

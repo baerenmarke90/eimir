@@ -508,6 +508,7 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
   test('retrospective settings persist independent visibility and personal order beside the partner signal', async ({
     page,
   }, info) => {
+    await page.clock.setFixedTime(new Date(TEST_NOW));
     await page.setViewportSize({ width: 390, height: 900 });
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
     await installDashboardMocks(page, {

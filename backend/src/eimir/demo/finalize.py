@@ -14,7 +14,9 @@ from eimir.demo.story import CHAPTERS, MEMORIES
 from eimir.memories.models import Memory
 from eimir.places import service as place_service
 from eimir.places.models import Place
+from eimir.plans.models import Plan
 from eimir.relations import service as relation_service
+from eimir.wishes.models import Wish
 
 _CAFE_NAME = "Café am Markt"
 # Approximate public-square coordinates are intentional: the demo exercises the
@@ -28,6 +30,18 @@ _CAFE_LONGITUDE = 6.996000
 _MEMORY_PLACE_LINKS = (
     ("Café am Markt", "breakfast-saarbruecken"),
     ("Waldsee", "lake-walk"),
+)
+
+# Completed experiences and inspiration remain explicit relations, independent
+# of the Wish-to-Plan lifecycle. No source is copied or completed by linking it.
+_MEMORY_PLAN_LINKS = (
+    ("day-trip", "Gemeinsamer Tagesausflug"),
+    ("lake-walk", "Herbstwanderung"),
+    ("ravioli-evening", "Neues Rezept ausprobieren"),
+)
+_MEMORY_WISH_LINKS = (
+    ("day-trip", "Gemeinsamer Tagesausflug"),
+    ("lake-walk", "Herbstwanderung"),
 )
 
 
@@ -128,8 +142,35 @@ def _ensure_memory_place_links(
         )
 
 
+def _ensure_memory_planning_links(
+    session: Session,
+    context: AuthorizationContext,
+    memory_by_key: dict[str, Memory],
+) -> None:
+    plans = list(session.scalars(select(Plan).where(Plan.space_id == context.space_id)))
+    wishes = list(session.scalars(select(Wish).where(Wish.space_id == context.space_id)))
+    for memory_key, title in _MEMORY_PLAN_LINKS:
+        plan = _only_by_title(plans, title_of=lambda item: item.payload.title, title=title)
+        relation_service.link(
+            session,
+            context,
+            memory_by_key[memory_key].id,
+            plan.id,
+            relation_service.MEMORY_PLANS,
+        )
+    for memory_key, title in _MEMORY_WISH_LINKS:
+        wish = _only_by_title(wishes, title_of=lambda item: item.payload.title, title=title)
+        relation_service.link(
+            session,
+            context,
+            memory_by_key[memory_key].id,
+            wish.id,
+            relation_service.MEMORY_WISHES,
+        )
+
+
 def ensure_story_structure(session: Session, result: DemoSeedResult) -> None:
-    """Restore deterministic Place and Chapter-to-Memory relations.
+    """Restore deterministic Place, Chapter and Memory-planning relations.
 
     The low-level seed owns creation and media import. This completion step uses
     the normal product services and is intentionally idempotent so both create
@@ -147,3 +188,4 @@ def ensure_story_structure(session: Session, result: DemoSeedResult) -> None:
     _ensure_coordinate_fixture(session, context, places)
     _ensure_chapter_story_links(session, context, memory_by_key, chapters)
     _ensure_memory_place_links(session, context, memory_by_key, places)
+    _ensure_memory_planning_links(session, context, memory_by_key)

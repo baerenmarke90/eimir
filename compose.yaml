@@ -177,7 +177,7 @@ x-video-worker: &video-worker
   pids_limit: 64
   cap_drop: [ALL]
   security_opt: ["no-new-privileges:true"]
-  stop_grace_period: 15m
+  stop_grace_period: 25m
   tmpfs:
     - /tmp:size=1g,mode=0700,uid=10001,gid=10001
 

@@ -13,36 +13,14 @@ from eimir.attachments import cleanup, service, video_jobs, videos
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.config import get_settings
 from eimir.core.clock import now
-from eimir.entitlements import service as entitlements
-from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.entitlements.models import EntitlementStatus
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
-from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.conftest import auth, requires_database
+from tests.support.video import grant
+from tests.support.video import owner as owner
 
 pytestmark = [pytest.mark.integration, requires_database]
-
-
-@pytest.fixture
-def owner(session, monkeypatch):  # type: ignore[no-untyped-def]
-    monkeypatch.setenv("EIMIR_VIDEO_UPLOAD_ENABLED", "true")
-    get_settings.cache_clear()
-    account = make_account(session, "Video author")
-    space = make_space(session, account)
-    yield account, space, sign_in(session, account)
-    get_settings.cache_clear()
-
-
-def grant(session, owner):  # type: ignore[no-untyped-def]
-    return entitlements.record_grant(
-        session,
-        space_id=owner[1].id,
-        account_id=owner[0].id,
-        source_type=EntitlementSourceType.SELF_HOSTED_KEY,
-        status=EntitlementStatus.ACTIVE,
-        tier=EntitlementTier.PREMIUM,
-        effective_from=now() - timedelta(days=1),
-        effective_until=now() + timedelta(days=30),
-    )
 
 
 def create(client, owner):  # type: ignore[no-untyped-def]

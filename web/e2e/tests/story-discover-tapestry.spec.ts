@@ -974,16 +974,16 @@ for (const [width, theme] of [
     );
     expect(photoWidth).toBeGreaterThan(cardWidth * 0.75);
     if (width === 390) {
-      const toggle = memory.getByRole('button', {
-        name: sensitiveMedia.show,
-      });
-      await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-      await toggle.click();
+      await expect(memory.locator('.sensitive-media-cover')).toBeVisible();
+      await expect(
+        memory.locator('.sensitive-media-blurred img'),
+      ).toBeVisible();
+      await expect(
+        memory.getByRole('button', { name: sensitiveMedia.show }),
+      ).toHaveCount(0);
       await expect(
         memory.getByRole('button', { name: sensitiveMedia.hide }),
-      ).toHaveAttribute('aria-pressed', 'true');
-      await memory.getByRole('button', { name: sensitiveMedia.hide }).click();
-      await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      ).toHaveCount(0);
     }
     await expect(memory.locator('time')).toHaveCount(1);
     await expect(memory).not.toContainText('Erinnerung vom');

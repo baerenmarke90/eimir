@@ -56,7 +56,15 @@ The following commit adds only these captured images and this evidence index.
   Privacy cases retain the independent Wir Show/Hide behavior and verify Diary
   concealment, keyboard detail opening, deliberate detail reveal and concealed
   return. Additional complete-spec regression results are recorded in the PR.
-- Both affected specs retain their reviewed feature ownership in
+- Broader preflight found inherited #1652 fixture drift: month pinning still
+  assumed a zero offset despite the intended safe-area/spacing offset, and one
+  partner-signal case used a historical event without fixing browser time after
+  three-day attention expiry was introduced. Align the pinning callers with the
+  declared sticky top, retaining the same one-pixel tolerance and real wheel
+  input; fix time only for that existing current-event settings case. The older
+  Diary-category browser case now also asserts concealed media and absent reveal
+  controls. Production sticky/attention behavior and expiry protection stay intact.
+- The affected specs retain their reviewed feature ownership in
   `test-groups.json` and `test-impact.json`: Story/Memory/Today roots already
   transitively own the changed consumers and their cross-surface continuations.
   The 320/200% happiness case remains feature-scoped. No always-run-core change,

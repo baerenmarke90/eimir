@@ -232,7 +232,9 @@ Local validation:
 - Current collection is 1,076 cases in 94 files. The shared planner retains the
   conservative full-regression choice (70 critical plus 24 additional specs);
   38 planner and 72 design/status/language guard regressions pass. The additional
-  mobile journey stays feature-owned; the always-run core is unchanged.
+  mobile journey stays feature-owned; core spec membership is unchanged. The
+  existing video core spec gains one failure/reload privacy case because backend
+  outcome tests cannot establish that the browser grants no unvalidated playback.
 
 Earlier CI failures were diagnosed before the consolidated correction push:
 localized prose in new English documentation failed language detection; dependent
@@ -244,3 +246,10 @@ late-byte revocation. No speculative rerun-all or gate weakening was used.
 
 No physical Android-device acceptance, merge or release publication is claimed.
 Hosted CI and Product Owner acceptance remain separate from local implementation.
+
+The first consolidated hosted head passed engineering language, design and reuse
+checks, then exposed an identity-classifier false positive in the exact recorded
+image prompts. Ordinary adjacent-screen layout wording is now classified only
+for those two paths and three reviewed phrases. Negative regressions continue to
+reject actual legacy branding, changed wording, duplicate matches and other paths.
+Original generation prompts remain unchanged as provenance evidence.

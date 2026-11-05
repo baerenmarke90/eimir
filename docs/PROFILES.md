@@ -8,7 +8,7 @@ The M1 Profiles Domain strictly separates two technically different kinds of inf
 - `PRIVATE_PARTNER_NOTE`: An Account privately remembers something about the other active partner. These rows are `OWNER_ONLY`.
 
 The private partner-note reading and editing destination is
-`/more/private/partner-notes`, reached through More → Nur für mich. The shared
+`/more/private/partner-notes`, reached through More → the private area. The shared
 Profile surface contains personal and partner-shared preferences only. This
 placement follows PO decision #1655 (2026-11-05) and reuses the existing private
 preference records without migration or audience changes.

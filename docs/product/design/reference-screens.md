@@ -268,7 +268,7 @@ Light/Dark use neutral photo captions, restrained surface contrast and unchanged
 | Profile | Actual identity/relationship context → authored personal preferences → partner identity/shared preferences |
 | Profile editing | One deliberate Edit entry reveals supported name/photo operations; personal content is not a permanent field stack |
 | Preference | Read category/value first; contextual short edit only for the authorized owner; no forbidden partner-edit controls |
-| Private partner notes | More → Nur für mich → partner notes; explicit owner-only context before sensitive content, readable preview and the existing private preference editor |
+| Private partner notes | More → the private area → partner notes; explicit owner-only context before sensitive content, readable preview and the existing private preference editor |
 | Settings index | Predictable categories leading to focused pages, including existing relationship, notifications, Today visibility, appearance, transfer and account functions |
 | Settings category | Back to index, precise title, existing controls and visible state; one local Save for staged submission or clear immediate feedback for immediate controls |
 | Data/account action | Explicit scope, validation, authentication and consequences; offboarding, sign-out and account deletion remain distinct |

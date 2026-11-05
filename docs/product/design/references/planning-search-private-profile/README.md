@@ -41,7 +41,7 @@ private PreferenceManager/editor, task-origin handling and theme/motion tokens.
   title destinations, no repeated creator, chevron or fabricated description.
   Preserve complete locale-aware alphabetical ordering and existing actions.
 - Move existing private partner notes out of Profile into a dedicated destination
-  under Nur fuer mich. Reuse the existing private preference records, owner
+  under the private area. Reuse the existing private preference records, owner
   authorization, version/conflict handling and editor. No data migration or
   conversion into shared preferences. No private preview on Profile.
 - In More, show the current profile photo at a useful size directly in its row,

@@ -148,7 +148,9 @@ export function PlanPhotosEditor({
           mediaType: item.existing?.mediaType,
           status: item.existing?.status,
           canRemove: !item.existing || canManageExisting,
-          canEditSensitivity: !item.existing || canManageExisting,
+          canEditSensitivity:
+            !item.existing ||
+            (item.existing.canEditSensitivity ?? canManageExisting),
           preview:
             item.existing && item.existing.status !== 'READY' ? (
               <MediaProcessingState status={item.existing.status} compact />
@@ -192,7 +194,11 @@ export function PlanPhotosEditor({
         }}
         onSensitive={(key, value) => {
           const item = controller.items.find((item) => item.key === key);
-          if (item) {
+          if (
+            item &&
+            (!item.existing ||
+              (item.existing.canEditSensitivity ?? canManageExisting))
+          ) {
             controller.setSensitive(item, value);
             onChange();
           }

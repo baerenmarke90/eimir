@@ -483,6 +483,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 2,
       "reason": "Feature-owned real touch refresh from Momente and Planen content links without accidental navigation or duplicate reads."
+    },
+    "polish-sensitive-media.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
     }
   }
 }

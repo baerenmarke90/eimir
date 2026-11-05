@@ -4404,6 +4404,12 @@
       "MemoryAttachmentSummary": {
         "description": "A bound attachment plus its position in the memory gallery.",
         "properties": {
+          "canEditSensitivity": {
+            "default": false,
+            "description": "Viewer-specific authority to edit classification through this parent; never a read grant.",
+            "title": "Caneditsensitivity",
+            "type": "boolean"
+          },
           "durationSeconds": {
             "anyOf": [
               {
@@ -5749,6 +5755,12 @@
       "OrderedAttachmentSummary": {
         "description": "A bound photo with its stable position in a parent's gallery.",
         "properties": {
+          "canEditSensitivity": {
+            "default": false,
+            "description": "Viewer-specific authority to edit classification through this parent; never a read grant.",
+            "title": "Caneditsensitivity",
+            "type": "boolean"
+          },
           "durationSeconds": {
             "anyOf": [
               {

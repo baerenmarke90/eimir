@@ -630,5 +630,7 @@ def _set_attachment_sensitive(
     binding.set_sensitive(
         attachment,
         value,
-        allow_change=context.account_id in (heart_moment.owner_id, attachment.owner_id),
+        allow_change=binding.can_edit_sensitivity(
+            attachment, account_id=context.account_id, parent_owner_id=heart_moment.owner_id
+        ),
     )

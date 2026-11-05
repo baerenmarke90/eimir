@@ -837,7 +837,9 @@ export function MemoryProductPage({
                 status: item.photo?.status,
                 canRemove: !item.photo || memory.capabilities.canDelete,
                 canEditSensitivity:
-                  !item.photo || memory.capabilities.canDelete,
+                  !item.photo ||
+                  (item.photo.canEditSensitivity ??
+                    memory.capabilities.canDelete),
                 isSensitive: item.photo
                   ? (sensitiveValues[item.photo.id] ??
                     item.photo.isSensitive ??
@@ -870,7 +872,11 @@ export function MemoryProductPage({
               }
               onSensitive={(key, value) => {
                 const item = photoItems.find((item) => item.key === key);
-                if (item?.photo && memory.capabilities.canDelete)
+                if (
+                  item?.photo &&
+                  (item.photo.canEditSensitivity ??
+                    memory.capabilities.canDelete)
+                )
                   setSensitiveDraft((current) => ({
                     key: sensitiveDraftKey,
                     values: {

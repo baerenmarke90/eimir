@@ -307,6 +307,7 @@ class Settings(IdentityCompatibleSettings):
     photo_sources_enabled: bool = True
     google_photos_client_id: str = ""
     google_photos_client_secret: SecretStr | None = None
+    google_photos_web_client_file: str = ""
 
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
@@ -348,6 +349,7 @@ class Settings(IdentityCompatibleSettings):
         "encryption_at_rest",
         "encryption_active_key_id",
         "push_vapid_private_key",
+        "google_photos_client_secret",
         mode="before",
     )
     @classmethod
@@ -404,15 +406,20 @@ class Settings(IdentityCompatibleSettings):
 
     @model_validator(mode="after")
     def photo_sources_require_encryption(self) -> Self:
+        google_configured = bool(self.google_photos_client_id or self.google_photos_web_client_file)
+        if self.google_photos_web_client_file and (
+            self.google_photos_client_id or self.google_photos_client_secret
+        ):
+            raise ValueError("Choose one Google Photos operator OAuth configuration source.")
         if (
             self.photo_sources_enabled
-            and self.google_photos_client_id
+            and google_configured
             and self.encryption_mode is not EncryptionMode.REQUIRED
         ):
             raise ValueError("Photo sources require EIMIR_ENCRYPTION_AT_REST=required.")
         if (
             self.photo_sources_enabled
-            and self.google_photos_client_id
+            and google_configured
             and not self.public_base_url.startswith("https://")
         ):
             raise ValueError("Photo sources require an HTTPS public base URL.")

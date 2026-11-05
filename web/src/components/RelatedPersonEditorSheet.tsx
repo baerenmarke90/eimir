@@ -14,15 +14,8 @@ import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
-import {
-  type DraftUploadPhase,
-  uploadMemoryDraftAttachment,
-} from '../client/memoryAttachmentDraft';
-import {
-  createOwnedObjectUrl,
-  type OwnedObjectUrl,
-} from '../client/objectUrlResource';
 import { createReferenceApis } from '../client/referenceFlow';
+import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import {
   birthdayFromInput,
   birthdayInputParts,
@@ -34,6 +27,7 @@ import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { personInitials } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 const RELATIONSHIPS = Object.values(PersonRelationship);
@@ -80,6 +74,7 @@ export function RelatedPersonEditorSheet({
   spaceId,
   apiBaseUrl,
   accessToken,
+  accountId,
   attachmentsApi,
   onCancel,
   onSubmit,
@@ -91,6 +86,7 @@ export function RelatedPersonEditorSheet({
   spaceId: string;
   apiBaseUrl?: string;
   accessToken?: string;
+  accountId?: string;
   attachmentsApi?: AttachmentsApi | null;
   onCancel: () => void;
   onSubmit: (fields: RelatedPersonFields) => void;
@@ -141,9 +137,29 @@ export function RelatedPersonEditorSheet({
   const [currentAvatarId, setCurrentAvatarId] = useState<string | null>(
     initialDraft.avatarAttachmentId,
   );
-  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
-  const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const referenceApis = useMemo(
+    () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
+    [apiBaseUrl, accessToken],
+  );
+  const avatarDrafts = useAttachmentDrafts({
+    apis: referenceApis,
+    apiBaseUrl: apiBaseUrl ?? '',
+    accessToken: accessToken ?? '',
+    spaceId,
+    accountId: accountId ?? '',
+    resourceKey: `related-person:${person?.id ?? 'new'}`,
+    maxAttachments: 1,
+    preserveMetadata: false,
+  });
+  const avatarDraft = avatarDrafts.items[0];
+  const avatarPreviewUrl = avatarDraft?.previewUrl ?? null;
+  const uploadPhase = avatarDrafts.hasPending ? avatarDraft?.status : null;
+  const uploadError = selectionError ?? avatarDraft?.error;
+  const avatarNotReady = Boolean(avatarDraft && avatarDraft.status !== 'ready');
+  const avatarId = avatarDraft
+    ? (avatarDraft.attachmentId ?? null)
+    : currentAvatarId;
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const { avatarUrl: existingAvatarUrl } = useRelatedPersonAvatarUrl(
@@ -204,21 +220,6 @@ export function RelatedPersonEditorSheet({
     if (!hasBirthday) setShowBirthdayOnDashboard(false);
   }, [hasBirthday]);
 
-  const previewResourceRef = useRef<OwnedObjectUrl | null>(null);
-  const setPreviewFile = useCallback((file: File | null) => {
-    previewResourceRef.current?.dispose();
-    const resource = file ? createOwnedObjectUrl(file) : null;
-    previewResourceRef.current = resource;
-    setAvatarPreviewUrl(resource?.url ?? null);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      previewResourceRef.current?.dispose();
-      previewResourceRef.current = null;
-    };
-  }, []);
-
   useModalLifecycle({
     active: true,
     initialFocusRef: nameInputRef,
@@ -253,6 +254,8 @@ export function RelatedPersonEditorSheet({
   }, [handleCloseAttempt]);
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
+    // Portalled source tasks own their keyboard and native dialog focus.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     if (event.key === 'Escape' && !pending && !uploadPhase) {
       event.preventDefault();
       if (showDiscardConfirm) {
@@ -265,51 +268,30 @@ export function RelatedPersonEditorSheet({
     containModalTabFocus(event, dialogRef.current, { visibleOnly: true });
   }
 
-  async function selectAvatar(file?: File) {
+  function selectAvatar(file?: File) {
     if (!file || pending || uploadPhase) return;
 
-    setUploadError(null);
+    setSelectionError(null);
     if (!file.type.startsWith('image/')) {
-      setUploadError(t('flow.imageOnly'));
+      setSelectionError(t('flow.imageOnly'));
       return;
     }
 
-    if (apiBaseUrl && accessToken) {
-      try {
-        const referenceApis = createReferenceApis(apiBaseUrl, accessToken);
-        const ready = await uploadMemoryDraftAttachment(
-          referenceApis,
-          apiBaseUrl,
-          accessToken,
-          spaceId,
-          file,
-          setUploadPhase,
-        );
-        setCurrentAvatarId(ready.attachmentId);
-        setPreviewFile(file);
-      } catch (err) {
-        setUploadError(
-          err instanceof Error ? err.message : t('flow.uploadFailed'),
-        );
-      } finally {
-        setUploadPhase(null);
-      }
-      return;
-    }
-
-    setPreviewFile(file);
+    for (const draft of avatarDrafts.items) avatarDrafts.remove(draft.id);
+    avatarDrafts.addFiles([file]);
   }
 
   function handleAvatarRemove() {
     setCurrentAvatarId(null);
-    setPreviewFile(null);
-    setUploadError(null);
+    for (const draft of avatarDrafts.items) avatarDrafts.remove(draft.id);
+    setSelectionError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit(personFields(new FormData(event.currentTarget), currentAvatarId));
+    if (pending || avatarNotReady) return;
+    onSubmit(personFields(new FormData(event.currentTarget), avatarId));
   }
 
   const privacyIcon =
@@ -420,16 +402,60 @@ export function RelatedPersonEditorSheet({
                         aria-label={t('people.avatarLabel')}
                       />
                       <div className="people-editor-avatar-buttons">
-                        <button
-                          type="button"
-                          className="secondary compact-action"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={pending || Boolean(uploadPhase)}
-                        >
-                          {displayedAvatarUrl
-                            ? t('people.avatarChange')
-                            : t('people.avatarUpload')}
-                        </button>
+                        {apiBaseUrl && accessToken && accountId ? (
+                          <PhotoSourcePicker
+                            apiBaseUrl={apiBaseUrl}
+                            accessToken={accessToken}
+                            accountId={accountId}
+                            spaceId={spaceId}
+                            remaining={1}
+                            disabled={pending || Boolean(uploadPhase)}
+                            beginSelection={() => {
+                              const ticket = avatarDrafts.beginSelection();
+                              return {
+                                ...ticket,
+                                commit: (files) => {
+                                  if (ticket.signal.aborted || !files.length)
+                                    return false;
+                                  if (!files[0].type.startsWith('image/')) {
+                                    setSelectionError(t('flow.imageOnly'));
+                                    return false;
+                                  }
+                                  setSelectionError(null);
+                                  for (const draft of avatarDrafts.items)
+                                    avatarDrafts.remove(draft.id);
+                                  return ticket.commit(files.slice(0, 1));
+                                },
+                              };
+                            }}
+                            devicePicker={(close) => (
+                              <button
+                                type="button"
+                                className="secondary compact-action"
+                                disabled={pending || Boolean(uploadPhase)}
+                                onClick={() => {
+                                  fileInputRef.current?.click();
+                                  close();
+                                }}
+                              >
+                                {displayedAvatarUrl
+                                  ? t('people.avatarChange')
+                                  : t('people.avatarUpload')}
+                              </button>
+                            )}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            className="secondary compact-action"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={pending || Boolean(uploadPhase)}
+                          >
+                            {displayedAvatarUrl
+                              ? t('people.avatarChange')
+                              : t('people.avatarUpload')}
+                          </button>
+                        )}
                         {displayedAvatarUrl ? (
                           <button
                             type="button"
@@ -452,9 +478,19 @@ export function RelatedPersonEditorSheet({
                   </div>
                 </MediaDropZone>
                 {uploadError ? (
-                  <p className="field-help field-error" role="alert">
-                    {uploadError}
-                  </p>
+                  <div className="field-help field-error" role="alert">
+                    <p>{uploadError}</p>
+                    {avatarDraft?.status === 'failed' ? (
+                      <button
+                        type="button"
+                        className="secondary compact-action"
+                        onClick={() => avatarDrafts.retry(avatarDraft)}
+                        disabled={pending}
+                      >
+                        {t('common.retry')}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <div className="field-group">
@@ -689,7 +725,7 @@ export function RelatedPersonEditorSheet({
           </div>
 
           <footer className="focused-editor-actions">
-            <button type="submit" disabled={pending || Boolean(uploadPhase)}>
+            <button type="submit" disabled={pending || avatarNotReady}>
               {pending
                 ? t('people.saving')
                 : person

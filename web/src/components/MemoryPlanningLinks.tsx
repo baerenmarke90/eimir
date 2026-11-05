@@ -15,7 +15,8 @@ import {
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { planDetailPath, wishDetailPath } from '../client/routes';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { ProblemState } from './ProblemState';
@@ -355,14 +356,23 @@ function PlanningTargetPicker({
   const denied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(query.error),
   );
+  useEffect(() => {
+    if (query.hasNextPage && !query.isFetching && !query.error)
+      void query.fetchNextPage();
+  }, [query.hasNextPage, query.isFetching, query.error, query.fetchNextPage]);
+  const assembling = Boolean(query.hasNextPage && !query.error);
   const items = denied
     ? []
-    : (query.data?.pages.flatMap((page) =>
-        page.items.map((item) => ({ id: item.id, title: item.title })),
-      ) ?? []);
+    : sortByProductLabel(
+        query.data?.pages.flatMap((page) =>
+          page.items.map((item) => ({ id: item.id, title: item.title })),
+        ) ?? [],
+        (item) => item.title,
+        resolvedLocale(),
+      );
   return (
     <>
-      {query.isLoading ? (
+      {query.isLoading || assembling ? (
         <p role="status">{t('m5s3.common.loadingMore')}</p>
       ) : null}
       {query.error ? (
@@ -375,7 +385,7 @@ function PlanningTargetPicker({
         <p>{t('memoryProduct.planning.empty')}</p>
       ) : null}
       <ul className="memory-planning-choices">
-        {items.map((item) => (
+        {(assembling ? [] : items).map((item) => (
           <li key={item.id}>
             <button
               type="button"

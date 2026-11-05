@@ -18,6 +18,7 @@ import type { RelatedPersonView } from '../api/generated/models/RelatedPersonVie
 import de from '../i18n/locales/de';
 import people from '../i18n/locales/people';
 import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
+import * as attachmentUpload from '../client/memoryAttachmentDraft';
 import {
   DeleteRelatedPersonDialogContent,
   RelatedPeoplePage,
@@ -497,6 +498,9 @@ describe('RelatedPeoplePage mobile-first surface', () => {
   });
 
   it('manages body scroll lock and revokes avatar object URLs on replacement and unmount', async () => {
+    const upload = vi
+      .spyOn(attachmentUpload, 'uploadMemoryDraftAttachment')
+      .mockResolvedValue({ attachmentId: 'avatar-ready' });
     document.body.style.overflow = 'visible';
     const originalCreate = URL.createObjectURL;
     const originalRevoke = URL.revokeObjectURL;
@@ -522,11 +526,18 @@ describe('RelatedPeoplePage mobile-first surface', () => {
     const file1 = new File(['image1'], 'avatar1.png', { type: 'image/png' });
     fireEvent.change(fileInput, { target: { files: [file1] } });
     expect(createObjectURLSpy).toHaveBeenCalledWith(file1);
+    await waitFor(() =>
+      expect(screen.queryByText(people.avatarUploading)).toBeNull(),
+    );
+    expect(upload.mock.calls[0][7]).toMatchObject({ preserveMetadata: false });
 
     createObjectURLSpy.mockReturnValue('blob:test-avatar-2');
     const file2 = new File(['image2'], 'avatar2.png', { type: 'image/png' });
     fireEvent.change(fileInput, { target: { files: [file2] } });
     expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:test-avatar-1');
+    await waitFor(() =>
+      expect(screen.queryByText(people.avatarUploading)).toBeNull(),
+    );
 
     fireEvent.click(
       screen.getByRole('button', { name: people.closeDialogAria }),
@@ -537,11 +548,12 @@ describe('RelatedPeoplePage mobile-first surface', () => {
       screen.getByRole('button', { name: people.discardConfirm }),
     );
 
+    await waitFor(() => expect(document.body.style.overflow).toBe('visible'));
     expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:test-avatar-2');
-    expect(document.body.style.overflow).toBe('visible');
 
     URL.createObjectURL = originalCreate;
     URL.revokeObjectURL = originalRevoke;
+    upload.mockRestore();
   });
 
   async function expectFocusAfterDelete(

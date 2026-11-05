@@ -820,6 +820,21 @@
         "web/src/App.tsx",
         "web/src/components/MemoryCreatePage.tsx"
       ]
+    },
+    "polish-people-photo-sources.spec.ts": {
+      "roots": [
+        "web/src/components/RelatedPeoplePage.tsx",
+        "web/src/components/RelatedPersonEditorSheet.tsx",
+        "web/src/components/PhotoSourcePicker.tsx"
+      ]
+    },
+    "polish-root-refresh.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/AppSurfacePullToRefresh.tsx",
+        "web/src/components/usePullToRefresh.ts"
+      ]
     }
   }
 }

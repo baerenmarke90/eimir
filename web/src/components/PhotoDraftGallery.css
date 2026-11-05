@@ -29,26 +29,6 @@
 .photo-draft-item.is-dragging {
   z-index: 3;
 }
-.photo-draft-large-preview {
-  display: grid;
-  place-items: center;
-  min-inline-size: 0;
-  max-block-size: 60svh;
-  overflow: hidden;
-}
-.photo-draft-large-preview img,
-.photo-draft-large-preview > * {
-  max-inline-size: 100%;
-  max-block-size: 60svh;
-  object-fit: contain;
-}
-.photo-draft-preview-sheet .short-task-sheet-close-icon {
-  display: none;
-}
-.photo-draft-preview-sheet .photo-draft-inspector {
-  background: transparent;
-  padding-inline: 0;
-}
 .photo-draft-tile {
   display: block;
   position: relative;
@@ -113,9 +93,7 @@
   margin: 0;
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
+  padding: 0;
   min-inline-size: 0;
 }
 .photo-draft-inspector-heading {
@@ -156,11 +134,5 @@
 @media (prefers-reduced-motion: reduce) {
   .photo-draft-tile {
     transition: none;
-  }
-}
-
-@media (min-width: 840px) {
-  .photo-draft-preview-sheet .short-task-sheet-header {
-    display: none;
   }
 }

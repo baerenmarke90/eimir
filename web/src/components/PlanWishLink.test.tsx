@@ -55,9 +55,9 @@ function setup(editing = true) {
     },
   );
   const linkWishToPlan = vi.fn(() => promise);
-  const listWishes = vi.fn(async () => ({
+  const listWishes = vi.fn(async (_request?: { cursor?: string }) => ({
     items: [wish],
-    nextCursor: null,
+    nextCursor: null as string | null,
     hasMore: false,
   }));
   const apis = {
@@ -117,6 +117,36 @@ it('keeps association mutations behind the parent Edit mode', () => {
     screen.queryByRole('button', { name: i18n.t('m5s3.plan.linkWish') }),
   ).toBeNull();
   expect(linkWishToPlan).not.toHaveBeenCalled();
+});
+
+it('sorts association choices across the loaded page boundary', async () => {
+  const test = setup();
+  test.listWishes.mockImplementation(async (request?: { cursor?: string }) =>
+    request?.cursor
+      ? {
+          items: [{ ...test.wish, id: 'a', title: 'Äpfel' }],
+          nextCursor: null,
+          hasMore: false,
+        }
+      : {
+          items: [
+            { ...test.wish, title: 'Zoo' },
+            { ...test.wish, id: 'b', title: 'Berg' },
+          ],
+          nextCursor: 'next',
+          hasMore: true,
+        },
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.plan.linkWish') }),
+  );
+  await screen.findByRole('radio', { name: 'Äpfel' });
+  expect(test.listWishes).toHaveBeenCalledTimes(2);
+  expect(
+    screen
+      .getAllByRole('radio')
+      .map((radio) => radio.closest('label')?.textContent),
+  ).toEqual(['Äpfel', 'Berg', 'Zoo']);
 });
 
 async function selectWish() {

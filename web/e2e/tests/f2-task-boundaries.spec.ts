@@ -1140,12 +1140,11 @@ test('failed uploads retain authored content and can retry before the first crea
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(
-    page.getByRole('dialog').getByText(de.memory.photoReady, { exact: true }),
+    page
+      .getByRole('group', { name: de.memory.photoSelected, exact: true })
+      .getByText(de.memory.photoReady, { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: storyProducts.gallery.done, exact: true })
-    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();

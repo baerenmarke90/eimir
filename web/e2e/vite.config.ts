@@ -29,6 +29,10 @@ export default mergeConfig(
             import.meta.dirname,
             '../src/client/selectedMediaRetention.ts',
           ),
+          'e2e/modules/mediaCompression': resolve(
+            import.meta.dirname,
+            'fixtures/mediaCompression.tsx',
+          ),
         },
         preserveEntrySignatures: 'strict',
         output: {

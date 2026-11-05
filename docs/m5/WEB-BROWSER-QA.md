@@ -27,8 +27,8 @@ API routing disables the HTTP cache, and journeys deliberately reload or enter
 deep links multiple times.
 
 The test build extends the application Vite configuration. It also builds the
-existing foundation-proof HTML and three browser module entry facades used by
-the diary storage/session tests. Strict entry signatures preserve those exports;
+existing foundation-proof HTML, three browser module entry facades used by
+the diary storage/session tests and the real codec-worker fixture. Strict entry signatures preserve those exports;
 one bundle graph preserves the application's actual session, draft and media
 singletons. The normal release build contains none of these test-only entries.
 API-mocked contexts explicitly block service workers, including manually created

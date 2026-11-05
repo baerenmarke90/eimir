@@ -162,19 +162,13 @@
       ]
     },
     "heart-moment-create-product-reference.spec.ts": {
-      "roots": [
-        "web/src/components/HeartMomentProductPage.tsx"
-      ]
+      "roots": ["web/src/components/HeartMomentProductPage.tsx"]
     },
     "heart-moment-delete-ownership.spec.ts": {
-      "roots": [
-        "web/src/components/HeartMomentProductPage.tsx"
-      ]
+      "roots": ["web/src/components/HeartMomentProductPage.tsx"]
     },
     "heart-moment-reading.spec.ts": {
-      "roots": [
-        "web/src/components/HeartMomentProductPage.tsx"
-      ]
+      "roots": ["web/src/components/HeartMomentProductPage.tsx"]
     },
     "hidden-file-inputs.spec.ts": {
       "roots": [
@@ -286,9 +280,7 @@
       ]
     },
     "milestone-delete-ownership.spec.ts": {
-      "roots": [
-        "web/src/components/MilestoneProductPage.tsx"
-      ]
+      "roots": ["web/src/components/MilestoneProductPage.tsx"]
     },
     "mobile-header-more.spec.ts": {
       "roots": [
@@ -341,9 +333,7 @@
       ]
     },
     "optional-product-tour.spec.ts": {
-      "roots": [
-        "web/src/client/productTour.tsx"
-      ]
+      "roots": ["web/src/client/productTour.tsx"]
     },
     "partner-nickname.spec.ts": {
       "roots": [
@@ -517,9 +507,7 @@
       ]
     },
     "product-reference-foundations.spec.ts": {
-      "roots": [
-        "web/e2e/fixtures/product-reference-foundations.tsx"
-      ]
+      "roots": ["web/e2e/fixtures/product-reference-foundations.tsx"]
     },
     "product-reflow.spec.ts": {
       "roots": [

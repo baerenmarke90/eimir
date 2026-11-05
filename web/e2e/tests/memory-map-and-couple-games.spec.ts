@@ -850,6 +850,17 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
         const reveal = partnerPage.locator('.shared-experience-reveal');
         await expect(reveal.getByText(words, { exact: true })).toBeVisible();
+        await expect(
+          partnerPage.getByRole('heading', {
+            name: experienceCopy.incoming.from.replace('{{name}}', 'Lea'),
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(reveal.locator('.shared-experience-from')).toHaveText(
+          kind === 'happiness'
+            ? experienceCopy.incoming.happiness
+            : experienceCopy.incoming.timeTravel,
+        );
         await partnerPage.setViewportSize({ width, height: 900 });
         await partnerPage.emulateMedia({
           colorScheme: theme,

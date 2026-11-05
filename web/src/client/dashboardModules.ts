@@ -65,7 +65,7 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
     { key: 'recent_shared', labelKey: 'm5s5.dashboard.recentTitle' },
     {
       key: 'shared_story_summary',
-      labelKey: 'relationshipReflections.passport.wirStatisticsTitle',
+      labelKey: 'm5s5.dashboard.storySummaryTitle',
     },
   ];
 

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { openDraftActions, closeDraftActions } from '../support/mediaDraft';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoReactions from '../../src/i18n/locales/photoReactions';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
@@ -1363,7 +1364,10 @@ for (const width of [320, 390] as const) {
       await positionGalleryForReading(page);
 
       const next = page.locator('.media-gallery-carousel-next');
-      await expect(next).toBeHidden();
+      await expect(next).toHaveCSS('clip-path', 'inset(50%)');
+      expect(
+        await next.evaluate((node) => node.getBoundingClientRect().width),
+      ).toBeLessThanOrEqual(1);
 
       const interaction = await carouselInteractionContract(page);
       expect(interaction.usesSharedTrack).toBe(true);
@@ -1685,7 +1689,11 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   if (!largePrivacy || !largeClose || !largeStage)
     throw new Error('Missing scaled fullscreen controls.');
   expect(largePrivacy.x).toBeGreaterThanOrEqual(largeStage.x);
-  expect(largePrivacy.x + largePrivacy.width).toBeLessThan(largeClose.x);
+  expect(
+    largePrivacy.x + largePrivacy.width < largeClose.x ||
+      largePrivacy.y >= largeClose.y + largeClose.height,
+  ).toBe(true);
+  expect(largePrivacy.width).toBeGreaterThan(largePrivacy.height);
   expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
     largeStage.y + largeStage.height,
   );
@@ -1901,6 +1909,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await page.goto('/');
   await signIn(page);
   await page.goto(`/story/memories/${MEMORY_ID}/edit`);
+  await openDraftActions(page);
   const mark = page
     .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
     .first();
@@ -1910,6 +1919,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
     path: '../../docs/product/design/references/1477/runtime-edit-390.png',
     fullPage: true,
   });
+  await closeDraftActions(page);
   let rejectNext = true;
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`,
@@ -1934,8 +1944,10 @@ test('sensitive photo editing retains a failed classification draft and saves on
       exact: true,
     })
     .click();
-  await expect(mark).not.toBeChecked();
   await expect(page).toHaveURL(/edit$/);
+  await openDraftActions(page);
+  await expect(mark).not.toBeChecked();
+  await closeDraftActions(page);
   await page
     .getByRole('button', {
       name: memoryProduct.save,

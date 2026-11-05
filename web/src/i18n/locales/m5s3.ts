@@ -299,6 +299,7 @@ const m5s3 = {
       'Der Ort und seine Verknüpfungen werden gelöscht. Erinnerungen, Herzmomente und Meilensteine selbst bleiben erhalten.',
   },
   chapter: {
+    ongoing: 'Begleitende Kapitel',
     since: 'Seit {{date}}',
     until: 'Bis {{date}}',
     diaryHint: 'Mit einem Beginn erscheint das Kapitel auch in eurem Tagebuch.',

@@ -13,10 +13,7 @@ import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
-import {
-  authorSummaryQueryKeys,
-  invalidatePlaceConsumers,
-} from '../client/authorSummaryConsumers';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
   type CreateRequestAttempt,
@@ -39,7 +36,10 @@ import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
-import { PlaceMapPicker } from './PlaceMapPicker';
+import { PlaceChoicePicker } from './PlaceChoicePicker';
+import { MemoryTagChoices } from './MemoryTagChoices';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { EimirIcon } from './EimirIcon';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
@@ -51,6 +51,7 @@ type PlanningCreateKind = 'plan' | 'wish';
 interface PlanningCreateValues {
   selectedCoverAttachmentId?: string | null;
   readonly title: string;
+  readonly tags: string[];
   readonly description?: string;
   readonly placeId?: string;
   readonly schedule?: PlanSchedule;
@@ -110,9 +111,11 @@ export function PlanningCreatePage({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [placeId, setPlaceId] = useState('');
-  const [isCreatingPlace, setIsCreatingPlace] = useState(false);
-  const [newPlaceName, setNewPlaceName] = useState('');
-  const [newPlaceAddress, setNewPlaceAddress] = useState('');
+  const [placeOpen, setPlaceOpen] = useState(false);
+  const [placePending, setPlacePending] = useState(false);
+  const placeSheet = useRef<ShortTaskSheetHandle>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [enrichmentDirty, setEnrichmentDirty] = useState(false);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
@@ -129,7 +132,12 @@ export function PlanningCreatePage({
   });
 
   const dirty = Boolean(
-    title || description || placeId || enrichmentDirty || photos.items.length,
+    title ||
+      description ||
+      placeId ||
+      tags.length ||
+      enrichmentDirty ||
+      photos.items.length,
   );
   const onClose = useCallback(() => {
     clearPhotos();
@@ -142,7 +150,7 @@ export function PlanningCreatePage({
     requestClose,
   } = useTaskEditorLifecycle({
     isDirty: dirty,
-    isCloseBlocked: pending,
+    isCloseBlocked: pending || placePending,
     onClose,
   });
 
@@ -155,7 +163,7 @@ export function PlanningCreatePage({
     mutationFn: async (values: PlanningCreateValues) => {
       assertOnlineWrite();
       let requestValues: PlanningCreateValues =
-        kind === 'wish' ? { title: values.title } : values;
+        kind === 'wish' ? { title: values.title, tags: values.tags } : values;
       if (kind === 'plan' && photos.items.length) {
         requestValues = {
           ...values,
@@ -182,7 +190,7 @@ export function PlanningCreatePage({
           kind === 'wish'
             ? apis.wishes.createWish({
                 spaceId,
-                wishCreate: { title: values.title },
+                wishCreate: { title: values.title, tags: values.tags },
                 idempotencyKey,
               })
             : apis.plans.createPlan({
@@ -193,6 +201,9 @@ export function PlanningCreatePage({
       });
     },
     onSuccess: async (created) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['context-tags', spaceId],
+      });
       const queryKey =
         kind === 'plan'
           ? authorSummaryQueryKeys.planDetail(spaceId, created.id)
@@ -222,46 +233,11 @@ export function PlanningCreatePage({
     },
   });
 
-  const createPlaceMutation = useMutation({
-    networkMode: 'always',
-    mutationFn: (values: {
-      name: string;
-      address?: string;
-      latitude?: number;
-      longitude?: number;
-    }) =>
-      apiCall(() => {
-        assertOnlineWrite();
-        return apis.places.createPlace({ spaceId, placeCreate: values });
-      }),
-    onSuccess: async (created) => {
-      await invalidatePlaceConsumers(queryClient, spaceId);
-      queryClient.setQueryData(
-        authorSummaryQueryKeys.placeOptions(spaceId),
-        (current: typeof placesQuery.data) => [
-          ...(current ?? []).filter((place) => place.id !== created.id),
-          created,
-        ],
-      );
-      setPlaceId(created.id);
-      setIsCreatingPlace(false);
-      setNewPlaceName('');
-      setNewPlaceAddress('');
-    },
-  });
-
-  function submitNewPlace() {
-    const name = newPlaceName.trim();
-    if (!name || createPlaceMutation.isPending) return;
-    const address = newPlaceAddress.trim();
-    createPlaceMutation.mutate({ name, address: address || undefined });
-  }
-
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (
       pending ||
-      createPlaceMutation.isPending ||
+      placePending ||
       !title.trim() ||
       photos.hasPending ||
       photos.hasFailed ||
@@ -272,6 +248,8 @@ export function PlanningCreatePage({
       setOfflineAttempt(true);
       return;
     }
+    const committedTags = tagEditor.current?.commitDraft();
+    if (!committedTags) return;
     const data = new FormData(event.currentTarget);
     const schedule =
       kind === 'plan'
@@ -285,6 +263,7 @@ export function PlanningCreatePage({
     setPending(true);
     createMutation.mutate({
       title: title.trim(),
+      tags: committedTags,
       description:
         kind === 'plan' && description.trim() ? description.trim() : undefined,
       placeId: kind === 'plan' && placeId ? placeId : undefined,
@@ -309,7 +288,6 @@ export function PlanningCreatePage({
         title={t(
           isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading',
         )}
-        description={isPlan ? t('m5s3.plan.createIntro') : undefined}
       />
       <div ref={headingRef} tabIndex={-1} className="planning-task-focus" />
 
@@ -367,6 +345,35 @@ export function PlanningCreatePage({
             />
           ) : null}
           {isPlan ? (
+            <div className="planning-place-choice">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setPlaceOpen(true)}
+              >
+                <EimirIcon name="orte" />
+                {placesQuery.data?.find((place) => place.id === placeId)
+                  ?.name ?? t('m5s3.common.place')}
+              </button>
+              {placeId ? (
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => setPlaceId('')}
+                >
+                  {t('m5s3.common.noPlace')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          <MemoryTagChoices
+            parentType={isPlan ? 'PLAN' : 'WISH'}
+            selected={tags}
+            onChange={setTags}
+            editorRef={tagEditor}
+            onDraftChange={() => setEnrichmentDirty(true)}
+          />
+          {isPlan ? (
             <details className="planning-optional-details">
               <summary>{t('m5s3.plan.addDetails')}</summary>
               <div className="planning-optional-fields eimir-motion-disclosure">
@@ -380,107 +387,6 @@ export function PlanningCreatePage({
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                 />
-                <label htmlFor="planning-create-place">
-                  {t('m5s3.common.place')}
-                </label>
-                <select
-                  id="planning-create-place"
-                  name="placeId"
-                  value={placeId}
-                  onChange={(event) => setPlaceId(event.target.value)}
-                >
-                  <option value="">{t('m5s3.common.noPlace')}</option>
-                  {placesQuery.data?.map((place) => (
-                    <option key={place.id} value={place.id}>
-                      {place.name}
-                    </option>
-                  ))}
-                </select>
-                <PlaceMapPicker
-                  api={apis.places}
-                  spaceId={spaceId}
-                  disabled={pending || createPlaceMutation.isPending}
-                  onSelect={(selection) =>
-                    createPlaceMutation.mutate({
-                      name: selection.name,
-                      address: selection.address ?? undefined,
-                      latitude: selection.latitude,
-                      longitude: selection.longitude,
-                    })
-                  }
-                />
-                <button
-                  type="button"
-                  className="button-link secondary-link planning-add-place"
-                  onClick={() => setIsCreatingPlace(true)}
-                  disabled={isCreatingPlace || createPlaceMutation.isPending}
-                >
-                  {t('m5s3.plan.addNewPlace')}
-                </button>
-                {isCreatingPlace ? (
-                  <div className="planning-new-place">
-                    <div className="field-group">
-                      <label htmlFor="planning-create-place-name">
-                        {t('m5s3.place.name')}
-                      </label>
-                      <input
-                        id="planning-create-place-name"
-                        value={newPlaceName}
-                        onChange={(event) =>
-                          setNewPlaceName(event.target.value)
-                        }
-                        maxLength={200}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') event.preventDefault();
-                        }}
-                      />
-                    </div>
-                    <div className="field-group">
-                      <label htmlFor="planning-create-place-address">
-                        {t('m5s3.place.address')}
-                      </label>
-                      <input
-                        id="planning-create-place-address"
-                        value={newPlaceAddress}
-                        onChange={(event) =>
-                          setNewPlaceAddress(event.target.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') event.preventDefault();
-                        }}
-                      />
-                    </div>
-                    <div className="form-actions planning-new-place-actions">
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => {
-                          setIsCreatingPlace(false);
-                          setNewPlaceName('');
-                          setNewPlaceAddress('');
-                        }}
-                      >
-                        {t('m5s3.plan.newPlaceCancel')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={submitNewPlace}
-                        disabled={
-                          createPlaceMutation.isPending || !newPlaceName.trim()
-                        }
-                      >
-                        {createPlaceMutation.isPending
-                          ? t('m5s3.plan.newPlaceSaving')
-                          : t('m5s3.plan.newPlaceSave')}
-                      </button>
-                    </div>
-                    {createPlaceMutation.error ? (
-                      <ProblemState
-                        error={createPlaceMutation.error as ClientProblemError}
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
                 <PlanScheduleFields idPrefix="planning-create-schedule" />
               </div>
             </details>
@@ -514,6 +420,34 @@ export function PlanningCreatePage({
       ) : null}
       {problem ? <ProblemState error={problem} /> : null}
 
+      <ShortTaskSheet
+        ref={placeSheet}
+        open={placeOpen}
+        isCloseBlocked={placePending}
+        title={t('m5s3.common.place')}
+        onClose={() => setPlaceOpen(false)}
+      >
+        <PlaceChoicePicker
+          api={apis.places}
+          spaceId={spaceId}
+          queryKey={authorSummaryQueryKeys.placeOptions(spaceId)}
+          offline={!navigator.onLine}
+          onPendingChange={setPlacePending}
+          onChoose={(place) => {
+            queryClient.setQueryData(
+              authorSummaryQueryKeys.placeOptions(spaceId),
+              (current: typeof placesQuery.data) => [
+                ...(current ?? []).filter((entry) => entry.id !== place.id),
+                place,
+              ],
+            );
+            setPlaceId(place.id);
+            setPlacePending(false);
+            setEnrichmentDirty(true);
+            placeSheet.current?.closeForNavigation(() => setPlaceOpen(false));
+          }}
+        />
+      </ShortTaskSheet>
       <ShortTaskSheet
         ref={discardRef}
         open={showDiscard}

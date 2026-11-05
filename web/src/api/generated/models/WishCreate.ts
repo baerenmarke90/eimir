@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * A wish is created from exactly one client field.
+ * A wish is created from authored title and optional shared context labels.
  * 
  * ``extra="forbid"`` is more than hygiene here: M3-D01/D02 make
  * ``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.
@@ -24,6 +24,12 @@ import { mapValues } from '../runtime';
  * @interface WishCreate
  */
 export interface WishCreate {
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof WishCreate
+     */
+    tags?: Array<string>;
     /**
      * 
      * @type {string}
@@ -50,6 +56,7 @@ export function WishCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
 }
@@ -65,6 +72,7 @@ export function WishCreateToJSONTyped(value?: WishCreate | null, ignoreDiscrimin
 
     return {
         
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

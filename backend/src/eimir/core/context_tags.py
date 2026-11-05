@@ -1,4 +1,4 @@
-"""Bounded authored labels shared by protected Memory and HeartMoment payloads."""
+"""Bounded authored labels shared by protected moment and planning payloads."""
 
 import unicodedata
 from typing import Annotated

@@ -462,7 +462,9 @@ export function SharedPlanningOverviewPage({
     ...new Map(
       (wishes.data?.pages.flatMap((page) => page.items) ?? [])
         .filter((wish) => wish.status === wishStatus)
-        .filter((wish) => matchesSearch(wishSearch, wish.title))
+        .filter((wish) =>
+          matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
+        )
         .map((wish) => [wish.id, wish]),
     ).values(),
   ].sort(
@@ -482,7 +484,14 @@ export function SharedPlanningOverviewPage({
         plan,
       ]),
     ).values(),
-  ].filter((plan) => matchesSearch(planSearch, plan.title, plan.description));
+  ].filter((plan) =>
+    matchesSearch(
+      planSearch,
+      plan.title,
+      plan.description,
+      ...(plan.tags ?? []),
+    ),
+  );
   const planGroups = groupPlanningOverviewPlans(planItems);
   const hasPlans =
     planStatus === 'COMPLETED'

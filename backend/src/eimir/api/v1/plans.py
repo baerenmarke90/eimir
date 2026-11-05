@@ -33,6 +33,7 @@ from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, Ordered
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
 from eimir.attachments.models import MediaType
+from eimir.core.context_tags import ContextTags, unique_tags
 from eimir.engagement.gentle import record_manual_save
 from eimir.plans import service
 from eimir.plans.media import PhotoSelection, photos_of_plans
@@ -105,6 +106,9 @@ class PlanCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str
+    tags: ContextTags = Field(default_factory=list)
+
+    _unique_tags = field_validator("tags")(unique_tags)
     description: str | SkipJsonSchema[None] = None
     place_id: UUID | SkipJsonSchema[None] = None
     schedule: PlanSchedule | SkipJsonSchema[None] = None
@@ -155,6 +159,16 @@ class PlanUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | SkipJsonSchema[None] = None
+    tags: ContextTags | SkipJsonSchema[None] = None
+
+    @field_validator("tags")
+    @classmethod
+    def _tags_not_null(cls, value: ContextTags | None) -> ContextTags:
+        if value is None:
+            raise ValueError("tags must not be null")
+        unique_tags(value)
+        return value
+
     description: str | None = None
     place_id: UUID | None = None
     experienced_on: date | SkipJsonSchema[None] = None
@@ -236,6 +250,7 @@ class PlanDetail(ApiModel):
     source_wish_id: UUID | None
     place_id: UUID | None
     title: str
+    tags: ContextTags = Field(default_factory=list)
     description: str | None
     selected_cover_attachment_id: UUID | None = None
     cover_attachment: AttachmentSummary | None = None
@@ -318,6 +333,7 @@ def _plan_detail(
         source_wish_id=plan.source_wish_id,
         place_id=plan.place_id,
         title=plan.payload.title,
+        tags=plan.payload.tags,
         description=plan.payload.description,
         selected_cover_attachment_id=plan.payload.selected_cover_attachment_id,
         cover_attachment=AttachmentSummary(**cover.model_dump(exclude={"position"}))
@@ -386,6 +402,7 @@ def create_plan(
         photos=_photo_selection(body.attachments),
         selected_cover_attachment_id=body.selected_cover_attachment_id,
         title=body.title,
+        tags=body.tags,
         description=body.description,
         place_id=body.place_id,
         planned_on=planned_on,
@@ -480,6 +497,7 @@ def update_plan(
         expected_version=expected_version,
         changed_fields=frozenset(body.model_fields_set),
         title=body.title,
+        tags=body.tags,
         description=body.description,
         place_id=body.place_id,
         experienced_on=body.experienced_on,

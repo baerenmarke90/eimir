@@ -798,6 +798,23 @@
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/PrivatePartnerNotesPage.tsx"
       ]
+    },
+    "mobile-diary-planning-media.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/components/DeviceMediaPicker.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/App.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ]
     }
   }
 }

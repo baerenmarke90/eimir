@@ -81,7 +81,7 @@ describe('MoreOverviewPage', () => {
     const badgeMatches = html.match(/class="more-destination-badge"/g);
     expect(badgeMatches).toHaveLength(3);
     expect(html).toContain(games.status.premium);
-    expect(html).toContain(dailyInsights.week.title);
+    expect(html).toContain(de.more.destinations.insights);
     expect(html).toContain(dailyInsights.pro);
     expect(html).not.toContain(dailyInsights.week.subtitle);
   });

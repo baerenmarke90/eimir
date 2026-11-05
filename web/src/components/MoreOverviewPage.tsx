@@ -46,49 +46,44 @@ const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
   },
 ];
 
-const SHARED_DESTINATIONS: readonly MoreDestination[] = [
-  {
-    path: STORY_YEARS_ROUTE,
-    icon: 'plan',
-    titleKey: 'more.yearsTitle',
-  },
+const MOMENT_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: STORY_PHOTOS_ROUTE,
     icon: 'story',
-    titleKey: 'sharedPhotos.browse',
+    titleKey: 'more.destinations.photos',
   },
   {
     path: STORY_CHAPTERS_ROUTE,
     icon: 'chapter',
-    titleKey: 'story.browseChapters',
+    titleKey: 'more.destinations.chapters',
+  },
+  {
+    path: STORY_YEARS_ROUTE,
+    icon: 'plan',
+    titleKey: 'more.destinations.years',
   },
   {
     path: MORE_PASSPORT_ROUTE,
     icon: 'chapter',
-    titleKey: 'recaps.shortTitle',
+    titleKey: 'more.destinations.recaps',
     badgeKey: 'recaps.pro',
   },
   {
     path: MORE_INSIGHTS_ROUTE,
     icon: 'activity',
-    titleKey: 'dailyInsights.week.title',
+    titleKey: 'more.destinations.insights',
     badgeKey: 'dailyInsights.pro',
   },
-  {
-    path: MORE_PEOPLE_ROUTE,
-    icon: 'people',
-    titleKey: 'more.people.title',
-  },
-  {
-    path: MORE_PLACES_ROUTE,
-    icon: 'places',
-    titleKey: 'more.places.title',
-  },
+];
+
+const SHARED_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: MORE_COLLECTIONS_ROUTE,
     icon: 'collections',
-    titleKey: 'more.collections.title',
+    titleKey: 'more.destinations.lists',
   },
+  { path: MORE_PLACES_ROUTE, icon: 'places', titleKey: 'more.places.title' },
+  { path: MORE_PEOPLE_ROUTE, icon: 'people', titleKey: 'more.people.title' },
   {
     path: appRoutePath('games'),
     icon: 'games',
@@ -250,6 +245,15 @@ export function MoreOverviewPage({
             unreadCount={unreadCount}
           />
           {PERSONAL_DESTINATIONS.map((destination) => (
+            <MoreDestinationRow
+              key={destination.path}
+              destination={destination}
+            />
+          ))}
+        </MoreDestinationGroup>
+
+        <MoreDestinationGroup title={t('more.groups.moments')}>
+          {MOMENT_DESTINATIONS.map((destination) => (
             <MoreDestinationRow
               key={destination.path}
               destination={destination}

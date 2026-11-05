@@ -1074,7 +1074,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         storeSession({
           account: verifiedAccount,
           tokens: currentTokens,
-          spaceId: activeSession.spaceId ?? null,
+          // Membership resolution may have selected a Space while /me was pending.
+          spaceId: loadStoredSession()?.spaceId ?? null,
         });
       } catch (error) {
         if (cancelled) return;
@@ -1411,6 +1412,12 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         <SpaceContextGate loading error={null} onRetry={() => undefined} />
       </>
     );
+  }
+
+  // Publish the selected Space before mounting its draft/media owners. The
+  // membership effect rotates their local leases when selection changes.
+  if (activeSpaceId !== spaceId) {
+    return <BrandedStartup label={t('states.loading.title')} />;
   }
 
   return (

@@ -147,19 +147,20 @@ def create_heart_moment(
         happened_on=happened_on,
         payload=HeartMomentPayload(text=normalized_text, emotion=emotion, tags=selected_tags),
     )
-    if attachments is None and attachment_id is not None:
-        _bind(session, context, heart_moment, attachment_id)
-        _set_attachment_sensitive(session, context, heart_moment, attachment_is_sensitive)
     session.add(heart_moment)
     _flush(session)
-    if attachments is not None or selected_cover_attachment_id is not None:
+    if (
+        attachments is not None
+        or attachment_id is not None
+        or selected_cover_attachment_id is not None
+    ):
         media.replace(
             session,
             context,
             heart_moment,
             attachments
             if attachments is not None
-            else ([(attachment_id, None)] if attachment_id else []),
+            else ([(attachment_id, attachment_is_sensitive)] if attachment_id else []),
             selected_cover=selected_cover_attachment_id,
             cover_supplied=True,
         )
@@ -167,13 +168,6 @@ def create_heart_moment(
         from eimir.relations import service as relations
 
         relations.link(session, context, place_id, heart_moment.id, relations.PLACE_HEART_MOMENTS)
-    if attachment_id is not None:
-        from eimir.attachments import photo_locations
-        from eimir.attachments.models import Attachment
-
-        attachment = session.get(Attachment, attachment_id)
-        assert attachment is not None
-        photo_locations.bind(session, context, heart_moment, [attachment], heart=True)
     _flush(session)
     _record(
         session,
@@ -615,30 +609,6 @@ def list_heart_moments(
             heart_moment_id=last.id,
         )
     return HeartMomentPageResult(items=items, next_cursor=next_cursor, has_more=has_more)
-
-
-def _bind(
-    session: Session,
-    context: AuthorizationContext,
-    heart_moment: HeartMoment,
-    attachment_id: UUID,
-) -> None:
-    """Attach an attachment to this HeartMoment (M2-D03).
-
-    The rules live in the binding module rather than here. Otherwise every
-    domain would carry its own subset and differences would only become
-    visible once a visibility decision had already gone wrong.
-    """
-    from eimir.attachments import binding
-
-    locked = binding.lock_for_binding(session, [attachment_id])
-    binding.ensure_bindable(
-        locked.get(attachment_id),
-        space_id=context.space_id,
-        account_id=context.account_id,
-    )
-    binding.ensure_unlinked(session, attachment_id, allow=("HEART_MOMENT", heart_moment.id))
-    heart_moment.attachment_id = attachment_id
 
 
 def _set_attachment_sensitive(

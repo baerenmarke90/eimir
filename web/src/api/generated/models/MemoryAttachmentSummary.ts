@@ -42,6 +42,12 @@ export interface MemoryAttachmentSummary {
     durationSeconds?: number | null;
     /**
      * 
+     * @type {string}
+     * @memberof MemoryAttachmentSummary
+     */
+    failureCode?: string | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof MemoryAttachmentSummary
      */
@@ -137,6 +143,7 @@ export function MemoryAttachmentSummaryFromJSONTyped(json: any, ignoreDiscrimina
     return {
         
         'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
@@ -163,6 +170,7 @@ export function MemoryAttachmentSummaryToJSONTyped(value?: MemoryAttachmentSumma
     return {
         
         'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],

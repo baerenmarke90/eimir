@@ -363,7 +363,9 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await expect(titleInput).toBeVisible();
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
-    await expect(page.locator('#planning-create-place')).not.toBeFocused();
+    await expect(
+      page.getByRole('button', { name: m5s3.common.place, exact: true }),
+    ).not.toBeFocused();
   });
 
   test('a normal /plan visit without Quick Create does not force focus into either composer', async ({

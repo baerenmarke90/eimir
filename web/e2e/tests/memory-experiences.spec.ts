@@ -1,3 +1,4 @@
+import { openDraftActions, closeDraftActions } from '../support/mediaDraft';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -350,7 +351,7 @@ for (const [width, colorScheme] of [
     // The native date editor keeps calendar dates rather than timezone instants.
     await page.locator('#happenedOn').fill('2026-12-31');
     await page.getByRole('button', { name: photoSources.addMedia }).click();
-    const input = page.locator('dialog[open] input[type="file"]');
+    const input = page.locator('#memory-create-images');
     await expect(input).toBeAttached();
     await expect(input).toBeEnabled();
     await input.setInputFiles(
@@ -368,22 +369,26 @@ for (const [width, colorScheme] of [
       })),
     );
     const gallery = page.locator('.photo-draft-gallery');
-    await expect(gallery.locator('.attachment-status-ready')).toBeVisible();
-    await gallery
-      .getByRole('button', { name: /second.jpg/, pressed: false })
-      .click();
-    await gallery
+    const visibleCount = width === 390 && colorScheme === 'dark' ? 6 : 3;
+    await expect(
+      gallery.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(visibleCount);
+    await gallery.locator('.photo-draft-tile').nth(1).click();
+    const actions = page.locator('dialog.photo-draft-preview-sheet[open]');
+    await actions
       .getByRole('button', { name: experiences.chooseCover })
       .click();
-    await gallery.getByRole('button', { name: experiences.arrange }).click();
-    const task = page.getByRole('dialog', { name: experiences.arrange });
+    await closeDraftActions(page);
     if (width === 390 && colorScheme === 'light') {
-      const handle = task.getByRole('button', {
-        name: 'first.jpg verschieben',
+      const handle = gallery.getByRole('button', {
+        name: experiences.moveHandle.replace('{{name}}', 'first.jpg'),
         exact: true,
       });
       const start = await handle.boundingBox();
-      const end = await task.locator('.photo-draft-tile').nth(2).boundingBox();
+      const end = await gallery
+        .locator('.photo-draft-tile')
+        .nth(2)
+        .boundingBox();
       if (!start || !end)
         throw new Error('Arrange gesture targets are missing');
       await page.mouse.move(
@@ -391,12 +396,16 @@ for (const [width, colorScheme] of [
         start.y + start.height / 2,
       );
       await page.mouse.down();
+      await page.mouse.move(
+        start.x + start.width / 2 + 10,
+        start.y + start.height / 2,
+      );
       await expect(handle).toHaveAttribute('aria-grabbed', 'true');
       await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, {
         steps: 12,
       });
       await page.mouse.up();
-      await expect(task.locator('.photo-draft-tile').last()).toHaveAttribute(
+      await expect(gallery.locator('.photo-draft-tile').last()).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
@@ -404,28 +413,42 @@ for (const [width, colorScheme] of [
       await page.keyboard.press('Space');
       await page.keyboard.press('ArrowLeft');
       await page.keyboard.press('Space');
-      await expect(task.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
+      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      await task
-        .getByRole('button', { name: experiences.cancel, exact: true })
-        .click();
-      await expect(task).toBeHidden();
-      await gallery.getByRole('button', { name: experiences.arrange }).click();
+      await handle.focus();
+      await page.keyboard.press('Space');
+      await page.keyboard.press('ArrowLeft');
+      await page.keyboard.press('Escape');
+      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
+        'aria-label',
+        /first.jpg/,
+      );
+      await handle.focus();
+      await page.keyboard.press('Space');
+      await page.keyboard.press('ArrowLeft');
+      await page.keyboard.press('Space');
+      await expect(
+        gallery.locator('.photo-draft-tile').first(),
+      ).toHaveAttribute('aria-label', /first.jpg/);
     }
-    await task
-      .getByRole('button', { name: /^Foto .*third.jpg/, pressed: false })
-      .click();
-    await task
-      .getByRole('button', { name: experiences.first, exact: true })
-      .click();
+    await openDraftActions(page, 2);
+    const earlier = actions.getByRole('button', {
+      name: de.memory.photoMoveEarlier.replace('{{name}}', 'third.jpg'),
+      exact: true,
+    });
+    await earlier.click();
+    await earlier.click();
+    await closeDraftActions(page);
+    await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
+      'aria-label',
+      /third.jpg/,
+    );
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, `arrange-${width}-${colorScheme}.png`),
     });
-    await task.getByRole('button', { name: experiences.finish }).click();
-    await expect(task).toBeHidden();
     await expect(gallery.locator('.photo-draft-number').first()).toHaveText(
       '1',
     );

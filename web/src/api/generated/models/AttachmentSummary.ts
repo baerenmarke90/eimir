@@ -39,6 +39,12 @@ export interface AttachmentSummary {
     durationSeconds?: number | null;
     /**
      * 
+     * @type {string}
+     * @memberof AttachmentSummary
+     */
+    failureCode?: string | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof AttachmentSummary
      */
@@ -121,6 +127,7 @@ export function AttachmentSummaryFromJSONTyped(json: any, ignoreDiscriminator: b
     return {
         
         'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
@@ -145,6 +152,7 @@ export function AttachmentSummaryToJSONTyped(value?: AttachmentSummary | null, i
     return {
         
         'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],

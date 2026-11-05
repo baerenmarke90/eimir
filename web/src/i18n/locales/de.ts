@@ -15,13 +15,22 @@ const de = {
     newMemory: 'Neue Erinnerung',
   },
   more: {
-    yearsTitle: 'Unser Jahr',
+    yearsTitle: 'Jahre',
+    destinations: {
+      photos: 'Fotos',
+      chapters: 'Kapitel',
+      years: 'Jahre',
+      recaps: 'Rückblicke',
+      insights: 'Einblicke',
+      lists: 'Listen',
+    },
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro: 'Persönliches, gemeinsame Listen und Einstellungen.',
     groups: {
       personal: 'Für dich',
       shared: 'Gemeinsam',
+      moments: 'Momente',
       utility: 'App und Konto',
     },
     people: {

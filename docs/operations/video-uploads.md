@@ -31,26 +31,39 @@ unvalidated playback fallback. DRM, additional containers/codecs, adaptive
 streaming and external media URLs remain unsupported. Plans, avatars and
 related-person photos retain image-only intake.
 
-This repairs the general format boundary in #1649. Browser codec support is
-not required: missing/ineligible local preparation sends the selected original
-through this same server pipeline. No extra provider, permission, native app
-implementation or couple-facing setting is introduced.
+The format boundary from #1649 remains authoritative. Browser codec support
+is not required. No extra provider, permission or couple-facing setting is introduced.
 
-### Local preparation (#1647)
+### Upload and background completion (#1655)
 
-The shared Web/Capacitor client can optimize selected H.264/AAC recordings before
-transfer using native WebCodecs and the bundled, unmodified Mediabunny container
-library. Only one dedicated worker runs at a time. Files below 8 MiB bypass
-conversion; eligible clips retain their aspect ratio and audio, with at most
-1080p/30 fps and a 4 Mbit/s video target. HDR and unsupported input tracks are
-not converted. Do not discard audio to make an encoder succeed.
+Capture transfers selected originals directly; it no longer invokes #1647's
+optional local compression before upload. Images still wait for READY. After
+video finalize, the editor may save a Memory or HeartMoment with a PROCESSING
+placeholder. Only server-validated READY output can receive read/playback access.
+Canonical parent reads refresh while processing; closing/restarting the client
+cannot cancel a video already saved with its parent.
 
-Preparation has a 120-second wall limit and a 100 MiB output ceiling. The client
-uses a result only when it is at least ten percent smaller; otherwise it uploads
-the original. Failure, missing codecs or worker restrictions also use the original.
-Cancellation terminates local work, including queued callers. Selected originals
-remain unchanged and no media or codec diagnostics are logged or persisted.
-The server remains authoritative for every codec, privacy and byte limit.
+Only uploaded, finalized VIDEO rows in VALIDATING/FAILED may use this narrow
+binding exception, within sixty minutes of the observed upload when unbound.
+Ownership, Space authorization, exclusive binding and the 20-media / 500 MiB
+aggregate boundary remain enforced. Pending videos reserve their declared bytes.
+The worker locks the current parent before publication and checks output bytes
+against the complete gallery, including other pending reservations. Upload identity
+and deletion fences survive annotation edits; the latest sensitivity is retained.
+
+A failed bound video records one uploader-only reference event. If validation
+fails before binding, the first authorized binding records that outcome instead.
+The kind inherits the existing reminder channel choices, as transfer outcomes do.
+Notification projection resolves the current authorized parent, observes channel
+choices/quiet hours, and sends no filename, content excerpt or success notification.
+Failure placeholders remain editable after unvalidated raw bytes are purged on the
+existing 24-hour schedule. Purge failures retry without exposing originals.
+API, general worker and optional media worker must deploy the same revision,
+including migration 0111. The existing bounded processor remains optional for
+Self-Hosted and uses the same resource limits in Cloud.
+
+The old local compression utility remains exercised by its diagnostic fixture;
+normal capture does not invoke it or rely on browser encoding support.
 
 The production CSP permits compiled same-origin workers; remote/blob workers,
 inline scripts and eval remain disallowed. This does not enable a new service

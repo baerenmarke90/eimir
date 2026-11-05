@@ -68,6 +68,9 @@ import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { TaskBackButton } from './TaskBackButton';
+import { MemoryTagChoices } from './MemoryTagChoices';
+import { ContextTagList } from './ContextTagList';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { UiState } from './UiState';
 import { usePlanCompletion } from './usePlanCompletion';
 import './SharedPlanningPages.css';
@@ -104,6 +107,8 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [completionTarget, setCompletionTarget] = useState<string | null>(null);
   const completionTrigger = useRef<HTMLButtonElement>(null);
   const [completionSheetPresent, setCompletionSheetPresent] = useState(false);
@@ -182,6 +187,9 @@ export function PlanProductPage({
     retry: false,
   });
   const commitPlan = async (plan: PlanDetail) => {
+    await queryClient.invalidateQueries({
+      queryKey: ['context-tags', spaceId],
+    });
     queryClient.setQueryData(key, plan);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['m5-s3', 'plans', spaceId] }),
@@ -351,6 +359,8 @@ export function PlanProductPage({
       photos.entries.length !== photos.items.length
     )
       return;
+    const tags = tagEditor.current?.commitDraft();
+    if (!tags) return;
     const data = new FormData(event.currentTarget);
     const description = String(data.get('description')).trim();
     const placeId = String(data.get('placeId')).trim();
@@ -359,6 +369,7 @@ export function PlanProductPage({
       plan: editingPlan ?? plan,
       values: {
         title: String(data.get('title')).trim(),
+        tags,
         description: description || null,
         placeId: placeId || null,
         experiencedOn: experiencedOn ? dateFromInput(experiencedOn) : undefined,
@@ -463,6 +474,7 @@ export function PlanProductPage({
               onClick={() => {
                 if (!isPlanWritePending()) {
                   setEditingPlan(plan);
+                  setEditTags(plan.tags ?? []);
                   setIsEditing(true);
                   setEditDirty(false);
                   photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
@@ -476,6 +488,7 @@ export function PlanProductPage({
         }
       />
 
+      {!isEditing ? <ContextTagList tags={plan.tags} /> : null}
       <section
         className="planning-facts planen-detail-summary"
         aria-label={t('m5s3.plan.scheduleFacts')}
@@ -542,6 +555,18 @@ export function PlanProductPage({
                 onDiscard={editorLifecycle.discard}
               />
             ) : null}
+            <MemoryTagChoices
+              parentType="PLAN"
+              parentId={plan.id}
+              selected={editTags}
+              onChange={(tags) => {
+                setEditTags(tags);
+                setEditDirty(true);
+              }}
+              editorRef={tagEditor}
+              onDraftChange={() => setEditDirty(true)}
+              disabled={writesPending}
+            />
             <PlanPhotosEditor
               controller={photos}
               spaceId={spaceId}

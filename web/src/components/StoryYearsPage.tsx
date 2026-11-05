@@ -1,3 +1,4 @@
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { TaskBackLink } from './TaskBackButton';
 import { AutoLoadMore } from './AutoLoadMore';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
@@ -304,8 +305,21 @@ export function StoryYearDetailPage({
   const items = useMemo(() => combinedStory?.items ?? [], [combinedStory]);
   const locale = resolvedLocale();
   const monthGroups = useMemo(
-    () => groupDiaryEntries(items, combinedStory?.chapterMarkers ?? [], locale),
-    [items, combinedStory?.chapterMarkers, locale],
+    () =>
+      groupDiaryEntries(
+        items,
+        combinedStory?.chapterMarkers ?? [],
+        locale,
+        combinedStory?.chapterPeriods ?? [],
+        year,
+      ),
+    [
+      items,
+      combinedStory?.chapterMarkers,
+      combinedStory?.chapterPeriods,
+      locale,
+      year,
+    ],
   );
   const entryCount =
     items.length + (combinedStory?.chapterMarkers?.length ?? 0);
@@ -358,7 +372,11 @@ export function StoryYearDetailPage({
         />
       ) : null}
 
-      {year !== null && combinedStory && !isAvailable && entryCount === 0 ? (
+      {year !== null &&
+      combinedStory &&
+      !isAvailable &&
+      entryCount === 0 &&
+      monthGroups.length === 0 ? (
         <section
           className="story-years-empty"
           aria-labelledby="story-year-unavailable-title"
@@ -373,7 +391,7 @@ export function StoryYearDetailPage({
         </section>
       ) : null}
 
-      {year !== null && entryCount > 0 ? (
+      {year !== null && monthGroups.length > 0 ? (
         <div className="story-year-months">
           {monthGroups.map((group) => (
             <section
@@ -384,6 +402,11 @@ export function StoryYearDetailPage({
               <header className="story-year-month-header">
                 <h2 id={`story-year-month-${group.key}`}>{group.label}</h2>
               </header>
+              <DiaryChapterPeriods
+                chapters={group.periods}
+                month={group.key}
+                loadedPageCount={storyQuery.data?.pages.length ?? 1}
+              />
               <DiaryList
                 entries={group.entries}
                 onOpenChapter={(event, chapter, to) => {

@@ -1,3 +1,4 @@
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import {
   useInfiniteQuery,
   useQuery,
@@ -561,8 +562,22 @@ export function StoryProductPage({
   const timelineEntryCount =
     timelineItems.length + timelineChapterMarkers.length;
   const timelineMonthGroups = useMemo(
-    () => groupDiaryEntries(timelineItems, timelineChapterMarkers, locale),
-    [timelineItems, timelineChapterMarkers, locale],
+    () =>
+      groupDiaryEntries(
+        timelineItems,
+        timelineChapterMarkers,
+        locale,
+        filters.kind ? [] : (combinedStory?.chapterPeriods ?? []),
+        filters.year,
+      ),
+    [
+      timelineItems,
+      timelineChapterMarkers,
+      locale,
+      combinedStory?.chapterPeriods,
+      filters.kind,
+      filters.year,
+    ],
   );
   useTimelineReveal({
     rootRef: timelineMonthsRef,
@@ -1116,7 +1131,7 @@ export function StoryProductPage({
         ) : null}
         {activeView === 'timeline' &&
         storyQuery.data &&
-        timelineEntryCount === 0 &&
+        timelineMonthGroups.length === 0 &&
         availableYears.length === 0 &&
         !hasActiveFilters
           ? emptyState
@@ -1262,7 +1277,7 @@ export function StoryProductPage({
           </ShortTaskSheet>
           {activeView === 'timeline' &&
           combinedStory &&
-          (timelineEntryCount > 0 ||
+          (timelineMonthGroups.length > 0 ||
             availableYears.length > 0 ||
             hasActiveFilters) ? (
             <div className="layout-single-column">
@@ -1325,7 +1340,7 @@ export function StoryProductPage({
                     {t('story.timelineHeading')}
                   </h2>
 
-                  {timelineEntryCount === 0 ? (
+                  {timelineMonthGroups.length === 0 ? (
                     <div className="story-filter-empty-state">
                       <p className="story-filter-empty-text">
                         {t('storyFilters.noMatches')}
@@ -1359,6 +1374,11 @@ export function StoryProductPage({
                               </h2>
                               {groupIndex === 0 ? filterTrigger : null}
                             </header>
+                            <DiaryChapterPeriods
+                              chapters={group.periods}
+                              month={group.key}
+                              loadedPageCount={loadedPageCount}
+                            />
                             <DiaryList
                               entries={group.entries}
                               onOpenChapter={(event, chapter, to) => {

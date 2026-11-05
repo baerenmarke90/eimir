@@ -13,6 +13,7 @@ Name | Type
 `id` | string
 `spaceId` | string
 `status` | [WishStatus](WishStatus.md)
+`tags` | Array&lt;string&gt;
 `title` | string
 `updatedAt` | Date
 `version` | number
@@ -31,6 +32,7 @@ const example = {
   "id": null,
   "spaceId": null,
   "status": null,
+  "tags": null,
   "title": null,
   "updatedAt": null,
   "version": null,

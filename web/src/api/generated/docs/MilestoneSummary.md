@@ -11,6 +11,7 @@ Name | Type
 `createdAt` | Date
 `happenedOn` | Date
 `id` | string
+`places` | [Array&lt;StoryPlaceSummary&gt;](StoryPlaceSummary.md)
 `title` | string
 
 ## Example
@@ -25,6 +26,7 @@ const example = {
   "createdAt": null,
   "happenedOn": null,
   "id": null,
+  "places": null,
   "title": null,
 } satisfies MilestoneSummary
 

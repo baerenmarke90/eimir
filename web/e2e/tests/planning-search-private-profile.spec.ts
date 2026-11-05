@@ -1,3 +1,4 @@
+import fixtures from '../fixtures/locales/de';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -79,12 +80,12 @@ async function fixture(page: Page, failLater = false) {
   const unexpected = await installMocks(page, { strict: true });
   const reads: string[] = [];
   let fail = failLater;
-  const target = plan(planId, 'Österreich entdecken', {
-    description: 'Eine kleine Straße am See',
+  const target = plan(planId, fixtures.planningFollowup.plan, {
+    description: fixtures.planningFollowup.street,
     placeId,
     coverAttachment: photo,
   });
-  const targetWish = wish(wishId, 'Ägypten im Frühling');
+  const targetWish = wish(wishId, fixtures.planningFollowup.wish);
   const firstPage = Array.from({ length: 20 }, (_, i) =>
     plan(`plan-${i}`, `Ausflug ${i + 1}`),
   );
@@ -99,7 +100,7 @@ async function fixture(page: Page, failLater = false) {
         return route.fulfill({
           json: {
             items: [
-              plan('completed', 'Österreich im Winter', {
+              plan('completed', fixtures.planningFollowup.completedPlan, {
                 status: 'COMPLETED',
                 experiencedOn: '2026-01-20',
               }),
@@ -133,12 +134,18 @@ async function fixture(page: Page, failLater = false) {
       return route.fulfill({
         json: {
           items: completed
-            ? [wish('done', 'Ägypten erlebt', 'COMPLETED')]
+            ? [
+                wish(
+                  'done',
+                  fixtures.planningFollowup.completedWish,
+                  'COMPLETED',
+                ),
+              ]
             : cursor
               ? [targetWish]
               : [
-                  wish('wish-z', 'Zoo besuchen'),
-                  wish('wish-b', 'Bergwochenende zu zweit'),
+                  wish('wish-z', fixtures.planningFollowup.lastWish),
+                  wish('wish-b', fixtures.planningFollowup.secondWish),
                 ],
           nextCursor: !completed && !cursor ? 'later-wishes' : null,
         },
@@ -224,7 +231,7 @@ for (const view of [
     await expect(planSearch).not.toBeFocused();
     await planSearch.fill('osterreich');
     await expect(page.locator('.planen-next-link')).toContainText(
-      'Österreich entdecken',
+      fixtures.planningFollowup.plan,
     );
     expect(state.reads).toContain('later-plans');
     await expect(
@@ -256,7 +263,7 @@ for (const view of [
     expect(new URL(page.url()).search).toBe('');
     await planSearch.fill('strasse see');
     await expect(page.locator('.planen-next-link')).toContainText(
-      'Österreich entdecken',
+      fixtures.planningFollowup.plan,
     );
     await page
       .getByRole('button', {
@@ -276,7 +283,9 @@ for (const view of [
       .click();
     await expect(planSearch).toBeFocused();
     await expect(
-      page.getByRole('link', { name: /Österreich im Winter/ }),
+      page.getByRole('link', {
+        name: new RegExp(fixtures.planningFollowup.completedPlan),
+      }),
     ).toBeVisible();
 
     await page
@@ -286,9 +295,9 @@ for (const view of [
       name: copy.overview.searchWishes,
     });
     await expect(page.locator('.planen-wish-copy > strong')).toHaveText([
-      'Ägypten im Frühling',
-      'Bergwochenende zu zweit',
-      'Zoo besuchen',
+      fixtures.planningFollowup.wish,
+      fixtures.planningFollowup.secondWish,
+      fixtures.planningFollowup.lastWish,
     ]);
     await expect(page.locator('.planen-wish-group > h2')).toHaveText([
       'A',
@@ -312,7 +321,7 @@ for (const view of [
     );
     await wishSearch.fill('agypten fruhling');
     await expect(page.locator('.planen-wish-copy > strong')).toHaveText([
-      'Ägypten im Frühling',
+      fixtures.planningFollowup.wish,
     ]);
     await page.locator('.planen-wish-link').click();
     await expect(page).toHaveURL(new RegExp(`/plan/wishes/${wishId}$`));
@@ -397,7 +406,7 @@ test('a failed later Plan page never becomes an empty search and can be retried'
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(page.locator('.planen-next-link')).toContainText(
-    'Österreich entdecken',
+    fixtures.planningFollowup.plan,
   );
   expect(state.unexpected).toEqual([]);
 });

@@ -1,5 +1,9 @@
 # Planning search and private profile context
 
+The authorized mobile follow-up now implements shared planning tags and continuing
+Chapter context. See the [follow-up contract and current evidence](follow-up.md).
+The initial preflight below records the earlier, narrower implementation scope.
+
 ## Baseline and request
 
 Verified current main `88004f8147fa2cf6d65364d06443805859011fc3` on 2026-11-05.

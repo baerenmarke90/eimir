@@ -163,7 +163,7 @@ export function MemoryPhotoGallery({
     projectionMemoryId ?? memory.id,
   );
   const photos = [...memory.attachments]
-    .filter((item) => item.status === 'READY')
+    .filter((item) => ['READY', 'PROCESSING', 'FAILED'].includes(item.status))
     .sort((a, b) => a.position - b.position);
   const mutation = useMutation({
     retry: false,
@@ -258,8 +258,16 @@ export function MemoryPhotoGallery({
       <MediaGallery
         initialMediaId={memory.selectedCoverAttachmentId ?? undefined}
         items={photos.map(
-          ({ id, mediaType, isSensitive, hasThumbnail, durationSeconds }) => ({
+          ({
             id,
+            status,
+            mediaType,
+            isSensitive,
+            hasThumbnail,
+            durationSeconds,
+          }) => ({
+            id,
+            status,
             mediaType,
             isSensitive,
             hasThumbnail,
@@ -293,7 +301,8 @@ export function MemoryPhotoGallery({
                 }))
         }
         renderPhotoActions={(item, openFullScreen, revealed) =>
-          item.mediaType === 'IMAGE' ? (
+          item.status && item.status !== 'READY' ? null : item.mediaType ===
+            'IMAGE' ? (
             <>
               <span className="media-comment-action" ref={commentTriggerRef} />
               <PhotoActions

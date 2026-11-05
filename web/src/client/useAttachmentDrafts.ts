@@ -288,7 +288,7 @@ export function useAttachmentDrafts({
           preserveMetadata: true,
         },
       )
-        .then(({ attachmentId, hasThumbnail, durationSeconds }) => {
+        .then(({ attachmentId, hasThumbnail, durationSeconds, processing }) => {
           uploads.current.delete(id);
           if (!isCurrentAttempt()) return;
           dispatch({
@@ -302,6 +302,7 @@ export function useAttachmentDrafts({
               attachmentId,
               hasThumbnail,
               durationSeconds,
+              processing,
             },
           });
         })

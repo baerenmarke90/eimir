@@ -175,3 +175,72 @@ this was not an observed PostgreSQL regression. Correct those new documentation
 phrases, rerun the actual language guard and consolidate with this follow-up.
 Preserve still-useful browser diagnostics; do not rerun or weaken unrelated gates.
 
+
+## Implementation and acceptance evidence
+
+The complete follow-up is implemented in PR #1656. The original personal photos
+were inspected locally and are not published. All committed evidence uses the
+existing synthetic/demo assets. [Current runtime captures](follow-up-evidence/README.md)
+cover Compact 360/390/430, Expanded 1280, Light/Dark and 320px with 200% text.
+
+Shared authored tags remain protected payload data and reuse the same vocabulary,
+validation and editor. Wish-to-Plan and Plan-to-Memory preserve supported tags;
+private HeartMoment labels are excluded from shared contexts. Chapter periods are
+separate authorized metadata, never duplicate timeline events. Dated periods
+extend available years; undated Chapters create no inferred chronology.
+
+The system picker opens directly. Draft actions open on the selected photo;
+direct pointer/keyboard ordering preserves cover and upload identity. Saved photos
+open by touch, swipe and dismiss with Done/Back. Precision controls remain
+accessible to keyboard and assistive technology. Localized overlay actions wrap
+without overlap at large text. Media tasks reset on account/Space/editor changes.
+
+Finalized video can bind before server processing completes. Saved processing
+and failure remain truthful across reload, without original media grants or
+playback. The worker retains ownership, deletion and upload-generation fences,
+latest sensitivity, complete-gallery reservations and ordered parent locks.
+Failure projection rechecks the uploader and exact current Memory/HeartMoment,
+including owner-only HeartMoments; removal hides the stale recovery notice.
+Migration 0111 and the updated API/worker must be deployed together.
+
+A browser failure exposed an existing session-initialization race: a derived
+Space could mount draft owners before its persisted selection rotated their
+leases, and late account metadata could restore an obsolete Space value. App now
+publishes the selected Space before mounting its owners and preserves the latest
+selection during metadata refresh. A deterministic delayed-account/reload case
+proves the draft survives. No persistence, ownership or Save safety gate was removed.
+
+Local validation:
+
+- 102 PostgreSQL integration cases pass in a task-isolated database, including
+  real transaction/worker races, protected tag transfer, notification isolation,
+  period intersections and migration upgrade/downgrade.
+- 35 schema/tag-policy/notification unit cases pass; Ruff and mypy (357 source
+  files), OpenAPI contract and pinned generated-client drift checks pass.
+- The complete Web suite passes 2,688 cases; two explicit native acceptance cases
+  remain skipped without their device inputs. Fifty session/context cases also
+  pass after the initialization correction. Production TypeScript/build and
+  token/PWA checks pass.
+- The full 1,074-case browser scan exposed obsolete source-picker/action selectors
+  and the initialization race. Complete affected specs were corrected and rerun,
+  retaining every behavioral assertion, timeout, retry and accessibility gate.
+  Final session/mobile/video acceptance passes 24 cases across three complete
+  specs. The final gallery/mobile/video batch passes 57 cases across three complete
+  specs; direct ordering, place creation/retry, context reset and media ownership
+  are covered by the other complete affected runs. The video evidence run also
+  checks visible processing without playback and preserves selection through READY.
+- Current collection is 1,076 cases in 94 files. The shared planner retains the
+  conservative full-regression choice (70 critical plus 24 additional specs);
+  38 planner and 72 design/status/language guard regressions pass. The additional
+  mobile journey stays feature-owned; the always-run core is unchanged.
+
+Earlier CI failures were diagnosed before the consolidated correction push:
+localized prose in new English documentation failed language detection; dependent
+integration work then skipped. Older browser expectations used the former context
+placement and media controls. A Node/jsdom fixture used a browser Blob with Node's
+Response; its plain body is now portable while keeping all avatar assertions.
+History-based gallery dismissal now waits for the actual close before testing
+late-byte revocation. No speculative rerun-all or gate weakening was used.
+
+No physical Android-device acceptance, merge or release publication is claimed.
+Hosted CI and Product Owner acceptance remain separate from local implementation.

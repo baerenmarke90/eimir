@@ -562,7 +562,21 @@ class TestChapterDiaryProjection:
         assert [marker["id"] for marker in diary["chapterMarkers"]] == [chapter["id"]]
         assert diary["chapterMarkers"][0]["startOn"] == "2001-04-07"
         assert diary["chapterMarkers"][0]["endOn"] == "2004-09-02"
-        assert diary["availableYears"] == [2001]
+        assert diary["availableYears"] == [2004, 2003, 2002, 2001]
+        continuation = timeline(client, couple, includeChapters=True, year=2003).json()
+        assert continuation["items"] == []
+        assert continuation["chapterMarkers"] == []
+        assert continuation["chapterPeriods"] == [
+            {
+                "id": chapter["id"],
+                "title": "A chapter",
+                "startOn": "2001-04-07",
+                "endOn": "2004-09-02",
+            }
+        ]
+        assert (
+            timeline(client, couple, includeChapters=True, year=2005).json()["chapterPeriods"] == []
+        )
         filtered = timeline(client, couple, includeChapters=True, type="MEMORY").json()
         assert filtered["chapterMarkers"] == []
         assert filtered["availableYears"] == []

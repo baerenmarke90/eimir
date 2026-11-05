@@ -8,6 +8,7 @@ Projection of a bound attachment at its parent resource.  A single shared type i
 Name | Type
 ------------ | -------------
 `durationSeconds` | number
+`failureCode` | string
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
@@ -26,6 +27,7 @@ import type { AttachmentSummary } from ''
 // TODO: Update the object below with actual values
 const example = {
   "durationSeconds": null,
+  "failureCode": null,
   "hasThumbnail": null,
   "height": null,
   "id": null,

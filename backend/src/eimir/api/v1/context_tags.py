@@ -31,11 +31,14 @@ def get_context_tag_suggestions(
     response: Response,
     parent_type: Annotated[service.ParentKind | None, Query(alias="parentType")] = None,
     parent_id: Annotated[UUID | None, Query(alias="parentId")] = None,
+    shared_only: Annotated[bool, Query(alias="sharedOnly")] = False,
 ) -> ContextTagSuggestionsView:
     if (parent_type is None) != (parent_id is None):
         raise ValidationError(
             "Parent kind and identifier must be supplied together.", "CONTEXT_TAG_PARENT_INVALID"
         )
-    learned, proposed = service.suggestions(session, authorization, parent_type, parent_id)
+    learned, proposed = service.suggestions(
+        session, authorization, parent_type, parent_id, shared_only=shared_only
+    )
     response.headers["Cache-Control"] = "private, no-store"
     return ContextTagSuggestionsView(learned=learned, proposed=proposed)

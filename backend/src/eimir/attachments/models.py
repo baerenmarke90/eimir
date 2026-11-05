@@ -146,6 +146,7 @@ class Attachment(
 
     ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_media_purged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Last server-observed upload activity, used by M2-D12 UPLOADING retention.
     uploaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

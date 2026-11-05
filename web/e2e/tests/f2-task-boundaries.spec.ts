@@ -360,7 +360,7 @@ async function fillMemory(page: Page, withPhoto = false) {
       buffer: await readFile(PHOTO),
     });
     await expect(
-      page.getByText(de.memory.photoReady, { exact: true }),
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toBeVisible();
   }
 }
@@ -562,7 +562,7 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
     buffer: await readFile(PHOTO),
   });
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
 
   const createRequest = page.waitForRequest(
@@ -1116,7 +1116,7 @@ test('failed uploads retain authored content and can retry before the first crea
     buffer: await readFile(PHOTO),
   });
   await expect(
-    page.getByText(de.memory.photoFailed, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: de.memory.save, exact: true }),
@@ -1126,11 +1126,21 @@ test('failed uploads retain authored content and can retry before the first crea
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toHaveValue(BODY);
   await page
+    .getByRole('button', { name: new RegExp(de.memory.photoFailed) })
+    .click();
+  await page
     .getByRole('group', { name: de.memory.photoSelected, exact: true })
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('dialog').getByText(de.memory.photoReady, { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: storyProducts.gallery.done, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));

@@ -136,7 +136,6 @@ export function PlaceChoicePicker({
       ];
   return (
     <div className="moment-place-picker" aria-busy={pending}>
-      <p>{t('photoPlaces.addHelp')}</p>
       <PlaceMapPicker
         api={api}
         spaceId={spaceId}

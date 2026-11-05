@@ -128,6 +128,7 @@ def create_wish(
     context: AuthorizationContext,
     *,
     title: str,
+    tags: list[str] | None = None,
 ) -> Wish:
     """Create a wish in the ``OPEN`` state.
 
@@ -140,7 +141,7 @@ def create_wish(
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
         status=WishStatus.OPEN.value,
-        payload=WishPayload(title=_normalize_title(title)),
+        payload=WishPayload(title=_normalize_title(title), tags=tags or []),
     )
     session.add(wish)
     _flush(session)
@@ -155,6 +156,7 @@ def create_wish_once(
     *,
     idempotency_key: UUID | None,
     title: str,
+    tags: list[str] | None = None,
 ) -> WishCreateResult:
     """Create a Wish, or return the one an earlier request with this identity created.
 
@@ -164,12 +166,12 @@ def create_wish_once(
     retry from adding the same wish to the shared list twice.
     """
     if idempotency_key is None:
-        wish = create_wish(session, context, title=title)
+        wish = create_wish(session, context, title=title, tags=tags)
         return WishCreateResult(wish, created=True)
 
     normalized_title = _normalize_title(title)
     request_fingerprint = create_receipts.fingerprint(
-        _RECEIPT_RESOURCE_TYPE, {"title": normalized_title}
+        _RECEIPT_RESOURCE_TYPE, {"title": normalized_title, **({"tags": tags} if tags else {})}
     )
     receipt_id = create_receipts.claim(
         session,
@@ -193,7 +195,7 @@ def create_wish_once(
         )
         return WishCreateResult(wish, created=False)
 
-    wish = create_wish(session, context, title=normalized_title)
+    wish = create_wish(session, context, title=normalized_title, tags=tags)
     create_receipts.attach(session, receipt_id, wish.id)
     return WishCreateResult(wish, created=True)
 
@@ -212,7 +214,8 @@ def update_wish(
     wish_id: UUID | str,
     *,
     expected_version: int,
-    title: str,
+    title: str | None = None,
+    tags: list[str] | None = None,
 ) -> Wish:
     """Correct the title and nothing else.
 
@@ -223,7 +226,12 @@ def update_wish(
     wish = require_writable(session, Wish, context, wish_id)
     _ensure_expected_version(wish, expected_version)
 
-    wish.payload = WishPayload(title=_normalize_title(title))
+    wish.payload = wish.payload.model_copy(
+        update={
+            "title": _normalize_title(title) if title is not None else wish.payload.title,
+            "tags": tags if tags is not None else wish.payload.tags,
+        }
+    )
 
     _flush(session)
     record_event(session, wish, context.account_id, EventType.WISH_UPDATED)

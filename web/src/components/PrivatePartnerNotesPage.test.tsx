@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -56,7 +57,7 @@ describe('Private partner-note destination', () => {
     );
     expect(html).toContain('Surprise flowers');
     expect(html).toContain('Peonies in June');
-    expect(html).toContain('Notizen über Alex');
+    expect(html).toContain(i18n.t('profiles.privateTitle', { name: 'Alex' }));
     expect(html).toContain('href="/more/private"');
     expect(html).not.toContain('Shared preference');
     expect(html).not.toContain('Other subject');

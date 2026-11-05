@@ -183,7 +183,12 @@ def _memory_attachments(
     return [
         MemoryAttachmentSummary(
             id=entry.attachment.id,
-            status="READY",
+            status="PROCESSING"
+            if entry.attachment.status == "VALIDATING"
+            else entry.attachment.status,
+            failure_code=entry.attachment.failure_code
+            if entry.attachment.status == "FAILED"
+            else None,
             media_type=MediaType(entry.attachment.media_type),
             mime_type=entry.attachment.mime_type,
             size=entry.attachment.size,

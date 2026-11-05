@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
@@ -14,36 +13,14 @@ from eimir.attachments import cleanup, service, video_jobs, videos
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.config import get_settings
 from eimir.core.clock import now
-from eimir.entitlements import service as entitlements
-from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
+from eimir.entitlements.models import EntitlementStatus
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
-from tests.conftest import auth, make_account, make_space, requires_database, sign_in
+from tests.conftest import auth, requires_database
+from tests.support.video import grant
+from tests.support.video import owner as owner
 
 pytestmark = [pytest.mark.integration, requires_database]
-
-
-@pytest.fixture
-def owner(session, monkeypatch):  # type: ignore[no-untyped-def]
-    monkeypatch.setenv("EIMIR_VIDEO_UPLOAD_ENABLED", "true")
-    get_settings.cache_clear()
-    account = make_account(session, "Video author")
-    space = make_space(session, account)
-    yield account, space, sign_in(session, account)
-    get_settings.cache_clear()
-
-
-def grant(session, owner):  # type: ignore[no-untyped-def]
-    return entitlements.record_grant(
-        session,
-        space_id=owner[1].id,
-        account_id=owner[0].id,
-        source_type=EntitlementSourceType.SELF_HOSTED_KEY,
-        status=EntitlementStatus.ACTIVE,
-        tier=EntitlementTier.PREMIUM,
-        effective_from=now() - timedelta(days=1),
-        effective_until=now() + timedelta(days=30),
-    )
 
 
 def create(client, owner):  # type: ignore[no-untyped-def]
@@ -134,45 +111,6 @@ def test_published_video_is_sanitized_and_keeps_nonfatal_missing_poster(
     assert attachment.duration_seconds == 1
     assert attachment.has_thumbnail is False
     assert attachment.payload.original_name == "our-video.mp4"
-    assert attachment.payload.preserve_metadata is False
-
-
-def test_hevc_hdr_uses_the_existing_intake_worker_and_ready_publication(
-    client, session, owner, monkeypatch
-):  # type: ignore[no-untyped-def]
-    executable = os.environ.get("EIMIR_TEST_FFMPEG")
-    probe = os.environ.get("EIMIR_TEST_FFPROBE")
-    if not executable or not probe:
-        pytest.skip("The dedicated restricted-codec job supplies verified binaries.")
-    monkeypatch.setenv("EIMIR_FFMPEG_PATH", executable)
-    monkeypatch.setenv("EIMIR_FFPROBE_PATH", probe)
-    get_settings.cache_clear()
-    grant(session, owner)
-    content = (Path(__file__).parents[1] / "fixtures/media/hevc-hlg.mp4").read_bytes()
-    response = client.post(
-        f"/api/v1/spaces/{owner[1].id}/attachments",
-        json={
-            "mediaType": "VIDEO",
-            "expectedMimeType": "video/mp4",
-            "expectedSize": len(content),
-            "originalName": "synthetic-recording.mp4",
-        },
-        headers=auth(owner[2]),
-    )
-    assert response.status_code == 201, response.text
-    identifier = response.json()["attachment"]["id"]
-    path = f"/api/v1/spaces/{owner[1].id}/attachments/{identifier}"
-    assert client.put(path + "/content", content=content, headers=auth(owner[2])).status_code == 204
-    assert client.post(path + "/finalize", json={}, headers=auth(owner[2])).status_code == 202
-    video_jobs.validate(session, {"attachmentId": identifier})
-    attachment = session.get(Attachment, UUID(identifier))
-    session.refresh(attachment)
-    assert attachment.status == AttachmentStatus.READY.value
-    assert attachment.mime_type == "video/mp4"
-    assert (attachment.width, attachment.height) == (96, 64)
-    assert attachment.has_thumbnail is True
-    assert attachment.failure_code is None
-    assert attachment.payload.original_name == "synthetic-recording.mp4"
     assert attachment.payload.preserve_metadata is False
 
 

@@ -225,3 +225,12 @@ and H.264 with MP3. The real restricted-codec tests check actual clean H.264/AAC
 output, duration, orientation, audio presence, full decode, poster generation,
 metadata removal and truncated-tail rejection. Personal diagnostic recordings
 and extracted frames must never enter the repository or public CI artifacts.
+
+The real HTTP upload → HEVC/HDR processor → READY database acceptance lives in
+`backend/tests/media/acceptance_video_lifecycle.py`. Its deliberate `acceptance_`
+name excludes this optional-binary case from generic pytest discovery. The
+mandatory Media Video workflow selects that exact file alongside the unchanged
+ordinary video database cases and rejects an empty or skipped result. General
+normal/encrypted PostgreSQL shards keep their strict no-skips contract and all
+existing cases; codec-dependent acceptance is never silently counted as passed.
+Shared admission/processor fixtures live in `tests/support/video.py`.

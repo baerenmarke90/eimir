@@ -15,6 +15,7 @@ from PIL import Image
 
 from eimir.attachments import videos
 from eimir.config import get_settings
+from tests.support.video import processor as processor
 
 SAMPLE = Path(__file__).parents[1] / "fixtures/media/video-with-metadata.mp4"
 
@@ -60,19 +61,6 @@ for foreign_key in Attachment.__table__.foreign_keys:
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
-
-
-@pytest.fixture
-def processor(monkeypatch: pytest.MonkeyPatch):  # type: ignore[no-untyped-def]
-    executable = os.environ.get("EIMIR_TEST_FFMPEG")
-    probe = os.environ.get("EIMIR_TEST_FFPROBE")
-    if not executable or not probe:
-        pytest.skip("The dedicated restricted-codec job supplies verified binaries.")
-    monkeypatch.setenv("EIMIR_FFMPEG_PATH", executable)
-    monkeypatch.setenv("EIMIR_FFPROBE_PATH", probe)
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
 
 
 def test_real_video_is_sanitized_fully_decoded_and_has_clean_poster(

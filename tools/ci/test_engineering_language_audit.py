@@ -83,6 +83,14 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         for suffix, product_copy in (
             (
                 ".json",
+                '"de": "Dein Video konnte nicht verarbeitet werden."',
+            ),
+            (
+                ".xml",
+                '<string name="push_video_processing_failed">Dein Video konnte nicht verarbeitet werden.</string>',
+            ),
+            (
+                ".json",
                 '"de": "Alex hat „Unser Spaziergang“ kommentiert."',
             ),
             (

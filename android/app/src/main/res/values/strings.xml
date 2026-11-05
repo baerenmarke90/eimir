@@ -40,6 +40,7 @@
     <string name="push_transfer_ready">Your data transfer is ready.</string>
     <string name="push_transfer_completed">Your data transfer is complete.</string>
     <string name="push_transfer_failed">Your data transfer could not be completed.</string>
+    <string name="push_video_processing_failed">Your video could not be processed.</string>
     <string name="push_view_reminder">View reminder</string>
     <string name="push_view_plan">View plan</string>
     <string name="push_view_moment">View moment</string>

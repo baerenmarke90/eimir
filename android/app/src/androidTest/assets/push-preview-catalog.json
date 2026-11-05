@@ -1100,6 +1100,100 @@
         "de": "Kommentare ansehen",
         "en": "View comments"
       }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v1-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a702e",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..58TRlGxVR2H3Gniv.JaRPYNtxTOzm_3YrN8vlJnXgrgcNOGWxlp95w7ivzPbHSTWEeZdqZBzV-pzvch_97rpA-ssvJb-zLJe1qax3jmYgp7GVWrZbGGurKDHHLVy-zR7d535kX-8eHVkVte0MpncohbfWbrRD9QAs6JafSTpPPAShuGUS_x3Wha3rL-niRSsyccSYWHyLu75g4MTX7GbrBrmRLcQwFRQ61Ukr-jjZdih8EKwynlcQEqUoLFZrPktoai3BLEsaUlKU-QU.KRvnQBZZ4cM75eRpBqlfoQ",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v1-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a702f",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YCdyvgf76WOw9lxu.UjaVvZHJUr19V5OyFwzxN1Hg8DiqL7WmnF4nl_RUbFuPll7o_eXjuDOBIRmFcNJCDiEeEEKVYEVdAWPtGgXWLS36T4MDIjLQCPedYDxbEwe_PDFLu-4yJldPlBYHV0tGMXDWzFIfFBADU9RlmwUjUKUdGjjEfEoAsBI7lyW1cJYjhhUyuraVIRn0grJ3uaNBdxtEZ5Mz66La-dFJJDNJA2xIcVC5O3L0H3g7-BqlbdX7reg95HRjgDYR1cP3M8IVsM230TbJ5r2IdhYFbxxukg.FBd7Cjc4z-pUJLN_msNOhw",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v2-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7030",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Synthetic ignored content"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mIb4fUDnfxNonl2n.fwARN0pKs6IsQIylgjWAEFA0ZljP-3NHnDrpIg6S0rAuwyrYue7P2lPeLpoflRL1a5EEjmVSFdjgU-xRcrki85LJwNEXIi7oMWLq8Z1gNb6kp6WHzAy5cvDmIrob3u5OfaiskeQary1cZPtLt1lyDnfdQXiMXCZQXT1mnQVqZyG3OmOf9bEc3WfQid9q-bI-lBk1utEyAryN8RUFg3F95EM5ZO0aGJ43ukNbNTaDe2RjRrEaxJ5oErnKGHchn-6rhdgaQ591JYS-6e1DAXX2mBMVEqAZDIcCBO8yw0n9WWA-3g.hFxESTUijSk2atkbIu5Tcg",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v2-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7031",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "MEMORY",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Synthetic ignored content"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mMBxdoIYMARgSYuf.IPsEi82O8Iu9FLdCPU5YDHtqxQzhHrNIRvjsFubMja9s501cP_Aq_kfLPXlJzHtZo_iWiQ-8vYtS-yehV0GQqFDSp45Pj3YoxuEk1D4RJ2Y4Vedll6tWmPAFrCiv-_cfXzSmQFs7haHUUe32uwyOZccofJq7LdcLto4LtF-I2WqnlTgu9r3SW0r7ftx_Gc7R4X6IJBMXoE58vg5Gct3Kz3NTRDLrym8mLIioQqlmMPSf5vxztk9FTStmgdgGhfHCnw90OkTSlK8ph9g4RKi9pp8SOr3vB8tpVT8PQVQV-GK0_FS6BYYytwT4yYrsczDeK4QD.YomhNy4eu23xtwRvWz6ABw",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
     }
   ]
 }

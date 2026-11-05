@@ -344,6 +344,8 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Dein Datentransfer ist bereit.",
     "Dein Datentransfer ist abgeschlossen.",
     "Dein Datentransfer konnte nicht abgeschlossen werden.",
+    # Exact #1656 native video outcome copy and bilingual interoperability fixtures.
+    "Dein Video konnte nicht verarbeitet werden.",
     "Einkaufen für unser gemeinsames Wochenende",
     "Frisches Obst, gutes Brot und etwas für unseren gemeinsamen Kochabend.",
     "Von Alex",

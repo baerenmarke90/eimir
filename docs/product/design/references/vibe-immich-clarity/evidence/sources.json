@@ -1,0 +1,62 @@
+{
+  "runtimeCheckpoint": "4a6a24cec",
+  "installedBridge": {
+    "package": "@capacitor/android",
+    "version": "8.5.2",
+    "sha256": "44ae55c944c91d5ebeb1ca2374e831d7920d1af6464faef8f0001a96252109bc"
+  },
+  "sources": [
+    {
+      "path": "backend/src/eimir/api/v1/photo_sources.py",
+      "sha256": "b16924099ea6f677b8d47be89c5fab97fdbbd867c12fae78c518c503532afe9e"
+    },
+    {
+      "path": "backend/openapi.json",
+      "sha256": "bf251c2e71f89db7b22901eaae77b9b10fd60edb81dd4d3d57c574ae3df00e2b"
+    },
+    {
+      "path": "web/src/api/generated/apis/PhotoSourcesApi.ts",
+      "sha256": "718fa511c49065886e7250cb8832838c4ff238c86f475d779d5ffa80720670f0"
+    },
+    {
+      "path": "web/src/client/photoSources.ts",
+      "sha256": "fe91ad9841812fac62bd26428c0dcf36fbde13505c25b0706b6764ee350a70ae"
+    },
+    {
+      "path": "web/src/client/photoSourcesNative.test.ts",
+      "sha256": "d9cd58b27bbc17316e3e03d01f7669e217a09ac2fc390a9cce26ffdd7cb47353"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.tsx",
+      "sha256": "607609ae0e0c5b9215a22c1b3329d06f67bb58a97dbc17eccca4c42847d61a0a"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.css",
+      "sha256": "0d7fb336b0cb63dd31f0130565b42ef06a63fa6e83197cbcf4c0e6da347767d9"
+    },
+    {
+      "path": "web/src/components/PhotoSourcePicker.tsx",
+      "sha256": "c5ae80afd2e7a408550254abc485f5a8071cb712fbae7227c29b23b3c7bd3a51"
+    },
+    {
+      "path": "web/src/components/PhotoSourcePicker.css",
+      "sha256": "6f93e5164ffe288a18cd7f8bc6966ba6de0cdd009330ee96d43dd401ab77efde"
+    },
+    {
+      "path": "web/src/i18n/locales/dailyVibe.ts",
+      "sha256": "bd671c63c925a5d4dd9b5570c29d811ac685063a9a47e4cf86c1ed5574f0e9f7"
+    },
+    {
+      "path": "web/src/i18n/locales/photoSources.ts",
+      "sha256": "dfd68a49a202d022e73cba8bc4fa89c0db3027e6c782c91e3d7671d36c7fed9d"
+    },
+    {
+      "path": "web/e2e/tests/today-daily-vibe.spec.ts",
+      "sha256": "66426db0ad8a97a655824f8874e9dde5554962f9c67b7794f908ea9fc30896cd"
+    },
+    {
+      "path": "web/e2e/tests/memory-create-defaults.spec.ts",
+      "sha256": "2ffe908ff1e48f7bd10e18f04bcad8aa0dfdb4b52b82aecd98f032b203124dbd"
+    }
+  ]
+}

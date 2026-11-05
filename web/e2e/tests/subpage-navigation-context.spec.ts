@@ -5,6 +5,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
+import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -24,6 +26,79 @@ const photo = readFileSync(
     import.meta.url,
   ),
 );
+
+for (const width of [390, 1280]) {
+  test(`More photo, chapter and year entries retain visible and browser Back at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await installMocks(page);
+    await page.addInitScript(
+      ({ accountId, spaceId }) => {
+        localStorage.setItem(
+          `eimir:product-tour:v1:${accountId}:${spaceId}`,
+          'seen',
+        );
+      },
+      { accountId: ACCOUNT_ID, spaceId: SPACE_ID },
+    );
+    await page.route(`**${base}/photos*`, (route) =>
+      route.fulfill({
+        json: { items: [], totalCount: 0, hasMore: false, nextCursor: null },
+      }),
+    );
+    let emptyYears = true;
+    await page.route(`**${base}/timeline*`, (route) =>
+      route.fulfill({
+        json: {
+          items: [],
+          availableYears: emptyYears ? [] : [2026],
+          hasMore: false,
+          nextCursor: null,
+        },
+      }),
+    );
+    await signIn(page);
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    const back = page.getByRole('button', { name: taskCopy.back, exact: true });
+    for (const name of [
+      de.more.destinations.photos,
+      de.more.destinations.chapters,
+      de.more.destinations.years,
+    ]) {
+      const entry = page.getByRole('link', { name, exact: true });
+      await entry.click();
+      await expect(back).toHaveCount(1);
+      await back.click();
+      await expect(page).toHaveURL(/\/more$/);
+      await entry.click();
+      await page.goBack();
+      await expect(page).toHaveURL(/\/more$/);
+    }
+    emptyYears = false;
+    // Start the populated-server scenario without the previous empty query cache.
+    await page.reload();
+    await page
+      .getByRole('link', { name: de.more.destinations.years, exact: true })
+      .click();
+    await page
+      .getByRole('link', {
+        name: de.storyYears.openYear.replace('{{year}}', '2026'),
+        exact: true,
+      })
+      .click();
+    await expect(page).toHaveURL(/\/story\/years\/2026$/);
+    await back.click();
+    await expect(page).toHaveURL(/\/story\/years$/);
+    await back.click();
+    await expect(page).toHaveURL(/\/more$/);
+    await page.goto('/story/photos');
+    await back.click();
+    await expect(page).toHaveURL(/\/story$/);
+  });
+}
 
 for (const [width, theme, large] of [
   [360, 'light', false],

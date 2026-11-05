@@ -365,22 +365,24 @@ export function PhotoSourcePicker({
   const activeTask = task.current;
   return (
     <>
-      {devicePicker?.(() => {})}
-      {availability &&
-      (availability.enabled || availability.immichConnected) ? (
-        <button
-          ref={trigger}
-          type="button"
-          className="secondary photo-source-trigger"
-          disabled={disabled || remaining <= 0}
-          onClick={() => {
-            setMessage('');
-            setOpen(true);
-          }}
-        >
-          {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
-        </button>
-      ) : null}
+      <div className="photo-source-actions">
+        {devicePicker?.(() => {})}
+        {availability &&
+        (availability.enabled || availability.immichConnected) ? (
+          <button
+            ref={trigger}
+            type="button"
+            className="secondary photo-source-trigger"
+            disabled={disabled || remaining <= 0}
+            onClick={() => {
+              setMessage('');
+              setOpen(true);
+            }}
+          >
+            {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
+          </button>
+        ) : null}
+      </div>
       <ShortTaskSheet
         open={open}
         title={t('photoSources.title')}

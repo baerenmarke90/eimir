@@ -588,7 +588,8 @@
       "roots": [
         "web/src/components/SharedPhotosPage.tsx",
         "web/src/components/MemoryProductPage.tsx",
-        "web/src/components/StoryProductPage.tsx"
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx"
       ]
     },
     "shared-story-summary-visual.spec.ts": {
@@ -784,7 +785,11 @@
         "web/src/components/MomentPlaces.tsx",
         "web/src/components/SharedExperienceReveal.tsx",
         "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx"
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/ChaptersOverviewPage.tsx",
+        "web/src/components/StoryYearsPage.tsx"
       ]
     },
     "media-planning-corrections.spec.ts": {

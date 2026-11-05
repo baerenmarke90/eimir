@@ -51,6 +51,29 @@ FCM_PROVIDER_NOTICE_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact de-DE product-copy proposals; surrounding design/engineering prose
+    # stays English and every other document remains audited.
+    Path("docs/product/design/1661-wir-wording-proposal.md"): (
+        "Wie voll ist dein Akku heute?",
+        "Für dich",
+        "Ein Glücksmoment für dich",
+        "Eine kleine Zeitreise für dich",
+        "Von {{name}} für dich",
+        "Ein Gedanke für heute",
+        "Zitat des Tages",
+        "Was bei euch ansteht",
+        "Gerade bei euch",
+        "Bei euch passiert",
+        "Neues von euch",
+        "Zuletzt bei euch",
+        "Neues bei euch",
+        "Deine Antwort bearbeiten",
+        "Wird gespeichert …",
+        "Noch nicht geteilt",
+    ),
+    Path("docs/product/integrations/1467-google-enablement-design.md"): (
+        "Wähle bei Google Fotos aus, was du hinzufügen möchtest. eimir. übernimmt nur deine Auswahl. Geteilt wird sie erst, wenn du diesen Eintrag speicherst.",
+    ),
     # Exact measured de-DE UI strings; all surrounding evidence prose remains audited.
     Path("docs/design/eimir/565-fcm/evidence/review-results.json"): FCM_PROVIDER_NOTICE_PRODUCT_COPY,
     Path("docs/design/eimir/565-fcm/evidence/accessibility-results.json"): FCM_PROVIDER_NOTICE_PRODUCT_COPY,

@@ -247,6 +247,8 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
 
         for logical_path in (
+            Path("docs/product/design/1661-wir-wording-proposal.md"),
+            Path("docs/product/integrations/1467-google-enablement-design.md"),
             Path("docs/design/eimir/565-fcm/evidence/review-results.json"),
             Path("docs/design/eimir/565-fcm/evidence/accessibility-results.json"),
             Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"),

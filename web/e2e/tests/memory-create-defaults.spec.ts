@@ -1693,14 +1693,39 @@ test('diary recovery retries only attachment binding for an already created entr
 test('erasing a diary draft does not resurrect old words on reload', async ({
   page,
 }) => {
+  const persistedDraftCount = () =>
+    page.evaluate(
+      () =>
+        new Promise<number>((resolve, reject) => {
+          const open = indexedDB.open('eimir-memory-drafts-v1');
+          open.onerror = () => reject(new Error('Draft database open failed.'));
+          open.onsuccess = () => {
+            const db = open.result;
+            const tx = db.transaction('drafts', 'readonly');
+            const count = tx.objectStore('drafts').count();
+            tx.oncomplete = () => {
+              db.close();
+              resolve(count.result);
+            };
+            tx.onerror = tx.onabort = () => {
+              db.close();
+              reject(new Error('Draft database read failed.'));
+            };
+          };
+        }),
+    );
   await signInAndOpenMemoryCreate(page);
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(AUTHORED_BODY);
   await expect(page.locator('.memory-draft-status')).toHaveText(
     de.memory.diary.draft.saved,
   );
+  await expect.poll(persistedDraftCount).toBe(1);
   await body.fill('');
   await expect(page.locator('.memory-draft-status')).toHaveCount(0);
+  // Empty input hides the dirty-only hint before the queued IndexedDB delete.
+  // Reload after the durable operation, not an unrelated render condition.
+  await expect.poll(persistedDraftCount).toBe(0);
   await page.reload();
   await expect(
     page.getByRole('heading', { name: de.memory.diary.resumeTitle }),

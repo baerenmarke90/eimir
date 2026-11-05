@@ -1,10 +1,9 @@
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
-import { TaskBackLink } from './TaskBackButton';
 import { AutoLoadMore } from './AutoLoadMore';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { StoryOrder } from '../api/generated/models/StoryOrder';
@@ -19,11 +18,7 @@ import {
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
-import {
-  appRoutePath,
-  STORY_YEARS_ROUTE,
-  storyYearPath,
-} from '../client/routes';
+import { storyYearPath } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
@@ -40,6 +35,7 @@ import { storyItemKey } from '../client/storyProduct';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { UiState } from './UiState';
+import { TaskOriginLink } from './TodayDestinationLink';
 import './StoryYearsPage.css';
 
 const INDEX_RESOURCE_ID = 'years:diary-v2';
@@ -76,9 +72,6 @@ function EmptyYearsState() {
     >
       <h2 id="story-years-empty-title">{t('storyYears.emptyTitle')}</h2>
       <p>{t('storyYears.emptyBody')}</p>
-      <TaskBackLink to={appRoutePath('story')}>
-        {t('storyYears.backToMoments')}
-      </TaskBackLink>
     </section>
   );
 }
@@ -158,10 +151,10 @@ export function StoryYearsIndexPage({
             const isCurrent = year === currentYear;
             return (
               <li key={year}>
-                <Link
+                <TaskOriginLink
                   to={storyYearPath(year)}
                   className={`story-year-link ${isCurrent ? 'is-current' : ''}`}
-                  aria-label={t('storyYears.openYear', { year })}
+                  ariaLabel={t('storyYears.openYear', { year })}
                 >
                   <span className="story-year-number">{year}</span>
                   <span className="story-year-copy">
@@ -176,7 +169,7 @@ export function StoryYearsIndexPage({
                         : t('storyYears.pastYearHint')}
                     </span>
                   </span>
-                </Link>
+                </TaskOriginLink>
               </li>
             );
           })}
@@ -351,9 +344,6 @@ export function StoryYearDetailPage({
         >
           <h2 id="story-year-invalid-title">{t('storyYears.invalidTitle')}</h2>
           <p>{t('storyYears.invalidBody')}</p>
-          <TaskBackLink to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </TaskBackLink>
         </section>
       ) : null}
 
@@ -385,9 +375,6 @@ export function StoryYearDetailPage({
             {t('storyYears.unavailableTitle')}
           </h2>
           <p>{t('storyYears.unavailableBody', { year })}</p>
-          <TaskBackLink to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </TaskBackLink>
         </section>
       ) : null}
 

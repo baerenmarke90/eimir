@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.48
+
+- Plans use a compact, consistently styled search field. Shared selection remains available in Wishes, with its redundant Plan entry removed.
+- Photos, Chapters and Years opened from More return to More through Back, including nested year navigation.
+- The shared photo gallery and fullscreen viewer remove redundant blue arrow controls while preserving touch, keyboard and system Back navigation.
+- Media-source actions have consistent spacing. HeartMoment capture uses the same direct device picker and optional external-source entry as other composers.
+- Includes freshly merged main c37d427f (#1662), all previously published test.47 corrections and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.47; increasing versionCode 48. Publication verifies exact-candidate source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

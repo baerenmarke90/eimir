@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { PreviewCardLink } from './PreviewCardLink';
 
-/** All Today content links share the same safe task-return contract. */
+/** Content and utility entries share the same safe task-return contract. */
 export function TaskOriginLink({
   to,
   className,
@@ -21,7 +21,7 @@ export function TaskOriginLink({
 }) {
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
-  function openFromToday(event: MouseEvent<HTMLAnchorElement>) {
+  function followWithOrigin(event: MouseEvent<HTMLAnchorElement>) {
     if (
       event.button !== 0 ||
       event.metaKey ||
@@ -42,7 +42,7 @@ export function TaskOriginLink({
       to={to}
       className={className}
       aria-label={ariaLabel}
-      onClick={openFromToday}
+      onClick={followWithOrigin}
     >
       {children}
     </DestinationLink>

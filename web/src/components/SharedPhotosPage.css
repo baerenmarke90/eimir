@@ -92,15 +92,6 @@
 .media-lightbox-context button {
   min-height: 48px;
 }
-.media-lightbox-footer-nav {
-  display: flex;
-  gap: var(--space-2);
-}
-.media-lightbox-footer-nav button {
-  min-width: 48px;
-  min-height: 48px;
-  font-size: 1.5rem;
-}
 @media (min-width: 768px) {
   .shared-photos-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));

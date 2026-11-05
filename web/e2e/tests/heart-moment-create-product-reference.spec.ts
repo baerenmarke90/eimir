@@ -406,8 +406,25 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-async function openHeartMomentCreate(page: Page): Promise<string[]> {
+async function openHeartMomentCreate(
+  page: Page,
+  externalSources = false,
+): Promise<string[]> {
   const unexpectedRequests = await installApiMocks(page);
+  if (externalSources) {
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/photo-sources`, (route) =>
+      route.fulfill({
+        json: {
+          enabled: true,
+          googleAvailable: false,
+          immichConnected: false,
+          immichConnectionToken: 'fixture:immich:absent',
+          immichOrigin: null,
+          canImport: false,
+        },
+      }),
+    );
+  }
   await page.goto('/today');
   await signIn(page);
   await page.goto('/story/heart-moments/new');
@@ -696,7 +713,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     const page = await context.newPage();
 
     try {
-      await openHeartMomentCreate(page);
+      await openHeartMomentCreate(page, true);
 
       const form = page.locator('.heart-moment-create-form');
       const media = page.locator('.heart-moment-create-media');
@@ -725,6 +742,28 @@ for (const colorScheme of ['light', 'dark'] as const) {
         name: photoSources.addMedia,
         exact: true,
       });
+      const sourceTrigger = media.getByRole('button', {
+        name: new RegExp(photoSources.more),
+      });
+      await expect(sourceTrigger).toBeVisible();
+      const deviceBox = await mediaTrigger.boundingBox();
+      const sourceBox = await sourceTrigger.boundingBox();
+      if (!deviceBox || !sourceBox)
+        throw new Error('Media source actions are missing.');
+      expect(
+        sourceBox.y - deviceBox.y - deviceBox.height,
+      ).toBeGreaterThanOrEqual(8);
+      const mediaLabelBox = await mediaTrigger.locator('strong').boundingBox();
+      if (!mediaLabelBox) throw new Error('Media action label is missing.');
+      expect(
+        Math.abs(
+          mediaLabelBox.x +
+            mediaLabelBox.width / 2 -
+            deviceBox.x -
+            deviceBox.width / 2,
+        ),
+      ).toBeLessThanOrEqual(2);
+      await expect(sourceTrigger).toHaveCSS('justify-content', 'center');
       const nativeChooser = page.waitForEvent('filechooser');
       await mediaTrigger.click();
       await (await nativeChooser).setFiles([]);

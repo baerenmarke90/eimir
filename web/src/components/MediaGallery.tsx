@@ -998,24 +998,6 @@ export function MediaGallery({
                     <div className="media-lightbox-context">
                       {renderCaption(activeIndex, closeLightbox)}
                     </div>
-                    {items.length > 1 ? (
-                      <div className="media-lightbox-footer-nav">
-                        <button
-                          type="button"
-                          onClick={() => changeActive(-1)}
-                          aria-label={t('gallery.previous')}
-                        >
-                          ‹
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => changeActive(1)}
-                          aria-label={t('gallery.next')}
-                        >
-                          ›
-                        </button>
-                      </div>
-                    ) : null}
                   </div>
                 ) : null}
               </div>

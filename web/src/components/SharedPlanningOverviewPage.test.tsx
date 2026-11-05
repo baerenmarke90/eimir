@@ -372,9 +372,8 @@ describe('SharedPlanningOverviewPage', () => {
     expect(soonIndex).toBeGreaterThan(-1);
     expect(soonIndex).toBeLessThan(laterIndex);
     expect(laterIndex).toBeLessThan(ideaIndex);
-    expect(laterIndex).toBeLessThan(
-      plansPanelHtml.indexOf('wish-selection-entry'),
-    );
+    expect(plansPanelHtml).not.toContain('wish-selection-entry');
+    expect(wishesPanelHtml).toContain('wish-selection-entry');
     expect(plansPanelHtml).toContain('planen-agenda-copy');
 
     // Wishes lead with the shared intention; detail still owns attribution.

@@ -1,3 +1,9 @@
+.photo-source-actions {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
 .photo-source-trigger {
   display: flex;
   flex-wrap: wrap;

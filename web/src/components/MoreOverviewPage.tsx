@@ -29,6 +29,7 @@ import { EimirIcon } from './EimirIcon';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
+import { TaskOriginLink } from './TodayDestinationLink';
 import './MoreOverviewPage.css';
 
 interface MoreDestination {
@@ -122,10 +123,10 @@ function MoreDestinationRow({
 
   return (
     <li>
-      <Link
+      <TaskOriginLink
         className={`more-destination${leading ? ' more-profile-destination' : ''}`}
         to={destination.path}
-        aria-label={
+        ariaLabel={
           (unreadCount ?? 0) > 0
             ? t('navigation.notificationsWithUnread', { count: unreadCount })
             : undefined
@@ -157,7 +158,7 @@ function MoreDestinationRow({
             </span>
           ) : null}
         </span>
-      </Link>
+      </TaskOriginLink>
     </li>
   );
 }

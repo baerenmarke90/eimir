@@ -31,8 +31,8 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import { HeartEmotionBadge } from './HeartEmotionVisual';
 import { ExperienceAnswers } from './ExperienceAnswers';
+import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
-import { PreviewCardLink } from './PreviewCardLink';
 import {
   formatTimelineDate,
   storyItemKey,
@@ -170,10 +170,22 @@ function StoryCommentPresence({
  * The Timeline node carries the kind (#969): a plain dot for the default
  * Memory, a heart for a Heart Moment and a ringed star for a Milestone, so a
  * special point in time is marked on the chronology itself rather than with a
- * badge or stripe inside the card. Shapes differ, so the distinction never
- * relies on colour; the card link's accessible name states the kind.
+ * badge or stripe inside the card. Happiness uses the existing highlights glyph.
+ * Shapes differ, so the distinction never relies on colour; the card link's
+ * accessible name states the kind.
  */
-function StoryTimelineMarker({ kind }: { kind: StoryItem['kind'] }) {
+function StoryTimelineMarker({ item }: { item: StoryItem }) {
+  const { kind } = item;
+  if (kind === 'MEMORY' && item.memory.experienceKind === 'HAPPINESS') {
+    return (
+      <span
+        className="story-timeline-marker story-timeline-marker-happiness"
+        aria-hidden="true"
+      >
+        <EimirIcon name="highlights" />
+      </span>
+    );
+  }
   if (kind === 'HEART_MOMENT') {
     return (
       <span
@@ -309,9 +321,13 @@ export function StoryList({
             .join(' ');
 
           const metaId = `${listId}-meta-${index}`;
-          const CardLink =
-            imageAttachment?.isSensitive === true ? PreviewCardLink : Link;
-          const accessibleName = `${presentation.kindLabel}: ${presentation.title}${
+          const isHappiness =
+            item.kind === 'MEMORY' &&
+            item.memory.experienceKind === 'HAPPINESS';
+          const accessibleKind = isHappiness
+            ? t('coupleExperiences.sharedHappiness')
+            : presentation.kindLabel;
+          const accessibleName = `${accessibleKind}: ${presentation.title}${
             item.kind === 'HEART_MOMENT' && presentation.preview
               ? ` ${t('heartMomentProduct.emotionLabel')}: ${presentation.preview}`
               : ''
@@ -325,8 +341,8 @@ export function StoryList({
                 progressiveReveal ? `item:${itemKey}` : undefined
               }
             >
-              <StoryTimelineMarker kind={item.kind} />
-              <CardLink
+              <StoryTimelineMarker item={item} />
+              <Link
                 className={`story-card-link${imageAttachment ? ' story-card-photo-led' : ''}`}
                 to={productPath}
                 data-task-item-key={itemKey}
@@ -348,7 +364,6 @@ export function StoryList({
                       attachmentId={imageAttachment.id}
                       hasThumbnail={imageAttachment.hasThumbnail}
                       isSensitive={imageAttachment.isSensitive}
-                      allowReveal
                       resourceScopeKey={`story-preview:${spaceId ?? ''}:${imageEntityId}`}
                       loadImage={imageLoader}
                       loadingMode={
@@ -367,6 +382,7 @@ export function StoryList({
                       answers={item.memory.experienceAnswers ?? []}
                       kind={item.memory.experienceKind}
                       compact
+                      showLabel={!isHappiness}
                     />
                   ) : null}
                   {item.kind === 'HEART_MOMENT' ? (
@@ -429,7 +445,7 @@ export function StoryList({
                     </span>
                   </div>
                 </article>
-              </CardLink>
+              </Link>
             </li>
           );
         })}

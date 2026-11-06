@@ -139,3 +139,21 @@ through authenticated `audioProcessingEnabled`; the local entry reuses that
 same composer and does not override processor availability. Voice-note browser
 acceptance is included in the final adjacent-flow validation. Live audio
 activation remains the operator-owned action described in #1680.
+
+Before the final correction push, #1680 merged into main as
+`be9b5ec3c439f3c8711b8e59484f9b23ddd2bbc6`. Integration commit
+`2e18f5361feae1797092208a4ec47ed9a71253a6` includes that main without conflicts.
+The complete `web/` tree is byte-identical to the accepted `7df91d6ec` Web source,
+so the destination composition and generated-reference baseline remain valid.
+Final hosted acceptance still binds to the integrated PR head.
+
+## Hosted check diagnosis
+
+Initial Change Detection rejected the ordinary adjacency wording in the exact
+Imagegen prompt as a legacy project name. Its Backend Integration aggregate then
+failed because classification had not succeeded. The correction classifies only
+that one file's exact layout phrase, retains the original generation input and
+adds negative coverage for branding, repeated wording and other paths. No product
+code or general identity/language protection is relaxed. Independent browser and
+Web jobs remain useful while their results are collected before the correction
+push; unchanged successful results are not substituted for the final head's CI.

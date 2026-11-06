@@ -8,6 +8,19 @@ from project_identity_scan import LEGACY_PATTERN, Classification, classify
 
 
 class ProjectIdentityScanTest(unittest.TestCase):
+    def test_contextual_creation_prompt_exempts_only_its_exact_layout_phrase(self) -> None:
+        path = Path("docs/product/design/references/contextual-create/reference-prompts.md")
+        line = "Produce both complete screens side by side at the same 390:844 proportions."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use side by side branding.", "side by side"),
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, line + " Use side by side branding.", "side by side"),
+            (Path("docs/product/design/references/other/prompt.md"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
     def test_opaque_push_ciphertext_is_exempt_only_as_a_complete_jwe_field(self) -> None:
         path = Path("android/app/src/androidTest/assets/push-preview-catalog.json")
         compact = "eyJhbGciOiJkaXIifQ..AAAAAAAAAAAAAAAA.AAsbsBcc.AAAAAAAAAAAAAAAAAAAAAA"

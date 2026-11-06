@@ -733,7 +733,8 @@
         "web/src/components/MediaGallery.tsx",
         "web/src/components/MediaGallery.css",
         "web/src/components/SensitiveMedia.tsx",
-        "web/src/components/SensitiveMedia.css"
+        "web/src/components/SensitiveMedia.css",
+        "web/src/components/PhotoDraftGallery.tsx"
       ]
     },
     "wir-design-selection.spec.ts": {

@@ -579,8 +579,8 @@ test('saved processing survives reload and a later failure remains replaceable w
     .getByRole('button', { name: new RegExp(videoCopy.savedFailed) })
     .click();
   await expect(
-    page.getByRole('group', { name: videoCopy.selectedItem, exact: true }),
-  ).toContainText(videoCopy.savedFailed);
+    page.locator('.photo-draft-inspector').getByRole('status'),
+  ).toHaveText(videoCopy.savedFailed);
   await expect(page.locator('dialog.photo-draft-preview-sheet')).toHaveCount(0);
   await page.screenshot({
     path: info.outputPath('followup-video-failed-recovery.png'),

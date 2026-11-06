@@ -57,7 +57,7 @@ export async function dragDraftMedia(
     await tiles
       .nth(Math.min(from, to))
       .evaluate((element) =>
-        element.scrollIntoView({ block: 'start', behavior: 'instant' }),
+        element.scrollIntoView({ block: 'center', behavior: 'instant' }),
       );
   const a = await tiles.nth(from).boundingBox(),
     b = await tiles.nth(to).boundingBox();

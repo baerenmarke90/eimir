@@ -198,7 +198,7 @@ def _memory_attachments(
             duration_seconds=entry.attachment.duration_seconds,
             is_sensitive=entry.attachment.payload.is_sensitive,
             can_edit_sensitivity=(
-                memory.experience_kind is None
+                (memory.experience_kind is None and entry.attachment.media_type == "IMAGE")
                 or binding.can_edit_sensitivity(
                     entry.attachment,
                     account_id=authorization.account_id,

@@ -96,7 +96,8 @@ localized live feedback remain, with reduced-motion behavior.
 - `polish-sensitive-author-390-dark.png` and `polish-sensitive-uploader-390-dark.png`
   record the edit control and both partners' mark/save/reload/unmark behavior.
 
-Local validation: 66 PostgreSQL/API/metadata cases pass, including anonymous and
+Local validation: 72 PostgreSQL/API/metadata cases pass in each of normal and
+required-encryption mode, including anonymous and
 cross-Space rejection without changing classification/version, stale writes,
 partner classify/unclassify, rollback, transfer, private/experience ownership and
 removal boundaries. Focused component/ownership/icon tests and browser acceptance
@@ -106,3 +107,10 @@ Capacitor, TypeScript and lint/format checks pass. The unchanged local runner
 uses Node 22.23.2 / CPython 3.14.6 with PostgreSQL 17; authoritative final-head CI
 uses the repository's pinned environments. Physical-device acceptance is not
 claimed; no wrapper/native capability changed.
+
+The collaborative classification change is limited to shared Memory images;
+video classification retains the existing parent-author/uploader authority.
+The frontend runtime/evidence revision is `cbec3fdcf`. Follow-up corrections
+center synthetic drag paths away from native edge scrolling and inspect the
+retained inline video failure status; no assertions, timeouts or retries are
+weakened. The widened image permission does not become a generic media grant.

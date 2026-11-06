@@ -581,7 +581,10 @@ def project_story_items(
                                 **_attachment_summary(bound.attachment).model_dump(),
                                 position=bound.position,
                                 can_edit_sensitivity=(
-                                    memory.experience_kind is None
+                                    (
+                                        memory.experience_kind is None
+                                        and bound.attachment.media_type == "IMAGE"
+                                    )
                                     or binding.can_edit_sensitivity(
                                         bound.attachment,
                                         account_id=authorization.account_id,

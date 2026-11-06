@@ -173,3 +173,27 @@ fallback assumptions. Final source fingerprints include this coherent correction
 batch. The Appearance composition and captured authored draft remain unchanged;
 final-head CI must revalidate the complete behavior before merge. No unchanged
 workflow rerun was requested.
+
+
+## Complete regression follow-up
+
+The first complete cycle collected all four backend shards and all five browser
+groups before the next correction batch. Existing strict response fixtures now
+include the new authenticated Account metadata and negotiated locale capability;
+endpoint-matrix ownership includes both personal operations. Signup proof tests
+retain all invitation/privacy assertions and allow exactly the one bounded
+recipient metadata read. Push fixtures assert exact permitted fields and the
+recipient's changed English preference at dispatch, independent of the actor.
+Browser fixtures use the singular import key and localized quote-category labels
+while retaining the English API fixture labels, authored content and IDs.
+
+One existing monthly-strip fixture aged out at midnight UTC on November 6. Its
+clock is now scoped deterministically inside the existing three-day attention
+window; all 81 Today cases pass with the proposed source. Production expiry,
+assertions and deadlines are unchanged. New locale/wake/resource tests passed
+18/18 on API 28, 36 and 37.1. The older wake-system-UI regression exposed the
+missing-locale compatibility branch: only negotiated metadata selects a personal
+configuration context; legacy wakes retain the existing device presentation.
+An API 37.1 system-picker interaction timed out in that cycle; diagnostics were
+preserved and it is not counted as a pass. A fresh complete matrix on the code
+correction must cover it without weakening the picker assertions or deadline.

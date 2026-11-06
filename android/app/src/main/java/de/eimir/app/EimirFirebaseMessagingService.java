@@ -25,7 +25,8 @@ public final class EimirFirebaseMessagingService extends FirebaseMessagingServic
     public void onMessageReceived(RemoteMessage message) {
         PushActivation active = PushActivation.read(this);
         if (!PushActivation.cleanupPending(this) && acceptsWake(message, active)) {
-            Context localized = RecipientLanguage.context(this, message.getData().get("locale"));
+            Context localized = message.getData().containsKey("locale")
+                ? RecipientLanguage.context(this, message.getData().get("locale")) : this;
             if (!message.getData().containsKey("preview")) NativePushNotifications.present(localized, active);
             else {
                 PushPreview preview = PushPreview.decrypt(this, active, message.getData().get("preview"));

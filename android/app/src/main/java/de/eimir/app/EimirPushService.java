@@ -39,7 +39,8 @@ public final class EimirPushService extends PushService {
                 notificationId = UUID.fromString(raw).toString();
                 if (!notificationId.equals(raw)) return;
             }
-            localized = RecipientLanguage.context(this, payload.optString("locale", "de"));
+            localized = payload.has("locale")
+                ? RecipientLanguage.context(this, payload.optString("locale", "de")) : this;
         } catch (JSONException | IllegalArgumentException invalid) { return; }
         NativePushNotifications.present(localized, active, notificationId);
     }

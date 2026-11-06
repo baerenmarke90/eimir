@@ -15,3 +15,8 @@ abf284d9fdd5bdf9921e4e109f3fba8645fbba191e1518c84726e04d6a4881ea  web/src/compon
 cd9ef7ab43f005d4ae22f6508a70fa52a7fa21852ecb866bb6b56ee13bb92d0d  web/src/i18n/locales/en.json
 bb2f5052a0a9c590421e26f4608e238e43fbfa2dc67063a7ec3b85381dac122a  web/public/offline-language.js
 1678cfa0b937de1bbf6dd3c24925059ccf4517c5010b22b678c870c6c91ee52b  web/e2e/tests/multilingual-product.spec.ts
+d365f7cde15b96d30c90829005f2c7f70e55f4c2d09e03685b32c18b4735d7b2  android/app/src/main/java/de/eimir/app/EimirFirebaseMessagingService.java
+5bef9b0e4c1afe18cbe9db659b4471d20b53acfd1dea1fe809ea91c7da1bad28  android/app/src/main/java/de/eimir/app/EimirPushService.java
+48f7d7b3ba11baf341ead8235221a3410865f70503bda7d18c870519d1920550  android/app/src/main/java/de/eimir/app/RecipientLanguage.java
+aaba960d6322f28142fdaf5838230203909652b0b91261e2a9157794f13ec565  android/app/src/main/res/values/strings.xml
+d2618d1a8585cbe9ade3b54e871bcd05e512ab9baab731fbfddb7447bfd16b66  android/app/src/main/res/values-de/strings.xml

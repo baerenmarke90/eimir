@@ -435,6 +435,10 @@ def export_compose(
         "EIMIR_ENCRYPTION_AT_REST": "required",
         "EIMIR_MEDIA_STORE": "local",
         "EIMIR_VIDEO_UPLOAD_ENABLED": "true" if media else "false",
+        # Keep audio an instance opt-in, available only with the verified processor.
+        "EIMIR_AUDIO_UPLOAD_ENABLED": (
+            "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}" if media else "false"
+        ),
         "EIMIR_MAIL_TRANSPORT": "smtp",
         "EIMIR_SMTP_PORT": "587",
         "EIMIR_SMTP_STARTTLS": "true",
@@ -510,6 +514,7 @@ def export_compose(
                 "EIMIR_MEDIA_STORE",
                 "EIMIR_MEDIA_ROOT",
                 "EIMIR_VIDEO_UPLOAD_ENABLED",
+                "EIMIR_AUDIO_UPLOAD_ENABLED",
             }
             service["environment"] = {
                 key: value

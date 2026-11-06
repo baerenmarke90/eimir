@@ -1007,7 +1007,7 @@ for (const [width, theme] of [
       name: new RegExp(onceCopy.title),
     });
     await expect(entry).toContainText(onceCopy.singleView);
-    await expect(entry).toContainText('Pro');
+    await expect(entry.locator('.pro-mark')).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
     await captureScreenshot(

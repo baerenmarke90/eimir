@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import importantDates from '../../src/i18n/locales/importantDates';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -343,9 +344,9 @@ async function installApiMocks(page: Page): Promise<void> {
 
     if (
       method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/related-people`
+      pathname === `/api/v1/spaces/${SPACE_ID}/related-persons`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson([]);
       return;
     }
 
@@ -353,7 +354,7 @@ async function installApiMocks(page: Page): Promise<void> {
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/important-dates`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson([]);
       return;
     }
 
@@ -965,6 +966,18 @@ for (const variant of [
     await expect(
       page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
     ).toHaveAttribute('aria-selected', 'true');
+    if (variant.view === 'discover') {
+      const datesTab = page.getByRole('tab', {
+        name: importantDates.heading,
+        exact: true,
+      });
+      await datesTab.click();
+      await expect(datesTab).toHaveAttribute('aria-selected', 'true');
+      await expect(page).toHaveURL(/\/plan#dates$/);
+      await expect(
+        page.getByText(importantDates.emptyTitle, { exact: true }),
+      ).toBeVisible();
+    }
     await nav.locator('a[href^="/story"]').click();
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),

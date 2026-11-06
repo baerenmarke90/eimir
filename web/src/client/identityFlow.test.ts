@@ -135,7 +135,10 @@ describe('identityFlow signup methods', () => {
         if (typeof override !== 'function')
           throw new Error('Missing mail locale override');
         const init = await override({
-          init: { headers: { 'Content-Type': 'application/json' } },
+          init: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
           context: {
             path: '/auth/signup/request',
             method: 'POST',
@@ -171,7 +174,10 @@ describe('identityFlow signup methods', () => {
         if (typeof override !== 'function')
           throw new Error('Missing mail locale override');
         const init = await override({
-          init: { headers: { 'Content-Type': 'application/json' } },
+          init: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
           context: {
             path: '/auth/magic-link/request',
             method: 'POST',

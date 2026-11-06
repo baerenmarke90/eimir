@@ -1,4 +1,32 @@
 const dailyQuote = {
+  quoteText: '„{{text}}“',
+  originalLanguage: 'Original auf {{language}}',
+  catalog: {
+    categories: {
+      love: 'Liebe & Beziehung',
+      life: 'Leben & Weisheit',
+      philosophy: 'Philosophie',
+      mindfulness: 'Achtsamkeit',
+      serenity: 'Gelassenheit',
+      motivation: 'Mut & Motivation',
+    },
+    sources: {
+      classic_literature: {
+        name: 'Klassische Literatur',
+        description: 'Werke der klassischen Weltliteratur (gemeinfrei).',
+      },
+      stoic_philosophy: {
+        name: 'Antike Philosophie',
+        description:
+          'Schriften der antiken und stoischen Philosophie (gemeinfrei).',
+      },
+      poetic_wisdom: {
+        name: 'Poesie & Lebensweisheiten',
+        description:
+          'Klassische Aphorismen und poetische Reflexionen (gemeinfrei).',
+      },
+    },
+  },
   kicker: 'Euer Impuls',
   title: 'Ein Gedanke für heute',
   pro: 'Pro',

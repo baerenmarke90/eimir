@@ -1152,6 +1152,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
     ("POST", "/api/v1/account/deletion"),
     ("PUT", "/api/v1/account/device-context"),
+    ("GET", "/api/v1/account/language-preference"),
+    ("PUT", "/api/v1/account/language-preference"),
     ("GET", "/api/v1/account/photo-location-preference"),
     ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),

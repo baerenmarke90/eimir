@@ -842,6 +842,14 @@
         "web/src/components/PlanPhotosEditor.tsx",
         "web/src/components/PhotoDraftGallery.tsx"
       ]
+    },
+    "multilingual-product.spec.ts": {
+      "roots": [
+        "web/src/components/LanguageSettings.tsx",
+        "web/src/client/useAccountLanguage.ts",
+        "web/src/i18n/index.ts",
+        "web/src/client/sessionPersistence.ts"
+      ]
     }
   }
 }

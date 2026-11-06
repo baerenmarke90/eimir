@@ -421,7 +421,7 @@ for (const failed of [1, 2]) {
     await expect(sheet.getByRole('alert')).toHaveText(
       failed === 2
         ? photoSources.importFailed
-        : photoSources.partial.replace('{{count}}', '1'),
+        : photoSources.partial_one.replace('{{count}}', '1'),
     );
     await expect(sheet.getByRole('checkbox', { checked: true })).toHaveCount(
       failed,

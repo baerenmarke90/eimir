@@ -488,6 +488,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 2,
       "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
+    },
+    "multilingual-product.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
     }
   }
 }

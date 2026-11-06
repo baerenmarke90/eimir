@@ -1,0 +1,12 @@
+{
+  "notification.subject": "Something new in eimir.",
+  "notification.body": "There is something new for you.\n\nOpen eimir.: {url}",
+  "auth.magic.subject": "Your sign-in link for eimir.",
+  "auth.magic.body": "Here is your sign-in link:\n\n{url}\n\nIt is valid for 15 minutes and can only be used once.\n\nIf you did not request it, you can ignore this message.",
+  "auth.signup.subject": "Your link for eimir.",
+  "auth.signup.body": "Use this link to continue in eimir.:\n\n{url}\n\nIt is valid for 15 minutes and can only be used once.\n\nIf you did not request it, you can ignore this message. Nothing happens without the link.",
+  "auth.verification.subject": "Confirm your email address",
+  "auth.verification.body": "Please confirm your address:\n\n{url}\n\nThe link is valid for 24 hours and can only be used once.",
+  "auth.recovery.subject": "Reset your password",
+  "auth.recovery.body": "Use this link to set a new password:\n\n{url}\n\nIt is valid for 30 minutes and can only be used once. Afterwards, all previously signed-in devices will be signed out.\n\nIf you did not request it, nothing changes."
+}

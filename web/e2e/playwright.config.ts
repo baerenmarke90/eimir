@@ -17,6 +17,8 @@ export default defineConfig({
   },
   use: {
     baseURL,
+    // Existing fixtures are German; multilingual journeys override this locale.
+    locale: 'de-DE',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
     // API-mocked journeys must reach their route handlers, including on reload.

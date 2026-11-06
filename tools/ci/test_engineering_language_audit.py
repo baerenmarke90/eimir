@@ -17,6 +17,8 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/capacitor-cordova-android-plugins/build.gradle",
             "web/e2e/fixtures/locales/de.ts",
             "web/src/api/generated/models/index.ts",
+            "web/public/offline-language.js",
+            "backend/src/eimir/i18n/locales/de.json",
         ):
             self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)
         for handwritten in (
@@ -26,6 +28,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/app/src/main/res/values/strings.xml",
             "web/e2e/fixtures/product-reference-foundations.tsx",
             "web/e2e/tests/product-reference-foundations.spec.ts",
+            "backend/src/eimir/i18n/__init__.py",
+            "backend/src/eimir/i18n/locales/runtime.py",
+            "web/public/other-language.js",
         ):
             self.assertFalse(_is_excluded_platform_path(Path(handwritten)), handwritten)
 

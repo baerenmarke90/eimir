@@ -68,6 +68,7 @@ class Subscription:
     p256dh: str
     auth: str
     notification_reference_version: int = 0
+    locale_version: int = 0
 
     def as_webpush(self) -> dict[str, object]:
         return {
@@ -175,10 +176,16 @@ class UnifiedPushProvider:
             raw = json.loads(value)
         except (TypeError, ValueError):
             return None
-        if not isinstance(raw, dict) or set(raw) not in (
-            {"endpoint", "keys"},
-            {"endpoint", "keys", "notificationReferenceVersion"},
+        if (
+            not isinstance(raw, dict)
+            or not {"endpoint", "keys"}.issubset(raw)
+            or not set(raw).issubset(
+                {"endpoint", "keys", "notificationReferenceVersion", "localeVersion"}
+            )
         ):
+            return None
+        locale_version = raw.get("localeVersion", 0)
+        if type(locale_version) is not int or locale_version not in {0, 1}:
             return None
         version = raw.get("notificationReferenceVersion", 0)
         if type(version) is not int or version not in {0, 1}:
@@ -207,7 +214,7 @@ class UnifiedPushProvider:
             ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), public)
         except ValueError:
             return None
-        return Subscription(endpoint, keys["p256dh"], keys["auth"], version)
+        return Subscription(endpoint, keys["p256dh"], keys["auth"], version, locale_version)
 
     def accepts_endpoint(self, endpoint: str) -> bool:
         return self._parse(endpoint) is not None
@@ -236,6 +243,10 @@ class UnifiedPushProvider:
         registration = self._parse(endpoint)
         if registration is None:
             raise push.PushProviderError("PUSH_SUBSCRIPTION_INVALID", retryable=False)
+        if registration.locale_version == 1 and "locale" in notification_reference:
+            from eimir.i18n import detect_locale
+
+            wake["locale"] = detect_locale([notification_reference["locale"]])
         if registration.notification_reference_version == 1:
             with contextlib.suppress(KeyError, ValueError, TypeError, AttributeError):
                 wake["notificationId"] = str(UUID(notification_reference["id"]))

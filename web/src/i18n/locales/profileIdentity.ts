@@ -153,7 +153,8 @@ const profileIdentity = {
   settingsSensitiveTitle: 'Sensible Aktionen',
   settingsSensitiveIntro:
     'Den gemeinsamen Bereich zu verlassen und dein Konto zu löschen sind getrennte Aktionen. Prüfe die jeweiligen Folgen, bevor du fortfährst.',
-  appearanceIntro: 'Wähle deinen Farbmodus und das Icon, das zu dir passt.',
+  appearanceIntro:
+    'Wähle deinen Farbmodus, deine Sprache und das Icon, das zu dir passt.',
 } as const;
 
 export default profileIdentity;

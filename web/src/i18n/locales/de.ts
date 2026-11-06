@@ -119,6 +119,8 @@ const de = {
   },
   brand: {
     homeAria: 'eimir. – zum gemeinsamen Ort',
+    pageTitle: 'eimir. – Euer gemeinsamer Ort.',
+    description: 'Euer gemeinsamer Ort.',
   },
   spaceContext: {
     eyebrow: 'Gemeinsamer Bereich',

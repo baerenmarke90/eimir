@@ -121,6 +121,21 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "languagePreference": {
+            "default": "auto",
+            "title": "Languagepreference",
+            "type": "string"
+          },
+          "languageVersion": {
+            "default": 0,
+            "title": "Languageversion",
+            "type": "integer"
+          },
+          "locale": {
+            "default": "de",
+            "title": "Locale",
+            "type": "string"
           }
         },
         "required": [
@@ -3043,6 +3058,12 @@
             "title": "Encryptedpreviewversion",
             "type": "integer"
           },
+          "localeVersion": {
+            "const": 1,
+            "default": 1,
+            "title": "Localeversion",
+            "type": "integer"
+          },
           "projectId": {
             "title": "Projectid",
             "type": "string"
@@ -4223,6 +4244,54 @@
           "token"
         ],
         "title": "IssuedInvitationView",
+        "type": "object"
+      },
+      "LanguagePreferenceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "deviceLanguages": {
+            "items": {
+              "maxLength": 64,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Devicelanguages",
+            "type": "array"
+          },
+          "preference": {
+            "maxLength": 16,
+            "minLength": 2,
+            "title": "Preference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preference"
+        ],
+        "title": "LanguagePreferenceUpdate",
+        "type": "object"
+      },
+      "LanguagePreferenceView": {
+        "properties": {
+          "effectiveLocale": {
+            "title": "Effectivelocale",
+            "type": "string"
+          },
+          "preference": {
+            "title": "Preference",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "preference",
+          "effectiveLocale",
+          "version"
+        ],
+        "title": "LanguagePreferenceView",
         "type": "object"
       },
       "LinkPreviewRequest": {
@@ -12598,6 +12667,12 @@
       },
       "UnifiedPushConfiguration": {
         "properties": {
+          "localeVersion": {
+            "const": 1,
+            "default": 1,
+            "title": "Localeversion",
+            "type": "integer"
+          },
           "notificationReferenceVersion": {
             "const": 1,
             "default": 1,
@@ -13526,6 +13601,109 @@
           }
         },
         "summary": "Update Own Device Context",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/api/v1/account/language-preference": {
+      "get": {
+        "operationId": "getLanguagePreference",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguagePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          }
+        },
+        "summary": "Get Language Preference",
+        "tags": [
+          "account"
+        ]
+      },
+      "put": {
+        "operationId": "setLanguagePreference",
+        "parameters": [
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LanguagePreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguagePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Language Preference",
         "tags": [
           "account"
         ]

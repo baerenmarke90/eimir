@@ -159,3 +159,28 @@ composite-FK import validation. The correction changes only whitespace and has
 an identical Python syntax tree; the full 813-file Ruff format check, Ruff lint
 and mypy on all 366 source files pass. Independent first-head checks finish
 before the correction push; fresh final-head checks are required for merge.
+
++
++The complete first hosted matrix also exposed the canonical demo's two former
++private-person seed calls. They now create the same Jule/Noah examples as shared
++people, while their independent private dates retain owners and audience. All
++64 complete demo/reset/concurrency tests and all nine Daily Quote API cases pass;
++the existing read-model privacy test now asserts both shared people and private
++linked dates. All other first-head integration failures had the same seed cause.
++
++The expanded Planning tab strip also exposed Chromium native touch adjustment:
++the old swipe fixture's DOM point hit a gap, but the real touch was retargeted to
++the adjacent occasions tab. The fixture now leaves clearance around controls
++that own gestures. The production swipe policy and all navigation, history,
++scroll, content-scroller and protected-task assertions remain unchanged. A
++separate pre-existing sign-in race is synchronized before the reload scenario;
++the fixture deliberately delays sign-in and still requires a real document
++reload with the protected result. All 22 complete navigation/reload cases pass
++without retries. Temporary gesture diagnostics and unrelated test screenshots
++were removed before the correction commit.
++
++The correction batch follows the completed independent first-head checks. Web
++product source remains byte-identical to the implementation evidence commit;
++the new runtime change aligns demo data with the approved shared-person model.
++Fresh checks on the final PR head remain authoritative for merge.
++

@@ -96,7 +96,7 @@ public class VoiceNotesContractTest {
             AtomicReference<WebView> web = new AtomicReference<>();
             scenario.onActivity(activity -> web.set(activity.getBridge().getWebView()));
             long deadline = SystemClock.elapsedRealtime() + 10000;
-            while (!"function".equals(evaluate(web.get(), "typeof window.Capacitor?.nativePromise"))
+            while (!"function".equals(evaluate(web.get(), "window.Capacitor && typeof window.Capacitor.nativePromise"))
                     && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(50);
             JSONObject pending = null;
             while (SystemClock.elapsedRealtime() < deadline) {
@@ -116,7 +116,7 @@ public class VoiceNotesContractTest {
             scenario.recreate();
             scenario.onActivity(activity -> web.set(activity.getBridge().getWebView()));
             deadline = SystemClock.elapsedRealtime() + 10000;
-            while (!"function".equals(evaluate(web.get(), "typeof window.Capacitor?.nativePromise"))
+            while (!"function".equals(evaluate(web.get(), "window.Capacitor && typeof window.Capacitor.nativePromise"))
                     && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(50);
             assertFalse("Consumed Intent must never replay", nativeCall(web.get(), "peek", new JSONObject()).getBoolean("available"));
         } finally { file.delete(); }

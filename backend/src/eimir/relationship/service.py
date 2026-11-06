@@ -382,6 +382,9 @@ def end_membership(
         space_id=membership.space_id,
         account_id=membership.account_id,
     )
+    from eimir.once_messages import service as once_messages
+
+    once_messages.purge_space(session, membership.space_id)
     purge_space(session, membership.space_id)
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value
     membership.ended_at = now()

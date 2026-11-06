@@ -7,8 +7,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
 import {
   loadPartnerQuickActionsCapability,
   PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
@@ -16,11 +17,13 @@ import {
 } from '../client/partnerQuickActions';
 import { ClientProblemError } from '../client/problemDetails';
 import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
 import type { M4ProductApis } from '../client/m4Product';
 import { useTranslation } from '../i18n';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
+import { DestinationIcon } from './DestinationIcon';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { usePresentationPresence } from './useOverlayPresence';
@@ -69,6 +72,8 @@ export function PartnerQuickActions({
 }: PartnerQuickActionsProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { captureOrigin, resolveOrigin } = useTaskOrigin();
   const isExpanded = useMediaQuery(EXPANDED_QUERY);
   const firstActionRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
@@ -83,6 +88,27 @@ export function PartnerQuickActions({
     },
   );
   const desiredExpandedOpen = isOpen && isExpanded && !compactPresent;
+  useEffect(() => {
+    const key = (location.state as { taskReturnKey?: unknown } | null)
+      ?.taskReturnKey;
+    const origin = resolveOrigin(key);
+    if (
+      origin?.selectedKey !== 'partner-quick-actions' ||
+      origin.to !== taskOriginPath(location.pathname, location.search)
+    )
+      return;
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
+      triggerRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    location.state,
+    location.pathname,
+    location.search,
+    resolveOrigin,
+    triggerRef,
+  ]);
   const {
     present: expandedPresent,
     presenceState: expandedPresenceState,
@@ -200,14 +226,28 @@ export function PartnerQuickActions({
     navigate(destination);
   };
 
+  const openOnceComposer = () => {
+    if (gesture.isInFlight()) return;
+    const handoff = () => {
+      const taskOriginKey = captureOrigin({
+        selectedKey: 'partner-quick-actions',
+      });
+      void navigate(ONCE_CREATE_ROUTE, {
+        state: taskOriginKey ? { taskOriginKey } : undefined,
+      });
+    };
+    if (compactPresent) sheetRef.current?.closeForNavigation(handoff);
+    else {
+      close();
+      handoff();
+    }
+  };
+
   const hasExtendedCapability = capabilityQuery.data === true;
   const capabilityReady = capabilityQuery.isSuccess;
 
   const actionList = (
     <div className="partner-quick-actions-content">
-      <p className="partner-quick-actions-intro">
-        {t('partnerQuickActions.intro')}
-      </p>
       {gesture.pendingAction ? (
         <p
           className="partner-quick-actions-pending"
@@ -239,11 +279,9 @@ export function PartnerQuickActions({
           </span>
           <span className="partner-quick-action-copy">
             <strong>{t('partnerQuickActions.thinking')}</strong>
-            <span>
-              {thinkingCoolingDown
-                ? t('partnerQuickActions.cooldown')
-                : t('partnerQuickActions.thinkingHint')}
-            </span>
+            {thinkingCoolingDown ? (
+              <span>{t('partnerQuickActions.cooldown')}</span>
+            ) : null}
           </span>
         </button>
 
@@ -281,11 +319,9 @@ export function PartnerQuickActions({
               </span>
               <span className="partner-quick-action-copy">
                 <strong>{t('partnerQuickActions.kiss')}</strong>
-                <span>
-                  {hasExtendedCapability && kissCoolingDown
-                    ? t('partnerQuickActions.cooldown')
-                    : t('partnerQuickActions.kissHint')}
-                </span>
+                {hasExtendedCapability && kissCoolingDown ? (
+                  <span>{t('partnerQuickActions.cooldown')}</span>
+                ) : null}
               </span>
               {!hasExtendedCapability ? (
                 <ProMark label={t('partnerQuickActions.pro')} />
@@ -323,6 +359,32 @@ export function PartnerQuickActions({
             </button>
           </>
         )}
+        <Link
+          className="partner-quick-action"
+          to={ONCE_CREATE_ROUTE}
+          aria-disabled={gesture.isPending || undefined}
+          onClick={(event) => {
+            if (
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
+            event.preventDefault();
+            openOnceComposer();
+          }}
+        >
+          <span className="partner-quick-action-icon" aria-hidden="true">
+            <DestinationIcon icon="private" />
+          </span>
+          <span className="partner-quick-action-copy">
+            <strong>{t('onceMessages.title')}</strong>
+            <span>{t('onceMessages.singleView')}</span>
+          </span>
+          <ProMark label={t('partnerQuickActions.pro')} />
+        </Link>
       </div>
 
       {feedback ? (

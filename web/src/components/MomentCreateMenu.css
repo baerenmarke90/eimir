@@ -1,0 +1,55 @@
+.moment-create {
+  margin-block-end: var(--space-4);
+}
+
+.moment-create .moment-create-trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-large);
+  background: var(--color-shared-surface);
+  color: var(--color-shared);
+  overflow-wrap: anywhere;
+}
+
+.moment-create-choices {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.moment-create-choice {
+  display: flex;
+  min-height: var(--touch-target-web);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.moment-create-trigger > .eimir-icon,
+.moment-create-choice > .eimir-icon {
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: 0 0 var(--space-6);
+}
+
+.moment-create-choice > .eimir-icon {
+  color: var(--color-shared);
+}
+
+.moment-create-choice:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.moment-create-choice:hover {
+  background: var(--color-surface-subtle);
+}

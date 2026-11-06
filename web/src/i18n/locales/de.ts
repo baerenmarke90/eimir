@@ -254,6 +254,7 @@ const de = {
     timelineTitle: 'Momente',
     timelineIntro: 'Eure gemeinsame Geschichte.',
     addMemory: 'Erinnerung',
+    addMoment: 'Moment hinzufügen',
     timelineKicker: 'Tagebuch',
     timelineHeading: 'Gemeinsame Geschichte',
     discoverKicker: 'Entdecken',

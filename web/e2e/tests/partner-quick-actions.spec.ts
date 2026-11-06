@@ -2,8 +2,10 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import onceCopy from '../../src/i18n/locales/onceMessages';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -423,6 +425,13 @@ for (const scenario of [
     await expect(surface.getByText(scenario.pending)).toBeVisible();
     await expect(action).toBeFocused();
     await expect(action).toHaveAttribute('aria-disabled', 'true');
+    const onceEntry = surface.getByRole('link', {
+      name: new RegExp(onceCopy.title),
+    });
+    await expect(onceEntry).toHaveAttribute('aria-disabled', 'true');
+    await onceEntry.evaluate((link: HTMLAnchorElement) => link.click());
+    await expect(page).toHaveURL('/today');
+    await expect(surface).toBeVisible();
     await expect(surface.getByText(scenario.confirmed)).toHaveCount(0);
     await expect.poll(() => network.gestures().length).toBe(1);
     await expectNoWcagViolations(page);
@@ -940,4 +949,98 @@ test('keeps the trigger reachable across Compact widths and holds up at 320px/20
     fullPage: true,
     animations: 'disabled',
   });
+  await captureScreenshot(page, testInfo, 'partner-actions-320-dark-large.png');
+});
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`partner one-time entry at ${width} ${theme}: rounded actions open the existing composer and return without sending`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const network = await installMocks(page, { hasExtendedCapability: true });
+    const mutations: string[] = [];
+    page.on('request', (request) => {
+      if (
+        request.url().includes('/once-messages') &&
+        request.method() !== 'GET'
+      )
+        mutations.push(request.method());
+    });
+    await page.route('**/once-messages/status', (route) =>
+      route.fulfill({
+        json: {
+          ownEnabled: false,
+          partnerEnabled: false,
+          canSend: true,
+          ownDeviceIds: [],
+          recipientDevices: [],
+          receptionVersion: 0,
+          partner: { id: PARTNER_ID, displayName: 'Ben' },
+        },
+      }),
+    );
+    await signIn(page);
+    await triggerLocator(page).click();
+    const surface = page.getByRole('dialog', {
+      name: copy.title.replace('{{partner}}', 'Ben'),
+    });
+    await expect(surface.locator('.partner-quick-action')).toHaveCount(4);
+    for (const row of await surface.locator('.partner-quick-action').all()) {
+      expect(
+        await row.evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).borderTopLeftRadius),
+        ),
+      ).toBeGreaterThanOrEqual(14);
+    }
+    await expect(surface.getByText(copy.intro)).toHaveCount(0);
+    await expect(surface.getByText(copy.thinkingHint)).toHaveCount(0);
+    await expect(surface.getByText(copy.checkInHint)).toBeVisible();
+    const entry = surface.getByRole('link', {
+      name: new RegExp(onceCopy.title),
+    });
+    await expect(entry).toContainText(onceCopy.singleView);
+    await expect(entry).toContainText('Pro');
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await captureScreenshot(
+      page,
+      info,
+      `partner-actions-${width}-${theme}.png`,
+    );
+    await entry.click();
+    await expect(page).toHaveURL('/today/only-you/new');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: onceCopy.title, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(onceCopy.consent)).toBeVisible();
+    await page.locator('.task-back-control').click();
+    await expect(page).toHaveURL('/today');
+    await expect(triggerLocator(page)).toBeFocused();
+    expect(mutations).toEqual([]);
+    expect(network.gestures()).toEqual([]);
+  });
+}
+
+test('the one-time entry is independent of an unavailable extended-gesture entitlement read', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page);
+  await page.route('**/entitlements', (route) => route.abort('failed'));
+  await signIn(page);
+  await triggerLocator(page).click();
+  const surface = page.getByRole('dialog', {
+    name: copy.title.replace('{{partner}}', 'Ben'),
+  });
+  await expect(surface.getByText(copy.unavailablePremium)).toBeVisible();
+  await expect(
+    surface.getByRole('link', { name: new RegExp(onceCopy.title) }),
+  ).toBeVisible();
 });

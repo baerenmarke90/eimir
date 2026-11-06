@@ -356,6 +356,7 @@ export function HeartMomentProductPage({
     },
     onSuccess: async (heartMoment, request) => {
       if (!request.isCurrent()) return;
+      setFormDirty(false);
       attachments.clear();
       voice.uploads.clear();
       await Promise.all([
@@ -438,6 +439,7 @@ export function HeartMomentProductPage({
     },
     onSuccess: async (heartMoment, request) => {
       if (!request.isCurrent()) return;
+      setFormDirty(false);
       attachments.clear();
       photos.clear();
       voice.uploads.clear();
@@ -577,7 +579,7 @@ export function HeartMomentProductPage({
       (formDirty ||
         Boolean(createPlace) ||
         photos.items.some((item) => item.draft !== undefined) ||
-        voice.hasAudio),
+        Boolean(voice.draft)),
     isCloseBlocked:
       createMutation.isPending ||
       updateMutation.isPending ||

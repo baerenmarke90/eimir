@@ -107,7 +107,7 @@ and [200% text/reflow](references/heart-voice-notes/evidence/voice-reading-320-l
 show the delivered composition, including the existing surrounding functions.
 
 Validation on the merged feature: 112 backend/decoder/HTTP/PostgreSQL tests,
-81 client tests and 14 browser journeys pass. Browser coverage includes actual
+81 client tests and 15 browser journeys pass. Browser coverage includes actual
 MediaRecorder encoding from a synthetic source, import/review/save/play/seek,
 permission denial, failed-save draft retention, 360/390/430/1280px, both themes,
 320px at 200% text, reduced motion and axe. A synthetic microphone source is used

@@ -10,6 +10,14 @@ import { privacyPolicyDe } from '../i18n/locales/legalDocuments/privacyPolicy.de
 import { termsOfUseDe } from '../i18n/locales/legalDocuments/termsOfUse.de.generated';
 import { LegalDocumentView } from './LegalDocumentView';
 
+// The terms' cross-reference to the privacy policy, read from the generated text.
+const TERMS_PRIVACY_REFERENCE =
+  termsOfUseDe.blocks
+    .flatMap((block) => (block.kind === 'paragraph' ? block.content : []))
+    .flatMap((run) =>
+      run.kind === 'link' && run.href === '/legal/privacy' ? [run.text] : [],
+    )[0] ?? '';
+
 // The documents link to each other, so they render inside the app router.
 function inRouter(children: ReactNode) {
   return render(<MemoryRouter>{children}</MemoryRouter>);
@@ -54,7 +62,7 @@ describe('LegalDocumentView', () => {
     inRouter(<LegalDocumentView document={termsOfUseDe} />);
 
     expect(
-      screen.getByRole('link', { name: 'Datenschutzhinweisen' }),
+      screen.getByRole('link', { name: TERMS_PRIVACY_REFERENCE }),
     ).toHaveProperty('pathname', '/legal/privacy');
   });
 
@@ -72,10 +80,10 @@ describe('LegalDocumentView', () => {
 
     expect(
       screen
-        .getByRole('button', { name: 'Datenschutzhinweisen' })
+        .getByRole('button', { name: TERMS_PRIVACY_REFERENCE })
         .getAttribute('data-href'),
     ).toBe('/legal/privacy');
-    expect(screen.queryByRole('link', { name: 'Datenschutzhinweisen' })).toBe(
+    expect(screen.queryByRole('link', { name: TERMS_PRIVACY_REFERENCE })).toBe(
       null,
     );
   });

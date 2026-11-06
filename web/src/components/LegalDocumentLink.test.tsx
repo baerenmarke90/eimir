@@ -11,7 +11,16 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import legal from '../i18n/locales/legal';
+import { termsOfUseDe } from '../i18n/locales/legalDocuments/termsOfUse.de.generated';
 import { LegalDocumentLink, LegalFooterLinks } from './LegalDocumentLink';
+
+// The terms' cross-reference to the privacy policy, read from the generated text.
+const TERMS_PRIVACY_REFERENCE =
+  termsOfUseDe.blocks
+    .flatMap((block) => (block.kind === 'paragraph' ? block.content : []))
+    .flatMap((run) =>
+      run.kind === 'link' && run.href === '/legal/privacy' ? [run.text] : [],
+    )[0] ?? '';
 
 function LocationProbe() {
   return <output data-testid="location">{useLocation().pathname}</output>;
@@ -64,7 +73,7 @@ describe('LegalDocumentLink', () => {
       name: legal.termsSheetTitle,
     });
     fireEvent.click(
-      within(terms).getByRole('link', { name: 'Datenschutzhinweisen' }),
+      within(terms).getByRole('link', { name: TERMS_PRIVACY_REFERENCE }),
     );
 
     const privacy = await screen.findByRole('dialog', {

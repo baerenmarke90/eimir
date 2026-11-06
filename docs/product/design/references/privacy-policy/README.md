@@ -9,11 +9,11 @@ terms-of-use slice #1658).
 
 Inspected on the baseline: `IdentityEntry` with its mode switch (Anmelden /
 Gemeinsam starten), the Cloud signup form with the required terms checkbox
-(`TermsAcceptanceField`), the Cloud invitation entry and the „Fast geschafft“
-redemption step that render the same field, the entry footer (`login-assurance`
+(`TermsAcceptanceField`), the Cloud invitation entry and the redemption step
+(`legal.pendingTitle`) that render the same field, the entry footer (`login-assurance`
 plus the Cloud-only terms link), the terms reading sheet (`ShortTaskSheet`),
 the public `/legal/terms` page (`LegalTermsPage`, `LegalDocumentView`) and the
-More footer (`more-legal` navigation next to „Abmelden“ and the brand
+More footer (`more-legal` navigation next to sign-out and the brand
 signature). There is no privacy notice, privacy link or privacy route today;
 the terms of use still contain the `[[PRIVACY_URL]]` placeholder in § 7.
 
@@ -27,17 +27,17 @@ actual draft text from `legal/de/privacy-policy.md`. It is a composition guide,
 not a pixel lock.
 
 1. The signup form keeps every element and order. One quiet informational
-   sentence follows the acceptance row: „Wie wir mit deinen Daten umgehen,
-   erklären wir in den Datenschutzhinweisen.“ It has no checkbox and is not part
-   of the checkbox label. The entry footer shows „Nutzungsbedingungen ·
-   Datenschutz“. The same sentence appears wherever the acceptance row appears
-   (Cloud invitation entry, redemption step).
+   sentence (`legal.privacyNotice`) follows the acceptance row. It has no
+   checkbox and is not part of the checkbox label. The entry footer shows the
+   terms and privacy links (`legal.termsLink`, `legal.privacyLink`). The same
+   sentence appears wherever the acceptance row appears (Cloud invitation
+   entry, redemption step).
 2. The link opens the privacy notice in the existing reading sheet, so the typed
    address and the checkbox state stay untouched. A modified click opens the
    real route.
 3. `/legal/privacy` is a public, login-free reading page with the same anatomy
    as `/legal/terms`: Back, eyebrow, title, draft marker, summary, sections.
-4. The More footer shows „Datenschutz“ next to „Nutzungsbedingungen“, only on
+4. The More footer shows the privacy link next to the terms link, only on
    eimir. Cloud.
 
 ## Authority and reuse

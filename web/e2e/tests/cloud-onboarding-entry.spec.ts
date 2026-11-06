@@ -60,8 +60,21 @@ const CLOUD_STATUS_WITH_TERMS = {
 const ACCEPTANCE_LABEL = legal.accept.replace(/<\/?termsLink>/g, '');
 const PRIVACY_NOTICE_LINK =
   /<privacyLink>(.*)<\/privacyLink>/.exec(legal.privacyNotice)?.[1] ?? '';
-const PRIVACY_FIRST_SECTION = '1. Wer verantwortlich ist';
-const PRIVACY_LAST_SECTION = '24. Änderungen dieser Hinweise';
+// Derive headings and links from the generated texts so wording edits in
+// legal/ never require test edits.
+const textOf = (runs: { kind: string; text?: string }[]) =>
+  runs.map((run) => run.text ?? '').join('');
+const PRIVACY_SECTIONS = privacyPolicyDe.blocks.flatMap((block) =>
+  block.kind === 'heading' ? [textOf(block.content)] : [],
+);
+const PRIVACY_FIRST_SECTION = PRIVACY_SECTIONS[1];
+const PRIVACY_LAST_SECTION = PRIVACY_SECTIONS.at(-1) ?? '';
+const TERMS_PRIVACY_REFERENCE =
+  termsOfUseDe.blocks
+    .flatMap((block) => (block.kind === 'paragraph' ? block.content : []))
+    .flatMap((run) =>
+      run.kind === 'link' && run.href === '/legal/privacy' ? [run.text] : [],
+    )[0] ?? '';
 
 async function routeCloudEntry(
   page: Page,
@@ -374,7 +387,9 @@ test.describe('Privacy policy on eimir. Cloud', () => {
       .click();
     const terms = page.getByRole('dialog', { name: legal.termsSheetTitle });
     await expect(terms).toBeVisible();
-    const reference = terms.getByRole('link', { name: 'Datenschutzhinweisen' });
+    const reference = terms.getByRole('link', {
+      name: TERMS_PRIVACY_REFERENCE,
+    });
     await reference.scrollIntoViewIfNeeded();
     await reference.click();
 

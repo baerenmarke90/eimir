@@ -1,10 +1,10 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.11
+**Version:** 1.12
 
 **Audit date:** 2026-09-21  
-**Revision:** 2026-11-05 — #1649 broadens bounded video input normalization without changing tier/retained-data rights. Previous 2026-11-01 revision: authored Glücksmomente and Zeitreise (#1566, Pro creation / Core retained sources); Plan photo galleries (#1514, Free/Core); PO-approved special-Plan countdown (#504, Free/Core) and automatic relationship recap artifacts (#497, #1528); shared Wish selection (#1535, Free/Core)
+**Revision:** 2026-11-05 — terms-of-use acceptance at Cloud signup clarifies the registration row's operating-model difference without changing its Free/Core classification. Earlier 2026-11-05: #1649 broadens bounded video input normalization without changing tier/retained-data rights. Previous 2026-11-01 revision: authored Glücksmomente and Zeitreise (#1566, Pro creation / Core retained sources); Plan photo galleries (#1514, Free/Core); PO-approved special-Plan countdown (#504, Free/Core) and automatic relationship recap artifacts (#497, #1528); shared Wish selection (#1535, Free/Core)
 
 **Audited `main` baseline:** `dfc87cd`  
 **Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing), #1151 (Today Pro Foundation)  
@@ -69,7 +69,7 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 
 | Capability / Surface | Milestone | Classification | Gating boundary | Operating model impact | Strategic rationale |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Account identity & registration** | M1 | **Free/Core** | Whole feature Free | Identical across Cloud and Self-Hosted | Every user must be able to create an account and access the product. |
+| **Account identity & registration** | M1 | **Free/Core** | Whole feature Free, including the terms-of-use acceptance and the public terms page | **Cloud/Managed:** a new Account accepts the current eimir. Cloud terms of use; version and time are recorded and deleted with the Account.<br>**Self-Hosted:** governed by the operator; no Cloud terms or acceptance. | Every user must be able to create an account and access the product. Reading and accepting the terms is never a paid or entitlement-dependent step. |
 | **Authentication security, Passkeys & Session protection** | M1 | **Non-paywallable** | Non-paywallable | Identical | Account protection and authentication security are fundamental trust requirements. |
 | **Self-Hosted authentication mechanisms (Password, OIDC)** | M1 | **Free/Core** | Whole feature Free | Self-Hosted specific | Authentication standards are infrastructure mechanisms, not commercial content integrations. |
 | **Space creation, Membership & Partner invitations** | M1 | **Free/Core** | Whole feature Free | Identical | The couple Space is the core product entry point. |

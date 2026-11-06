@@ -4179,6 +4179,18 @@
             "description": "Whether a client should offer self-service signup right now: `accountCreation` is `self_service` and `registrationAvailable` is true.",
             "title": "Selfservicesignupavailable",
             "type": "boolean"
+          },
+          "termsOfUseVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Version of the eimir. Cloud terms of use that a new Account must accept, sent back as `acceptedTermsVersion` when requesting or redeeming a signup proof. `null` where no such terms apply, including every Self-Hosted instance.",
+            "title": "Termsofuseversion"
           }
         },
         "required": [
@@ -11665,6 +11677,19 @@
       },
       "SignupConsumeRequest": {
         "properties": {
+          "acceptedTermsVersion": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Terms-of-use acceptance given while redeeming. Needed only after `TERMS_ACCEPTANCE_REQUIRED`: the proof would create a new Account but carries no acceptance of the current version.",
+            "title": "Acceptedtermsversion"
+          },
           "deviceName": {
             "default": "",
             "title": "Devicename",
@@ -11699,6 +11724,19 @@
       },
       "SignupEmailRequest": {
         "properties": {
+          "acceptedTermsVersion": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Terms-of-use version the person accepted in the signup form, as published by `GET /instance/status`. Bound to the mailed proof and recorded only if the proof creates a new Account.",
+            "title": "Acceptedtermsversion"
+          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -15749,7 +15787,7 @@
                 }
               }
             },
-            "description": "The request conflicts with the current state of the resource."
+            "description": "`TERMS_ACCEPTANCE_REQUIRED`: the proof would create a new Account without an acceptance of the current terms of use. Nothing was created and the proof stays redeemable: redeem it again with `acceptedTermsVersion`. `TERMS_VERSION_OUTDATED`: `acceptedTermsVersion` is not the current version."
           },
           "422": {
             "content": {
@@ -15815,6 +15853,16 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`TERMS_VERSION_OUTDATED`: `acceptedTermsVersion` is not the version currently published by `GET /instance/status`. No proof was issued."
           },
           "422": {
             "content": {

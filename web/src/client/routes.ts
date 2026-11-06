@@ -202,6 +202,9 @@ export const MORE_PRIVATE_ROUTE = '/more/private';
  */
 export const SERVER_ADMIN_ROUTE = '/server-admin';
 
+/** Public, login-free reading page for the eimir. Cloud terms of use. */
+export const LEGAL_TERMS_ROUTE = '/legal/terms';
+
 /* Games content ---------------------------------------------------------- */
 
 export const GAMES_MOMENTS_ROUTE = '/games/our-moments';

@@ -65,6 +65,8 @@ def test_public_instance_status_defaults_to_available(client) -> None:  # type: 
         # bootstrap/invitation, never from self-service signup.
         "accountCreation": "invitation",
         "selfServiceSignupAvailable": False,
+        # Self-Hosted is governed by its operator, not by the Cloud terms.
+        "termsOfUseVersion": None,
     }
 
 

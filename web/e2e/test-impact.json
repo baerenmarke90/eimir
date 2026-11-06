@@ -870,6 +870,18 @@
         "web/src/client/useHeartVoiceDraft.ts",
         "web/src/client/sharedVoiceImport.ts"
       ]
+    },
+    "once-messages.spec.ts": {
+      "roots": [
+        "web/src/components/OnceMessages.tsx",
+        "web/src/client/onceMessages.tsx",
+        "web/src/client/onceMessageCrypto.ts",
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/VoiceNotePlayer.tsx",
+        "web/src/client/useVoiceRecorder.ts",
+        "web/src/client/voiceNotes.ts"
+      ]
     }
   }
 }

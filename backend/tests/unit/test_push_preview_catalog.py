@@ -5,13 +5,15 @@ from __future__ import annotations
 import base64
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from joserfc import jwe
 from joserfc.jwk import OctKey
+from sqlalchemy.orm import Session
 
 from eimir.engagement import fcm_push, push_preview
-from eimir.engagement.models import NotificationKind
+from eimir.engagement.models import Notification, NotificationKind
 
 CATALOG = Path(__file__).resolve().parents[3] / (
     "android/app/src/androidTest/assets/push-preview-catalog.json"
@@ -21,7 +23,7 @@ CATALOG = Path(__file__).resolve().parents[3] / (
 def test_installed_catalog_covers_every_sender_kind_and_both_envelope_versions() -> None:
     fixture = json.loads(CATALOG.read_text())
     cases = fixture["cases"]
-    kinds = {kind.value for kind in NotificationKind}
+    kinds = {kind.value for kind in NotificationKind} - push_preview.NEUTRAL_ONLY_KINDS
     for title in ("", "Unser Spaziergang"):
         assert kinds <= {
             case["payload"]["kind"] for case in cases if case["payload"]["title"] == title
@@ -44,6 +46,17 @@ def test_installed_catalog_covers_every_sender_kind_and_both_envelope_versions()
                 assert text not in {"Du hast neue Nachrichten.", "You have new messages."}
             if case["payload"]["digest"]:
                 assert case["payload"]["body"] not in text
+
+
+@pytest.mark.parametrize("digest", [False, True])
+@pytest.mark.parametrize("version", [1, 2])
+def test_once_message_preview_never_reads_content(digest: bool, version: int) -> None:
+    session = Mock(spec=Session)
+    notification = Notification(kind=NotificationKind.ONCE_MESSAGE_RECEIVED.value)
+    assert (
+        push_preview.for_notification(session, notification, digest=digest, version=version) is None
+    )
+    assert session.mock_calls == []
 
 
 @pytest.mark.parametrize("limit", [80, 140, 180])

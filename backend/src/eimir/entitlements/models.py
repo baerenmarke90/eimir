@@ -67,6 +67,7 @@ class Capability(StrEnum):
     GAMES_COUPLE = "games.couple"
     DAILY_INSIGHTS = "daily.insights"
     DAILY_QUOTE = "daily.quote"
+    PARTNER_ONCE_MESSAGES = "partner.once_messages"
     PARTNER_QUICK_ACTIONS_EXTENDED = "partner.quick_actions.extended"
     RELATIONSHIP_PASSPORT = "relationship.passport"
     MEMORIES_MAP = "memories.map"

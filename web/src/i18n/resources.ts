@@ -24,6 +24,7 @@ import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
+import onceMessages from './locales/onceMessages';
 import offlinePage from './locales/offlinePage';
 import partnerConnection from './locales/partnerConnection';
 import people from './locales/people';
@@ -53,6 +54,7 @@ import wishSelection from './locales/wishSelection';
 
 export const germanResources = {
   ...de,
+  onceMessages,
   memoryMap,
   calendarPlan,
   gentlePrompts,

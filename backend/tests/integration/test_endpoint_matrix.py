@@ -137,6 +137,47 @@ PRIVATE_COLLECTION_FIXTURES = {
 
 SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}"),
+    # Temporary messages own recipient/consent/claim rules in test_once_messages.
+    # Every route also participates in the shared tenant and absence contract.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages/status"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/once-messages/reception",
+        body={"enabled": False, "expectedVersion": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages",
+        body={"requestId": str(uuid4()), "recipientId": str(uuid4()), "envelope": {}},
+        body_fixture_aliases={"recipientId": "accountId"},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/open",
+        body={"deviceId": str(uuid4()), "token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/acknowledge",
+        body={"token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
@@ -1537,6 +1578,7 @@ def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:
             "dateId",
             "accountId",
             "memoryId",
+            "messageId",
             "notificationId",
             "heartMomentId",
             "attachmentId",

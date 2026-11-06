@@ -238,6 +238,7 @@ function AuthenticatedAppShell({
   const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
+    location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||

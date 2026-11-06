@@ -24,10 +24,23 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 }, testInfo) => {
   const unexpectedRequests: string[] = [];
   let dashboardRequestCount = 0;
+  let deviceContextRequestCount = 0;
+  let confirmDeviceContext!: () => void;
+  const deviceContextConfirmation = new Promise<void>((resolve) => {
+    confirmDeviceContext = resolve;
+  });
   let isRescheduled = false;
   let planPatchCount = 0;
 
   await page.route('**/api/v1/**', async (route) => {
+    if (
+      route.request().method() === 'PUT' &&
+      new URL(route.request().url()).pathname ===
+        '/api/v1/account/device-context'
+    ) {
+      deviceContextRequestCount++;
+      await deviceContextConfirmation;
+    }
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
@@ -396,7 +409,12 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect(
     agenda.getByText('Later October trip', { exact: true }),
   ).toBeVisible();
+  // Keep the initial read and the existing timezone revalidation ordered.
+  // Without this barrier they may legitimately coalesce while the first read is pending.
   expect(dashboardRequestCount).toBe(1);
+  await expect.poll(() => deviceContextRequestCount).toBe(1);
+  confirmDeviceContext();
+  await expect.poll(() => dashboardRequestCount).toBe(2);
 
   // Step 2: Pull-to-refresh is an app-level mobile interaction on Today.
   const refreshIndicator = page.locator('.app-pull-refresh-indicator');
@@ -436,6 +454,8 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   });
   await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
 
+  const requestsBeforePlan = dashboardRequestCount;
+
   // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
   await agenda.getByRole('link', { name: /Later October trip/ }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
@@ -474,7 +494,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect(page).toHaveURL(/\/today$/);
 
   // Step 5: Verify Dashboard query was automatically refetched after route re-entry.
-  await expect.poll(() => dashboardRequestCount).toBeGreaterThanOrEqual(2);
+  await expect
+    .poll(() => dashboardRequestCount)
+    .toBeGreaterThan(requestsBeforePlan);
 
   // Step 6: Verify the rescheduled item is now visible in the Shared Planning
   // Horizon agenda, and the stale title is gone

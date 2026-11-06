@@ -130,7 +130,7 @@ Moments/global-create journeys also pass (29 cases from their complete specs).
 
 Local validation: production Web build and API/client drift checks; all 2,764 Web
 tests (two existing skips); 1,348 backend non-integration tests (45 environment-
-dependent skips); focused PostgreSQL person/avatar/delete/race/dashboard and
+dependent skips); 114 focused PostgreSQL person/avatar/delete/race/dashboard and
 transfer/encryption/reminder tests. A full empty-database upgrade through 0116 and
 Alembic model/schema comparison pass. Legacy migration and real validated archive
 round-trip preserve private linked dates; an inconsistent composite person class
@@ -153,3 +153,9 @@ decision; changed versions invalidate stale writes. A downgrade removes the chec
 without inventing former privacy. Older clients submitting PRIVATE receive 422.
 Independent date visibility is unchanged, including transfer and delete policy.
 Native-device acceptance and APK publication are outside this Web/backend slice.
+
+The initial hosted Backend formatting check found one wrapped expression in the
+composite-FK import validation. The correction changes only whitespace and has
+an identical Python syntax tree; the full 813-file Ruff format check, Ruff lint
+and mypy on all 366 source files pass. Independent first-head checks finish
+before the correction push; fresh final-head checks are required for merge.

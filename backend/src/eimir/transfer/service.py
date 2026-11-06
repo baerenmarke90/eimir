@@ -1558,8 +1558,7 @@ def _validate_domain_schema_and_links(
                         # membership/ID checks alone cannot establish this boundary.
                         valid = any(
                             all(
-                                _row_snake(parent).get(part.column.name)
-                                == row[part.parent.name]
+                                _row_snake(parent).get(part.column.name) == row[part.parent.name]
                                 for part in constraint.elements
                             )
                             for parent in tables.get(target_table, [])

@@ -10,9 +10,12 @@ Baseline inspected: `origin/main` at `c5e15a4c29eb60adaec5a1d39f574fdc9b8c4d25`.
 The separate `feat/heart-voice-notes` worktree owns audio capture/import/player,
 audio media validation and durable HeartMoment binding. This slice owns a new
 temporary message domain, consent, recipient claim, expiry and neutral notification.
-Integrate the voice commit before final validation; reuse its capture/player
-components through a local File boundary, never attach temporary data to a
-HeartMoment or duplicate its recorder. A stacked PR must name the exact dependency.
+Integration baseline: `origin/main` at `e98202bff3aefe33c46724fa0ad7b5e2ac6f6e1c`
+and voice PR #1671 at `c47be4dfe`. The terms-of-use changes leave Wir composition
+unchanged. Reuse the committed capture/player components through a local File
+boundary; never attach temporary data to a HeartMoment or duplicate its recorder.
+Migration 0115 follows the voice migration 0114. The PR remains stacked on #1671
+until that dependency is merged.
 
 ## Mobile Interaction Contract
 
@@ -46,7 +49,8 @@ navigation. A dedicated reading/composing page is necessary for sensitive media.
   different attempt/device never receives already claimed content. A successful
   decrypt acknowledges destruction; a failed/dead client loses its claim at the
   five-minute ceiling. Closing clears local bytes and revokes object URLs.
-- Confirmed send shows a persistent result and return action. Pending work and
+- Confirmed send shows a persistent result, withdrawal and return action. Withdrawal
+  cannot recall content already received or copied. Pending work and
   dirty exits use the shared guard; account changes invalidate late completions.
 - 320/360/390/430 px and 200% text: one column, wrapping labels, at least 44 CSS px
   targets, keyboard-safe actions. Expanded keeps the same bounded reading flow.
@@ -69,7 +73,9 @@ Cloud/Self-Hosted identical) and Web Crypto RSA-OAEP-256/A256GCM. Private device
 are non-extractable CryptoKeys in account/Space-scoped IndexedDB; only public keys
 reach the server. Existing server-known Push preview keys cannot protect messages.
 The server stores a bounded opaque envelope, not plaintext or ordinary Attachment
-records. Content format, photo metadata removal, decoder and audio limits are
+records. Limit media to 4 MiB and audio to 180 seconds; normalize photos locally
+to metadata-free JPEG, at most 1600 pixels. Bound opaque envelopes below 8 MiB,
+live Space storage to 64 MiB and new sends to 12 per sender/hour. Content format, photo metadata removal, decoder and audio limits are
 enforced in the client; opaque envelope shape, algorithms, recipient key set and
 byte budgets are enforced on the server. No bespoke cryptographic primitive.
 
@@ -81,7 +87,8 @@ or migration of pending messages to a new device. Screenshots/external copies ar
 not preventable. Deleted browser keys can make pending envelopes unreadable.
 
 Use current Membership identities, active accounts, bilateral consent and atomic
-Space/message locks for send/claim/withdrawal. Rejoining cannot revive old content.
+Space/message locks for send/claim/withdrawal. A reception version prevents stale
+requests from re-enabling consent after a newer revocation. Rejoining cannot revive old content.
 Unopened messages expire after 24 hours. Claim leases last at most five minutes;
 acknowledgement destroys the envelope. Replays retain only bounded idempotency
 metadata until expiry. Cleanup removes message, derived notification and delivery

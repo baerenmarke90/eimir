@@ -33,13 +33,48 @@ function server() {
   const expiresAt = () => new Date(Date.now() + 86400_000).toISOString();
   async function connect(page: Page, own: string) {
     await installMocks(page, { asPartner: own === PARTNER_ID });
-    await page.route('**/dashboard/preferences', route => route.fulfill({ json: { items: [{ moduleKey: 'daily_quote', visible: false }] } }));
-    await page.route('**/dashboard', route => route.fulfill({ json: {
-      space: { spaceId: SPACE_ID, partner: { id: own === ACCOUNT_ID ? PARTNER_ID : ACCOUNT_ID, displayName: own === ACCOUNT_ID ? 'Alex' : 'Lea' } },
-      keepsake: { id: 'mem-canal', type: 'MEMORY', titleOrText: 'Unser Spaziergang am Wasser', occurredOn: '2026-11-05', createdAt: '2026-11-05T17:00:00Z', scheduledAt: null },
-      recentShared: [], relationshipDuration: null, retrospective: null, sharedStorySummary: null, thinkingOfYouAvailableAt: null,
-      upcoming: [{ id: 'next-plan', type: 'PLAN', titleOrText: 'Unser Wochenende', scheduledAt: null, scheduledOn: '2026-11-07', occurredOn: null, createdAt: '2026-11-01T12:00:00Z' }],
-    } }));
+    await page.route('**/dashboard/preferences', (route) =>
+      route.fulfill({
+        json: { items: [{ moduleKey: 'daily_quote', visible: false }] },
+      }),
+    );
+    await page.route('**/dashboard', (route) =>
+      route.fulfill({
+        json: {
+          space: {
+            spaceId: SPACE_ID,
+            partner: {
+              id: own === ACCOUNT_ID ? PARTNER_ID : ACCOUNT_ID,
+              displayName: own === ACCOUNT_ID ? 'Alex' : 'Lea',
+            },
+          },
+          keepsake: {
+            id: 'mem-canal',
+            type: 'MEMORY',
+            titleOrText: 'Unser Tag am See',
+            occurredOn: '2026-11-05',
+            createdAt: '2026-11-05T17:00:00Z',
+            scheduledAt: null,
+          },
+          recentShared: [],
+          relationshipDuration: null,
+          retrospective: null,
+          sharedStorySummary: null,
+          thinkingOfYouAvailableAt: null,
+          upcoming: [
+            {
+              id: 'next-plan',
+              type: 'PLAN',
+              titleOrText: 'Unser Wochenende',
+              scheduledAt: null,
+              scheduledOn: '2026-11-07',
+              occurredOn: null,
+              createdAt: '2026-11-01T12:00:00Z',
+            },
+          ],
+        },
+      }),
+    );
 
     await page.route('**/api/v1/spaces/*/once-messages**', async (route) => {
       const request = route.request();
@@ -47,7 +82,8 @@ function server() {
       const method = request.method();
       const other = own === ACCOUNT_ID ? PARTNER_ID : ACCOUNT_ID;
       const status = () => ({
-        receptionVersion: keys.has(own) ? 1 : 0, ownEnabled: keys.has(own),
+        receptionVersion: keys.has(own) ? 1 : 0,
+        ownEnabled: keys.has(own),
         partnerEnabled: keys.has(other),
         canSend: true,
         partner: {
@@ -367,15 +403,13 @@ test('photo-only messages are normalized locally and revealed with their descrip
     await enable(sender, a, app, ACCOUNT_ID);
     await enable(receiver, b, app, PARTNER_ID);
     await sender.goto(`${ROOT}/new`);
-    await sender
-      .getByLabel(copy.photo, { exact: true })
-      .setInputFiles({
-        name: 'moment.png',
-        mimeType: 'image/png',
-        buffer: TINY_PNG,
-      });
+    await sender.getByLabel(copy.photo, { exact: true }).setInputFiles({
+      name: 'moment.png',
+      mimeType: 'image/png',
+      buffer: TINY_PNG,
+    });
     await expect(sender.locator('.once-media-draft img')).toBeVisible();
-    await sender.getByLabel(copy.description).fill('Ein kleiner Farbpunkt');
+    await sender.getByLabel(copy.description).fill('A small colour dot');
     expect(
       await sender
         .locator('.once-media-draft img')
@@ -394,7 +428,7 @@ test('photo-only messages are normalized locally and revealed with their descrip
       .getByRole('button', { name: copy.open, exact: true })
       .click();
     await expect(
-      receiver.getByRole('img', { name: 'Ein kleiner Farbpunkt' }),
+      receiver.getByRole('img', { name: 'A small colour dot' }),
     ).toBeVisible();
     await captureScreenshot(receiver, info, 'once-photo-390-light.png');
     await receiver

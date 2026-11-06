@@ -241,10 +241,16 @@ describe('QuickCreateMenu - Desktop Popover', () => {
     expect(items).toHaveLength(9);
 
     // Existing capture entries keep their relative order around the optional Pro action.
-    expect(items.map(item => item.getAttribute('href'))).toEqual([
-      '/story/memories/new', '/story/heart-moments/new', '/today/only-you/new',
-      '/story/milestones/new', '/plan/wishes/new', '/more/collections/new',
-      '/plan/plans/new', '/more/private/notes/new', '/more/private/gift-ideas/new',
+    expect(items.map((item) => item.getAttribute('href'))).toEqual([
+      '/story/memories/new',
+      '/story/heart-moments/new',
+      '/today/only-you/new',
+      '/story/milestones/new',
+      '/plan/wishes/new',
+      '/more/collections/new',
+      '/plan/plans/new',
+      '/more/private/notes/new',
+      '/more/private/gift-ideas/new',
     ]);
 
     // Verify sublines exist

@@ -789,6 +789,9 @@ or bucket, not a compromised or malicious operator.
 One-time partner messages (#1672) are a separate optional, client-sealed domain:
 standard JWE ciphertext is encrypted on the sender's device for the explicitly
 registered public keys of the recipient. Private keys stay on recipient devices.
+This recipient-only temporary domain uses the shared tenant guard plus an explicit
+current-membership/consent/expiry predicate; ordinary durable owner reads cannot
+represent a single claim. Metadata GETs never return the envelope.
 The server-side ProtectedPayload wrapper may add encryption at rest around that
 opaque JWE; it does not give the server the message decryption key. See the
 [threat model and lifetime contract](product/once-messages.md). The authenticated

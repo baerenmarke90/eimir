@@ -7,7 +7,8 @@ export function getNotificationItemTitle(
   t: TFunction,
   currentAccountId?: string,
 ): string {
-  if (item.kind === 'ONCE_MESSAGE_RECEIVED') return t('onceMessages.notification');
+  if (item.kind === 'ONCE_MESSAGE_RECEIVED')
+    return t('onceMessages.notification');
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );

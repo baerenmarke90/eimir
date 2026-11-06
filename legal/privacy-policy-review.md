@@ -7,7 +7,7 @@ statement comes from, which facts the operator must supply and which decisions
 are open, so that the reviewer can check the draft against the product instead
 of against assumptions.
 
-Baseline: `main` at `e98202bff3aefe33c46724fa0ad7b5e2ac6f6e1c`.
+Baseline: `main` at `aa62b721aafcb6fd56d4176f46f9f0dcda07d578` (includes the voice notes #1671 and the one-time messages #1673).
 
 ## Scope
 
@@ -34,28 +34,30 @@ Where a feature is not yet available, the draft says so explicitly.
 | 4 | Partner presence: one overwritten `last_active_at` per member and Space; partner sees only „now“/„recently“ (2/10 min windows), no timestamp | `backend/src/eimir/relationship/presence.py`, `backend/src/eimir/api/v1/spaces.py` |
 | 4 | „Gefühl für heute“/Akku: rows kept for the current and the previous Space day only | `backend/src/eimir/daily_checkins/retention.py`, ADR 0007 § 9 |
 | 4 | Moment photos keep readable EXIF/ICC incl. GPS in the original; thumbnails, avatars, other uploads and videos are stripped | ADR 0014, `backend/src/eimir/attachments/videos.py` (`-map_metadata`) |
-| 4, 21 | Leaving a Space deletes the leaver's owner-only data there; a zero-active Space is purged after exactly 30 days | `docs/m6/SPACE-OFFBOARDING-LIFECYCLE.md` § 8, `backend/src/eimir/relationship/policy.py` |
+| 4, 22 | Leaving a Space deletes the leaver's owner-only data there; a zero-active Space is purged after exactly 30 days | `docs/m6/SPACE-OFFBOARDING-LIFECYCLE.md` § 8, `backend/src/eimir/relationship/policy.py` |
+| 4 | Voice notes: in-app recording (microphone only while recording; Android `RECORD_AUDIO`) or audio import incl. Android share intent; ≤ 180 s / 20 MiB; normalized to metadata-stripped AAC/M4A; no transcription; parent visibility, export and deletion apply | `docs/product/design/heart-voice-notes.md`, `backend/src/eimir/attachments/audios.py`, `limits.py`, `AndroidManifest.xml` |
 | 5 | Application-controlled encryption at rest (required on Cloud Production), keys apart from DB and media; plaintext metadata listed; never E2EE | `docs/ENCRYPTION-AT-REST.md` §§ 4, 5, 11; `docs/CONTENT-PRIVACY-GUIDELINES.md` § 4 |
 | 5 | ServerAdmin sees account metadata only, no content | `docs/SERVER-ADMIN.md` |
-| 7 | Related persons: name, relationship, optional birthday | `docs/PRIVACY-MODEL.md` (Third parties), `docs/RELATED-PERSONS.md` |
-| 8 | Photo places default ON, account-wide opt-out; Android requests `ACCESS_MEDIA_LOCATION` | `docs/PRIVACY-MODEL.md` (#1459/#1478), `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` |
-| 8 | Photon receives only query or coordinates plus language from the backend; default origin `https://photon.komoot.io` | `backend/src/eimir/providers/photon.py`, `place_search.py`, `docs/PHOTO-PLACE-RESOLUTION.md` |
-| 8 | Map tiles load in the browser from `tile.openstreetmap.org` with `referrerPolicy: origin`; only on opening a map | `web/src/components/PlaceMapCanvas.tsx`, `web/nginx.conf` (CSP `img-src`) |
-| 8 | „In Google Maps öffnen“ passes coordinates only | `web/src/client/photoPlaces.ts` |
-| 9 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
-| 9, 14 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
-| 10 | Local Ollama in the deployment; shared content only; weekly insights receive computed observations only; no prompts/outputs in logs | `docs/LOCAL-RECAP-AI.md`, `docs/product/design/references/1546/weekly-ai.md`, `backend/src/eimir/context_tags/jobs.py` |
-| 11 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
-| 11 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
-| 12 | Link previews: explicit action, server-side fetch, nothing persisted | `backend/src/eimir/api/v1/link_previews.py` |
-| 13 | Export scopes SHARED/PERSONAL, 24-hour encrypted bundle retention, credentials not exported | `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`, `backend/src/eimir/transfer/service.py` |
-| 14 | Browser storage: session in `sessionStorage` (Android: Keystore-encrypted); IndexedDB read cache of shared content, media cache and drafts, each at most seven days; small `localStorage` preferences; service worker caches static files only; everything cleared on sign-out; Android `allowBackup=false` | `web/src/client/sessionPersistence.ts`, `productReadCache.ts`, `durableMediaStore.ts`, `memoryDiaryDraft.ts`, `web/public/service-worker.js`, `NativeSessionStoragePlugin.java` |
-| 15 | Application access log: method, path, status, duration, request ID; no IP or payload | `backend/src/eimir/observability/middleware.py` |
-| 15 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
-| 15 | Restore re-applies accepted deletions from a pseudonymous journal kept as long as older backups exist | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 7 |
-| 16 | No analytics, advertising or crash-reporting SDK in Web or Android | `web/package.json`, `android/app/build.gradle`, `docs/PRIVACY-MODEL.md` (Analytics) |
-| 17 | Pro cannot be purchased yet (no billing provider in Core) | `docs/m6/CLOUD-MANAGED-TOPOLOGY.md` § 3.6, #1525 |
-| 21 | Account deletion: emails, credentials, sessions, profile, owner-only content removed; shared history kept under a neutral former-member marker | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 5 |
+| 6 | One-time messages „Nur für dich“: Pro sending, bilateral per-device reception opt-in; non-extractable RSA-OAEP device keys in IndexedDB, public keys on the server; JWE envelope encrypted on the sending device; client-side metadata-free JPEG; unopened 24 h, claim lease 5 min, envelope destroyed on acknowledgement; withdrawal/discard/opt-out delete pending messages; no export; official dumps exclude the tables, infrastructure snapshots may hold opaque envelopes; neutral push, no email; no audited-E2EE claim | `docs/product/once-messages.md`, `backend/src/eimir/once_messages/service.py`, `web/src/client/onceMessageCrypto.ts`, `scripts/self_hosted_recovery.py` |
+| 8 | Related persons: name, relationship, optional birthday | `docs/PRIVACY-MODEL.md` (Third parties), `docs/RELATED-PERSONS.md` |
+| 9 | Photo places default ON, account-wide opt-out; Android requests `ACCESS_MEDIA_LOCATION` | `docs/PRIVACY-MODEL.md` (#1459/#1478), `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` |
+| 9 | Photon receives only query or coordinates plus language from the backend; default origin `https://photon.komoot.io` | `backend/src/eimir/providers/photon.py`, `place_search.py`, `docs/PHOTO-PLACE-RESOLUTION.md` |
+| 9 | Map tiles load in the browser from `tile.openstreetmap.org` with `referrerPolicy: origin`; only on opening a map | `web/src/components/PlaceMapCanvas.tsx`, `web/nginx.conf` (CSP `img-src`) |
+| 9 | „In Google Maps öffnen“ passes coordinates only | `web/src/client/photoPlaces.ts` |
+| 10 | Immich: personal HTTPS origin and API key, encrypted, account-scoped; selected-item copy; 10-min selection | `docs/product/integrations/1444-photo-source-delivery.md`, `backend/src/eimir/photo_sources/service.py` |
+| 10, 15 | Google Photos is gated off (#1467); its OAuth browser binding is the only cookie (`__Host-`, 10 min) | `docs/product/integrations/1444-google-security-gate.md`, `backend/src/eimir/photo_sources/browser_binding.py` |
+| 11 | Local Ollama in the deployment; shared content only; weekly insights receive computed observations only; no prompts/outputs in logs | `docs/LOCAL-RECAP-AI.md`, `docs/product/design/references/1546/weekly-ai.md`, `backend/src/eimir/context_tags/jobs.py` |
+| 12 | Mails: magic link, signup, verification; notification mail opt-in and content-free | `backend/src/eimir/i18n/locales/de.json`, `backend/src/eimir/engagement/email_delivery.py` |
+| 12 | Push on Android only (no browser Web Push): FCM wake payload `type`+`activationId`, or UnifiedPush; FID cleanup; Google's 180-day deletion statement | `docs/PRIVACY-MODEL.md` (#565), `android/app/build.gradle`, `AndroidManifest.xml` |
+| 13 | Link previews: explicit action, server-side fetch, nothing persisted | `backend/src/eimir/api/v1/link_previews.py` |
+| 14 | Export scopes SHARED/PERSONAL, 24-hour encrypted bundle retention, credentials not exported | `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md`, `backend/src/eimir/transfer/service.py` |
+| 15 | Browser storage: session in `sessionStorage` (Android: Keystore-encrypted); IndexedDB read cache of shared content, media cache and drafts, each at most seven days; small `localStorage` preferences; service worker caches static files only; everything cleared on sign-out; Android `allowBackup=false` | `web/src/client/sessionPersistence.ts`, `productReadCache.ts`, `durableMediaStore.ts`, `memoryDiaryDraft.ts`, `web/public/service-worker.js`, `NativeSessionStoragePlugin.java` |
+| 16 | Application access log: method, path, status, duration, request ID; no IP or payload | `backend/src/eimir/observability/middleware.py` |
+| 16 | Rate limiting: SHA-256 of the lower-cased key (email or IPv4 / IPv6 /64), pruned after one day | `backend/src/eimir/auth/rate_limit.py`, `passkey_abuse.py` |
+| 16 | Restore re-applies accepted deletions from a pseudonymous journal kept as long as older backups exist | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 7 |
+| 17 | No analytics, advertising or crash-reporting SDK in Web or Android | `web/package.json`, `android/app/build.gradle`, `docs/PRIVACY-MODEL.md` (Analytics) |
+| 18 | Pro cannot be purchased yet (no billing provider in Core) | `docs/m6/CLOUD-MANAGED-TOPOLOGY.md` § 3.6, #1525 |
+| 22 | Account deletion: emails, credentials, sessions, profile, owner-only content removed; shared history kept under a neutral former-member marker | `docs/m6/ACCOUNT-DELETION-RETENTION.md` § 5 |
 
 Product changes that contradict one of these statements need a new version of
 the notice before or with the change (`legal/README.md`).
@@ -94,7 +96,9 @@ the notice before or with the change (`legal/README.md`).
    from the terms acceptance (Art. 7(2)), plus a defined consequence of
    withdrawal (for example account deletion). That is a product change and is
    not part of this draft; the placeholder keeps the notice unpublishable until
-   the decision exists.
+   the decision exists. The one-time message consent copy itself says that
+   messages can contain intimate texts, photos or audio, and its per-device
+   reception opt-in is an existing affirmative step the review may assess.
 2. **Data protection impact assessment (Art. 35 GDPR).** Large-scale processing
    of intimate or special-category data and partner-visible presence/location
    features may require a DPIA (Art. 35(3)(b) and the German supervisory
@@ -115,9 +119,9 @@ the notice before or with the change (`legal/README.md`).
 6. **Language.** The UI is offered in English, the notice exists only in German
    (`docs/I18N.md`). Decide whether Art. 12 transparency requires an accepted
    English version before launch.
-7. **Google Photos.** Section 9 describes the flow while it is gated off
+7. **Google Photos.** Section 10 describes the flow while it is gated off
    (#1467). Re-check the text before enabling it.
-8. **Pro purchases.** Section 17 is conditional until billing exists (#1525);
+8. **Pro purchases.** Section 18 is conditional until billing exists (#1525);
    complete it with the payment flow, retention and app-store roles.
 9. **Terms acceptance after account deletion.** The record is deleted with the
    Account today. Decide whether evidence of contract conclusion must be kept
@@ -130,13 +134,15 @@ the notice before or with the change (`legal/README.md`).
     Space day (ADR 0007), while the weekly-insights design describes eight
     weeks of observations. The notice states the runtime behavior; reconcile
     the product before any retention change and update the notice with it.
-12. **Change notification.** Section 24 promises advance notice of material
+12. **Change notification.** Section 25 promises advance notice of material
     changes; define the channel together with the re-acceptance flow for the
     terms.
+13. **One-time messages in Cloud backups.** The canonical dump excludes the
+    message and device tables, but Cloud relies on managed database snapshots
+    that may contain opaque envelopes until their retention ends. Confirm that
+    this matches section 6 and the backup horizon.
 
 ## Related follow-ups outside this draft
 
 - Imprint (`[[IMPRINT_URL]]`).
-- The terms mention voice recordings as an example of content; audio uploads do
-  not exist yet (matrix: Short Audio / Voice Notes, M7).
 - If OIDC sign-in is enabled for Cloud, add a section for the identity provider.

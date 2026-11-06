@@ -14,6 +14,7 @@ import pytest
 
 from eimir.auth import action_tokens, tokens
 from eimir.jobs import maintenance
+from eimir.once_messages import service as once_messages
 from eimir.photo_sources import service as photo_sources
 from eimir.relationship import invitations, policy
 from eimir.transfer import service as transfer
@@ -74,6 +75,18 @@ STATEMENTS = [
         timedelta(hours=24),
         "halten sie 24 Stunden verschlüsselt zum Herunterladen bereit",
         id="export-bundle",
+    ),
+    pytest.param(
+        once_messages.LIFETIME,
+        timedelta(hours=24),
+        "Ungeöffnete Einmalnachrichten löschen wir nach 24 Stunden",
+        id="unopened-once-message",
+    ),
+    pytest.param(
+        once_messages.CLAIM_LIFETIME,
+        timedelta(minutes=5),
+        "die Ansicht endet mit dem Schließen, spätestens nach fünf Minuten",
+        id="opened-once-message",
     ),
     pytest.param(
         photo_sources._LIFETIME,

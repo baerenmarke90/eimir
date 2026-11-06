@@ -294,7 +294,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'In eurem Space haltet ihr eure gemeinsame Geschichte fest, zum Beispiel mit Erinnerungen, Herzmomenten, Meilensteinen, Wünschen, Plänen, Orten, Listen, Kommentaren, Reaktionen, Fotos und Videos. Wir speichern und verarbeiten diese Inhalte, um sie euch bereitzustellen, zwischen euren Geräten abzugleichen, sie durchsuchbar zu machen und die Funktionen anzubieten, die ihr nutzt, etwa Rückblicke (Art. 6 Abs. 1 lit. b DSGVO).',
+              text: 'In eurem Space haltet ihr eure gemeinsame Geschichte fest, zum Beispiel mit Erinnerungen, Herzmomenten, Meilensteinen, Wünschen, Plänen, Orten, Listen, Kommentaren, Reaktionen, Fotos, Videos und Sprachnachrichten. Wir speichern und verarbeiten diese Inhalte, um sie euch bereitzustellen, zwischen euren Geräten abzugleichen, sie durchsuchbar zu machen und die Funktionen anzubieten, die ihr nutzt, etwa Rückblicke (Art. 6 Abs. 1 lit. b DSGVO).',
             },
           ],
           children: [],
@@ -339,7 +339,16 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Fotos und Videos prüfen wir technisch, erzeugen Vorschaubilder und wandeln Videos in ein einheitliches Format um. Bei Fotos, die du einer Erinnerung oder einem Herzmoment hinzufügst, bleiben lesbare Metadaten in der Originaldatei erhalten, zum Beispiel Aufnahmezeit, Aufnahmeort und Gerätemodell. Wer das Foto sehen darf, kann es mit diesen Metadaten herunterladen. Das gilt auch, wenn du die automatische Ortszuordnung ausgeschaltet hast (Abschnitt 8). Aus allen anderen Fotos, etwa deinem Profilbild, sowie aus Vorschaubildern und Videos entfernen wir eingebettete Metadaten.',
+              text: 'Fotos, Videos und Sprachnachrichten prüfen wir technisch, erzeugen Vorschaubilder und wandeln Videos und Sprachnachrichten in ein einheitliches Format um. Bei Fotos, die du einer Erinnerung oder einem Herzmoment hinzufügst, bleiben lesbare Metadaten in der Originaldatei erhalten, zum Beispiel Aufnahmezeit, Aufnahmeort und Gerätemodell. Wer das Foto sehen darf, kann es mit diesen Metadaten herunterladen. Das gilt auch, wenn du die automatische Ortszuordnung ausgeschaltet hast (Abschnitt 9). Aus allen anderen Fotos, etwa deinem Profilbild, sowie aus Vorschaubildern, Videos und Sprachnachrichten entfernen wir eingebettete Metadaten.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Eine Sprachnachricht nimmst du in eimir. auf, oder du übernimmst eine Audiodatei, in der Android-App auch über die Teilen-Funktion einer anderen App. Das Mikrofon nutzt eimir. nur, während du aufnimmst; dafür fragt dein Browser oder dein Gerät nach der Berechtigung. Sprachnachrichten schreiben wir nicht automatisch ab.',
             },
           ],
           children: [],
@@ -404,8 +413,73 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '6-besonders-schutzenswerte-angaben',
-      content: [{ kind: 'text', text: '6. Besonders schützenswerte Angaben' }],
+      id: '6-einmalnachrichten-nur-fur-dich',
+      content: [{ kind: 'text', text: '6. Einmalnachrichten „Nur für dich“' }],
+    },
+    {
+      kind: 'list',
+      ordered: true,
+      items: [
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Mit eimir. Pro kannst du deinem Partner eine Einmalnachricht schicken: einen Text, ein Foto oder eine Sprachnachricht, die dein Partner einmal öffnen kann. Empfangen könnt ihr Einmalnachrichten nur, wenn ihr den Empfang selbst auf eurem Gerät einschaltet.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Schaltest du den Empfang ein, erzeugt eimir. auf deinem Gerät ein Schlüsselpaar. Der private Schlüssel bleibt auf deinem Gerät und lässt sich nicht aus eimir. exportieren; nur der öffentliche Schlüssel geht an uns. Eine Einmalnachricht wird schon auf dem sendenden Gerät für die Empfangsgeräte verschlüsselt, und auf unseren Servern liegt sie nur als verschlüsselter Umschlag. Das ist keine unabhängig geprüfte Ende-zu-Ende-Verschlüsselung: Die öffentlichen Schlüssel verteilen unsere Server, und Bildschirmfotos oder andere Kopien lassen sich nicht verhindern.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Fotos verkleinert eimir. schon auf dem sendenden Gerät und entfernt dabei eingebettete Metadaten.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Ungeöffnete Einmalnachrichten löschen wir nach 24 Stunden. Öffnet dein Partner eine Nachricht, löschen wir den Umschlag; die Ansicht endet mit dem Schließen, spätestens nach fünf Minuten. Du kannst eine Nachricht zurückziehen, und dein Partner kann sie ungeöffnet verwerfen. Schaltet einer von euch den Empfang aus, löschen wir alle ausstehenden Einmalnachrichten zwischen euch.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Einmalnachrichten sind nicht Teil des Datenexports. Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO; für besonders schützenswerte Angaben gilt Abschnitt 7.',
+            },
+          ],
+          children: [],
+        },
+      ],
+    },
+    {
+      kind: 'heading',
+      id: '7-besonders-schutzenswerte-angaben',
+      content: [{ kind: 'text', text: '7. Besonders schützenswerte Angaben' }],
     },
     {
       kind: 'list',
@@ -444,8 +518,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '7-angaben-uber-andere-menschen',
-      content: [{ kind: 'text', text: '7. Angaben über andere Menschen' }],
+      id: '8-angaben-uber-andere-menschen',
+      content: [{ kind: 'text', text: '8. Angaben über andere Menschen' }],
     },
     {
       kind: 'list',
@@ -482,8 +556,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '8-orte-karten-und-adresssuche',
-      content: [{ kind: 'text', text: '8. Orte, Karten und Adresssuche' }],
+      id: '9-orte-karten-und-adresssuche',
+      content: [{ kind: 'text', text: '9. Orte, Karten und Adresssuche' }],
     },
     {
       kind: 'list',
@@ -561,8 +635,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '9-fotos-aus-anderen-diensten',
-      content: [{ kind: 'text', text: '9. Fotos aus anderen Diensten' }],
+      id: '10-fotos-aus-anderen-diensten',
+      content: [{ kind: 'text', text: '10. Fotos aus anderen Diensten' }],
     },
     {
       kind: 'list',
@@ -608,9 +682,9 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '10-automatische-vorschlage-und-lokale-ki',
+      id: '11-automatische-vorschlage-und-lokale-ki',
       content: [
-        { kind: 'text', text: '10. Automatische Vorschläge und lokale KI' },
+        { kind: 'text', text: '11. Automatische Vorschläge und lokale KI' },
       ],
     },
     {
@@ -657,8 +731,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '11-benachrichtigungen-und-e-mails',
-      content: [{ kind: 'text', text: '11. Benachrichtigungen und E-Mails' }],
+      id: '12-benachrichtigungen-und-e-mails',
+      content: [{ kind: 'text', text: '12. Benachrichtigungen und E-Mails' }],
     },
     {
       kind: 'list',
@@ -715,8 +789,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '12-linkvorschauen',
-      content: [{ kind: 'text', text: '12. Linkvorschauen' }],
+      id: '13-linkvorschauen',
+      content: [{ kind: 'text', text: '13. Linkvorschauen' }],
     },
     {
       kind: 'paragraph',
@@ -729,8 +803,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '13-datenexport',
-      content: [{ kind: 'text', text: '13. Datenexport' }],
+      id: '14-datenexport',
+      content: [{ kind: 'text', text: '14. Datenexport' }],
     },
     {
       kind: 'list',
@@ -749,7 +823,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir erstellen die Exportdatei auf unseren Servern, halten sie 24 Stunden verschlüsselt zum Herunterladen bereit und löschen sie dann. Passkeys, Sitzungen und Zugangsschlüssel exportieren wir nicht. Hast du die Datei heruntergeladen, liegt sie in deiner Verantwortung.',
+              text: 'Wir erstellen die Exportdatei auf unseren Servern, halten sie 24 Stunden verschlüsselt zum Herunterladen bereit und löschen sie dann. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten exportieren wir nicht. Hast du die Datei heruntergeladen, liegt sie in deiner Verantwortung.',
             },
           ],
           children: [],
@@ -767,8 +841,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '14-speicherung-auf-deinem-gerat',
-      content: [{ kind: 'text', text: '14. Speicherung auf deinem Gerät' }],
+      id: '15-speicherung-auf-deinem-gerat',
+      content: [{ kind: 'text', text: '15. Speicherung auf deinem Gerät' }],
     },
     {
       kind: 'list',
@@ -778,7 +852,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'eimir. legt Daten im Speicher deines Browsers oder der App ab, soweit das für die Funktionen nötig ist, die du nutzt (§ 25 Abs. 2 Nr. 2 TDDDG). Wir setzen keine Techniken ein, die dich für Werbung oder Analyse wiedererkennen. Ein Cookie setzen wir nur für die Anmeldung bei Google Fotos (Abschnitt 9).',
+              text: 'eimir. legt Daten im Speicher deines Browsers oder der App ab, soweit das für die Funktionen nötig ist, die du nutzt (§ 25 Abs. 2 Nr. 2 TDDDG). Wir setzen keine Techniken ein, die dich für Werbung oder Analyse wiedererkennen. Ein Cookie setzen wir nur für die Anmeldung bei Google Fotos (Abschnitt 10).',
             },
           ],
           children: [],
@@ -818,6 +892,12 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
+                text: 'für Einmalnachrichten den privaten Schlüssel dieses Geräts, bis du den Empfang ausschaltest oder die Daten im Browser oder in der App löschst; geöffnete Einmalnachrichten hält eimir. nur im Arbeitsspeicher, solange du sie ansiehst,',
+              },
+            ],
+            [
+              {
+                kind: 'text',
                 text: 'Einstellungen wie das helle oder dunkle Design und kleine Merker, etwa dass du einen Hinweis ausgeblendet hast,',
               },
             ],
@@ -842,11 +922,11 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '15-protokolle-missbrauchsschutz-und-sicherungen',
+      id: '16-protokolle-missbrauchsschutz-und-sicherungen',
       content: [
         {
           kind: 'text',
-          text: '15. Protokolle, Missbrauchsschutz und Sicherungen',
+          text: '16. Protokolle, Missbrauchsschutz und Sicherungen',
         },
       ],
     },
@@ -901,8 +981,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '16-kein-tracking-keine-werbung',
-      content: [{ kind: 'text', text: '16. Kein Tracking, keine Werbung' }],
+      id: '17-kein-tracking-keine-werbung',
+      content: [{ kind: 'text', text: '17. Kein Tracking, keine Werbung' }],
     },
     {
       kind: 'paragraph',
@@ -915,8 +995,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '17-eimir-pro-und-zahlungen',
-      content: [{ kind: 'text', text: '17. eimir. Pro und Zahlungen' }],
+      id: '18-eimir-pro-und-zahlungen',
+      content: [{ kind: 'text', text: '18. eimir. Pro und Zahlungen' }],
     },
     {
       kind: 'paragraph',
@@ -973,8 +1053,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '18-wenn-du-uns-schreibst',
-      content: [{ kind: 'text', text: '18. Wenn du uns schreibst' }],
+      id: '19-wenn-du-uns-schreibst',
+      content: [{ kind: 'text', text: '19. Wenn du uns schreibst' }],
     },
     {
       kind: 'paragraph',
@@ -987,8 +1067,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '19-wer-deine-daten-erhalt',
-      content: [{ kind: 'text', text: '19. Wer deine Daten erhält' }],
+      id: '20-wer-deine-daten-erhalt',
+      content: [{ kind: 'text', text: '20. Wer deine Daten erhält' }],
     },
     {
       kind: 'paragraph',
@@ -1028,7 +1108,7 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'placeholder', name: 'PUSH_PROVIDER' },
             {
               kind: 'text',
-              text: ' für Push-Benachrichtigungen (Abschnitt 11),',
+              text: ' für Push-Benachrichtigungen (Abschnitt 12),',
             },
           ],
           children: [],
@@ -1038,7 +1118,7 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'placeholder', name: 'GEOCODING_PROVIDER' },
             {
               kind: 'text',
-              text: ' für Adresssuche und Ortsnamen (Abschnitt 8),',
+              text: ' für Adresssuche und Ortsnamen (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1047,7 +1127,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'die OpenStreetMap Foundation, wenn du eine Karte öffnest (Abschnitt 8),',
+              text: 'die OpenStreetMap Foundation, wenn du eine Karte öffnest (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1056,7 +1136,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich-Server, Google Fotos, Google Maps oder eine verlinkte Website (Abschnitte 8, 9 und 12),',
+              text: 'Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich-Server, Google Fotos, Google Maps oder eine verlinkte Website (Abschnitte 9, 10 und 13),',
             },
           ],
           children: [],
@@ -1066,7 +1146,7 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'placeholder', name: 'PAYMENT_PROVIDER' },
             {
               kind: 'text',
-              text: ', sobald du eimir. Pro kaufen kannst (Abschnitt 17),',
+              text: ', sobald du eimir. Pro kaufen kannst (Abschnitt 18),',
             },
           ],
           children: [],
@@ -1084,9 +1164,9 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '20-ubermittlung-in-lander-ausserhalb-der-eu',
+      id: '21-ubermittlung-in-lander-ausserhalb-der-eu',
       content: [
-        { kind: 'text', text: '20. Übermittlung in Länder außerhalb der EU' },
+        { kind: 'text', text: '21. Übermittlung in Länder außerhalb der EU' },
       ],
     },
     {
@@ -1132,8 +1212,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '21-wie-lange-wir-daten-speichern',
-      content: [{ kind: 'text', text: '21. Wie lange wir Daten speichern' }],
+      id: '22-wie-lange-wir-daten-speichern',
+      content: [{ kind: 'text', text: '22. Wie lange wir Daten speichern' }],
     },
     {
       kind: 'paragraph',
@@ -1174,6 +1254,16 @@ export const privacyPolicyDe: LegalDocument = {
             {
               kind: 'text',
               text: ' sofort aus eimir.; Kopien in Sicherungen mit deren Ablauf.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            { kind: 'strong', text: 'Einmalnachrichten:' },
+            {
+              kind: 'text',
+              text: ' ungeöffnet 24 Stunden, nach dem Öffnen sofort.',
             },
           ],
           children: [],
@@ -1274,8 +1364,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '22-deine-rechte',
-      content: [{ kind: 'text', text: '22. Deine Rechte' }],
+      id: '23-deine-rechte',
+      content: [{ kind: 'text', text: '23. Deine Rechte' }],
     },
     {
       kind: 'list',
@@ -1325,8 +1415,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '23-dein-widerspruchsrecht',
-      content: [{ kind: 'text', text: '23. Dein Widerspruchsrecht' }],
+      id: '24-dein-widerspruchsrecht',
+      content: [{ kind: 'text', text: '24. Dein Widerspruchsrecht' }],
     },
     {
       kind: 'paragraph',
@@ -1345,8 +1435,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '24-anderungen-dieser-hinweise',
-      content: [{ kind: 'text', text: '24. Änderungen dieser Hinweise' }],
+      id: '25-anderungen-dieser-hinweise',
+      content: [{ kind: 'text', text: '25. Änderungen dieser Hinweise' }],
     },
     {
       kind: 'paragraph',

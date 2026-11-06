@@ -45,6 +45,8 @@ export interface AttachmentDraftOptions {
   resourceKey?: string;
   fetchApi?: typeof fetch;
   uploadAttachmentFn?: typeof uploadMemoryDraftAttachment;
+  /** Avatars do not participate in selected-photo place enrichment. */
+  preserveMetadata?: boolean;
   /**
    * Caller-computed remaining capacity (`MAX_MEMORY_ATTACHMENTS -
    * alreadyBoundAttachmentCount`). Files beyond this never start a server
@@ -146,6 +148,7 @@ export function useAttachmentDrafts({
   resourceKey,
   fetchApi = fetch,
   uploadAttachmentFn = uploadMemoryDraftAttachment,
+  preserveMetadata = true,
   maxAttachments = Number.POSITIVE_INFINITY,
 }: AttachmentDraftOptions) {
   const accountSpace = formatAttachmentDraftContextKey(accountId, spaceId);
@@ -285,10 +288,10 @@ export function useAttachmentDrafts({
         {
           signal: controller.signal,
           onProgress: updateProgress,
-          preserveMetadata: true,
+          preserveMetadata,
         },
       )
-        .then(({ attachmentId, hasThumbnail, durationSeconds }) => {
+        .then(({ attachmentId, hasThumbnail, durationSeconds, processing }) => {
           uploads.current.delete(id);
           if (!isCurrentAttempt()) return;
           dispatch({
@@ -302,6 +305,7 @@ export function useAttachmentDrafts({
               attachmentId,
               hasThumbnail,
               durationSeconds,
+              processing,
             },
           });
         })
@@ -341,6 +345,7 @@ export function useAttachmentDrafts({
       pump,
       spaceId,
       uploadAttachmentFn,
+      preserveMetadata,
     ],
   );
   useLayoutEffect(() => {

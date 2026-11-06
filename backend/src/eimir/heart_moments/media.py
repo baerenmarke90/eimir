@@ -72,6 +72,7 @@ def replace(
             space_id=context.space_id,
             account_id=candidate.owner_id if existing and candidate else context.account_id,
             already_bound=existing,
+            allow_submitted_video=True,
         )
         binding.ensure_unlinked(session, identifier, allow=("HEART_MOMENT", moment.id))
         selected.append(candidate)
@@ -85,7 +86,9 @@ def replace(
         binding.set_sensitive(
             candidate,
             sensitive,
-            allow_change=context.account_id in (moment.owner_id, candidate.owner_id),
+            allow_change=binding.can_edit_sensitivity(
+                candidate, account_id=context.account_id, parent_owner_id=moment.owner_id
+            ),
         )
     for row in session.scalars(
         select(binding.HeartMomentAttachment).where(
@@ -108,6 +111,10 @@ def replace(
     for identifier in previous - set(ids):
         attachments.mark_for_deletion(session, locked[identifier])
     photo_locations.bind(session, context, moment, selected, heart=True)
+    session.flush()
+    for candidate in selected:
+        if candidate.id not in previous:
+            binding.notify_video_failure(session, candidate)
 
 
 def replace_primary(

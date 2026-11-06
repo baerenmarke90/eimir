@@ -6,5 +6,6 @@ export default defineConfig({
     environment: 'node',
     exclude: [...configDefaults.exclude, 'e2e/**'],
     globals: true,
+    setupFiles: ['./src/testLocaleSetup.ts'],
   },
 });

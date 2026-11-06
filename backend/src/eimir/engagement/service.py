@@ -332,6 +332,28 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             expires_at=event.payload.due_at,
         )
 
+    if event_type is EventType.VIDEO_PROCESSING_FAILED and event.subject_type == "attachment":
+        from eimir.attachments import binding
+        from eimir.attachments.models import Attachment, AttachmentStatus
+
+        attachment = session.get(Attachment, event.subject_id)
+        parent = binding.parent_of(session, event.subject_id)
+        if (
+            attachment is not None
+            and attachment.status == AttachmentStatus.FAILED.value
+            and attachment.space_id == event.space_id
+            and attachment.owner_id == event.payload.recipient_id
+            and parent is not None
+            and parent[0] in {"MEMORY", "HEART_MOMENT"}
+        ):
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget(parent[0]),
+                parent[1],
+                NotificationKind.VIDEO_PROCESSING_FAILED,
+            )
+
     push.ensure_deliveries_for_source_event(session, event.id)
     email_delivery.ensure_deliveries_for_source_event(session, event.id)
 
@@ -424,6 +446,7 @@ def _project_target_notification(
 ) -> None:
     recipient_id = event.payload.recipient_id
     self_outcome = notification_kind in {
+        NotificationKind.VIDEO_PROCESSING_FAILED,
         NotificationKind.TRANSFER_READY,
         NotificationKind.TRANSFER_COMPLETED,
         NotificationKind.TRANSFER_FAILED,
@@ -445,7 +468,13 @@ def _project_target_notification(
     if (
         target_type is not None
         and target_id is not None
-        and not _target_is_projectable(session, context, target_type, target_id)
+        and not _target_is_projectable(
+            session,
+            context,
+            target_type,
+            target_id,
+            allow_private_heart=notification_kind is NotificationKind.VIDEO_PROCESSING_FAILED,
+        )
     ):
         return
 
@@ -499,6 +528,8 @@ def _target_is_projectable(
     context: AuthorizationContext,
     target_type: EngagementTarget,
     target_id: UUID,
+    *,
+    allow_private_heart: bool = False,
 ) -> bool:
     if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
         model = _TARGET_MODELS[target_type]
@@ -517,10 +548,9 @@ def _target_is_projectable(
         current = wish_selections.get_selection(session, context)
         return current.round is not None and current.round.id == target_id
     model = _TARGET_MODELS[target_type]
-    statement = readable(model, context).where(
-        model.id == target_id,
-        model.privacy_class == PrivacyClass.SPACE_SHARED.value,
-    )
+    statement = readable(model, context).where(model.id == target_id)
+    if not (allow_private_heart and target_type is EngagementTarget.HEART_MOMENT):
+        statement = statement.where(model.privacy_class == PrivacyClass.SPACE_SHARED.value)
     if target_type is EngagementTarget.REMINDER:
         statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
     return session.execute(statement.with_only_columns(model.id)).scalar_one_or_none() is not None
@@ -532,6 +562,8 @@ def _projectable_predicate(
     context: AuthorizationContext,
     session: Session,
     selection: wish_selections.SelectionProjection | None = None,
+    *,
+    notification_kind_column: Any = None,
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
     for target_type, model in _TARGET_MODELS.items():
@@ -576,10 +608,20 @@ def _projectable_predicate(
         statement = readable(model, context)
         if target_type is EngagementTarget.REMINDER:
             statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
+        privacy = model.privacy_class == PrivacyClass.SPACE_SHARED.value
+        if target_type is EngagementTarget.HEART_MOMENT and notification_kind_column is not None:
+            privacy = or_(
+                privacy,
+                and_(
+                    notification_kind_column == NotificationKind.VIDEO_PROCESSING_FAILED.value,
+                    model.privacy_class == PrivacyClass.OWNER_ONLY.value,
+                    model.owner_id == context.account_id,
+                ),
+            )
         exists = (
             statement.where(
                 model.id == target_id_column,
-                model.privacy_class == PrivacyClass.SPACE_SHARED.value,
+                privacy,
             )
             .with_only_columns(model.id)
             .exists()
@@ -630,13 +672,79 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
         ),
         or_(Notification.expires_at.is_(None), Notification.expires_at > clock.now()),
         _projectable_predicate(
-            Notification.target_type, Notification.target_id, context, session, current
+            Notification.target_type,
+            Notification.target_id,
+            context,
+            session,
+            current,
+            notification_kind_column=Notification.kind,
         ),
+        _current_video_failure_predicate(context),
         or_(
             Notification.kind != NotificationKind.WISH_SELECTION_READY.value,
             literal(current.result_state == "READY"),
         ),
     )
+
+
+def _current_video_failure_predicate(context: AuthorizationContext) -> Any:
+    """A recovery notification expires when its failed source leaves the parent."""
+    from eimir.attachments.binding import HeartMomentAttachment, MemoryAttachment
+    from eimir.attachments.models import Attachment, AttachmentStatus
+
+    memory = (
+        select(MemoryAttachment.id)
+        .where(
+            MemoryAttachment.attachment_id == Attachment.id,
+            MemoryAttachment.memory_id == Notification.target_id,
+        )
+        .correlate(Attachment, Notification)
+        .exists()
+    )
+    primary = (
+        select(HeartMoment.id)
+        .where(
+            HeartMoment.id == Notification.target_id,
+            HeartMoment.attachment_id == Attachment.id,
+        )
+        .correlate(Attachment, Notification)
+        .exists()
+    )
+    extra = (
+        select(HeartMomentAttachment.id)
+        .where(
+            HeartMomentAttachment.heart_moment_id == Notification.target_id,
+            HeartMomentAttachment.attachment_id == Attachment.id,
+        )
+        .correlate(Attachment, Notification)
+        .exists()
+    )
+    live_source = (
+        select(Attachment.id)
+        .join(
+            OutboxEvent,
+            OutboxEvent.subject_id == Attachment.id,
+        )
+        .where(
+            OutboxEvent.id == Notification.source_event_id,
+            OutboxEvent.subject_type == "attachment",
+            OutboxEvent.event_type == EventType.VIDEO_PROCESSING_FAILED.value,
+            Attachment.media_type == "VIDEO",
+            Attachment.space_id == context.space_id,
+            Attachment.owner_id == context.account_id,
+            Attachment.status == AttachmentStatus.FAILED.value,
+            or_(
+                and_(Notification.target_type == EngagementTarget.MEMORY.value, memory),
+                and_(
+                    Notification.target_type == EngagementTarget.HEART_MOMENT.value,
+                    or_(primary, extra),
+                ),
+            ),
+        )
+        .correlate(Notification)
+        .exists()
+    )
+    return or_(Notification.kind != NotificationKind.VIDEO_PROCESSING_FAILED.value, live_source)
 
 
 def notification_target_available(

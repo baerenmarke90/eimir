@@ -93,7 +93,9 @@ for (const [width, theme, large] of [
     await expect(more).toHaveText(copy.descriptionDisclosure.more);
     await expect(more).toHaveAttribute('aria-expanded', 'false');
     await expect(
-      page.locator('.planen-detail-context').getByRole('link'),
+      page
+        .locator('.planen-detail-context, .planen-detail-when-where')
+        .getByRole('link'),
     ).toHaveCount(2);
     await expect(
       page.getByRole('link', { name: 'Lake shore' }),

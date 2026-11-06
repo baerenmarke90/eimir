@@ -314,6 +314,11 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       exact: true,
     });
     await expect(filter).toBeVisible();
+    // Match the existing filter-refresh journey: measure the target after
+    // its month heading has finished revealing, not a translated DOMRect.
+    await expect(
+      page.locator('.story-year-month-header').filter({ has: filter }),
+    ).toHaveCSS('transform', 'none');
     const filterBox = await filter.boundingBox();
     if (!filterBox) throw new Error('Expected a visible Diary filter');
     expect(filterBox.width).toBeGreaterThanOrEqual(44);

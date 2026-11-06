@@ -134,6 +134,11 @@
   text-align: center;
 }
 
+.heart-moment-create-media .photo-source-trigger {
+  justify-content: center;
+  text-align: center;
+}
+
 .heart-moment-create-media .file-picker:hover {
   border-color: var(--color-brand);
   background: var(--color-surface);

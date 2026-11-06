@@ -1,3 +1,7 @@
+import {
+  selectDraftMedia,
+  expectInlineDraftActions,
+} from '../support/mediaDraft';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import photoSources from '../../src/i18n/locales/photoSources';
 import AxeBuilder from '@axe-core/playwright';
@@ -127,7 +131,7 @@ async function fixture(
   return { reads, unexpected, writes: () => writes, plan };
 }
 
-async function expectCompleteImage(image: Locator, maxHeight: number) {
+async function expectPreviewCrop(image: Locator) {
   await expect(image).toBeVisible();
   await expect
     .poll(() =>
@@ -144,7 +148,9 @@ async function expectCompleteImage(image: Locator, maxHeight: number) {
     return {
       width: rect.width,
       height: rect.height,
-      ratio: img.naturalWidth / img.naturalHeight,
+      fit: getComputedStyle(img).objectFit,
+      frameWidth: frame.width,
+      frameHeight: frame.height,
       contained:
         rect.left >= frame.left - 1 &&
         rect.right <= frame.right + 1 &&
@@ -152,8 +158,10 @@ async function expectCompleteImage(image: Locator, maxHeight: number) {
         rect.bottom <= frame.bottom + 1,
     };
   });
-  expect(value.width / value.height).toBeCloseTo(value.ratio, 2);
-  expect(value.height).toBeLessThanOrEqual(maxHeight + 1);
+  expect(value.fit).toBe('cover');
+  expect(value.frameWidth / value.frameHeight).toBeCloseTo(16 / 10, 2);
+  expect(value.width).toBeCloseTo(value.frameWidth, 0);
+  expect(value.height).toBeCloseTo(value.frameHeight, 0);
   expect(value.contained).toBe(true);
 }
 
@@ -262,11 +270,7 @@ for (const scenario of [
     await expect(preview).toContainText(TITLE);
     // Large text can put this viewport-admitted cover below the fold.
     await preview.locator('.plan-cover').scrollIntoViewIfNeeded();
-    if (!scenario.sensitive)
-      await expectCompleteImage(
-        preview.locator('img'),
-        scenario.largeText ? 320 : 160,
-      );
+    if (!scenario.sensitive) await expectPreviewCrop(preview.locator('img'));
     else await expect(preview.locator('.sensitive-media-cover')).toBeVisible();
     await expect.poll(() => state.reads).toContain('thumbnail');
     await expect
@@ -334,10 +338,12 @@ for (const scenario of [
     await page
       .getByRole('button', { name: de.common.edit, exact: true })
       .click();
+    await selectDraftMedia(page);
     await page
       .getByRole('group', { name: de.memory.photoSelected, exact: true })
       .getByRole('checkbox')
       .setChecked(!scenario.sensitive);
+    await expectInlineDraftActions(page);
     await page
       .getByRole('button', { name: de.common.cancel, exact: true })
       .click();
@@ -545,10 +551,15 @@ for (const view of [
     await page
       .getByRole('list', { name: de.memory.photoDraftsAria })
       .getByRole('button', { name: /portrait.png/ })
+      .and(page.locator('.photo-draft-tile'))
       .click();
     await inspector
       .getByRole('button', { name: de.common.retry, exact: true })
       .click();
+    await expect(inspector.getByRole('status')).toHaveText(
+      de.memory.photoReady,
+    );
+    await expectInlineDraftActions(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(3);
@@ -661,12 +672,15 @@ for (const view of [
           name: new RegExp(de.memory.photoMoveLater.replace('{{name}}', '.+')),
         })
         .click();
+      await expectInlineDraftActions(page);
       await drafts.first().click();
       await inspector.getByRole('checkbox').check();
+      await expectInlineDraftActions(page);
       await drafts.last().click();
       await inspector
         .getByRole('button', { name: de.memory.photoRemove, exact: true })
         .click();
+      await expectInlineDraftActions(page);
     }
     await changeDraft();
     await page

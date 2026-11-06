@@ -392,11 +392,24 @@ export function StoryList({
                   ) : null}
 
                   <div className="story-card-footer" id={metaId}>
-                    <MomentDate
-                      dateTime={item.effectiveDate.toISOString().slice(0, 10)}
-                    >
-                      {formatTimelineDate(item.effectiveDate, locale)}
-                    </MomentDate>
+                    <span className="story-card-when-where">
+                      <MomentDate
+                        dateTime={item.effectiveDate.toISOString().slice(0, 10)}
+                      >
+                        {formatTimelineDate(item.effectiveDate, locale)}
+                      </MomentDate>
+                      {(item.kind === 'MEMORY'
+                        ? item.memory.places
+                        : item.kind === 'HEART_MOMENT'
+                          ? item.heartMoment.places
+                          : item.milestone.places
+                      )?.map((place) => (
+                        <span className="story-card-place" key={place.id}>
+                          <EimirIcon name="orte" />
+                          {place.name}
+                        </span>
+                      ))}
+                    </span>
                     <span className="story-card-footer-author">
                       {presentation.visibility ? (
                         <span

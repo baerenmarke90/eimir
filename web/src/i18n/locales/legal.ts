@@ -4,6 +4,8 @@ export default {
   termsSheetTitle: 'Nutzungsbedingungen',
   sheetClose: 'Nutzungsbedingungen schließen',
   draftBadge: 'Entwurf · noch nicht in Kraft',
+  documentLanguageNotice:
+    'Dieses Dokument liegt nur auf {{language}} vor. Diese Fassung ist verbindlich.',
   placeholder: '[{{name}}]',
   accept: 'Ich stimme den <termsLink>Nutzungsbedingungen</termsLink> zu.',
   outdatedTitle: 'Die Nutzungsbedingungen wurden aktualisiert.',

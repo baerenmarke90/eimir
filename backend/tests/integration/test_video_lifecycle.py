@@ -183,3 +183,235 @@ def test_recently_uploaded_video_is_not_expired_using_the_old_create_clock(clien
     session.flush()
     cleanup.run_media_cleanup(session, {})
     assert session.get(Attachment, identifier).status == AttachmentStatus.VALIDATING.value
+
+
+def bind_memory(client, owner, identifier):  # type: ignore[no-untyped-def]
+    base = f"/api/v1/spaces/{owner[1].id}"
+    created = client.post(base + "/memories", headers=auth(owner[2]), json={"title": "A saved day"})
+    assert created.status_code == 201, created.text
+    memory = created.json()
+    response = client.put(
+        base + f"/memories/{memory['id']}/attachments",
+        headers={**auth(owner[2]), "If-Match": str(memory["version"])},
+        json={"attachments": [{"attachmentId": str(identifier), "position": 0}]},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_submitted_video_binds_before_validation_and_preserves_later_classification(
+    client, session, owner, monkeypatch
+):  # type: ignore[no-untyped-def]
+    grant(session, owner)
+    identifier = finalize(client, owner)
+    memory = bind_memory(client, owner, identifier)
+    assert memory["attachments"][0]["status"] == "PROCESSING"
+    base = f"/api/v1/spaces/{owner[1].id}"
+    denied = client.post(
+        base + f"/attachments/{identifier}/read-access",
+        headers=auth(owner[2]),
+        json={"parentType": "MEMORY", "parentId": memory["id"]},
+    )
+    assert denied.status_code in {404, 409}, denied.text
+
+    def processed(source: Path, directory: Path) -> videos.ProcessedVideo:
+        changed = client.put(
+            base + f"/memories/{memory['id']}/attachments",
+            headers={**auth(owner[2]), "If-Match": str(memory["version"])},
+            json={
+                "attachments": [
+                    {"attachmentId": str(identifier), "position": 0, "isSensitive": True}
+                ]
+            },
+        )
+        assert changed.status_code == 200, changed.text
+        output = directory / "sanitized.mp4"
+        output.write_bytes(b"safe")
+        return videos.ProcessedVideo(output, 4, 96, 64, 1, None)
+
+    monkeypatch.setattr(videos, "process", processed)
+    video_jobs.validate(session, {"attachmentId": str(identifier)})
+    session.expire_all()
+    current = session.get(Attachment, identifier)
+    assert current.status == "READY"
+    assert current.payload.is_sensitive is True
+    read = client.get(base + f"/memories/{memory['id']}", headers=auth(owner[2])).json()
+    assert read["attachments"][0]["status"] == "READY"
+
+
+@pytest.mark.parametrize("fail_before_binding", [False, True])
+def test_video_failure_notifies_only_uploader_once_and_retains_safe_recovery(
+    client, session, owner, monkeypatch, fail_before_binding
+):  # type: ignore[no-untyped-def]
+    from eimir.engagement import service as engagement
+    from eimir.engagement.models import Notification
+    from eimir.outbox.models import OutboxEvent
+    from eimir.relationship import service as relationships
+    from tests.conftest import make_account
+
+    partner = make_account(session, "Partner")
+    relationships.add_member(session, owner[1].id, partner)
+    grant(session, owner)
+    identifier = finalize(client, owner)
+
+    def rejected(source: Path, directory: Path) -> videos.ProcessedVideo:
+        raise videos.VideoRejectedError("VIDEO_INVALID")
+
+    monkeypatch.setattr(videos, "process", rejected)
+    if fail_before_binding:
+        video_jobs.validate(session, {"attachmentId": str(identifier)})
+    memory = bind_memory(client, owner, identifier)
+    if not fail_before_binding:
+        video_jobs.validate(session, {"attachmentId": str(identifier)})
+    video_jobs.validate(session, {"attachmentId": str(identifier)})
+    events = list(
+        session.scalars(
+            select(OutboxEvent).where(OutboxEvent.event_type == "VIDEO_PROCESSING_FAILED")
+        )
+    )
+    assert len(events) == 1
+    engagement.project_event(session, events[0])
+    engagement.project_event(session, events[0])
+    notifications = list(
+        session.scalars(select(Notification).where(Notification.kind == "VIDEO_PROCESSING_FAILED"))
+    )
+    assert len(notifications) == 1
+    assert notifications[0].recipient_account_id == owner[0].id
+    assert str(notifications[0].target_id) == memory["id"]
+    assert notifications[0].target_type == "MEMORY"
+    attachment = session.get(Attachment, identifier)
+    attachment.failed_at = now() - timedelta(hours=25)
+    session.flush()
+    cleanup._expire_stale_uploads(session)
+    session.flush()
+    assert attachment.status == "FAILED"
+    assert attachment.failed_media_purged_at is not None
+    retained = client.get(
+        f"/api/v1/spaces/{owner[1].id}/memories/{memory['id']}", headers=auth(owner[2])
+    ).json()
+    assert retained["attachments"][0]["status"] == "FAILED"
+    assert retained["attachments"][0]["failureCode"] == "VIDEO_INVALID"
+
+    center = f"/api/v1/spaces/{owner[1].id}/notifications"
+    listed = client.get(center, headers=auth(owner[2]))
+    assert listed.status_code == 200, listed.text
+    assert [item["id"] for item in listed.json()["items"]] == [str(notifications[0].id)]
+    opened = client.post(center + f"/{notifications[0].id}/open", headers=auth(owner[2]))
+    assert opened.status_code == 200, opened.text
+    assert opened.json()["target"]["targetId"] == memory["id"]
+    removed = client.put(
+        f"/api/v1/spaces/{owner[1].id}/memories/{memory['id']}/attachments",
+        headers={**auth(owner[2]), "If-Match": str(retained["version"])},
+        json={"attachments": []},
+    )
+    assert removed.status_code == 200, removed.text
+    assert client.get(center, headers=auth(owner[2])).json()["items"] == []
+    assert (
+        client.post(center + f"/{notifications[0].id}/open", headers=auth(owner[2])).status_code
+        == 404
+    )
+
+
+def test_pending_images_and_unfinished_videos_still_cannot_bind(client, session, owner):  # type: ignore[no-untyped-def]
+    grant(session, owner)
+    video = create(client, owner).json()["attachment"]["id"]
+    base = f"/api/v1/spaces/{owner[1].id}"
+    memory = client.post(base + "/memories", headers=auth(owner[2]), json={"title": "Day"}).json()
+    image = client.post(
+        base + "/attachments",
+        headers=auth(owner[2]),
+        json={
+            "mediaType": "IMAGE",
+            "expectedMimeType": "image/jpeg",
+            "expectedSize": 10,
+            "originalName": "photo.jpg",
+        },
+    ).json()["attachment"]["id"]
+    client.put(
+        base + f"/attachments/{image}/content", content=b"0123456789", headers=auth(owner[2])
+    )
+    client.post(base + f"/attachments/{image}/finalize", json={}, headers=auth(owner[2]))
+    for identifier in (video, image):
+        denied = client.put(
+            base + f"/memories/{memory['id']}/attachments",
+            headers={**auth(owner[2]), "If-Match": str(memory["version"])},
+            json={"attachments": [{"attachmentId": identifier, "position": 0}]},
+        )
+        assert denied.status_code == 409, denied.text
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("visibility", ["SHARED", "PRIVATE"])
+def test_heart_moment_accepts_submitted_video_without_exposing_unvalidated_media(
+    client, session, owner, monkeypatch, legacy, visibility
+):  # type: ignore[no-untyped-def]
+    from eimir.engagement import service as engagement
+    from eimir.engagement.models import Notification
+    from eimir.outbox.models import OutboxEvent
+
+    grant(session, owner)
+    identifier = finalize(client, owner)
+    base = f"/api/v1/spaces/{owner[1].id}"
+    response = client.post(
+        base + "/heart-moments",
+        headers=auth(owner[2]),
+        json={
+            "text": "A moving moment",
+            "happenedOn": "2026-10-01",
+            "emotion": "HAPPY",
+            "visibility": visibility,
+            **(
+                {"attachmentId": str(identifier)}
+                if legacy
+                else {"attachments": [{"attachmentId": str(identifier), "position": 0}]}
+            ),
+        },
+    )
+    assert response.status_code == 201, response.text
+    moment = response.json()
+    assert moment["attachments"][0]["status"] == "PROCESSING"
+    assert moment["attachment"]["status"] == "PROCESSING"
+    assert moment["attachment"]["hasThumbnail"] is False
+
+    def rejected(source: Path, directory: Path) -> videos.ProcessedVideo:
+        raise videos.VideoRejectedError("VIDEO_INVALID")
+
+    monkeypatch.setattr(videos, "process", rejected)
+    video_jobs.validate(session, {"attachmentId": str(identifier)})
+    event = session.scalar(
+        select(OutboxEvent).where(OutboxEvent.event_type == "VIDEO_PROCESSING_FAILED")
+    )
+    engagement.project_event(session, event)
+    session.flush()
+    notification = session.scalar(
+        select(Notification).where(Notification.kind == "VIDEO_PROCESSING_FAILED")
+    )
+    assert notification.recipient_account_id == owner[0].id
+    assert notification.target_type == "HEART_MOMENT"
+    assert str(notification.target_id) == moment["id"]
+
+    from eimir.relationship import service as relationships
+    from tests.conftest import make_account, sign_in
+
+    partner = make_account(session, "Partner")
+    relationships.add_member(session, owner[1].id, partner)
+    partner_token = sign_in(session, partner)
+    center = base + "/notifications"
+    listed = client.get(center, headers=auth(owner[2]))
+    assert listed.status_code == 200, listed.text
+    assert [item["id"] for item in listed.json()["items"]] == [str(notification.id)]
+    assert client.get(center, headers=auth(partner_token)).json()["items"] == []
+    target = center + f"/{notification.id}/open"
+    assert client.post(target, headers=auth(partner_token)).status_code == 404
+    opened = client.post(target, headers=auth(owner[2]))
+    assert opened.status_code == 200, opened.text
+    assert opened.json()["target"]["targetId"] == moment["id"]
+    removed = client.patch(
+        base + f"/heart-moments/{moment['id']}",
+        headers={**auth(owner[2]), "If-Match": str(moment["version"])},
+        json={"attachments": []},
+    )
+    assert removed.status_code == 200, removed.text
+    assert client.get(center, headers=auth(owner[2])).json()["items"] == []
+    assert client.get(center + "/unread-count", headers=auth(owner[2])).json()["unreadCount"] == 0
+    assert client.post(target, headers=auth(owner[2])).status_code == 404

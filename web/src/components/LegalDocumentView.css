@@ -52,3 +52,11 @@
 .legal-document a {
   color: var(--color-link-text);
 }
+
+.legal-language-notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+}

@@ -28,7 +28,9 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
   const summary = result.violations
     .map(
       (violation) =>
-        `${violation.id} (${violation.impact ?? 'unknown'}): ${violation.nodes.length} node(s)`,
+        `${violation.id} (${violation.impact ?? 'unknown'}): ${violation.nodes
+          .map((node) => `${node.target.join(' ')}: ${node.failureSummary}`)
+          .join('\n')}`,
     )
     .join('\n');
   expect(result.violations, summary || 'No axe violations').toEqual([]);

@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
-from pydantic import ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
@@ -17,6 +17,7 @@ from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.core.context_tags import ContextTags, unique_tags
 from eimir.wishes import service
 from eimir.wishes.models import Wish, WishStatus
 
@@ -31,7 +32,7 @@ ETAG_HEADERS = {
 
 
 class WishCreate(ApiModel):
-    """A wish is created from exactly one client field.
+    """A wish is created from authored title and optional shared context labels.
 
     ``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make
     ``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.
@@ -42,6 +43,9 @@ class WishCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str
+    tags: ContextTags = Field(default_factory=list)
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
     @field_validator("title")
     @classmethod
@@ -63,14 +67,24 @@ class WishUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | SkipJsonSchema[None] = None
+    tags: ContextTags | SkipJsonSchema[None] = None
+
+    @field_validator("tags")
+    @classmethod
+    def _tags_not_null(cls, value: ContextTags | None) -> ContextTags:
+        if value is None:
+            raise ValueError("tags must not be null")
+        unique_tags(value)
+        return value
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
         if not self.model_fields_set:
             raise ValueError("at least one field must be supplied")
-        if self.title is None or not self.title.strip():
-            raise ValueError("title must not be null or blank")
-        self.title = self.title.strip()
+        if "title" in self.model_fields_set:
+            if self.title is None or not self.title.strip():
+                raise ValueError("title must not be null or blank")
+            self.title = self.title.strip()
         return self
 
 
@@ -79,6 +93,7 @@ class WishDetail(ApiModel):
     space_id: UUID
     created_by: UUID
     title: str
+    tags: ContextTags = Field(default_factory=list)
     status: WishStatus
     version: int
     created_at: datetime
@@ -106,6 +121,7 @@ def wish_detail(
         space_id=wish.space_id,
         created_by=wish.owner_id,
         title=wish.payload.title,
+        tags=wish.payload.tags,
         status=WishStatus(wish.status),
         version=wish.version,
         created_at=wish.created_at,
@@ -151,7 +167,7 @@ def create_wish(
     idempotency_key: IdempotencyKey,
 ) -> WishDetail:
     result = service.create_wish_once(
-        session, authorization, idempotency_key=idempotency_key, title=body.title
+        session, authorization, idempotency_key=idempotency_key, title=body.title, tags=body.tags
     )
     if not result.created:
         response.status_code = http_status.HTTP_200_OK
@@ -247,13 +263,13 @@ def update_wish(
     expected_version: IfMatchVersion,
     wish_id: Annotated[str, Path(alias="wishId")],
 ) -> WishDetail:
-    assert body.title is not None  # The validator permits no other state.
     wish = service.update_wish(
         session,
         authorization,
         wish_id,
         expected_version=expected_version,
         title=body.title,
+        tags=body.tags,
     )
     response.headers["ETag"] = etag_for(wish.version)
     return wish_detail(session, authorization, wish)

@@ -236,10 +236,10 @@ jobs:
             | tee -a instrumentation.log
           grep -Eq '^OK \(9 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
-            -e class de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest \
+            -e class de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest,de.eimir.app.RecipientLanguageTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee -a instrumentation.log
-          grep -Eq '^OK \(16 tests\)' instrumentation.log
+          grep -Eq '^OK \(18 tests\)' instrumentation.log
           # System picker journeys have their own bounded invocation, as do
           # renderer recovery and notification handoff below. The combined
           # 46-test process exhausted its 180-second budget on API 36.

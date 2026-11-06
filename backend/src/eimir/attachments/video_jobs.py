@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import time
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -12,7 +13,7 @@ from uuid import UUID
 from sqlalchemy import String, cast, select
 from sqlalchemy.orm import Session
 
-from eimir.attachments import service, videos
+from eimir.attachments import binding, service, videos
 from eimir.attachments.limits import VIDEO_MAX_SIZE
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.attachments.upload_ownership import short_transaction
@@ -59,15 +60,73 @@ def recover_stranded_validations(session: Session, *, limit: int = RECOVERY_BATC
     return len(jobs)
 
 
-def _fail(source: Session, identifier: UUID, version: int, code: str) -> None:
+UploadIdentity = tuple[datetime | None, int, str]
+
+
+class VideoParentChangedError(RuntimeError):
+    """Retry a publication that raced the first binding, without inverted locks."""
+
+
+def _identity(attachment: Attachment) -> UploadIdentity:
+    return attachment.uploaded_at, attachment.declared_size, attachment.declared_mime_type
+
+
+def _locked_current(
+    session: Session, identifier: UUID, identity: UploadIdentity
+) -> Attachment | None:
+    # All gallery writers lock the parent before attachments. A first binding
+    # discovered after the attachment lock requires a new job transaction.
+    observed_parent = binding.parent_of(session, identifier)
+    if observed_parent is not None:
+        from eimir.heart_moments.models import HeartMoment
+        from eimir.memories.models import Memory
+
+        models: dict[str, type[Memory] | type[HeartMoment]] = {
+            "MEMORY": Memory,
+            "HEART_MOMENT": HeartMoment,
+        }
+        model = models.get(observed_parent[0])
+        if model is None:
+            return None
+        session.scalar(select(model).where(model.id == observed_parent[1]).with_for_update())
+    current = session.get(Attachment, identifier, with_for_update=True, populate_existing=True)
+    if (
+        current is None
+        or current.status != AttachmentStatus.VALIDATING.value
+        or _identity(current) != identity
+    ):
+        return None
+    if binding.parent_of(session, identifier) != observed_parent:
+        raise VideoParentChangedError("Video parent changed before publication.")
+    return current
+
+
+def _within_gallery_limit(session: Session, current: Attachment, result_size: int) -> bool:
+    parent = binding.parent_of(session, current.id)
+    if parent is None:
+        return True
+    if parent[0] == "MEMORY":
+        entries = binding.attachments_of_memory(session, parent[1])
+    else:
+        from eimir.heart_moments import media
+        from eimir.heart_moments.models import HeartMoment
+
+        moment = session.get(HeartMoment, parent[1])
+        entries = media.galleries(session, [moment]).get(parent[1], []) if moment else []
+    total = result_size + sum(
+        binding.reserved_size(entry.attachment)
+        for entry in entries
+        if entry.attachment.id != current.id
+    )
+    return total <= binding.MAX_GALLERY_TOTAL_SIZE
+
+
+def _fail(source: Session, identifier: UUID, identity: UploadIdentity, code: str) -> None:
     with short_transaction(source) as session:
-        attachment = session.get(Attachment, identifier, with_for_update=True)
-        if (
-            attachment is not None
-            and attachment.status == AttachmentStatus.VALIDATING
-            and attachment.version == version
-        ):
+        attachment = _locked_current(session, identifier, identity)
+        if attachment is not None:
             service._fail(attachment, code)
+            binding.notify_video_failure(session, attachment)
 
 
 def validate(source: Session, payload: dict[str, Any]) -> None:
@@ -83,10 +142,10 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
             or attachment.media_type != MediaType.VIDEO
         ):
             return
-        version = attachment.version
+        identity = _identity(attachment)
         key = service.storage_key_for(attachment)
     if not get_settings().video_upload_enabled:
-        _fail(source, identifier, version, "ATTACHMENT_TYPE_NOT_ALLOWED")
+        _fail(source, identifier, identity, "ATTACHMENT_TYPE_NOT_ALLOWED")
         return
     store = get_media_store()
     try:
@@ -102,12 +161,12 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
                     target.write(chunk)
             result = videos.process(original, directory)
             with short_transaction(source) as session:
-                current = session.get(Attachment, identifier, with_for_update=True)
-                if (
-                    current is None
-                    or current.status != AttachmentStatus.VALIDATING
-                    or current.version != version
-                ):
+                current = _locked_current(session, identifier, identity)
+                if current is None:
+                    return
+                if not _within_gallery_limit(session, current, result.size):
+                    service._fail(current, "ATTACHMENT_LIMIT_EXCEEDED")
+                    binding.notify_video_failure(session, current)
                     return
                 # Cancellation/deletion wins before publication. From here the
                 # same short provider-write barrier as ordinary uploads applies.
@@ -135,13 +194,13 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
                 current.ready_at = now()
                 current.failure_code = None
     except ByteLimitExceededError:
-        _fail(source, identifier, version, "ATTACHMENT_TOO_LARGE")
+        _fail(source, identifier, identity, "ATTACHMENT_TOO_LARGE")
     except (DecryptionError, PlaintextRejectedError):
-        _fail(source, identifier, version, "VIDEO_STORAGE_UNAVAILABLE")
+        _fail(source, identifier, identity, "VIDEO_STORAGE_UNAVAILABLE")
     except videos.VideoRejectedError as error:
-        _fail(source, identifier, version, error.code)
+        _fail(source, identifier, identity, error.code)
     except OSError:
-        _fail(source, identifier, version, "VIDEO_STORAGE_UNAVAILABLE")
+        _fail(source, identifier, identity, "VIDEO_STORAGE_UNAVAILABLE")
 
 
 def register() -> None:

@@ -137,7 +137,9 @@ const games = {
     finishEyebrow: 'Eure Runde',
     finishTitle: 'So habt ihr euch heute gesehen.',
     finishAgreement: '{{count}} von {{total}} Mal gleich gedacht.',
-    finishDifferent:
+    finishDifferent_one:
+      'Bei {{count}} Frage habt ihr euch unterschiedlich gesehen.',
+    finishDifferent_other:
       'Bei {{count}} Fragen habt ihr euch unterschiedlich gesehen.',
     restart: 'Noch einmal',
     backToGames: 'Andere Spiele ansehen',

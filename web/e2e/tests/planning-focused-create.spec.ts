@@ -363,7 +363,13 @@ test('an undated Plan is valid while optional context remains available', async 
   await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend in Berlin');
   await page.getByText(m5s3.plan.addDetails).click();
   await page.getByLabel(m5s3.common.description).fill('Time just for us');
-  await page.getByLabel(m5s3.common.place).selectOption('place-berlin');
+  await page
+    .getByRole('button', { name: m5s3.common.place, exact: true })
+    .click();
+  await page
+    .getByRole('dialog', { name: m5s3.common.place, exact: true })
+    .getByRole('button', { name: 'Berlin', exact: true })
+    .click();
   await page.getByRole('button', { name: m5s3.common.save }).click();
 
   await expect(page).toHaveURL(/\/plan\/plans\/plan-created$/);

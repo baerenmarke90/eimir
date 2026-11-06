@@ -426,7 +426,7 @@ for (const width of [390, 320] as const) {
       });
       await expect(picker).toBeVisible();
       await expect(picker).toHaveClass(/photo-source-trigger/);
-      await expect(media.locator('.file-picker')).toHaveCount(0);
+      await expect(media.locator('.file-picker')).toHaveCount(1);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
       const dateField = page.locator('.immersive-create-date-field');

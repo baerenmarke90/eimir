@@ -1,5 +1,6 @@
 import type { ChapterTimelineMarker } from '../api/generated/models/ChapterTimelineMarker';
 import type { StoryItem } from '../api/generated/models/StoryItem';
+import type { ChapterPeriodSummary } from '../api/generated/models/ChapterPeriodSummary';
 
 export type DiaryEntry =
   | { type: 'chapter'; chapter: ChapterTimelineMarker }
@@ -28,6 +29,8 @@ export function groupDiaryEntries(
   items: StoryItem[],
   chapters: ChapterTimelineMarker[],
   locale: string,
+  periods: ChapterPeriodSummary[] = [],
+  year?: number | null,
 ) {
   const formatter = new Intl.DateTimeFormat(locale, {
     month: 'long',
@@ -36,7 +39,12 @@ export function groupDiaryEntries(
   });
   const groups = new Map<
     string,
-    { key: string; label: string; entries: DiaryEntry[] }
+    {
+      key: string;
+      label: string;
+      entries: DiaryEntry[];
+      periods: ChapterPeriodSummary[];
+    }
   >();
   for (const entry of interleaveDiaryEntries(items, chapters)) {
     const date =
@@ -49,8 +57,27 @@ export function groupDiaryEntries(
         key: month,
         label: formatter.format(date),
         entries: [],
+        periods: [],
       });
     groups.get(month)?.entries.push(entry);
+  }
+  // A covered year can have no events. Show one period context, not invented
+  // entries for every intervening day or month.
+  if (groups.size === 0 && periods.length) {
+    const month = year ? `${year}-01` : new Date().toISOString().slice(0, 7);
+    groups.set(month, {
+      key: month,
+      label: formatter.format(new Date(`${month}-01T00:00:00Z`)),
+      entries: [],
+      periods: [],
+    });
+  }
+  for (const group of groups.values()) {
+    group.periods = periods.filter((chapter) => {
+      const start = chapter.startOn.toISOString().slice(0, 7);
+      const end = chapter.endOn?.toISOString().slice(0, 7);
+      return start < group.key && (!end || end >= group.key);
+    });
   }
   return [...groups.values()];
 }

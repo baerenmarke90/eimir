@@ -7,7 +7,7 @@ import {
   screen,
   within,
 } from '@testing-library/react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { i18n } from '../i18n';
 import {
@@ -15,6 +15,14 @@ import {
   type PhotoDraftGalleryItem,
 } from './PhotoDraftGallery';
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 afterEach(cleanup);
 
 it('keeps protected photo classification read-only while an own draft remains editable', () => {
@@ -44,6 +52,7 @@ it('keeps protected photo classification read-only while an own draft remains ed
   fireEvent.click(screen.getByRole('button', { name: /new.jpg/ }));
   fireEvent.click(screen.getByRole('checkbox'));
   expect(onSensitive).toHaveBeenCalledExactlyOnceWith('own', true);
+  expect(screen.queryByRole('dialog')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /shared.jpg/ }));
   expect(screen.queryByRole('checkbox')).toBeNull();
 });
@@ -112,14 +121,16 @@ it('keeps a bounded overview, exposes offscreen failures and retries the selecte
     name: i18n.t('memory.photoDraftsAria'),
   });
   expect(within(list).getAllByRole('button')).toHaveLength(6);
-  expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+  expect(screen.queryByRole('checkbox')).toBeNull();
   expect(screen.getByRole('alert').textContent).toContain(
     i18n.t('memory.photoFailures', { count: 1 }),
   );
   fireEvent.click(
     screen.getByRole('button', { name: i18n.t('memory.photoReviewFailure') }),
   );
-  expect(within(list).getAllByRole('button')).toHaveLength(10);
+  expect(within(list).getAllByRole('button', { hidden: true })).toHaveLength(
+    10,
+  );
   expect(screen.getByText('camera-9.jpg')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: i18n.t('common.retry') }));
   expect(screen.queryByRole('alert')).toBeNull();
@@ -135,7 +146,7 @@ it('reorders the selected photo without losing selection, sensitivity or ready s
       name: i18n.t('memory.photoMoveEarlier', { name: 'camera-2.jpg' }),
     }),
   );
-  const selected = screen.getByRole('button', { pressed: true });
+  const selected = screen.getByRole('button', { pressed: true, hidden: true });
   expect(selected.getAttribute('aria-label')).toBe(
     i18n.t('memory.photoSelectItem', {
       name: 'camera-2.jpg',

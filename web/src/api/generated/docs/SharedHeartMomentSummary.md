@@ -15,6 +15,7 @@ Name | Type
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `id` | string
+`places` | [Array&lt;StoryPlaceSummary&gt;](StoryPlaceSummary.md)
 `selectedCoverAttachmentId` | string
 `text` | string
 `visibility` | [ContentVisibility](ContentVisibility.md)
@@ -34,6 +35,7 @@ const example = {
   "emotion": null,
   "happenedOn": null,
   "id": null,
+  "places": null,
   "selectedCoverAttachmentId": null,
   "text": null,
   "visibility": null,

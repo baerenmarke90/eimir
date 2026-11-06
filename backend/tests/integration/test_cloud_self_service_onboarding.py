@@ -460,6 +460,9 @@ class TestExistingCloudUser:
             "id": str(anna.id),
             "displayName": "Anna",
             "gentlePromptsEnabled": False,
+            "languagePreference": anna.language_preference,
+            "locale": anna.locale,
+            "languageVersion": anna.language_version,
         }
         assert accounts_with(session, ANNA) == 1
         session.expire_all()

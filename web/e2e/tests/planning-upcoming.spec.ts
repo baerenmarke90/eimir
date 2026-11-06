@@ -603,10 +603,12 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   );
   await expect(later.locator('.planen-agenda-schedule')).toContainText('Uhr');
   const agendaBox = await plansPanel.locator('.planen-agenda').boundingBox();
-  const selectionBox = await plansPanel
-    .locator('.wish-selection-entry')
+  const undatedBox = await plansPanel
+    .locator('.planen-undated-link')
+    .first()
     .boundingBox();
-  expect(agendaBox?.y).toBeLessThan(selectionBox?.y ?? 0);
+  expect(agendaBox?.y).toBeLessThan(undatedBox?.y ?? 0);
+  await expect(plansPanel.locator('.wish-selection-entry')).toHaveCount(0);
   await expect(plansPanel.locator('.planen-undated-link')).toContainText(
     IDEA_TITLE,
   );
@@ -630,6 +632,7 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   const wishesPanel = page.getByRole('tabpanel', {
     name: m5s3.overview.segmentWishes,
   });
+  await expect(wishesPanel.locator('.wish-selection-entry')).toBeVisible();
   await expect(
     wishesPanel.getByText(EARLY_TITLE, { exact: true }),
   ).toBeVisible();
@@ -670,7 +673,7 @@ test('Wish conversion opens the authoritative Plan result and preserves return c
   });
 
   await page.getByRole('button', { name: taskBoundary.back }).click();
-  await expect(page).toHaveURL(/\/plan$/);
+  await expect(page).toHaveURL(/\/plan#wishes$/);
   await expect(
     page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
   ).toHaveAttribute('aria-selected', 'true');
@@ -748,16 +751,19 @@ for (const scenario of [
     await expect(page.locator('.planen-next-link')).toContainText(EARLY_TITLE);
     await expect(page.locator('.planen-agenda-link')).toContainText(LATE_TITLE);
     await expect(page.locator('.planen-agenda-schedule')).toContainText('Uhr');
-    // Photos lead Plans at every size, including 200% text (#1628).
+    // Secondary agenda previews retain a cropped thumbnail beside readable copy.
     const preview = page.locator('.planen-agenda-link');
     await expect(preview.locator('.plan-cover')).toBeVisible();
+    await preview.locator('.plan-cover').scrollIntoViewIfNeeded();
     const copy = await preview.locator('.planen-agenda-copy').boundingBox();
     const cover = await preview.locator('.plan-cover').boundingBox();
     expect(copy).not.toBeNull();
     expect(cover).not.toBeNull();
-    expect(copy?.y).toBeGreaterThanOrEqual(
-      (cover?.y ?? 0) + (cover?.height ?? 0),
+    expect(copy?.x).toBeGreaterThanOrEqual(
+      (cover?.x ?? 0) + (cover?.width ?? 0),
     );
+    expect((cover?.width ?? 0) / (cover?.height ?? 1)).toBeCloseTo(1, 1);
+    await expect(preview.locator('img')).toHaveCSS('object-fit', 'cover');
     await expect(page.locator('.planen-undated-link')).toContainText(
       IDEA_TITLE,
     );

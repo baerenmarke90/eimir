@@ -171,7 +171,7 @@ describe('Profile page reorganization', () => {
     expect(html).not.toContain('/more/private/notes');
   });
 
-  it('differentiates Vorliebe for own profile vs Notiz with privacy badge for private partner notes', () => {
+  it('keeps private partner-note content out of the shared Profile surface', () => {
     const html = renderProfilePageFixture([
       {
         id: 'pref-self',
@@ -199,10 +199,9 @@ describe('Profile page reorganization', () => {
     expect(html).toContain('Vorliebe');
     expect(html).toContain('Pasta');
 
-    // Private partner notes use Notiz and carry privacy indicator
-    expect(html).toContain('Notiz');
-    expect(html).toContain('Lieblingsblumen');
-    expect(html).toContain('private-partner-notes-badge');
+    expect(html).not.toContain('Lieblingsblumen');
+    expect(html).not.toContain('Pfingstrosen im Juni');
+    expect(html).not.toContain('private-partner-notes-panel');
   });
 
   it('filters self preferences strictly by current account ID and shows partner preferences only in read-only section', () => {

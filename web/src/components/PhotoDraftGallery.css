@@ -13,6 +13,21 @@
 }
 .photo-draft-grid > li {
   min-inline-size: 0;
+  position: relative;
+}
+.photo-draft-drag-handle {
+  position: absolute;
+  inset: auto var(--space-1) var(--space-1) auto;
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  touch-action: none;
+  cursor: grab;
+}
+.photo-draft-item.is-dragging {
+  z-index: 3;
 }
 .photo-draft-tile {
   display: block;
@@ -78,9 +93,7 @@
   margin: 0;
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
+  padding: 0;
   min-inline-size: 0;
 }
 .photo-draft-inspector-heading {

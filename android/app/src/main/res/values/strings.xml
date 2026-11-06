@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="product_locale">en</string>
     <string name="app_name">eimir.</string>
     <string name="runtime_recovery_title">eimir. was interrupted</string>
     <string name="runtime_recovery_message">The app view could not continue. You can reopen eimir. Saved content is still available. Unsaved input may have been lost.</string>
@@ -40,6 +41,7 @@
     <string name="push_transfer_ready">Your data transfer is ready.</string>
     <string name="push_transfer_completed">Your data transfer is complete.</string>
     <string name="push_transfer_failed">Your data transfer could not be completed.</string>
+    <string name="push_video_processing_failed">Your video could not be processed.</string>
     <string name="push_view_reminder">View reminder</string>
     <string name="push_view_plan">View plan</string>
     <string name="push_view_moment">View moment</string>

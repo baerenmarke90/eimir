@@ -1,3 +1,5 @@
+import type { InitOverrideFunction } from '../api/generated/runtime';
+import { resolvedLocale } from '../i18n';
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import type { MembershipView } from '../api/generated/models/MembershipView';
 import type { SessionView } from '../api/generated/models/SessionView';
@@ -13,6 +15,13 @@ import {
 
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
+
+// Native HTTP adapters cannot rely on a browser-added Accept-Language header.
+const mailRequestLocale: InitOverrideFunction = async ({ init }) => {
+  const headers = new Headers(init.headers);
+  headers.set('Accept-Language', resolvedLocale());
+  return { headers };
+};
 
 export class ActiveAccountMismatchError extends Error {
   constructor() {
@@ -172,9 +181,12 @@ export async function requestMagicLink(
   try {
     await createReferenceApis(
       apiBaseUrl,
-    ).auth.requestMagicLinkApiV1AuthMagicLinkRequestPost({
-      emailRequest: { email },
-    });
+    ).auth.requestMagicLinkApiV1AuthMagicLinkRequestPost(
+      {
+        emailRequest: { email },
+      },
+      mailRequestLocale,
+    );
   } catch (error) {
     throw await normalizeClientError(error);
   }
@@ -223,13 +235,16 @@ export async function requestSignup(
   try {
     await createReferenceApis(
       apiBaseUrl,
-    ).auth.requestSignupApiV1AuthSignupRequestPost({
-      signupEmailRequest: {
-        email,
-        ...(invitationToken ? { invitationToken } : {}),
-        ...(acceptedTermsVersion ? { acceptedTermsVersion } : {}),
+    ).auth.requestSignupApiV1AuthSignupRequestPost(
+      {
+        signupEmailRequest: {
+          email,
+          ...(invitationToken ? { invitationToken } : {}),
+          ...(acceptedTermsVersion ? { acceptedTermsVersion } : {}),
+        },
       },
-    });
+      mailRequestLocale,
+    );
   } catch (error) {
     throw await normalizeClientError(error);
   }

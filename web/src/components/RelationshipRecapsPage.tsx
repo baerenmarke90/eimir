@@ -1,19 +1,17 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type MouseEvent,
-} from 'react';
 import {
   useInfiniteQuery,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import {
+  type CSSProperties,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Link,
   useLocation,
@@ -37,27 +35,30 @@ import {
 } from '../client/recaps';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
+  MEMORY_CREATE_ROUTE,
   MORE_PASSPORT_ROUTE,
   PRO_INFORMATION_ROUTE,
-  MEMORY_CREATE_ROUTE,
   recapDetailPath,
 } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
-import { resolvedLocale, useTranslation } from '../i18n';
-import { EimirIcon } from './EimirIcon';
-import { PageHeader } from './PageHeader';
-import { ProblemState } from './ProblemState';
-import { ProMark } from './ProMark';
-import type { ProfilePageProps } from './ProfilePage';
-import { RelationshipPassport } from './RelationshipPassport';
-import { RecapTasks } from './RecapTasks';
-import { UiState } from './UiState';
-import { RecapMedia, type RecapMediaProps } from './RecapMedia';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   storyReadingDuration,
   useStoryPlayback,
 } from '../client/useStoryPlayback';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { languageName, resolveSupportedLocale } from '../i18n/locale';
+import { AutoLoadMore } from './AutoLoadMore';
+import { EimirIcon } from './EimirIcon';
+import { PageHeader } from './PageHeader';
+import { ProblemState } from './ProblemState';
+import type { ProfilePageProps } from './ProfilePage';
+import { ProMark } from './ProMark';
+import { RecapMedia, type RecapMediaProps } from './RecapMedia';
+import { RecapTasks } from './RecapTasks';
+import { RelationshipPassport } from './RelationshipPassport';
+import { TaskBackButton } from './TaskBackButton';
+import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
 
 export type RecapsPageProps = ProfilePageProps & { mediaApis: ReferenceApis };
@@ -132,13 +133,15 @@ function Cover({
           <span>{label}</span>
           {value.savedAt ? <span>{t('recaps.saved')}</span> : null}
         </div>
-        <h2>
+        <h2 lang={value.headline ? value.locale : undefined}>
           {value.status === 'EMPTY'
             ? t('recaps.emptyTitle')
             : recapHeadline(value, t)}
         </h2>
         {featured ? (
-          <p>{value.introduction ?? t('recaps.fallbackIntro')}</p>
+          <p lang={value.introduction ? value.locale : undefined}>
+            {value.introduction ?? t('recaps.fallbackIntro')}
+          </p>
         ) : null}
         <PeriodNote value={value} />
         <Link
@@ -662,7 +665,7 @@ function RecapReader({
                 {page === 0 ? (
                   <>
                     <p className="eyebrow">{t('recaps.automatic')}</p>
-                    <h1>
+                    <h1 lang={value.headline ? value.locale : undefined}>
                       {value.status === 'EMPTY'
                         ? t('recaps.emptyTitle')
                         : recapHeadline(value, t)}
@@ -681,13 +684,22 @@ function RecapReader({
                         <EimirIcon name="gemeinsam" />
                       </div>
                     )}
-                    <p className="recap-reader-intro">
+                    <p
+                      className="recap-reader-intro"
+                      lang={value.introduction ? value.locale : undefined}
+                    >
                       {value.status === 'EMPTY'
                         ? t('recaps.emptyBody')
                         : (value.introduction ?? t('recaps.fallbackIntro'))}
                     </p>
                     {value.introduction ? (
-                      <p className="recap-ai-note">{t('recaps.aiDraft')}</p>
+                      <p className="recap-ai-note">
+                        {t('recaps.aiDraft')}
+                        {resolveSupportedLocale(value.locale) !==
+                        resolvedLocale()
+                          ? ` · ${t('recaps.originalLanguage', { language: languageName(value.locale, resolvedLocale()) })}`
+                          : ''}
+                      </p>
                     ) : null}
                   </>
                 ) : source ? (
@@ -747,7 +759,10 @@ function RecapReader({
                   <>
                     <p className="eyebrow">{t('recaps.shortTitle')}</p>
                     <h1>{t('recaps.finishTitle')}</h1>
-                    <p className="recap-reader-intro">
+                    <p
+                      className="recap-reader-intro"
+                      lang={value.introduction ? value.locale : undefined}
+                    >
                       {t('recaps.finishBody')}
                     </p>
                     {value.reflections.map((note) => (

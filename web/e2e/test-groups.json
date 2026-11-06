@@ -333,7 +333,8 @@
     },
     "shared-photos.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3
+      "baselineTests": 3,
+      "reason": "Shared photo access, gallery navigation without duplicate controls, More origin return, cache ownership and responsive/accessibility evidence."
     },
     "app-icon-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -421,7 +422,7 @@
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9,
+      "baselineTests": 10,
       "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text."
     },
     "android-push-onboarding.spec.ts": {
@@ -456,12 +457,42 @@
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "reason": "Complete secondary navigation and moment-context acceptance; automatically selected for affected shell, readers and Wir."
+      "reason": "Feature-owned secondary navigation, More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
     },
     "media-planning-corrections.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 9,
       "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop and the real local video codec worker; broad theme/reflow variants do not expand the always-run core."
+    },
+    "planning-search-private-profile.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "Feature-owned complete scoped search, pagination failure/retry, Unicode matching, wishbook composition, return context, Plan place context and private navigation/More avatar evidence."
+    },
+    "mobile-diary-planning-media.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11,
+      "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, touch photo viewing and session-owned draft restoration."
+    },
+    "polish-people-photo-sources.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6,
+      "reason": "Feature-owned avatar source cancellation, single-image Pro import, explicit person persistence, accessibility and Compact/Expanded composition."
+    },
+    "polish-root-refresh.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Feature-owned real touch refresh from Momente and Planen content links without accidental navigation or duplicate reads."
+    },
+    "polish-sensitive-media.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
+    },
+    "multilingual-product.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
     }
   }
 }

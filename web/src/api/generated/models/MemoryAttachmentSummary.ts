@@ -35,11 +35,23 @@ import {
  */
 export interface MemoryAttachmentSummary {
     /**
+     * Viewer-specific authority to edit classification through this parent; never a read grant.
+     * @type {boolean}
+     * @memberof MemoryAttachmentSummary
+     */
+    canEditSensitivity?: boolean;
+    /**
      * 
      * @type {number}
      * @memberof MemoryAttachmentSummary
      */
     durationSeconds?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryAttachmentSummary
+     */
+    failureCode?: string | null;
     /**
      * 
      * @type {boolean}
@@ -136,7 +148,9 @@ export function MemoryAttachmentSummaryFromJSONTyped(json: any, ignoreDiscrimina
     }
     return {
         
+        'canEditSensitivity': json['canEditSensitivity'] == null ? undefined : json['canEditSensitivity'],
         'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
@@ -162,7 +176,9 @@ export function MemoryAttachmentSummaryToJSONTyped(value?: MemoryAttachmentSumma
 
     return {
         
+        'canEditSensitivity': value['canEditSensitivity'],
         'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],

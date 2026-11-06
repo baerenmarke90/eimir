@@ -223,7 +223,7 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             SearchKind.MEMORY,
             SearchScope.SHARED,
             Memory,
-            (("title", "A"), ("body", "B")),
+            (("title", "A"), ("body", "B"), ("tags", "B")),
             lambda row: row.payload.title,
             lambda row: _bounded(row.payload.body),
             lambda row: row.happened_on,
@@ -267,7 +267,7 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             SearchKind.WISH,
             SearchScope.SHARED,
             Wish,
-            (("title", "A"),),
+            (("title", "A"), ("tags", "B")),
             lambda row: row.payload.title,
             _none,
         ),
@@ -277,7 +277,7 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             SearchKind.PLAN,
             SearchScope.SHARED,
             Plan,
-            (("title", "A"), ("description", "B")),
+            (("title", "A"), ("description", "B"), ("tags", "B")),
             lambda row: row.payload.title,
             lambda row: _bounded(row.payload.description),
             lambda row: row.experienced_on,
@@ -544,7 +544,13 @@ def search(
                     rank = score(
                         groups,
                         tuple(
-                            (getattr(row.payload, name), weight) for name, weight in source.fields
+                            (
+                                " ".join(getattr(row.payload, name))
+                                if name == "tags"
+                                else getattr(row.payload, name),
+                                weight,
+                            )
+                            for name, weight in source.fields
                         ),
                     )
                     if rank is None:

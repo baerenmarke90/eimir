@@ -205,6 +205,7 @@ export function PhotoSourcePicker({
       return;
     }
     const files: File[] = [];
+    const failedIds = ids.slice(remaining);
     setBusy(true);
     setMessage(t('photoSources.progress'));
     try {
@@ -213,31 +214,35 @@ export function PhotoSourcePicker({
         try {
           const blob = await current.api.readSelectedPhoto(
             { spaceId, selectionId: ready.id, itemId: id },
-            { signal: current.request.signal },
+            { signal: current.request.signal, cache: 'no-store' },
           );
           current.ticket.signal.throwIfAborted();
           files.push(photoFile(blob, files.length, ready.source === 'google'));
         } catch (error) {
           if (current.request.signal.aborted || current.ticket.signal.aborted)
             throw error;
+          failedIds.push(id);
         }
       }
       if (task.current !== current || current.ticket.signal.aborted) return;
-      if (files.length && !current.ticket.commit(files)) return;
-      const partial = files.length !== ids.length;
-      release();
-      setView(null);
-      setSelected([]);
-      if (partial)
-        setMessage(
-          files.length
-            ? t('photoSources.partial', { count: files.length })
-            : t('photoSources.unavailable'),
+      if (!files.length) {
+        setMessage(t('photoSources.importFailed'));
+        return;
+      }
+      if (!current.ticket.commit(files)) return;
+      if (failedIds.length) {
+        current.ticket = beginSelection();
+        current.ticket.signal.addEventListener(
+          'abort',
+          () => current.request.abort(),
+          { once: true },
         );
-      else close();
+        setSelected(failedIds);
+        setMessage(t('photoSources.partial', { count: files.length }));
+      } else close();
     } catch {
       if (!current.request.signal.aborted)
-        setMessage(t('photoSources.unavailable'));
+        setMessage(t('photoSources.importFailed'));
     } finally {
       if (!owner.signal.aborted && (!task.current || task.current === current))
         setBusy(false);
@@ -360,33 +365,27 @@ export function PhotoSourcePicker({
   const activeTask = task.current;
   return (
     <>
-      <button
-        ref={trigger}
-        type="button"
-        className="secondary photo-source-trigger"
-        disabled={disabled || remaining <= 0}
-        onClick={() => {
-          setMessage('');
-          setOpen(true);
-        }}
-      >
-        {devicePicker ? (
-          <>
-            <EimirIcon name="hinzufuegen" /> {t('photoSources.addMedia')}
-          </>
-        ) : (
-          <>
+      <div className="photo-source-actions">
+        {devicePicker?.(() => {})}
+        {availability &&
+        (availability.enabled || availability.immichConnected) ? (
+          <button
+            ref={trigger}
+            type="button"
+            className="secondary photo-source-trigger"
+            disabled={disabled || remaining <= 0}
+            onClick={() => {
+              setMessage('');
+              setOpen(true);
+            }}
+          >
             {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
-          </>
-        )}
-      </button>
+          </button>
+        ) : null}
+      </div>
       <ShortTaskSheet
         open={open}
-        title={t(
-          devicePicker && !view
-            ? 'photoSources.addMedia'
-            : 'photoSources.title',
-        )}
+        title={t('photoSources.title')}
         closeLabel={t('taskSheets.close')}
         onClose={close}
         restoreFocusRef={trigger}
@@ -399,7 +398,7 @@ export function PhotoSourcePicker({
             {view ? (
               <button
                 type="button"
-                disabled={!selected.length || busy}
+                disabled={!selected.length || busy || remaining <= 0}
                 onClick={() => {
                   if (task.current)
                     void importItems(task.current, view, selected);
@@ -417,7 +416,6 @@ export function PhotoSourcePicker({
             <p role="status">
               {t('photoSources.selected', { count: selected.length })}
             </p>
-            <p>{t('photoSources.limit', { count: remaining })}</p>
             {!view.items.length ? <p>{t('photoSources.empty')}</p> : null}
             <div className="photo-source-grid">
               {view.items.map((item, index) => (
@@ -469,7 +467,6 @@ export function PhotoSourcePicker({
           </>
         ) : (
           <>
-            {devicePicker?.(close)}
             {canImport && availability?.googleAvailable ? (
               <button
                 type="button"

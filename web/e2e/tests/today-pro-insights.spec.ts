@@ -413,7 +413,7 @@ async function openInsightsFromMore(
   ).toBeVisible();
 
   const entry = page.getByRole('link', {
-    name: `${dailyInsights.week.title} ${dailyInsights.pro}`,
+    name: `${de.more.destinations.insights} ${dailyInsights.pro}`,
   });
   await expect(entry).toBeVisible();
   await expect(

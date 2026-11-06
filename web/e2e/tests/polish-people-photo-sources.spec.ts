@@ -1,0 +1,258 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+import people from '../../src/i18n/locales/people';
+import sources from '../../src/i18n/locales/photoSources';
+import {
+  SPACE_ID,
+  PARTNER_ID,
+  ME,
+  TINY_PNG,
+  installMocks,
+  signIn,
+  captureScreenshot,
+} from '../support/storyTimelineFixture';
+
+const base = `/api/v1/spaces/${SPACE_ID}`;
+const attachment = {
+  id: 'avatar-photo',
+  status: 'READY',
+  mediaType: 'IMAGE',
+  mimeType: 'image/png',
+  size: TINY_PNG.length,
+  width: 1,
+  height: 1,
+  version: 1,
+  hasThumbnail: false,
+};
+
+async function installAvatarSources(page: Page) {
+  const unknown = await installMocks(page, { strict: true });
+  const starts: Record<string, unknown>[] = [];
+  const uploads: Record<string, unknown>[] = [];
+  const saved: Record<string, unknown>[] = [];
+  let selectedSource = 'immich';
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    if (path === `${base}/profiles/${PARTNER_ID}`)
+      return route.fulfill({
+        json: {
+          id: 'partner-profile',
+          accountId: PARTNER_ID,
+          displayName: 'Alex',
+          preferences: [],
+          version: 1,
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
+        },
+      });
+    if (path === `${base}/important-dates`) return route.fulfill({ json: [] });
+    if (path === `${base}/related-persons`) {
+      if (request.method() === 'POST') {
+        const person = {
+          ...request.postDataJSON(),
+          id: 'new-person',
+          version: 1,
+          createdAt: '2026-11-05',
+          updatedAt: '2026-11-05',
+        };
+        saved.push(person);
+        return route.fulfill({ status: 201, json: person });
+      }
+      return route.fulfill({ json: saved });
+    }
+    if (path === `${base}/photo-sources`)
+      return route.fulfill({
+        json: {
+          enabled: true,
+          canImport: true,
+          googleAvailable: true,
+          immichConnected: true,
+          immichConnectionToken: 'fixture:linked',
+          immichOrigin: 'https://photos.example',
+        },
+      });
+    if (path === `${base}/photo-selections`) {
+      const body = request.postDataJSON();
+      starts.push(body);
+      selectedSource = body.source;
+      return route.fulfill({
+        status: 201,
+        json: {
+          id: 'avatar-selection',
+          source: selectedSource,
+          status: selectedSource === 'google' ? 'AUTHORIZING' : 'READY',
+          authorizationUrl:
+            selectedSource === 'google'
+              ? 'https://accounts.google.com/authorize'
+              : null,
+          pollAfterSeconds: 3,
+          items: [{ id: 'one' }, { id: 'two' }],
+          hasMore: false,
+        },
+      });
+    }
+    if (path === `${base}/photo-selections/avatar-selection/poll`)
+      return route.fulfill({
+        json: {
+          id: 'avatar-selection',
+          source: selectedSource,
+          status: 'READY',
+          items: [{ id: 'one' }],
+          hasMore: false,
+        },
+      });
+    if (path.includes('/photo-selections/avatar-selection/items/'))
+      return route.fulfill({ contentType: 'image/png', body: TINY_PNG });
+    if (
+      path === `${base}/photo-selections/avatar-selection` &&
+      request.method() === 'DELETE'
+    )
+      return route.fulfill({ status: 204 });
+    if (path === `${base}/attachments` && request.method() === 'POST') {
+      uploads.push(request.postDataJSON());
+      return route.fulfill({
+        status: 201,
+        json: {
+          attachment,
+          method: 'STREAM',
+          requiredHeaders: {},
+          uploadUrl: `${base}/attachments/avatar-photo/content`,
+        },
+      });
+    }
+    if (path.startsWith(`${base}/attachments/avatar-photo`)) {
+      if (request.method() === 'PUT') return route.fulfill({ status: 204 });
+      if (path.endsWith('/read-access'))
+        return route.fulfill({
+          json: {
+            method: 'STREAM',
+            url: `${base}/attachments/avatar-photo/content`,
+            mediaType: 'IMAGE',
+          },
+        });
+      if (path.endsWith('/content'))
+        return route.fulfill({ contentType: 'image/png', body: TINY_PNG });
+      return route.fulfill({ json: attachment });
+    }
+    return route.fallback();
+  });
+  return { unknown, starts, uploads, saved };
+}
+
+for (const view of [
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 1440, theme: 'light' },
+] as const) {
+  for (const source of ['immich', 'google'] as const) {
+    test(`person avatar uses ${source}, retains the draft on cancel and saves explicitly at ${view.width} ${view.theme}`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.theme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() => {
+        window.localStorage.setItem('eimir.theme', 'system');
+        window.open = () =>
+          ({
+            closed: false,
+            opener: null,
+            close() {},
+            location: { replace() {} },
+          }) as unknown as Window;
+      });
+      const state = await installAvatarSources(page);
+      await signIn(page);
+      await page.goto('/more/people');
+      await page.getByRole('button', { name: people.addPersonAction }).click();
+      const editor = page.getByRole('dialog', {
+        name: people.createTitle,
+        exact: true,
+      });
+      await editor
+        .getByLabel(people.nameLabel, { exact: true })
+        .fill(ME.displayName);
+      await editor.getByRole('button', { name: sources.more }).click();
+      const sheet = page.locator('.photo-source-sheet');
+      await expect(sheet).toBeVisible();
+      await page.keyboard.press('Tab');
+      await expect
+        .poll(() =>
+          sheet.evaluate((node) => node.contains(document.activeElement)),
+        )
+        .toBe(true);
+      await page.keyboard.press('Escape');
+      await expect(sheet).toBeHidden();
+      await expect(
+        editor.getByLabel(people.nameLabel, { exact: true }),
+      ).toHaveValue(ME.displayName);
+      await editor.getByRole('button', { name: sources.more }).click();
+      await sheet
+        .getByRole('button', { name: sources[source], exact: true })
+        .click();
+      if (source === 'immich') {
+        await sheet
+          .getByRole('checkbox', {
+            name: sources.photo.replace('{{number}}', '1'),
+            exact: true,
+          })
+          .check();
+        await expect(
+          sheet.getByRole('checkbox', {
+            name: sources.photo.replace('{{number}}', '2'),
+            exact: true,
+          }),
+        ).toBeDisabled();
+        await sheet
+          .getByRole('button', { name: sources.import, exact: true })
+          .click();
+      }
+      await expect(sheet).toBeHidden();
+      await expect(
+        editor.getByText(people.avatarUploading, { exact: true }),
+      ).toHaveCount(0);
+      await expect(editor.locator('.people-editor-avatar img')).toBeVisible();
+      expect(state.saved).toHaveLength(0);
+      expect(state.starts).toEqual([
+        expect.objectContaining({ source, maxItems: 1, consent: true }),
+      ]);
+      expect(state.uploads).toEqual([
+        expect.objectContaining({
+          mediaType: 'IMAGE',
+          preserveMetadata: false,
+        }),
+      ]);
+      await expect(
+        editor.getByRole('button', { name: people.create, exact: true }),
+      ).toBeEnabled();
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await captureScreenshot(
+        page,
+        info,
+        `polish-avatar-${source}-${view.width}-${view.theme}.png`,
+      );
+      await editor
+        .getByRole('button', { name: people.create, exact: true })
+        .click();
+      await expect(editor).toHaveCount(0);
+      await expect(page.locator('.people-card')).toContainText(ME.displayName);
+      await expect(page.locator('.people-card img')).toBeVisible();
+      expect(state.saved).toEqual([
+        expect.objectContaining({
+          displayName: ME.displayName,
+          avatarAttachmentId: attachment.id,
+        }),
+      ]);
+      expect(state.unknown).toEqual([]);
+    });
+  }
+}

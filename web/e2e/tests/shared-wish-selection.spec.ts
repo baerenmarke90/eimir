@@ -2,6 +2,7 @@ import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/wishSelection';
+import planning from '../../src/i18n/locales/m5s3';
 import localizedFixtures from '../fixtures/locales/de';
 import {
   ACCOUNT_ID,
@@ -296,8 +297,13 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await enter(page);
   await expect(page.getByText(demo.nextPlan, { exact: true })).toBeVisible();
   await expect(page.getByText(demo.undatedPlan, { exact: true })).toBeVisible();
+  await page
+    .getByRole('tab', { name: planning.overview.segmentWishes, exact: true })
+    .click();
   await capture(page, info, 'hub-390-light');
-  await page.getByRole('link', { name: copy.entryAction, exact: true }).click();
+  await page
+    .getByRole('link', { name: copy.compactEntryAction, exact: true })
+    .click();
   await expect(page.locator('.product-shell')).toHaveAttribute(
     'data-focused-task',
     'true',
@@ -307,7 +313,15 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await page.getByLabel(copy.occasion, { exact: true }).fill(demo.occasion);
   await capture(page, info, 'setup-390-light');
   await page.getByRole('button', { name: copy.start, exact: true }).click();
-  await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
+  // Setup already has a checked input with this label; wait for the new task.
+  const favorites = page.getByRole('group', {
+    name: copy.favorites,
+    exact: true,
+  });
+  await expect(favorites).toBeVisible();
+  const favorite = favorites.getByRole('checkbox', { name: demo.wishes[0] });
+  await favorite.check();
+  await expect(favorite).toBeChecked();
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     0,
   );
@@ -346,6 +360,14 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(fixture.requests.filter((item) => item.kind === 'plan')).toHaveLength(
     1,
   );
+  await page.locator('.subpage-back-slot .task-back-control').click();
+  await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
+  await expect(
+    page.getByRole('tab', {
+      name: planning.overview.segmentWishes,
+      exact: true,
+    }),
+  ).toHaveAttribute('aria-selected', 'true');
   expect(fixture.unexpected).toEqual([]);
 });
 

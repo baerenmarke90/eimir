@@ -76,6 +76,12 @@ class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     birthday: Mapped[date | None] = mapped_column(Date)
     locale: Mapped[str] = mapped_column(String(16), nullable=False, default="de-DE")
+    language_preference: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="auto", server_default="auto"
+    )
+    language_version: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default=text("0")
+    )
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="Europe/Berlin")
     quiet_hours_start: Mapped[time | None] = mapped_column(Time(timezone=False))
     quiet_hours_end: Mapped[time | None] = mapped_column(Time(timezone=False))

@@ -86,6 +86,8 @@ EXCLUDED_PLATFORM_PATHS = {
     Path("android/app/src/main/res/xml/config.xml"),
     Path("web/e2e/fixtures/locales/de.ts"),
     Path("web/package-lock.json"),
+    # Generated solely from the audited, bundled localization resource contract.
+    Path("web/public/offline-language.js"),
     Path("tools/ci/engineering_language_audit.py"),
     Path("tools/ci/test_engineering_language_audit.py"),
 }
@@ -292,6 +294,10 @@ ALLOWED_LEGACY_INPUT = "Aktueller `main`"
 # domain-content fixtures. Keeping the exception value-based rather than
 # excluding whole test files still audits their engineering prose.
 ALLOWED_LOCALIZED_TEXTS = (
+    # Exact static German fallback, generated from the bundled offline resource.
+    "Auf dieser Offline-Seite werden keine privaten Inhalte gespeichert.",
+    # Exact #1655 native outcome copy and its bilingual encrypted fixtures.
+    "Dein Video konnte nicht verarbeitet werden.",
     # Exact #1590 native recovery copy; resource localization, never diagnostics.
     "eimir. wurde unterbrochen",
     "Die App-Ansicht konnte nicht weiter ausgeführt werden. Du kannst eimir. erneut öffnen. Bereits gespeicherte Inhalte bleiben erhalten. Nicht gespeicherte Eingaben können verloren sein.",
@@ -565,8 +571,10 @@ def backend_files() -> list[Path]:
 
 
 def _is_excluded_platform_path(path: Path) -> bool:
-    return path in EXCLUDED_PLATFORM_PATHS or any(
-        path == prefix or prefix in path.parents for prefix in EXCLUDED_PLATFORM_PREFIXES
+    return (
+        (path.suffix == ".json" and Path("backend/src/eimir/i18n/locales") in path.parents)
+        or path in EXCLUDED_PLATFORM_PATHS
+        or any(path == prefix or prefix in path.parents for prefix in EXCLUDED_PLATFORM_PREFIXES)
     )
 
 

@@ -50,8 +50,16 @@ it.each(['HAPPINESS', 'TIME_TRAVEL'] as const)(
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
+      screen.getByRole('heading', {
+        name: i18n.t('coupleExperiences.incoming.from', { name: 'Ben' }),
+      }),
+    ).toBeTruthy();
+    expect(
       screen.getByText(
-        i18n.t('coupleExperiences.incoming.from', { name: 'Ben' }),
+        kind === 'HAPPINESS'
+          ? copy.incoming.happiness
+          : copy.incoming.timeTravel,
+        { selector: '.shared-experience-from' },
       ),
     ).toBeTruthy();
     expect(container.querySelector('time')?.getAttribute('datetime')).toBe(
@@ -64,6 +72,32 @@ it.each(['HAPPINESS', 'TIME_TRAVEL'] as const)(
     expect(
       screen.getByRole('heading', { name: 'Original moment' }),
     ).toBeTruthy();
+  },
+);
+
+it.each(['', '   '])(
+  'uses a neutral heading when the authorized sender name is unavailable (%j)',
+  (partnerName) => {
+    render(
+      <MemoryRouter>
+        <SharedExperienceReveal
+          partnerName={partnerName}
+          entry={{
+            id: 'unnamed-sender',
+            kind: 'HAPPINESS',
+            text: 'An authored thought.',
+            authorId: 'partner',
+            happenedOn: null,
+            createdAt: new Date(Date.now() + 60_000),
+          }}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole('heading', { name: copy.incoming.title }),
+    ).toBeTruthy();
+    expect(screen.getByText(copy.incoming.happiness)).toBeTruthy();
+    expect(screen.getByText('An authored thought.')).toBeTruthy();
   },
 );
 

@@ -128,11 +128,15 @@ def test_share_replay_partner_dashboard_and_single_generic_push(
             )
         )
         assert len(deliveries) == 1
+        # Resolve the current recipient choice, even after the event was queued.
+        actors["b"].language_preference = "en"
+        session.flush()
         push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
         assert len(provider.calls) == 1
         assert provider.calls[0]["notificationReference"] == {
             "id": str(notifications[0].id),
             "kind": "COUPLE_EXPERIENCE_SHARED",
+            "locale": "en",
         }
         assert "Private authored words" not in json.dumps(provider.calls)
         partner = client.get(path(actors, "dashboard"), headers=auth(actors["token_b"]))

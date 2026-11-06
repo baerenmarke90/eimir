@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
 import type {
   LegalBlock,
   LegalDocument,
@@ -97,6 +97,14 @@ export function LegalDocumentView({
   sectionLevel?: 2 | 3;
 }) {
   const { t } = useTranslation();
+  const uiLocale = resolvedLocale();
+  const documentLanguage = document.locale.split('-')[0];
+  // A UI translation is not a legal translation: name the binding language.
+  const translatedUi = uiLocale.split('-')[0] !== documentLanguage;
+  const documentLanguageName =
+    new Intl.DisplayNames([uiLocale], { type: 'language' }).of(
+      documentLanguage,
+    ) ?? document.locale;
   return (
     <article className="legal-document" lang={document.locale}>
       {showTitle ? (
@@ -105,7 +113,16 @@ export function LegalDocumentView({
         </h1>
       ) : null}
       {document.status === 'draft' ? (
-        <p className="legal-draft-badge">{t('legal.draftBadge')}</p>
+        <p className="legal-draft-badge" lang={uiLocale}>
+          {t('legal.draftBadge')}
+        </p>
+      ) : null}
+      {translatedUi ? (
+        <p className="legal-language-notice" lang={uiLocale}>
+          {t('legal.documentLanguageNotice', {
+            language: documentLanguageName,
+          })}
+        </p>
       ) : null}
       {document.blocks.map((block, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: Read-only generated legal text has no state or reorder interaction.

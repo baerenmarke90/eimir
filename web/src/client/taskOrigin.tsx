@@ -36,6 +36,8 @@ export interface TaskOriginMetadata {
   planningSegment?: 'plans' | 'wishes';
   planningWishStatus?: 'OPEN' | 'COMPLETED';
   planningPlanStatus?: 'OPEN' | 'COMPLETED';
+  planningPlanSearch?: string;
+  planningWishSearch?: string;
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -243,6 +245,8 @@ export function TaskOriginProvider({
         planningSegment: snapshot.planningSegment,
         planningWishStatus: snapshot.planningWishStatus,
         planningPlanStatus: snapshot.planningPlanStatus,
+        planningPlanSearch: snapshot.planningPlanSearch,
+        planningWishSearch: snapshot.planningWishSearch,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,

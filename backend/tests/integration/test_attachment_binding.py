@@ -884,10 +884,63 @@ class TestPartnerEnrichment:
         assert enriched.status_code == 200
         assert [item["id"] for item in enriched.json()["attachments"]] == [original, own]
         assert enriched.json()["authorId"] == str(couple["anna"].id)
+        assert [item["canEditSensitivity"] for item in enriched.json()["attachments"]] == [
+            False,
+            True,
+        ]
+        owner_view = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_a"]))
+        assert [item["canEditSensitivity"] for item in owner_view.json()["attachments"]] == [
+            True,
+            True,
+        ]
+        classified = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": own, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_b"], enriched.json()["version"]),
+        )
+        assert classified.status_code == 200
+        assert [item["isSensitive"] for item in classified.json()["attachments"]] == [False, True]
+        denied = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0, "isSensitive": True},
+                    {"attachmentId": own, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_b"], classified.json()["version"]),
+        )
+        assert denied.status_code == 403
+        reloaded = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))
+        assert [item["isSensitive"] for item in reloaded.json()["attachments"]] == [False, True]
+        timeline = client.get(f"{root}/timeline", headers=auth(couple["token_b"]))
+        projected = next(
+            item["memory"]
+            for item in timeline.json()["items"]
+            if item["kind"] == "MEMORY" and item["memory"]["id"] == created["id"]
+        )
+        assert [item["canEditSensitivity"] for item in projected["attachments"]] == [False, True]
+        unmarked = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": own, "position": 1, "isSensitive": False},
+                ]
+            },
+            headers=if_match(couple["token_b"], reloaded.json()["version"]),
+        )
+        assert unmarked.status_code == 200
+        assert [item["isSensitive"] for item in unmarked.json()["attachments"]] == [False, False]
         removed = client.put(
             url,
             json={"attachments": [{"attachmentId": own, "position": 0}]},
-            headers=if_match(couple["token_b"], enriched.json()["version"]),
+            headers=if_match(couple["token_b"], unmarked.json()["version"]),
         )
         assert removed.status_code == 403
         final = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))

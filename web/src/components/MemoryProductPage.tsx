@@ -1,3 +1,4 @@
+import { MediaProcessingState } from './MediaProcessingState';
 import { MomentDate } from './MomentDate';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { NativeDateInput } from './NativeDateField';
@@ -230,6 +231,13 @@ export function MemoryProductPage({
       });
     },
     enabled: Boolean(memoryId),
+    refetchInterval: (query) =>
+      !query.state.error &&
+      (query.state.data?.value.attachments ?? []).some(
+        (item) => item.status === 'PROCESSING',
+      )
+        ? 2500
+        : false,
     retry: false,
   });
   const editForm = useRef<HTMLFormElement>(null);
@@ -256,7 +264,7 @@ export function MemoryProductPage({
   const keptBoundAttachmentCount = memoryQuery.data
     ? memoryQuery.data.value.attachments.filter(
         (attachment) =>
-          attachment.status === 'READY' &&
+          ['READY', 'PROCESSING', 'FAILED'].includes(attachment.status) &&
           !removedAttachmentIds.has(attachment.id),
       ).length
     : 0;
@@ -299,7 +307,8 @@ export function MemoryProductPage({
     ...(memoryQuery.data?.value.attachments ?? [])
       .filter(
         (photo) =>
-          photo.status === 'READY' && !removedAttachmentIds.has(photo.id),
+          ['READY', 'PROCESSING', 'FAILED'].includes(photo.status) &&
+          !removedAttachmentIds.has(photo.id),
       )
       .sort((a, b) => a.position - b.position)
       .map((photo) => ({ key: `saved:${photo.id}`, photo, draft: undefined })),
@@ -583,8 +592,10 @@ export function MemoryProductPage({
   const selectedTags =
     tagDraft?.memoryId === memory.id ? tagDraft.tags : (memory.tags ?? []);
   const offline = result.source === 'cache' || Boolean(memoryQuery.error);
-  const readyAttachments = [...memory.attachments]
-    .filter((attachment) => attachment.status === 'READY')
+  const boundAttachments = [...memory.attachments]
+    .filter((attachment) =>
+      ['READY', 'PROCESSING', 'FAILED'].includes(attachment.status),
+    )
     .sort((left, right) => left.position - right.position);
 
   if (mode === 'edit') {
@@ -807,6 +818,7 @@ export function MemoryProductPage({
               multiple
             />
             <PhotoDraftGallery
+              key={photoOrderScope}
               selectedCoverKey={selectedCoverKey}
               onSelectCover={(key) =>
                 setCoverDraft({ scope: photoOrderScope, key })
@@ -822,29 +834,35 @@ export function MemoryProductPage({
                   t('m5s3.planImage.photoNumber', { number: index + 1 }),
                 draft: item.draft,
                 mediaType: item.photo?.mediaType,
+                status: item.photo?.status,
                 canRemove: !item.photo || memory.capabilities.canDelete,
                 canEditSensitivity:
-                  !item.photo || memory.capabilities.canDelete,
+                  !item.photo ||
+                  (item.photo.canEditSensitivity ??
+                    memory.capabilities.canDelete),
                 isSensitive: item.photo
                   ? (sensitiveValues[item.photo.id] ??
                     item.photo.isSensitive ??
                     true)
                   : item.draft?.isSensitive === true,
-                preview: item.photo ? (
-                  <MemoryPreview
-                    memoryId={memory.id}
-                    attachmentId={item.photo.id}
-                    isSensitive={
-                      sensitiveValues[item.photo.id] ?? item.photo.isSensitive
-                    }
-                    loadImage={loadMemoryImage}
-                  />
-                ) : item.draft ? (
-                  <DraftMediaPreview
-                    draft={item.draft}
-                    context={{ apis, accountId: currentAccountId, spaceId }}
-                  />
-                ) : null,
+                preview:
+                  item.photo && item.photo.status !== 'READY' ? (
+                    <MediaProcessingState status={item.photo.status} compact />
+                  ) : item.photo ? (
+                    <MemoryPreview
+                      memoryId={memory.id}
+                      attachmentId={item.photo.id}
+                      isSensitive={
+                        sensitiveValues[item.photo.id] ?? item.photo.isSensitive
+                      }
+                      loadImage={loadMemoryImage}
+                    />
+                  ) : item.draft ? (
+                    <DraftMediaPreview
+                      draft={item.draft}
+                      context={{ apis, accountId: currentAccountId, spaceId }}
+                    />
+                  ) : null,
               }))}
               onMove={(key, offset) =>
                 setPhotoOrder({
@@ -854,7 +872,11 @@ export function MemoryProductPage({
               }
               onSensitive={(key, value) => {
                 const item = photoItems.find((item) => item.key === key);
-                if (item?.photo && memory.capabilities.canDelete)
+                if (
+                  item?.photo &&
+                  (item.photo.canEditSensitivity ??
+                    memory.capabilities.canDelete)
+                )
                   setSensitiveDraft((current) => ({
                     key: sensitiveDraftKey,
                     values: {
@@ -884,7 +906,7 @@ export function MemoryProductPage({
                 if (draft) attachments.retry(draft);
               }}
             />
-            {readyAttachments
+            {boundAttachments
               .filter((photo) => removedAttachmentIds.has(photo.id))
               .map((photo) => (
                 <div key={photo.id} className="photo-draft-controls">
@@ -1218,7 +1240,7 @@ export function MemoryProductPage({
           </section>
         ) : null}
         {(!memory.experienceKind || !memory.experienceAnswers?.length) &&
-        readyAttachments.length > 0 ? (
+        boundAttachments.length > 0 ? (
           <section aria-label={t('memory.photoLabel')}>
             <MemoryPhotoGallery
               commentTriggerRef={setCommentHost}

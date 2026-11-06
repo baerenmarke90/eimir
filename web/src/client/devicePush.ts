@@ -51,12 +51,14 @@ type SelectedConfiguration =
       providerKey: 'unifiedpush';
       vapidPublicKey: string;
       notificationReferenceVersion?: 1;
+      localeVersion?: 1;
     }
   | {
       providerKey: 'fcm';
       firebaseProjectId: string;
       androidPackage: string;
       encryptedPreviewVersion?: 1 | 2;
+      localeVersion?: 1;
     };
 
 type RegistrationOptions = SelectedConfiguration & {
@@ -285,6 +287,9 @@ function selectConfiguration(
           providerKey: 'fcm' as const,
           firebaseProjectId: available.fcm.projectId,
           androidPackage: available.fcm.androidPackage,
+          ...(available.fcm.localeVersion === 1
+            ? { localeVersion: 1 as const }
+            : {}),
           ...(available.fcm.encryptedPreviewVersion === 1
             ? {
                 encryptedPreviewVersion:
@@ -299,6 +304,9 @@ function selectConfiguration(
     ? {
         providerKey: 'unifiedpush' as const,
         vapidPublicKey: available.unifiedPush.vapidPublicKey,
+        ...(available.unifiedPush.localeVersion === 1
+          ? { localeVersion: 1 as const }
+          : {}),
         ...(available.unifiedPush.notificationReferenceVersion === 1
           ? { notificationReferenceVersion: 1 as const }
           : {}),
@@ -559,11 +567,20 @@ export function useDevicePush({
                           )
                             subscription.notificationReferenceVersion = 1;
                           else delete subscription.notificationReferenceVersion;
+                          if (
+                            configuration.current?.localeVersion !== 1 ||
+                            subscription.localeVersion !== 1
+                          )
+                            delete subscription.localeVersion;
                           return JSON.stringify(subscription);
                         })()
                       : JSON.stringify({
                           fid: fcmSubscription.fid,
                           activationId: fcmSubscription.activationId,
+                          ...(configuration.current?.localeVersion === 1 &&
+                          fcmSubscription.localeVersion === 1
+                            ? { localeVersion: 1 }
+                            : {}),
                         }),
                 },
               },

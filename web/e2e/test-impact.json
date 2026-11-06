@@ -472,7 +472,9 @@
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/PrivatePartnerNotesPage.tsx"
       ],
       "always": true
     },
@@ -579,7 +581,8 @@
       "roots": [
         "web/src/components/SharedPhotosPage.tsx",
         "web/src/components/MemoryProductPage.tsx",
-        "web/src/components/StoryProductPage.tsx"
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx"
       ]
     },
     "shared-story-summary-visual.spec.ts": {
@@ -774,7 +777,11 @@
         "web/src/components/MomentPlaces.tsx",
         "web/src/components/SharedExperienceReveal.tsx",
         "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx"
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/ChaptersOverviewPage.tsx",
+        "web/src/components/StoryYearsPage.tsx"
       ]
     },
     "media-planning-corrections.spec.ts": {
@@ -788,6 +795,63 @@
         "web/src/client/videoCompression.ts",
         "web/src/client/videoCompression.worker.ts",
         "web/src/client/compressVideo.ts"
+      ]
+    },
+    "planning-search-private-profile.spec.ts": {
+      "roots": [
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/PrivatePartnerNotesPage.tsx"
+      ]
+    },
+    "mobile-diary-planning-media.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/components/DeviceMediaPicker.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/App.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ]
+    },
+    "polish-people-photo-sources.spec.ts": {
+      "roots": [
+        "web/src/components/RelatedPeoplePage.tsx",
+        "web/src/components/RelatedPersonEditorSheet.tsx",
+        "web/src/components/PhotoSourcePicker.tsx"
+      ]
+    },
+    "polish-root-refresh.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/AppSurfacePullToRefresh.tsx",
+        "web/src/components/usePullToRefresh.ts"
+      ]
+    },
+    "polish-sensitive-media.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlanPhotosEditor.tsx",
+        "web/src/components/PhotoDraftGallery.tsx"
+      ]
+    },
+    "multilingual-product.spec.ts": {
+      "roots": [
+        "web/src/components/LanguageSettings.tsx",
+        "web/src/client/useAccountLanguage.ts",
+        "web/src/i18n/index.ts",
+        "web/src/client/sessionPersistence.ts"
       ]
     }
   }

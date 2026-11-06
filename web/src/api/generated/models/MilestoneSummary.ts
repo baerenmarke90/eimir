@@ -20,6 +20,13 @@ import {
     ResourceCapabilitiesToJSON,
     ResourceCapabilitiesToJSONTyped,
 } from './ResourceCapabilities';
+import type { StoryPlaceSummary } from './StoryPlaceSummary';
+import {
+    StoryPlaceSummaryFromJSON,
+    StoryPlaceSummaryFromJSONTyped,
+    StoryPlaceSummaryToJSON,
+    StoryPlaceSummaryToJSONTyped,
+} from './StoryPlaceSummary';
 import type { AuthorSummary } from './AuthorSummary';
 import {
     AuthorSummaryFromJSON,
@@ -66,6 +73,12 @@ export interface MilestoneSummary {
     id: string;
     /**
      * 
+     * @type {Array<StoryPlaceSummary>}
+     * @memberof MilestoneSummary
+     */
+    places?: Array<StoryPlaceSummary>;
+    /**
+     * 
      * @type {string}
      * @memberof MilestoneSummary
      */
@@ -100,6 +113,7 @@ export function MilestoneSummaryFromJSONTyped(json: any, ignoreDiscriminator: bo
         'createdAt': (new Date(json['createdAt'])),
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
+        'places': json['places'] == null ? undefined : ((json['places'] as Array<any>).map(StoryPlaceSummaryFromJSON)),
         'title': json['title'],
     };
 }
@@ -120,6 +134,7 @@ export function MilestoneSummaryToJSONTyped(value?: MilestoneSummary | null, ign
         'createdAt': value['createdAt'].toISOString(),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
+        'places': value['places'] == null ? undefined : ((value['places'] as Array<any>).map(StoryPlaceSummaryToJSON)),
         'title': value['title'],
     };
 }

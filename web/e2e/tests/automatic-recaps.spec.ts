@@ -1,3 +1,4 @@
+import de from '../../src/i18n/locales/de';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -297,7 +298,9 @@ async function setup(
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
     .click();
-  await page.getByRole('link', { name: new RegExp(copy.shortTitle) }).click();
+  await page
+    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
   ).toBeVisible();

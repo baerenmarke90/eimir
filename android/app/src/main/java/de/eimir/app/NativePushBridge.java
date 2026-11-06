@@ -318,7 +318,7 @@ public final class NativePushBridge extends Plugin {
             try {
                 String value = new JSONObject().put("endpoint", endpoint.getUrl()).put("keys",
                 new JSONObject().put("p256dh", keys.getPubKey()).put("auth", keys.getAuth()))
-                    .put("notificationReferenceVersion", 1).toString();
+                    .put("notificationReferenceVersion", 1).put("localeVersion", 1).toString();
                 PushActivation updated = active.withEndpoint(value);
                 PushActivation.save(context, updated);
                 emit("endpoint", updated, value, true);
@@ -333,7 +333,8 @@ public final class NativePushBridge extends Plugin {
         synchronized (PushActivation.class) {
             if (!PushActivation.current(context, active)) return false;
             try {
-                String value = new JSONObject().put("fid", fid).put("activationId", active.activationId).toString();
+                String value = new JSONObject().put("fid", fid).put("activationId", active.activationId)
+                    .put("localeVersion", 1).toString();
                 PushActivation updated = active.withEndpoint(value);
                 PushActivation.save(context, updated);
                 // Keep the shared key out of plaintext activation preferences.

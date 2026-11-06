@@ -39,6 +39,7 @@ export function getNotificationItemTitle(
       'TRANSFER_READY',
       'TRANSFER_COMPLETED',
       'TRANSFER_FAILED',
+      'VIDEO_PROCESSING_FAILED',
     ].includes(item.kind)
   ) {
     return t(`coupleExperiences.notifications.${item.kind}`, {

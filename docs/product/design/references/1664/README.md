@@ -197,3 +197,23 @@ configuration context; legacy wakes retain the existing device presentation.
 An API 37.1 system-picker interaction timed out in that cycle; diagnostics were
 preserved and it is not counted as a pass. A fresh complete matrix on the code
 correction must cover it without weakening the picker assertions or deadline.
+
+
+## Final entry-mail and task-transition checks
+
+The native HTTP adapter forwards explicitly supplied request headers. Signup and
+magic-link requests therefore now supply the visible locale through the existing
+generated request override, preserving Content-Type and the original body. This
+adds no request or credential. Eleven identity-flow cases pass with the proposed
+source, including German/English header propagation and preservation. All four
+unknown-recipient language/invitation combinations preserve proof URL privacy
+and select the requested catalog.
+
+The last browser cycle exposed a pre-existing same-label setup/voting race: a
+check operation could return against the already-checked setup input before the
+new voting form arrived. The journey now waits for the private Favorites group,
+checks that group's input, and asserts its checked state before publishing. No
+product behavior, assertion, selector scope or deadline is relaxed. All backend
+shards and all three native API jobs passed on the preceding correction. One
+Discover contrast assertion passed on its built-in retry; its diagnostics remain
+available and final-head browser QA still must pass without a weakened Axe rule.

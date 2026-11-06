@@ -9,12 +9,14 @@ from sqlalchemy.orm import Session
 
 from eimir.auth import cloud
 from eimir.auth.tokens import hash_token
+from eimir.i18n import text
 from eimir.mail import MailSender
 
 
 @pytest.mark.parametrize("invitation", [None, "invite+&=#/with spaces"])
+@pytest.mark.parametrize("language", ["de", "en"])
 def test_signup_mail_binds_only_the_invitation_hash_to_the_proof(
-    monkeypatch: pytest.MonkeyPatch, invitation: str | None
+    monkeypatch: pytest.MonkeyPatch, invitation: str | None, language: str
 ) -> None:
     session = Mock(spec=Session)
     session.scalar.return_value = None
@@ -36,9 +38,11 @@ def test_signup_mail_binds_only_the_invitation_hash_to_the_proof(
         mail=mail,
         client_host="127.0.0.1",
         invitation_token=invitation,
+        requested_locale=language,
     )
 
     message = mail.send.call_args.args[0]
+    assert message.subject == text("auth.signup.subject", language)
     link = next(line for line in message.body.splitlines() if line.startswith("https://"))
     parsed = urlsplit(link)
     assert parsed.scheme == "https"

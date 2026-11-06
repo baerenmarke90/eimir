@@ -102,3 +102,54 @@ unknown-year birthday and draft/media failure behavior. Complete affected browse
 specs retain privacy, narrow/large-text, Light/Dark, Expanded, reduced-motion and
 axe coverage. Run the impact planner/inventory and required metadata/source checks.
 Hosted final-head checks must pass before the authorized merge.
+
+
+## Implementation and acceptance
+
+Main `271aaa99cd2396b3de59c364f6bfdc87b23b6a52` includes both #1680 and #1681.
+The integration retains the local Moments create menu, global create destinations,
+partner gestures and one-time composer. No native capability or release is changed.
+
+The implemented [Compact overview](evidence/people-overview-390-light.png),
+[saved profile](evidence/person-saved-390-light.png),
+[focused editor](evidence/person-edit-390-light.png),
+[whole image](evidence/people-photo-390-light.png) and
+[Planning occasions](evidence/occasions-390-light.png) use synthetic data.
+Additional evidence covers [Expanded Dark](evidence/person-edit-1440-dark.png),
+[400% zoom](evidence/person-edit-400-dark.png),
+[200% zoom](evidence/occasion-create-200-light.png), small height and both partner
+photo handoffs. The generated reference above is preflight, not runtime evidence.
+
+The browser journeys exercise explicit saves and authoritative results, clean and
+dirty Back, retained input after photo-source cancellation, metadata exclusion,
+whole-photo focus and history, birthday/profile/Planning return with selected-item
+focus, no accidental partner send, reflow, reduced motion and axe WCAG 2.2 AA.
+All 33 affected People/photo/partner cases pass; the five complete People journeys
+pass again after the final presentation and return refinements. The adjacent
+Moments/global-create journeys also pass (29 cases from their complete specs).
+
+Local validation: production Web build and API/client drift checks; all 2,764 Web
+tests (two existing skips); 1,348 backend non-integration tests (45 environment-
+dependent skips); focused PostgreSQL person/avatar/delete/race/dashboard and
+transfer/encryption/reminder tests. A full empty-database upgrade through 0116 and
+Alembic model/schema comparison pass. Legacy migration and real validated archive
+round-trip preserve private linked dates; an inconsistent composite person class
+is rejected before apply. No privacy or tenant check is bypassed for import.
+
+The import regression exposed an existing validator that treated the class string
+in a composite FK as a UUID. It now validates the complete tuple against the same
+included parent; normalization still follows archive ownership validation.
+
+All 38 browser-planner regressions and the 101-spec inventory pass. The actual PR
+selection is conservatively full (74 critical / 27 additional) because App and
+the bundled locales are shared foundations. Feature-owned acceptance is recorded
+in both browser maps; the always-run core is unchanged. Source-inventory language,
+identity, documentation/status and changed-file lint/format checks pass. Build
+output is excluded from source auditing rather than exempted from language rules.
+Final hosted checks and the exact tested revision are recorded in the owning PR.
+
+Upgrade semantics: legacy private people become shared under the explicit PO
+decision; changed versions invalidate stale writes. A downgrade removes the check
+without inventing former privacy. Older clients submitting PRIVATE receive 422.
+Independent date visibility is unchanged, including transfer and delete policy.
+Native-device acceptance and APK publication are outside this Web/backend slice.

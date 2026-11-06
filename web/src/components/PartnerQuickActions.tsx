@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { M4ProductApis } from '../client/m4Product';
 import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
 import {
   loadPartnerQuickActionsCapability,
@@ -20,17 +21,18 @@ import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
-import type { M4ProductApis } from '../client/m4Product';
 import { useTranslation } from '../i18n';
+import { AvatarPhoto, type AvatarPhotoHandle } from './AvatarPhoto';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { usePresentationPresence } from './useOverlayPresence';
 import {
   isGestureCooldown,
-  usePartnerGesture,
   type PartnerAction,
+  usePartnerGesture,
 } from './usePartnerGesture';
 import './PartnerQuickActions.css';
 
@@ -47,6 +49,8 @@ export interface PartnerQuickActionsProps {
   accountId: string;
   spaceId: string;
   partnerName: string;
+  partnerPhotoUrl?: string | null;
+  partnerPhotoIdentity?: string;
   thinkingOfYouAvailableAt: Date | null;
   children: (
     avatarAction: CouplePresenceAvatarAction,
@@ -68,6 +72,8 @@ export function PartnerQuickActions({
   spaceId,
   partnerName,
   thinkingOfYouAvailableAt,
+  partnerPhotoUrl,
+  partnerPhotoIdentity,
   children,
 }: PartnerQuickActionsProps) {
   const { t } = useTranslation();
@@ -76,6 +82,7 @@ export function PartnerQuickActions({
   const { captureOrigin, resolveOrigin } = useTaskOrigin();
   const isExpanded = useMediaQuery(EXPANDED_QUERY);
   const firstActionRef = useRef<HTMLButtonElement>(null);
+  const photoRef = useRef<AvatarPhotoHandle>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
   const titleId = useId();
   const [compactPresent, setCompactPresent] = useState(false);
@@ -264,6 +271,34 @@ export function PartnerQuickActions({
         </p>
       ) : null}
       <div className="partner-quick-actions-list">
+        {partnerPhotoUrl ? (
+          <button
+            type="button"
+            className="partner-quick-action"
+            disabled={gesture.isPending}
+            onClick={() => {
+              if (gesture.isInFlight()) return;
+              const showPhoto = () => {
+                triggerRef.current?.focus({ preventScroll: true });
+                photoRef.current?.open();
+              };
+              if (compactPresent)
+                sheetRef.current?.closeForNavigation(showPhoto);
+              else {
+                close();
+                showPhoto();
+              }
+            }}
+          >
+            <span className="partner-quick-action-icon" aria-hidden="true">
+              <EimirIcon name="expand" />
+            </span>
+            <span className="partner-quick-action-copy">
+              <strong>{t('people.photoAction')}</strong>
+            </span>
+          </button>
+        ) : null}
+
         <button
           ref={firstActionRef}
           type="button"
@@ -458,6 +493,15 @@ export function PartnerQuickActions({
 
   return (
     <>
+      {partnerPhotoUrl ? (
+        <AvatarPhoto
+          ref={photoRef}
+          name={partnerName}
+          url={partnerPhotoUrl}
+          identity={partnerPhotoIdentity ?? `${spaceId}:partner-photo`}
+          renderTrigger={() => null}
+        />
+      ) : null}
       {children(avatarAction, expandedPopover)}
       <ShortTaskSheet
         ref={sheetRef}

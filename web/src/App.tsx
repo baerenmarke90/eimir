@@ -38,6 +38,11 @@ import {
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
 import { ProfilesApi } from './client/mediaApis';
+import {
+  ONCE_CREATE_ROUTE,
+  ONCE_ROUTE,
+  OnceMessagesProvider,
+} from './client/onceMessages';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
@@ -136,12 +141,6 @@ import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
-import { OnceMessagesPage } from './components/OnceMessages';
-import {
-  OnceMessagesProvider,
-  ONCE_ROUTE,
-  ONCE_CREATE_ROUTE,
-} from './client/onceMessages';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
@@ -156,6 +155,7 @@ import { MemoryMapPage } from './components/MemoryMapPage';
 import { MemoryProductPage } from './components/MemoryProductPage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
+import { OnceMessagesPage } from './components/OnceMessages';
 import { OurMomentsGamePage } from './components/OurMomentsGamePage';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
@@ -574,6 +574,8 @@ function AuthenticatedApp({
                   {...planningProductProps}
                   accountId={account.id}
                   apiBaseUrl={apiBaseUrl}
+                  peopleApi={peopleApi}
+                  profilesApi={profilesApi}
                 />
               }
             />
@@ -815,7 +817,7 @@ function AuthenticatedApp({
               }
             />
             <Route
-              path={MORE_PEOPLE_ROUTE}
+              path={`${MORE_PEOPLE_ROUTE}/*`}
               element={
                 <RelatedPeoplePage
                   peopleApi={peopleApi}

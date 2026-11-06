@@ -101,3 +101,8 @@ month positioning, distinct shared answers and authorized media reuse after rest
 [Contextual creation (#1679)](references/contextual-create/README.md) records the
 local Moments capture entry and the one-time-message entry in partner-avatar
 actions, including generated references and return/gesture ownership acceptance.
+
+[People profiles and occasions (#1683)](references/people-profiles/README.md)
+records the approved profile-first workflow, whole-avatar viewing, shared-only
+people and the dedicated occasions mode in Planning. This explicit PO decision
+supersedes person audience selection and the former combined People/date page.

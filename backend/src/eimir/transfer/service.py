@@ -1552,6 +1552,24 @@ def _validate_domain_schema_and_links(
                     value = row[foreign_key.parent.name]
                     target_column = foreign_key.column
                     target_table = target_column.table.name
+                    if target_column.name == "privacy_class":
+                        # A composite person FK includes a class string, not a UUID.
+                        # Validate the complete tuple against one included parent;
+                        # membership/ID checks alone cannot establish this boundary.
+                        valid = any(
+                            all(
+                                _row_snake(parent).get(part.column.name)
+                                == row[part.parent.name]
+                                for part in constraint.elements
+                            )
+                            for parent in tables.get(target_table, [])
+                        )
+                        if not valid:
+                            raise TransferArchiveError(
+                                "Transfer relation is invalid.",
+                                ErrorCode.TRANSFER_RELATION_INVALID,
+                            )
+                        continue
                     value_id = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
                     if target_column.name == "space_id" or target_table == "spaces":
                         valid = value_id == source_space_id
@@ -1756,6 +1774,12 @@ def _prepare_row(
     ids: Mapping[UUID, UUID],
 ) -> dict[str, Any]:
     row = _row_snake(raw)
+    # Only after archive ownership/privacy validation: migrate legacy people to
+    # the approved shared model, while dates retain their own privacy class.
+    if table.name == "related_persons":
+        row["privacy_class"] = PrivacyClass.SPACE_SHARED.value
+    if table.name == "important_dates" and row.get("related_person_id") is not None:
+        row["related_person_privacy_class"] = PrivacyClass.SPACE_SHARED.value
     if table.name == "recap_editions":
         # Imported editions are retained artifacts, never new automation authority.
         row.update(

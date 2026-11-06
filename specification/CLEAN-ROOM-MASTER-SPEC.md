@@ -625,6 +625,14 @@ Children/family members are not SideBySide Accounts.
 
 RelatedPerson:
 
+PO decision [#1683](https://github.com/baerenmarke90/eimir/issues/1683)
+(2026-11-06): related people are always shared and collaboratively editable by
+the existing Space members. The compatibility visibility field accepts SHARED
+only; the UI presents no audience decision or hint. Existing person records are
+migrated with their identity, birthday and photo intact. Linked ImportantDates
+retain their own visibility; this decision does not share independent private
+dates or expand Space membership.
+
 ```text
 - id
 - spaceId

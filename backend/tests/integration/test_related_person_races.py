@@ -201,11 +201,11 @@ def _link_over_http(
 
 
 @pytest.mark.parametrize("existing_date", [False, True], ids=["create", "relink"])
-def test_date_link_wins_before_person_privacy_change(
+def test_date_link_and_waiting_shared_edit_preserve_the_link(
     production_client,
     existing_date: bool,
 ) -> None:  # type: ignore[no-untyped-def]
-    """A committed link is revalidated before the waiting privacy transition."""
+    """A committed link survives the waiting collaborative profile edit."""
     world = _setup_link_race(production_client, existing_date=existing_date)
     blocker = world["maker"]()
     transaction = blocker.begin()
@@ -216,7 +216,7 @@ def test_date_link_wins_before_person_privacy_change(
     def make_private():  # type: ignore[no-untyped-def]
         return world["client"].put(
             f"/api/v1/spaces/{world['space_id']}/related-persons/{world['person_id']}",
-            json={**PERSON_BODY, "visibility": "PRIVATE"},
+            json={**PERSON_BODY, "visibility": "SHARED"},
             headers={
                 **auth(world["token"]),
                 "If-Match": f'"{world["person_version"]}"',
@@ -227,8 +227,7 @@ def test_date_link_wins_before_person_privacy_change(
         world["maker"], blocker, transaction, blocker_pid, make_private
     )
 
-    assert response.status_code == 409
-    assert response.json()["code"] == "RELATED_PERSON_HAS_SHARED_DATES"
+    assert response.status_code == 200
 
     with world["maker"]() as verification:
         person = verification.get(RelatedPerson, world["person_id"])
@@ -242,11 +241,11 @@ def test_date_link_wins_before_person_privacy_change(
 
 
 @pytest.mark.parametrize("existing_date", [False, True], ids=["create", "relink"])
-def test_person_privacy_change_wins_before_date_link(
+def test_shared_person_edit_preserves_waiting_date_link(
     production_client,
     existing_date: bool,
 ) -> None:  # type: ignore[no-untyped-def]
-    """A waiting link revalidates the private parent and returns a domain error."""
+    """A waiting link observes the committed shared parent without a deadlock."""
     world = _setup_link_race(production_client, existing_date=existing_date)
     blocker = world["maker"]()
     transaction = blocker.begin()
@@ -260,36 +259,36 @@ def test_person_privacy_change_wins_before_date_link(
         relationship=PersonRelationship.CHILD,
         birthday=date(2016, 2, 29),
         birthday_year_known=True,
-        visibility=ContentVisibility.PRIVATE,
+        visibility=ContentVisibility.SHARED,
     )
 
     response = _finish_blocked_request(
         world["maker"], blocker, transaction, blocker_pid, lambda: _link_over_http(world)
     )
 
-    assert response.status_code == 422
-    assert response.json()["code"] == "IMPORTANT_DATE_MORE_OPEN_THAN_PERSON"
+    assert response.status_code == (200 if existing_date else 201)
 
     with world["maker"]() as verification:
         person = verification.get(RelatedPerson, world["person_id"])
         assert person is not None
-        assert person.privacy_class == PrivacyClass.OWNER_ONLY.value
+        assert person.privacy_class == PrivacyClass.SPACE_SHARED.value
         dates = verification.execute(select(ImportantDate)).scalars().all()
         if world["date_id"] is None:
-            assert dates == []
+            assert len(dates) == 1
+            assert dates[0].related_person_id == world["person_id"]
         else:
             assert len(dates) == 1
             assert dates[0].id == world["date_id"]
-            assert dates[0].related_person_id is None
-            assert dates[0].related_person_privacy_class is None
+            assert dates[0].related_person_id == world["person_id"]
+            assert dates[0].related_person_privacy_class == PrivacyClass.SPACE_SHARED.value
 
 
 @pytest.mark.parametrize("existing_date", [False, True], ids=["create", "relink"])
-def test_person_privacy_change_hides_parent_from_partner_link(
+def test_shared_person_edit_keeps_parent_available_for_partner_link(
     production_client,
     existing_date: bool,
 ) -> None:  # type: ignore[no-untyped-def]
-    """A waiter revalidates access without disclosing the now-private person."""
+    """Both members can link the shared parent after a concurrent profile edit."""
     world = _setup_link_race(production_client, existing_date=False)
     if existing_date:
         response = world["client"].post(
@@ -314,7 +313,7 @@ def test_person_privacy_change_hides_parent_from_partner_link(
         relationship=PersonRelationship.CHILD,
         birthday=date(2016, 2, 29),
         birthday_year_known=True,
-        visibility=ContentVisibility.PRIVATE,
+        visibility=ContentVisibility.SHARED,
     )
 
     response = _finish_blocked_request(
@@ -325,20 +324,20 @@ def test_person_privacy_change_hides_parent_from_partner_link(
         lambda: _link_over_http(world, token=world["partner_token"]),
     )
 
-    assert response.status_code == 404
-    assert response.json()["code"] == "RELATED_PERSON_NOT_FOUND"
+    assert response.status_code == (200 if existing_date else 201)
 
     with world["maker"]() as verification:
         person = verification.get(RelatedPerson, world["person_id"])
         assert person is not None
-        assert person.privacy_class == PrivacyClass.OWNER_ONLY.value
+        assert person.privacy_class == PrivacyClass.SPACE_SHARED.value
         dates = verification.execute(select(ImportantDate)).scalars().all()
         if existing_date:
             assert len(dates) == 1
             assert dates[0].id == world["date_id"]
-            assert dates[0].related_person_id is None
+            assert dates[0].related_person_id == world["person_id"]
         else:
-            assert dates == []
+            assert len(dates) == 1
+            assert dates[0].related_person_id == world["person_id"]
 
 
 def _attempt_delete(

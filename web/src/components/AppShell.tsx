@@ -237,6 +237,7 @@ function AuthenticatedAppShell({
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
+    /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||

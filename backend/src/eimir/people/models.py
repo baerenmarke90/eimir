@@ -39,6 +39,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from eimir.authorization import (
     PrivateResourceMixin,
     ResourceAbsence,
+    SharedWrite,
 )
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
@@ -100,6 +101,8 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
     """A person related to the couple who does not have an account."""
 
     __tablename__ = "related_persons"
+    # PO decision #1683: people belong to both members; ownership is provenance.
+    shared_write: ClassVar[SharedWrite] = SharedWrite.COLLABORATIVE
 
     privacy_absence: ClassVar[ResourceAbsence] = ResourceAbsence(
         "Related person not found.", "RELATED_PERSON_NOT_FOUND"
@@ -137,6 +140,7 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
     )
 
     __table_args__ = (
+        CheckConstraint("privacy_class = 'SPACE_SHARED'", name="people_are_shared"),
         # Target columns for the composite foreign keys from `important_dates`.
         # Without this uniqueness, an important date could not carry its
         # person's space and privacy class at the database level.

@@ -24,7 +24,7 @@
         "EIMIR_ACCOUNT_DELETION_INSTANCE_ID": "${EIMIR_ACCOUNT_DELETION_INSTANCE_ID:?Set the existing instance value in Arcane}",
         "EIMIR_ACCOUNT_DELETION_JOURNAL_PATH": "/var/lib/eimir/deletion-journal/account-deletions.journal",
         "EIMIR_ALLOWED_HOSTS": "${EIMIR_ALLOWED_HOSTS:?Set the existing instance value in Arcane}",
-        "EIMIR_AUDIO_UPLOAD_ENABLED": "false",
+        "EIMIR_AUDIO_UPLOAD_ENABLED": "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
         "EIMIR_CURSOR_SIGNING_KEY": "${EIMIR_CURSOR_SIGNING_KEY:?Set the existing instance value in Arcane}",
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside",
         "EIMIR_DEMO_MODE": "false",
@@ -83,7 +83,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:563b8a01f88e7bf8323594293ff9cf79adbd38cdb89ed82e4271156111d08e74",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:17e36bba4d6eea73a74a648a1fb446d8c1079c26bb3ed8e0c137a5dbe5ed73d8",
       "networks": {
         "app": {
           "aliases": [
@@ -132,7 +132,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:563b8a01f88e7bf8323594293ff9cf79adbd38cdb89ed82e4271156111d08e74",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:17e36bba4d6eea73a74a648a1fb446d8c1079c26bb3ed8e0c137a5dbe5ed73d8",
       "networks": {
         "app": null
       },
@@ -158,6 +158,7 @@
       "entrypoint": null,
       "environment": {
         "EIMIR_ALLOWED_HOSTS": "${EIMIR_ALLOWED_HOSTS:?Set the existing instance value in Arcane}",
+        "EIMIR_AUDIO_UPLOAD_ENABLED": "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
         "EIMIR_CURSOR_SIGNING_KEY": "${EIMIR_CURSOR_SIGNING_KEY:?Set the existing instance value in Arcane}",
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside",
         "EIMIR_DEPLOYMENT": "cloud",
@@ -171,7 +172,7 @@
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_VIDEO_UPLOAD_ENABLED": "true"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:f5ad033fe8a61d87736cc9443f96105963f2d974a7bffb45596342585ebcddcc",
+      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:4883345592f8931ba487462d9a9f6dff1b28f98162c56c40bb67a5d130ca2cb9",
       "init": true,
       "mem_limit": "1073741824",
       "networks": {
@@ -210,7 +211,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:6ac2b5a7bbafa04baae8d8ba20b711e3aa90294a2f7a6a53c1f24601c02e611c",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:11f11d0bf4b2cabe28027593c0d8a85f877d858aef86d7db8941020ff3371ede",
       "networks": {
         "app": {},
         "proxy": {
@@ -239,7 +240,7 @@
         "EIMIR_ACCOUNT_DELETION_INSTANCE_ID": "${EIMIR_ACCOUNT_DELETION_INSTANCE_ID:?Set the existing instance value in Arcane}",
         "EIMIR_ACCOUNT_DELETION_JOURNAL_PATH": "/var/lib/eimir/deletion-journal/account-deletions.journal",
         "EIMIR_ALLOWED_HOSTS": "${EIMIR_ALLOWED_HOSTS:?Set the existing instance value in Arcane}",
-        "EIMIR_AUDIO_UPLOAD_ENABLED": "false",
+        "EIMIR_AUDIO_UPLOAD_ENABLED": "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
         "EIMIR_CURSOR_SIGNING_KEY": "${EIMIR_CURSOR_SIGNING_KEY:?Set the existing instance value in Arcane}",
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside",
         "EIMIR_DEMO_MODE": "false",
@@ -285,7 +286,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:563b8a01f88e7bf8323594293ff9cf79adbd38cdb89ed82e4271156111d08e74",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:17e36bba4d6eea73a74a648a1fb446d8c1079c26bb3ed8e0c137a5dbe5ed73d8",
       "networks": {
         "app": null
       },

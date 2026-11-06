@@ -850,6 +850,15 @@
         "web/src/i18n/index.ts",
         "web/src/client/sessionPersistence.ts"
       ]
+    },
+    "once-messages.spec.ts": {
+      "roots": [
+        "web/src/components/OnceMessages.tsx",
+        "web/src/client/onceMessages.tsx",
+        "web/src/client/onceMessageCrypto.ts",
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/components/TodayPage.tsx"
+      ]
     }
   }
 }

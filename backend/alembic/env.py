@@ -45,6 +45,7 @@ from eimir.identity import models as _identity  # noqa: F401
 from eimir.jobs import models as _jobs  # noqa: F401
 from eimir.memories import models as _memories  # noqa: F401
 from eimir.milestones import models as _milestones  # noqa: F401
+from eimir.once_messages import models as _once_messages  # noqa: F401
 from eimir.outbox import models as _outbox  # noqa: F401
 from eimir.people import models as _people  # noqa: F401
 from eimir.photo_sources import models as _photo_sources  # noqa: F401

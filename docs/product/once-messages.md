@@ -86,8 +86,9 @@ Unopened messages expire after 24 hours. Claim leases last at most five minutes;
 acknowledgement destroys the envelope. Replays retain only bounded idempotency
 metadata until expiry. Cleanup removes message, derived notification and delivery
 state without retaining a read-receipt history. Jobs/events contain references only.
-Database backups may contain opaque historical envelopes until normal backup
-retention expires; restore must purge expired/claimed envelopes before service.
+Official database dumps exclude temporary message and receiving-device rows,
+so restore cannot replay pending messages. External infrastructure snapshots may
+contain opaque envelopes until their normal backup retention expires.
 No export/import of temporary payloads or device private keys. Ordinary permanent
 media and voice notes retain their existing portability and downgrade guarantees.
 

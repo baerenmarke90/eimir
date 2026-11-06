@@ -134,6 +134,12 @@ import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { OnceMessagesPage } from './components/OnceMessages';
+import {
+  OnceMessagesProvider,
+  ONCE_ROUTE,
+  ONCE_CREATE_ROUTE,
+} from './client/onceMessages';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
@@ -492,6 +498,18 @@ function AuthenticatedApp({
           }
         >
           <Routes>
+            <Route
+              path={ONCE_ROUTE}
+              element={<OnceMessagesPage mode="inbox" />}
+            />
+            <Route
+              path={ONCE_CREATE_ROUTE}
+              element={<OnceMessagesPage mode="compose" />}
+            />
+            <Route
+              path={`${ONCE_ROUTE}/:messageId`}
+              element={<OnceMessagesPage mode="read" />}
+            />
             <Route
               path="/"
               element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
@@ -973,7 +991,14 @@ function AuthenticatedApp({
         accountId={account.id}
         spaceId={spaceId}
       >
-        {relationshipContent}
+        <OnceMessagesProvider
+          apiBaseUrl={apiBaseUrl}
+          accessToken={tokens.accessToken}
+          accountId={account.id}
+          spaceId={spaceId}
+        >
+          {relationshipContent}
+        </OnceMessagesProvider>
         <DevicePushOnboarding
           key={`${apiBaseUrl}:${account.id}`}
           devicePush={devicePush}

@@ -667,7 +667,10 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             "locale": account_locale(accounts[notification.recipient_account_id]),
         }
         endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
-        if endpoint.provider_key == "fcm":
+        if (
+            endpoint.provider_key == "fcm"
+            and notification.kind != NotificationKind.ONCE_MESSAGE_RECEIVED.value
+        ):
             from eimir.engagement import fcm_push, push_preview
 
             preview_secret = session.scalar(

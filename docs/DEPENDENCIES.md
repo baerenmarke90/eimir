@@ -6,6 +6,25 @@ here does not belong in the project.
 
 As of: 2026-10-20
 
+## Client-sealed temporary messages (2026-11-06, #1672)
+
+`jose` **6.2.13**, [panva/jose](https://github.com/panva/jose), MIT license,
+provides standard General JWE RSA-OAEP-256/A256GCM framing through Web Crypto.
+The exact npm package and integrity are pinned in the Web lockfile. It runs
+locally in the canonical Web/Capacitor UI; no provider, account, service fee,
+network request, API key or hoster setting is added. The server only receives
+public keys and opaque, bounded ciphertext. Existing server-side `joserfc`
+Push previews remain a separate operator-keyed boundary. Native MediaRecorder,
+IndexedDB, canvas export and the shared HeartMoment voice primitives own capture,
+non-extractable device-key persistence and display. No cryptographic primitive
+is implemented in application code. No recovery/forward-secrecy or independently
+audited product-wide E2EE claim follows from this bounded transport.
+
+The generated #1672 UI reference in `product/design/references/once-messages/`
+was created with the built-in imagegen tool using fictional people and generated
+woodland imagery. Prompts, corrections and baseline are recorded alongside it.
+It is a product reference, not a runtime asset or third-party photograph.
+
 ## Optional video processor (2026-11-05)
 
 FFmpeg 9.0.2, upstream commit `946fcce07b6dcd0331c8cc609192aeff5e1924f8`,

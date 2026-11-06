@@ -68,6 +68,9 @@ def for_notification(
 ) -> str | None:
     from eimir.engagement import service
 
+    # One-time messages always use the neutral wake, even on unlocked devices.
+    if notification.kind == NotificationKind.ONCE_MESSAGE_RECEIVED.value:
+        return None
     context = AuthorizationContext(
         account_id=notification.recipient_account_id, space_id=notification.space_id
     )

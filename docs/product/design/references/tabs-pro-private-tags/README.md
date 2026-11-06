@@ -104,6 +104,9 @@ creation/merge, as requested.
 - Primary selection now has one canonical root contract for links and swipes;
   obsolete root-resume storage is removed. Detail/task origins keep their
   independent bounded state. Re-selection replaces the current history entry.
+- A strengthened peer-selection assertion exposed a retained primary-entry marker
+  overwriting a deliberate Wishes selection. Commit `76ddb779b` limits reset to
+  the canonical hashless entry; all 19 navigation browser cases pass after the fix.
 - Pro marks share a lazy effective-tier read, scoped to instance/account/Space.
   Unknown/failed first reads never advertise an upgrade; an authorized retained
   tier is presentation only. Capability authorization is unchanged. Strict
@@ -121,7 +124,8 @@ creation/merge, as requested.
 ### Observed validation
 
 - Production Web build passes, including token/legal/static-locale/PWA checks
-  and TypeScript. All 90 focused component tests pass. Changed handwritten files
+  and TypeScript. The complete pre-People Web suite passes 2,759 tests, with two
+  existing skips; all 90 focused component tests also pass. Changed handwritten files
   pass Biome lint/format (the two existing redundant-fragment informational
   notices are unchanged).
 - All 230 distinct browser cases across 17 affected specs pass: 56 final
@@ -137,6 +141,10 @@ creation/merge, as requested.
   the successful run uses Python 3.13.7 inside the test database's isolated
   container network, with no skips. Declared Python compatibility remains >=3.12;
   hosted CI owns the pinned interpreter verification.
+- The complete pre-People non-integration Python suite passes 1,358 tests, with
+  45 environment-dependent skips and 3,433 integration cases deselected. The
+  separate PostgreSQL acceptance above has no skips. Ruff lint and format pass
+  all 813 Python files.
 - Backend mypy passes all 367 source files. Ruff and OpenAPI contract/generated
   client checks pass. The language audit, 27 language regressions, project identity
   scan, status contract and whitespace checks pass. No native wrapper capability

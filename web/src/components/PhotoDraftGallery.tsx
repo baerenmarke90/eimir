@@ -16,7 +16,7 @@ export interface PhotoDraftGalleryItem {
   preview: ReactNode;
   isSensitive: boolean;
   draft?: AttachmentDraft;
-  mediaType?: 'IMAGE' | 'VIDEO';
+  mediaType?: 'IMAGE' | 'VIDEO' | 'AUDIO';
   status?: string;
   canRemove?: boolean;
   canEditSensitivity?: boolean;

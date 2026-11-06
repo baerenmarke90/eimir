@@ -493,6 +493,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 12,
       "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
+    },
+    "heart-voice-notes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "HeartMoment-owned audio record/import/review/save/playback, permission/error recovery and accessible responsive reading."
     }
   }
 }

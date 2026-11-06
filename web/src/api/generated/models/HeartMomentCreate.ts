@@ -61,6 +61,18 @@ export interface HeartMomentCreate {
     attachments?: Array<AttachmentEntry> | null;
     /**
      * 
+     * @type {string}
+     * @memberof HeartMomentCreate
+     */
+    audioSpeakerName?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HeartMomentCreate
+     */
+    audioTitle?: string;
+    /**
+     * 
      * @type {HeartEmotion}
      * @memberof HeartMomentCreate
      */
@@ -129,6 +141,8 @@ export function HeartMomentCreateFromJSONTyped(json: any, ignoreDiscriminator: b
         'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
         'attachmentIsSensitive': json['attachmentIsSensitive'] === undefined ? undefined : json['attachmentIsSensitive'] === null ? null : json['attachmentIsSensitive'],
         'attachments': json['attachments'] === undefined ? undefined : json['attachments'] === null ? null : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
+        'audioSpeakerName': json['audioSpeakerName'] == null ? undefined : json['audioSpeakerName'],
+        'audioTitle': json['audioTitle'] == null ? undefined : json['audioTitle'],
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
@@ -153,6 +167,8 @@ export function HeartMomentCreateToJSONTyped(value?: HeartMomentCreate | null, i
         'attachmentId': value['attachmentId'],
         'attachmentIsSensitive': value['attachmentIsSensitive'],
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
+        'audioSpeakerName': value['audioSpeakerName'],
+        'audioTitle': value['audioTitle'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'placeId': value['placeId'],

@@ -850,6 +850,18 @@
         "web/src/i18n/index.ts",
         "web/src/client/sessionPersistence.ts"
       ]
+    },
+    "heart-voice-notes.spec.ts": {
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/VoiceNoteEditor.tsx",
+        "web/src/components/VoiceNotePlayer.tsx",
+        "web/src/components/SavedVoiceNote.tsx",
+        "web/src/components/VoiceShareIngress.tsx",
+        "web/src/client/useVoiceRecorder.ts",
+        "web/src/client/useHeartVoiceDraft.ts",
+        "web/src/client/sharedVoiceImport.ts"
+      ]
     }
   }
 }

@@ -539,3 +539,12 @@ Nimbus 10.10 embeds Gson 2.14.0 (Apache-2.0). The unchanged upstream Nimbus
 copyright header, Apache-2.0 license and Gson license are packaged under
 `android/app/src/main/assets/licenses/`. Backend wheel license metadata remains
 in the installed distribution. No additional provider account or terms are introduced.
+
+### HeartMoment audio processing
+
+#1671 extends the existing LGPL FFmpeg media role, not the application's dependency
+stack. Its reviewed build adds Ogg, Matroska/WebM, MP3, WAV and AAC demuxers,
+Opus/Vorbis decoders/parsers, and WAV output for bounded PCM frame-count validation.
+The existing AAC encoder and MP4 muxer provide sanitized playback. No external
+codec/speech SDK or provider is added. See the [voice contract](product/design/heart-voice-notes.md)
+and [operator delivery](operations/video-uploads.md#heartmoment-voice-intake-1671).

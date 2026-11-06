@@ -100,3 +100,41 @@ not a pixel lock.
   terms text therefore gets a new draft version.
 - The content of the draft and its open legal decisions are documented in
   `legal/privacy-policy-review.md`.
+
+## Implementation evidence
+
+Captured from the implementation (Playwright on the bundled e2e build, mocked
+Cloud API, reduced motion) on branch `feat/privacy-policy`. Compact is the
+primary reference; Expanded keeps the narrow entry card, the bounded sheet and
+the reading column.
+
+| State | Light | Dark |
+| --- | --- | --- |
+| Signup form, 360 px | [webp](../../evidence/privacy-policy/signup-form-360-light.webp) | [webp](../../evidence/privacy-policy/signup-form-360-dark.webp) |
+| Signup form, 390 px | [webp](../../evidence/privacy-policy/signup-form-390-light.webp) | [webp](../../evidence/privacy-policy/signup-form-390-dark.webp) |
+| Signup form, 430 px | [webp](../../evidence/privacy-policy/signup-form-430-light.webp) | [webp](../../evidence/privacy-policy/signup-form-430-dark.webp) |
+| Signup form, 1280 px | [webp](../../evidence/privacy-policy/signup-form-1280-light.webp) | [webp](../../evidence/privacy-policy/signup-form-1280-dark.webp) |
+| Privacy reading sheet, 390 px | [webp](../../evidence/privacy-policy/privacy-sheet-390-light.webp) | [webp](../../evidence/privacy-policy/privacy-sheet-390-dark.webp) |
+| Nested sheet from the terms, 390 px | [webp](../../evidence/privacy-policy/nested-sheet-390-light.webp) | [webp](../../evidence/privacy-policy/nested-sheet-390-dark.webp) |
+| Public page, 360 px | [webp](../../evidence/privacy-policy/privacy-page-360-light.webp) | [webp](../../evidence/privacy-policy/privacy-page-360-dark.webp) |
+| Public page, 1280 px | [webp](../../evidence/privacy-policy/privacy-page-1280-light.webp) | [webp](../../evidence/privacy-policy/privacy-page-1280-dark.webp) |
+| More footer, 390 px | [webp](../../evidence/privacy-policy/more-footer-390-light.webp) | [webp](../../evidence/privacy-policy/more-footer-390-dark.webp) |
+| More footer, 1280 px | [webp](../../evidence/privacy-policy/more-footer-1280-light.webp) | [webp](../../evidence/privacy-policy/more-footer-1280-dark.webp) |
+
+`cloud-onboarding-entry.spec.ts` covers the behavior: open the signup form →
+one required checkbox and an informational sentence outside its label → read
+the notice in the sheet → close and return focus with address and choice
+intact → submit only the terms version; the terms' cross-reference opening the
+notice in a nested sheet whose Escape closes only that sheet; the login-free
+`/legal/privacy` page with Back; More → privacy page at its focused title with
+the scroll position reset, and Back to More; the English UI keeping the German
+text with the binding-language notice. Axe WCAG 2.2 AA runs in Light and Dark;
+there is no horizontal overflow at 320/360/430 px.
+
+Found and fixed during implementation: Escape in a nested `ShortTaskSheet`
+closed the parent as well, because the native `cancel` event of the inner
+dialog reached the outer handler through the React portal tree; a sheet now
+handles only its own `cancel`. Public legal pages are rendered outside the app
+shell's route handoff, so an in-app entry (for example from the More footer)
+kept the previous scroll offset; the page now starts at its title on in-app
+entry and leaves Back/Forward restoration to the browser.

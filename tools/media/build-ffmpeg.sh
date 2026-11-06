@@ -26,7 +26,7 @@ export PKG_CONFIG_PATH="$install_dir/lib/pkgconfig"
   --enable-filter=scale,format,null,anull,aresample,aformat,transpose,hflip,vflip,zscale,tonemap,fps,sidedata
 make -j2
 cc -I . -c "$patch_dir/test-h264-context.c" -o "$source_dir/test-h264-context.o"
-g++ "$source_dir/test-h264-context.o" libavcodec/libavcodec.a libavutil/libavutil.a \
+g++ "$source_dir/test-h264-context.o" libavcodec/libavcodec.a libswresample/libswresample.a libavutil/libavutil.a \
   $(pkg-config --libs --static openh264) -lm -pthread -o "$source_dir/test-h264-context"
 "$source_dir/test-h264-context"
 cc -I . "$patch_dir/test-hdr-payload.c" libavutil/libavutil.a \

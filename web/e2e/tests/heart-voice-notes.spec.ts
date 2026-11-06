@@ -117,8 +117,19 @@ async function setup(page: Page, failSave = false) {
     return route.fulfill({ status: 201, json: saved });
   });
   await page.route(`**${base}/heart-moments/voice-heart`, async (route) => {
-    if (route.request().method() === 'PATCH')
-      saved = { ...saved, ...route.request().postDataJSON(), version: 2 };
+    if (route.request().method() === 'PATCH') {
+      const update = route.request().postDataJSON();
+      saved = {
+        ...saved,
+        ...update,
+        version: 2,
+        attachments: update.attachments.map((item: { position: number }) => ({
+          ...attachment,
+          position: item.position,
+        })),
+        attachment: update.attachments.length ? attachment : null,
+      };
+    }
     return route.fulfill({ json: saved });
   });
   await page.route(`**${base}/heart-moments/voice-heart/comments**`, (route) =>
@@ -343,4 +354,57 @@ test('failed Save retains voice, labels and audience for the deliberate retry', 
   await save.click();
   await expect(page).toHaveURL(/heart-moments\/voice-heart$/);
   expect(state.saves()).toBe(2);
+});
+
+test('preserves saved audio while editing and leaves unchanged edits without a discard prompt', async ({
+  page,
+}) => {
+  const state = await setup(page);
+  await importFile(page);
+  await saveAndPlay(page);
+  const audio = page.locator('.voice-player audio');
+  await audio.evaluate((element: HTMLAudioElement) => element.pause());
+  const seek = page.getByRole('slider', { name: voice.seek });
+  await seek.focus();
+  await seek.press('Home');
+  await seek.press('ArrowRight');
+  await expect
+    .poll(() =>
+      audio.evaluate((element: HTMLAudioElement) => element.currentTime),
+    )
+    .toBeCloseTo(0.1, 2);
+  const edit = () =>
+    page
+      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
+      .click();
+  await edit();
+  await expect(
+    page.getByRole('textbox', { name: voice.audioTitle }),
+  ).toHaveValue('Dein Gute-Nacht-Gruß');
+  await page.locator('.task-back-control[data-page-back]').click();
+  await expect(page).toHaveURL(/heart-moments\/voice-heart$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await edit();
+  await page
+    .getByRole('textbox', { name: voice.audioTitle })
+    .fill('A voice to keep');
+  await page
+    .getByRole('textbox', {
+      name: copy.heartMomentProduct.textLabel,
+      exact: true,
+    })
+    .fill('Still together.');
+  await page
+    .getByRole('button', { name: copy.heartMomentProduct.save, exact: true })
+    .click();
+  await expect(page).toHaveURL(/heart-moments\/voice-heart$/);
+  await expect(
+    page.getByRole('heading', { name: 'A voice to keep' }),
+  ).toBeVisible();
+  await expect(page.locator('.heart-moment-detail-text')).toHaveText(
+    'Still together.',
+  );
+  await expect(page.locator('.voice-player audio')).toHaveCount(1);
+  expect(state.saves()).toBe(1);
+  expect(state.unknown).toEqual([]);
 });

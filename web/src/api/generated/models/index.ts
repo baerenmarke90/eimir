@@ -113,6 +113,7 @@ export * from './Health';
 export * from './HeartEmotion';
 export * from './HeartMomentCreate';
 export * from './HeartMomentDetail';
+export * from './HeartMomentLocation';
 export * from './HeartMomentPage';
 export * from './HeartMomentUpdate';
 export * from './HeartMomentVisibilityChange';

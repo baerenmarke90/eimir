@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, render } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
+import {
+  BrowserRouter,
+  MemoryRouter,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   TaskOriginProvider,
@@ -10,12 +15,14 @@ import {
 
 let origin: ReturnType<typeof useTaskOrigin>;
 let currentPath = '';
+let currentState: unknown;
 let navigate: ReturnType<typeof useNavigate>;
 function Probe() {
   origin = useTaskOrigin();
   const location = useLocation();
   navigate = useNavigate();
   currentPath = `${location.pathname}${location.search}`;
+  currentState = location.state;
   return null;
 }
 function Harness({
@@ -51,66 +58,91 @@ afterEach(() => {
 });
 
 describe('task origin privacy and lifetime', () => {
-  it('remembers primary root scope and metadata without resuming a detail or private route', async () => {
-    render(<Harness />);
-    const key = origin.captureOrigin({ loadedPageCount: 4 });
-    expect(origin.primaryDestination('/story')).toEqual({
-      to: '/story?type=MEMORY&year=2025&order=ASC&tab=timeline',
-      returnKey: key,
-    });
-    expect(origin.resolveOrigin(key)?.loadedPageCount).toBe(4);
-    expect(JSON.stringify(window.history.state)).not.toMatch(
-      /private-words|2025/,
+  it('restores the upstream context after a nested task replaces itself with its result', async () => {
+    window.history.replaceState(
+      { idx: 0, key: 'planning', usr: null },
+      '',
+      '/plan',
     );
-    await act(async () => navigate('/story/memories/result'));
-    origin.captureOrigin();
-    expect(origin.primaryDestination('/story').returnKey).toBe(key);
-    await act(async () => navigate('/more/private'));
-    origin.captureOrigin();
-    expect(origin.primaryDestination('/more')).toEqual({ to: '/more' });
-    expect(origin.primaryDestination('//other.example')).toEqual({
-      to: '/today',
+    render(
+      <BrowserRouter>
+        <TaskOriginProvider accountId="account-a" spaceId="space-a">
+          <Probe />
+        </TaskOriginProvider>
+      </BrowserRouter>,
+    );
+    const planningKey = origin.captureOrigin({ planningSegment: 'wishes' });
+    await act(async () =>
+      navigate('/plan/choose', { state: { taskOriginKey: planningKey } }),
+    );
+    const selectionKey = origin.captureOrigin();
+    await act(async () =>
+      navigate('/plan/plans/result', {
+        replace: true,
+        state: { taskOriginKey: selectionKey },
+      }),
+    );
+    await act(async () => origin.requestReturn(selectionKey));
+    expect(currentPath).toBe('/plan/choose');
+    expect(currentState).toEqual({
+      taskReturnKey: selectionKey,
+      taskOriginKey: planningKey,
     });
+    expect(origin.resolveOrigin(planningKey)).toMatchObject({
+      planningSegment: 'wishes',
+    });
+    await act(async () => origin.requestReturn(planningKey));
+    await waitFor(() => expect(currentPath).toBe('/plan'));
   });
 
-  it('keeps each primary root independent and replaces only its latest snapshot', async () => {
+  it('does not restore an untrusted upstream origin from route state', async () => {
     render(<Harness />);
-    const storyKey = origin.captureOrigin();
+    window.history.replaceState(
+      { usr: { taskOriginKey: 'foreign-origin' } },
+      '',
+      '/story',
+    );
+    const key = origin.captureOrigin();
+    await act(async () => navigate('/plan/plans/result'));
+    await act(async () => origin.requestReturn(key));
+    expect(currentState).toEqual({ taskReturnKey: key });
+    expect(origin.resolveOrigin(key)).not.toHaveProperty('taskOriginKey');
+  });
+
+  it('primary selection opens canonical defaults while detail origins retain their full context', async () => {
+    render(<Harness />);
+    const key = origin.captureOrigin({ loadedPageCount: 4 });
+    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
+    expect(origin.resolveOrigin(key)).toMatchObject({
+      to: '/story?type=MEMORY&year=2025&order=ASC&tab=timeline',
+      loadedPageCount: 4,
+    });
     await act(async () => navigate('/plan'));
     vi.spyOn(window, 'scrollY', 'get').mockReturnValue(400);
     const planKey = origin.captureOrigin({ planningSegment: 'wishes' });
-    expect(origin.primaryDestination('/story').returnKey).toBe(storyKey);
-    expect(origin.primaryDestination('/plan').returnKey).toBe(planKey);
-    expect(origin.resolveOrigin(planKey)?.planningSegment).toBe('wishes');
-    expect(origin.resolveOrigin(planKey)?.scrollY).toBe(400);
-    const nextKey = origin.captureOrigin({ planningSegment: 'plans' });
-    expect(origin.primaryDestination('/plan').returnKey).toBe(nextKey);
-    expect(origin.primaryDestination('/story').returnKey).toBe(storyKey);
+    expect(origin.primaryDestination('/plan')).toEqual({ to: '/plan' });
+    expect(origin.resolveOrigin(planKey)).toMatchObject({
+      planningSegment: 'wishes',
+      scrollY: 400,
+    });
+    expect(origin.primaryDestination('//other.example')).toEqual({
+      to: '/today',
+    });
+    expect(JSON.stringify(window.history.state)).not.toMatch(
+      /private-words|2025/,
+    );
   });
 
-  it('fails expired and evicted root references back to their canonical destination', async () => {
-    render(<Harness />);
-    const key = origin.captureOrigin();
-    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31 * 60 * 1000);
-    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
-    expect(origin.resolveOrigin(key)).toBeNull();
-    vi.restoreAllMocks();
-    origin.captureOrigin();
-    await act(async () => navigate('/story/memories/one'));
-    for (let index = 0; index < 13; index++) origin.captureOrigin();
-    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
-  });
-
-  it('invalidates primary roots and retained callbacks on account or Space replacement', () => {
+  it('invalidates retained task callbacks on account or Space replacement', () => {
     const view = render(<Harness />);
     const key = origin.captureOrigin();
-    const oldDestination = origin.primaryDestination;
+    const oldResolve = origin.resolveOrigin;
     view.rerender(<Harness account="account-b" />);
-    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
-    expect(oldDestination('/story')).toEqual({ to: '/story' });
     expect(origin.resolveOrigin(key)).toBeNull();
-    origin.captureOrigin();
+    expect(oldResolve(key)).toBeNull();
+    const nextKey = origin.captureOrigin();
     view.rerender(<Harness account="account-b" space="space-b" />);
+    expect(origin.resolveOrigin(nextKey)).toBeNull();
     expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
   });
 
@@ -277,7 +309,8 @@ describe('task origin privacy and lifetime', () => {
     );
     await act(async () => origin.requestReturn(editKey));
     expect(currentPath).toBe('/story/memories/memory-1/edit');
-    expect(origin.primaryDestination('/story').returnKey).toBe(rootKey);
+    expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
+    expect(origin.resolveOrigin(rootKey)).not.toBeNull();
   });
 
   it('preserves recap tab/page but strips private query input', () => {

@@ -169,7 +169,9 @@ See [the composition and evidence](product/design/subpage-navigation-context/REA
 Memory and shared HeartMoment readers group the calendar date and all authorized
 Places above media in one wrapping row. Each Place opens its address/map and
 attribution in the existing short sheet; no external request occurs until an
-explicit link. Private HeartMoments do not request shared Places. A Memory's
+explicit link. Private HeartMoment readers display their protected parent location snapshot and
+do not request shared Place relations. Private capture may deliberately copy a
+saved Place or map choice into that snapshot without creating a shared Place. A Memory's
 date-only fallback heading displays its calendar date once, with Places beside
 it where space permits. `MomentDate` provides the same calendar treatment to
 timeline and relation previews; formatting and date-only semantics stay with

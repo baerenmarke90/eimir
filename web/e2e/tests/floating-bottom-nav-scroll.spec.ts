@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import importantDates from '../../src/i18n/locales/importantDates';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -343,9 +344,9 @@ async function installApiMocks(page: Page): Promise<void> {
 
     if (
       method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/related-people`
+      pathname === `/api/v1/spaces/${SPACE_ID}/related-persons`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson([]);
       return;
     }
 
@@ -353,7 +354,7 @@ async function installApiMocks(page: Page): Promise<void> {
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/important-dates`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson([]);
       return;
     }
 
@@ -898,11 +899,12 @@ for (const variant of [
   { width: 430, theme: 'light', view: 'timeline', reduced: true },
   { width: 1280, theme: 'light', view: 'discover', reduced: false },
 ] as const) {
-  test(`primary destinations restore ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
+  test(`primary destinations reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: variant.width, height: 740 });
     await page.emulateMedia({
+      colorScheme: variant.theme,
       reducedMotion: variant.reduced ? 'reduce' : 'no-preference',
     });
     await installApiMocks(page);
@@ -953,9 +955,7 @@ for (const variant of [
         Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
       )
       .toBeLessThan(2);
-    const storyY = await page.evaluate(() => window.scrollY);
-    // At Expanded the existing header is in document flow; scroll it into view
-    // only when activating via keyboard, which must not rewrite saved position.
+    // Expanded navigation is in document flow; activation remains a root selection.
     if (variant.width >= 840) {
       await nav
         .locator('a[href="/plan"]')
@@ -963,17 +963,42 @@ for (const variant of [
     } else await nav.locator('a[href="/plan"]').click();
     await expect(page).toHaveURL(/\/plan$/);
     await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
+    if (variant.view === 'discover') {
+      const datesTab = page.getByRole('tab', {
+        name: importantDates.heading,
+        exact: true,
+      });
+      await datesTab.click();
+      await expect(datesTab).toHaveAttribute('aria-selected', 'true');
+      await expect(page).toHaveURL(/\/plan#dates$/);
+      await expect(
+        page.getByText(importantDates.emptyTitle, { exact: true }),
+      ).toBeVisible();
+    }
     await nav.locator('a[href^="/story"]').click();
-    await expect(selectedStoryTab).toHaveAttribute('aria-selected', 'true');
+    await expect(
+      page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/\/story$/);
     await expect(page.getByRole('tablist')).toHaveCount(1);
     await expect
-      .poll(async () =>
-        Math.abs((await page.evaluate(() => window.scrollY)) - storyY),
-      )
-      .toBeLessThan(3);
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeLessThan(2);
     await page.screenshot({
-      path: testInfo.outputPath(
-        `restored-${variant.width}-${variant.theme}.png`,
+      path: testInfo.outputPath(`reset-${variant.width}-${variant.theme}.png`),
+    });
+    const followupEvidence = path.resolve(
+      __dirname,
+      '../../../docs/product/design/references/tabs-pro-private-tags/evidence',
+    );
+    fs.mkdirSync(followupEvidence, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        followupEvidence,
+        `tab-reset-${variant.width}-${variant.theme}.png`,
       ),
     });
     await expectNoHorizontalOverflow(page);
@@ -988,11 +1013,14 @@ for (const variant of [
     expect(await page.evaluate(() => history.length)).toBe(historyLength);
     await nav.locator('a[href="/plan"]').click();
     await expect(
-      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+      page.getByRole('tab', { name: m5s3.overview.segmentPlans }),
     ).toHaveAttribute('aria-selected', 'true');
     await page.goBack();
     await expect(page).toHaveURL(/\/story/);
-    await expect(selectedStoryTab).toHaveAttribute('aria-selected', 'true');
+    await expect(
+      page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/\/story$/);
     await expect(page.getByRole('tablist')).toHaveCount(1);
   });
 }
@@ -1252,7 +1280,7 @@ test.describe('primary tab touch navigation', () => {
     });
   }
 
-  test('primary swipe restores Timeline scroll and Planning segment without growing native history or refetching fresh content', async ({
+  test('primary swipe resets Timeline scroll and Planning segment without growing native history or refetching fresh content', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1293,24 +1321,28 @@ test.describe('primary tab touch navigation', () => {
         Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
       )
       .toBeLessThan(2);
-    const storyY = await page.evaluate(() => window.scrollY);
     const reads = timelineReads;
     expect(reads).toBeGreaterThan(0);
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/plan$/);
     await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
     await swipePrimary(page, 'previous');
     await expect(page).toHaveURL(/\/story/);
     await expect
-      .poll(async () =>
-        Math.abs((await page.evaluate(() => window.scrollY)) - storyY),
-      )
-      .toBeLessThan(3);
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeLessThan(2);
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(
+      page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
     expect(timelineReads).toBe(reads);
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/plan$/);
     await expect(
-      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+      page.getByRole('tab', { name: m5s3.overview.segmentPlans }),
     ).toHaveAttribute('aria-selected', 'true');
     expect(await page.evaluate(() => history.length)).toBe(historyLength);
     await page.locator('.mobile-quick-create .quick-create-trigger').click();

@@ -80,7 +80,7 @@
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 18,
-      "reason": "Persistent navigation clearance, bounded account/Space-scoped primary context, browser history/native tab replacement and native touch swipe ownership."
+      "reason": "Persistent navigation clearance, canonical default-root selection with independent nested-task return, browser history/native tab replacement and native touch swipe ownership (#1682)."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -510,6 +510,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 3,
       "reason": "Actual browser JWE across two accounts/devices, deliberate single view, uncertain-send idempotency, ephemeral audio and clear-on-close with mobile/reflow/theme evidence."
+    },
+    "private-location-and-capture-tags.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Feature-owned parent-private location capture, map selection without shared Place writes, save/edit/reload, subscribed feature marks and shared capture-tag reflow. No always-run expansion."
     }
   }
 }

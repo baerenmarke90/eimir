@@ -3702,6 +3702,16 @@
             "title": "Happenedon",
             "type": "string"
           },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HeartMomentLocation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "placeId": {
             "anyOf": [
               {
@@ -3811,6 +3821,16 @@
             "title": "Id",
             "type": "string"
           },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HeartMomentLocation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "selectedCoverAttachmentId": {
             "anyOf": [
               {
@@ -3872,6 +3892,61 @@
           "attachment"
         ],
         "title": "HeartMomentDetail",
+        "type": "object"
+      },
+      "HeartMomentLocation": {
+        "additionalProperties": false,
+        "description": "A protected snapshot, never a shared Place or an indexed relation.",
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "HeartMomentLocation",
         "type": "object"
       },
       "HeartMomentPage": {
@@ -3994,6 +4069,16 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HeartMomentLocation"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "selectedCoverAttachmentId": {
             "anyOf": [

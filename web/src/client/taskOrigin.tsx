@@ -49,6 +49,7 @@ export interface TaskOrigin extends TaskOriginMetadata {
 interface StoredOrigin extends TaskOrigin {
   capturedAt: number;
   historyIndex: number | null;
+  taskOriginKey?: string;
 }
 
 interface OriginStore {
@@ -56,12 +57,10 @@ interface OriginStore {
   scope: string;
   entries: Map<string, StoredOrigin>;
   metadata: { path: string; value: TaskOriginMetadata } | null;
-  primaryRoots: Map<string, string>;
 }
 
 export interface PrimaryDestination {
   to: string;
-  returnKey?: string;
 }
 
 interface TaskOriginContract {
@@ -185,19 +184,16 @@ export function TaskOriginProvider({
     scope,
     entries: new Map(),
     metadata: null,
-    primaryRoots: new Map(),
   });
   // Invalidate synchronously, including callbacks retained by a late task result.
   if (storeRef.current.scope !== scope) {
     storeRef.current.active = false;
     storeRef.current.entries.clear();
-    storeRef.current.primaryRoots.clear();
     storeRef.current = {
       active: true,
       scope,
       entries: new Map(),
       metadata: null,
-      primaryRoots: new Map(),
     };
   }
   const generation = storeRef.current;
@@ -229,6 +225,7 @@ export function TaskOriginProvider({
       };
       const key = `task-${crypto.randomUUID()}`;
       const currentState = window.history.state;
+      const parentKey = currentState?.usr?.taskOriginKey;
       const origin: StoredOrigin = {
         to: path,
         scrollY: Math.max(0, window.scrollY),
@@ -247,19 +244,13 @@ export function TaskOriginProvider({
         planningPlanStatus: snapshot.planningPlanStatus,
         planningPlanSearch: snapshot.planningPlanSearch,
         planningWishSearch: snapshot.planningWishSearch,
+        taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,
         capturedAt: Date.now(),
       };
       store.entries.set(key, origin);
-      // Root references share the existing origin lifetime and privacy boundary.
-      // Details, editors, private content and global search are never resumed.
-      if (
-        PRIMARY_APP_ROUTES.some((route) => route.path === location.pathname)
-      ) {
-        store.primaryRoots.set(location.pathname, key);
-      }
       while (store.entries.size > MAX_ORIGINS) {
         const oldest = store.entries.keys().next().value;
         if (oldest) store.entries.delete(oldest);
@@ -276,7 +267,7 @@ export function TaskOriginProvider({
       );
       return key;
     },
-    [path, generation, location.pathname],
+    [path, generation, resolveStored],
   );
 
   const resolveOrigin = useCallback(
@@ -286,6 +277,7 @@ export function TaskOriginProvider({
       const {
         capturedAt: _capturedAt,
         historyIndex: _historyIndex,
+        taskOriginKey: _taskOriginKey,
         ...rest
       } = origin;
       return rest;
@@ -310,23 +302,22 @@ export function TaskOriginProvider({
       }
       void navigate(origin.to, {
         replace: true,
-        state: { taskReturnKey: key },
+        state: {
+          taskReturnKey: key,
+          ...(resolveStored(origin.taskOriginKey)
+            ? { taskOriginKey: origin.taskOriginKey }
+            : {}),
+        },
       });
     },
     [navigate, resolveStored, generation],
   );
 
-  const primaryDestination = useCallback(
-    (root: string): PrimaryDestination => {
-      if (!PRIMARY_APP_ROUTES.some((route) => route.path === root))
-        return { to: '/today' };
-      const key = generation.primaryRoots.get(root);
-      const origin = resolveStored(key);
-      if (!origin || origin.to.split('?')[0] !== root) return { to: root };
-      return { to: origin.to, returnKey: key };
-    },
-    [generation, resolveStored],
-  );
+  const primaryDestination = useCallback((root: string): PrimaryDestination => {
+    if (!PRIMARY_APP_ROUTES.some((route) => route.path === root))
+      return { to: '/today' };
+    return { to: root };
+  }, []);
 
   const registerOriginMetadata = useCallback(
     (metadata: TaskOriginMetadata) => {
@@ -347,7 +338,6 @@ export function TaskOriginProvider({
       storeRef.current.active = false;
       storeRef.current.entries.clear();
       storeRef.current.metadata = null;
-      storeRef.current.primaryRoots.clear();
     };
   }, []);
 

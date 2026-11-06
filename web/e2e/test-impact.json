@@ -901,6 +901,18 @@
         "web/src/client/useVoiceRecorder.ts",
         "web/src/client/voiceNotes.ts"
       ]
+    },
+    "private-location-and-capture-tags.spec.ts": {
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/HeartMomentLocation.tsx",
+        "web/src/components/PlaceChoicePicker.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/client/proPresentation.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PlanningCreatePage.tsx"
+      ]
     }
   }
 }

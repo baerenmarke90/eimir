@@ -1,15 +1,16 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import { test, expect } from '@playwright/test';
-import navigation from '../../src/i18n/locales/navigation';
-import {
-  installMocks,
-  signIn,
-  SPACE_ID,
-  ACCOUNT_ID,
-  getTimelineItems,
-  captureScreenshot,
-} from '../support/storyTimelineFixture';
 import { readFileSync } from 'node:fs';
+import { expect, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
+import { fulfillDefaultProductContext } from '../support/productContext';
+import {
+  ACCOUNT_ID,
+  captureScreenshot,
+  getTimelineItems,
+  installMocks,
+  SPACE_ID,
+  signIn,
+} from '../support/storyTimelineFixture';
 
 for (const [width, theme] of [
   [390, 'light'],
@@ -218,6 +219,10 @@ test('Memory gallery originals survive Wir and Moments tab navigation with fresh
     .locator('.mobile-bottom-nav')
     .getByRole('link', { name: navigation.story, exact: true })
     .click();
+  await expect(
+    page.getByRole('tab', { name: de.story.tabDiscover }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: de.story.tabTimeline }).click();
   await card.click();
   await expect(galleryImage).toHaveAttribute('src', source ?? '');
   await expect.poll(() => originalReads).toBeGreaterThan(readsBefore);

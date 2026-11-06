@@ -55,6 +55,13 @@ import {
     AttachmentSummaryToJSON,
     AttachmentSummaryToJSONTyped,
 } from './AttachmentSummary';
+import type { HeartMomentLocation } from './HeartMomentLocation';
+import {
+    HeartMomentLocationFromJSON,
+    HeartMomentLocationFromJSONTyped,
+    HeartMomentLocationToJSON,
+    HeartMomentLocationToJSONTyped,
+} from './HeartMomentLocation';
 
 /**
  * 
@@ -128,6 +135,12 @@ export interface HeartMomentDetail {
      * @memberof HeartMomentDetail
      */
     id: string;
+    /**
+     * 
+     * @type {HeartMomentLocation}
+     * @memberof HeartMomentDetail
+     */
+    location?: HeartMomentLocation | null;
     /**
      * 
      * @type {string}
@@ -216,6 +229,7 @@ export function HeartMomentDetailFromJSONTyped(json: any, ignoreDiscriminator: b
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
+        'location': json['location'] === undefined ? undefined : json['location'] === null ? null : HeartMomentLocationFromJSON(json['location']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'spaceId': json['spaceId'],
         'tags': json['tags'],
@@ -248,6 +262,7 @@ export function HeartMomentDetailToJSONTyped(value?: HeartMomentDetail | null, i
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
+        'location': HeartMomentLocationToJSON(value['location']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'spaceId': value['spaceId'],
         'tags': value['tags'],

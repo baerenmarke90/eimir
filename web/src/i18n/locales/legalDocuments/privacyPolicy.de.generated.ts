@@ -256,7 +256,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Für jede Anmeldung führen wir eine Sitzung mit der Art der App, ihrem Beginn und ihrer letzten Nutzung. Zugangsschlüssel speichern wir nur als Prüfwerte. Eine Sitzung endet nach 60 Tagen ohne Nutzung, spätestens aber nach 180 Tagen. Danach meldest du dich neu an.',
+              text: 'Für jede Anmeldung legen wir eine Sitzung an und speichern dazu die Art der App, ihren Beginn und ihre letzte Nutzung. Zugangsschlüssel speichern wir nur als Prüfwerte. Eine Sitzung endet nach 60 Tagen ohne Nutzung, spätestens aber nach 180 Tagen. Danach meldest du dich neu an.',
             },
           ],
           children: [],
@@ -525,7 +525,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: "Öffnest du eine Karte, lädt eimir. die Kartenbilder direkt von den Servern der OpenStreetMap Foundation, St John's Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes Königreich. Sie erhält dabei deine IP-Adresse, technische Angaben zu deinem Browser oder Gerät, eimir. als aufrufende Seite und die Kartenausschnitte, die du ansiehst, und damit ungefähr, wo eure Orte liegen. Namen, Texte oder Fotos aus eimir. erhält sie nicht. Die OpenStreetMap Foundation verarbeitet diese Daten in eigener Verantwortung nach ihren ",
+              text: "Öffnest du eine Karte, lädt eimir. die Kartenbilder direkt von den Servern der OpenStreetMap Foundation, St John's Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes Königreich. Sie erhält dabei deine IP-Adresse, technische Angaben zu deinem Browser oder Gerät, eimir. als aufrufende Seite und die Kartenausschnitte, die du ansiehst. Daraus lässt sich ungefähr ablesen, wo eure Orte liegen. Namen, Texte oder Fotos aus eimir. erhält sie nicht. Die OpenStreetMap Foundation verarbeitet diese Daten in eigener Verantwortung nach ihren ",
             },
             {
               kind: 'link',
@@ -1228,10 +1228,13 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
-            { kind: 'strong', text: 'Daten auf deinem Gerät:' },
+            {
+              kind: 'strong',
+              text: 'Zwischengespeicherte Inhalte, Fotos und Entwürfe auf deinem Gerät:',
+            },
             {
               kind: 'text',
-              text: ' höchstens sieben Tage, beim Abmelden sofort.',
+              text: ' höchstens sieben Tage, beim Abmelden sofort. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
             },
           ],
           children: [],

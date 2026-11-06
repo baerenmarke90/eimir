@@ -1,5 +1,6 @@
 """Voice media reuses canonical parent privacy, deletion and upload ownership."""
 
+import os
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -13,7 +14,6 @@ from eimir.jobs.models import Job
 from eimir.media import get_media_store
 from tests.conftest import auth, requires_database
 from tests.integration.test_heart_moments import couple as couple
-from tests.support.video import processor as processor
 
 pytestmark = [pytest.mark.integration, requires_database]
 SAMPLE = Path(__file__).parents[1] / "fixtures/media/voice/short.ogg"
@@ -25,6 +25,19 @@ def audio_enabled(monkeypatch):  # type: ignore[no-untyped-def]
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+@pytest.fixture
+def restore_decoder(monkeypatch):  # type: ignore[no-untyped-def]
+    """Run the real codec in the restricted matrix; isolate its port in DB-only CI."""
+    executable = os.environ.get("EIMIR_TEST_FFMPEG")
+    probe = os.environ.get("EIMIR_TEST_FFPROBE")
+    if executable and probe:
+        monkeypatch.setenv("EIMIR_FFMPEG_PATH", executable)
+        monkeypatch.setenv("EIMIR_FFPROBE_PATH", probe)
+        get_settings.cache_clear()
+        return audios.process
+    return None
 
 
 def upload(client, session, couple, monkeypatch):  # type: ignore[no-untyped-def]
@@ -180,7 +193,7 @@ def test_voice_intake_disabled_keeps_existing_audio_readable(client, session, co
 
 @pytest.mark.parametrize("encrypted", [False, True])
 def test_voice_transfer_retains_labels_and_revalidates_bytes(
-    client, session, couple, monkeypatch, processor, encryption, encrypted
+    client, session, couple, monkeypatch, restore_decoder, encryption, encrypted
 ):  # type: ignore[no-untyped-def]
     import io
 
@@ -194,7 +207,7 @@ def test_voice_transfer_retains_labels_and_revalidates_bytes(
 
     if encrypted:
         encryption.apply("required")
-    decode = audios.process
+    decode = restore_decoder
     identifier = upload(client, session, couple, monkeypatch)
     assert create(client, couple, identifier, "SHARED").status_code == 201
     target = make_space(session, couple["anna"])
@@ -249,7 +262,8 @@ def test_voice_transfer_retains_labels_and_revalidates_bytes(
     # The restore reuses the restricted decoder, including after intake is disabled.
     monkeypatch.setenv("EIMIR_AUDIO_UPLOAD_ENABLED", "false")
     get_settings.cache_clear()
-    monkeypatch.setattr(audios, "process", decode)
+    if decode is not None:
+        monkeypatch.setattr(audios, "process", decode)
     video_jobs.validate(session, {"attachmentId": str(imported.id)})
     session.refresh(imported)
     assert imported.status == AttachmentStatus.READY

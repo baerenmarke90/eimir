@@ -42,7 +42,9 @@ export async function readSharedVoice(
 ): Promise<File> {
   const result = await nativeVoiceShare.read({ generation });
   if (
-    !/^content:\/\/de\.eimir\.app\.selectedmedia\/[a-f0-9-]+$/.test(result.uri)
+    !/^content:\/\/de\.eimir\.app(?:\.debug)?\.selectedmedia\/[a-f0-9-]+$/.test(
+      result.uri,
+    )
   )
     throw new Error('Invalid voice selection');
   const response = await fetch(Capacitor.convertFileSrc(result.uri), {

@@ -11,8 +11,8 @@ import {
   CAPABILITIES,
   installMocks,
   ME,
-  signIn,
   SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 const LOCATION = {
@@ -127,8 +127,17 @@ async function tagGeometry(page: Page) {
   ]);
   if (!field || !action) throw new Error('Tag controls are not visible');
   expect(Math.abs(field.y - action.y)).toBeLessThan(2);
-  expect(field.width).toBeGreaterThan(30);
+  expect(field.width).toBeGreaterThanOrEqual(44);
+  expect(field.x + field.width).toBeLessThanOrEqual(action.x);
+  expect(action.width).toBeGreaterThanOrEqual(44);
   expect(action.height).toBeGreaterThanOrEqual(44);
+  if (!(await add.locator('.context-tag-add-label').isVisible())) {
+    const icon = add.locator('.eimir-icon-hinzufuegen');
+    await expect(icon).toBeVisible();
+    const symbol = await icon.boundingBox();
+    expect(symbol?.width).toBeGreaterThanOrEqual(20);
+    expect(symbol?.height).toBeGreaterThanOrEqual(20);
+  }
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

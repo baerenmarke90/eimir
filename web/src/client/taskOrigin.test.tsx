@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, render } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
+import {
+  BrowserRouter,
+  MemoryRouter,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   TaskOriginProvider,
@@ -10,12 +15,14 @@ import {
 
 let origin: ReturnType<typeof useTaskOrigin>;
 let currentPath = '';
+let currentState: unknown;
 let navigate: ReturnType<typeof useNavigate>;
 function Probe() {
   origin = useTaskOrigin();
   const location = useLocation();
   navigate = useNavigate();
   currentPath = `${location.pathname}${location.search}`;
+  currentState = location.state;
   return null;
 }
 function Harness({
@@ -51,6 +58,57 @@ afterEach(() => {
 });
 
 describe('task origin privacy and lifetime', () => {
+  it('restores the upstream context after a nested task replaces itself with its result', async () => {
+    window.history.replaceState(
+      { idx: 0, key: 'planning', usr: null },
+      '',
+      '/plan',
+    );
+    render(
+      <BrowserRouter>
+        <TaskOriginProvider accountId="account-a" spaceId="space-a">
+          <Probe />
+        </TaskOriginProvider>
+      </BrowserRouter>,
+    );
+    const planningKey = origin.captureOrigin({ planningSegment: 'wishes' });
+    await act(async () =>
+      navigate('/plan/choose', { state: { taskOriginKey: planningKey } }),
+    );
+    const selectionKey = origin.captureOrigin();
+    await act(async () =>
+      navigate('/plan/plans/result', {
+        replace: true,
+        state: { taskOriginKey: selectionKey },
+      }),
+    );
+    await act(async () => origin.requestReturn(selectionKey));
+    expect(currentPath).toBe('/plan/choose');
+    expect(currentState).toEqual({
+      taskReturnKey: selectionKey,
+      taskOriginKey: planningKey,
+    });
+    expect(origin.resolveOrigin(planningKey)).toMatchObject({
+      planningSegment: 'wishes',
+    });
+    await act(async () => origin.requestReturn(planningKey));
+    await waitFor(() => expect(currentPath).toBe('/plan'));
+  });
+
+  it('does not restore an untrusted upstream origin from route state', async () => {
+    render(<Harness />);
+    window.history.replaceState(
+      { usr: { taskOriginKey: 'foreign-origin' } },
+      '',
+      '/story',
+    );
+    const key = origin.captureOrigin();
+    await act(async () => navigate('/plan/plans/result'));
+    await act(async () => origin.requestReturn(key));
+    expect(currentState).toEqual({ taskReturnKey: key });
+    expect(origin.resolveOrigin(key)).not.toHaveProperty('taskOriginKey');
+  });
+
   it('primary selection opens canonical defaults while detail origins retain their full context', async () => {
     render(<Harness />);
     const key = origin.captureOrigin({ loadedPageCount: 4 });

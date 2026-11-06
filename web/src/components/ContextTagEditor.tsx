@@ -1,9 +1,10 @@
-import { useId, useRef, useState, useImperativeHandle, type Ref } from 'react';
-import { useTranslation } from '../i18n';
-import { useApiRuntime } from '../client/apiRuntimeContext';
+import { type Ref, useId, useImperativeHandle, useRef, useState } from 'react';
 import type { ContextTagSuggestionsView } from '../api/generated/models/ContextTagSuggestionsView';
+import { useApiRuntime } from '../client/apiRuntimeContext';
 import { useContextTagSuggestions } from '../client/useContextTagSuggestions';
+import { useTranslation } from '../i18n';
 import './MemoryTagChoices.css';
+import { EimirIcon } from './EimirIcon';
 
 const MAX_TAGS = 8;
 const MAX_LABEL_LENGTH = 40;
@@ -170,9 +171,13 @@ function ContextTagEditorContent({
           ref={addRef}
           type="button"
           className="secondary"
+          aria-label={t('contextTags.add')}
           onClick={() => commit()}
         >
-          {t('contextTags.add')}
+          <span className="context-tag-add-label">{t('contextTags.add')}</span>
+          <span className="context-tag-add-icon" aria-hidden="true">
+            <EimirIcon name="hinzufuegen" />
+          </span>
         </button>
       </div>
       {error ? (

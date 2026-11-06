@@ -49,6 +49,7 @@ export interface TaskOrigin extends TaskOriginMetadata {
 interface StoredOrigin extends TaskOrigin {
   capturedAt: number;
   historyIndex: number | null;
+  taskOriginKey?: string;
 }
 
 interface OriginStore {
@@ -224,6 +225,7 @@ export function TaskOriginProvider({
       };
       const key = `task-${crypto.randomUUID()}`;
       const currentState = window.history.state;
+      const parentKey = currentState?.usr?.taskOriginKey;
       const origin: StoredOrigin = {
         to: path,
         scrollY: Math.max(0, window.scrollY),
@@ -242,6 +244,7 @@ export function TaskOriginProvider({
         planningPlanStatus: snapshot.planningPlanStatus,
         planningPlanSearch: snapshot.planningPlanSearch,
         planningWishSearch: snapshot.planningWishSearch,
+        taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,
@@ -264,7 +267,7 @@ export function TaskOriginProvider({
       );
       return key;
     },
-    [path, generation],
+    [path, generation, resolveStored],
   );
 
   const resolveOrigin = useCallback(
@@ -274,6 +277,7 @@ export function TaskOriginProvider({
       const {
         capturedAt: _capturedAt,
         historyIndex: _historyIndex,
+        taskOriginKey: _taskOriginKey,
         ...rest
       } = origin;
       return rest;
@@ -298,7 +302,12 @@ export function TaskOriginProvider({
       }
       void navigate(origin.to, {
         replace: true,
-        state: { taskReturnKey: key },
+        state: {
+          taskReturnKey: key,
+          ...(resolveStored(origin.taskOriginKey)
+            ? { taskOriginKey: origin.taskOriginKey }
+            : {}),
+        },
       });
     },
     [navigate, resolveStored, generation],

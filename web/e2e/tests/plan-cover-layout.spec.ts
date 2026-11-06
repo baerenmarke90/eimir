@@ -540,10 +540,6 @@ for (const view of [
         imageFile('square'),
       ]);
     const drafts = page.locator('.photo-draft-tile');
-    const inspector = page.getByRole('group', {
-      name: de.memory.photoSelected,
-      exact: true,
-    });
     await expect(drafts).toHaveCount(3);
     const save = page.locator('form button[type=submit]');
     await expect(save).toBeDisabled();
@@ -553,12 +549,11 @@ for (const view of [
       .getByRole('button', { name: /portrait.png/ })
       .and(page.locator('.photo-draft-tile'))
       .click();
-    await inspector
+    await page
+      .locator('.photo-draft-inspector')
       .getByRole('button', { name: de.common.retry, exact: true })
       .click();
-    await expect(inspector.getByRole('status')).toHaveText(
-      de.memory.photoReady,
-    );
+    await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
     await expectInlineDraftActions(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),

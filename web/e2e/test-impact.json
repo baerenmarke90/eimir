@@ -228,7 +228,9 @@
         "web/src/components/PhotoSourceSettingsPanel.tsx",
         "web/src/client/memoryDiaryDraft.ts",
         "web/src/client/selectedMediaRetention.ts",
-        "web/src/client/sessionPersistence.ts"
+        "web/src/client/sessionPersistence.ts",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoDraftSorting.tsx"
       ]
     },
     "memory-delete-ownership.spec.ts": {
@@ -257,7 +259,9 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/TodayPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoDraftSorting.tsx"
       ]
     },
     "memory-map-and-couple-games.spec.ts": {
@@ -843,7 +847,8 @@
       "roots": [
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/PlanPhotosEditor.tsx",
-        "web/src/components/PhotoDraftGallery.tsx"
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoDraftSorting.tsx"
       ]
     },
     "multilingual-product.spec.ts": {

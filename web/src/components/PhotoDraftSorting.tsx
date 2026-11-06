@@ -6,11 +6,10 @@ import {
 import {
   DragDropProvider,
   type DragEndEvent,
-  KeyboardSensor,
   PointerSensor,
 } from '@dnd-kit/react';
 import { isSortableOperation, useSortable } from '@dnd-kit/react/sortable';
-import type { ReactNode } from 'react';
+import { type ReactNode, useCallback } from 'react';
 import { useTranslation } from '../i18n';
 
 /** Insert by identity so uploads and the chosen cover keep their owners. */
@@ -53,7 +52,7 @@ export function PhotoDraftSorting({
         }),
         Accessibility.configure({
           screenReaderInstructions: {
-            draggable: t('experiences.keyboardHelp'),
+            draggable: '',
           },
           announcements: {
             dragstart: () => t('experiences.dragStarted'),
@@ -78,7 +77,6 @@ export function PhotoDraftSorting({
 interface PhotoDraftItemProps {
   id: string;
   index: number;
-  name: string;
   disabled: boolean;
   reorderable: boolean;
   children: ReactNode;
@@ -95,12 +93,10 @@ export function SortablePhotoDraftItem(props: PhotoDraftItemProps) {
 function ReorderablePhotoDraftItem({
   id,
   index,
-  name,
   disabled,
   reorderable,
   children,
 }: PhotoDraftItemProps) {
-  const { t } = useTranslation();
   const reduced = globalThis.matchMedia?.(
     '(prefers-reduced-motion: reduce)',
   ).matches;
@@ -111,18 +107,10 @@ function ReorderablePhotoDraftItem({
     transition: reduced ? null : undefined,
     sensors: [
       PointerSensor.configure({
-        activatorElements: (source) => [
-          source.element?.querySelector('.photo-draft-tile') ?? undefined,
-          source.handle,
-        ],
-        preventActivation: (event) => {
-          const target = event.target;
-          if (!(target instanceof Element)) return true;
-          // Touch scrolls on the photo; its integrated grip owns touch dragging.
-          return event.pointerType === 'touch'
-            ? !target.closest('.photo-draft-drag-handle')
-            : !target.closest('.photo-draft-tile, .photo-draft-drag-handle');
-        },
+        activatorElements: (source) => [source.handle],
+        preventActivation: (event) =>
+          !(event.target instanceof Element) ||
+          !event.target.closest('.photo-draft-tile'),
         activationConstraints: (event) =>
           event.pointerType === 'touch'
             ? [
@@ -133,27 +121,21 @@ function ReorderablePhotoDraftItem({
               ]
             : [new PointerActivationConstraints.Distance({ value: 5 })],
       }),
-      KeyboardSensor,
     ],
   });
+  const attach = useCallback(
+    (element: HTMLLIElement | null) => {
+      ref(element);
+      handleRef(element?.querySelector('.photo-draft-tile') ?? null);
+    },
+    [ref, handleRef],
+  );
   return (
     <li
-      ref={ref}
+      ref={attach}
       className={`photo-draft-item${isDragging ? ' is-dragging' : ''}`}
     >
       {children}
-      {reorderable ? (
-        <button
-          type="button"
-          ref={handleRef}
-          className="photo-draft-drag-handle"
-          disabled={disabled}
-          aria-label={t('experiences.moveHandle', { name })}
-          title={t('experiences.moveHandle', { name })}
-        >
-          <span aria-hidden="true">{index + 1} ⠿</span>
-        </button>
-      ) : null}
     </li>
   );
 }

@@ -45,11 +45,22 @@ export const EIMIR_ICON_NAMES = [
   'smile-plus',
   'expand',
   'quote',
+  'close',
+  'check',
+  'lock-open',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  close: <path d="m6 6 12 12M18 6 6 18" />,
+  check: <path d="m5 12 4.5 4.5L19 7" />,
+  'lock-open': (
+    <>
+      <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />
+      <path d="M7.5 10V7a4.5 4.5 0 0 1 8.5-2" />
+    </>
+  ),
   quote: (
     <>
       <path d="M4 5h6v7c0 3.5-2 6-6 7v-2c2.5-1 4-2.5 4-5H4V5ZM14 5h6v7c0 3.5-2 6-6 7v-2c2.5-1 4-2.5 4-5h-4V5Z" />

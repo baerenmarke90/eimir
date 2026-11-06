@@ -188,10 +188,6 @@ export function PlanPhotosEditor({
           controller.reorder(keys);
           onChange();
         }}
-        onMove={(key, offset) => {
-          controller.move(key, offset);
-          onChange();
-        }}
         onSensitive={(key, value) => {
           const item = controller.items.find((item) => item.key === key);
           if (

@@ -749,6 +749,12 @@ The shared mobile arrangement subtask applies only to the parent draft until Sav
 HeartMoments use the same bounded 20-media/500 MiB gallery lifecycle while retaining owner-only privacy and backward-compatible primary attachment reads.
 Plans retain image-only galleries. Device photos and these authoring controls remain Core; existing video and external-source capabilities still apply.
 
+PO extension #1674 (2026-11-06): both active partners may mark and unmark
+sensitive photos already bound to a shared Memory. This metadata decision is
+independent of uploader/Memory authorship; it does not broaden removal, new
+binding, private HeartMoment or authored experience-answer rights. Versioned
+atomic writes and Space membership/tenant checks still apply.
+
 Authorship matters.
 
 Base rule:

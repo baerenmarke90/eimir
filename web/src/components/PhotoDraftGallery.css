@@ -11,20 +11,10 @@
   padding: 0;
   margin: 0;
 }
-.photo-draft-grid > li {
+.photo-draft-grid > li,
+.photo-draft-item > [role="group"] {
   min-inline-size: 0;
   position: relative;
-}
-.photo-draft-drag-handle {
-  position: absolute;
-  inset: auto var(--space-1) var(--space-1) auto;
-  min-inline-size: var(--touch-target-web);
-  min-block-size: var(--touch-target-web);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  touch-action: none;
-  cursor: grab;
 }
 .photo-draft-item.is-dragging {
   z-index: 3;
@@ -57,8 +47,7 @@
   min-block-size: 0;
   object-fit: cover;
 }
-.photo-draft-number,
-.photo-draft-selected {
+.photo-draft-number {
   position: absolute;
   inset-block-start: var(--space-2);
   padding-inline: var(--space-2);
@@ -70,14 +59,55 @@
 .photo-draft-number {
   inset-inline-start: var(--space-2);
 }
-.photo-draft-selected {
-  inset-inline-end: var(--space-2);
+/* Corner controls are siblings of the image button, never nested activators. */
+.photo-draft-action {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+.photo-draft-remove {
+  inset: var(--space-1) var(--space-1) auto auto;
+}
+.photo-draft-sensitive {
+  inset: auto auto var(--space-1) var(--space-1);
+}
+.photo-draft-cover-toggle {
+  inset: auto var(--space-1) var(--space-1) auto;
+}
+.photo-draft-cover-toggle[aria-pressed="true"] {
   background: var(--color-brand-strong);
   color: var(--color-on-accent);
 }
+.photo-draft-cover-toggle[aria-pressed="false"] .eimir-icon {
+  opacity: var(--opacity-subtle);
+}
+.photo-draft-cover {
+  display: block;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.photo-draft-tile {
+  -webkit-touch-callout: none;
+  user-select: none;
+  cursor: grab;
+}
+.photo-draft-tile-preview {
+  pointer-events: none;
+}
+.photo-draft-item.is-dragging .photo-draft-tile {
+  cursor: grabbing;
+}
 .photo-draft-tile-status {
   position: absolute;
-  inset: auto var(--space-1) var(--space-1);
+  inset: auto var(--space-1) calc(var(--touch-target-web) + var(--space-2));
   background: var(--color-surface);
   color: var(--color-text-secondary);
   border-radius: 0 0 var(--radius-small) var(--radius-small);

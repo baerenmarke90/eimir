@@ -9,10 +9,9 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { nextFrame } from '../support/mediaCarouselGesture';
 import {
+  dragDraftMedia,
   expectInlineDraftActions,
-  selectDraftMedia,
 } from '../support/mediaDraft';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
@@ -30,7 +29,7 @@ const EVIDENCE_DIR = path.join(
   '..',
   '..',
   '..',
-  'docs/product/design/references/1618-memory-experiences/evidence',
+  'docs/product/design/references/moment-media-controls/evidence',
 );
 const CABIN_FIXTURE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -387,68 +386,41 @@ for (const [width, colorScheme] of [
       .click();
     await expectInlineDraftActions(page);
     if (width === 390 && colorScheme === 'light') {
-      const handle = gallery.getByRole('button', {
-        name: experiences.moveHandle.replace('{{name}}', 'first.jpg'),
-        exact: true,
-      });
-      const start = await handle.boundingBox();
-      const end = await gallery
-        .locator('.photo-draft-tile')
-        .nth(2)
-        .boundingBox();
-      if (!start || !end)
-        throw new Error('Arrange gesture targets are missing');
-      await page.mouse.move(
-        start.x + start.width / 2,
-        start.y + start.height / 2,
-      );
-      await page.mouse.down();
-      await page.mouse.move(
-        start.x + start.width / 2 + 10,
-        start.y + start.height / 2,
-      );
-      await expect(handle).toHaveAttribute('aria-grabbed', 'true');
-      await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, {
-        steps: 12,
-      });
-      await page.mouse.up();
+      // A quick swipe on the photo scrolls before the hold-to-drag activates.
+      const session = await page.context().newCDPSession(page);
+      await session.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+      await gallery.locator('.photo-draft-tile').first().scrollIntoViewIfNeeded();
+      const frame = await gallery.locator('.photo-draft-tile').first().boundingBox();
+      if (!frame) throw new Error('Missing photo scroll geometry');
+      const scrollBefore = await page.evaluate(() => window.scrollY);
+      const point = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+      await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...point, y: point.y + 60 }] });
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(scrollBefore);
+      await session.detach();
+      await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute('aria-label', /first.jpg/);
+      await dragDraftMedia(page, 0, 2);
       await expect(gallery.locator('.photo-draft-tile').last()).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      async function moveWithKeyboard(finish: 'Space' | 'Escape') {
-        await expect(handle).not.toHaveAttribute('aria-grabbed', 'true');
-        await handle.focus();
-        await page.keyboard.press('Space');
-        await expect(handle).toHaveAttribute('aria-grabbed', 'true');
-        await page.keyboard.press('ArrowLeft');
-        await nextFrame(page);
-        await page.keyboard.press(finish);
-        await expect(handle).not.toHaveAttribute('aria-grabbed', 'true');
-        await nextFrame(page);
-      }
-      await moveWithKeyboard('Space');
+      await dragDraftMedia(page, 2, 1, 'touch');
       await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      await moveWithKeyboard('Escape');
+      await dragDraftMedia(page, 1, 0, 'touch', true);
       await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      await moveWithKeyboard('Space');
+      await dragDraftMedia(page, 1, 0, 'touch');
       await expect(
         gallery.locator('.photo-draft-tile').first(),
       ).toHaveAttribute('aria-label', /first.jpg/);
     }
-    await selectDraftMedia(page, 2);
-    const earlier = actions.getByRole('button', {
-      name: de.memory.photoMoveEarlier.replace('{{name}}', 'third.jpg'),
-      exact: true,
-    });
-    await earlier.click();
-    await earlier.click();
+    await dragDraftMedia(page, 2, 0);
     await expectInlineDraftActions(page);
     await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
       'aria-label',

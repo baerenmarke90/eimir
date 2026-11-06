@@ -2708,7 +2708,7 @@
     "keyboardHelp": "Press Space to pick up, use the arrow keys to move, then Space to drop. Escape cancels.",
     "dragStarted": "Media picked up.",
     "dragCancelled": "Move cancelled.",
-    "dragFinished": "Media dropped. Done applies the order to your draft.",
+    "dragFinished": "Media order updated in your draft.",
     "arrangeHelp": "Hold the handle and drag the media. Or select it and move it with the buttons.",
     "finish": "Done",
     "cancel": "Cancel",

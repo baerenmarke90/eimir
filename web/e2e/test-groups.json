@@ -438,7 +438,7 @@
     "memory-experiences.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
-      "reason": "Period/cover/order-save-return acceptance across Compact/Expanded, Light/Dark, 200% text, reduced motion, pointer/keyboard movement and Axe."
+      "reason": "Memory periods, independent direct cover controls and whole-photo mouse/touch sorting retain identity and draft cancellation through Save/result/return."
     },
     "shared-experience-answers.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -487,7 +487,7 @@
     "polish-sensitive-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 2,
-      "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
+      "reason": "Shared Memory photo classification persists for either active partner regardless of photo or parent authorship; retains versioned Save and reopen semantics with direct lock controls."
     },
     "multilingual-product.spec.ts": {
       "disposition": "PR_CRITICAL",

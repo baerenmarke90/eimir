@@ -679,8 +679,11 @@ def replace_attachments(
         binding.set_sensitive(
             attachment,
             (sensitivity or {}).get(attachment.id),
-            allow_change=binding.can_edit_sensitivity(
-                attachment, account_id=context.account_id, parent_owner_id=memory.owner_id
+            allow_change=(
+                memory.experience_kind is None
+                or binding.can_edit_sensitivity(
+                    attachment, account_id=context.account_id, parent_owner_id=memory.owner_id
+                )
             ),
         )
 

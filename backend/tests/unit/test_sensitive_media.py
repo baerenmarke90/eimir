@@ -75,7 +75,10 @@ def test_create_cannot_claim_classification_without_a_photo() -> None:
 
 
 @pytest.mark.parametrize("viewer", ["parent", "uploader", "partner"])
-def test_bound_summary_projects_individual_classification_authority(viewer: str) -> None:
+@pytest.mark.parametrize("experience_kind", [None, "GRATITUDE"])
+def test_bound_summary_projects_shared_memory_and_owned_experience_authority(
+    viewer: str, experience_kind: str | None
+) -> None:
     parent_id, uploader_id, partner_id, space_id = (uuid4() for _ in range(4))
     viewer_id = {"parent": parent_id, "uploader": uploader_id, "partner": partner_id}[viewer]
     photo = Attachment(
@@ -91,16 +94,22 @@ def test_bound_summary_projects_individual_classification_authority(viewer: str)
         has_thumbnail=False,
         payload=AttachmentPayload(original_name="selected.jpg"),
     )
-    memory = Memory(owner_id=parent_id, payload=MemoryPayload(title="A moment", body="Words"))
+    memory = Memory(
+        owner_id=parent_id,
+        experience_kind=experience_kind,
+        payload=MemoryPayload(title="A moment", body="Words"),
+    )
     summary = _memory_attachments(
         AuthorizationContext(account_id=viewer_id, space_id=space_id),
         memory,
         [BoundAttachment(photo, 0)],
     )[0]
-    allowed = viewer in {"parent", "uploader"}
+    allowed = experience_kind is None or viewer in {"parent", "uploader"}
     assert summary.can_edit_sensitivity is allowed
     assert summary.model_dump(by_alias=True)["canEditSensitivity"] is allowed
-    assert can_edit_sensitivity(photo, account_id=viewer_id, parent_owner_id=parent_id) is allowed
+    assert can_edit_sensitivity(photo, account_id=viewer_id, parent_owner_id=parent_id) is (
+        viewer in {"parent", "uploader"}
+    )
     if allowed:
         set_sensitive(photo, True, allow_change=summary.can_edit_sensitivity)
         assert photo.payload.is_sensitive is True

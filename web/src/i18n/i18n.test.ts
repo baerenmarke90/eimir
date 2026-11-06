@@ -322,7 +322,7 @@ describe('web i18n', () => {
   });
 
   it('falls back to German resources for an unsupported language request', async () => {
-    await i18n.changeLanguage('fr');
+    await i18n.changeLanguage('zz');
     expect(i18n.t('story.kind.memory')).toBe('Erinnerung');
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });

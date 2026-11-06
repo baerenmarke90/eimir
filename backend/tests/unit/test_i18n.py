@@ -10,7 +10,7 @@ from eimir.identity.models import Account
 
 @pytest.mark.parametrize(
     ("languages", "expected"),
-    [([], "de"), (["fr-FR", "en-US", "de-CH"], "en"), (["de_CH"], "de"), (["fr"], "de")],
+    [([], "de"), (["zz-ZZ", "en-US", "de-CH"], "en"), (["de_CH"], "de"), (["zz"], "de")],
 )
 def test_device_preference_order_and_supported_variants(
     languages: list[str], expected: str
@@ -22,7 +22,7 @@ def test_device_preference_order_and_supported_variants(
     ("header", "expected"),
     [
         (None, "de"),
-        ("fr-FR,en-US;q=0.8,de;q=0.5", "en"),
+        ("zz-ZZ,en-US;q=0.8,de;q=0.5", "en"),
         ("en;q=0,de;q=0.5", "de"),
         ("en;q=nan,de;q=0.1", "de"),
         ("de;q=0.4,en;q=0.9", "en"),
@@ -53,5 +53,5 @@ def test_every_delivery_catalog_has_the_same_keys_and_interpolation_contract() -
 
 
 def test_unknown_recipient_locale_falls_back_to_german() -> None:
-    assert text("notification.subject", "fr") == text("notification.subject", "de")
+    assert text("notification.subject", "zz") == text("notification.subject", "de")
     assert text("auth.magic.subject", "en-US") == "Your sign-in link for eimir."

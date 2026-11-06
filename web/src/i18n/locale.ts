@@ -69,7 +69,11 @@ export function initialLanguage(): SupportedLocale {
       const stored = JSON.parse(
         window.sessionStorage.getItem(SESSION_LANGUAGE_KEY) ?? 'null',
       );
-      if (stored?.account?.id && stored?.tokens?.refreshToken) {
+      if (
+        stored?.account?.id &&
+        stored?.tokens?.refreshToken &&
+        new Date(stored.tokens.refreshExpiresAt).getTime() > Date.now()
+      ) {
         return effectiveLocale(stored.account.languagePreference);
       }
     } catch {

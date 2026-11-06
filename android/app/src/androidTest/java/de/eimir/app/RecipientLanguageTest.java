@@ -13,7 +13,7 @@ public class RecipientLanguageTest {
         Context german = RecipientLanguage.context(device, "de-CH");
         assertEquals("en", english.getString(R.string.product_locale));
         assertEquals("de", german.getString(R.string.product_locale));
-        assertEquals("de", RecipientLanguage.context(device, "fr-FR").getString(R.string.product_locale));
+        assertEquals("de", RecipientLanguage.context(device, "zz-ZZ").getString(R.string.product_locale));
         assertEquals("de", RecipientLanguage.context(device, null).getString(R.string.product_locale));
         assertEquals("de", RecipientLanguage.context(device, "en<script>").getString(R.string.product_locale));
     }

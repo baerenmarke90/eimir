@@ -251,7 +251,7 @@ test('an automatic device-language change preserves the real memory draft, focus
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'languages', {
       configurable: true,
-      value: ['fr-FR', 'en-GB', 'de-DE'],
+      value: ['zz-ZZ', 'en-GB', 'de-DE'],
     });
     window.dispatchEvent(new Event('languagechange'));
   });
@@ -334,8 +334,8 @@ test('a failed offline choice remains a deliberate retry and never replays on re
 
 for (const [languages, expected] of [
   [['en-US', 'de-CH'], 'en'],
-  [['fr-FR', 'de-CH', 'en-GB'], 'de'],
-  [['fr-FR', 'it-IT'], 'de'],
+  [['zz-ZZ', 'de-CH', 'en-GB'], 'de'],
+  [['zz-ZZ', 'qaa'], 'de'],
 ] as const) {
   test(`signed-out detection uses the complete ordered device list (${languages.join(',')})`, async ({
     page,
@@ -380,12 +380,23 @@ test('the cached static offline page follows the active session and falls back a
       'eimir-session-v1',
       JSON.stringify({
         account: { id: 'own', languagePreference: 'de' },
-        tokens: { refreshToken: 'fixture' },
+        tokens: { refreshToken: 'fixture', refreshExpiresAt: '2099-01-01' },
       }),
     );
   });
   await page.goto('/offline.html');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await page.evaluate(() => {
+    sessionStorage.setItem(
+      'eimir-session-v1',
+      JSON.stringify({
+        account: { id: 'previous', languagePreference: 'de' },
+        tokens: { refreshToken: 'expired', refreshExpiresAt: '2000-01-01' },
+      }),
+    );
+  });
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await page.evaluate(() => sessionStorage.removeItem('eimir-session-v1'));
   // The first-paint script must not see any stale preference once signed out.
   await page.reload();

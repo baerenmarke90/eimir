@@ -153,3 +153,23 @@ before merge. Local complete Web runs were interrupted by host ENOSPC; this is
 not recorded as a test pass, and no assertion, deadline or CI gate was weakened.
 The isolated test database and redundant temporary build data were removed to
 allow the focused integrated browser run to complete.
+
+
+## Consolidated CI corrections
+
+Initial CI identified an old source-location assertion for the now-shared session
+key and ordinary English comparison wording caught by the legacy-brand scan.
+The guard now verifies the central canonical key and its persistence alias; the
+English privacy sentence states the same boundary without ambiguous branding.
+The real-stack Web container also exposed formatter VCS discovery in the static
+locale generator. Formatting its generated stdin with VCS discovery disabled
+produces identical output in the standalone Web build context; it does not alter
+any lint/audit scope. A standalone-context generation/check comparison passed.
+
+First-paint language now rejects expired retained sessions; resolver and static
+offline regression cases cover it. Unsupported-language fixtures use reserved
+unassigned tags so adding French, Italian or Japanese does not invalidate their
+fallback assumptions. Final source fingerprints include this coherent correction
+batch. The Appearance composition and captured authored draft remain unchanged;
+final-head CI must revalidate the complete behavior before merge. No unchanged
+workflow rerun was requested.

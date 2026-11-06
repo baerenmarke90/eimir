@@ -46,7 +46,7 @@ def test_automatic_mode_resolves_the_ordered_device_list_and_rejects_a_stale_wri
     first = client.put(
         PATH,
         headers={**headers, "If-Match": '"0"'},
-        json={"preference": "auto", "deviceLanguages": ["fr-FR", "en-GB", "de-CH"]},
+        json={"preference": "auto", "deviceLanguages": ["zz-ZZ", "en-GB", "de-CH"]},
     )
     assert first.status_code == 200
     assert first.json()["effectiveLocale"] == "en"
@@ -56,7 +56,7 @@ def test_automatic_mode_resolves_the_ordered_device_list_and_rejects_a_stale_wri
     fallback = client.put(
         PATH,
         headers={**headers, "If-Match": first.headers["etag"]},
-        json={"preference": "auto", "deviceLanguages": ["fr-FR", "ja-JP"]},
+        json={"preference": "auto", "deviceLanguages": ["zz-ZZ", "qaa"]},
     )
     assert fallback.status_code == 200
     assert fallback.json()["effectiveLocale"] == "de"
@@ -65,7 +65,7 @@ def test_automatic_mode_resolves_the_ordered_device_list_and_rejects_a_stale_wri
 @pytest.mark.parametrize(
     "payload",
     [
-        {"preference": "fr"},
+        {"preference": "zz"},
         {"preference": "de<script>"},
         {"preference": "en", "accountId": "foreign"},
         {"preference": "en", "timezone": "Pacific/Auckland"},

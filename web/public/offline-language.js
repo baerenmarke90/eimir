@@ -36,6 +36,7 @@
     if (
       stored?.account?.id &&
       stored?.tokens?.refreshToken &&
+      new Date(stored.tokens.refreshExpiresAt).getTime() > Date.now() &&
       stored.account.languagePreference &&
       stored.account.languagePreference !== 'auto'
     )

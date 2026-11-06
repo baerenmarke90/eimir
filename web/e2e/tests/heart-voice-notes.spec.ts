@@ -317,7 +317,11 @@ test('failed Save retains voice, labels and audience for the deliberate retry', 
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
-  await page.getByRole('radio', { name: /Nur für mich/ }).check();
+  await page
+    .getByRole('radio', {
+      name: new RegExp(copy.heartMomentProduct.visibilityPrivate),
+    })
+    .check();
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
@@ -330,7 +334,11 @@ test('failed Save retains voice, labels and audience for the deliberate retry', 
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
-  await expect(page.getByRole('radio', { name: /Nur für mich/ })).toBeChecked();
+  await expect(
+    page.getByRole('radio', {
+      name: new RegExp(copy.heartMomentProduct.visibilityPrivate),
+    }),
+  ).toBeChecked();
   await expect(save).toBeEnabled();
   await save.click();
   await expect(page).toHaveURL(/heart-moments\/voice-heart$/);

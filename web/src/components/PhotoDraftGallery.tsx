@@ -5,9 +5,9 @@ import { useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import './PhotoDraftGallery.css';
 import {
+  insertMedia,
   PhotoDraftSorting,
   SortablePhotoDraftItem,
-  insertMedia,
 } from './PhotoDraftSorting';
 
 export interface PhotoDraftGalleryItem {

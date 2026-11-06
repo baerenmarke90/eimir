@@ -7,7 +7,10 @@ requested recording in eimir, audio import (including Android sharing from
 WhatsApp), playback in HeartMoments and a PR. This is an explicit HeartMoment
 follow-up to #470/#512; #470 retains its separate ten-second Memory scope.
 
-Inspected main: `c5e15a4c29eb60adaec5a1d39f574fdc9b8c4d25`.
+Inspected main before UI implementation: `c5e15a4c29eb60adaec5a1d39f574fdc9b8c4d25`.
+Refreshed integration baseline: `e98202bff3aefe33c46724fa0ad7b5e2ac6f6e1c`;
+its terms-of-use changes do not change the HeartMoment composition. Voice audio
+now follows the merged terms migration as revision 0114.
 Reviewed the actual HeartMoment create/detail/edit routes, HeartMomentProductPage,
 StoryCreatePageShell, ShortTaskSheet, PlanPhotosEditor, HeartEmotionPicker,
 attachment binding/processing/transfer, and Capacitor activity/file chooser before
@@ -93,3 +96,28 @@ private/foreign-parent/cleanup/transfer; recorder permission/cancel/late permiss
 background/identity races; browser record/import/review/save/playback and failed
 write recovery; Compact/Expanded, Light/Dark, reflow/reduced motion; Android
 compile and available native tests. Report missing device evidence explicitly.
+
+## Implementation evidence
+
+The approved flow is implemented in PR #1671. Actual [recording](references/heart-voice-notes/evidence/voice-recording-390.png),
+[Dark review](references/heart-voice-notes/evidence/voice-review-390-dark.png),
+[Compact reading](references/heart-voice-notes/evidence/voice-reading-360-light.png),
+[Expanded reading](references/heart-voice-notes/evidence/voice-reading-1280-dark.png)
+and [200% text/reflow](references/heart-voice-notes/evidence/voice-reading-320-light.png)
+show the delivered composition, including the existing surrounding functions.
+
+Validation on the merged feature: 112 backend/decoder/HTTP/PostgreSQL tests,
+81 client tests and 14 browser journeys pass. Browser coverage includes actual
+MediaRecorder encoding from a synthetic source, import/review/save/play/seek,
+permission denial, failed-save draft retention, 360/390/430/1280px, both themes,
+320px at 200% text, reduced motion and axe. A synthetic microphone source is used
+because this runner has no browser microphone driver; encoding is not mocked.
+Four Android 15/API 35 emulator tests pass for one-file share routing, bounds,
+independent readers/revocation and actual Capacitor JS/native cold handoff with
+recreation. Physical microphone and real WhatsApp device acceptance are pending.
+
+Empty-database migrations through 0114, production build, static checks,
+canonical API/client drift and advisory-feed comparison are checked. The PR owns
+current CI evidence, including the pinned restricted codec build. No new SDK or
+speech provider was added. Operators enable audio intake only with the matching
+restricted media worker; existing retained content remains readable with intake off.

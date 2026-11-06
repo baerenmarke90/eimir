@@ -3,9 +3,9 @@
 ## Baseline and scope
 
 Preflight recorded before implementation on current main `be9b5ec3c`, with
-contextual creation #1681 at `f0305e747`. The concurrent People redesign has no
-published implementation branch yet; integrate its completed revision before PR
-creation and merge, as explicitly requested by the Product Owner.
+contextual creation #1681 at `f0305e747`. At preflight, the concurrent People redesign had no
+published implementation branch. Its completed revision must be integrated before
+PR creation and merge, as explicitly requested by the Product Owner.
 
 Reviewed the actual AppShell/usePrimaryNavigation/taskOrigin flow, Moments local
 capture and filtered return, More destinations and every ProMark consumer,
@@ -98,8 +98,10 @@ before publishing the authorized PR. Merge only after required final-head checks
 
 Implementation commit: `34dc312a5`. Main reconciliation: `8ec98dbb5` incorporates
 main `271aaa99c` with merged #1681; it changes no implementation file. People
-integration and final hosted checks remain a separate final step before PR
-creation/merge, as requested.
+integration `70c6010b5` incorporates published #1684 head `89a175f18`; the
+subsequent test alignment is `3403b27cf`. PR creation still awaits completion of
+the owning dependency and reconciliation with its main merge, as requested.
+Final hosted checks remain required before merge.
 
 - Primary selection now has one canonical root contract for links and swipes;
   obsolete root-resume storage is removed. Detail/task origins keep their
@@ -153,6 +155,33 @@ creation/merge, as requested.
   acceptance stays feature-owned, with no always-run core expansion. The shared
   shell conservatively selects all 102 specs for hosted regression (75 critical,
   27 additional), with no overlap.
+
+### Integrated acceptance
+
+Verified on the combined source tree at `3403b27cf`, including #1684 at
+`89a175f18`:
+
+- Production build and the complete Web suite pass: 2,765 tests, two existing
+  skips. OpenAPI and generated-client drift checks pass after the combined merge.
+- All 148 distinct browser cases across ten complete specs pass: primary
+  navigation (19), People (5), person photo sources (6), partner actions (22),
+  session reload (3), task boundaries (35), private location/tags (11), HeartMoment
+  capture (17), local Moments creation (9), and Wir design/settings (21).
+  The existing root-reset variants now deliberately choose Wishes and occasions,
+  then assert default Plans on re-entry. Exact related-person/date fixture reads
+  return the API's array shape. No new always-run cases or assertion weakening.
+- Four existing Pro-partner variants initially expected the old permanent upgrade
+  mark. Their assertion now requires its absence for the explicit PREMIUM
+  fixture, as the PO requested. All 22 partner cases and all 21 Free/Pro Wir
+  settings cases pass after this correction; existing action, focus, history,
+  consent, privacy and no-send assertions are retained.
+- All 93 combined PostgreSQL cases pass, with no skips, covering protected
+  HeartMoment locations, visibility, concurrency, idempotency, encrypted transfer
+  and the three legacy/shared-person migration/import regressions.
+- Mypy passes all 367 source files; Ruff lint/format pass all 815 Python files.
+  Changed Web sources pass Biome lint/format. All 38 browser-planner regressions
+  pass. The inventory remains 102 specs and now collects 1,149 cases. The own
+  post-People diff conservatively selects 75 critical and 27 additional specs.
 
 ### Visual evidence
 

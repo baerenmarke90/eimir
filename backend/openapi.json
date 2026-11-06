@@ -9377,13 +9377,15 @@
             "type": "boolean"
           },
           "visibility": {
-            "$ref": "#/components/schemas/ContentVisibility"
+            "$ref": "#/components/schemas/ContentVisibility",
+            "default": "SHARED",
+            "deprecated": true,
+            "description": "People are always shared within their Space. Only SHARED is accepted."
           }
         },
         "required": [
           "displayName",
-          "relationship",
-          "visibility"
+          "relationship"
         ],
         "title": "RelatedPersonFields",
         "type": "object"

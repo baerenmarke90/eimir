@@ -571,23 +571,23 @@ def _seed_people(
         birthday_year_known=True,
         visibility=ContentVisibility.SHARED,
     )
-    lea_private = people_service.create_person(
+    lea_friend = people_service.create_person(
         session,
         lea_context,
-        display_name=f"{PRIVATE_CANARY_LEA} Person",
+        display_name="Jule",
         relationship=PersonRelationship.OTHER,
         birthday=None,
         birthday_year_known=False,
-        visibility=ContentVisibility.PRIVATE,
+        visibility=ContentVisibility.SHARED,
     )
-    alex_private = people_service.create_person(
+    alex_friend = people_service.create_person(
         session,
         alex_context,
-        display_name=f"{PRIVATE_CANARY_ALEX} Person",
+        display_name="Noah",
         relationship=PersonRelationship.OTHER,
         birthday=None,
         birthday_year_known=False,
-        visibility=ContentVisibility.PRIVATE,
+        visibility=ContentVisibility.SHARED,
     )
     people_service.create_date(
         session,
@@ -607,7 +607,7 @@ def _seed_people(
         day=reference_date + timedelta(days=9),
         repeats=DateRepeat.NONE,
         visibility=ContentVisibility.PRIVATE,
-        related_person_id=lea_private.id,
+        related_person_id=lea_friend.id,
     )
     people_service.create_date(
         session,
@@ -617,7 +617,7 @@ def _seed_people(
         day=reference_date + timedelta(days=12),
         repeats=DateRepeat.NONE,
         visibility=ContentVisibility.PRIVATE,
-        related_person_id=alex_private.id,
+        related_person_id=alex_friend.id,
     )
 
 

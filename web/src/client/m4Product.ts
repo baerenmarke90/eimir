@@ -1,32 +1,31 @@
 import { ActivityApi } from '../api/generated/apis/ActivityApi';
-import { DashboardApi } from './mediaApis';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
-import { SearchApi } from '../api/generated/apis/SearchApi';
 import { RecapsApi } from '../api/generated/apis/RecapsApi';
-import { Configuration } from './apiConfiguration';
+import { SearchApi } from '../api/generated/apis/SearchApi';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { EngagementTarget } from '../api/generated/models/EngagementTarget';
 import type { SearchKind } from '../api/generated/models/SearchKind';
+import { Configuration } from './apiConfiguration';
+import { DashboardApi } from './mediaApis';
 import { onceMessagePath } from './onceMessages';
-import {
-  appRoutePath,
-  MEMORY_CREATE_ROUTE,
-  MORE_PEOPLE_ROUTE,
-  chapterDetailPath,
-  collectionDetailPath,
-  heartMomentDetailPath,
-  memoryDetailPath,
-  milestoneDetailPath,
-  planDetailPath,
-  reminderDetailPath,
-  placeDetailPath,
-  wishDetailPath,
-} from './routes';
 import {
   privateCollectionPath,
   privateGiftIdeaPath,
   privateNotePath,
 } from './privateArea';
+import {
+  appRoutePath,
+  chapterDetailPath,
+  collectionDetailPath,
+  heartMomentDetailPath,
+  MEMORY_CREATE_ROUTE,
+  memoryDetailPath,
+  milestoneDetailPath,
+  placeDetailPath,
+  planDetailPath,
+  reminderDetailPath,
+  wishDetailPath,
+} from './routes';
 
 export interface M4ProductApis {
   activity: ActivityApi;
@@ -115,7 +114,7 @@ export function dashboardItemPath(
     case 'IMPORTANT_DATE':
     case 'BIRTHDAY':
     case 'ANNIVERSARY':
-      return MORE_PEOPLE_ROUTE;
+      return `${appRoutePath('plan')}#dates`;
     default:
       return null;
   }

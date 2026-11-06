@@ -113,11 +113,11 @@ def test_dashboard_is_shared_only_and_private_no_store(
         payload=HeartMomentPayload(text="Private retrospective", emotion=HeartEmotion.GRATEFUL),
     )
     private_person = RelatedPerson(
-        **_resource(couple, couple["anna"].id, private=True),
+        **_resource(couple, couple["anna"].id, private=False),
         relationship=PersonRelationship.FRIEND.value,
         birthday=date(1904, 8, 31),
         birthday_year_known=False,
-        payload=RelatedPersonPayload(display_name="Private birthday"),
+        payload=RelatedPersonPayload(display_name="Birthday without dashboard opt-in"),
     )
     foreign_memory = Memory(
         space_id=couple["foreign_space"].id,
@@ -607,10 +607,11 @@ def test_upcoming_birthday_enabled_and_shared_appears(
     assert upcoming[0]["titleOrText"] == "Lisa"
 
 
-def test_upcoming_birthday_enabled_but_owner_only_never_appears(
-    client, session: Session, couple, monkeypatch
+def test_dashboard_opt_in_cannot_bypass_shared_person_invariant(
+    session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
-    """Enabling Dashboard visibility never overrides OWNER_ONLY privacy."""
+    from sqlalchemy.exc import IntegrityError
+
     _freeze(monkeypatch)
     person = _birthday_person(
         couple,
@@ -618,31 +619,21 @@ def test_upcoming_birthday_enabled_but_owner_only_never_appears(
         privacy_class=PrivacyClass.OWNER_ONLY.value,
         show_birthday_on_dashboard=True,
     )
-    session.add(person)
-    session.flush()
-
-    anna_view = _dashboard(client, couple)
-    assert anna_view.status_code == 200
-    assert anna_view.json()["upcoming"] == []
-
-    ben_view = client.get(
-        f"/api/v1/spaces/{couple['space'].id}/dashboard",
-        headers=auth(sign_in(session, couple["ben"])),
-    )
-    assert ben_view.status_code == 200
-    assert ben_view.json()["upcoming"] == []
+    with pytest.raises(IntegrityError, match="people_are_shared"), session.begin_nested():
+        session.add(person)
+        session.flush()
 
 
-def test_upcoming_birthday_owner_only_partner_view_has_no_side_channel(
+def test_foreign_birthday_has_no_dashboard_count_or_order_side_channel(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
-    """The partner's Dashboard must not reveal a private birthday exists,
+    """The partner's Dashboard must not reveal a foreign birthday exists,
     even through count/order/section-presence side channels."""
     _freeze(monkeypatch)
     private_person = _birthday_person(
         couple,
-        owner_id=couple["anna"].id,
-        privacy_class=PrivacyClass.OWNER_ONLY.value,
+        owner_id=couple["outsider"].id,
+        space_id=couple["foreign_space"].id,
         show_birthday_on_dashboard=True,
     )
     shared_plan = Plan(
@@ -660,7 +651,7 @@ def test_upcoming_birthday_owner_only_partner_view_has_no_side_channel(
     )
     assert response.status_code == 200
     upcoming = response.json()["upcoming"]
-    # Only the shared plan is visible; the private birthday influences
+    # Only the shared plan is visible; the foreign birthday influences
     # neither count nor presence.
     assert len(upcoming) == 1
     assert upcoming[0]["id"] == str(shared_plan.id)

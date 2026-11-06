@@ -1,12 +1,13 @@
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import people from '../../src/i18n/locales/people';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -85,6 +86,63 @@ async function expectHorizontalReflow(page: Page): Promise<void> {
 
 async function installPeopleApiMocks(page: Page): Promise<string[]> {
   const unexpectedRequests: string[] = [];
+  const avatar = readFileSync(
+    new URL('../fixtures/recap-lake.webp', import.meta.url),
+  );
+  let personRows = [
+    {
+      id: 'person-1',
+      displayName: LONG_PERSON_NAME,
+      relationship: 'FRIEND',
+      birthday: '1995-05-12',
+      birthdayYearKnown: true,
+      visibility: 'SHARED',
+      showBirthdayOnDashboard: true,
+      avatarAttachmentId: 'people-avatar',
+      version: 3,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+    {
+      id: 'person-2',
+      displayName: 'Mara',
+      relationship: 'SIBLING',
+      birthday: null,
+      birthdayYearKnown: false,
+      visibility: 'SHARED',
+      showBirthdayOnDashboard: false,
+      avatarAttachmentId: null,
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+  ];
+  let dateRows = [
+    {
+      id: 'date-1',
+      label: LONG_DATE_LABEL,
+      date: '2026-09-21',
+      relatedPersonId: 'person-1',
+      repeats: 'ANNUALLY',
+      type: 'ANNIVERSARY',
+      visibility: 'SHARED',
+      version: 2,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+    {
+      id: 'date-2',
+      label: 'Mara birthday',
+      date: '2026-11-03',
+      relatedPersonId: 'person-2',
+      repeats: 'ANNUALLY',
+      type: 'BIRTHDAY',
+      visibility: 'PRIVATE',
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    },
+  ];
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -292,73 +350,91 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
-    if (
-      method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/related-persons`
-    ) {
-      await fulfillJson([
-        {
-          id: 'person-1',
-          displayName: LONG_PERSON_NAME,
-          relationship: 'FRIEND',
-          birthday: '1995-05-12',
-          birthdayYearKnown: true,
-          visibility: 'SHARED',
-          showBirthdayOnDashboard: true,
-          avatarAttachmentId: null,
-          version: 3,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-        {
-          id: 'person-2',
-          displayName: 'Mara',
-          relationship: 'SIBLING',
-          birthday: null,
-          birthdayYearKnown: false,
-          visibility: 'PRIVATE',
-          showBirthdayOnDashboard: false,
-          avatarAttachmentId: null,
+    const personPath = `/api/v1/spaces/${SPACE_ID}/related-persons`;
+    const datePath = `/api/v1/spaces/${SPACE_ID}/important-dates`;
+    if (pathname === `${personPath}`) {
+      if (method === 'GET') return fulfillJson(personRows);
+      if (method === 'POST') {
+        const row = {
+          ...personRows[1],
+          ...request.postDataJSON(),
+          id: 'new-person',
           version: 1,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-      ]);
-      return;
+        };
+        personRows = [...personRows, row];
+        return fulfillJson(row, 201);
+      }
     }
-
-    if (
-      method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/important-dates`
-    ) {
-      await fulfillJson([
-        {
-          id: 'date-1',
-          label: LONG_DATE_LABEL,
-          date: '2026-09-21',
-          relatedPersonId: 'person-1',
-          repeats: 'ANNUALLY',
-          type: 'ANNIVERSARY',
-          visibility: 'SHARED',
-          version: 2,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-        {
-          id: 'date-2',
-          label: 'Mara birthday',
-          date: '2026-11-03',
-          relatedPersonId: 'person-2',
-          repeats: 'ANNUALLY',
-          type: 'BIRTHDAY',
-          visibility: 'PRIVATE',
+    if (pathname.startsWith(`${personPath}/`)) {
+      const id = pathname.slice(personPath.length + 1);
+      const row = personRows.find((p) => p.id === id);
+      if (!row)
+        return fulfillJson(
+          { code: 'RELATED_PERSON_NOT_FOUND', status: 404 },
+          404,
+        );
+      if (method === 'GET') return fulfillJson(row);
+      if (method === 'PUT') {
+        const updated = {
+          ...row,
+          ...request.postDataJSON(),
+          version: row.version + 1,
+        };
+        personRows = personRows.map((p) => (p.id === id ? updated : p));
+        return fulfillJson(updated);
+      }
+      if (method === 'DELETE') {
+        personRows = personRows.filter((p) => p.id !== id);
+        dateRows = dateRows.map((d) =>
+          d.relatedPersonId === id ? { ...d, relatedPersonId: '' } : d,
+        );
+        return route.fulfill({ status: 204 });
+      }
+    }
+    if (pathname === datePath) {
+      if (method === 'GET') return fulfillJson(dateRows);
+      if (method === 'POST') {
+        const row = {
+          ...dateRows[0],
+          ...request.postDataJSON(),
+          id: 'new-date',
           version: 1,
-          createdAt: TEST_NOW,
-          updatedAt: TEST_NOW,
-        },
-      ]);
-      return;
+        };
+        dateRows = [...dateRows, row];
+        return fulfillJson(row, 201);
+      }
     }
+    if (pathname.startsWith(`${datePath}/`)) {
+      const id = pathname.slice(datePath.length + 1);
+      const row = dateRows.find((d) => d.id === id);
+      if (!row)
+        return fulfillJson(
+          { code: 'IMPORTANT_DATE_NOT_FOUND', status: 404 },
+          404,
+        );
+      if (method === 'GET') return fulfillJson(row);
+      if (method === 'PUT') {
+        const updated = {
+          ...row,
+          ...request.postDataJSON(),
+          version: row.version + 1,
+        };
+        dateRows = dateRows.map((d) => (d.id === id ? updated : d));
+        return fulfillJson(updated);
+      }
+      if (method === 'DELETE') {
+        dateRows = dateRows.filter((d) => d.id !== id);
+        return route.fulfill({ status: 204 });
+      }
+    }
+    if (pathname.endsWith('/attachments/people-avatar/content'))
+      return route.fulfill({ contentType: 'image/webp', body: avatar });
+    if (pathname.endsWith('/attachments/people-avatar/read-access'))
+      return fulfillJson({
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/people-avatar/content`,
+        mediaType: 'IMAGE',
+      });
 
     if (
       method === 'GET' &&
@@ -444,7 +520,9 @@ async function signInAndOpenPeople(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
   await page.goto('/more/people');
   await expect(page.getByRole('heading', { name: people.title })).toBeVisible();
-  await expect(page.getByText(LONG_DATE_LABEL)).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }),
+  ).toBeVisible();
 }
 
 async function capture(
@@ -458,299 +536,297 @@ async function capture(
   });
 }
 
-test('W50-W55 compact composition is relationship-led, keyboard-safe and axe-clean', async ({
+async function openPerson(page: Page) {
+  await page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }).click();
+  await expect(
+    page.getByRole('heading', { name: LONG_PERSON_NAME, exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel(people.nameLabel, { exact: true })).toHaveCount(
+    0,
+  );
+}
+async function openEditor(page: Page) {
+  await page.getByRole('link', { name: people.edit, exact: true }).click();
+  await expect(
+    page.getByLabel(people.nameLabel, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel(people.visibilityLabel)).toHaveCount(0);
+  await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
+}
+async function openDates(page: Page) {
+  await page.goto('/plan#dates');
+  await expect(
+    page.getByRole('tab', { name: importantDates.heading }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(
+    page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }),
+  ).toBeVisible();
+}
+
+test('People opens profiles and whole photos, saves the actual result and hands birthdays to Planning', async ({
   page,
-}, testInfo) => {
+}, info) => {
   test.setTimeout(120_000);
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 390, height: 844 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-
-  const dateCard = page.getByRole('button', {
-    name: new RegExp(LONG_DATE_LABEL.slice(0, 32), 'i'),
-  });
-  await expect(dateCard).toBeVisible();
-  await expect(dateCard.locator('.important-date-marker')).toBeVisible();
   await expect(
-    dateCard.getByText(importantDates.visibility.SHARED),
-  ).toBeVisible();
-  await expect(dateCard).toHaveAccessibleName(
-    new RegExp(
-      `${LONG_DATE_LABEL}.*${LONG_PERSON_NAME}.*${importantDates.visibility.SHARED}`,
-    ),
-  );
+    page.getByText(people.visibility.SHARED, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(people.visibility.PRIVATE, { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText(LONG_DATE_LABEL)).toHaveCount(0);
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w50-important-dates-390-light');
-
-  const dateCreate = page.getByRole('button', {
-    name: importantDates.create,
-  });
-  await dateCreate.focus();
-  await dateCreate.click();
-  let dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/important-date-editor/);
-  await expect(page.getByLabel(importantDates.dateLabel)).toBeFocused();
-  await expect(page.getByLabel(importantDates.labelLabel)).toHaveAttribute(
-    'maxlength',
-    '120',
-  );
-  await dialog.getByRole('button', { name: importantDates.create }).click();
-  await expect(page.locator('#important-date-date:invalid')).toHaveCount(1);
-  await expect(page.locator('#important-date-label:invalid')).toHaveCount(1);
-  await expectHorizontalReflow(page);
+  await capture(page, info, 'people-overview-390-light');
+  await page
+    .getByRole('button', {
+      name: people.viewPhoto.replace('{{name}}', LONG_PERSON_NAME),
+      exact: true,
+    })
+    .click();
+  const gallery = page.getByRole('dialog');
+  await expect(gallery).toBeVisible();
+  await expect(gallery.locator('img')).toBeVisible();
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w51-date-create-390-light');
+  await capture(page, info, 'people-photo-390-light');
   await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(dateCreate).toBeFocused();
-
-  await dateCard.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/important-date-editor/);
-  await expect(dialog.getByLabel(importantDates.labelLabel)).toHaveValue(
-    LONG_DATE_LABEL,
-  );
+  await expect(gallery).toHaveCount(0);
+  await openPerson(page);
+  await capture(page, info, 'person-profile-390-light');
+  await openEditor(page);
   await expect(
-    dialog.locator('.focused-editor-danger-zone').getByRole('button', {
-      name: importantDates.delete,
+    page.getByLabel(people.nameLabel, { exact: true }),
+  ).not.toBeFocused();
+  await expect(page.getByLabel(people.optionalYear)).toHaveValue('1995');
+  await capture(page, info, 'person-edit-390-light');
+  await page.getByLabel(people.nameLabel, { exact: true }).fill('Lea Sommer');
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .click();
+  await expect(page).toHaveURL(/more\/people\/person-1$/);
+  await expect(
+    page.getByRole('heading', { name: 'Lea Sommer', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('status')).toContainText(people.updated);
+  await capture(page, info, 'person-saved-390-light');
+  await page.locator('.people-birthday-link').click();
+  await expect(
+    page.getByRole('tab', { name: importantDates.heading }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('dialog')).toContainText('Lea Sommer');
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Lea Sommer', exact: true })
+    .click();
+  await expect(page).toHaveURL(/more\/people\/person-1$/);
+  await page.locator('.task-back-control[data-page-back]').click();
+  await expect(
+    page.getByRole('tab', { name: importantDates.heading }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(
+        importantDates.partnerBirthdayLabel.replace('{{name}}', 'Lea Sommer'),
+      ),
     }),
-  ).toBeVisible();
-  await expectHorizontalReflow(page);
-  await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w52-date-edit-390-light');
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(dateCard).toBeFocused();
-
-  const personCreate = page.getByRole('button', {
-    name: people.addPersonAction,
-  });
-  await personCreate.focus();
-  await personCreate.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/related-person-editor/);
-  await expect(
-    dialog.getByRole('textbox', { name: people.nameLabel, exact: true }),
   ).toBeFocused();
-  await expect(
-    dialog.locator('.focused-editor-disclosure'),
-  ).not.toHaveAttribute('open');
-  await expect(
-    dialog.getByRole('combobox', { name: people.visibilityLabel }),
-  ).toBeVisible();
-  await expectHorizontalReflow(page);
-  await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w54-person-create-390-light');
+  await page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }).click();
+  const reader = page.getByRole('dialog');
+  await expect(reader.getByRole('textbox')).toHaveCount(0);
+  await reader
+    .getByRole('button', { name: importantDates.edit, exact: true })
+    .click();
+  let editor = page.locator('.important-date-editor');
+  await expect(editor).toBeVisible();
+  await editor.getByLabel(importantDates.labelLabel).fill('Our anniversary');
+  await editor
+    .getByRole('button', { name: importantDates.saveChanges, exact: true })
+    .click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toContainText('Our anniversary');
   await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(personCreate).toBeFocused();
-
-  const personCard = page
-    .locator('.people-card')
-    .filter({ hasText: LONG_PERSON_NAME });
-  await personCard.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/related-person-editor/);
-  await expect(dialog.getByLabel(people.nameLabel)).toHaveValue(
-    LONG_PERSON_NAME,
-  );
-  await expect(
-    dialog.locator('.focused-editor-danger-zone').getByRole('button', {
-      name: people.delete,
-    }),
-  ).toBeVisible();
+  await page
+    .getByRole('button', { name: importantDates.create, exact: true })
+    .click();
+  editor = page.locator('.important-date-editor');
+  await editor.getByLabel(importantDates.dateLabel).fill('2026-12-10');
+  await editor.getByLabel(importantDates.labelLabel).fill('Winter evening');
+  await expect(editor.getByLabel(importantDates.personLabel)).toHaveValue('');
+  await editor
+    .getByRole('button', { name: importantDates.create, exact: true })
+    .click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toContainText('Winter evening');
+  await page.keyboard.press('Escape');
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w55-person-edit-390-light');
-
-  expect(unexpectedRequests).toEqual([]);
+  await capture(page, info, 'occasions-390-light');
+  expect(unknown).toEqual([]);
 });
 
-test('editor Browser Back keeps dirty drafts and closes clean editors without a loop', async ({
+test('Browser Back protects dirty person drafts and clean exits return without a loop', async ({
   page,
-}) => {
+}, info) => {
   test.setTimeout(120_000);
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 390, height: 844 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  const unknown = await installPeopleApiMocks(page);
+  await page.setViewportSize({ width: 360, height: 800 });
   await signInAndOpenPeople(page);
-
-  const dateCreate = page.getByRole('button', {
-    name: importantDates.create,
-  });
-  await dateCreate.focus();
-  await dateCreate.click();
-  let dialog = page.getByRole('dialog');
-  const labelInput = dialog.getByLabel(importantDates.labelLabel);
-  await labelInput.fill('A Back-safe date draft');
-
-  await page.goBack();
-  await expect(dialog.getByText(importantDates.discardTitle)).toBeVisible();
-  await dialog
-    .getByRole('button', { name: importantDates.keepEditing })
+  await page
+    .getByRole('link', { name: people.addPersonAction, exact: true })
     .click();
-  await expect(labelInput).toHaveValue('A Back-safe date draft');
-
+  await expect(
+    page.getByLabel(people.nameLabel, { exact: true }),
+  ).toBeVisible();
   await page.goBack();
-  await expect(dialog.getByText(importantDates.discardTitle)).toBeVisible();
-  await dialog
-    .getByRole('button', { name: importantDates.discardConfirm })
+  await expect(page).toHaveURL(/more\/people$/);
+  await openPerson(page);
+  await openEditor(page);
+  await page
+    .getByLabel(people.nameLabel, { exact: true })
+    .fill('Keep this draft');
+  await page.goBack();
+  await expect(page.getByText(people.discardTitle)).toBeVisible();
+  await page
+    .getByRole('button', { name: people.keepEditing, exact: true })
     .click();
-  await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/more\/people$/);
-  await expect(dateCreate).toBeFocused();
-
-  const personCreate = page.getByRole('button', {
-    name: people.addPersonAction,
-  });
-  await personCreate.focus();
-  await personCreate.click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/related-person-editor/);
-
+  await expect(page.getByLabel(people.nameLabel, { exact: true })).toHaveValue(
+    'Keep this draft',
+  );
+  await page.getByLabel(people.optionalYear).fill('');
   await page.goBack();
-  await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/more\/people$/);
-  await expect(personCreate).toBeFocused();
-  expect(unexpectedRequests).toEqual([]);
+  await page
+    .getByRole('button', { name: people.discardConfirm, exact: true })
+    .click();
+  await expect(page).toHaveURL(/more\/people\/person-1$/);
+  await expect(
+    page.getByRole('heading', { name: LONG_PERSON_NAME, exact: true }),
+  ).toBeVisible();
+  await expectHorizontalReflow(page);
+  await capture(page, info, 'person-return-360-light');
+  await page.locator('.task-back-control[data-page-back]').click();
+  await expect(page).toHaveURL(/more\/people$/);
+  await expect(
+    page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }),
+  ).toBeFocused();
+  expect(unknown).toEqual([]);
 });
 
-test('W50-W55 reflow at the accepted 1280 at 400 percent method without clipped controls', async ({
+test('People and occasions reflow at 1280 with 400 percent zoom', async ({
   page,
-}, testInfo) => {
+}, info) => {
   test.setTimeout(120_000);
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
   await page.setViewportSize({ width: 1280, height: 1024 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-  await page.locator('html').evaluate((element) => {
-    element.style.zoom = '4';
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '4';
   });
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-      ),
-  );
-
-  await expect(page.locator('.product-topbar .shell-nav')).toBeHidden();
   await expect(page.locator('.mobile-bottom-nav')).toBeVisible();
-  await expect(page.locator('.mobile-quick-create')).toBeVisible();
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w50-400-percent-dark');
-
-  const dateCreate = page.getByRole('button', { name: importantDates.create });
-  await dateCreate.click();
-  let dialog = page.getByRole('dialog');
+  await capture(page, info, 'people-400-dark');
+  await openPerson(page);
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w51-400-percent-dark');
+  await openEditor(page);
+  await expectHorizontalReflow(page);
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .scrollIntoViewIfNeeded();
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'person-edit-400-dark');
   await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-
-  const dateCard = page.getByRole('button', {
-    name: new RegExp(LONG_DATE_LABEL.slice(0, 32), 'i'),
+  await openDates(page);
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '4';
   });
-  await dateCard.click();
-  dialog = page.getByRole('dialog');
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w52-400-percent-dark');
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-
-  const personCreate = page.getByRole('button', {
-    name: people.addPersonAction,
-  });
-  await personCreate.click();
-  dialog = page.getByRole('dialog');
+  await page
+    .getByRole('button', { name: importantDates.create, exact: true })
+    .click();
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w54-400-percent-dark');
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-
-  const personCard = page
-    .locator('.people-card')
-    .filter({ hasText: LONG_PERSON_NAME });
-  await personCard.click();
-  dialog = page.getByRole('dialog');
-  await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w55-400-percent-dark');
-
-  expect(unexpectedRequests).toEqual([]);
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'occasion-create-400-dark');
+  expect(unknown).toEqual([]);
 });
 
-test('People and Important Dates remain usable at 200 percent zoom', async ({
+test('People and occasions stay operable at 200 percent zoom and large text', async ({
   page,
-}, testInfo) => {
+}, info) => {
   test.setTimeout(120_000);
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 780, height: 844 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-  await page.locator('html').evaluate((element) => {
-    element.style.zoom = '2';
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '2';
   });
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-      ),
-  );
-
   await expectHorizontalReflow(page);
-  const dateCreate = page.getByRole('button', { name: importantDates.create });
-  await dateCreate.click();
-  const dialog = page.getByRole('dialog');
+  await openPerson(page);
+  await openEditor(page);
+  await expectHorizontalReflow(page);
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .scrollIntoViewIfNeeded();
   await expect(
-    dialog.getByRole('button', { name: importantDates.create }),
+    page.getByRole('button', { name: people.saveChanges, exact: true }),
   ).toBeVisible();
+  await capture(page, info, 'person-edit-200-light');
+  await page.keyboard.press('Escape');
+  await openDates(page);
+  await page.locator('html').evaluate((el) => {
+    el.style.zoom = '2';
+  });
+  await page
+    .getByRole('button', { name: importantDates.create, exact: true })
+    .click();
   await expect(
-    dialog.getByRole('button', { name: de.common.cancel }),
+    page
+      .locator('.important-date-editor')
+      .getByRole('button', { name: importantDates.create, exact: true }),
   ).toBeVisible();
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w51-200-percent-light');
-
-  expect(unexpectedRequests).toEqual([]);
+  await capture(page, info, 'occasion-create-200-light');
+  expect(unknown).toEqual([]);
 });
 
-test('focused editors keep completion reachable at small height and adapt without desktop density at 1440', async ({
+test('focused completion stays reachable at small height and Expanded preserves the same task', async ({
   page,
-}, testInfo) => {
+}, info) => {
   test.setTimeout(120_000);
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 390, height: 520 });
-  const unexpectedRequests = await installPeopleApiMocks(page);
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+  await page.setViewportSize({ width: 430, height: 420 });
+  const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-
-  await page.getByRole('button', { name: people.addPersonAction }).click();
-  let dialog = page.getByRole('dialog');
-  await expect(
-    dialog.getByRole('button', { name: people.create }),
-  ).toBeVisible();
-  await expect(
-    dialog.getByRole('button', { name: de.common.cancel }),
-  ).toBeVisible();
+  await openPerson(page);
+  await openEditor(page);
+  const save = page.getByRole('button', {
+    name: people.saveChanges,
+    exact: true,
+  });
+  await save.scrollIntoViewIfNeeded();
+  await expect(save).toBeVisible();
   await expectHorizontalReflow(page);
-  await capture(page, testInfo, 'w54-small-height-dark');
+  await capture(page, info, 'person-edit-small-height-dark');
   await page.keyboard.press('Escape');
-
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page
-    .getByRole('button', {
-      name: new RegExp(LONG_DATE_LABEL.slice(0, 32), 'i'),
-    })
-    .click();
-  dialog = page.getByRole('dialog');
-  await expect(dialog).toHaveClass(/focused-editor-sheet/);
-  await expect(dialog.locator('.focused-editor-actions')).toBeVisible();
-  await expect(page.locator('.layout-split')).toHaveCount(0);
   await expect(page.locator('.layout-rail')).toHaveCount(0);
+  await capture(page, info, 'person-profile-1440-dark');
+  await openEditor(page);
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
-  await capture(page, testInfo, 'w52-expanded-1440-dark');
-
-  expect(unexpectedRequests).toEqual([]);
+  await capture(page, info, 'person-edit-1440-dark');
+  await page.keyboard.press('Escape');
+  await openDates(page);
+  await page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }).click();
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
+  await expectNoWcagViolations(page);
+  await capture(page, info, 'occasion-reader-1440-dark');
+  expect(unknown).toEqual([]);
 });

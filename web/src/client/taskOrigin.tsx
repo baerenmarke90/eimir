@@ -12,9 +12,9 @@ import {
   ACTIVITY_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
-  MORE_PLACES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PASSPORT_ROUTE,
+  MORE_PLACES_ROUTE,
   PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
   WISH_SELECTION_ROUTE,
@@ -33,7 +33,7 @@ export interface TaskOriginMetadata {
   searchQuery?: string;
   searchKind?: string;
   /** Restores the Plans/Wishes peer mode without publishing it in the URL. */
-  planningSegment?: 'plans' | 'wishes';
+  planningSegment?: 'plans' | 'wishes' | 'dates';
   planningWishStatus?: 'OPEN' | 'COMPLETED';
   planningPlanStatus?: 'OPEN' | 'COMPLETED';
   planningPlanSearch?: string;

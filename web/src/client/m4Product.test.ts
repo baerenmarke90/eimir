@@ -84,10 +84,10 @@ describe('M5 S5/S3 product navigation', () => {
     expect(dashboardItemPath('MILESTONE', 'milestone-id')).toBe(
       '/story/milestones/milestone-id',
     );
-    expect(dashboardItemPath('IMPORTANT_DATE', 'date-id')).toBe('/more/people');
-    expect(dashboardItemPath('BIRTHDAY', 'birthday-id')).toBe('/more/people');
+    expect(dashboardItemPath('IMPORTANT_DATE', 'date-id')).toBe('/plan#dates');
+    expect(dashboardItemPath('BIRTHDAY', 'birthday-id')).toBe('/plan#dates');
     expect(dashboardItemPath('ANNIVERSARY', 'anniversary-id')).toBe(
-      '/more/people',
+      '/plan#dates',
     );
     expect(dashboardItemPath('WISH', 'wish-id')).toBe('/plan/wishes/wish-id');
     expect(dashboardItemPath('PLAN', 'plan-id')).toBe('/plan/plans/plan-id');

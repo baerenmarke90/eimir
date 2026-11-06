@@ -309,6 +309,17 @@ Light/Dark use neutral rows, clear grouping and restrained privacy indication; a
 
 **Acceptance journey:** find profile and appearance settings through More without the avatar shortcut; edit and save a real supported value; return category → index → More; identify which note is private; verify delayed/failing edits preserve work, legacy entry links resolve, and dangerous-operation safeguards remain intact.
 
+### People profiles and occasions (#1683)
+
+PO refinement (2026-11-06): People is a portrait-led overview under More. A name
+opens a profile; the photograph opens the whole authorized image. Editing is a
+deliberate focused task. People are collaborative content for the existing Space
+members, with no audience selector, grouping, badge or explanatory hint.
+Birthdays remain optional profile data. Planning has an occasions mode beside
+Plans and Wishes: projected person/partner birthdays plus independent dates,
+read before edit. Independent dates retain their existing privacy contracts.
+See the [preflight and implementation evidence](references/people-profiles/README.md).
+
 ## Review and propagation boundary
 
 ### Contextual creation (#1679)

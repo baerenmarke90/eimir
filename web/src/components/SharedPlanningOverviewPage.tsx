@@ -1,5 +1,3 @@
-import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   type MouseEvent,
   type ReactNode,
@@ -10,13 +8,15 @@ import {
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import type { PeopleApi } from '../api/generated/apis/PeopleApi';
+import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
-import { sortByProductLabel } from '../client/productLabelOrder';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import {
   PLAN_CREATE_ROUTE,
   planDetailPath,
@@ -24,16 +24,19 @@ import {
   wishDetailPath,
 } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
-import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
-import { PlanningStatusScope, type PlanningScope } from './PlanningStatusScope';
+import { PlanningOccasions } from './PlanningOccasions';
+import { type PlanningScope, PlanningStatusScope } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { WishSelectionEntry } from './WishSelectionEntry';
@@ -41,7 +44,7 @@ import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
 const PAGE_SIZE = 20;
-type PlanenSegment = 'wishes' | 'plans';
+type PlanenSegment = 'wishes' | 'plans' | 'dates';
 type PageShape<T> = { items: T[]; nextCursor: string | null };
 
 function searchText(value: string): string {
@@ -139,6 +142,7 @@ function nextCursor<T>(
 }
 
 function segmentForHash(hash: string): PlanenSegment | null {
+  if (hash === '#dates') return 'dates';
   if (
     hash === '#plan-title' ||
     hash === '#plans' ||
@@ -169,52 +173,67 @@ function PlanenSegmentedControl({
   onChange,
   wishesTabId,
   plansTabId,
+  datesTabId,
   wishesPanelId,
   plansPanelId,
+  datesPanelId,
 }: {
   active: PlanenSegment;
   onChange: (segment: PlanenSegment) => void;
   wishesTabId: string;
   plansTabId: string;
+  datesTabId: string;
   wishesPanelId: string;
   plansPanelId: string;
+  datesPanelId: string;
 }) {
   const { t } = useTranslation();
+  const tabs = [
+    {
+      key: 'plans',
+      id: plansTabId,
+      panel: plansPanelId,
+      label: t('m5s3.overview.segmentPlans'),
+    },
+    {
+      key: 'wishes',
+      id: wishesTabId,
+      panel: wishesPanelId,
+      label: t('m5s3.overview.segmentWishes'),
+    },
+    {
+      key: 'dates',
+      id: datesTabId,
+      panel: datesPanelId,
+      label: t('importantDates.heading'),
+    },
+  ] as const;
   return (
     <div
-      className="planen-segmented"
+      className="planen-segmented planen-segmented-occasions"
       role="tablist"
       aria-label={t('m5s3.overview.segmentedLabel')}
       onKeyDown={(event) =>
         handleTabKeyDown(event, (tab) =>
-          onChange(tab.id === plansTabId ? 'plans' : 'wishes'),
+          onChange(tabs.find((t) => t.id === tab.id)?.key ?? 'plans'),
         )
       }
     >
-      <button
-        type="button"
-        role="tab"
-        id={plansTabId}
-        aria-selected={active === 'plans'}
-        aria-controls={plansPanelId}
-        tabIndex={active === 'plans' ? 0 : -1}
-        className={`planen-segment ${active === 'plans' ? 'is-active' : ''}`}
-        onClick={() => onChange('plans')}
-      >
-        {t('m5s3.overview.segmentPlans')}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id={wishesTabId}
-        aria-selected={active === 'wishes'}
-        aria-controls={wishesPanelId}
-        tabIndex={active === 'wishes' ? 0 : -1}
-        className={`planen-segment ${active === 'wishes' ? 'is-active' : ''}`}
-        onClick={() => onChange('wishes')}
-      >
-        {t('m5s3.overview.segmentWishes')}
-      </button>
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          role="tab"
+          id={tab.id}
+          aria-selected={active === tab.key}
+          aria-controls={tab.panel}
+          tabIndex={active === tab.key ? 0 : -1}
+          className={`planen-segment ${active === tab.key ? 'is-active' : ''}`}
+          onClick={() => onChange(tab.key)}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -248,7 +267,12 @@ export function SharedPlanningOverviewPage({
   spaceId,
   apiBaseUrl,
   accessToken,
+  peopleApi,
+  profilesApi,
+  accountId,
 }: {
+  peopleApi?: PeopleApi;
+  profilesApi?: ProfilesApi;
   apis: SharedPlanningApis;
   spaceId: string;
   accountId?: string;
@@ -268,6 +292,8 @@ export function SharedPlanningOverviewPage({
   const plansTabId = useId();
   const wishesPanelId = useId();
   const plansPanelId = useId();
+  const datesTabId = useId();
+  const datesPanelId = useId();
   const [activeSegment, setActiveSegment] = useState<PlanenSegment>(
     () => segmentForHash(location.hash) ?? 'plans',
   );
@@ -298,6 +324,17 @@ export function SharedPlanningOverviewPage({
   }
   function changeSegment(segment: PlanenSegment) {
     setActiveSegment(segment);
+    if (segment === 'dates') {
+      void navigate(
+        {
+          pathname: location.pathname,
+          search: location.search,
+          hash: '#dates',
+        },
+        { replace: true, state: location.state },
+      );
+      return;
+    }
     changeStatus(segment, segment === 'plans' ? planStatus : wishStatus);
   }
 
@@ -593,6 +630,8 @@ export function SharedPlanningOverviewPage({
         plansTabId={plansTabId}
         wishesPanelId={wishesPanelId}
         plansPanelId={plansPanelId}
+        datesTabId={datesTabId}
+        datesPanelId={datesPanelId}
       />
 
       <PlanenPanel
@@ -864,6 +903,22 @@ export function SharedPlanningOverviewPage({
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
           </AutoLoadMore>
+        ) : null}
+      </PlanenPanel>
+      <PlanenPanel
+        id={datesPanelId}
+        labelledBy={datesTabId}
+        hidden={activeSegment !== 'dates'}
+      >
+        {activeSegment === 'dates' && peopleApi ? (
+          <PlanningOccasions
+            peopleApi={peopleApi}
+            profilesApi={profilesApi}
+            spaceId={spaceId}
+            accountId={accountId}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+          />
         ) : null}
       </PlanenPanel>
     </div>

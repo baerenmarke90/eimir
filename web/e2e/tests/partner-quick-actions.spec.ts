@@ -1,9 +1,11 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import onceCopy from '../../src/i18n/locales/onceMessages';
+import people from '../../src/i18n/locales/people';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -1044,3 +1046,37 @@ test('the one-time entry is independent of an unavailable extended-gesture entit
     surface.getByRole('link', { name: new RegExp(onceCopy.title) }),
   ).toBeVisible();
 });
+
+for (const width of [390, 1280]) {
+  test(`partner photo completes the action-menu handoff and returns focus without sending at ${width}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    const state = await installMocks(page, {
+      partnerProfileAttachmentId: '00000000-0000-0000-0000-000000000031',
+    });
+    await signIn(page);
+    const trigger = triggerLocator(page);
+    await trigger.click();
+    await page
+      .getByRole('button', { name: people.photoAction, exact: true })
+      .click();
+    const gallery = page.getByRole('dialog', {
+      name: storyProducts.gallery.dialogAria,
+    });
+    await expect(gallery).toBeVisible();
+    await expect(gallery.locator('img')).toBeVisible();
+    await expect(
+      gallery.getByRole('button', { name: storyProducts.gallery.close }),
+    ).toBeFocused();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await captureScreenshot(page, info, `partner-photo-${width}-dark.png`);
+    await page.keyboard.press('Escape');
+    await expect(gallery).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    expect(state.sentActions()).toEqual([]);
+    expect(state.gestures()).toEqual([]);
+  });
+}

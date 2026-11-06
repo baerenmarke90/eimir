@@ -1,7 +1,7 @@
-import { afterEach, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { afterEach, vi } from 'vitest';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
@@ -200,13 +200,13 @@ describe('SharedPlanningOverviewPage', () => {
       </QueryClientProvider>,
     );
 
-    expect(html.match(/role="tab"/g)).toHaveLength(2);
-    expect(html.match(/role="tabpanel"/g)).toHaveLength(2);
+    expect(html.match(/role="tab"/g)).toHaveLength(3);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(3);
 
     // Pläne is the default/left segment (#892): selected and its panel visible.
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
-    expect(html.match(/aria-selected="false"/g)).toHaveLength(1);
-    expect(html.match(/ hidden=""/g)).toHaveLength(1);
+    expect(html.match(/aria-selected="false"/g)).toHaveLength(2);
+    expect(html.match(/ hidden=""/g)).toHaveLength(2);
     expect(html.indexOf('Pläne')).toBeLessThan(html.indexOf('Wünsche'));
     expect(html.indexOf('aria-selected="true"')).toBeLessThan(
       html.indexOf('aria-selected="false"'),

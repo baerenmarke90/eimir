@@ -79,6 +79,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { EimirIcon } from './EimirIcon';
 import { ExperienceAnswers } from './ExperienceAnswers';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -790,14 +791,6 @@ export function StoryProductPage({
       </div>
       <h2 className="new-space-title">{t('story.emptyTitle')}</h2>
       <p className="new-space-body">{t('story.emptyBody')}</p>
-      <div className="new-space-actions">
-        <Link
-          to="/story/memories/new"
-          className="button-link primary new-space-cta"
-        >
-          {t('story.emptyAction')}
-        </Link>
-      </div>
     </div>
   );
 
@@ -819,6 +812,7 @@ export function StoryProductPage({
 
       <PageHeader variant="root" title={t('story.timelineTitle')} />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
+      <MomentCreateMenu />
 
       <div
         id="momente-panel-discover"

@@ -30,10 +30,12 @@ import {
   storyFiltersToSearch,
 } from '../client/storyProduct';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import type { MapLocation } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -121,6 +123,13 @@ export function MemoryMapPage({
     retry: false,
     staleTime: 60_000,
     gcTime: 30 * 60_000,
+  });
+  useTaskListReturn({
+    ready: Boolean(query.data) || query.isError,
+    busy: query.isFetching,
+    loadedPageCount: query.data?.pages.length ?? 1,
+    canLoadMore: Boolean(query.hasNextPage) && !query.isError,
+    loadMore: query.fetchNextPage,
   });
   const locations = useMemo(() => {
     const grouped = new Map<
@@ -217,6 +226,7 @@ export function MemoryMapPage({
     <div className="page memory-map-page">
       <PageHeader variant="root" title={t('story.timelineTitle')} />
       <StoryViewTabs activeView="map" onSelect={setView} />
+      <MomentCreateMenu />
       <div
         id="momente-panel-map"
         role="tabpanel"

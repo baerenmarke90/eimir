@@ -509,7 +509,9 @@ describe('StoryProductPage', () => {
     });
 
     expect(html).toContain('new-space-experience');
-    expect(html).toContain('/story/memories/new');
+    expect(html).toContain(de.story.addMoment);
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).not.toContain('new-space-cta');
   });
 
   it('keeps milestone story content distinct from the compact structural navigation', () => {

@@ -25,6 +25,7 @@ import {
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
+import { useHideProFeatureMarks } from '../client/proPresentation';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
@@ -123,6 +124,7 @@ function MoreDestinationRow({
   unreadCount?: number;
 }) {
   const { t } = useTranslation();
+  const hideProMarks = useHideProFeatureMarks();
 
   return (
     <li>
@@ -144,7 +146,7 @@ function MoreDestinationRow({
         <span className="more-destination-copy">
           <span className="more-destination-title-row">
             <strong>{label ?? t(destination.titleKey)}</strong>
-            {destination.badgeKey ? (
+            {destination.badgeKey && !hideProMarks ? (
               <span className="more-destination-badge">
                 {t(destination.badgeKey)}
               </span>

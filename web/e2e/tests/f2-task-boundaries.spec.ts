@@ -298,6 +298,16 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     if (method === 'POST' && path === `/api/v1/spaces/${SPACE}/presence`) {
       return json({ state: null });
     }
+    if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/entitlements`) {
+      return json({
+        spaceId: SPACE,
+        tier: 'FREE',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: ['core'],
+      });
+    }
     state.unexpected.push(`${method} ${path}`);
     return problem(500, 'E2E_UNEXPECTED_REQUEST');
   });

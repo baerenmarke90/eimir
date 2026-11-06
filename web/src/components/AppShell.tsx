@@ -12,6 +12,7 @@ import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
+import { ProPresentationProvider } from '../client/proPresentation';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
@@ -75,17 +76,6 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
           event.altKey
         )
           return;
-        if (location.pathname === route.path) {
-          event.preventDefault();
-          window.scrollTo({
-            top: 0,
-            behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
-              .matches
-              ? 'instant'
-              : 'smooth',
-          });
-          return;
-        }
         event.preventDefault();
         navigatePrimary(route.path);
       }}
@@ -177,18 +167,20 @@ export function AppShell(props: AppShellProps) {
       accountId={props.account.id}
       spaceId={props.spaceId}
     >
-      <TaskOriginProvider
-        key={`${props.account.id}:${props.spaceId}`}
-        accountId={props.account.id}
-        spaceId={props.spaceId}
-      >
-        <ProductTourProvider
+      <ProPresentationProvider>
+        <TaskOriginProvider
+          key={`${props.account.id}:${props.spaceId}`}
           accountId={props.account.id}
           spaceId={props.spaceId}
         >
-          <AuthenticatedAppShell {...props} />
-        </ProductTourProvider>
-      </TaskOriginProvider>
+          <ProductTourProvider
+            accountId={props.account.id}
+            spaceId={props.spaceId}
+          >
+            <AuthenticatedAppShell {...props} />
+          </ProductTourProvider>
+        </TaskOriginProvider>
+      </ProPresentationProvider>
     </ApiRuntimeProvider>
   );
 }
@@ -237,9 +229,11 @@ function AuthenticatedAppShell({
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
+    /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
+    location.pathname === '/story/heart-moments/new' ||
     /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||

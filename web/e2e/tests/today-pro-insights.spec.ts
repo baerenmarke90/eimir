@@ -405,6 +405,7 @@ async function openInsightsFromMore(
   page: Page,
   testInfo?: import('@playwright/test').TestInfo,
   label?: string,
+  pro = true,
 ) {
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
@@ -413,9 +414,15 @@ async function openInsightsFromMore(
   ).toBeVisible();
 
   const entry = page.getByRole('link', {
-    name: `${de.more.destinations.insights} ${dailyInsights.pro}`,
+    name: pro
+      ? de.more.destinations.insights
+      : `${de.more.destinations.insights} ${dailyInsights.pro}`,
+    exact: true,
   });
   await expect(entry).toBeVisible();
+  await expect(entry.locator('.more-destination-badge')).toHaveCount(
+    pro ? 0 : 1,
+  );
   await expect(
     page.getByText(dailyInsights.week.subtitle, { exact: true }),
   ).toHaveCount(0);
@@ -544,7 +551,7 @@ test('Free Spaces see a calm gated state and never request insights', async ({
   const requests = await installMocks(page, { capabilities: [] });
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
-  await openInsightsFromMore(page, testInfo, '390-free');
+  await openInsightsFromMore(page, testInfo, '390-free', false);
   await expect(
     page.getByRole('heading', { name: dailyInsights.gate.title }),
   ).toBeVisible();

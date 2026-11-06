@@ -1,3 +1,4 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import photoSources from '../../src/i18n/locales/photoSources';
@@ -89,6 +90,7 @@ async function expectKeyboardFilePicker(page: Page): Promise<void> {
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();

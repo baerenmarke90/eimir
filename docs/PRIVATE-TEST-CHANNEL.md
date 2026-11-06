@@ -144,6 +144,28 @@ loopback readiness. WebAuthn origins use the exact public HTTPS origin. Values
 are required rather than regenerated. Filled values, account emails, SMTP
 credentials, keys and the journal UUID never enter the generated Git branch.
 
+## Optional HeartMoment voice notes
+
+With the verified same-revision media image selected, the generated API, general
+worker and restricted media worker retain the instance-local
+`EIMIR_AUDIO_UPLOAD_ENABLED` expression. It defaults to `false`; publishing never
+freezes the runner's value. Without the reviewed media role, audio admission
+remains disabled even if a source or operator setting requests it.
+
+To enable the accepted Free/Core voice-note feature, append or update only
+`EIMIR_AUDIO_UPLOAD_ENABLED=true` in the existing `eimir-test` Arcane environment,
+sync the corrected channel, and redeploy the existing project. Confirm the
+restricted `cloud-video-worker` is running; it processes audio and video jobs.
+Do not replace the existing environment or change any credentials or stores.
+
+After restarting the app, the authenticated `/api/v1/auth/capabilities` response
+must report `audioProcessingEnabled: true`. Existing test.50 already contains the
+UI: **+ → HeartMoment → Voice note**, then record or choose an audio file and
+save. No new APK is required. Verify upload, processing, saved playback and
+parent visibility on the actual instance. Turning the setting off preserves
+authorized reads, deletion and essential export. See
+[the audio processing contract](operations/video-uploads.md#heartmoment-voice-intake-1671).
+
 ## Optional personal photo sources
 
 The generated API/worker environment retains instance-local expressions for

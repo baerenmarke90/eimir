@@ -7,8 +7,10 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { M4ProductApis } from '../client/m4Product';
+import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
 import {
   loadPartnerQuickActionsCapability,
   PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
@@ -16,18 +18,21 @@ import {
 } from '../client/partnerQuickActions';
 import { ClientProblemError } from '../client/problemDetails';
 import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
-import type { M4ProductApis } from '../client/m4Product';
 import { useTranslation } from '../i18n';
+import { AvatarPhoto, type AvatarPhotoHandle } from './AvatarPhoto';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
+import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { usePresentationPresence } from './useOverlayPresence';
 import {
   isGestureCooldown,
-  usePartnerGesture,
   type PartnerAction,
+  usePartnerGesture,
 } from './usePartnerGesture';
 import './PartnerQuickActions.css';
 
@@ -44,6 +49,8 @@ export interface PartnerQuickActionsProps {
   accountId: string;
   spaceId: string;
   partnerName: string;
+  partnerPhotoUrl?: string | null;
+  partnerPhotoIdentity?: string;
   thinkingOfYouAvailableAt: Date | null;
   children: (
     avatarAction: CouplePresenceAvatarAction,
@@ -65,12 +72,17 @@ export function PartnerQuickActions({
   spaceId,
   partnerName,
   thinkingOfYouAvailableAt,
+  partnerPhotoUrl,
+  partnerPhotoIdentity,
   children,
 }: PartnerQuickActionsProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { captureOrigin, resolveOrigin } = useTaskOrigin();
   const isExpanded = useMediaQuery(EXPANDED_QUERY);
   const firstActionRef = useRef<HTMLButtonElement>(null);
+  const photoRef = useRef<AvatarPhotoHandle>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
   const titleId = useId();
   const [compactPresent, setCompactPresent] = useState(false);
@@ -83,6 +95,27 @@ export function PartnerQuickActions({
     },
   );
   const desiredExpandedOpen = isOpen && isExpanded && !compactPresent;
+  useEffect(() => {
+    const key = (location.state as { taskReturnKey?: unknown } | null)
+      ?.taskReturnKey;
+    const origin = resolveOrigin(key);
+    if (
+      origin?.selectedKey !== 'partner-quick-actions' ||
+      origin.to !== taskOriginPath(location.pathname, location.search)
+    )
+      return;
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
+      triggerRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    location.state,
+    location.pathname,
+    location.search,
+    resolveOrigin,
+    triggerRef,
+  ]);
   const {
     present: expandedPresent,
     presenceState: expandedPresenceState,
@@ -200,14 +233,28 @@ export function PartnerQuickActions({
     navigate(destination);
   };
 
+  const openOnceComposer = () => {
+    if (gesture.isInFlight()) return;
+    const handoff = () => {
+      const taskOriginKey = captureOrigin({
+        selectedKey: 'partner-quick-actions',
+      });
+      void navigate(ONCE_CREATE_ROUTE, {
+        state: taskOriginKey ? { taskOriginKey } : undefined,
+      });
+    };
+    if (compactPresent) sheetRef.current?.closeForNavigation(handoff);
+    else {
+      close();
+      handoff();
+    }
+  };
+
   const hasExtendedCapability = capabilityQuery.data === true;
   const capabilityReady = capabilityQuery.isSuccess;
 
   const actionList = (
     <div className="partner-quick-actions-content">
-      <p className="partner-quick-actions-intro">
-        {t('partnerQuickActions.intro')}
-      </p>
       {gesture.pendingAction ? (
         <p
           className="partner-quick-actions-pending"
@@ -224,6 +271,34 @@ export function PartnerQuickActions({
         </p>
       ) : null}
       <div className="partner-quick-actions-list">
+        {partnerPhotoUrl ? (
+          <button
+            type="button"
+            className="partner-quick-action"
+            disabled={gesture.isPending}
+            onClick={() => {
+              if (gesture.isInFlight()) return;
+              const showPhoto = () => {
+                triggerRef.current?.focus({ preventScroll: true });
+                photoRef.current?.open();
+              };
+              if (compactPresent)
+                sheetRef.current?.closeForNavigation(showPhoto);
+              else {
+                close();
+                showPhoto();
+              }
+            }}
+          >
+            <span className="partner-quick-action-icon" aria-hidden="true">
+              <EimirIcon name="expand" />
+            </span>
+            <span className="partner-quick-action-copy">
+              <strong>{t('people.photoAction')}</strong>
+            </span>
+          </button>
+        ) : null}
+
         <button
           ref={firstActionRef}
           type="button"
@@ -239,11 +314,9 @@ export function PartnerQuickActions({
           </span>
           <span className="partner-quick-action-copy">
             <strong>{t('partnerQuickActions.thinking')}</strong>
-            <span>
-              {thinkingCoolingDown
-                ? t('partnerQuickActions.cooldown')
-                : t('partnerQuickActions.thinkingHint')}
-            </span>
+            {thinkingCoolingDown ? (
+              <span>{t('partnerQuickActions.cooldown')}</span>
+            ) : null}
           </span>
         </button>
 
@@ -281,11 +354,9 @@ export function PartnerQuickActions({
               </span>
               <span className="partner-quick-action-copy">
                 <strong>{t('partnerQuickActions.kiss')}</strong>
-                <span>
-                  {hasExtendedCapability && kissCoolingDown
-                    ? t('partnerQuickActions.cooldown')
-                    : t('partnerQuickActions.kissHint')}
-                </span>
+                {hasExtendedCapability && kissCoolingDown ? (
+                  <span>{t('partnerQuickActions.cooldown')}</span>
+                ) : null}
               </span>
               {!hasExtendedCapability ? (
                 <ProMark label={t('partnerQuickActions.pro')} />
@@ -323,6 +394,32 @@ export function PartnerQuickActions({
             </button>
           </>
         )}
+        <Link
+          className="partner-quick-action"
+          to={ONCE_CREATE_ROUTE}
+          aria-disabled={gesture.isPending || undefined}
+          onClick={(event) => {
+            if (
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
+            event.preventDefault();
+            openOnceComposer();
+          }}
+        >
+          <span className="partner-quick-action-icon" aria-hidden="true">
+            <DestinationIcon icon="private" />
+          </span>
+          <span className="partner-quick-action-copy">
+            <strong>{t('onceMessages.title')}</strong>
+            <span>{t('onceMessages.singleView')}</span>
+          </span>
+          <ProMark label={t('partnerQuickActions.pro')} />
+        </Link>
       </div>
 
       {feedback ? (
@@ -396,6 +493,15 @@ export function PartnerQuickActions({
 
   return (
     <>
+      {partnerPhotoUrl ? (
+        <AvatarPhoto
+          ref={photoRef}
+          name={partnerName}
+          url={partnerPhotoUrl}
+          identity={partnerPhotoIdentity ?? `${spaceId}:partner-photo`}
+          renderTrigger={() => null}
+        />
+      ) : null}
       {children(avatarAction, expandedPopover)}
       <ShortTaskSheet
         ref={sheetRef}

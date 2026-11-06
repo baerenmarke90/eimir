@@ -1,6 +1,17 @@
 {
   "version": 1,
   "specs": {
+    "moments-local-create.spec.ts": {
+      "roots": [
+        "web/src/components/MomentCreateMenu.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/QuickCreateMenu.tsx"
+      ]
+    },
     "app-continuity-polish.spec.ts": {
       "roots": [
         "web/src/client/referenceFlow.ts",
@@ -351,6 +362,8 @@
     },
     "partner-quick-actions.spec.ts": {
       "roots": [
+        "web/src/components/PartnerQuickActions.tsx",
+        "web/src/components/OnceMessages.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"
       ]
@@ -358,7 +371,11 @@
     "people-important-dates-mobile-first.spec.ts": {
       "roots": [
         "web/src/components/RelatedPeoplePage.tsx",
-        "web/src/components/ProfilePage.tsx"
+        "web/src/components/RelatedPersonEditorSheet.tsx",
+        "web/src/components/AvatarPhoto.tsx",
+        "web/src/components/PlanningOccasions.tsx",
+        "web/src/components/ImportantDatesPanel.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "perspective-game.spec.ts": {
@@ -844,7 +861,8 @@
       "roots": [
         "web/src/components/RelatedPeoplePage.tsx",
         "web/src/components/RelatedPersonEditorSheet.tsx",
-        "web/src/components/PhotoSourcePicker.tsx"
+        "web/src/components/PhotoSourcePicker.tsx",
+        "web/src/components/AvatarPhoto.tsx"
       ]
     },
     "polish-root-refresh.spec.ts": {
@@ -893,6 +911,18 @@
         "web/src/components/VoiceNotePlayer.tsx",
         "web/src/client/useVoiceRecorder.ts",
         "web/src/client/voiceNotes.ts"
+      ]
+    },
+    "private-location-and-capture-tags.spec.ts": {
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/HeartMomentLocation.tsx",
+        "web/src/components/PlaceChoicePicker.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/client/proPresentation.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PlanningCreatePage.tsx"
       ]
     }
   }

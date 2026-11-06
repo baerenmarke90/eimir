@@ -16,6 +16,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "moments-local-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Feature-owned local Memory/HeartMoment/Milestone creation, actual save/result/filtered return, dirty exit, all Moments views, Core availability, dialog focus and responsive accessible composition."
+    },
     "app-continuity-polish.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 8,
@@ -79,7 +84,7 @@
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 18,
-      "reason": "Persistent navigation clearance, bounded account/Space-scoped primary context, browser history/native tab replacement and native touch swipe ownership."
+      "reason": "Persistent navigation clearance, canonical default-root selection with independent nested-task return, browser history/native tab replacement and native touch swipe ownership (#1682)."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -142,7 +147,8 @@
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5
+      "baselineTests": 5,
+      "reason": "Feature-owned People overview/profile/gallery/edit/save/result/return, shared-only capture, independent planning occasions, dirty Back, full retained 200%/400% zoom, keyboard, small-height, Expanded Light/Dark, reflow and axe acceptance."
     },
     "partner-nickname.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -333,7 +339,8 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 22,
+      "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
     "shared-photos.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -507,6 +514,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 3,
       "reason": "Actual browser JWE across two accounts/devices, deliberate single view, uncertain-send idempotency, ephemeral audio and clear-on-close with mobile/reflow/theme evidence."
+    },
+    "private-location-and-capture-tags.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Feature-owned parent-private location capture, map selection without shared Place writes, save/edit/reload, subscribed feature marks and shared capture-tag reflow. No always-run expansion."
     }
   }
 }

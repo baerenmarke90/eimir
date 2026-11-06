@@ -1,14 +1,4 @@
-import {
-  useAttentionReceipt,
-  useAttentionReceipts,
-} from '../client/attentionReceipt';
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  useActivityQuery,
-  readableActivityItems,
-} from '../client/activityQueries';
-import { ActivityCard } from './ActivityCard';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
@@ -23,6 +13,14 @@ import type { DashboardItemType } from '../api/generated/models/DashboardItemTyp
 import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
+import {
+  readableActivityItems,
+  useActivityQuery,
+} from '../client/activityQueries';
+import {
+  useAttentionReceipt,
+  useAttentionReceipts,
+} from '../client/attentionReceipt';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
@@ -33,7 +31,6 @@ import {
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
-import { planScheduleLabel } from '../client/planningPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
@@ -41,8 +38,10 @@ import {
   engagementTargetPath,
   type M4ProductApis,
 } from '../client/m4Product';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { decodeDashboardOverview } from '../client/overviewSnapshots';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { planScheduleLabel } from '../client/planningPresentation';
 import {
   PARTNER_PRESENCE_PRODUCT_ENABLED,
   usePartnerPresence,
@@ -80,6 +79,7 @@ import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useWirStatistics } from '../client/useWirStatistics';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { ActivityCard } from './ActivityCard';
 import { AnticipationCard } from './AnticipationCard';
 import {
   CouplePresence,
@@ -89,15 +89,15 @@ import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
-import { MemoryPreview } from './MemoryPreview';
 import { GentleSuggestionCard } from './GentleSuggestionCard';
+import { MemoryPreview } from './MemoryPreview';
 import {
   MonthlyRecapInvitation,
   useMonthlyRecapInvitation,
 } from './MonthlyRecapInvitation';
+import { OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
-import { OnceIncomingSignal } from './OnceMessages';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -1317,6 +1317,8 @@ export function TodayPage({
               accountId={account.id}
               spaceId={spaceId}
               partnerName={partnerName}
+              partnerPhotoUrl={partnerAvatar.avatarUrl}
+              partnerPhotoIdentity={`${spaceId}:${partner?.id}:${partnerProfileQuery.data?.profileAttachmentId}`}
               thinkingOfYouAvailableAt={
                 dashboardQuery.data?.thinkingOfYouAvailableAt ?? null
               }

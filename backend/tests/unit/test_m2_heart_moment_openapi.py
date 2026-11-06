@@ -58,6 +58,7 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "audioTitle",
         "audioSpeakerName",
         "tags",
+        "location",
         "placeId",
     }
     assert set(create["required"]) == {"text", "emotion", "visibility", "happenedOn"}
@@ -75,6 +76,7 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "audioTitle",
         "audioSpeakerName",
         "tags",
+        "location",
     }
     assert update["additionalProperties"] is False
 

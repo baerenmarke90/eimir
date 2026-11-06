@@ -52,6 +52,7 @@ Clients decide which entry points to offer from `GET /instance/status`, never fr
 1. The person chooses the intentional de-DE entry **„Anmelden“** or **„Gemeinsam starten“**, enters their email address, or selects an existing Passkey.
 2. The UI explains the next step without revealing whether another person's email address is registered. **„Gemeinsam starten“** calls `POST /auth/signup/request`, which does the same work and answers the same empty `202` for known and unknown addresses. **„Anmelden“** keeps using the Magic Link request for existing Accounts.
 3. The mailed one-time link, Magic Link, or Passkey is confirmed. Redeeming the signup link (`POST /auth/signup/consume`) signs into the Account that already owns the verified address, or creates exactly one new Account bound to it; `accountCreated` tells the client which happened.
+   - A new Cloud Account requires acceptance of the current terms of use (`termsOfUseVersion` from `GET /instance/status`). „Gemeinsam starten“ and the Cloud invitation entry ask for it with a required checkbox and bind `acceptedTermsVersion` to the mailed proof; the request still answers the same empty `202` for every address. A proof without a current acceptance (for example one requested through „Anmelden“) creates nothing and answers `409 TERMS_ACCEPTANCE_REQUIRED`; the client then asks once more on the same screen and redeems the unchanged proof with `acceptedTermsVersion`. Existing Accounts never see this step. Version, time and origin are stored per Account and deleted with it. Self-Hosted publishes no version and requires no acceptance.
 4. The client receives a secure session; tokens are not copied into URLs, Analytics, or logs. After redeeming a mailed proof, the client removes it from the address bar and history.
 5. If an active Membership exists, the originally requested Deep Link or the intentional de-DE destination `Wir` opens.
 6. If no Space exists yet, Flow B starts.
@@ -67,6 +68,7 @@ Clients decide which entry points to offer from `GET /instance/status`, never fr
 
 - Expired/used/superseded Magic Link or signup link: request a new link while preserving destination context.
 - Registration disabled or maintenance: a signup link for an address without an Account fails with `403 REGISTRATION_DISABLED` or `503 MAINTENANCE_MODE` and creates nothing; it stays usable until it expires. Existing Accounts still sign in with it.
+- Terms text changed after the page loaded: `409 TERMS_VERSION_OUTDATED`; the client asks to reload instead of recording an acceptance of a text the person did not see.
 - Rate Limit: show the waiting time understandably; no repeated automatic submission.
 - Revoked session: close local sensitive caches and sign in again.
 - Offline: existing read cache may be shown only after valid local access protection; never pretend authentication succeeded.

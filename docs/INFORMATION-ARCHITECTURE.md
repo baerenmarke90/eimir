@@ -181,6 +181,7 @@ Links. IDs are opaque, stable identifiers.
 | Profile | `/more/profile` |
 | Settings | `/more/settings` |
 | Data and account | `/more/data-account` |
+| Terms of use (public, no session; linked in the More footer on eimir. Cloud) | `/legal/terms` |
 | Search | `/search` |
 
 ### Utility and account placement

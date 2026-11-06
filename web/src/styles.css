@@ -563,6 +563,19 @@ code {
   text-align: center;
 }
 
+.login-legal {
+  margin: var(--space-2) 0 0;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.login-legal a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+
 .app-shell {
   min-height: 100vh;
 }

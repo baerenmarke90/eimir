@@ -64,5 +64,5 @@ if (typeof window !== 'undefined') {
   window.addEventListener('languagechange', syncSessionLanguage);
 }
 
-export { useTranslation } from 'react-i18next';
+export { Trans, useTranslation } from 'react-i18next';
 export { i18n };

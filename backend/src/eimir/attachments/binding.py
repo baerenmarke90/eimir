@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.attachments.service import binding_window_expired
-from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError
+from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, ValidationError
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin
 
@@ -177,6 +177,7 @@ def ensure_bindable(
     account_id: UUID,
     already_bound: bool = False,
     allow_submitted_video: bool = False,
+    allow_audio: bool = False,
 ) -> Attachment:
     """Validate whether this attachment may be bound now.
 
@@ -189,6 +190,8 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.owner_id != account_id:
         raise Attachment.privacy_absence.error()
+    if attachment.media_type == MediaType.AUDIO and not allow_audio:
+        raise ValidationError("Audio requires a HeartMoment.", "AUDIO_PARENT_INVALID")
     submitted_video = (
         allow_submitted_video
         and attachment.media_type == MediaType.VIDEO.value
@@ -402,7 +405,12 @@ def set_sensitive(attachment: Attachment, value: bool | None, *, allow_change: b
 
 def cover_of(entries: list[BoundAttachment], selected: UUID | None) -> Attachment | None:
     """Choose a presentation cover without changing binding order."""
-    entries = [entry for entry in entries if entry.attachment.status == AttachmentStatus.READY]
+    entries = [
+        entry
+        for entry in entries
+        if entry.attachment.status == AttachmentStatus.READY
+        and entry.attachment.media_type != MediaType.AUDIO
+    ]
     if selected is not None:
         for entry in entries:
             if entry.attachment.id == selected:

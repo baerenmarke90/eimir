@@ -15,9 +15,9 @@ import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescri
 import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
 import { Configuration, createSessionFetch } from './apiConfiguration';
+import { createBinaryUploadRequest } from './binaryUploadTransport';
 import { AttachmentsApi, StoryApi } from './mediaApis';
 import { loadAuthorizedStoryImage } from './storyMediaLoader';
-import { createBinaryUploadRequest } from './binaryUploadTransport';
 
 export const UPLOAD_STALL_TIMEOUT_MS = 90_000;
 
@@ -288,28 +288,34 @@ export async function waitUntilAttachmentReady(
     ) {
       throw new ReferenceFlowError(
         i18n.t(
-          attachment.mediaType === 'VIDEO' &&
-            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-            ? 'video.tooLarge'
-            : attachment.failureCode?.startsWith('VIDEO_')
-              ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
-                ? 'video.unsupported'
-                : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
-                  ? 'video.tooLong'
-                  : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
-                    ? 'video.dimensions'
-                    : 'video.failed'
-              : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
-                  attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-                ? 'flow.imageTooLarge'
-                : attachment.failureCode === 'IMAGE_UNREADABLE'
-                  ? 'flow.imageUnreadable'
-                  : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
-                      attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
-                    ? 'flow.imageTypeMismatch'
-                    : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
-                      ? 'flow.imageNotSanitizable'
-                      : 'flow.processingStatus',
+          attachment.mediaType === 'AUDIO'
+            ? attachment.failureCode === 'AUDIO_DURATION_EXCEEDED'
+              ? 'voiceNotes.tooLong'
+              : attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+                ? 'voiceNotes.tooLarge'
+                : 'voiceNotes.unsupported'
+            : attachment.mediaType === 'VIDEO' &&
+                attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+              ? 'video.tooLarge'
+              : attachment.failureCode?.startsWith('VIDEO_')
+                ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
+                  ? 'video.unsupported'
+                  : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
+                    ? 'video.tooLong'
+                    : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
+                      ? 'video.dimensions'
+                      : 'video.failed'
+                : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
+                    attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+                  ? 'flow.imageTooLarge'
+                  : attachment.failureCode === 'IMAGE_UNREADABLE'
+                    ? 'flow.imageUnreadable'
+                    : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
+                        attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
+                      ? 'flow.imageTypeMismatch'
+                      : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
+                        ? 'flow.imageNotSanitizable'
+                        : 'flow.processingStatus',
         ),
         attachment.failureCode ?? undefined,
       );

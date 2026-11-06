@@ -49,20 +49,27 @@ public final class SelectedMediaProvider extends ContentProvider {
         private final Set<String> tokens = new HashSet<>();
         private boolean closed;
 
-        Uri adopt(Context context, Uri selected) {
+        Uri adopt(Context context, Uri selected) { return adopt(context, selected, false); }
+
+        Uri adoptAudio(Context context, Uri selected) { return adopt(context, selected, true); }
+
+        private Uri adopt(Context context, Uri selected, boolean audio) {
             AssetFileDescriptor source = null;
             try {
                 synchronized (leases) { if (closed) return selected; }
                 String type = context.getContentResolver().getType(selected);
-                if (!"video/mp4".equals(type) && !"video/quicktime".equals(type)) return selected;
+                if (audio) {
+                    if (type == null || !type.startsWith("audio/")) return selected;
+                } else if (!"video/mp4".equals(type) && !"video/quicktime".equals(type)) return selected;
                 String name = "video" + ("video/mp4".equals(type) ? ".mp4" : ".mov");
-                try (Cursor cursor = context.getContentResolver().query(selected,
+                if (!audio) try (Cursor cursor = context.getContentResolver().query(selected,
                         new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                     if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) name = cursor.getString(0);
                 }
                 source = context.getContentResolver().openAssetFileDescriptor(selected, "r");
                 if (source == null) return selected;
-                Lease lease = new Lease(source, name, type);
+                if (audio && source.getLength() > 20L * 1024 * 1024) return selected;
+                Lease lease = new Lease(source, audio ? "voice" : name, type);
                 synchronized (leases) {
                     if (closed || leases.size() >= MAX_LEASES) return selected;
                     String token = UUID.randomUUID().toString();

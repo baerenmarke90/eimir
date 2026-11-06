@@ -37,6 +37,7 @@ from eimir.identity.models import (
     WebAuthnChallenge,
     WebAuthnCredential,
 )
+from eimir.legal.models import TermsAcceptance
 from eimir.photo_sources.models import PhotoConnection, PhotoSelection
 from eimir.profiles.models import PartnerProfile
 from eimir.relationship.models import Invitation, Membership, MembershipStatus
@@ -308,6 +309,8 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     )
     _delete_account_rows(session, AuthIdentity, account_id, AuthIdentity.account_id)
     _delete_account_rows(session, AccountEmail, account_id, AccountEmail.account_id)
+    # Contract evidence ends with the contract; it holds no shared history.
+    _delete_account_rows(session, TermsAcceptance, account_id, TermsAcceptance.account_id)
 
     account.display_name = DELETED_ACCOUNT_DISPLAY_NAME
     account.birthday = None

@@ -15,6 +15,7 @@ import games from './locales/games';
 import gentlePrompts from './locales/gentlePrompts';
 import importantDates from './locales/importantDates';
 import languageSettings from './locales/languageSettings';
+import legal from './locales/legal';
 import m5s3 from './locales/m5s3';
 import m5s5 from './locales/m5s5';
 import m5s6 from './locales/m5s6';
@@ -78,6 +79,7 @@ export const germanResources = {
   games,
   experiences,
   importantDates,
+  legal,
   m5s3,
   m5s5,
   ...m5s6,

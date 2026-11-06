@@ -15,7 +15,7 @@ from eimir.attachments.limits import (
 from eimir.attachments.models import MediaType
 
 
-def test_the_contract_allowlist_matches_m2_d04() -> None:
+def test_the_contract_allowlist_matches_m2_d04_and_voice_extension() -> None:
     assert contracted_mime_types() == {
         "image/jpeg",
         "image/png",
@@ -24,6 +24,12 @@ def test_the_contract_allowlist_matches_m2_d04() -> None:
         "image/heif",
         "video/mp4",
         "video/quicktime",
+        "audio/ogg",
+        "audio/webm",
+        "audio/mp4",
+        "audio/mpeg",
+        "audio/wav",
+        "audio/aac",
     }
 
 

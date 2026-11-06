@@ -12,6 +12,7 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Request, Response, status
+from pydantic import Field
 
 from eimir.api.deps import CurrentAccount, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
@@ -74,6 +75,15 @@ class EmailRequest(ApiModel):
 class SignupEmailRequest(EmailRequest):
     invitation_token: str | None = None
     """Bound to the mailed proof as a hash; validated when the proof is redeemed."""
+    accepted_terms_version: str | None = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "Terms-of-use version the person accepted in the signup form, as published by "
+            "`GET /instance/status`. Bound to the mailed proof and recorded only if the "
+            "proof creates a new Account."
+        ),
+    )
 
 
 class MagicLinkConsumeRequest(ApiModel):
@@ -86,6 +96,15 @@ class SignupConsumeRequest(ApiModel):
     token: str
     display_name: str | None = None
     """Used only when the proof creates a new Account; ignored for an existing one."""
+    accepted_terms_version: str | None = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "Terms-of-use acceptance given while redeeming. Needed only after "
+            "`TERMS_ACCEPTANCE_REQUIRED`: the proof would create a new Account but carries no "
+            "acceptance of the current version."
+        ),
+    )
     device_name: str = ""
     platform: str = ""
 
@@ -341,7 +360,19 @@ def consume_magic_link(body: MagicLinkConsumeRequest, session: DbSession) -> Ses
     "/auth/signup/request",
     status_code=status.HTTP_202_ACCEPTED,
     response_class=Response,
-    responses=problem_responses(403, 422, 429, 503),
+    responses=problem_responses(
+        403,
+        409,
+        422,
+        429,
+        503,
+        descriptions={
+            409: (
+                "`TERMS_VERSION_OUTDATED`: `acceptedTermsVersion` is not the version currently "
+                "published by `GET /instance/status`. No proof was issued."
+            ),
+        },
+    ),
 )
 def request_signup(
     body: SignupEmailRequest, request: Request, session: DbSession, mail: Mail
@@ -361,6 +392,7 @@ def request_signup(
         mail=mail,
         client_host=client_host,
         invitation_token=body.invitation_token,
+        accepted_terms_version=body.accepted_terms_version,
         requested_locale=request_locale(request.headers.get("accept-language")),
     )
     return Response(status_code=status.HTTP_202_ACCEPTED)
@@ -382,6 +414,12 @@ def request_signup(
                 "`AUTH_METHOD_DISABLED` on deployments without self-service signup, or "
                 "`REGISTRATION_DISABLED` when the proof would create a new Account while the "
                 "administrator does not admit new Accounts. Nothing was created."
+            ),
+            409: (
+                "`TERMS_ACCEPTANCE_REQUIRED`: the proof would create a new Account without an "
+                "acceptance of the current terms of use. Nothing was created and the proof stays "
+                "redeemable: redeem it again with `acceptedTermsVersion`. "
+                "`TERMS_VERSION_OUTDATED`: `acceptedTermsVersion` is not the current version."
             ),
             503: "`MAINTENANCE_MODE`: no new Account is created during maintenance.",
         },
@@ -407,6 +445,7 @@ def consume_signup(
         display_name=body.display_name,
         device_name=body.device_name[:MAX_DEVICE_NAME],
         platform=body.platform,
+        accepted_terms_version=body.accepted_terms_version,
     )
     view = _view(SignedIn(account=result.account, tokens=result.tokens))
     return SignupSessionView(

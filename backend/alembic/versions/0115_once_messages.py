@@ -1,15 +1,15 @@
 """Optional temporary partner messages and neutral notification kind.
 
-Revision ID: 0114
-Revises: 0112 (rebased onto the voice-note revision before integration)
+Revision ID: 0115
+Revises: 0114
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0114"
-down_revision = "0112"
+revision = "0115"
+down_revision = "0114"
 branch_labels = None
 depends_on = None
 

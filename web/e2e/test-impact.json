@@ -59,7 +59,10 @@
       "roots": [
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NativeSessionGate.tsx",
-        "web/src/components/FirstSpaceGate.tsx"
+        "web/src/components/FirstSpaceGate.tsx",
+        "web/src/components/TermsAcceptanceField.tsx",
+        "web/src/components/LegalTermsPage.tsx",
+        "web/src/components/LegalDocumentView.tsx"
       ]
     },
     "comments-create-ownership.spec.ts": {
@@ -851,13 +854,28 @@
         "web/src/client/sessionPersistence.ts"
       ]
     },
+    "heart-voice-notes.spec.ts": {
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/VoiceNoteEditor.tsx",
+        "web/src/components/VoiceNotePlayer.tsx",
+        "web/src/components/SavedVoiceNote.tsx",
+        "web/src/components/VoiceShareIngress.tsx",
+        "web/src/client/useVoiceRecorder.ts",
+        "web/src/client/useHeartVoiceDraft.ts",
+        "web/src/client/sharedVoiceImport.ts"
+      ]
+    },
     "once-messages.spec.ts": {
       "roots": [
         "web/src/components/OnceMessages.tsx",
         "web/src/client/onceMessages.tsx",
         "web/src/client/onceMessageCrypto.ts",
         "web/src/components/QuickCreateMenu.tsx",
-        "web/src/components/TodayPage.tsx"
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/VoiceNotePlayer.tsx",
+        "web/src/client/useVoiceRecorder.ts",
+        "web/src/client/voiceNotes.ts"
       ]
     }
   }

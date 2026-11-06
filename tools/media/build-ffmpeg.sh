@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build only the local MP4/MOV normalization and verified H.264/AAC output surface.
+# Build the reviewed local video/voice input and verified H.264/AAC output surface.
 set -euo pipefail
 source_dir="$(realpath "$1")"
 install_dir="$(realpath -m "$2")"
@@ -17,10 +17,10 @@ export PKG_CONFIG_PATH="$install_dir/lib/pkgconfig"
   --enable-libopenh264 --enable-libzimg --pkg-config-flags=--static \
   --extra-cflags="-I$install_dir/include" \
   --extra-ldflags="-L$install_dir/lib -static-libstdc++ -static-libgcc" --ld=g++ \
-  --enable-protocol=file,pipe --enable-demuxer=mov \
-  --enable-muxer=mp4,image2,null \
-  --enable-decoder=h264,hevc,aac,mp3float,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32le,pcm_s16be,pcm_s24be \
-  --enable-parser=h264,hevc,aac,mpegaudio \
+  --enable-protocol=file,pipe --enable-demuxer=mov,ogg,matroska,mp3,wav,aac \
+  --enable-muxer=mp4,image2,null,wav \
+  --enable-decoder=h264,hevc,opus,vorbis,aac,mp3float,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32le,pcm_s16be,pcm_s24be \
+  --enable-parser=h264,hevc,aac,mpegaudio,opus,vorbis \
   --enable-encoder=libopenh264,aac,mjpeg,wrapped_avframe,pcm_s16le \
   --enable-bsf=filter_units,h264_metadata,h264_mp4toannexb,aac_adtstoasc \
   --enable-filter=scale,format,null,anull,aresample,aformat,transpose,hflip,vflip,zscale,tonemap,fps,sidedata

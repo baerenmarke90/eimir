@@ -8,11 +8,6 @@ import {
 import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities';
 import type { InstanceAccessStatusAccountCreationEnum } from '../api/generated/models/InstanceAccessStatus';
 import type { SensitiveEntryToken } from '../client/entryToken';
-import type { StoredSession } from '../client/sessionPersistence';
-import {
-  loadInstanceAccessStatus,
-  type RegistrationAvailability,
-} from '../client/instanceStatus';
 import {
   ActiveAccountMismatchError,
   completePasswordRecovery,
@@ -26,11 +21,21 @@ import {
   revokeUnacceptedSession,
   signInAndJoinInvitation,
 } from '../client/identityFlow';
-import { useTaskActivation } from '../client/useTaskActivation';
+import {
+  loadInstanceAccessStatus,
+  type RegistrationAvailability,
+} from '../client/instanceStatus';
 import { ClientProblemError } from '../client/problemDetails';
+import type { StoredSession } from '../client/sessionPersistence';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { useTranslation } from '../i18n';
 import { Brand } from './Brand';
 import { ProblemState } from './ProblemState';
+import {
+  BUNDLED_TERMS_VERSION,
+  TermsAcceptanceField,
+  TermsLink,
+} from './TermsAcceptanceField';
 import { UiState } from './UiState';
 
 type EntryMode =
@@ -52,9 +57,18 @@ type PendingAction =
   | 'signupRequest'
   | 'signupConsume';
 
+const TERMS_ACCEPTANCE_REQUIRED = 'TERMS_ACCEPTANCE_REQUIRED';
+const TERMS_VERSION_OUTDATED = 'TERMS_VERSION_OUTDATED';
+
+function problemCode(error: unknown): string | null {
+  return error instanceof ClientProblemError ? (error.code ?? null) : null;
+}
+
 function isTokenExpiredOrInvalidError(error: unknown): boolean {
   if (error instanceof ClientProblemError) {
     if (
+      error.code === TERMS_ACCEPTANCE_REQUIRED ||
+      error.code === TERMS_VERSION_OUTDATED ||
       error.code === 'REGISTRATION_DISABLED' ||
       error.code === 'MAINTENANCE_MODE' ||
       error.code === 'AUTH_METHOD_DISABLED' ||
@@ -97,6 +111,10 @@ export function IdentityEntry({
     useState(false);
   const [, setAccountCreation] =
     useState<InstanceAccessStatusAccountCreationEnum>('invitation');
+  const [termsOfUseVersion, setTermsOfUseVersion] = useState<string | null>(
+    null,
+  );
+  const [awaitingTermsAcceptance, setAwaitingTermsAcceptance] = useState(false);
   const localPasswordEnabled = authCapabilities?.localPassword ?? true;
   const magicLinkEnabled = authCapabilities?.magicLink ?? true;
   const [mode, setMode] = useState<EntryMode>('signIn');
@@ -170,6 +188,7 @@ export function IdentityEntry({
       setAuthCapabilities(result.auth);
       setSelfServiceSignupAvailable(result.selfServiceSignupAvailable);
       setAccountCreation(result.accountCreation);
+      setTermsOfUseVersion(result.termsOfUseVersion);
       if (result.auth && !result.auth.localPassword && result.auth.magicLink) {
         setMode((currentMode) =>
           currentMode === 'signIn' ||
@@ -270,6 +289,12 @@ export function IdentityEntry({
       neutralMailStatusRef.current?.focus();
     }
   }, [signupRequested]);
+
+  useEffect(() => {
+    if (problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED) {
+      setAwaitingTermsAcceptance(true);
+    }
+  }, [activeError]);
 
   function switchMode(nextMode: EntryMode) {
     if (nextMode === mode) return;
@@ -385,7 +410,12 @@ export function IdentityEntry({
       () =>
         selfServiceSignupAvailable
           ? invitationToken
-            ? requestSignup(apiBaseUrl, email, invitationToken)
+            ? requestSignup(
+                apiBaseUrl,
+                email,
+                invitationToken,
+                acceptedTermsVersion,
+              )
             : requestSignup(apiBaseUrl, email)
           : requestMagicLink(apiBaseUrl, email),
       () => setMagicLinkRequested(true),
@@ -398,13 +428,52 @@ export function IdentityEntry({
     const email = String(data.get('email'));
     void runAction(
       'signupRequest',
-      () => requestSignup(apiBaseUrl, email),
+      () => requestSignup(apiBaseUrl, email, null, acceptedTermsVersion),
       () => setSignupRequested(true),
+    );
+  }
+
+  function submitSignupAcceptance(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (entryToken?.kind !== 'signup') return;
+    const { token, invitationToken: boundInvitation } = entryToken;
+    const version = acceptedTermsVersion ?? BUNDLED_TERMS_VERSION;
+    void runAction(
+      'signupConsume',
+      async () => {
+        const result = await consumeSignup(
+          apiBaseUrl,
+          token,
+          boundInvitation,
+          version,
+        );
+        return {
+          account: result.account,
+          tokens: result.tokens,
+          ...(result.spaceId ? { spaceId: result.spaceId } : {}),
+        };
+      },
+      onSession,
+      discardSession,
     );
   }
 
   const showsVerification =
     entryToken?.kind === 'emailVerification' && !verificationDismissed;
+  // The text shown is the bundled text; only that exact version may be accepted.
+  const termsOutdated =
+    termsOfUseVersion !== null && termsOfUseVersion !== BUNDLED_TERMS_VERSION;
+  const acceptedTermsVersion = termsOutdated ? null : termsOfUseVersion;
+  const asksForTerms = acceptedTermsVersion !== null;
+  const outdatedTerms = (
+    <div className="inline-message" role="status">
+      <strong>{t('legal.outdatedTitle')}</strong>
+      <span>{t('legal.outdatedBody')}</span>
+      <button type="button" onClick={() => window.location.reload()}>
+        {t('legal.reload')}
+      </button>
+    </div>
+  );
 
   return (
     <main className="login-shell">
@@ -499,9 +568,43 @@ export function IdentityEntry({
               </form>
             </>
           ) : entryToken?.kind === 'signup' ? (
-            activeError ? (
+            awaitingTermsAcceptance &&
+            (!activeError ||
+              problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED) ? (
+              termsOutdated ? (
+                outdatedTerms
+              ) : (
+                <>
+                  <div>
+                    <p className="eyebrow">{t('legal.pendingEyebrow')}</p>
+                    <h2 id="identity-entry-heading">
+                      {t('legal.pendingTitle')}
+                    </h2>
+                    <p className="muted">{t('legal.pendingBody')}</p>
+                  </div>
+                  <form
+                    onSubmit={submitSignupAcceptance}
+                    className="form-grid login-form"
+                  >
+                    <TermsAcceptanceField />
+                    <button
+                      type="submit"
+                      disabled={pendingAction === 'signupConsume'}
+                      aria-busy={pendingAction === 'signupConsume'}
+                    >
+                      {pendingAction === 'signupConsume'
+                        ? t('legal.creatingAccount')
+                        : t('legal.createAccount')}
+                    </button>
+                  </form>
+                  <BackToSignIn onClick={discardEntryToken} />
+                </>
+              )
+            ) : activeError ? (
               <>
-                {isTokenExpiredOrInvalidError(activeError) ? (
+                {problemCode(activeError) === TERMS_VERSION_OUTDATED ? (
+                  outdatedTerms
+                ) : isTokenExpiredOrInvalidError(activeError) ? (
                   <UiState
                     kind="error"
                     title={t('identity.signupFailedTitle')}
@@ -564,12 +667,15 @@ export function IdentityEntry({
                   </div>
                   {signupRequested ? (
                     <NeutralMailResult statusRef={neutralMailStatusRef} />
+                  ) : termsOutdated ? (
+                    outdatedTerms
                   ) : (
                     <form
                       onSubmit={submitSignupRequest}
                       className="form-grid login-form"
                     >
                       <EmailField inputRef={emailInputRef} />
+                      {asksForTerms ? <TermsAcceptanceField /> : null}
                       <button
                         type="submit"
                         disabled={pendingAction === 'signupRequest'}
@@ -695,12 +801,21 @@ export function IdentityEntry({
                   </div>
                   {magicLinkRequested ? (
                     <NeutralMailResult />
+                  ) : selfServiceSignupAvailable &&
+                    invitationToken &&
+                    termsOutdated ? (
+                    outdatedTerms
                   ) : (
                     <form
                       onSubmit={submitMagicLinkRequest}
                       className="form-grid login-form"
                     >
                       <EmailField inputRef={emailInputRef} />
+                      {selfServiceSignupAvailable &&
+                      invitationToken &&
+                      asksForTerms ? (
+                        <TermsAcceptanceField />
+                      ) : null}
                       <button
                         type="submit"
                         disabled={pendingAction === 'magicLinkRequest'}
@@ -830,9 +945,18 @@ export function IdentityEntry({
           entryToken?.kind !== 'magicLink' &&
           entryToken?.kind !== 'emailVerification' &&
           entryToken?.kind !== 'signup' ? (
-            <ProblemState error={activeError} />
+            problemCode(activeError) === TERMS_VERSION_OUTDATED ? (
+              outdatedTerms
+            ) : (
+              <ProblemState error={activeError} />
+            )
           ) : null}
           <p className="login-assurance">{t('login.assurance')}</p>
+          {termsOfUseVersion !== null ? (
+            <p className="login-legal">
+              <TermsLink />
+            </p>
+          ) : null}
         </section>
       </div>
     </main>

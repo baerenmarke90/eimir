@@ -114,6 +114,7 @@ def engine() -> Iterator[Engine]:
     from eimir.heart_moments import models as _heart_moments  # noqa: F401
     from eimir.identity import models as _identity  # noqa: F401
     from eimir.jobs import models as _jobs  # noqa: F401
+    from eimir.legal import models as _legal  # noqa: F401
     from eimir.memories import models as _memories  # noqa: F401
     from eimir.milestones import models as _milestones  # noqa: F401
     from eimir.once_messages import models as _once_messages  # noqa: F401

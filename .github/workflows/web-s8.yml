@@ -6,6 +6,7 @@ on:
       - "web/**"
       - "android/**"
       - "design/tokens.json"
+      - "legal/**"
       - ".github/workflows/web-s8.yml"
 
 permissions:

@@ -8,6 +8,8 @@ Name | Type
 ------------ | -------------
 `attachment` | [AttachmentSummary](AttachmentSummary.md)
 `attachments` | [Array&lt;OrderedAttachmentSummary&gt;](OrderedAttachmentSummary.md)
+`audioSpeakerName` | string
+`audioTitle` | string
 `author` | [AuthorSummary](AuthorSummary.md)
 `authorId` | string
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
@@ -32,6 +34,8 @@ import type { HeartMomentDetail } from ''
 const example = {
   "attachment": null,
   "attachments": null,
+  "audioSpeakerName": null,
+  "audioTitle": null,
   "author": null,
   "authorId": null,
   "capabilities": null,

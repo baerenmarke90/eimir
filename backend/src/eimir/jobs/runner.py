@@ -128,9 +128,14 @@ def main() -> None:
 
         try:
             projected = _run_engagement_projection()
-            from eimir.attachments.service import ATTACHMENT_VIDEO_VALIDATION
+            from eimir.attachments.service import (
+                ATTACHMENT_AUDIO_VALIDATION,
+                ATTACHMENT_VIDEO_VALIDATION,
+            )
 
-            completed = projected + run_once(name, excluded_kinds=[ATTACHMENT_VIDEO_VALIDATION])
+            completed = projected + run_once(
+                name, excluded_kinds=[ATTACHMENT_VIDEO_VALIDATION, ATTACHMENT_AUDIO_VALIDATION]
+            )
         except Exception:
             # A failure while polling must not terminate the process; otherwise
             # any brief database connection disruption would take down the

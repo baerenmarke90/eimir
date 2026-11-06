@@ -1,3 +1,4 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { readFileSync } from 'node:fs';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -178,6 +179,7 @@ async function installPlanningMocks(
   let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();

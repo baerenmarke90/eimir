@@ -1,3 +1,4 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import photoSources from '../../src/i18n/locales/photoSources';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
@@ -53,6 +54,7 @@ async function installApiMocks(page: Page): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();

@@ -24,6 +24,8 @@ export function PlaceChoicePicker({
   onPendingChange,
   captureAdmission,
   confirmSharedCreate = false,
+  onChooseLocation,
+  locationHint,
 }: {
   api: PlacesApi;
   spaceId: string;
@@ -32,6 +34,8 @@ export function PlaceChoicePicker({
   onChoose: (place: PlaceDetail) => Promise<void> | void;
   captureAdmission?: () => () => boolean;
   confirmSharedCreate?: boolean;
+  onChooseLocation?: (location: PlaceMapSelection) => void;
+  locationHint?: string;
   onPendingChange: (pending: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -144,10 +148,15 @@ export function PlaceChoicePicker({
           confirmSharedCreate ? t('photoPlaces.saveSharedPlace') : undefined
         }
         confirmationHint={
-          confirmSharedCreate ? t('photoPlaces.sharedCreateHint') : undefined
+          locationHint ??
+          (confirmSharedCreate ? t('photoPlaces.sharedCreateHint') : undefined)
         }
         disabled={offline || pending || Boolean(created)}
         onSelect={(selection) => {
+          if (onChooseLocation) {
+            onChooseLocation(selection);
+            return;
+          }
           setMapSelection(selection);
           void connect(undefined, selection);
         }}

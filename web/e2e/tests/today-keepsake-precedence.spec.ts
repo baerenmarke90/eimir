@@ -1,3 +1,4 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -64,6 +65,7 @@ async function installDashboardMocks(
 ): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());

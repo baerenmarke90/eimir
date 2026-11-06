@@ -96,13 +96,12 @@
   min-width: 0;
 }
 .context-tag-entry {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2);
   margin-top: var(--space-1);
 }
 .context-tag-entry input {
-  flex: 1 1 12rem;
   min-width: 0;
   min-height: 44px;
 }

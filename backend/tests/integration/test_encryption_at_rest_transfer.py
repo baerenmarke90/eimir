@@ -17,6 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.heart_moments.location import HeartMomentLocation
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.plans import service as plans
@@ -55,7 +56,12 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
             owner_id=anna.id,
             privacy_class=PrivacyClass.SPACE_SHARED.value,
             happened_on=date(2026, 9, 29),
-            payload=HeartMomentPayload(text="", emotion=HeartEmotion.LOVED, tags=["everyday"]),
+            payload=HeartMomentPayload(
+                text="",
+                emotion=HeartEmotion.LOVED,
+                tags=["everyday"],
+                location=HeartMomentLocation(name="Transported lake", latitude=49.1, longitude=7.2),
+            ),
         )
     )
     session.flush()
@@ -68,6 +74,7 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
         {"s": source.id},
     ).scalar_one()
     assert "everyday" not in heart_stored
+    assert "Transported lake" not in heart_stored
 
     source_context = AuthorizationContext(account_id=anna.id, space_id=source.id)
     target_context = AuthorizationContext(account_id=anna.id, space_id=target.id)
@@ -93,6 +100,7 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
         )["rows"]
         assert heart_rows[0]["payload"]["text"] == ""
         assert heart_rows[0]["payload"]["tags"] == ["everyday"]
+        assert heart_rows[0]["payload"]["location"]["name"] == "Transported lake"
 
         bundle.seek(0, io.SEEK_END)
         size = bundle.tell()
@@ -126,5 +134,8 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
     imported_heart = session.query(HeartMoment).filter(HeartMoment.space_id == target.id).one()
     assert imported_heart.payload.text == ""
     assert imported_heart.payload.tags == ["everyday"]
+    assert imported_heart.payload.location == HeartMomentLocation(
+        name="Transported lake", latitude=49.1, longitude=7.2
+    )
     assert session.query(Plan).filter(Plan.space_id == target.id).one().payload.tags == ["Concert"]
     assert session.query(Wish).filter(Wish.space_id == target.id).one().payload.tags == ["Summer"]

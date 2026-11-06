@@ -30,6 +30,7 @@ from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, visibility_of
 from eimir.engagement.gentle import record_manual_save
 from eimir.heart_moments import media, service
+from eimir.heart_moments.location import HeartMomentLocation
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.heart_moments.tags import HeartMomentTags, unique_tags
 
@@ -83,6 +84,7 @@ class HeartMomentCreate(ApiModel):
     selected_cover_attachment_id: UUID | None = None
     tags: HeartMomentTags = Field(default_factory=list)
     place_id: UUID | None = None
+    location: HeartMomentLocation | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -95,6 +97,8 @@ class HeartMomentCreate(ApiModel):
     @model_validator(mode="after")
     def _has_content(self) -> Self:
         _validate_gallery(self)
+        if self.place_id is not None and self.location is not None:
+            raise ValueError("placeId and location cannot be combined")
         if not self.text and not self.tags and self.attachment_id is None and not self.attachments:
             raise ValueError("a thought, context tag or photo is required")
         if self.attachment_is_sensitive is not None and self.attachment_id is None:
@@ -124,6 +128,7 @@ class HeartMomentUpdate(ApiModel):
     )
     selected_cover_attachment_id: UUID | None = None
     tags: HeartMomentTags | None = None
+    location: HeartMomentLocation | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -159,6 +164,7 @@ class HeartMomentDetail(ApiModel):
     audio_title: str = ""
     audio_speaker_name: str = ""
     tags: HeartMomentTags
+    location: HeartMomentLocation | None = None
     emotion: HeartEmotion
     visibility: ContentVisibility
     happened_on: date
@@ -205,6 +211,7 @@ def _heart_moment_detail(
         space_id=heart_moment.space_id,
         author_id=heart_moment.owner_id,
         text=heart_moment.payload.text,
+        location=heart_moment.payload.location,
         audio_title=heart_moment.payload.audio_title,
         audio_speaker_name=heart_moment.payload.audio_speaker_name,
         tags=heart_moment.payload.tags,
@@ -300,6 +307,7 @@ def create_heart_moment(
         text=body.text,
         audio_title=body.audio_title,
         audio_speaker_name=body.audio_speaker_name,
+        location=body.location,
         emotion=body.emotion,
         visibility=body.visibility,
         happened_on=body.happened_on,
@@ -399,6 +407,7 @@ def update_heart_moment(
         text=body.text,
         audio_title=body.audio_title,
         audio_speaker_name=body.audio_speaker_name,
+        location=body.location,
         emotion=body.emotion,
         happened_on=body.happened_on,
         attachment_id=body.attachment_id,

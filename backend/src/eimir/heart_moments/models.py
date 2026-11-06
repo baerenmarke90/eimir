@@ -29,6 +29,7 @@ from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
+from eimir.heart_moments.location import HeartMomentLocation
 from eimir.heart_moments.tags import HeartMomentTags, unique_tags
 
 
@@ -63,6 +64,7 @@ class HeartMomentPayload(ProtectedPayload):
     audio_speaker_name: str = Field(default="", max_length=80)
     emotion: HeartEmotion
     tags: HeartMomentTags = Field(default_factory=list)
+    location: HeartMomentLocation | None = None
     selected_cover_attachment_id: UUID | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)

@@ -18,27 +18,24 @@ export function usePrimaryNavigation() {
       const destination = primaryDestination(root);
       return {
         to: destination.to,
-        state: destination.returnKey
-          ? { taskReturnKey: destination.returnKey }
-          : undefined,
-        replace: isCapacitorNative() && isRoot,
+        state: { primaryRootEntry: true },
+        replace: isRoot && (isCapacitorNative() || root === location.pathname),
       };
     },
-    [primaryDestination, isRoot],
+    [primaryDestination, isRoot, location.pathname],
   );
   const captureCurrent = useCallback(() => {
     if (isRoot) captureOrigin();
   }, [captureOrigin, isRoot]);
   const navigatePrimary = useCallback(
     (root: string) => {
-      if (root === location.pathname) return;
       const { to, ...options } = destinationFor(root);
       captureCurrent();
       // Main-content motion is owned by the shell; navigation remains
       // immediately interactive even during rapid consecutive tab switches.
       void navigate(to, options);
     },
-    [captureCurrent, destinationFor, location.pathname, navigate],
+    [captureCurrent, destinationFor, navigate],
   );
 
   return { destinationFor, captureCurrent, navigatePrimary };

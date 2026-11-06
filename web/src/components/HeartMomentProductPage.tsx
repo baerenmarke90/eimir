@@ -21,6 +21,12 @@ import {
   HeartMomentDetailToJSON,
 } from '../api/generated/models/HeartMomentDetail';
 import type { HeartMomentUpdate } from '../api/generated/models/HeartMomentUpdate';
+import type { HeartMomentLocation } from '../api/generated/models/HeartMomentLocation';
+import {
+  HeartMomentLocationField,
+  HeartMomentLocationSummary,
+  locationFromPlace,
+} from './HeartMomentLocation';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -113,6 +119,7 @@ interface HeartMomentCreateValues {
   readonly selectedCoverAttachmentId?: string | null;
   readonly tags: string[];
   readonly placeId?: string;
+  readonly location?: HeartMomentLocation;
 }
 
 interface HeartMomentCreateSnapshot {
@@ -197,6 +204,12 @@ export function HeartMomentProductPage({
   const [formDirty, setFormDirty] = useState(false);
   const [createPlace, setCreatePlace] = useState<MomentPlaceSelection>();
   const [placePending, setPlacePending] = useState(false);
+  const [createLocation, setCreateLocation] =
+    useState<HeartMomentLocation | null>(null);
+  const [editLocation, setEditLocation] = useState<HeartMomentLocation | null>(
+    null,
+  );
+  const [editLocationChanged, setEditLocationChanged] = useState(false);
   const [editContentError, setEditContentError] = useState(false);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const [createVisibility, setCreateVisibility] =
@@ -290,6 +303,8 @@ export function HeartMomentProductPage({
     if (mode !== 'edit' || !moment || loadedMediaScope.current === mediaScope)
       return;
     loadedMediaScope.current = mediaScope;
+    setEditLocation(moment.location ?? null);
+    setEditLocationChanged(false);
     loadVoice(moment);
     loadPhotos(
       (moment.attachments?.length
@@ -578,6 +593,7 @@ export function HeartMomentProductPage({
       !deleteMutation.isPending &&
       (formDirty ||
         Boolean(createPlace) ||
+        Boolean(createLocation) ||
         photos.items.some((item) => item.draft !== undefined) ||
         Boolean(voice.draft)),
     isCloseBlocked:
@@ -622,9 +638,13 @@ export function HeartMomentProductPage({
         values: {
           text,
           tags,
-          ...(createVisibility === ContentVisibility.SHARED && createPlace
-            ? { placeId: createPlace.id }
-            : {}),
+          ...(createLocation
+            ? { location: createLocation }
+            : createPlace
+              ? createVisibility === ContentVisibility.SHARED
+                ? { placeId: createPlace.id }
+                : { location: locationFromPlace(createPlace) }
+              : {}),
           emotion: String(data.get('emotion')) as HeartEmotionValue,
           happenedOn: new Date(`${happenedOn}T00:00:00Z`),
           visibility: String(data.get('visibility')) as ContentVisibilityValue,
@@ -725,7 +745,24 @@ export function HeartMomentProductPage({
               />
             </div>
 
-            {createVisibility === ContentVisibility.SHARED ? (
+            {createVisibility === ContentVisibility.PRIVATE ||
+            createLocation ? (
+              <HeartMomentLocationField
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                value={createLocation ?? createPlace}
+                privateAudience={createVisibility === ContentVisibility.PRIVATE}
+                onChange={(next) => {
+                  setCreateLocation(next);
+                  setCreatePlace(undefined);
+                  setFormDirty(true);
+                }}
+                disabled={createMutation.isPending}
+                onPendingChange={setPlacePending}
+              />
+            ) : (
               <MomentPlaceField
                 apiBaseUrl={apiBaseUrl}
                 accessToken={accessToken}
@@ -736,7 +773,7 @@ export function HeartMomentProductPage({
                 disabled={createMutation.isPending}
                 onPendingChange={setPlacePending}
               />
-            ) : null}
+            )}
 
             <div className="heart-moment-create-field-grid">
               <div className="heart-moment-create-field heart-moment-create-emotion-picker">
@@ -894,6 +931,7 @@ export function HeartMomentProductPage({
         voice.hasFailed ||
         attachments.hasPending ||
         attachments.items.some((item) => item.status === 'failed') ||
+        placePending ||
         queryClient.isMutating({ mutationKey: deleteKey }) ||
         queryClient.isMutating({ mutationKey: updateKey }) ||
         queryClient.isMutating({
@@ -912,6 +950,7 @@ export function HeartMomentProductPage({
       }
       setEditContentError(false);
       const update: HeartMomentUpdate = {
+        ...(editLocationChanged ? { location: editLocation } : {}),
         text,
         tags,
         emotion: String(data.get('emotion')) as HeartEmotionValue,
@@ -973,6 +1012,26 @@ export function HeartMomentProductPage({
               heartMoment={heartMoment}
               editorRef={tagEditorRef}
             />
+            {heartMoment.visibility === ContentVisibility.PRIVATE ||
+            editLocation ? (
+              <HeartMomentLocationField
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                value={editLocation}
+                privateAudience={
+                  heartMoment.visibility === ContentVisibility.PRIVATE
+                }
+                onChange={(next) => {
+                  setEditLocation(next);
+                  setEditLocationChanged(true);
+                  setFormDirty(true);
+                }}
+                disabled={updateMutation.isPending}
+                onPendingChange={setPlacePending}
+              />
+            ) : null}
             {heartMoment.visibility === ContentVisibility.SHARED ? (
               <MomentPlaces
                 apiBaseUrl={apiBaseUrl}
@@ -1027,6 +1086,7 @@ export function HeartMomentProductPage({
                 type="submit"
                 disabled={
                   updateMutation.isPending ||
+                  placePending ||
                   voice.hasPending ||
                   voice.hasFailed ||
                   attachments.hasPending ||
@@ -1121,6 +1181,9 @@ export function HeartMomentProductPage({
             >
               {formatDateOnly(heartMoment.happenedOn)}
             </MomentDate>
+          ) : null}
+          {heartMoment.location && !changingVisibility ? (
+            <HeartMomentLocationSummary location={heartMoment.location} />
           ) : null}
           {shared && !changingVisibility ? (
             <MomentPlaces

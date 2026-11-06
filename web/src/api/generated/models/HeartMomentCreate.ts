@@ -34,6 +34,13 @@ import {
     AttachmentEntryToJSON,
     AttachmentEntryToJSONTyped,
 } from './AttachmentEntry';
+import type { HeartMomentLocation } from './HeartMomentLocation';
+import {
+    HeartMomentLocationFromJSON,
+    HeartMomentLocationFromJSONTyped,
+    HeartMomentLocationToJSON,
+    HeartMomentLocationToJSONTyped,
+} from './HeartMomentLocation';
 
 /**
  * 
@@ -83,6 +90,12 @@ export interface HeartMomentCreate {
      * @memberof HeartMomentCreate
      */
     happenedOn: Date;
+    /**
+     * 
+     * @type {HeartMomentLocation}
+     * @memberof HeartMomentCreate
+     */
+    location?: HeartMomentLocation | null;
     /**
      * 
      * @type {string}
@@ -145,6 +158,7 @@ export function HeartMomentCreateFromJSONTyped(json: any, ignoreDiscriminator: b
         'audioTitle': json['audioTitle'] == null ? undefined : json['audioTitle'],
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
+        'location': json['location'] === undefined ? undefined : json['location'] === null ? null : HeartMomentLocationFromJSON(json['location']),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
@@ -171,6 +185,7 @@ export function HeartMomentCreateToJSONTyped(value?: HeartMomentCreate | null, i
         'audioTitle': value['audioTitle'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
+        'location': HeartMomentLocationToJSON(value['location']),
         'placeId': value['placeId'],
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'tags': value['tags'],

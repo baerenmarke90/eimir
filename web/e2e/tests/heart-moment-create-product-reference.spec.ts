@@ -1297,7 +1297,7 @@ for (const visibility of ['SHARED', 'PRIVATE'] as const) {
         .check();
       await expect(
         page.getByRole('button', { name: destination.name, exact: true }),
-      ).toHaveCount(0);
+      ).toBeVisible();
     }
     await captureScreenshot(
       page,
@@ -1319,7 +1319,15 @@ for (const visibility of ['SHARED', 'PRIVATE'] as const) {
     const payload = (await request).postDataJSON();
     expect(payload.visibility).toBe(visibility);
     if (visibility === 'SHARED') expect(payload.placeId).toBe(destination.id);
-    else expect(payload).not.toHaveProperty('placeId');
+    else {
+      expect(payload).not.toHaveProperty('placeId');
+      expect(payload.location).toEqual({
+        name: destination.name,
+        address: destination.address,
+        latitude: null,
+        longitude: null,
+      });
+    }
     await expect(page).toHaveURL(/\/story\/heart-moments\/[a-f0-9-]+$/);
   });
 }

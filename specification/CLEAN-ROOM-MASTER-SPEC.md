@@ -765,6 +765,12 @@ The partner may read the shared Memory.
 
 # 15. Heart Moments
 
+PO extension #1682 (2026-11-06): optional authored location snapshots (name,
+address and paired coordinates) belong to the protected HeartMoment payload and
+inherit its current visibility, version, deletion and portability. PRIVATE
+locations never create shared Places, shared relations or shared map entries.
+Existing shared Place relations remain supported.
+
 PO extension #1671 (2026-11-06): one optional voice note per HeartMoment, up to
 180 seconds and 20 MiB input. Audio alone is valid. Reuse Attachment/MediaStore
 binding, parent privacy, deletion and transfer; validate decoded duration and

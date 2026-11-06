@@ -258,12 +258,8 @@ export function SharedPlanningOverviewPage({
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const {
-    captureOrigin,
-    registerOriginMetadata,
-    resolveOrigin,
-    primaryDestination,
-  } = useTaskOrigin();
+  const { captureOrigin, registerOriginMetadata, resolveOrigin } =
+    useTaskOrigin();
   const wishesTabId = useId();
   const plansTabId = useId();
   const wishesPanelId = useId();
@@ -333,10 +329,22 @@ export function SharedPlanningOverviewPage({
 
   useLayoutEffect(() => {
     const state = location.state as { taskReturnKey?: unknown } | null;
-    const originKey =
-      state?.taskReturnKey ?? primaryDestination('/plan').returnKey;
+    const originKey = state?.taskReturnKey;
     const origin = resolveOrigin(originKey);
-    if (!origin || restoredOrigin.current === originKey) return;
+    if (!origin) {
+      if (
+        (location.state as { primaryRootEntry?: boolean } | null)
+          ?.primaryRootEntry
+      ) {
+        setActiveSegment('plans');
+        setPlanStatus('OPEN');
+        setWishStatus('OPEN');
+        setPlanSearch('');
+        setWishSearch('');
+      }
+      return;
+    }
+    if (restoredOrigin.current === originKey) return;
     restoredOrigin.current = originKey;
     setPlanSearch(origin.planningPlanSearch ?? '');
     setWishSearch(origin.planningWishSearch ?? '');
@@ -362,7 +370,7 @@ export function SharedPlanningOverviewPage({
           ?.focus({ preventScroll: true });
       }
     });
-  }, [location.state, location.hash, resolveOrigin, primaryDestination]);
+  }, [location.state, location.hash, resolveOrigin]);
 
   const wishes = useWarmInfiniteQuery({
     queryKey: [

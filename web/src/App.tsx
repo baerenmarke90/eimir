@@ -62,6 +62,7 @@ import {
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
   LEGACY_ROUTE_REWRITES,
+  LEGAL_TERMS_ROUTE,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -138,6 +139,7 @@ import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
+import { LegalTermsPage } from './components/LegalTermsPage';
 import {
   ActivityProductPage,
   NotificationsProductPage,
@@ -1257,6 +1259,16 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       !membershipsQuery.error &&
       resolveActiveSpaceId(membershipsQuery.data, spaceId),
   );
+  // Public legal text needs no session; it must stay readable while signed out.
+  if (location.pathname === LEGAL_TERMS_ROUTE && !entryToken) {
+    return (
+      <>
+        <ThemeControl />
+        <LegalTermsPage />
+      </>
+    );
+  }
+
   if ((isRestoring && !restoredSpaceAuthorized) || isSigningOut) {
     return (
       <BrandedStartup

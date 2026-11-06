@@ -4103,5 +4103,23 @@
     "shareFailed": "The shared voice note could not be opened. Choose the audio file in a HeartMoment.",
     "shareExisting": "Your current draft is retained. Open the new HeartMoment after completing it.",
     "sharePrivate": "Review the note and its visibility before saving."
+  },
+  "legal": {
+    "eyebrow": "Legal",
+    "termsLink": "Terms of Use",
+    "termsSheetTitle": "Terms of Use",
+    "sheetClose": "Close the terms of use",
+    "draftBadge": "Draft · not yet in force",
+    "documentLanguageNotice": "This document is available in {{language}} only. That version is binding.",
+    "placeholder": "[{{name}}]",
+    "accept": "I agree to the <termsLink>Terms of Use</termsLink>.",
+    "outdatedTitle": "The terms of use have been updated.",
+    "outdatedBody": "Reload eimir. to see the current version.",
+    "reload": "Reload eimir.",
+    "pendingEyebrow": "Almost there",
+    "pendingTitle": "One more step to your account",
+    "pendingBody": "Your address is confirmed. For a new account, we still need your agreement to the terms of use.",
+    "createAccount": "Create account",
+    "creatingAccount": "Creating account …"
   }
 }

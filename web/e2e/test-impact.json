@@ -59,7 +59,10 @@
       "roots": [
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NativeSessionGate.tsx",
-        "web/src/components/FirstSpaceGate.tsx"
+        "web/src/components/FirstSpaceGate.tsx",
+        "web/src/components/TermsAcceptanceField.tsx",
+        "web/src/components/LegalTermsPage.tsx",
+        "web/src/components/LegalDocumentView.tsx"
       ]
     },
     "comments-create-ownership.spec.ts": {

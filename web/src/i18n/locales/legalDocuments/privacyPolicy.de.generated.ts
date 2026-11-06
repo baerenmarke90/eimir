@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-06.draft-1',
+  version: '2026-11-06.draft-2',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -64,7 +64,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Was ihr „Für uns beide“ speichert, sieht dein Partner. Was du als „Nur für mich“ speicherst, sieht nur du.',
+              text: 'Was ihr „Für uns beide“ speichert, sieht dein Partner. Was du als „Nur für mich“ speicherst, siehst nur du.',
             },
           ],
           children: [],
@@ -73,7 +73,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Eure Inhalte speichern wir verschlüsselt. Das ist keine Ende-zu-Ende-Verschlüsselung: Damit eimir. funktioniert, kann unser System sie entschlüsseln. Wir sehen sie uns nicht an.',
+              text: 'Eure Inhalte speichern wir verschlüsselt. Das ist keine Ende-zu-Ende-Verschlüsselung: Damit eimir. funktioniert, kann unser System sie entschlüsseln. Wir sehen sie uns nicht an, außer in den wenigen Fällen, die wir in Abschnitt 5 nennen.',
             },
           ],
           children: [],
@@ -194,6 +194,15 @@ export const privacyPolicyDe: LegalDocument = {
           ],
           children: [],
         },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'eimir. Cloud ist für Erwachsene ab 18 Jahren bestimmt.',
+            },
+          ],
+          children: [],
+        },
       ],
     },
     {
@@ -303,7 +312,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Was ihr „Für uns beide“ speichert, sehen du und dein Partner. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und im Datenexport herunterladen, auch wenn du sie erstellt hast.',
+              text: 'Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und im Datenexport herunterladen, auch wenn du sie erstellt hast.',
             },
           ],
           children: [],
@@ -312,7 +321,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Was du als „Nur für mich“ speicherst, zum Beispiel private Notizen, Geschenkideen oder private Herzmomente, sieht nur du. Diese Grenze setzen unsere Server durch, nicht nur die Anzeige in der App.',
+              text: 'Was du als „Nur für mich“ speicherst, zum Beispiel private Notizen, Geschenkideen oder private Herzmomente, siehst nur du. Diese Grenze setzen unsere Server durch, nicht nur die Anzeige in der App.',
             },
           ],
           children: [],
@@ -321,7 +330,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Dein Partner sieht außerdem deinen Anzeigenamen, dein Profilbild und die Angaben, die du in deinem Profil für deinen Partner hinterlegst. Während ihr eimir. nutzt, sieht dein Partner, ob du gerade oder vor Kurzem aktiv warst, aber keine Uhrzeit. Dafür speichern wir nur den Zeitpunkt deiner letzten Aktivität und überschreiben ihn laufend.',
+              text: 'Dein Partner sieht außerdem deinen Anzeigenamen, dein Profilbild und die Angaben, die du in deinem Profil für deinen Partner hinterlegst. Während ihr eimir. nutzt, sieht dein Partner, ob du gerade oder vor Kurzem aktiv warst, aber keine Uhrzeit. Dafür speichern wir nur den Zeitpunkt deiner letzten Aktivität und überschreiben ihn laufend. Diese Anzeige beruht auf unserem und eurem berechtigten Interesse, dass ihr in eimir. merkt, wann der andere da ist (Art. 6 Abs. 1 lit. f DSGVO). Du kannst ihr widersprechen (Abschnitt 24).',
             },
           ],
           children: [],
@@ -357,7 +366,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Verlässt du einen Space, löschen wir deine „Nur für mich“-Inhalte aus diesem Space. Gemeinsame Inhalte bleiben für deinen Partner erhalten. Verlässt auch dein Partner den Space, löschen wir ihn 30 Tage später mit allen Inhalten.',
+              text: 'Verlässt du einen Space, löschen wir deine „Nur für mich“-Inhalte aus diesem Space. Gemeinsame Inhalte bleiben für deinen Partner erhalten, auch die, die du erstellt hast. Das beruht auf dem berechtigten Interesse deines Partners, eure gemeinsame Geschichte nicht einseitig zu verlieren (Art. 6 Abs. 1 lit. f DSGVO). Eigene gemeinsame Inhalte kannst du vor dem Verlassen löschen. Sollen andere gemeinsame Inhalte nicht bei deinem Partner bleiben, etwa Fotos von dir, schreib uns (Abschnitt 24). Verlässt auch dein Partner den Space, löschen wir ihn 30 Tage später mit allen Inhalten.',
             },
           ],
           children: [],
@@ -386,7 +395,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Eure Inhalte und alle gespeicherten Fotos und Videos legen wir zusätzlich verschlüsselt ab. Die Schlüssel verwahren wir getrennt von der Datenbank und vom Medienspeicher. Unverschlüsselt bleiben unter anderem Kennungen, Zeit- und Datumsangaben, die Sichtbarkeit sowie Dateityp und -größe, die unser System zum Zuordnen, Sortieren und Prüfen braucht, außerdem Anzeigenamen und E-Mail-Adressen.',
+              text: 'Eure Inhalte und alle gespeicherten Fotos, Videos und Sprachnachrichten legen wir zusätzlich verschlüsselt ab. Die Schlüssel verwahren wir getrennt von der Datenbank und vom Medienspeicher. Unverschlüsselt bleiben unter anderem Kennungen, Zeit- und Datumsangaben, die Sichtbarkeit sowie Dateityp und -größe, die unser System zum Zuordnen, Sortieren und Prüfen braucht, außerdem Anzeigenamen und E-Mail-Adressen.',
             },
           ],
           children: [],
@@ -489,7 +498,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Was ihr in eimir. festhaltet, kann viel über euch verraten, zum Beispiel über eure Gesundheit, euer Sexualleben, eure sexuelle Orientierung oder eure religiöse Überzeugung. Die DSGVO schützt solche Angaben besonders (Art. 9 DSGVO).',
+              text: 'Was ihr in eimir. festhaltet, kann viel über euch verraten, zum Beispiel über eure Gesundheit, euer Sexualleben, eure sexuelle Orientierung oder eure religiöse Überzeugung. Das gilt auch indirekt: Schon dass ihr gemeinsam einen Space nutzt, kann etwas über eure sexuelle Orientierung verraten, und euer „Gefühl für heute“ oder euer Akku etwas über eure Gesundheit. Die DSGVO schützt solche Angaben besonders (Art. 9 DSGVO).',
             },
           ],
           children: [],
@@ -498,7 +507,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir verarbeiten sie nur, um eimir. für euch bereitzustellen, wie in diesen Hinweisen beschrieben. Wir durchsuchen eure Inhalte nicht gezielt nach solchen Angaben, leiten daraus keine Bewertungen oder Merkmale über euch ab und geben sie nicht für andere Zwecke weiter.',
+              text: 'Wir verarbeiten sie nur, um eimir. für euch bereitzustellen, wie in diesen Hinweisen beschrieben. Wir durchsuchen eure Inhalte nicht gezielt nach solchen Angaben, leiten daraus keine Diagnosen, Bewertungen oder Persönlichkeitsmerkmale über euch ab und geben sie nicht für andere Zwecke weiter.',
             },
           ],
           children: [],
@@ -552,6 +561,15 @@ export const privacyPolicyDe: LegalDocument = {
           ],
           children: [],
         },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Kommst du in Inhalten eines Paares vor, ohne selbst eimir. zu nutzen, erhalten wir deine Daten von diesem Paar. Deine Rechte aus den Abschnitten 23 und 24 kannst du auch bei uns geltend machen. Weil wir uns Inhalte sonst nicht ansehen, beschreib uns bitte, worum es geht.',
+            },
+          ],
+          children: [],
+        },
       ],
     },
     {
@@ -576,7 +594,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Enthält ein Foto, das du einem gemeinsamen Moment hinzufügst, einen Aufnahmeort, ordnen wir den Moment beim Speichern diesem Ort zu. Das ist voreingestellt. Du kannst es in den Einstellungen unter „Orte aus Fotos“ jederzeit ausschalten; bereits gespeicherte Orte bleiben dann erhalten. Private Herzmomente erzeugen keine gemeinsamen Orte. In der Android-App fragt eimir. dafür nach der Berechtigung, Standortangaben in deinen Fotos zu lesen. Rechtsgrundlage ist unser und euer berechtigtes Interesse, Momente ohne zusätzlichen Aufwand ihrem Ort zuzuordnen (Art. 6 Abs. 1 lit. f DSGVO).',
+              text: 'Enthält ein Foto, das du einem gemeinsamen Moment hinzufügst, einen Aufnahmeort, ordnen wir den Moment beim Speichern diesem Ort zu. Das ist voreingestellt. Du kannst es in den Einstellungen unter „Orte aus Fotos“ jederzeit ausschalten; bereits gespeicherte Orte bleiben dann erhalten. Private Herzmomente erzeugen keine gemeinsamen Orte. Rechtsgrundlage ist unser und euer berechtigtes Interesse, Momente ohne zusätzlichen Aufwand ihrem Ort zuzuordnen (Art. 6 Abs. 1 lit. f DSGVO). In der Android-App erhält eimir. den Aufnahmeort eines Fotos nur, wenn du das erlaubst, je nach Android-Version über eine Berechtigung oder in der Fotoauswahl deines Geräts (§ 25 Abs. 1 TDDDG). Erlaubst du es nicht, erhält eimir. deine Fotos aus der Android-App ohne Aufnahmeort.',
             },
           ],
           children: [],
@@ -608,7 +626,7 @@ export const privacyPolicyDe: LegalDocument = {
             },
             {
               kind: 'text',
-              text: '. Rechtsgrundlage für das Laden der Karte ist Art. 6 Abs. 1 lit. b DSGVO.',
+              text: '. Rechtsgrundlage ist unser berechtigtes Interesse, euch eure Orte auf einer Karte zu zeigen (Art. 6 Abs. 1 lit. f DSGVO).',
             },
           ],
           children: [],
@@ -704,7 +722,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte. Für „Eure Woche“ erhält es keine Texte, Fotos, Namen oder Orte, sondern nur bereits berechnete Beobachtungen.',
+              text: 'Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte. Für „Eure Woche“ berechnen wir aus euren Einträgen für „Gefühl für heute“ und Akku einfache Beobachtungen, zum Beispiel ob sich eure Energie verändert hat. Das Modell erhält dafür keine Texte, Fotos, Namen oder Orte, sondern nur diese Beobachtungen, und wählt dazu passende Anregungen aus.',
             },
           ],
           children: [],
@@ -938,7 +956,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Anwendung protokolliert nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeitet für die Zustellung auch deine IP-Adresse. Protokolle löschen wir nach ',
+              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach ',
             },
             { kind: 'placeholder', name: 'LOG_RETENTION' },
             { kind: 'text', text: '.' },
@@ -963,7 +981,7 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'placeholder', name: 'BACKUP_RETENTION' },
             {
               kind: 'text',
-              text: ' gelöscht. Müssen wir eine Sicherung zurückspielen, löschen wir vorher erneut alle Konten, deren Löschung seitdem veranlasst wurde. Dafür führen wir ein Löschprotokoll mit der Kennung des Kontos und dem Zeitpunkt der Löschung, ohne E-Mail-Adresse und ohne Inhalte, so lange, wie ältere Sicherungen bestehen können.',
+              text: ' gelöscht. Müssen wir eine Sicherung zurückspielen, löschen wir alle Konten, deren Löschung seitdem veranlasst wurde, erneut, bevor eimir. wieder erreichbar ist. Dafür führen wir ein Löschprotokoll mit der Kennung des Kontos und dem Zeitpunkt der Löschung, ohne E-Mail-Adresse und ohne Inhalte, so lange, wie ältere Sicherungen bestehen können.',
             },
           ],
           children: [],
@@ -1044,7 +1062,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Rechnungsdaten bewahren wir auf, solange handels- und steuerrechtliche Pflichten es verlangen, derzeit bis zu zehn Jahre (Art. 6 Abs. 1 lit. c DSGVO).',
+              text: 'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Rechnungsdaten bewahren wir auf, solange handels- und steuerrechtliche Pflichten es verlangen, für Rechnungen derzeit acht Jahre, für bestimmte Buchungsunterlagen bis zu zehn Jahre (Art. 6 Abs. 1 lit. c DSGVO).',
             },
           ],
           children: [],
@@ -1096,19 +1114,14 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'placeholder', name: 'HOSTING_PROVIDER' },
             {
               kind: 'text',
-              text: ' für Server, Datenbank, Speicher und Sicherungen sowie ',
+              text: ' für Server, Datenbank, Speicher und Sicherungen, ',
             },
             { kind: 'placeholder', name: 'MAIL_PROVIDER' },
-            { kind: 'text', text: ' für den E-Mail-Versand,' },
-          ],
-          children: [],
-        },
-        {
-          content: [
+            { kind: 'text', text: ' für den E-Mail-Versand und ' },
             { kind: 'placeholder', name: 'PUSH_PROVIDER' },
             {
               kind: 'text',
-              text: ' für Push-Benachrichtigungen (Abschnitt 12),',
+              text: ' für die Zustellung von Push-Benachrichtigungen über Firebase Cloud Messaging (Abschnitt 12),',
             },
           ],
           children: [],
@@ -1136,7 +1149,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich-Server, Google Fotos, Google Maps oder eine verlinkte Website (Abschnitte 9, 10 und 13),',
+              text: 'Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich-Server, ein UnifiedPush-Dienst, Google Fotos, Google Maps oder eine verlinkte Website (Abschnitte 9, 10, 12 und 13),',
             },
           ],
           children: [],
@@ -1427,7 +1440,7 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           kind: 'text',
-          text: ' Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Die automatische Zuordnung von Orten aus Fotos kannst du jederzeit selbst in den Einstellungen ausschalten. Für deinen Widerspruch genügt eine Nachricht an ',
+          text: ' Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Das betrifft zum Beispiel die Anzeige, ob du gerade aktiv bist, die Zuordnung von Orten aus Fotos, das Laden von Karten und gemeinsame Inhalte, die nach deinem Verlassen für deinen Partner erhalten bleiben. Die automatische Zuordnung von Orten aus Fotos kannst du jederzeit selbst in den Einstellungen ausschalten. Für deinen Widerspruch genügt eine Nachricht an ',
         },
         { kind: 'placeholder', name: 'PRIVACY_CONTACT' },
         { kind: 'text', text: '.' },

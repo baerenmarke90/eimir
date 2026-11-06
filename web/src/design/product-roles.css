@@ -44,6 +44,8 @@
   --border-surface-width: 0px;
   --border-control-width: 0px;
   --touch-target-web: 44px;
+  --media-action-icon: 20px;
+  --media-action-inset: 8px;
   --space-content-group: 0.75rem;
   --space-section: 2rem;
   --page-gutter-narrow: 16px;

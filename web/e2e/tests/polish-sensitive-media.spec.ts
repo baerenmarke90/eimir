@@ -13,11 +13,12 @@ import {
 } from '../support/storyTimelineFixture';
 
 for (const parentAuthor of [false, true]) {
-  test(`saved image sensitivity marks, persists and unmarks for ${parentAuthor ? 'parent author' : 'individual uploader on a partner Memory'}`, async ({
+  test(`saved image sensitivity marks, persists and unmarks for ${parentAuthor ? 'parent author' : 'partner editing the other partner photo'}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    const targetIndex = parentAuthor ? 1 : 0;
     const unknown = await installMocks(page, { strict: true });
     const base = `/api/v1/spaces/${SPACE_ID}`;
     const author = parentAuthor ? ME : PARTNER;
@@ -45,7 +46,7 @@ for (const parentAuthor of [false, true]) {
         height: 1,
         hasThumbnail: false,
         isSensitive: false,
-        canEditSensitivity: parentAuthor || id === 'own',
+        canEditSensitivity: true,
       })),
     };
     const classifications: boolean[] = [];
@@ -69,7 +70,7 @@ for (const parentAuthor of [false, true]) {
         expect(
           body.attachments.find(
             (item: { attachmentId: string }) =>
-              item.attachmentId === 'protected',
+              item.attachmentId === (targetIndex === 0 ? 'own' : 'protected'),
           ).isSensitive,
         ).toBe(false);
         memory = {
@@ -83,7 +84,7 @@ for (const parentAuthor of [false, true]) {
             ).isSensitive,
           })),
         };
-        classifications.push(memory.attachments[1].isSensitive);
+        classifications.push(memory.attachments[targetIndex].isSensitive);
         return route.fulfill({ json: memory });
       }
       if (/\/attachments\/(own|protected)\/read-access$/.test(path))
@@ -101,16 +102,14 @@ for (const parentAuthor of [false, true]) {
     await signIn(page);
     await page.goto('/story/memories/mem-canal/edit');
     const gallery = page.locator('.photo-draft-gallery');
-    await gallery.locator('.photo-draft-tile').first().click();
-    if (!parentAuthor)
-      await expect(
-        gallery.getByRole('checkbox', { name: sensitive.mark, exact: true }),
-      ).toHaveCount(0);
-    await gallery.locator('.photo-draft-tile').nth(1).click();
-    const checkbox = gallery.getByRole('checkbox', {
-      name: sensitive.mark,
-      exact: true,
-    });
+    await gallery.locator('.photo-draft-tile').nth(targetIndex).click();
+    const checkbox = gallery
+      .locator('.photo-draft-item')
+      .nth(targetIndex)
+      .getByRole('checkbox', {
+        name: sensitive.mark,
+        exact: true,
+      });
     await checkbox.check();
     await expect(checkbox).toBeChecked();
     await expect(page.locator('dialog.photo-draft-preview-sheet')).toHaveCount(
@@ -128,7 +127,7 @@ for (const parentAuthor of [false, true]) {
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     await page.reload();
     await page.goto('/story/memories/mem-canal/edit');
-    await gallery.locator('.photo-draft-tile').nth(1).click();
+    await gallery.locator('.photo-draft-tile').nth(targetIndex).click();
     await expect(checkbox).toBeChecked();
     await checkbox.uncheck();
     await page
@@ -136,7 +135,7 @@ for (const parentAuthor of [false, true]) {
       .click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     await page.goto('/story/memories/mem-canal/edit');
-    await gallery.locator('.photo-draft-tile').nth(1).click();
+    await gallery.locator('.photo-draft-tile').nth(targetIndex).click();
     await expect(checkbox).not.toBeChecked();
     expect(classifications).toEqual([true, false]);
     expect(unknown).toEqual([]);

@@ -1,5 +1,6 @@
 import {
   selectDraftMedia,
+  dragDraftMedia,
   expectInlineDraftActions,
 } from '../support/mediaDraft';
 import { readFileSync } from 'node:fs';
@@ -1435,11 +1436,7 @@ for (const [width, colorScheme] of [
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
     await selectDraftMedia(page);
-    await page
-      .getByRole('button', {
-        name: de.memory.photoMoveLater.replace('{{name}}', 'one.png'),
-      })
-      .click();
+    await dragDraftMedia(page, 0, 1);
     await expectInlineDraftActions(page);
     await page.getByLabel(contextTags.newLabel).fill('An unfinished label');
     await expect(page.locator('.memory-draft-status')).toHaveText(
@@ -1883,9 +1880,7 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: new RegExp(de.memory.diary.photoMissing) })
       .click();
     await expect(
-      page
-        .getByRole('group', { name: de.memory.photoSelected, exact: true })
-        .getByRole('status'),
+      page.locator('.photo-draft-inspector').getByRole('status'),
     ).toHaveText(de.memory.diary.photoMissing);
     await expectInlineDraftActions(page);
     await expect(
@@ -1921,11 +1916,8 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('button', { name: de.memory.diary.photoRetry, exact: true })
       .click();
-    await expect(
-      page
-        .getByRole('group', { name: de.memory.photoSelected, exact: true })
-        .getByRole('status'),
-    ).toHaveText(de.memory.photoReady);
+    await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
+
     await expectInlineDraftActions(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
@@ -2381,12 +2373,7 @@ for (const [width, colorScheme] of [
       .click();
     await expect(tiles).toHaveCount(10);
     await tiles.nth(2).click();
-    const earlier = () =>
-      page.getByRole('button', {
-        name: de.memory.photoMoveEarlier.replace('{{name}}', 'travel-2.jpg'),
-      });
-    await earlier().click();
-    await earlier().click();
+    await dragDraftMedia(page, 2, 0);
     await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
     expect(await tiles.first().getAttribute('aria-label')).toContain(
       'travel-2.jpg',
@@ -2487,11 +2474,7 @@ for (const [width, colorScheme] of [
     });
     await expect.poll(() => photos.ready.size).toBe(4);
     await page.locator('.photo-draft-tile').last().click();
-    const earlier = page.getByRole('button', {
-      name: de.memory.photoMoveEarlier.replace('{{name}}', 'later.jpg'),
-    });
-    await earlier.click();
-    await earlier.click();
+    await dragDraftMedia(page, 3, 1);
     await expect(page.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
       'aria-pressed',
       'true',

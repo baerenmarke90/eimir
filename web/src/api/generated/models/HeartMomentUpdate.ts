@@ -58,6 +58,18 @@ export interface HeartMomentUpdate {
     attachments?: Array<AttachmentEntry> | null;
     /**
      * 
+     * @type {string}
+     * @memberof HeartMomentUpdate
+     */
+    audioSpeakerName?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof HeartMomentUpdate
+     */
+    audioTitle?: string | null;
+    /**
+     * 
      * @type {HeartEmotion}
      * @memberof HeartMomentUpdate
      */
@@ -110,6 +122,8 @@ export function HeartMomentUpdateFromJSONTyped(json: any, ignoreDiscriminator: b
         'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
         'attachmentIsSensitive': json['attachmentIsSensitive'] === undefined ? undefined : json['attachmentIsSensitive'] === null ? null : json['attachmentIsSensitive'],
         'attachments': json['attachments'] === undefined ? undefined : json['attachments'] === null ? null : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
+        'audioSpeakerName': json['audioSpeakerName'] === undefined ? undefined : json['audioSpeakerName'] === null ? null : json['audioSpeakerName'],
+        'audioTitle': json['audioTitle'] === undefined ? undefined : json['audioTitle'] === null ? null : json['audioTitle'],
         'emotion': json['emotion'] === undefined ? undefined : json['emotion'] === null ? null : HeartEmotionFromJSON(json['emotion']),
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
@@ -132,6 +146,8 @@ export function HeartMomentUpdateToJSONTyped(value?: HeartMomentUpdate | null, i
         'attachmentId': value['attachmentId'],
         'attachmentIsSensitive': value['attachmentIsSensitive'],
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
+        'audioSpeakerName': value['audioSpeakerName'],
+        'audioTitle': value['audioTitle'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],

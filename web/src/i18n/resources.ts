@@ -46,6 +46,7 @@ import storyProducts from './locales/storyProducts';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import video from './locales/video';
+import voiceNotes from './locales/voiceNotes';
 import weeklyInsights from './locales/weeklyInsights';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
@@ -58,6 +59,7 @@ export const germanResources = {
   coupleExperiences,
   sensitiveMedia,
   video,
+  voiceNotes,
   taskBoundary,
   taskSheets,
   accountSettings,

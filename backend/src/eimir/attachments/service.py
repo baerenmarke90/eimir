@@ -65,6 +65,7 @@ from eimir.security.errors import PlaintextRejectedError
 log = logging.getLogger(__name__)
 
 ATTACHMENT_VALIDATION = "attachment_validation"
+ATTACHMENT_AUDIO_VALIDATION = "attachment_audio_validation"
 ATTACHMENT_VIDEO_VALIDATION = "attachment_video_validation"
 
 BINDING_WINDOW = timedelta(minutes=60)
@@ -322,7 +323,9 @@ def finalize_upload(
 
     locked.status = AttachmentStatus.VALIDATING.value
     kind = (
-        ATTACHMENT_VIDEO_VALIDATION
+        ATTACHMENT_AUDIO_VALIDATION
+        if locked.media_type == MediaType.AUDIO
+        else ATTACHMENT_VIDEO_VALIDATION
         if locked.media_type == MediaType.VIDEO
         else ATTACHMENT_VALIDATION
     )

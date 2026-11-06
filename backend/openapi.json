@@ -17,6 +17,11 @@
       "AccountCapabilitiesView": {
         "description": "Current account capabilities used only for client presentation.",
         "properties": {
+          "audioProcessingEnabled": {
+            "default": false,
+            "title": "Audioprocessingenabled",
+            "type": "boolean"
+          },
           "auth": {
             "$ref": "#/components/schemas/AuthCapabilities"
           },
@@ -3676,6 +3681,18 @@
             ],
             "title": "Attachments"
           },
+          "audioSpeakerName": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Audiospeakername",
+            "type": "string"
+          },
+          "audioTitle": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Audiotitle",
+            "type": "string"
+          },
           "emotion": {
             "$ref": "#/components/schemas/HeartEmotion"
           },
@@ -3753,6 +3770,16 @@
             },
             "title": "Attachments",
             "type": "array"
+          },
+          "audioSpeakerName": {
+            "default": "",
+            "title": "Audiospeakername",
+            "type": "string"
+          },
+          "audioTitle": {
+            "default": "",
+            "title": "Audiotitle",
+            "type": "string"
           },
           "author": {
             "$ref": "#/components/schemas/AuthorSummary"
@@ -3920,6 +3947,30 @@
               }
             ],
             "title": "Attachments"
+          },
+          "audioSpeakerName": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audiospeakername"
+          },
+          "audioTitle": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audiotitle"
           },
           "emotion": {
             "anyOf": [
@@ -4383,7 +4434,8 @@
       "MediaType": {
         "enum": [
           "IMAGE",
-          "VIDEO"
+          "VIDEO",
+          "AUDIO"
         ],
         "title": "MediaType",
         "type": "string"

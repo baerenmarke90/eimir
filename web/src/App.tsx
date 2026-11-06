@@ -120,6 +120,7 @@ import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { VideoProcessingContext } from './client/video';
+import { AudioProcessingContext } from './client/voiceNotes';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
@@ -175,6 +176,7 @@ import {
 import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
+import { VoiceShareIngress } from './components/VoiceShareIngress';
 import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { WishProductPage } from './components/WishProductPage';
 import { WishSelectionPage } from './components/WishSelectionPage';
@@ -976,6 +978,10 @@ function AuthenticatedApp({
         spaceId={spaceId}
       >
         {relationshipContent}
+        <VoiceShareIngress
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+        />
         <DevicePushOnboarding
           key={`${apiBaseUrl}:${account.id}`}
           devicePush={devicePush}
@@ -1440,17 +1446,21 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   return (
-    <VideoProcessingContext.Provider
-      value={capabilitiesQuery.data?.videoProcessingEnabled === true}
+    <AudioProcessingContext.Provider
+      value={capabilitiesQuery.data?.audioProcessingEnabled === true}
     >
-      <AuthenticatedApp
-        tokens={tokens}
-        account={account}
-        logout={logout}
-        apiBaseUrl={config.apiBaseUrl}
-        spaceId={activeSpaceId}
-        serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
-      />
-    </VideoProcessingContext.Provider>
+      <VideoProcessingContext.Provider
+        value={capabilitiesQuery.data?.videoProcessingEnabled === true}
+      >
+        <AuthenticatedApp
+          tokens={tokens}
+          account={account}
+          logout={logout}
+          apiBaseUrl={config.apiBaseUrl}
+          spaceId={activeSpaceId}
+          serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
+        />
+      </VideoProcessingContext.Provider>
+    </AudioProcessingContext.Provider>
   );
 }

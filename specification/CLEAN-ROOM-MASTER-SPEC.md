@@ -759,6 +759,14 @@ The partner may read the shared Memory.
 
 # 15. Heart Moments
 
+PO extension #1671 (2026-11-06): one optional voice note per HeartMoment, up to
+180 seconds and 20 MiB input. Audio alone is valid. Reuse Attachment/MediaStore
+binding, parent privacy, deletion and transfer; validate decoded duration and
+normalize metadata-stripped audio in the restricted media role. Optional audio
+title and speaker name are protected authored payload, distinct from authorship.
+Recording/import is Free/Core and an operator media capability; existing reads
+and essential export do not depend on intake availability.
+
 HeartMoment:
 
 ```text

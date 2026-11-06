@@ -606,7 +606,7 @@ def project_story_items(
                     effective_date=item.effective_date,
                     heart_moment=SharedHeartMomentSummary(
                         id=heart_moment.id,
-                        text=heart_moment.payload.text,
+                        text=heart_moment.payload.text or heart_moment.payload.audio_title,
                         places=places.get(heart_moment.id, []),
                         emotion=heart_moment.payload.emotion,
                         visibility=visibility,

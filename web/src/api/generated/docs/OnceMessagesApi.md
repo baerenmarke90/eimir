@@ -17,7 +17,7 @@ All URIs are relative to *http://localhost*
 
 ## acknowledgeOnceMessage
 
-> acknowledgeOnceMessage(messageId, spaceId, onceAcknowledgement)
+> acknowledgeOnceMessage(spaceId, messageId, onceAcknowledgement)
 
 Acknowledge
 
@@ -36,9 +36,9 @@ async function example() {
 
   const body = {
     // string
-    messageId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
-    // string
     spaceId: spaceId_example,
+    // string
+    messageId: messageId_example,
     // OnceAcknowledgement
     onceAcknowledgement: ...,
   } satisfies AcknowledgeOnceMessageRequest;
@@ -60,8 +60,8 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **messageId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **messageId** | `string` |  | [Defaults to `undefined`] |
 | **onceAcknowledgement** | [OnceAcknowledgement](OnceAcknowledgement.md) |  | |
 
 ### Return type
@@ -91,7 +91,7 @@ No authorization required
 
 ## discardOnceMessage
 
-> discardOnceMessage(messageId, spaceId)
+> discardOnceMessage(spaceId, messageId)
 
 Discard
 
@@ -110,9 +110,9 @@ async function example() {
 
   const body = {
     // string
-    messageId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
-    // string
     spaceId: spaceId_example,
+    // string
+    messageId: messageId_example,
   } satisfies DiscardOnceMessageRequest;
 
   try {
@@ -132,8 +132,8 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **messageId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **messageId** | `string` |  | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -228,7 +228,7 @@ No authorization required
 
 ## getSealedOnceMessage
 
-> OnceSealedMessage getSealedOnceMessage(messageId, spaceId)
+> OnceSealedMessage getSealedOnceMessage(spaceId, messageId)
 
 Get Message
 
@@ -247,9 +247,9 @@ async function example() {
 
   const body = {
     // string
-    messageId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
-    // string
     spaceId: spaceId_example,
+    // string
+    messageId: messageId_example,
   } satisfies GetSealedOnceMessageRequest;
 
   try {
@@ -269,8 +269,8 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **messageId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **messageId** | `string` |  | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -365,7 +365,7 @@ No authorization required
 
 ## openOnceMessage
 
-> OnceClaimedMessage openOnceMessage(messageId, spaceId, onceClaim)
+> OnceClaimedMessage openOnceMessage(spaceId, messageId, onceClaim)
 
 Open Message
 
@@ -384,9 +384,9 @@ async function example() {
 
   const body = {
     // string
-    messageId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
-    // string
     spaceId: spaceId_example,
+    // string
+    messageId: messageId_example,
     // OnceClaim
     onceClaim: ...,
   } satisfies OpenOnceMessageRequest;
@@ -408,8 +408,8 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **messageId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **messageId** | `string` |  | [Defaults to `undefined`] |
 | **onceClaim** | [OnceClaim](OnceClaim.md) |  | |
 
 ### Return type

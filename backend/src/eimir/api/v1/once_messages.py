@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Response
+from fastapi import APIRouter, Depends, Path, Response
 from pydantic import ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import defer
@@ -15,11 +15,21 @@ from eimir.api.authors import resolve_author_summary
 from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
+from eimir.core.ids import parse_id
 from eimir.once_messages import service
 from eimir.once_messages.models import OnceMessage, OnceReception
 
 router = APIRouter(tags=["once-messages"])
-MessageId = Annotated[UUID, Path(alias="messageId")]
+
+
+def require_message_id(message_id: Annotated[str, Path(alias="messageId")]) -> UUID:
+    parsed = parse_id(message_id)
+    if parsed is None:
+        raise service.absent()
+    return parsed
+
+
+MessageId = Annotated[UUID, Depends(require_message_id)]
 
 
 class OnceReceptionUpdate(ApiModel):

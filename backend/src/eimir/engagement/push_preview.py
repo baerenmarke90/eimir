@@ -18,6 +18,9 @@ from eimir.identity.models import Account
 from eimir.memories.models import Memory
 from eimir.outbox.models import OutboxEvent
 
+# These kinds deliberately never enter native content presentation.
+NEUTRAL_ONLY_KINDS = frozenset({NotificationKind.ONCE_MESSAGE_RECEIVED.value})
+
 
 def _label(value: str, limit: int) -> str:
     # Plain text only, with bounded display and without directional controls.
@@ -69,7 +72,7 @@ def for_notification(
     from eimir.engagement import service
 
     # One-time messages always use the neutral wake, even on unlocked devices.
-    if notification.kind == NotificationKind.ONCE_MESSAGE_RECEIVED.value:
+    if notification.kind in NEUTRAL_ONLY_KINDS:
         return None
     context = AuthorizationContext(
         account_id=notification.recipient_account_id, space_id=notification.space_id

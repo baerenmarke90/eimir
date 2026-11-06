@@ -65,14 +65,14 @@ import {
 } from '../models/ProblemDetails';
 
 export interface AcknowledgeOnceMessageRequest {
-    messageId: string;
     spaceId: string;
+    messageId: string;
     onceAcknowledgement: OnceAcknowledgement;
 }
 
 export interface DiscardOnceMessageRequest {
-    messageId: string;
     spaceId: string;
+    messageId: string;
 }
 
 export interface GetOnceMessageStatusRequest {
@@ -80,8 +80,8 @@ export interface GetOnceMessageStatusRequest {
 }
 
 export interface GetSealedOnceMessageRequest {
-    messageId: string;
     spaceId: string;
+    messageId: string;
 }
 
 export interface ListOnceMessagesRequest {
@@ -89,8 +89,8 @@ export interface ListOnceMessagesRequest {
 }
 
 export interface OpenOnceMessageRequest {
-    messageId: string;
     spaceId: string;
+    messageId: string;
     onceClaim: OnceClaim;
 }
 
@@ -113,17 +113,17 @@ export class OnceMessagesApi extends runtime.BaseAPI {
      * Creates request options for acknowledgeOnceMessage without sending the request
      */
     async acknowledgeOnceMessageRequestOpts(requestParameters: AcknowledgeOnceMessageRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['messageId'] == null) {
-            throw new runtime.RequiredError(
-                'messageId',
-                'Required parameter "messageId" was null or undefined when calling acknowledgeOnceMessage().'
-            );
-        }
-
         if (requestParameters['spaceId'] == null) {
             throw new runtime.RequiredError(
                 'spaceId',
                 'Required parameter "spaceId" was null or undefined when calling acknowledgeOnceMessage().'
+            );
+        }
+
+        if (requestParameters['messageId'] == null) {
+            throw new runtime.RequiredError(
+                'messageId',
+                'Required parameter "messageId" was null or undefined when calling acknowledgeOnceMessage().'
             );
         }
 
@@ -142,8 +142,8 @@ export class OnceMessagesApi extends runtime.BaseAPI {
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/once-messages/{messageId}/acknowledge`;
-        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
 
         return {
             path: urlPath,
@@ -175,17 +175,17 @@ export class OnceMessagesApi extends runtime.BaseAPI {
      * Creates request options for discardOnceMessage without sending the request
      */
     async discardOnceMessageRequestOpts(requestParameters: DiscardOnceMessageRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['messageId'] == null) {
-            throw new runtime.RequiredError(
-                'messageId',
-                'Required parameter "messageId" was null or undefined when calling discardOnceMessage().'
-            );
-        }
-
         if (requestParameters['spaceId'] == null) {
             throw new runtime.RequiredError(
                 'spaceId',
                 'Required parameter "spaceId" was null or undefined when calling discardOnceMessage().'
+            );
+        }
+
+        if (requestParameters['messageId'] == null) {
+            throw new runtime.RequiredError(
+                'messageId',
+                'Required parameter "messageId" was null or undefined when calling discardOnceMessage().'
             );
         }
 
@@ -195,8 +195,8 @@ export class OnceMessagesApi extends runtime.BaseAPI {
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/once-messages/{messageId}`;
-        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
 
         return {
             path: urlPath,
@@ -272,17 +272,17 @@ export class OnceMessagesApi extends runtime.BaseAPI {
      * Creates request options for getSealedOnceMessage without sending the request
      */
     async getSealedOnceMessageRequestOpts(requestParameters: GetSealedOnceMessageRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['messageId'] == null) {
-            throw new runtime.RequiredError(
-                'messageId',
-                'Required parameter "messageId" was null or undefined when calling getSealedOnceMessage().'
-            );
-        }
-
         if (requestParameters['spaceId'] == null) {
             throw new runtime.RequiredError(
                 'spaceId',
                 'Required parameter "spaceId" was null or undefined when calling getSealedOnceMessage().'
+            );
+        }
+
+        if (requestParameters['messageId'] == null) {
+            throw new runtime.RequiredError(
+                'messageId',
+                'Required parameter "messageId" was null or undefined when calling getSealedOnceMessage().'
             );
         }
 
@@ -292,8 +292,8 @@ export class OnceMessagesApi extends runtime.BaseAPI {
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/once-messages/{messageId}`;
-        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
 
         return {
             path: urlPath,
@@ -370,17 +370,17 @@ export class OnceMessagesApi extends runtime.BaseAPI {
      * Creates request options for openOnceMessage without sending the request
      */
     async openOnceMessageRequestOpts(requestParameters: OpenOnceMessageRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['messageId'] == null) {
-            throw new runtime.RequiredError(
-                'messageId',
-                'Required parameter "messageId" was null or undefined when calling openOnceMessage().'
-            );
-        }
-
         if (requestParameters['spaceId'] == null) {
             throw new runtime.RequiredError(
                 'spaceId',
                 'Required parameter "spaceId" was null or undefined when calling openOnceMessage().'
+            );
+        }
+
+        if (requestParameters['messageId'] == null) {
+            throw new runtime.RequiredError(
+                'messageId',
+                'Required parameter "messageId" was null or undefined when calling openOnceMessage().'
             );
         }
 
@@ -399,8 +399,8 @@ export class OnceMessagesApi extends runtime.BaseAPI {
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/once-messages/{messageId}/open`;
-        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+        urlPath = urlPath.replace('{messageId}', encodeURIComponent(String(requestParameters['messageId'])));
 
         return {
             path: urlPath,

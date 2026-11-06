@@ -311,6 +311,19 @@ Light/Dark use neutral rows, clear grouping and restrained privacy indication; a
 
 ## Review and propagation boundary
 
+### Contextual creation (#1679)
+
+The Moments view tabs have one labeled local capture entry in every peer view,
+including the map. Its bounded choice opens the existing Memory, HeartMoment or
+Milestone task with the current return context. The global plus retains its
+cross-product scope. Partner-avatar actions also open the existing one-time
+message composer, preserving Pro sending eligibility and explicit reception
+consent. Action rows use defined shared radius tokens. The
+[preflight and acceptance record](references/contextual-create/README.md) binds
+the generated references, responsive composition and complete return journeys.
+
+### Shared acceptance
+
 Each reference's composition must remain complete with sparse content and understandable without a tutorial. Reviewers must reject metadata-led, permanent-edit, card-wall or desktop-first interpretations even if functionally correct. Equally, they must not remove useful depth or replace personal richness with empty space.
 
 These references preserve existing product entities, authorization, Free/Core/Premium boundaries, data ownership and Cloud/Self-Hosted behavior. Privacy, accessibility, recovery and essential export remain non-paywallable. Durable drafts, new media types/derivatives, new reminder channels and unsupported native features need separate owning scope and resource/privacy review.

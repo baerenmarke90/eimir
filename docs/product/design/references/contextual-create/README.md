@@ -49,7 +49,7 @@ the original view, visible scope and position, including map place selection.
 
 ### Partner actions
 
-The PO's follow-up adds `Nur für dich` to the existing menu opened from the
+The PO's follow-up adds the one-time-message composer to the menu opened from the
 couple/partner avatar. This opens the canonical one-time-message composer,
 without sending, enabling reception or changing consent. Preserve the three
 existing gestures, cooldowns, pending ownership and entitlement behavior. The
@@ -88,9 +88,54 @@ No new dependency or custom overlay engine.
 
 ## Validation and evidence
 
-Planned: target scope and navigation, all originating views, normal and dirty
-cancellation, actual save/result/return with filters, map place retention,
-global-plus regression, partner one-time handoff without a send, pending gesture
-guard, successful existing gestures, Light/Dark, Compact/Expanded, reduced motion,
-320 px / large text, axe, and the browser ownership inventory.
-Final revision-bound results and screenshots will be recorded below.
+Implementation commit: `3af425d73145b71d7d3b2e5025bdb9c0a4382f04`.
+
+- 65 browser cases pass across local creation, partner actions, global creation,
+  journal/map continuity, actual one-time encryption/reveal and HeartMoment voice
+  notes. After strengthening the large-text focus assertion, all nine local
+  creation cases pass again on the recorded commit.
+- Every moment type completes create → authoritative detail → original filtered
+  diary, with one create request and restored trigger focus. Discover and selected
+  map place survive cancellation. Dirty Memory exits preserve the draft until
+  deliberate discard. The global plus retains its nine targets.
+- The new Core action remains available with empty history, load errors, offline
+  state and the Pro map gate. German/English labels, Escape/browser Back, bounded
+  SVG dimensions, all three choices and 320 px / 200% text focus visibility pass.
+- Partner one-time entry works at 360/390/430/1280 px without any gesture, send or
+  reception mutation. It preserves the existing consent task and return focus.
+  Defined rounded corners, retained privacy/consequence copy, in-flight gesture
+  navigation exclusion, existing cooldowns, failure/retry, offline behavior and
+  both responsive presentations pass. The entry survives an entitlement-read
+  failure for the separate extended-gesture capability.
+- Web production build (including token/legal/static-locale/PWA/type checks),
+  changed-file Biome lint/format, 38 browser-planner regressions, the 101-spec
+  ownership inventory, 27 engineering-language regressions, documentation and
+  clean-source language audits, and status/whitespace checks pass.
+- The impact planner selects all 101 retained specs (74 critical and 27 additional)
+  because the changed bundled locale is a shared foundation. No always-run core
+  expansion or weakened assertion is introduced.
+
+Screenshots below use only synthetic browser fixtures. Light/Dark, Compact and
+Expanded were visually inspected; axe WCAG 2.2 AA checks pass in the affected
+choice surfaces. Reduced-motion behavior reuses the existing modal lifecycle.
+No Capacitor wrapper or native capability changed; no new APK or live audio
+activation is claimed.
+
+| Surface | Representative evidence |
+| --- | --- |
+| Local action | [360 Light](evidence/moments-local-360-light.png), [390 Dark](evidence/moments-local-390-dark.png), [430 Light](evidence/moments-local-430-light.png), [1280 Dark](evidence/moments-local-1280-dark.png) |
+| Three-choice sheet | [360 Light](evidence/moments-choice-360-light.png), [390 Dark](evidence/moments-choice-390-dark.png), [430 Light](evidence/moments-choice-430-light.png), [1280 Dark](evidence/moments-choice-1280-dark.png), [320 large text](evidence/moments-choice-320-dark-large.png) |
+| Rounded partner actions | [360 Light](evidence/partner-actions-360-light.png), [390 Light](evidence/partner-actions-390-light.png), [430 Dark](evidence/partner-actions-430-dark.png), [1280 Dark](evidence/partner-actions-1280-dark.png), [320 large text](evidence/partner-actions-320-dark-large.png) |
+
+## Requested main / #1680 reconciliation
+
+Before opening this PR, refreshed main remained at the inspected baseline.
+[PR #1680](https://github.com/baerenmarke90/eimir/pull/1680), reviewed at head
+`53a76c39cc080afc28b9a21ddd487b319f13dc0b`, changes only the private-channel
+exporter, its Compose tests, operator environment example and runbook. There are
+no overlapping paths, client/API changes or new UI rules, comments or reviews.
+Its instance-local audio opt-in still controls the existing HeartMoment composer
+through authenticated `audioProcessingEnabled`; the local entry reuses that
+same composer and does not override processor availability. Voice-note browser
+acceptance is included in the final adjacent-flow validation. Live audio
+activation remains the operator-owned action described in #1680.

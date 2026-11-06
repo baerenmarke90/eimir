@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "moments-local-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Feature-owned local Memory/HeartMoment/Milestone creation, actual save/result/filtered return, dirty exit, all Moments views, Core availability, dialog focus and responsive accessible composition."
+    },
     "app-continuity-polish.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 8,
@@ -329,7 +334,8 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 20,
+      "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
     "shared-photos.spec.ts": {
       "disposition": "PR_CRITICAL",

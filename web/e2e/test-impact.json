@@ -1,6 +1,17 @@
 {
   "version": 1,
   "specs": {
+    "moments-local-create.spec.ts": {
+      "roots": [
+        "web/src/components/MomentCreateMenu.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/QuickCreateMenu.tsx"
+      ]
+    },
     "app-continuity-polish.spec.ts": {
       "roots": [
         "web/src/client/referenceFlow.ts",
@@ -341,6 +352,8 @@
     },
     "partner-quick-actions.spec.ts": {
       "roots": [
+        "web/src/components/PartnerQuickActions.tsx",
+        "web/src/components/OnceMessages.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"
       ]

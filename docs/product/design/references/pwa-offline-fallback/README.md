@@ -49,16 +49,16 @@ is the reference, and no screen, component, token, copy or motion changes.
   errors. The fallback uses the designed typography and colors in Light and Dark, and
   English browsers see "No connection right now." with `lang="en"`.
 - After, interaction: the 46 px retry action is focusable with the designed focus ring.
-  After the server returns, "Erneut versuchen" restores `/` under worker control.
+  After the server returns, the retry action restores `/` under worker control.
 - After, page properties: no animations exist, so reduced motion needs no alternative.
   Caches hold only public shell files, bundle assets, fonts and icons.
 - 320 px reflow at normal text size has no horizontal overflow.
 
 ## Known deviation
 
-With 200% text at viewports of 390 px and narrower, the heading word "Verbindung." at its
-`1.8rem` floor is wider than the column: 11 px of horizontal overflow at 390 px and up
-to 81 px at 320 px. This is pre-existing behavior of `offline.css`, identical on `main`.
+With 200% text at viewports of 390 px and narrower, the longest word of the German
+heading is wider than the column at the heading's `1.8rem` floor: 11 px of horizontal
+overflow at 390 px and up to 81 px at 320 px. This is pre-existing behavior of `offline.css`, identical on `main`.
 It is recorded as a follow-up rather than changed in this delivery fix.
 
 ## Limits

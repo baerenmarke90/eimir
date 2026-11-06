@@ -217,3 +217,36 @@ product behavior, assertion, selector scope or deadline is relaxed. All backend
 shards and all three native API jobs passed on the preceding correction. One
 Discover contrast assertion passed on its built-in retry; its diagnostics remain
 available and final-head browser QA still must pass without a weakened Axe rule.
+
+## Accessible tab-state feedback
+
+Complete CI on `e96d7727095c56917c020bab4bb9c2b5d2d65157` passed all
+2,715 Web unit/component tests, 1,327 backend unit tests and 3,362 PostgreSQL
+integration tests. Browser QA reproduced the earlier Discover contrast finding
+on both runner attempts. Its actual target was the deselected Diary tab after
+returning to Discover: simultaneous foreground/background interpolation briefly
+produced ratios of 4.0–4.45 instead of 4.5. A local no-retry run reproduced the
+same target and ratio before the correction.
+
+The shared segmented control now switches its existing semantic foreground and
+background pair in one frame and retains the nonblocking shadow transition.
+Reduced motion disables that shadow transition. Layout, focus, selection and
+keyboard behavior are unchanged. The existing Axe assertion still checks every
+original WCAG tag; its diagnostic now names the target and failure details.
+
+After correction, the original case passes without retry. The complete local
+Moments file passed 17 cases; one further case reached its screenshot write and
+failed with host ENOSPC, so it is not counted as a pass. All 13 Planning reference
+cases pass, including keyboard selection, Light/Dark, 320px reflow and the shared
+control. Final-revision CI must validate the complete file again.
+
+Reviewed supplementary renders: [390 Light](evidence/moments-tab-contrast-390-light.png)
+and [320 Dark with reduced motion and large text](evidence/moments-tab-contrast-320-dark-reduced.png).
+This fixes feedback on the existing composition; it adds no new screen or pattern.
+
+The same CI cycle passed Android API 28/37.1 completely. API 36 passed the new
+18-case locale/wake group but lost a system-picker confirmation control after
+UiAutomator stability sampling. The photo chooser runtime and test match main,
+and the prior complete API 36 cycle passed. Only failed job `127635137337` was
+retried on the unchanged revision; attempt-1 logs/screenshots remain in artifact
+`13467532270`. No assertion, deadline or successful independent job was changed.

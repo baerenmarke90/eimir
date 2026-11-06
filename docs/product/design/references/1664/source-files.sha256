@@ -21,3 +21,5 @@ d365f7cde15b96d30c90829005f2c7f70e55f4c2d09e03685b32c18b4735d7b2  android/app/sr
 aaba960d6322f28142fdaf5838230203909652b0b91261e2a9157794f13ec565  android/app/src/main/res/values/strings.xml
 d2618d1a8585cbe9ade3b54e871bcd05e512ab9baab731fbfddb7447bfd16b66  android/app/src/main/res/values-de/strings.xml
 1b52d1bb011316d6f47617dcec21583830daee0d3d82acf647ac7bf27853b2a2  web/src/client/identityFlow.ts
+24735ae6c98c09aef91d4d2e8bb01d16ee017b4255f624d29490fb5f94538459  web/src/components/PlanningReference.css
+5519add2fc5820484349ae06f4862cc3664ccd6db1b21787b23a0a6ec8970e47  web/e2e/tests/story-discover-tapestry.spec.ts

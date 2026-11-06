@@ -110,8 +110,22 @@ assert(
 
 const serviceWorkerHandlers = new Map();
 const offlineResponse = { kind: 'offline' };
+const offlineStylesheetResponse = { kind: 'offline-stylesheet' };
+const offlineLanguageResponse = { kind: 'offline-language' };
 const networkResponse = { kind: 'network' };
 let rejectNetwork = false;
+
+// Only the install-time shell precache holds entries; the runtime static cache
+// starts empty, as it does on the first offline visit after installation.
+const shellResponses = new Map([
+  ['/offline.html', offlineResponse],
+  ['/offline.css', offlineStylesheetResponse],
+  ['/offline-language.js', offlineLanguageResponse],
+]);
+const isShellCache = (name) => name.startsWith('eimir-pwa-shell-');
+const requestPath = (key) =>
+  new URL(typeof key === 'string' ? key : key.url, 'https://eimir.test')
+    .pathname;
 
 const serviceWorkerContext = {
   URL,
@@ -125,15 +139,18 @@ const serviceWorkerContext = {
     },
   },
   caches: {
-    open: async () => ({
+    open: async (name) => ({
       addAll: async () => undefined,
-      match: async () => undefined,
+      match: async (key) =>
+        isShellCache(name) ? shellResponses.get(requestPath(key)) : undefined,
       put: async () => undefined,
     }),
     keys: async () => [],
     delete: async () => true,
-    match: async (key) =>
-      key === '/offline.html' ? offlineResponse : undefined,
+    match: async (key, options = {}) =>
+      options.cacheName === undefined || isShellCache(options.cacheName)
+        ? shellResponses.get(requestPath(key))
+        : undefined,
   },
   fetch: async () => {
     if (rejectNetwork) {
@@ -232,6 +249,33 @@ const offlineNavigation = await dispatchFetch(
 assert(
   offlineNavigation.responded && offlineNavigation.response === offlineResponse,
   'Failed top-level navigation must return the privacy-safe offline fallback.',
+);
+
+// The offline document is controlled by the worker, so its own subresources
+// must come from the shell precache instead of failing without the network.
+for (const [path, expected] of [
+  ['/offline.css', offlineStylesheetResponse],
+  ['/offline-language.js', offlineLanguageResponse],
+]) {
+  const offlineSubresource = await dispatchFetch(makeRequest(path));
+  assert(
+    offlineSubresource.responded && offlineSubresource.response === expected,
+    `Offline fallback subresource ${path} must be served from the shell precache.`,
+  );
+}
+
+const offlineUncachedAsset = await dispatchFetch(makeRequest('/assets/app.js'));
+assert(
+  offlineUncachedAsset.responded &&
+    offlineUncachedAsset.response.kind === 'error',
+  'Uncached static assets must fail closed offline instead of borrowing shell entries.',
+);
+
+rejectNetwork = false;
+const onlineShellAsset = await dispatchFetch(makeRequest('/offline.css'));
+assert(
+  onlineShellAsset.responded && onlineShellAsset.response === networkResponse,
+  'Precached shell assets must stay network-fresh while online.',
 );
 
 const registration = read('src/pwa.ts');

@@ -3,8 +3,8 @@
 ## Preflight
 
 Product Owner request and clarifications, 2026-11-06. Baseline main
-`1610a6a93` (includes voice notes #1671); integrate #1673 through main before
-final validation. Reviewed MemoryProductPage edit, PhotoDraftGallery,
+`1610a6a93` (includes voice notes #1671). Integrated main `61dc1415a`, including
+merged #1673, before final validation; the Memory editor composition was unchanged. Reviewed MemoryProductPage edit, PhotoDraftGallery,
 PhotoDraftSorting, AttachmentDraftPicker, PlanPhotosEditor and HeartMoment
 consumers; retain title/body/date/Places/tags, source picker, bounded gallery,
 linking, explicit Save, failure/retry and return/draft safeguards.
@@ -72,3 +72,37 @@ names remain localized; avoid nested buttons and drag activation from controls.
 Verify state/identity behavior, partner classification, negative authorization,
 mouse/touch, cancellation, save/reopen and representative Compact/Expanded,
 Light/Dark, reflow and reduced motion. Runtime evidence follows below.
+
+PO refinement after the first runtime screenshot: visible action circles are
+28 px and glyphs 20 px, with transparent 44 px touch targets. Native image
+selection and a localized live status own accessibility semantics; the generic
+drag plugin must not overwrite selection with its own pressed state.
+
+## Runtime evidence
+
+The final Compact controls have a small visible circle and full touch area.
+Selection outline and cover are independent. The redundant cover caption is
+omitted; only the chosen photo has a filled check. Stable drop targets avoid
+live DOM-swap oscillation with large single-column photos; the existing
+insertion helper applies the new order only on release. Drop highlighting and
+localized live feedback remain, with reduced-motion behavior.
+
+- [390 Light](evidence/arrange-390-light.png), [360 Dark](evidence/arrange-360-dark.png),
+  [430 Dark](evidence/arrange-430-dark.png), [Expanded Light](evidence/arrange-1280-light.png).
+- [320 Dark / 200% text](evidence/arrange-320-dark.png),
+  [20 selected photos](evidence/arrange-390-dark.png).
+- Each matching `saved-<width>-<theme>.png` records the confirmed canonical result.
+  Complete browser cases verify period, cover identity, photo order and return.
+- `polish-sensitive-author-390-dark.png` and `polish-sensitive-uploader-390-dark.png`
+  record the edit control and both partners' mark/save/reload/unmark behavior.
+
+Local validation: 66 PostgreSQL/API/metadata cases pass, including anonymous and
+cross-Space rejection without changing classification/version, stale writes,
+partner classify/unclassify, rollback, transfer, private/experience ownership and
+removal boundaries. Focused component/ownership/icon tests and browser acceptance
+are revision-bound in the PR. Full Web baseline before final refinements:
+2758 passed and two existing skips. Production build, token/legal/i18n/PWA,
+Capacitor, TypeScript and lint/format checks pass. The unchanged local runner
+uses Node 22.23.2 / CPython 3.14.6 with PostgreSQL 17; authoritative final-head CI
+uses the repository's pinned environments. Physical-device acceptance is not
+claimed; no wrapper/native capability changed.

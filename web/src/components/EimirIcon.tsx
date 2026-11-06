@@ -48,11 +48,13 @@ export const EIMIR_ICON_NAMES = [
   'close',
   'check',
   'lock-open',
+  'square',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  square: <rect x="5" y="5" width="14" height="14" rx="3" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   check: <path d="m5 12 4.5 4.5L19 7" />,
   'lock-open': (

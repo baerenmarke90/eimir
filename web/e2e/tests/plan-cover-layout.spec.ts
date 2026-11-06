@@ -1,5 +1,6 @@
 import {
   selectDraftMedia,
+  dragDraftMedia,
   expectInlineDraftActions,
 } from '../support/mediaDraft';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -540,6 +541,10 @@ for (const view of [
         imageFile('square'),
       ]);
     const drafts = page.locator('.photo-draft-tile');
+    const inspector = page.getByRole('group', {
+      name: de.memory.photoSelected,
+      exact: true,
+    });
     await expect(drafts).toHaveCount(3);
     const save = page.locator('form button[type=submit]');
     await expect(save).toBeDisabled();
@@ -662,11 +667,7 @@ for (const view of [
     const original = state.payloads[0].map((photo) => photo.attachmentId);
     async function changeDraft() {
       await drafts.first().click();
-      await inspector
-        .getByRole('button', {
-          name: new RegExp(de.memory.photoMoveLater.replace('{{name}}', '.+')),
-        })
-        .click();
+      await dragDraftMedia(page, 0, 1);
       await expectInlineDraftActions(page);
       await drafts.first().click();
       await inspector.getByRole('checkbox').check();

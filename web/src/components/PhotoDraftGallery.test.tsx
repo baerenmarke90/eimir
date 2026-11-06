@@ -84,10 +84,12 @@ it('keeps image selection independent from direct cover and sensitivity controls
       .getAttribute('aria-pressed'),
   ).toBe('true');
   expect(
-    view.container
-      .querySelectorAll('.photo-draft-sensitive')[1]
-      .getAttribute('aria-checked'),
-  ).toBe('true');
+    (
+      view.container.querySelectorAll(
+        '.photo-draft-sensitive input',
+      )[1] as HTMLInputElement
+    ).checked,
+  ).toBe(true);
   expect(screen.queryByText(i18n.t('memory.photoReady'))).toBeNull();
   expect(screen.queryByText(i18n.t('experiences.chooseCover'))).toBeNull();
   expect(screen.queryByText(i18n.t('memory.photoRemove'))).toBeNull();
@@ -146,7 +148,11 @@ it('retains per-item classification and removal authority and disables mutations
     screen.queryByRole('button', { name: i18n.t('memory.photoRemove') }),
   ).toBeNull();
   view.rerender(<PhotoDraftGallery {...props} items={items} disabled />);
-  for (const button of screen.getAllByRole('button')) fireEvent.click(button);
+  for (const button of [
+    ...screen.getAllByRole('button'),
+    ...screen.getAllByRole('checkbox'),
+  ])
+    fireEvent.click(button);
   expect(remove).not.toHaveBeenCalled();
   expect(sensitive).not.toHaveBeenCalled();
   expect(cover).not.toHaveBeenCalled();

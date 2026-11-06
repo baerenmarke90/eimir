@@ -387,19 +387,45 @@ for (const [width, colorScheme] of [
     await expectInlineDraftActions(page);
     if (width === 390 && colorScheme === 'light') {
       // A quick swipe on the photo scrolls before the hold-to-drag activates.
+      await page.setViewportSize({ width, height: 600 });
       const session = await page.context().newCDPSession(page);
-      await session.send('Emulation.setTouchEmulationEnabled', { enabled: true });
-      await gallery.locator('.photo-draft-tile').first().scrollIntoViewIfNeeded();
-      const frame = await gallery.locator('.photo-draft-tile').first().boundingBox();
+      await session.send('Emulation.setTouchEmulationEnabled', {
+        enabled: true,
+      });
+      await gallery
+        .locator('.photo-draft-tile')
+        .first()
+        .scrollIntoViewIfNeeded();
+      const frame = await gallery
+        .locator('.photo-draft-tile')
+        .first()
+        .boundingBox();
       if (!frame) throw new Error('Missing photo scroll geometry');
       const scrollBefore = await page.evaluate(() => window.scrollY);
-      const point = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
-      await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
-      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...point, y: point.y + 60 }] });
-      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(scrollBefore);
+      const point = {
+        x: frame.x + frame.width / 2,
+        y: frame.y + frame.height / 2,
+      };
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [point],
+      });
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ ...point, y: point.y + 60 }],
+      });
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+      await expect
+        .poll(() => page.evaluate(() => window.scrollY))
+        .toBeLessThan(scrollBefore);
       await session.detach();
-      await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute('aria-label', /first.jpg/);
+      await page.setViewportSize({ width, height: 900 });
+      await expect(
+        gallery.locator('.photo-draft-tile').first(),
+      ).toHaveAttribute('aria-label', /first.jpg/);
       await dragDraftMedia(page, 0, 2);
       await expect(gallery.locator('.photo-draft-tile').last()).toHaveAttribute(
         'aria-label',
@@ -426,6 +452,19 @@ for (const [width, colorScheme] of [
       'aria-label',
       /third.jpg/,
     );
+    await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const selectedColor = await gallery
+      .locator('.photo-draft-tile')
+      .first()
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    const otherColor = await gallery
+      .locator('.photo-draft-tile')
+      .nth(1)
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    expect(selectedColor).not.toBe(otherColor);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, `arrange-${width}-${colorScheme}.png`),

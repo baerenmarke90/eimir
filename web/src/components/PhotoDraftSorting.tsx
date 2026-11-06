@@ -3,12 +3,9 @@ import {
   Feedback,
   PointerActivationConstraints,
 } from '@dnd-kit/dom';
-import {
-  DragDropProvider,
-  type DragEndEvent,
-  PointerSensor,
-} from '@dnd-kit/react';
+import { DragDropProvider, PointerSensor } from '@dnd-kit/react';
 import { isSortableOperation, useSortable } from '@dnd-kit/react/sortable';
+import { OptimisticSortingPlugin } from '@dnd-kit/dom/sortable';
 import { type ReactNode, useCallback } from 'react';
 import { useTranslation } from '../i18n';
 
@@ -34,8 +31,10 @@ export function insertMedia(
 export function PhotoDraftSorting({
   children,
   onMove,
+  onAnnounce,
 }: {
   children: ReactNode;
+  onAnnounce: (message: string) => void;
   onMove: (key: string, target: number) => void;
 }) {
   const { t } = useTranslation();
@@ -45,28 +44,25 @@ export function PhotoDraftSorting({
   return (
     <DragDropProvider
       plugins={(defaults) => [
-        ...defaults,
+        // Native selection semantics must not be overwritten by drag pressed state.
+        ...defaults.filter((plugin) => plugin !== Accessibility),
         Feedback.configure({
           dropAnimation: reduced ? null : undefined,
           keyboardTransition: reduced ? null : undefined,
         }),
-        Accessibility.configure({
-          screenReaderInstructions: {
-            draggable: '',
-          },
-          announcements: {
-            dragstart: () => t('experiences.dragStarted'),
-            dragend: (event: DragEndEvent) =>
-              event.canceled
-                ? t('experiences.dragCancelled')
-                : t('experiences.dragFinished'),
-          },
-        }),
       ]}
+      onDragStart={() => onAnnounce(t('experiences.dragStarted'))}
       onDragEnd={(event) => {
+        onAnnounce(
+          t(
+            event.canceled
+              ? 'experiences.dragCancelled'
+              : 'experiences.dragFinished',
+          ),
+        );
         if (event.canceled || !isSortableOperation(event.operation)) return;
-        const { source } = event.operation;
-        if (source) onMove(String(source.id), source.index);
+        const { source, target } = event.operation;
+        if (source && target) onMove(String(source.id), target.index);
       }}
     >
       {children}
@@ -100,11 +96,14 @@ function ReorderablePhotoDraftItem({
   const reduced = globalThis.matchMedia?.(
     '(prefers-reduced-motion: reduce)',
   ).matches;
-  const { ref, handleRef, isDragging } = useSortable({
+  const { ref, handleRef, isDragging, isDropTarget } = useSortable({
     id,
     index,
     disabled: disabled || !reorderable,
     transition: reduced ? null : undefined,
+    // Keep large-photo drop targets stable; commit insertion only on release.
+    plugins: (defaults) =>
+      defaults.filter((plugin) => plugin !== OptimisticSortingPlugin),
     sensors: [
       PointerSensor.configure({
         activatorElements: (source) => [source.handle],
@@ -133,7 +132,7 @@ function ReorderablePhotoDraftItem({
   return (
     <li
       ref={attach}
-      className={`photo-draft-item${isDragging ? ' is-dragging' : ''}`}
+      className={`photo-draft-item${isDragging ? ' is-dragging' : isDropTarget ? ' is-drop-target' : ''}`}
     >
       {children}
     </li>

@@ -602,6 +602,20 @@ class TestSensitiveMedia:
             ).status_code
             == 409
         )
+        outsider = make_account(session, "Another account")
+        make_space(session, outsider)
+        outsider_token = sign_in(session, outsider)
+        for headers, expected in [
+            ({"If-Match": str(initial.json()["version"])}, 401),
+            (if_match(outsider_token, initial.json()["version"]), 404),
+        ]:
+            assert client.put(path, json=body, headers=headers).status_code == expected
+        unchanged = client.get(
+            f"{base_path(couple['space'].id)}/memories/{created['id']}",
+            headers=auth(couple["token_a"]),
+        ).json()
+        assert unchanged["version"] == initial.json()["version"]
+        assert unchanged["attachments"][0]["isSensitive"] is True
         partner = client.put(
             path, json=body, headers=if_match(couple["token_b"], initial.json()["version"])
         )

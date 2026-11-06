@@ -100,6 +100,7 @@ export function PhotoDraftGallery({
   return (
     <div className="photo-draft-gallery">
       <PhotoDraftSorting
+        onAnnounce={setAnnouncement}
         onMove={(key, target) => {
           if (!disabled) {
             setSelectedKey(key);
@@ -132,8 +133,8 @@ export function PhotoDraftGallery({
               disabled={disabled}
               reorderable={Boolean(onOrderChange && items.length > 1)}
             >
-              <div
-                role="group"
+              <fieldset
+                className="photo-draft-frame"
                 aria-label={
                   item.key === selected.key
                     ? t(
@@ -147,6 +148,7 @@ export function PhotoDraftGallery({
                 <button
                   type="button"
                   className="photo-draft-tile"
+                  data-media-key={item.key}
                   disabled={disabled}
                   aria-pressed={item.key === selected.key}
                   aria-label={t(
@@ -214,19 +216,21 @@ export function PhotoDraftGallery({
                   </button>
                 ) : null}
                 {onSensitive ? (
-                  <button
-                    type="button"
-                    className="photo-draft-action photo-draft-sensitive"
-                    disabled={disabled || item.canEditSensitivity === false}
-                    role="checkbox"
-                    aria-checked={item.isSensitive}
-                    aria-label={t('sensitiveMedia.mark')}
-                    onClick={() => onSensitive(item.key, !item.isSensitive)}
-                  >
+                  <label className="photo-draft-action photo-draft-sensitive">
+                    <input
+                      type="checkbox"
+                      disabled={disabled || item.canEditSensitivity === false}
+                      checked={item.isSensitive}
+                      aria-label={t('sensitiveMedia.mark')}
+                      onChange={(event) => {
+                        if (!disabled && item.canEditSensitivity !== false)
+                          onSensitive(item.key, event.currentTarget.checked);
+                      }}
+                    />
                     <EimirIcon
                       name={item.isSensitive ? 'privatsphaere' : 'lock-open'}
                     />
-                  </button>
+                  </label>
                 ) : null}
                 {onSelectCover ? (
                   <button
@@ -237,15 +241,12 @@ export function PhotoDraftGallery({
                     aria-pressed={item.key === coverKey}
                     onClick={() => onSelectCover(item.key)}
                   >
-                    <EimirIcon name="check" />
+                    <EimirIcon
+                      name={item.key === coverKey ? 'check' : 'square'}
+                    />
                   </button>
                 ) : null}
-              </div>
-              {onSelectCover && item.key === coverKey ? (
-                <span className="photo-draft-cover">
-                  {t('experiences.cover')}
-                </span>
-              ) : null}
+              </fieldset>
             </SortablePhotoDraftItem>
           ))}
         </ol>

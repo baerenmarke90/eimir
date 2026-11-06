@@ -59,10 +59,7 @@ import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
-import {
-  movePhotoKey,
-  orderedPhotoKeys,
-} from '../client/useOrderedPhotoDrafts';
+import { orderedPhotoKeys } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -864,12 +861,6 @@ export function MemoryProductPage({
                     />
                   ) : null,
               }))}
-              onMove={(key, offset) =>
-                setPhotoOrder({
-                  scope: photoOrderScope,
-                  keys: movePhotoKey(photoKeys, key, offset),
-                })
-              }
               onSensitive={(key, value) => {
                 const item = photoItems.find((item) => item.key === key);
                 if (

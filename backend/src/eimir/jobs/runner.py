@@ -30,6 +30,7 @@ from eimir.identity import deletion_jobs as account_deletion_jobs
 from eimir.jobs import maintenance
 from eimir.jobs.worker import run_once
 from eimir.observability import configure_logging
+from eimir.once_messages import service as once_messages
 from eimir.photo_sources import retention as photo_source_retention
 from eimir.places import photo_enrichment
 from eimir.recaps import invalidation as _recap_invalidation  # noqa: F401
@@ -105,6 +106,7 @@ def main() -> None:
     recap_jobs.register_handlers()
     context_tag_jobs.register_handlers()
     maintenance.register_handlers()
+    once_messages.register_handlers()
     gentle_jobs.register_handlers()
     media_cleanup.register_handlers()
     account_media.register_handlers()
@@ -126,9 +128,14 @@ def main() -> None:
 
         try:
             projected = _run_engagement_projection()
-            from eimir.attachments.service import ATTACHMENT_VIDEO_VALIDATION
+            from eimir.attachments.service import (
+                ATTACHMENT_AUDIO_VALIDATION,
+                ATTACHMENT_VIDEO_VALIDATION,
+            )
 
-            completed = projected + run_once(name, excluded_kinds=[ATTACHMENT_VIDEO_VALIDATION])
+            completed = projected + run_once(
+                name, excluded_kinds=[ATTACHMENT_VIDEO_VALIDATION, ATTACHMENT_AUDIO_VALIDATION]
+            )
         except Exception:
             # A failure while polling must not terminate the process; otherwise
             # any brief database connection disruption would take down the

@@ -62,6 +62,7 @@ import {
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
   LEGACY_ROUTE_REWRITES,
+  LEGAL_TERMS_ROUTE,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -119,6 +120,7 @@ import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { VideoProcessingContext } from './client/video';
+import { AudioProcessingContext } from './client/voiceNotes';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
@@ -134,9 +136,16 @@ import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { OnceMessagesPage } from './components/OnceMessages';
+import {
+  OnceMessagesProvider,
+  ONCE_ROUTE,
+  ONCE_CREATE_ROUTE,
+} from './client/onceMessages';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
+import { LegalTermsPage } from './components/LegalTermsPage';
 import {
   ActivityProductPage,
   NotificationsProductPage,
@@ -173,6 +182,7 @@ import {
 import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
+import { VoiceShareIngress } from './components/VoiceShareIngress';
 import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { WishProductPage } from './components/WishProductPage';
 import { WishSelectionPage } from './components/WishSelectionPage';
@@ -492,6 +502,18 @@ function AuthenticatedApp({
           }
         >
           <Routes>
+            <Route
+              path={ONCE_ROUTE}
+              element={<OnceMessagesPage mode="inbox" />}
+            />
+            <Route
+              path={ONCE_CREATE_ROUTE}
+              element={<OnceMessagesPage mode="compose" />}
+            />
+            <Route
+              path={`${ONCE_ROUTE}/:messageId`}
+              element={<OnceMessagesPage mode="read" />}
+            />
             <Route
               path="/"
               element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
@@ -973,7 +995,19 @@ function AuthenticatedApp({
         accountId={account.id}
         spaceId={spaceId}
       >
-        {relationshipContent}
+        <OnceMessagesProvider
+          apiBaseUrl={apiBaseUrl}
+          accessToken={tokens.accessToken}
+          accountId={account.id}
+          spaceId={spaceId}
+        >
+          {relationshipContent}
+        </OnceMessagesProvider>
+        <VoiceShareIngress
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+        />
+
         <DevicePushOnboarding
           key={`${apiBaseUrl}:${account.id}`}
           devicePush={devicePush}
@@ -1251,6 +1285,16 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       !membershipsQuery.error &&
       resolveActiveSpaceId(membershipsQuery.data, spaceId),
   );
+  // Public legal text needs no session; it must stay readable while signed out.
+  if (location.pathname === LEGAL_TERMS_ROUTE && !entryToken) {
+    return (
+      <>
+        <ThemeControl />
+        <LegalTermsPage />
+      </>
+    );
+  }
+
   if ((isRestoring && !restoredSpaceAuthorized) || isSigningOut) {
     return (
       <BrandedStartup
@@ -1428,17 +1472,21 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   return (
-    <VideoProcessingContext.Provider
-      value={capabilitiesQuery.data?.videoProcessingEnabled === true}
+    <AudioProcessingContext.Provider
+      value={capabilitiesQuery.data?.audioProcessingEnabled === true}
     >
-      <AuthenticatedApp
-        tokens={tokens}
-        account={account}
-        logout={logout}
-        apiBaseUrl={config.apiBaseUrl}
-        spaceId={activeSpaceId}
-        serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
-      />
-    </VideoProcessingContext.Provider>
+      <VideoProcessingContext.Provider
+        value={capabilitiesQuery.data?.videoProcessingEnabled === true}
+      >
+        <AuthenticatedApp
+          tokens={tokens}
+          account={account}
+          logout={logout}
+          apiBaseUrl={config.apiBaseUrl}
+          spaceId={activeSpaceId}
+          serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
+        />
+      </VideoProcessingContext.Provider>
+    </AudioProcessingContext.Provider>
   );
 }

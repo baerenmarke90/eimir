@@ -81,10 +81,10 @@ jobs:
         working-directory: backend
         run: |
           uv run --frozen pytest -q --junitxml=/tmp/video-results.xml \
-            tests/unit/test_video_processing.py tests/unit/test_media_content.py \
+            tests/unit/test_video_processing.py tests/unit/test_audio_processing.py tests/unit/test_media_content.py \
             tests/unit/test_media_streaming.py tests/unit/test_codec_advisories.py \
             tests/integration/test_video_playback.py \
-            tests/integration/test_video_lifecycle.py \
+            tests/integration/test_video_lifecycle.py tests/integration/test_heart_voice_notes.py \
             tests/media/acceptance_video_lifecycle.py
           python - <<'PY'
           import xml.etree.ElementTree as ET

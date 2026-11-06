@@ -16,6 +16,7 @@ import games from './locales/games';
 import gentlePrompts from './locales/gentlePrompts';
 import importantDates from './locales/importantDates';
 import languageSettings from './locales/languageSettings';
+import legal from './locales/legal';
 import m5s3 from './locales/m5s3';
 import m5s5 from './locales/m5s5';
 import m5s6 from './locales/m5s6';
@@ -24,6 +25,7 @@ import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
+import onceMessages from './locales/onceMessages';
 import offlinePage from './locales/offlinePage';
 import partnerConnection from './locales/partnerConnection';
 import people from './locales/people';
@@ -46,18 +48,21 @@ import storyProducts from './locales/storyProducts';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import video from './locales/video';
+import voiceNotes from './locales/voiceNotes';
 import weeklyInsights from './locales/weeklyInsights';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
 
 export const germanResources = {
   ...de,
+  onceMessages,
   memoryMap,
   calendarPlan,
   gentlePrompts,
   coupleExperiences,
   sensitiveMedia,
   video,
+  voiceNotes,
   taskBoundary,
   taskSheets,
   accountSettings,
@@ -76,6 +81,7 @@ export const germanResources = {
   games,
   experiences,
   importantDates,
+  legal,
   m5s3,
   m5s5,
   ...m5s6,

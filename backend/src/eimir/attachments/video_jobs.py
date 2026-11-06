@@ -13,8 +13,8 @@ from uuid import UUID
 from sqlalchemy import String, cast, select
 from sqlalchemy.orm import Session
 
-from eimir.attachments import binding, service, videos
-from eimir.attachments.limits import VIDEO_MAX_SIZE
+from eimir.attachments import audios, binding, service, videos
+from eimir.attachments.limits import AUDIO_MAX_SIZE, VIDEO_MAX_SIZE
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.attachments.upload_ownership import short_transaction
 from eimir.config import get_settings
@@ -139,12 +139,14 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
         if (
             attachment is None
             or attachment.status != AttachmentStatus.VALIDATING
-            or attachment.media_type != MediaType.VIDEO
+            or attachment.media_type not in {MediaType.VIDEO, MediaType.AUDIO}
         ):
             return
         identity = _identity(attachment)
         key = service.storage_key_for(attachment)
-    if not get_settings().video_upload_enabled:
+        audio = attachment.media_type == MediaType.AUDIO
+    settings = get_settings()
+    if not audio and not settings.video_upload_enabled:
         _fail(source, identifier, identity, "ATTACHMENT_TYPE_NOT_ALLOWED")
         return
     store = get_media_store()
@@ -154,12 +156,17 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
             original = directory / "input.mov"
             deadline = time.monotonic() + 600
             with store.open(key) as raw, original.open("wb") as target:
-                bounded = BoundedSource(raw, VIDEO_MAX_SIZE)
+                bounded = BoundedSource(raw, AUDIO_MAX_SIZE if audio else VIDEO_MAX_SIZE)
                 while chunk := bounded.read(CHUNK_SIZE):
                     if time.monotonic() >= deadline:
                         raise videos.VideoRejectedError("VIDEO_PROCESSING_TIMEOUT")
                     target.write(chunk)
-            result = videos.process(original, directory)
+            result = (
+                audios.process(original, directory)
+                if audio
+                else videos.process(original, directory)
+            )
+            mime_type = "audio/mp4" if audio else "video/mp4"
             with short_transaction(source) as session:
                 current = _locked_current(session, identifier, identity)
                 if current is None:
@@ -171,8 +178,8 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
                 # Cancellation/deletion wins before publication. From here the
                 # same short provider-write barrier as ordinary uploads applies.
                 with result.path.open("rb") as content:
-                    store.put(service.storage_key_for(current), content, "video/mp4")
-                current.mime_type = "video/mp4"
+                    store.put(service.storage_key_for(current), content, mime_type)
+                current.mime_type = mime_type
                 current.size = result.size
                 current.width, current.height = result.width, result.height
                 current.duration_seconds = result.duration_seconds
@@ -197,12 +204,14 @@ def validate(source: Session, payload: dict[str, Any]) -> None:
         _fail(source, identifier, identity, "ATTACHMENT_TOO_LARGE")
     except (DecryptionError, PlaintextRejectedError):
         _fail(source, identifier, identity, "VIDEO_STORAGE_UNAVAILABLE")
-    except videos.VideoRejectedError as error:
+    except (videos.VideoRejectedError, audios.AudioRejectedError) as error:
         _fail(source, identifier, identity, error.code)
     except OSError:
         _fail(source, identifier, identity, "VIDEO_STORAGE_UNAVAILABLE")
 
 
 def register() -> None:
+    if registry.get(service.ATTACHMENT_AUDIO_VALIDATION) is None:
+        registry.register(service.ATTACHMENT_AUDIO_VALIDATION, validate)
     if registry.get(service.ATTACHMENT_VIDEO_VALIDATION) is None:
         registry.register(service.ATTACHMENT_VIDEO_VALIDATION, validate)

@@ -120,7 +120,6 @@ export function AttachmentDraftPicker({
                 <DraftMediaPreview draft={attachment} context={videoContext} />
               ),
             }))}
-            onMove={multiple ? attachments.move : undefined}
             onOrderChange={multiple ? attachments.reorder : undefined}
             selectedCoverKey={selectedCoverKey}
             onSelectCover={onSelectCover}

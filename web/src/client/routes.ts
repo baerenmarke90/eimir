@@ -106,6 +106,7 @@ export function subpageParentPath(pathname: string): string {
     return '/story';
   if (/^\/plan\/(?:plans|wishes|reminders)\/(?:new|[^/]+)$/.test(path))
     return '/plan';
+  if (path.startsWith('/today/only-you')) return '/today';
   if (path === '/search' || path === '/games' || path === '/server-admin')
     return '/more';
   const parent = path.slice(0, path.lastIndexOf('/'));
@@ -203,6 +204,9 @@ export const MORE_PRIVATE_ROUTE = '/more/private';
  * partner/product navigation tree and never derives authorization from a Space.
  */
 export const SERVER_ADMIN_ROUTE = '/server-admin';
+
+/** Public, login-free reading page for the eimir. Cloud terms of use. */
+export const LEGAL_TERMS_ROUTE = '/legal/terms';
 
 /* Games content ---------------------------------------------------------- */
 

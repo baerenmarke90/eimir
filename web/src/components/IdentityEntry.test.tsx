@@ -5,7 +5,9 @@ import * as identityFlow from '../client/identityFlow';
 import * as instanceStatus from '../client/instanceStatus';
 import { ClientProblemError } from '../client/problemDetails';
 import de from '../i18n/locales/de';
+import legal from '../i18n/locales/legal';
 import { IdentityEntry } from './IdentityEntry';
+import { BUNDLED_TERMS_VERSION } from './TermsAcceptanceField';
 
 interface CustomMatchers<R = unknown> {
   toHaveFocus(): R;
@@ -30,6 +32,8 @@ expect.extend({
   },
 });
 
+const ACCEPTANCE_LABEL = legal.accept.replace(/<\/?termsLink>/g, '');
+
 describe('IdentityEntry', () => {
   const apiBaseUrl = 'https://eimir.invalid';
 
@@ -50,6 +54,7 @@ describe('IdentityEntry', () => {
       selfServiceSignupAvailable: true,
       maintenanceMode: false,
       registrationAvailable: true,
+      termsOfUseVersion: null,
     });
 
     render(
@@ -125,6 +130,7 @@ describe('IdentityEntry', () => {
       selfServiceSignupAvailable: false,
       maintenanceMode: false,
       registrationAvailable: true,
+      termsOfUseVersion: null,
     });
 
     render(
@@ -156,6 +162,7 @@ describe('IdentityEntry', () => {
       selfServiceSignupAvailable: true,
       maintenanceMode: false,
       registrationAvailable: true,
+      termsOfUseVersion: null,
     });
 
     const requestSpy = vi
@@ -200,6 +207,8 @@ describe('IdentityEntry', () => {
       expect(requestSpy).toHaveBeenCalledWith(
         apiBaseUrl,
         'couple@example.invalid',
+        null,
+        null,
       );
     });
 
@@ -225,6 +234,7 @@ describe('IdentityEntry', () => {
         selfServiceSignupAvailable: true,
         maintenanceMode: false,
         registrationAvailable: true,
+        termsOfUseVersion: null,
       });
       const signupSpy = vi
         .spyOn(identityFlow, 'requestSignup')
@@ -265,6 +275,7 @@ describe('IdentityEntry', () => {
               apiBaseUrl,
               'new-partner@example.invalid',
               'partner-invitation-token',
+              null,
             ]
           : [apiBaseUrl, 'new-partner@example.invalid'],
       ]);
@@ -286,6 +297,7 @@ describe('IdentityEntry', () => {
       selfServiceSignupAvailable: false,
       maintenanceMode: false,
       registrationAvailable: true,
+      termsOfUseVersion: null,
     });
     const signupSpy = vi
       .spyOn(identityFlow, 'requestSignup')
@@ -397,5 +409,205 @@ describe('IdentityEntry', () => {
     });
     // Shows standard problem state for permission
     expect(screen.getByText(de.states.permission.title)).toBeDefined();
+  });
+  describe('terms of use acceptance', () => {
+    const cloudWithTerms = {
+      availability: 'available' as const,
+      auth: {
+        localPassword: false,
+        magicLink: true,
+        oidc: false,
+        passkey: false,
+      },
+      accountCreation: 'self_service' as const,
+      selfServiceSignupAvailable: true,
+      maintenanceMode: false,
+      registrationAvailable: true,
+      termsOfUseVersion: BUNDLED_TERMS_VERSION,
+    };
+
+    it('requires the acceptance and sends its version with the signup request', async () => {
+      vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue(
+        cloudWithTerms,
+      );
+      const requestSpy = vi
+        .spyOn(identityFlow, 'requestSignup')
+        .mockResolvedValue();
+      render(
+        <IdentityEntry
+          apiBaseUrl={apiBaseUrl}
+          entryToken={null}
+          onEntryTokenCleared={vi.fn()}
+          onSession={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: de.identity.startTogether }),
+      );
+      const acceptance = screen.getByRole('checkbox', {
+        name: ACCEPTANCE_LABEL,
+      }) as HTMLInputElement;
+      expect(acceptance.required).toBe(true);
+      expect(
+        screen.getAllByRole('link', { name: legal.termsLink })[0],
+      ).toHaveProperty('pathname', '/legal/terms');
+
+      fireEvent.change(screen.getByLabelText(de.login.email), {
+        target: { value: 'couple@example.invalid' },
+      });
+      fireEvent.click(acceptance);
+      const submit = screen
+        .getAllByRole('button', { name: de.identity.startTogetherSubmit })
+        .find((button) => button.getAttribute('type') === 'submit');
+      if (submit) fireEvent.click(submit);
+
+      await waitFor(() => {
+        expect(requestSpy).toHaveBeenCalledWith(
+          apiBaseUrl,
+          'couple@example.invalid',
+          null,
+          BUNDLED_TERMS_VERSION,
+        );
+      });
+    });
+
+    it('sends the acceptance with a Cloud invitation request', async () => {
+      vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue(
+        cloudWithTerms,
+      );
+      const signupSpy = vi
+        .spyOn(identityFlow, 'requestSignup')
+        .mockResolvedValue();
+      render(
+        <IdentityEntry
+          apiBaseUrl={apiBaseUrl}
+          entryToken={{ kind: 'invitation', token: 'partner-invitation-token' }}
+          onEntryTokenCleared={vi.fn()}
+          onSession={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(
+        await screen.findByRole('checkbox', {
+          name: ACCEPTANCE_LABEL,
+        }),
+      );
+      fireEvent.change(screen.getByLabelText(de.login.email), {
+        target: { value: 'partner@example.invalid' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: de.identity.magicLinkRequestSubmit,
+        }),
+      );
+
+      await screen.findByText(de.identity.mailRequestedTitle);
+      expect(signupSpy).toHaveBeenCalledWith(
+        apiBaseUrl,
+        'partner@example.invalid',
+        'partner-invitation-token',
+        BUNDLED_TERMS_VERSION,
+      );
+    });
+
+    it('asks for the acceptance when an opened link would create an account', async () => {
+      vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue(
+        cloudWithTerms,
+      );
+      const onSession = vi.fn();
+      const consumeSpy = vi
+        .spyOn(identityFlow, 'consumeSignup')
+        .mockRejectedValueOnce(
+          new ClientProblemError('conflict', 409, 'TERMS_ACCEPTANCE_REQUIRED'),
+        )
+        .mockResolvedValueOnce({
+          account: { id: 'acc-1', displayName: 'Lea' },
+          tokens: {
+            accessToken: 'tok-access',
+            refreshToken: 'tok-refresh',
+            accessExpiresAt: new Date(Date.now() + 3600_000),
+            refreshExpiresAt: new Date(Date.now() + 86400_000),
+          },
+          accountCreated: true,
+        });
+      render(
+        <IdentityEntry
+          apiBaseUrl={apiBaseUrl}
+          entryToken={{ kind: 'signup', token: 'sign-in-form-proof' }}
+          onEntryTokenCleared={vi.fn()}
+          onSession={onSession}
+        />,
+      );
+
+      await screen.findByRole('heading', { name: legal.pendingTitle });
+      expect(screen.queryByText(de.identity.signupFailedTitle)).toBeNull();
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: ACCEPTANCE_LABEL,
+        }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: legal.createAccount }),
+      );
+
+      await waitFor(() => {
+        expect(consumeSpy).toHaveBeenLastCalledWith(
+          apiBaseUrl,
+          'sign-in-form-proof',
+          undefined,
+          BUNDLED_TERMS_VERSION,
+        );
+        expect(onSession).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('asks to reload instead of accepting a different text', async () => {
+      vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue({
+        ...cloudWithTerms,
+        termsOfUseVersion: 'a-newer-version',
+      });
+      render(
+        <IdentityEntry
+          apiBaseUrl={apiBaseUrl}
+          entryToken={null}
+          onEntryTokenCleared={vi.fn()}
+          onSession={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: de.identity.startTogether }),
+      );
+
+      expect(screen.getByText(legal.outdatedTitle)).toBeDefined();
+      expect(screen.queryByRole('checkbox')).toBeNull();
+      expect(
+        screen
+          .queryAllByRole('button', { name: de.identity.startTogetherSubmit })
+          .filter((button) => button.getAttribute('type') === 'submit'),
+      ).toEqual([]);
+    });
+
+    it('shows no Cloud terms on deployments without them', async () => {
+      vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue({
+        ...cloudWithTerms,
+        accountCreation: 'invitation',
+        selfServiceSignupAvailable: false,
+        termsOfUseVersion: null,
+      });
+      render(
+        <IdentityEntry
+          apiBaseUrl={apiBaseUrl}
+          entryToken={null}
+          onEntryTokenCleared={vi.fn()}
+          onSession={vi.fn()}
+        />,
+      );
+
+      await screen.findByRole('heading', { name: de.identity.magicLinkTitle });
+      expect(screen.queryByRole('checkbox')).toBeNull();
+      expect(screen.queryByRole('link', { name: legal.termsLink })).toBeNull();
+    });
   });
 });

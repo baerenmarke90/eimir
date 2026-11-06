@@ -247,3 +247,24 @@ ordinary video database cases and rejects an empty or skipped result. General
 normal/encrypted PostgreSQL shards keep their strict no-skips contract and all
 existing cases; codec-dependent acceptance is never silently counted as passed.
 Shared admission/processor fixtures live in `tests/support/video.py`.
+
+## HeartMoment voice intake (#1671)
+
+The same restricted media image and `video` / `cloud-video` worker profiles also
+own `attachment_audio_validation`. Enable `EIMIR_AUDIO_UPLOAD_ENABLED=true` only
+with the reviewed same-revision media worker. This is Free/Core and independent
+of `EIMIR_VIDEO_UPLOAD_ENABLED` and video Pro admission. Normal users see only
+available capture actions; they do not configure infrastructure. Turning audio
+intake off preserves existing reads, deletion, essential export and queued restores.
+
+Voice input is bounded to one audio per HeartMoment, 180 seconds decoded and
+20 MiB. Ogg/Opus/Vorbis, WebM/Opus, AAC/M4A, MP3 and PCM WAV are decoded in the
+network-disabled role. Bounded PCM frame count establishes duration even for live
+WebM without a duration header; AAC frame padding is not mistaken for source
+length. Output is metadata-stripped mono AAC/M4A. Titles/speaker labels live in
+the protected HeartMoment payload. No speech provider/transcription is involved.
+
+Transfer imports stage audio as VALIDATING and enqueue the same decoder. Manifest
+size/duration/codec claims never publish playable bytes directly. Processing failure
+is visible at the parent and cannot be read as valid audio. Read/authorization,
+Space isolation, retention and physical cleanup reuse the existing media contract.

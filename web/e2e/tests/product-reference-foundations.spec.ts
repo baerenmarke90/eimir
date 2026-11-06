@@ -5,6 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../fixtures/locales/de';
 import { renderedContrast } from '../support/renderedContrast';
+import { waitForSettledMotion } from '../support/settledMotion';
 
 const PROOF_PATH = '/e2e/fixtures/product-reference-foundations.html';
 const PHOTO_PATH = fileURLToPath(
@@ -70,6 +71,7 @@ async function assertReflow(page: Page) {
 }
 
 async function assertAccessible(page: Page) {
+  await waitForSettledMotion(page);
   const report = await new AxeBuilder({ page })
     .include('.foundation-proof')
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])

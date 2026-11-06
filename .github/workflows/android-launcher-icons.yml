@@ -251,6 +251,12 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee photo-file-chooser.log
           grep -Eq '^OK \(11 tests\)' photo-file-chooser.log
+          # Voice handoff owns a separate volatile Activity/provider contract.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.VoiceNotesContractTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee voice-notes.log
+          grep -Eq '^OK \(4 tests\)' voice-notes.log
           # Keep deliberate renderer termination isolated from other WebViews.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.RuntimeRecoveryTest \

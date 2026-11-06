@@ -361,7 +361,11 @@
     "people-important-dates-mobile-first.spec.ts": {
       "roots": [
         "web/src/components/RelatedPeoplePage.tsx",
-        "web/src/components/ProfilePage.tsx"
+        "web/src/components/RelatedPersonEditorSheet.tsx",
+        "web/src/components/AvatarPhoto.tsx",
+        "web/src/components/PlanningOccasions.tsx",
+        "web/src/components/ImportantDatesPanel.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "perspective-game.spec.ts": {
@@ -846,7 +850,8 @@
       "roots": [
         "web/src/components/RelatedPeoplePage.tsx",
         "web/src/components/RelatedPersonEditorSheet.tsx",
-        "web/src/components/PhotoSourcePicker.tsx"
+        "web/src/components/PhotoSourcePicker.tsx",
+        "web/src/components/AvatarPhoto.tsx"
       ]
     },
     "polish-root-refresh.spec.ts": {

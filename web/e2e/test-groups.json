@@ -143,7 +143,8 @@
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5
+      "baselineTests": 5,
+      "reason": "Feature-owned People overview/profile/gallery/edit/save/result/return, shared-only capture, independent planning occasions, dirty Back, full retained 200%/400% zoom, keyboard, small-height, Expanded Light/Dark, reflow and axe acceptance."
     },
     "partner-nickname.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -334,7 +335,7 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 20,
+      "baselineTests": 22,
       "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
     "shared-photos.spec.ts": {

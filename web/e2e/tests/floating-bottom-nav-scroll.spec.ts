@@ -1098,11 +1098,29 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
   await expectPrimaryReadingSurface(page);
   const width = page.viewportSize()?.width ?? 390;
   const startX = direction === 'next' ? width * 0.75 : width * 0.25;
-  // Use existing readable content, never a control or a synthetic gesture pad.
+  // Use the existing reading surface, clear of gesture-owning controls.
   const y = await page.evaluate((x) => {
     for (let y = 100; y < innerHeight - 150; y += 30) {
       const target = document.elementFromPoint(x, y);
+      // Chromium can retarget a real touch in a small gap to a nearby control.
+      // Keep the reading gesture clear of the taller three-mode Planning tabs.
+      const nearControl = Array.from(
+        document.querySelectorAll(
+          'main input, main select, main textarea, main [role="tablist"], main [contenteditable="true"]',
+        ),
+      ).some((control) => {
+        const rect = control.getBoundingClientRect();
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          x >= rect.left - 24 &&
+          x <= rect.right + 24 &&
+          y >= rect.top - 24 &&
+          y <= rect.bottom + 24
+        );
+      });
       if (
+        !nearControl &&
         target?.closest('main') &&
         !target.closest(
           'button, input, form, [role="tablist"], .eimir-media-snap-track',

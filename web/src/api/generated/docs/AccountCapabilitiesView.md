@@ -7,6 +7,7 @@ Current account capabilities used only for client presentation.
 
 Name | Type
 ------------ | -------------
+`audioProcessingEnabled` | boolean
 `auth` | [AuthCapabilities](AuthCapabilities.md)
 `serverAdmin` | boolean
 `videoProcessingEnabled` | boolean
@@ -18,6 +19,7 @@ import type { AccountCapabilitiesView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "audioProcessingEnabled": null,
   "auth": null,
   "serverAdmin": null,
   "videoProcessingEnabled": null,

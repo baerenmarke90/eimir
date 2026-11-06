@@ -39,6 +39,8 @@ from eimir.identity import effects as account_effects
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.observability import safe_exception_summary
+from eimir.once_messages import service as once_messages
+from eimir.once_messages.models import OnceMessage
 from eimir.outbox import service as outbox_service
 from eimir.outbox.models import OutboxEvent
 from eimir.places.models import Place
@@ -72,6 +74,7 @@ _OWN_NOISE_KINDS = {
 }
 
 _TARGET_MODELS: dict[EngagementTarget, Any] = {
+    EngagementTarget.ONCE_MESSAGE: OnceMessage,
     EngagementTarget.REMINDER: Reminder,
     EngagementTarget.TRANSFER_EXPORT: TransferExport,
     EngagementTarget.TRANSFER_IMPORT: TransferImport,
@@ -198,6 +201,18 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     # and makes accepted deletion a hard boundary for new activity,
     # Notification and PushDelivery state.
     if not _event_effects_allowed(session, event):
+        return
+
+    if event_type is EventType.ONCE_MESSAGE_SENT:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.ONCE_MESSAGE,
+            event.subject_id,
+            NotificationKind.ONCE_MESSAGE_RECEIVED,
+            expires_at=event.payload.due_at,
+        )
+        push.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type is EventType.GENTLE_PROMPT_READY:
@@ -531,6 +546,15 @@ def _target_is_projectable(
     *,
     allow_private_heart: bool = False,
 ) -> bool:
+    if target_type is EngagementTarget.ONCE_MESSAGE:
+        return (
+            session.scalar(
+                select(OnceMessage.id).where(
+                    OnceMessage.id == target_id, once_messages.available_predicate(context)
+                )
+            )
+            is not None
+        )
     if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
         model = _TARGET_MODELS[target_type]
         return (
@@ -567,6 +591,17 @@ def _projectable_predicate(
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
     for target_type, model in _TARGET_MODELS.items():
+        if target_type is EngagementTarget.ONCE_MESSAGE:
+            exists = (
+                select(OnceMessage.id)
+                .where(
+                    OnceMessage.id == target_id_column,
+                    once_messages.available_predicate(context),
+                )
+                .exists()
+            )
+            clauses.append(and_(target_type_column == target_type.value, exists))
+            continue
         if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
             if selection is None:
                 continue

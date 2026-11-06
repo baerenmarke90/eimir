@@ -97,6 +97,7 @@ import {
 } from './MonthlyRecapInvitation';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
+import { OnceIncomingSignal } from './OnceMessages';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -1329,6 +1330,7 @@ export function TodayPage({
           )
         ) : null}
         {dailyVibe}
+        <OnceIncomingSignal />
       </>
     ),
     keepsake: (

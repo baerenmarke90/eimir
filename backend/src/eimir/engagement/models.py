@@ -43,6 +43,7 @@ class ActivityKind(StrEnum):
 
 
 class NotificationKind(StrEnum):
+    ONCE_MESSAGE_RECEIVED = "ONCE_MESSAGE_RECEIVED"
     GENTLE_PROMPT = "GENTLE_PROMPT"
     REMINDER_CREATED = "REMINDER_CREATED"
     TRANSFER_READY = "TRANSFER_READY"
@@ -76,6 +77,7 @@ class SupportGestureKind(StrEnum):
 
 
 class EngagementTarget(StrEnum):
+    ONCE_MESSAGE = "ONCE_MESSAGE"
     REMINDER = "REMINDER"
     TRANSFER_EXPORT = "TRANSFER_EXPORT"
     TRANSFER_IMPORT = "TRANSFER_IMPORT"

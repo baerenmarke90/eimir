@@ -423,7 +423,7 @@
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
-      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text."
+      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text. Direct media controls retain inline saved-video failure status and replacement."
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -438,7 +438,7 @@
     "memory-experiences.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
-      "reason": "Period/cover/order-save-return acceptance across Compact/Expanded, Light/Dark, 200% text, reduced motion, pointer/keyboard movement and Axe."
+      "reason": "Memory periods, independent direct cover controls and whole-photo mouse/touch sorting retain identity and draft cancellation through Save/result/return."
     },
     "shared-experience-answers.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -487,12 +487,22 @@
     "polish-sensitive-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 2,
-      "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
+      "reason": "Shared Memory photo classification persists for either active partner regardless of photo or parent authorship; retains versioned Save and reopen semantics with direct lock controls."
     },
     "multilingual-product.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 12,
       "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
+    },
+    "heart-voice-notes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "HeartMoment-owned audio record/import/review/save/playback, permission/error recovery and accessible responsive reading."
+    },
+    "once-messages.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Actual browser JWE across two accounts/devices, deliberate single view, uncertain-send idempotency, ephemeral audio and clear-on-close with mobile/reflow/theme evidence."
     }
   }
 }

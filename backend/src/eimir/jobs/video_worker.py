@@ -11,7 +11,7 @@ from datetime import timedelta
 from types import FrameType
 
 from eimir.attachments import video_jobs
-from eimir.attachments.service import ATTACHMENT_VIDEO_VALIDATION
+from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION, ATTACHMENT_VIDEO_VALIDATION
 from eimir.config import get_settings
 from eimir.db.session import unit_of_work
 from eimir.jobs.worker import run_once
@@ -42,7 +42,10 @@ def main() -> None:
     while not _shutdown:
         try:
             completed = run_once(
-                name, limit=1, kinds=[ATTACHMENT_VIDEO_VALIDATION], lease=timedelta(minutes=30)
+                name,
+                limit=1,
+                kinds=[ATTACHMENT_VIDEO_VALIDATION, ATTACHMENT_AUDIO_VALIDATION],
+                lease=timedelta(minutes=30),
             )
         except Exception:
             log.exception("video worker round failed")

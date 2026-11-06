@@ -18,6 +18,7 @@
  * @export
  */
 export const EngagementTarget = {
+    ONCE_MESSAGE: 'ONCE_MESSAGE',
     REMINDER: 'REMINDER',
     TRANSFER_EXPORT: 'TRANSFER_EXPORT',
     TRANSFER_IMPORT: 'TRANSFER_IMPORT',

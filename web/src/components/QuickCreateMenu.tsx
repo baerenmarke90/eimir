@@ -21,6 +21,8 @@ import {
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
+import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
+import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './QuickCreateMenu.css';
 
@@ -51,6 +53,14 @@ const SHARED_TARGETS: readonly QuickCreateTarget[] = [
     to: HEART_MOMENT_CREATE_ROUTE,
     icon: 'today',
     tone: 'story',
+  },
+  {
+    id: 'only-you',
+    labelKey: 'onceMessages.title',
+    sublineKey: 'onceMessages.singleView',
+    to: ONCE_CREATE_ROUTE,
+    icon: 'private',
+    tone: 'private',
   },
   {
     id: 'milestone',
@@ -149,6 +159,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
   function openTarget(target: QuickCreateTarget): void {
     const handoff = () => {
       const taskOriginKey = [
+        'only-you',
         'memory',
         'heart-moment',
         'milestone',
@@ -245,7 +256,10 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
           <DestinationIcon icon={target.icon} />
         </span>
         <span className="quick-create-tile-content">
-          <span className="quick-create-tile-title">{t(target.labelKey)}</span>
+          <span className="quick-create-tile-title">
+            {t(target.labelKey)}{' '}
+            {target.id === 'only-you' ? <ProMark label="Pro" /> : null}
+          </span>
           <span id={sublineId} className="quick-create-tile-subline">
             {t(target.sublineKey)}
           </span>
@@ -281,7 +295,8 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
         </span>
         <span className="quick-create-mobile-item-content">
           <span className="quick-create-mobile-item-title">
-            {t(target.labelKey)}
+            {t(target.labelKey)}{' '}
+            {target.id === 'only-you' ? <ProMark label="Pro" /> : null}
           </span>
           <span id={sublineId} className="quick-create-mobile-item-subline">
             {t(target.sublineKey)}

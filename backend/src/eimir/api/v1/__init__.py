@@ -37,6 +37,7 @@ from eimir.api.v1 import (
     memory_planning_relations,
     milestones,
     notification_preferences,
+    once_messages,
     people,
     photo_sources,
     place_relations,
@@ -96,6 +97,7 @@ normal_router.include_router(push_endpoints.router)
 normal_router.include_router(memories.router)
 normal_router.include_router(milestones.router)
 normal_router.include_router(heart_moments.router)
+normal_router.include_router(once_messages.router)
 normal_router.include_router(comments.router)
 normal_router.include_router(link_previews.router)
 normal_router.include_router(daily_checkins.router)

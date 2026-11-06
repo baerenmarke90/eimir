@@ -1,5 +1,6 @@
 import {
   selectDraftMedia,
+  dragDraftMedia,
   expectInlineDraftActions,
 } from '../support/mediaDraft';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -553,12 +554,11 @@ for (const view of [
       .getByRole('button', { name: /portrait.png/ })
       .and(page.locator('.photo-draft-tile'))
       .click();
-    await inspector
+    await page
+      .locator('.photo-draft-inspector')
       .getByRole('button', { name: de.common.retry, exact: true })
       .click();
-    await expect(inspector.getByRole('status')).toHaveText(
-      de.memory.photoReady,
-    );
+    await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
     await expectInlineDraftActions(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
@@ -667,11 +667,7 @@ for (const view of [
     const original = state.payloads[0].map((photo) => photo.attachmentId);
     async function changeDraft() {
       await drafts.first().click();
-      await inspector
-        .getByRole('button', {
-          name: new RegExp(de.memory.photoMoveLater.replace('{{name}}', '.+')),
-        })
-        .click();
+      await dragDraftMedia(page, 0, 1);
       await expectInlineDraftActions(page);
       await drafts.first().click();
       await inspector.getByRole('checkbox').check();

@@ -21,7 +21,9 @@ export function voiceFile(file: File): File {
       ? 'audio/mp4'
       : declared === 'audio/x-wav'
         ? 'audio/wav'
-        : declared === 'application/ogg'
+        : ['application/ogg', 'audio/opus', 'audio/x-opus+ogg'].includes(
+              declared,
+            )
           ? 'audio/ogg'
           : Object.values(types).includes(declared)
             ? declared

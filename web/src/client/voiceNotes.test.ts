@@ -13,6 +13,9 @@ describe('voice input and volatile sharing ownership', () => {
       'audio/ogg',
     );
     expect(
+      voiceFile(new File(['audio'], 'voice', { type: 'audio/opus' })).type,
+    ).toBe('audio/ogg');
+    expect(
       voiceFile(
         new File(['audio'], 'private-name.m4a', { type: 'audio/x-m4a' }),
       ).name,

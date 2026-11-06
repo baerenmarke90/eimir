@@ -1,6 +1,6 @@
 # One-time partner messages
 
-Product Owner decision: 2026-11-06. Create the optional **Nur für dich** experience
+Product Owner decision: 2026-11-06. Create the optional **Only for you** experience
 as eimir. Pro, with discreet Push, building on the separate HeartMoment voice-note
 workstream without changing its durable content lifecycle.
 
@@ -11,7 +11,7 @@ The separate `feat/heart-voice-notes` worktree owns audio capture/import/player,
 audio media validation and durable HeartMoment binding. This slice owns a new
 temporary message domain, consent, recipient claim, expiry and neutral notification.
 Integration baseline: `origin/main` at `e98202bff3aefe33c46724fa0ad7b5e2ac6f6e1c`
-and voice PR #1671 at `c47be4dfe`. The terms-of-use changes leave Wir composition
+and voice PR #1671 at `83e074ed7`. The terms-of-use changes leave Wir composition
 unchanged. Reuse the committed capture/player components through a local File
 boundary; never attach temporary data to a HeartMoment or duplicate its recorder.
 Migration 0115 follows the voice migration 0114. The PR remains stacked on #1671

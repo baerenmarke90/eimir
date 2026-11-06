@@ -10,8 +10,8 @@ governs behavior and records the reuse/business decisions.
 Preflight main: `c5e15a4c29eb60adaec5a1d39f574fdc9b8c4d25`.
 Integrated main: `e98202bff3aefe33c46724fa0ad7b5e2ac6f6e1c`.
 Voice dependency: [PR #1671](https://github.com/baerenmarke90/eimir/pull/1671)
-at `c47be4dfe0ec48d8786ee5ea1507b1be44b76e23`.
-Combined source: `ec2cf95b6`. Broad checks began at `9f9b094e7`; the final
+at `83e074ed7f5fbb59085348b960f0220f3c3ae1d0`.
+Combined source: `f231c30a3`. Broad checks began at `9f9b094e7`; the final
 access/catalog correction at `92d6b3a1c` has dedicated regression evidence below.
 The owning PR records final-head CI results.
 
@@ -47,7 +47,7 @@ unchanged editing. Screenshots were inspected with surrounding content visible.
   transfer decoder cases are skipped in this isolated Python container because it
   has no restricted FFmpeg binary; their decoder evidence remains in #1671.
   After taking the final dependency corrections, the complete shared push/voice
-  regression set passes **30 cases**, including its transfer validation stand-ins.
+  regression set passes **30 cases**, including its transfer validation substitutes.
 - Final authentication/tenant/malformed-ID and temporary lifecycle matrix:
   **50 passed**. The endpoint inventory and no-preview catalog regressions add
   **10 passed**, including both preview versions and digest choices.
@@ -78,3 +78,29 @@ no excerpt/media/encrypted preview, no email, and no claim on notification tap.
 Physical-device FCM receipt is not observed here. No external cryptographic audit,
 device verification, forward secrecy or recovery is claimed. These limits and
 the trusted key-directory/client assumptions remain explicit in the contract.
+
+
+## Consolidated CI follow-up
+
+On published source `393686c00` with the voice dependency, [Web Reference Flow](https://github.com/baerenmarke90/eimir/actions/runs/42192736345)
+passes **2757 tests** (two intentional skips). [Encrypted backend](https://github.com/baerenmarke90/eimir/actions/runs/42192736292)
+passes **1339 units** (45 environment/processor skips) and all four integration
+shards. CodeQL, codec/lifecycle, artifacts, recovery, design and reuse also pass.
+
+The first classifier failure came from localized reference-prompt literals and
+an English wording false positive. Surrounding prose is English; only seven exact
+UI literals in the preserved original prompt are allowed. All **27 language guard
+regressions** pass, including checks that surrounding prose remains audited.
+
+The browser failures shared a missing empty-inbox response in the existing product
+context fixture. The correction admits exactly the new metadata GET, leaving all
+other unknown requests and writes strict; feature journeys keep their explicit
+JWE fixture. **147 distinct browser cases across ten complete specs** pass after
+correction. The photo/privacy suite contributes 36; the refresh journey passes
+three parallel repetitions. Its response barrier deterministically separates the
+initial Dashboard read from device-timezone revalidation, retains the original
+one-read assertion and requires a further read after the Plan edit.
+
+These corrections update fixtures and documentation. They preserve the message
+runtime checked by the first CI run. The owning PR records the fresh final-head
+checks; earlier successes are historical evidence rather than a substitute.

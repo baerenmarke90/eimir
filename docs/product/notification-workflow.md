@@ -65,7 +65,7 @@ foundation. It does not introduce the previously rejected daily summary.
 
 | Module / surface | Meaningful occasion | App behavior / external delivery |
 | --- | --- | --- |
-| Nur für dich (#1672) | Deliberately send a one-time message after bilateral reception consent | One recipient Center item and neutral Push; never a rich native preview or Email. Tap opens the sealed page; claim/discard/expiry removes its derived notice. Existing channels and Quiet Hours apply; sending is Pro, pending reception is not. |
+| One-time partner message (#1672) | Deliberately send a one-time message after bilateral reception consent | One recipient Center item and neutral Push; never a rich native preview or Email. Tap opens the sealed page; claim/discard/expiry removes its derived notice. Existing channels and Quiet Hours apply; sending is Pro, pending reception is not. |
 | Glucksmomente | Deliberately share an authored present joy/appreciation | One partner Notification and neutral immediate Push; latest incoming source on Wir; canonical Memory read/history. |
 | Zeitreise | Deliberately share a recollection | Same authored-source workflow, optional past date. |
 | Daily writing questions | Three optional inspirations per module/Space day | Fetch only; no Outbox, Notification, Push or completion obligation. Free writing is unlimited. |

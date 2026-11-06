@@ -157,6 +157,45 @@ describe('ShortTaskSheet history ownership', () => {
     expect(onExit).not.toHaveBeenCalled();
   });
 
+  it('closes only the topmost of two nested sheets on Escape', async () => {
+    const onOuterClose = vi.fn();
+    const onInnerClose = vi.fn();
+    function NestedSheets() {
+      const [outer, setOuter] = useState(true);
+      const [inner, setInner] = useState(true);
+      return (
+        <ShortTaskSheet
+          open={outer}
+          title="Outer reading"
+          onClose={() => {
+            onOuterClose();
+            setOuter(false);
+          }}
+        >
+          <ShortTaskSheet
+            open={inner}
+            title="Inner reading"
+            onClose={() => {
+              onInnerClose();
+              setInner(false);
+            }}
+          >
+            <p>Referenced text</p>
+          </ShortTaskSheet>
+        </ShortTaskSheet>
+      );
+    }
+    render(<NestedSheets />);
+    const inner = screen.getByRole('dialog', { name: 'Inner reading' });
+
+    // The browser dispatches cancel to the topmost modal dialog only.
+    fireEvent(inner, new Event('cancel', { cancelable: true }));
+
+    await waitFor(() => expect(onInnerClose).toHaveBeenCalledTimes(1));
+    expect(onOuterClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Outer reading' })).toBeDefined();
+  });
+
   it('consumes child then parent history before handing off one destination', async () => {
     const onDiscard = vi.fn();
     const onExit = vi.fn(() => {

@@ -57,7 +57,7 @@
     },
     "cloud-onboarding-entry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 14
+      "baselineTests": 19
     },
     "comments-offline-writes.spec.ts": {
       "disposition": "PR_CRITICAL",

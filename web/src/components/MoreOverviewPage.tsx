@@ -9,7 +9,6 @@ import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
   appRoutePath,
-  LEGAL_TERMS_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
@@ -27,9 +26,11 @@ import {
 import { useShellUtilities } from '../client/shellUtilities';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
 import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
 import { EimirIcon } from './EimirIcon';
+import { LegalFooterLinks } from './LegalDocumentLink';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
 import { TaskOriginLink } from './TodayDestinationLink';
@@ -321,10 +322,8 @@ export function MoreOverviewPage({
             <span>{t('header.logout')}</span>
           </button>
         ) : null}
-        {instanceStatus.data?.termsOfUseVersion ? (
-          <nav className="more-legal" aria-label={t('legal.eyebrow')}>
-            <Link to={LEGAL_TERMS_ROUTE}>{t('legal.termsLink')}</Link>
-          </nav>
+        {cloudLegalDocumentsApply(instanceStatus.data?.termsOfUseVersion) ? (
+          <LegalFooterLinks className="more-legal" />
         ) : null}
         <div className="more-brand-signature">
           <Brand />

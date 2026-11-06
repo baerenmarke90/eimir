@@ -962,6 +962,9 @@ for (const variant of [
     } else await nav.locator('a[href="/plan"]').click();
     await expect(page).toHaveURL(/\/plan$/);
     await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
     await nav.locator('a[href^="/story"]').click();
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
@@ -1292,6 +1295,9 @@ test.describe('primary tab touch navigation', () => {
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/plan$/);
     await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
     await swipePrimary(page, 'previous');
     await expect(page).toHaveURL(/\/story/);
     await expect

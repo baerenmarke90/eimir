@@ -1,5 +1,3 @@
-import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   type MouseEvent,
   type ReactNode,
@@ -14,9 +12,9 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
-import { sortByProductLabel } from '../client/productLabelOrder';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import {
   PLAN_CREATE_ROUTE,
   planDetailPath,
@@ -24,16 +22,18 @@ import {
   wishDetailPath,
 } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
-import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
-import { PlanningStatusScope, type PlanningScope } from './PlanningStatusScope';
+import { type PlanningScope, PlanningStatusScope } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { WishSelectionEntry } from './WishSelectionEntry';
@@ -333,6 +333,7 @@ export function SharedPlanningOverviewPage({
     const origin = resolveOrigin(originKey);
     if (!origin) {
       if (
+        !location.hash &&
         (location.state as { primaryRootEntry?: boolean } | null)
           ?.primaryRootEntry
       ) {

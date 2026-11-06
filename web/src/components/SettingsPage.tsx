@@ -41,10 +41,10 @@ import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
+import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { ProInformationPanel } from './ProInformationPanel';
-import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { SettingsIndex } from './SettingsIndex';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
@@ -229,7 +229,14 @@ export function SettingsPage(props: SettingsPageProps) {
         id="settings-appearance"
         className="settings-category-content settings-appearance-block"
       >
-        <ProfileAppearancePanel id="settings-appearance-panel" />
+        <ProfileAppearancePanel
+          id="settings-appearance-panel"
+          language={{
+            apiBaseUrl: props.apiBaseUrl,
+            accessToken: props.accessToken,
+            accountId: props.account.id,
+          }}
+        />
       </div>
     );
   } else if (categoryId === 'media') {

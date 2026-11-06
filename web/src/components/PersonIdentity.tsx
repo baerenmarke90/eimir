@@ -5,6 +5,7 @@ import {
   authorProfileAttachmentId,
 } from '../client/authorPresentation';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
+import { resolvedLocale, useTranslation } from '../i18n';
 import './PersonIdentity.css';
 
 export type PersonIdentitySize = 'small' | 'medium' | 'large';
@@ -13,14 +14,17 @@ function firstCharacters(value: string, count: number): string {
   return Array.from(value).slice(0, count).join('');
 }
 
-export function personInitials(displayName: string): string {
+export function personInitials(
+  displayName: string,
+  locale = resolvedLocale(),
+): string {
   const parts = displayName.trim().split(/\s+/u).filter(Boolean);
   if (parts.length === 0) return '?';
   if (parts.length === 1) {
-    return firstCharacters(parts[0], 2).toLocaleUpperCase('de-DE');
+    return firstCharacters(parts[0], 2).toLocaleUpperCase(locale);
   }
   return `${firstCharacters(parts[0], 1)}${firstCharacters(parts.at(-1) ?? '', 1)}`.toLocaleUpperCase(
-    'de-DE',
+    locale,
   );
 }
 
@@ -41,8 +45,12 @@ export function PersonIdentity({
   fallbackAlt: string;
   onImageError?: () => void;
 }) {
+  const { i18n } = useTranslation();
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
-  const initials = useMemo(() => personInitials(displayName), [displayName]);
+  const initials = useMemo(
+    () => personInitials(displayName, i18n.resolvedLanguage),
+    [displayName, i18n.resolvedLanguage],
+  );
   const broken = imageUrl !== null && imageUrl === failedImageUrl;
   const avatarLabel = imageUrl && !broken ? imageAlt : fallbackAlt;
 

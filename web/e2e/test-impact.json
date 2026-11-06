@@ -831,6 +831,36 @@
         "web/src/App.tsx",
         "web/src/components/MemoryCreatePage.tsx"
       ]
+    },
+    "polish-people-photo-sources.spec.ts": {
+      "roots": [
+        "web/src/components/RelatedPeoplePage.tsx",
+        "web/src/components/RelatedPersonEditorSheet.tsx",
+        "web/src/components/PhotoSourcePicker.tsx"
+      ]
+    },
+    "polish-root-refresh.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/AppSurfacePullToRefresh.tsx",
+        "web/src/components/usePullToRefresh.ts"
+      ]
+    },
+    "polish-sensitive-media.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlanPhotosEditor.tsx",
+        "web/src/components/PhotoDraftGallery.tsx"
+      ]
+    },
+    "multilingual-product.spec.ts": {
+      "roots": [
+        "web/src/components/LanguageSettings.tsx",
+        "web/src/client/useAccountLanguage.ts",
+        "web/src/i18n/index.ts",
+        "web/src/client/sessionPersistence.ts"
+      ]
     }
   }
 }

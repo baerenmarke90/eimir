@@ -33,6 +33,7 @@ from eimir.auth.tokens import hash_token
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.core.errors import ValidationError
+from eimir.i18n import DEFAULT_LOCALE, account_locale, text
 from eimir.identity import service as accounts
 from eimir.identity.models import (
     Account,
@@ -109,7 +110,12 @@ def _primary_email(session: Session, address: str) -> AccountEmail | None:
 
 
 def request_magic_link(
-    session: Session, *, email: str, mail: MailSender, client_host: str | None = None
+    session: Session,
+    *,
+    email: str,
+    mail: MailSender,
+    client_host: str | None = None,
+    requested_locale: str = DEFAULT_LOCALE,
 ) -> None:
     """Request the deployment's passwordless entry link.
 
@@ -120,7 +126,13 @@ def request_magic_link(
     their separate consumer and are never interpreted as signup proofs.
     """
     if self_service_signup_supported():
-        request_signup(session, email=email, mail=mail, client_host=client_host)
+        request_signup(
+            session,
+            email=email,
+            mail=mail,
+            client_host=client_host,
+            requested_locale=requested_locale,
+        )
         return
 
     address = accounts.normalize_email(email)
@@ -142,13 +154,11 @@ def request_magic_link(
         mail,
         MailMessage(
             to=address,
-            subject="Dein Anmeldelink fuer eimir.",
-            body=(
-                "Hier ist dein Anmeldelink:\n\n"
-                f"{_link('auth/magic-link', issued.token)}\n\n"
-                "Er gilt 15 Minuten und genau einmal.\n\n"
-                "Wenn du ihn nicht angefordert hast, kannst du diese "
-                "Nachricht ignorieren."
+            subject=text("auth.magic.subject", account_locale(account)),
+            body=text(
+                "auth.magic.body",
+                account_locale(account),
+                url=_link("auth/magic-link", issued.token),
             ),
         ),
     )
@@ -188,14 +198,16 @@ def request_signup(
     mail: MailSender,
     client_host: str | None,
     invitation_token: str | None = None,
+    requested_locale: str = DEFAULT_LOCALE,
 ) -> None:
     """Start Cloud self-service onboarding by mailing a one-time proof.
 
-    The request never looks at Account state. A known and an unknown address
-    take the same path, reserve the same rate-limit slots, issue one proof, and
-    hand one message to the transport, so neither the response nor the work
-    done differs. Whether the proof signs into an existing Account or creates
-    one is decided only when the mailbox owner redeems it.
+    Known and unknown addresses reserve the same rate-limit slots, issue one
+    proof, resolve recipient language through the same bounded lookup and hand
+    one message to the transport. The empty response remains identical. Only
+    the mailbox owner sees localized message text; no Account state is returned.
+    Whether the proof signs into an existing Account or creates one is decided
+    only when the mailbox owner redeems it.
 
     The administrative registration state is deliberately not consulted here
     either: rejecting unknown addresses while registration is disabled would
@@ -217,18 +229,16 @@ def request_signup(
         invitation_token_hash=hash_token(invitation_token) if invitation_token else None,
     )
     link = _link("auth/signup", issued.token)
+    recipient = session.scalar(
+        select(Account).join(AccountEmail).where(AccountEmail.email == address)
+    )
+    locale = account_locale(recipient) if recipient is not None else requested_locale
     _deliver(
         mail,
         MailMessage(
             to=address,
-            subject="Dein Link fuer eimir.",
-            body=(
-                "Mit diesem Link geht es bei eimir. weiter:\n\n"
-                f"{link}\n\n"
-                "Er gilt 15 Minuten und genau einmal.\n\n"
-                "Wenn du ihn nicht angefordert hast, kannst du diese "
-                "Nachricht ignorieren. Ohne den Link passiert nichts."
-            ),
+            subject=text("auth.signup.subject", locale),
+            body=text("auth.signup.body", locale, url=link),
         ),
     )
 
@@ -351,11 +361,11 @@ def request_email_verification(session: Session, account: Account, *, mail: Mail
         mail,
         MailMessage(
             to=email_record.email,
-            subject="Bestaetige deine E-Mail-Adresse",
-            body=(
-                "Bitte bestaetige deine Adresse:\n\n"
-                f"{_link('auth/verify-email', issued.token)}\n\n"
-                "Der Link gilt 24 Stunden und genau einmal."
+            subject=text("auth.verification.subject", account_locale(account)),
+            body=text(
+                "auth.verification.body",
+                account_locale(account),
+                url=_link("auth/verify-email", issued.token),
             ),
         ),
     )
@@ -404,13 +414,11 @@ def request_recovery(session: Session, *, email: str, mail: MailSender) -> None:
         mail,
         MailMessage(
             to=address,
-            subject="Passwort zuruecksetzen",
-            body=(
-                "Mit diesem Link kannst du ein neues Passwort setzen:\n\n"
-                f"{_link('auth/recovery', issued.token)}\n\n"
-                "Er gilt 30 Minuten und genau einmal. Danach sind alle "
-                "angemeldeten Geraete abgemeldet.\n\n"
-                "Wenn du ihn nicht angefordert hast, aendert sich nichts."
+            subject=text("auth.recovery.subject", account_locale(account)),
+            body=text(
+                "auth.recovery.body",
+                account_locale(account),
+                url=_link("auth/recovery", issued.token),
             ),
         ),
     )

@@ -477,6 +477,26 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 11,
       "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, touch photo viewing and session-owned draft restoration."
+    },
+    "polish-people-photo-sources.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6,
+      "reason": "Feature-owned avatar source cancellation, single-image Pro import, explicit person persistence, accessibility and Compact/Expanded composition."
+    },
+    "polish-root-refresh.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Feature-owned real touch refresh from Momente and Planen content links without accidental navigation or duplicate reads."
+    },
+    "polish-sensitive-media.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
+    },
+    "multilingual-product.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
     }
   }
 }

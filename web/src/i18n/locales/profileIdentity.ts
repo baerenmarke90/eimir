@@ -64,11 +64,11 @@ const profileIdentity = {
   sharedAchievementsIntro:
     'Würdigt größere gemeinsame Abschlüsse kurz als Team – ohne Punkte, Streaks oder Rankings.',
   sharedAchievementsToggle: 'Gemeinsame Erfolge aktivieren oder deaktivieren',
-  vibeCheckTitle: 'Vibe-Check',
+  vibeCheckTitle: 'Wie geht es euch heute?',
   vibeCheckIntro:
-    'Teilt euren heutigen Vibe miteinander. Wer nichts einträgt, erscheint auf „Wir“ auch nicht als leerer Status.',
-  vibeCheckToggle: 'Vibe-Check aktivieren oder deaktivieren',
-  energyCheckInTitle: 'Akku-Check-in',
+    'Teilt, wie ihr euch heute fühlt. Wer nichts einträgt, erscheint auf „Wir“ auch nicht als leerer Status.',
+  vibeCheckToggle: 'Gefühl-Check-in aktivieren oder deaktivieren',
+  energyCheckInTitle: 'Wie voll ist dein Akku heute?',
   energyCheckInIntro:
     'Zeigt auf „Wir“, wie voll euer Akku heute ist. Niemand muss etwas eintragen.',
   energyCheckInToggle: 'Akku-Check-in aktivieren oder deaktivieren',
@@ -84,7 +84,7 @@ const profileIdentity = {
     'Beim Ausschalten bleiben bestehende Einträge erhalten. Sie erscheinen wieder, sobald ihr die Funktion einschaltet.',
   dailyContextTimezoneLabel: 'Zeitzone für euren gemeinsamen Tag',
   dailyContextTimezoneIntro:
-    'Vibe und Akku gelten für euren gemeinsamen Tag. Er wechselt um Mitternacht in dieser Zeitzone.',
+    'Gefühl und Akku gelten für euren gemeinsamen Tag. Er wechselt um Mitternacht in dieser Zeitzone.',
   dailyContextTimezoneReadOnly:
     'Euer gemeinsamer Tag wechselt in {{timezone}}.',
   dailyContextTimezoneLocked:
@@ -109,7 +109,7 @@ const profileIdentity = {
   dashboardOrderFailed: 'Reihenfolge konnte nicht gespeichert werden.',
   dashboardModuleSaving: 'Wird gespeichert …',
   dashboardModuleSaved: '✓ Gespeichert',
-  dashboardUpcomingTitle: 'Demnächst',
+  dashboardUpcomingTitle: 'Was bei euch ansteht',
   dashboardUpcomingQuestion: 'Wie viele Einträge möchtest du sehen?',
   dashboardUpcomingLoading: 'Dashboard-Einstellung wird geladen …',
   dashboardUpcomingSaving: 'Wird gespeichert …',
@@ -153,7 +153,8 @@ const profileIdentity = {
   settingsSensitiveTitle: 'Sensible Aktionen',
   settingsSensitiveIntro:
     'Den gemeinsamen Bereich zu verlassen und dein Konto zu löschen sind getrennte Aktionen. Prüfe die jeweiligen Folgen, bevor du fortfährst.',
-  appearanceIntro: 'Wähle deinen Farbmodus und das Icon, das zu dir passt.',
+  appearanceIntro:
+    'Wähle deinen Farbmodus, deine Sprache und das Icon, das zu dir passt.',
 } as const;
 
 export default profileIdentity;

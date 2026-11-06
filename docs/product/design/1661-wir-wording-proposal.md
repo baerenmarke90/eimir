@@ -1,7 +1,9 @@
 # WIR module wording proposal
 
-Status: **proposal only**, 2026-11-05. Owner: #1661. No runtime translations,
-module ordering, visibility, entitlements or notification wording change here.
+Status: **accepted for implementation in #1663**, 2026-11-05. Proposed under
+#1661; the Product Owner subsequently requested delivery. The mapping records
+the agreed copy direction; #1663 owns implementation and validation evidence.
+Module ordering, visibility, entitlements and notification wording are unchanged.
 
 Inspected baseline: `91a12b2eb87d9e95c9a7f4ff57bc7cb410ea4714`.
 Sources: `TodayPage.tsx`, `dashboardModules.ts`, `DailyVibeCheckIn.tsx`,
@@ -57,16 +59,19 @@ personal: **„Gefühl teilen“**, **„Deine Antwort bearbeiten“**. Keep sta
 precise: **„Wird gespeichert …“**, **„Noch nicht geteilt“** and an actionable
 error, rather than emotional pressure or promises of a mutual response.
 
-## Later implementation and acceptance
+## Implementation and acceptance
 
-After the Product Owner chooses the copy, change the relevant German and English
-locale resources together, reconcile the Settings catalog labels and accessible
-names, and remove obsolete visible synonyms after checking all consumers.
+Apply the copy through the active locale resources, reconcile the Settings
+catalog labels and accessible names, and remove obsolete visible synonyms after
+checking all consumers. The current Web client registers German only; the earlier
+suggestion to update German and English together does not require introducing an
+unsupported locale. Future locales must preserve the same meaning.
 No feature keys, route names or saved preferences need renaming. Check actual
 WIR and Settings at 360/390/430 px, Expanded, Light/Dark and 200% text, including
 long names, a single partner, hidden modules and protected reveal states.
 The existing Product Reference visual preflight applies to any material
-composition change; this document approves neither a redesign nor implementation.
+composition change; the accepted scope is copy and redundant-kicker cleanup
+within the existing composition, rather than a redesign.
 
 Business/freemium: no proposed tier or ownership change. Existing optional Pro
 modules remain Pro; wording must never imply new Free functionality or a

@@ -7,6 +7,7 @@ A bound attachment plus its position in the memory gallery.
 
 Name | Type
 ------------ | -------------
+`canEditSensitivity` | boolean
 `durationSeconds` | number
 `failureCode` | string
 `hasThumbnail` | boolean
@@ -28,6 +29,7 @@ import type { MemoryAttachmentSummary } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "canEditSensitivity": null,
   "durationSeconds": null,
   "failureCode": null,
   "hasThumbnail": null,

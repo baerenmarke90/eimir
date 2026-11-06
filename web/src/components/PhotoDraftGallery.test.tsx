@@ -52,7 +52,7 @@ it('keeps protected photo classification read-only while an own draft remains ed
   fireEvent.click(screen.getByRole('button', { name: /new.jpg/ }));
   fireEvent.click(screen.getByRole('checkbox'));
   expect(onSensitive).toHaveBeenCalledExactlyOnceWith('own', true);
-  fireEvent.click(screen.getByRole('button', { name: i18n.t('gallery.done') }));
+  expect(screen.queryByRole('dialog')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /shared.jpg/ }));
   expect(screen.queryByRole('checkbox')).toBeNull();
 });

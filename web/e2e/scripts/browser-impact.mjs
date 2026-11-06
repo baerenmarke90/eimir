@@ -175,6 +175,7 @@ function isShared(path) {
   return (
     sharedFiles.has(path) ||
     path.startsWith('web/src/api/') ||
+    path.startsWith('web/src/i18n/') ||
     path.startsWith('web/src/design/') ||
     path.startsWith('design/') ||
     /^web\/src\/[^/]+\.css$/.test(path)

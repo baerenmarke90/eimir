@@ -359,8 +359,16 @@ for (const [width, theme] of [
       const section = page.locator('.shared-experience-section');
       await expect(section.getByText(prompt, { exact: true })).toBeVisible();
       await expect(section.getByText(text, { exact: true })).toBeVisible();
-      await expect(section.locator('.shared-experience-from')).toContainText(
-        'Alex',
+      await expect(
+        section.getByRole('heading', {
+          name: copy.incoming.from.replace('{{name}}', 'Alex'),
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(section.locator('.shared-experience-from')).toHaveText(
+        kind === 'HAPPINESS'
+          ? copy.incoming.happiness
+          : copy.incoming.timeTravel,
       );
       await expect(section.locator('time')).toHaveAttribute(
         'datetime',

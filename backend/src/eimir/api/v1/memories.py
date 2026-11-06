@@ -197,6 +197,11 @@ def _memory_attachments(
             has_thumbnail=entry.attachment.has_thumbnail,
             duration_seconds=entry.attachment.duration_seconds,
             is_sensitive=entry.attachment.payload.is_sensitive,
+            can_edit_sensitivity=binding.can_edit_sensitivity(
+                entry.attachment,
+                account_id=authorization.account_id,
+                parent_owner_id=memory.owner_id,
+            ),
             position=entry.position,
             reactions=[
                 PhotoReactionSummary(

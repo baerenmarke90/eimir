@@ -1,19 +1,19 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
+import { useCapacitorShell } from './capacitorShell';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { restoreNativeSession } from './client/sessionPersistence';
+import { useControlPressFeedback } from './client/useControlPressFeedback';
 import { DemoBanner } from './components/DemoBanner';
 import { NativeSessionGate } from './components/NativeSessionGate';
-import { i18n } from './i18n';
+import { useTranslation } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
-import { useCapacitorShell } from './capacitorShell';
 import { initializeTheme } from './theme';
-import { useControlPressFeedback } from './client/useControlPressFeedback';
 import './styles.css';
 import './story-media.css';
 import './theme.css';
@@ -77,12 +77,13 @@ const demoUrl = String(identityBuildVariable('DEMO_URL'))
   .replace(/\/+$/, '');
 
 function RootApp() {
+  const { t } = useTranslation();
   useCapacitorShell();
   useControlPressFeedback();
   return (
     <NativeSessionGate
       restoration={nativeRestoration}
-      label={i18n.t('states.loading.title')}
+      label={t('states.loading.title')}
     >
       {demoMode ? (
         <DemoBanner
@@ -93,7 +94,7 @@ function RootApp() {
       <App demoMode={demoMode} />
       {!demoMode && demoUrl ? (
         <a className="demo-launch" href={demoUrl}>
-          {i18n.t('demo.launch')}
+          {t('demo.launch')}
         </a>
       ) : null}
     </NativeSessionGate>

@@ -313,7 +313,15 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await page.getByLabel(copy.occasion, { exact: true }).fill(demo.occasion);
   await capture(page, info, 'setup-390-light');
   await page.getByRole('button', { name: copy.start, exact: true }).click();
-  await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
+  // Setup already has a checked input with this label; wait for the new task.
+  const favorites = page.getByRole('group', {
+    name: copy.favorites,
+    exact: true,
+  });
+  await expect(favorites).toBeVisible();
+  const favorite = favorites.getByRole('checkbox', { name: demo.wishes[0] });
+  await favorite.check();
+  await expect(favorite).toBeChecked();
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     0,
   );

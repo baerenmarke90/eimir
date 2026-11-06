@@ -2,6 +2,7 @@ import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { onTestFinished, vi } from 'vitest';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
@@ -1934,6 +1935,12 @@ it('requires activity events even when recent content contains no photos', () =>
 });
 
 it('renders `Diesen Monat` as up to three real shared photos, never a count derived from the capped feed', () => {
+  // Keep the photo fixtures inside the product's three-day attention window.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-04T12:00:00Z'));
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
   const now = new Date();
   // `occurredOn` is a date-only API value: the generated client materializes
   // it at midnight UTC, so the fixture is built the same way.

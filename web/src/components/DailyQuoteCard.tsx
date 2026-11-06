@@ -18,7 +18,8 @@ import {
   saveDailyQuotePreferences,
 } from '../client/dailyQuote';
 import { clientProblemKind } from '../client/problemDetails';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { languageName, resolveSupportedLocale } from '../i18n/locale';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
@@ -120,7 +121,11 @@ function PreferencesContent({
                 <span aria-hidden="true" className="daily-quote-category-check">
                   {selected ? '✓' : ''}
                 </span>
-                <span>{category.name}</span>
+                <span>
+                  {t(`dailyQuote.catalog.categories.${category.id}`, {
+                    defaultValue: category.name,
+                  })}
+                </span>
               </label>
             );
           })}
@@ -138,8 +143,16 @@ function PreferencesContent({
             return (
               <label key={source.id} className="daily-quote-source">
                 <span className="daily-quote-source-copy">
-                  <strong>{source.name}</strong>
-                  <span>{source.description}</span>
+                  <strong>
+                    {t(`dailyQuote.catalog.sources.${source.id}.name`, {
+                      defaultValue: source.name,
+                    })}
+                  </strong>
+                  <span>
+                    {t(`dailyQuote.catalog.sources.${source.id}.description`, {
+                      defaultValue: source.description,
+                    })}
+                  </span>
                 </span>
                 <input
                   type="checkbox"
@@ -459,9 +472,21 @@ export function DailyQuoteCard({
         });
 
     body = (
-      <blockquote className="daily-quote-block">
-        <p>„{quote.text}“</p>
+      <blockquote className="daily-quote-block" lang={quote.locale}>
+        <p>
+          {t('dailyQuote.quoteText', {
+            text: quote.text,
+            lng: resolveSupportedLocale(quote.locale) ?? 'de',
+          })}
+        </p>
         {quote.attributionRequired ? <footer>{attribution}</footer> : null}
+        {resolveSupportedLocale(quote.locale) !== resolvedLocale() ? (
+          <footer lang={resolvedLocale()}>
+            {t('dailyQuote.originalLanguage', {
+              language: languageName(quote.locale, resolvedLocale()),
+            })}
+          </footer>
+        ) : null}
       </blockquote>
     );
   }

@@ -67,7 +67,10 @@ class ProjectIdentityMigrationContractTest(unittest.TestCase):
 
     def test_browser_state_has_canonical_write_and_legacy_read_keys(self) -> None:
         session = read("web/src/client/sessionPersistence.ts")
-        self.assertIn("SESSION_STORAGE_KEY = 'eimir-session-v1'", session)
+        locale = read("web/src/i18n/locale.ts")
+        self.assertIn("SESSION_LANGUAGE_KEY = 'eimir-session-v1'", locale)
+        self.assertIn("SESSION_STORAGE_KEY = SESSION_LANGUAGE_KEY", session)
+        self.assertIn("from '../i18n/locale'", session)
         self.assertIn("LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1'", session)
         self.assertIn("setItem(SESSION_STORAGE_KEY", session)
         self.assertIn("removeItem(LEGACY_SESSION_STORAGE_KEY", session)

@@ -238,7 +238,9 @@ describe('DailyQuoteCard', () => {
         .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
-    expect(screen.queryByText('Mindfulness')).toBeNull();
+    expect(
+      screen.queryByText(dailyQuote.catalog.categories.mindfulness),
+    ).toBeNull();
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(document.querySelector('.daily-quote-card .pro-mark')).toBeNull();
     expect(
@@ -309,7 +311,11 @@ describe('DailyQuoteCard', () => {
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
     );
-    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     expect(await screen.findByText(dailyQuote.preferencesOffline)).toBeTruthy();
@@ -328,7 +334,11 @@ describe('DailyQuoteCard', () => {
         name: dailyQuote.enabledLabel,
       }),
     ).toBeNull();
-    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     await waitFor(() =>
@@ -361,11 +371,19 @@ describe('DailyQuoteCard', () => {
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
     );
-    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     expect(await screen.findByText(dailyQuote.conflict)).toBeTruthy();
-    expect(screen.getByRole('checkbox', { name: /Mindfulness/u })).toBeTruthy();
+    expect(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    ).toBeTruthy();
     expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1);
   });
 
@@ -383,7 +401,7 @@ describe('DailyQuoteCard', () => {
     ).toBeTruthy();
 
     const mindfulness = screen.getByRole('checkbox', {
-      name: /Mindfulness/u,
+      name: dailyQuote.catalog.categories.mindfulness,
     });
     await user.click(mindfulness);
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));

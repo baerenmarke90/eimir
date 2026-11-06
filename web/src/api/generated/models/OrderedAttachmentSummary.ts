@@ -28,6 +28,12 @@ import {
  */
 export interface OrderedAttachmentSummary {
     /**
+     * Viewer-specific authority to edit classification through this parent; never a read grant.
+     * @type {boolean}
+     * @memberof OrderedAttachmentSummary
+     */
+    canEditSensitivity?: boolean;
+    /**
      * 
      * @type {number}
      * @memberof OrderedAttachmentSummary
@@ -129,6 +135,7 @@ export function OrderedAttachmentSummaryFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
+        'canEditSensitivity': json['canEditSensitivity'] == null ? undefined : json['canEditSensitivity'],
         'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
         'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
@@ -155,6 +162,7 @@ export function OrderedAttachmentSummaryToJSONTyped(value?: OrderedAttachmentSum
 
     return {
         
+        'canEditSensitivity': value['canEditSensitivity'],
         'durationSeconds': value['durationSeconds'],
         'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],

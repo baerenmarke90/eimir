@@ -1298,7 +1298,7 @@ export function TodayPage({
         <SharedExperienceReveal
           scope={[apiBaseUrl ?? '', account?.id ?? '', spaceId]}
           entry={incomingExperience}
-          partnerName={partnerName}
+          partnerName={relationshipLabel(partner?.id, partner?.displayName, '')}
         />
       ) : null,
     daily_quote: dailyQuote,
@@ -1389,7 +1389,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-pinned-collection"
             title={pinnedCollectionQuery.data.title}
-            kicker={t('m5s5.today.pinnedCollection.kicker')}
             headerAction={
               <TodayDestinationLink
                 to={collectionDetailPath(pinnedCollectionId)}

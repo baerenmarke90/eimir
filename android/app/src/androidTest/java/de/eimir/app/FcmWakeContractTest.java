@@ -55,6 +55,18 @@ public class FcmWakeContractTest {
     }
 
     @Test
+    public void recipientLocaleDoesNotBroadenTheActivationOrPayloadContract() {
+        Map<String, String> localized = data("wake", ACTIVATION);
+        localized.put("locale", "en");
+        assertTrue(EimirFirebaseMessagingService.acceptsWake(message(localized), CURRENT));
+        localized.put("activationId", OTHER_ACTIVATION);
+        assertFalse(EimirFirebaseMessagingService.acceptsWake(message(localized), CURRENT));
+        localized.put("activationId", ACTIVATION);
+        localized.put("body", "Must stay encrypted");
+        assertFalse(EimirFirebaseMessagingService.acceptsWake(message(localized), CURRENT));
+    }
+
+    @Test
     public void notificationPayloadIsRejectedEvenWithValidDataBinding() {
         Bundle payload = new Bundle();
         payload.putString("type", "wake");

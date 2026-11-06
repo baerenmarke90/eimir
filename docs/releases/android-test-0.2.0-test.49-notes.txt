@@ -1,0 +1,11 @@
+eimir. Android 0.2.0-test.49
+
+- Updated WIR wording and consistent module names across the home screen and Settings.
+- Sensitive-image marking is available to each authorized image uploader, including photos added to a partner-created Memory.
+- Contextual photo actions stay inline; the redundant selected-photo picker is removed.
+- Linked Wishes and map locations use alphabetical ordering. Pull down to refresh works on Momente and Planen.
+- People can select an avatar through the existing device or available external photo sources. Google Photos availability remains under its existing operator and Pro gates.
+- Complete German and English UI packs, automatic device-language selection and a personal language choice in Settings. The test updater is available in both languages.
+- Includes current main c5e15a4c (#1665, #1668 and #1669), all previous test.48 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.48; increasing versionCode 49. Publication verifies exact-candidate source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

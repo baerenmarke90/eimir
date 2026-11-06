@@ -65,6 +65,7 @@ def test_device_configuration_is_authenticated_private_and_truthful(
             "androidPackage": "de.eimir.app",
             "encryptedPreviewVersion": 1,
             "encryptedPreviewMaxVersion": 2,
+            "localeVersion": 1,
         },
     }
     assert "test-fixture" not in configured.text
@@ -217,6 +218,7 @@ def test_unified_push_public_key_requires_auth_and_configuration(
         "providerKey": "unifiedpush",
         "vapidPublicKey": provider.vapid_public_key,
         "notificationReferenceVersion": 1,
+        "localeVersion": 1,
     }
     assert private_key.decode() not in response.text
     unified_only = client.get(f"{BASE}/configuration", headers=auth(token))

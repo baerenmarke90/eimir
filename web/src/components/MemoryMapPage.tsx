@@ -1,4 +1,5 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   lazy,
   Suspense,
@@ -16,6 +17,7 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import {
   ClientProblemError,
@@ -28,10 +30,12 @@ import {
   storyFiltersToSearch,
 } from '../client/storyProduct';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import type { MapLocation } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -60,6 +64,7 @@ export function MemoryMapPage({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const locale = resolvedLocale();
   const { captureOrigin } = useTaskOrigin();
   const location = useLocation();
   const navigate = useNavigate();
@@ -97,7 +102,7 @@ export function MemoryMapPage({
     },
     [setParams, location.state],
   );
-  const query = useInfiniteQuery({
+  const query = useWarmInfiniteQuery({
     queryKey: [
       ...authorSummaryQueryKeys.memoryMap(spaceId),
       accountId,
@@ -118,6 +123,13 @@ export function MemoryMapPage({
     retry: false,
     staleTime: 60_000,
     gcTime: 30 * 60_000,
+  });
+  useTaskListReturn({
+    ready: Boolean(query.data) || query.isError,
+    busy: query.isFetching,
+    loadedPageCount: query.data?.pages.length ?? 1,
+    canLoadMore: Boolean(query.hasNextPage) && !query.isError,
+    loadMore: query.fetchNextPage,
   });
   const locations = useMemo(() => {
     const grouped = new Map<
@@ -143,8 +155,12 @@ export function MemoryMapPage({
       group.memories.set(entry.memoryId, entry);
       group.point.count = group.memories.size;
     }
-    return [...grouped.values()];
-  }, [query.data]);
+    return sortByProductLabel(
+      [...grouped.values()],
+      (group) => group.point.label,
+      locale,
+    );
+  }, [query.data, locale]);
   const thumbnail = useCallback(
     (entry?: MemoryMapEntry) =>
       entry?.previewAttachmentId && loadMemoryImage ? (
@@ -178,7 +194,6 @@ export function MemoryMapPage({
     [locations, t, thumbnail],
   );
   const selected = locations.find(({ point }) => point.id === selectedId);
-  const locale = resolvedLocale();
   const dateFormats = useMemo(
     () => ({
       full: new Intl.DateTimeFormat(locale, {
@@ -211,6 +226,7 @@ export function MemoryMapPage({
     <div className="page memory-map-page">
       <PageHeader variant="root" title={t('story.timelineTitle')} />
       <StoryViewTabs activeView="map" onSelect={setView} />
+      <MomentCreateMenu />
       <div
         id="momente-panel-map"
         role="tabpanel"
@@ -318,18 +334,17 @@ export function MemoryMapPage({
               </div>
             ) : null}
             {query.hasNextPage ? (
-              <button
-                type="button"
+              <AutoLoadMore
+                query={query}
                 className="secondary"
-                disabled={query.isFetchingNextPage}
-                onClick={() => void query.fetchNextPage()}
+                blocked={query.isFetchingNextPage}
               >
                 {t(
                   query.isFetchingNextPage
                     ? 'states.loading.title'
                     : 'memoryMap.loadMore',
                 )}
-              </button>
+              </AutoLoadMore>
             ) : null}
             {selected ? (
               <section

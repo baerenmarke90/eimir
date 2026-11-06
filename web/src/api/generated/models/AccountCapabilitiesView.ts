@@ -29,6 +29,12 @@ import {
 export interface AccountCapabilitiesView {
     /**
      * 
+     * @type {boolean}
+     * @memberof AccountCapabilitiesView
+     */
+    audioProcessingEnabled?: boolean;
+    /**
+     * 
      * @type {AuthCapabilities}
      * @memberof AccountCapabilitiesView
      */
@@ -65,6 +71,7 @@ export function AccountCapabilitiesViewFromJSONTyped(json: any, ignoreDiscrimina
     }
     return {
         
+        'audioProcessingEnabled': json['audioProcessingEnabled'] == null ? undefined : json['audioProcessingEnabled'],
         'auth': json['auth'] == null ? undefined : AuthCapabilitiesFromJSON(json['auth']),
         'serverAdmin': json['serverAdmin'],
         'videoProcessingEnabled': json['videoProcessingEnabled'] == null ? undefined : json['videoProcessingEnabled'],
@@ -82,6 +89,7 @@ export function AccountCapabilitiesViewToJSONTyped(value?: AccountCapabilitiesVi
 
     return {
         
+        'audioProcessingEnabled': value['audioProcessingEnabled'],
         'auth': AuthCapabilitiesToJSON(value['auth']),
         'serverAdmin': value['serverAdmin'],
         'videoProcessingEnabled': value['videoProcessingEnabled'],

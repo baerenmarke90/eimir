@@ -1,9 +1,10 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
@@ -22,7 +23,8 @@ import {
 } from '../client/sharedPlanning';
 import { postSnackbar } from '../client/snackbar';
 import { useTaskActivation } from '../client/useTaskActivation';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -34,12 +36,14 @@ export function PlanWishLink({
   spaceId,
   plan,
   disabled,
+  editing = false,
   onLinked,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
   disabled: boolean;
+  editing?: boolean;
   onLinked: (plan: PlanDetail) => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -51,6 +55,7 @@ export function PlanWishLink({
   const inFlight = useRef(false);
   const focusLinkedSource = useRef(false);
   const eligible =
+    editing &&
     plan.capabilities.canEdit &&
     !plan.sourceWishId &&
     plan.status !== 'COMPLETED';
@@ -80,7 +85,29 @@ export function PlanWishLink({
         : undefined;
     },
   });
-  const items = wishes.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = sortByProductLabel(
+    wishes.data?.pages.flatMap((page) => page.items) ?? [],
+    (wish) => wish.title,
+    resolvedLocale(),
+  );
+  useEffect(() => {
+    if (
+      open &&
+      eligible &&
+      wishes.hasNextPage &&
+      !wishes.isFetching &&
+      !wishes.error
+    )
+      void wishes.fetchNextPage();
+  }, [
+    open,
+    eligible,
+    wishes.hasNextPage,
+    wishes.isFetching,
+    wishes.error,
+    wishes.fetchNextPage,
+  ]);
+  const assembling = Boolean(wishes.hasNextPage && !wishes.error);
   // Refetches can remove/change a chosen Wish. Confirm only a currently offered version.
   const choice = items.find(
     (wish) => wish.id === selected?.id && wish.version === selected.version,
@@ -133,6 +160,7 @@ export function PlanWishLink({
   function confirm() {
     if (
       !choice ||
+      assembling ||
       !eligible ||
       wishes.error ||
       inFlight.current ||
@@ -198,7 +226,11 @@ export function PlanWishLink({
           <button
             type="button"
             disabled={
-              !choice || Boolean(wishes.error) || mutation.isPending || disabled
+              !choice ||
+              assembling ||
+              Boolean(wishes.error) ||
+              mutation.isPending ||
+              disabled
             }
             onClick={confirm}
           >
@@ -211,7 +243,7 @@ export function PlanWishLink({
         }
       >
         <p>{t('m5s3.plan.linkWishHelp')}</p>
-        {wishes.isPending ? (
+        {wishes.isPending || assembling ? (
           <p role="status">{t('m5s3.common.loading')}</p>
         ) : null}
         {wishes.error ? (
@@ -223,7 +255,7 @@ export function PlanWishLink({
         {!wishes.isPending && !wishes.error && !items.length ? (
           <p>{t('m5s3.plan.noOpenWishes')}</p>
         ) : null}
-        {!wishes.error && items.length ? (
+        {!wishes.error && !assembling && items.length ? (
           <fieldset className="plan-wish-choices">
             <legend className="sr-only">{t('m5s3.plan.chooseWish')}</legend>
             {items.map((wish) => (
@@ -245,14 +277,13 @@ export function PlanWishLink({
           </fieldset>
         ) : null}
         {wishes.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={wishes}
             className="tertiary"
-            disabled={wishes.isFetchingNextPage || mutation.isPending}
-            onClick={() => void wishes.fetchNextPage()}
+            blocked={wishes.isFetchingNextPage || mutation.isPending}
           >
             {t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
         {mutation.error ? (
           <ProblemState

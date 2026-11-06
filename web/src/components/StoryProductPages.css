@@ -798,7 +798,7 @@
 }
 
 .momente-retrospective-kicker {
-  color: var(--color-brand-strong);
+  color: var(--color-brand-text);
   font-size: 0.75rem;
   font-weight: 750;
 }
@@ -811,13 +811,17 @@
   line-height: 1.3;
 }
 
+.momente-retrospective-title[data-long="true"] {
+  font: var(--font-reading-body);
+}
+
 .momente-retrospective-date {
   color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
 
 .momente-retrospective-action {
-  color: var(--color-brand-strong);
+  color: var(--color-brand-text);
   font-size: 0.85rem;
   font-weight: 700;
 }

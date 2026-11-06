@@ -1,34 +1,38 @@
+import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { AccountView } from '../api/generated/models/AccountView';
+import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
+import { useProductTour } from '../client/productTour';
 import {
   ACTIVITY_ROUTE,
+  type AppRouteIcon,
   appRoutePath,
+  LEGAL_TERMS_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
-  MORE_PEOPLE_ROUTE,
   MORE_PASSPORT_ROUTE,
+  MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
   SEARCH_ROUTE,
+  SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_YEARS_ROUTE,
-  SERVER_ADMIN_ROUTE,
-  type AppRouteIcon,
 } from '../client/routes';
-import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
-import { useProductTour } from '../client/productTour';
-import { resolvedLocale, useTranslation } from '../i18n';
 import { useShellUtilities } from '../client/shellUtilities';
+import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
-import { EimirIcon } from './EimirIcon';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
+import { TaskOriginLink } from './TodayDestinationLink';
 import './MoreOverviewPage.css';
 
 interface MoreDestination {
@@ -46,49 +50,44 @@ const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
   },
 ];
 
-const SHARED_DESTINATIONS: readonly MoreDestination[] = [
-  {
-    path: STORY_YEARS_ROUTE,
-    icon: 'plan',
-    titleKey: 'more.yearsTitle',
-  },
+const MOMENT_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: STORY_PHOTOS_ROUTE,
     icon: 'story',
-    titleKey: 'sharedPhotos.browse',
+    titleKey: 'more.destinations.photos',
   },
   {
     path: STORY_CHAPTERS_ROUTE,
     icon: 'chapter',
-    titleKey: 'story.browseChapters',
+    titleKey: 'more.destinations.chapters',
+  },
+  {
+    path: STORY_YEARS_ROUTE,
+    icon: 'plan',
+    titleKey: 'more.destinations.years',
   },
   {
     path: MORE_PASSPORT_ROUTE,
     icon: 'chapter',
-    titleKey: 'recaps.shortTitle',
+    titleKey: 'more.destinations.recaps',
     badgeKey: 'recaps.pro',
   },
   {
     path: MORE_INSIGHTS_ROUTE,
     icon: 'activity',
-    titleKey: 'dailyInsights.week.title',
+    titleKey: 'more.destinations.insights',
     badgeKey: 'dailyInsights.pro',
   },
-  {
-    path: MORE_PEOPLE_ROUTE,
-    icon: 'people',
-    titleKey: 'more.people.title',
-  },
-  {
-    path: MORE_PLACES_ROUTE,
-    icon: 'places',
-    titleKey: 'more.places.title',
-  },
+];
+
+const SHARED_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: MORE_COLLECTIONS_ROUTE,
     icon: 'collections',
-    titleKey: 'more.collections.title',
+    titleKey: 'more.destinations.lists',
   },
+  { path: MORE_PLACES_ROUTE, icon: 'places', titleKey: 'more.places.title' },
+  { path: MORE_PEOPLE_ROUTE, icon: 'people', titleKey: 'more.people.title' },
   {
     path: appRoutePath('games'),
     icon: 'games',
@@ -127,16 +126,19 @@ function MoreDestinationRow({
 
   return (
     <li>
-      <Link
-        className="more-destination"
+      <TaskOriginLink
+        className={`more-destination${leading ? ' more-profile-destination' : ''}`}
         to={destination.path}
-        aria-label={
+        ariaLabel={
           (unreadCount ?? 0) > 0
             ? t('navigation.notificationsWithUnread', { count: unreadCount })
             : undefined
         }
       >
-        <span className="more-destination-icon" aria-hidden="true">
+        <span
+          className={leading ? 'more-profile-avatar' : 'more-destination-icon'}
+          aria-hidden="true"
+        >
           {leading ?? <DestinationIcon icon={destination.icon} />}
         </span>
         <span className="more-destination-copy">
@@ -159,7 +161,7 @@ function MoreDestinationRow({
             </span>
           ) : null}
         </span>
-      </Link>
+      </TaskOriginLink>
     </li>
   );
 }
@@ -195,6 +197,12 @@ export function MoreOverviewPage({
   const { t } = useTranslation();
   const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
+  // Shares App's cached public instance status; Self-Hosted publishes no terms.
+  const instanceStatus = useQuery({
+    queryKey: ['instance-status', apiBaseUrl],
+    queryFn: () => loadInstanceAccessStatus(apiBaseUrl),
+    staleTime: 60_000,
+  });
   const { displayName, avatarUrl } = useCurrentProfileIdentity({
     apiBaseUrl,
     accessToken,
@@ -229,7 +237,7 @@ export function MoreOverviewPage({
               <PersonIdentity
                 displayName={displayName}
                 imageUrl={avatarUrl}
-                size="small"
+                size="medium"
                 showName={false}
                 imageAlt={t('profileIdentity.imageAlt', { name: displayName })}
                 fallbackAlt={t('profileIdentity.fallbackAlt', {
@@ -247,6 +255,15 @@ export function MoreOverviewPage({
             unreadCount={unreadCount}
           />
           {PERSONAL_DESTINATIONS.map((destination) => (
+            <MoreDestinationRow
+              key={destination.path}
+              destination={destination}
+            />
+          ))}
+        </MoreDestinationGroup>
+
+        <MoreDestinationGroup title={t('more.groups.moments')}>
+          {MOMENT_DESTINATIONS.map((destination) => (
             <MoreDestinationRow
               key={destination.path}
               destination={destination}
@@ -303,6 +320,11 @@ export function MoreOverviewPage({
             <EimirIcon name="logout" />
             <span>{t('header.logout')}</span>
           </button>
+        ) : null}
+        {instanceStatus.data?.termsOfUseVersion ? (
+          <nav className="more-legal" aria-label={t('legal.eyebrow')}>
+            <Link to={LEGAL_TERMS_ROUTE}>{t('legal.termsLink')}</Link>
+          </nav>
         ) : null}
         <div className="more-brand-signature">
           <Brand />

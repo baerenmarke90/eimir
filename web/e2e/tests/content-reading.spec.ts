@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -54,6 +55,7 @@ for (const [width, theme, large] of [
       attachments: [],
     };
     await page.route(`**/api/v1/spaces/${SPACE_ID}/**`, async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/plans/reading-plan'))
         return route.fulfill({ json: plan });
@@ -91,7 +93,9 @@ for (const [width, theme, large] of [
     await expect(more).toHaveText(copy.descriptionDisclosure.more);
     await expect(more).toHaveAttribute('aria-expanded', 'false');
     await expect(
-      page.locator('.planen-detail-context').getByRole('link'),
+      page
+        .locator('.planen-detail-context, .planen-detail-when-where')
+        .getByRole('link'),
     ).toHaveCount(2);
     await expect(
       page.getByRole('link', { name: 'Lake shore' }),

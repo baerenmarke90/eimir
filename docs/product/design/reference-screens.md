@@ -265,13 +265,18 @@ Light/Dark use neutral photo captions, restrained surface contrast and unchanged
 | Surface | Compact hierarchy and behavior |
 | --- | --- |
 | More | Compact person/profile entry → clearly private area → grouped shared destinations → named Settings, Notifications and Activity destinations → appropriately placed product-account entry |
-| Profile | Actual identity/relationship context → authored personal preferences → partner identity/shared preferences → separate explicitly private partner-note entry |
+| Profile | Actual identity/relationship context → authored personal preferences → partner identity/shared preferences |
 | Profile editing | One deliberate Edit entry reveals supported name/photo operations; personal content is not a permanent field stack |
 | Preference | Read category/value first; contextual short edit only for the authorized owner; no forbidden partner-edit controls |
-| Private partner notes | Explicit owner-only context before sensitive content, readable preview and dedicated writing task; never mixed into the shared profile |
+| Private partner notes | More → the private area → partner notes; explicit owner-only context before sensitive content, readable preview and the existing private preference editor |
 | Settings index | Predictable categories leading to focused pages, including existing relationship, notifications, Today visibility, appearance, transfer and account functions |
 | Settings category | Back to index, precise title, existing controls and visible state; one local Save for staged submission or clear immediate feedback for immediate controls |
 | Data/account action | Explicit scope, validation, authentication and consequences; offboarding, sign-out and account deletion remain distinct |
+
+PO refinement [#1655](https://github.com/baerenmarke90/eimir/issues/1655)
+(2026-11-05): private partner notes belong under the private area rather than
+Profile. Preserve the existing owner-only preference records and write lifecycle;
+this changes their navigation, not their audience or storage.
 
 Per [PO decision #1507](mobile-header-more.md), More groups global search, the current-user avatar/name and named Profile, Notifications, Activity and Settings entries, capability-gated administration, safe sign-out and a quiet brand footer. Compact/Medium has no persistent global header; Expanded retains top navigation. An unread dot and accessible label on More use the existing recipient count; entering More does not mark notifications read. This replaces the former avatar-menu shortcut while preserving D6. Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
 
@@ -305,6 +310,19 @@ Light/Dark use neutral rows, clear grouping and restrained privacy indication; a
 **Acceptance journey:** find profile and appearance settings through More without the avatar shortcut; edit and save a real supported value; return category → index → More; identify which note is private; verify delayed/failing edits preserve work, legacy entry links resolve, and dangerous-operation safeguards remain intact.
 
 ## Review and propagation boundary
+
+### Contextual creation (#1679)
+
+The Moments view tabs have one labeled local capture entry in every peer view,
+including the map. Its bounded choice opens the existing Memory, HeartMoment or
+Milestone task with the current return context. The global plus retains its
+cross-product scope. Partner-avatar actions also open the existing one-time
+message composer, preserving Pro sending eligibility and explicit reception
+consent. Action rows use defined shared radius tokens. The
+[preflight and acceptance record](references/contextual-create/README.md) binds
+the generated references, responsive composition and complete return journeys.
+
+### Shared acceptance
 
 Each reference's composition must remain complete with sparse content and understandable without a tutorial. Reviewers must reject metadata-led, permanent-edit, card-wall or desktop-first interpretations even if functionally correct. Equally, they must not remove useful depth or replace personal richness with empty space.
 

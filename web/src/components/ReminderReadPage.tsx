@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useParams } from 'react-router-dom';
@@ -60,13 +61,9 @@ export function ReminderReadPage({
       MORE_NOTIFICATIONS_ROUTE,
     );
   const back = (
-    <button
-      type="button"
-      className="back-link tertiary"
-      onClick={returnToInbox}
-    >
+    <TaskBackButton type="button" onClick={returnToInbox}>
       {t('m5s5.reminderDetail.back')}
-    </button>
+    </TaskBackButton>
   );
   // A denied revalidation hides any earlier cached title as well.
   if (query.isError)

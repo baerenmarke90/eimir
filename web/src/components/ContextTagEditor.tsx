@@ -1,5 +1,8 @@
 import { useId, useRef, useState, useImperativeHandle, type Ref } from 'react';
 import { useTranslation } from '../i18n';
+import { useApiRuntime } from '../client/apiRuntimeContext';
+import type { ContextTagSuggestionsView } from '../api/generated/models/ContextTagSuggestionsView';
+import { useContextTagSuggestions } from '../client/useContextTagSuggestions';
 import './MemoryTagChoices.css';
 
 const MAX_TAGS = 8;
@@ -12,17 +15,7 @@ export interface ContextTagEditorHandle {
   commitDraft(): string[] | null;
 }
 
-export function ContextTagEditor({
-  selected,
-  onChange,
-  suggestions,
-  labelForTag,
-  disabled = false,
-  onDraftChange,
-  draftValue,
-  onDraftValueChange,
-  ref,
-}: {
+type ContextTagEditorProps = {
   selected: readonly string[];
   onChange: (tags: string[]) => void;
   suggestions: readonly string[];
@@ -32,8 +25,40 @@ export function ContextTagEditor({
   draftValue?: string;
   onDraftValueChange?: (value: string) => void;
   ref?: Ref<ContextTagEditorHandle>;
-}) {
+  parentType?: 'MEMORY' | 'HEART_MOMENT' | 'PLAN' | 'WISH';
+  parentId?: string;
+};
+
+export function ContextTagEditor(props: ContextTagEditorProps) {
+  const runtime = useApiRuntime();
+  return runtime?.accountId && runtime.spaceId ? (
+    <SuggestedContextTagEditor {...props} />
+  ) : (
+    <ContextTagEditorContent {...props} />
+  );
+}
+
+function SuggestedContextTagEditor(props: ContextTagEditorProps) {
+  const learned = useContextTagSuggestions(props.parentType, props.parentId);
+  return <ContextTagEditorContent {...props} learned={learned} />;
+}
+
+function ContextTagEditorContent({
+  selected,
+  onChange,
+  suggestions,
+  labelForTag,
+  disabled = false,
+  onDraftChange,
+  draftValue,
+  onDraftValueChange,
+  ref,
+  learned,
+}: ContextTagEditorProps & { learned?: ContextTagSuggestionsView }) {
   const { t } = useTranslation();
+  const offered = Array.from(
+    new Set([...(learned?.learned ?? []), ...suggestions]),
+  );
   const id = useId();
   const [localDraft, setLocalDraft] = useState('');
   const draft = draftValue ?? localDraft;
@@ -80,7 +105,6 @@ export function ContextTagEditor({
   return (
     <fieldset className="memory-tag-choices" disabled={disabled}>
       <legend>{t('contextTags.label')}</legend>
-      <p className="field-help">{t('contextTags.help')}</p>
       {selected.length ? (
         <ul className="context-tag-selected memory-tag-list">
           {selected.map((tag) => (
@@ -104,7 +128,9 @@ export function ContextTagEditor({
           ))}
         </ul>
       ) : null}
-      <label htmlFor={id}>{t('contextTags.newLabel')}</label>
+      <label className="sr-only" htmlFor={id}>
+        {t('contextTags.newLabel')}
+      </label>
       <div className="context-tag-entry">
         <input
           ref={inputRef}
@@ -157,7 +183,7 @@ export function ContextTagEditor({
       <details className="context-tag-suggestions">
         <summary>{t('contextTags.suggestions')}</summary>
         <div className="memory-tag-list">
-          {suggestions.map((tag) => (
+          {offered.map((tag) => (
             <label className="memory-tag-choice" key={tag}>
               <input
                 type="checkbox"
@@ -177,6 +203,34 @@ export function ContextTagEditor({
             </label>
           ))}
         </div>
+        {learned?.proposed.length ? (
+          <>
+            <p className="field-help">{t('contextTags.proposed')}</p>
+            <div className="memory-tag-list">
+              {learned.proposed
+                .filter((tag) => !offered.includes(tag))
+                .map((tag) => (
+                  <label className="memory-tag-choice" key={tag}>
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(tag)}
+                      disabled={
+                        !selected.includes(tag) && selected.length >= MAX_TAGS
+                      }
+                      onChange={(event) =>
+                        onChange(
+                          event.target.checked
+                            ? [...selected, tag]
+                            : selected.filter((value) => value !== tag),
+                        )
+                      }
+                    />
+                    <span>{tag}</span>
+                  </label>
+                ))}
+            </div>
+          </>
+        ) : null}
       </details>
     </fieldset>
   );

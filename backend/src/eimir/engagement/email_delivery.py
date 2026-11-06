@@ -16,6 +16,7 @@ from eimir.core import clock
 from eimir.db.session import unit_of_work
 from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import EmailDelivery, EmailDeliveryStatus, Notification
+from eimir.i18n import account_locale, text
 from eimir.identity import effects as account_effects
 from eimir.identity.models import AccountEmail
 from eimir.jobs import queue
@@ -292,7 +293,9 @@ def _send_claimed(
         return None
 
     settings = get_settings()
-    subject, body = _neutral_message(accounts[recipient_id].locale, settings.public_base_url)
+    subject, body = _neutral_message(
+        account_locale(accounts[recipient_id]), settings.public_base_url
+    )
     try:
         sender = mail if mail is not None else configured_mail_sender()
         sender.send(MailMessage(to=address, subject=subject, body=body))
@@ -365,9 +368,7 @@ def _digest_superseded(
 def _neutral_message(locale: str, base_url: str) -> tuple[str, str]:
     """The generic external presentation reveals no event kind or partner."""
     url = base_url.rstrip("/")
-    if locale.lower().startswith("de"):
-        return "Neues bei eimir.", f"Bei euch gibt es etwas Neues.\n\nIn eimir. öffnen: {url}"
-    return "Something new in eimir.", f"There is something new for you.\n\nOpen eimir.: {url}"
+    return text("notification.subject", locale), text("notification.body", locale, url=url)
 
 
 def _finish(delivery: EmailDelivery, status: EmailDeliveryStatus, code: str | None = None) -> None:

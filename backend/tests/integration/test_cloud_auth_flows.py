@@ -449,3 +449,26 @@ class TestSessionIssuance:
         afterwards = session.execute(select(DeviceSession)).scalars().all()
         assert len(afterwards) == before + 1
         assert all(device.refresh_token_hash for device in afterwards)
+
+
+@pytest.mark.parametrize("language", ["de", "en"])
+@pytest.mark.parametrize("flow", ["magic-link", "recovery"])
+def test_auth_mail_uses_the_recipient_override_without_exposing_account_existence(
+    client, mailbox, anna, session: Session, language: str, flow: str
+) -> None:  # type: ignore[no-untyped-def]
+    from eimir.i18n import text
+
+    account = session.scalars(select(Account)).one()
+    account.language_preference = language
+    account.locale = "en" if language == "de" else "de"
+    session.flush()
+    header = {"Accept-Language": "en-US" if language == "de" else "de-CH"}
+    endpoint = f"/api/v1/auth/{flow}/request"
+    known = client.post(endpoint, headers=header, json={"email": ADDRESS})
+    unknown = client.post(endpoint, headers=header, json={"email": "unknown@example.org"})
+    assert known.status_code == unknown.status_code == 202
+    assert known.text == unknown.text
+    key = "auth.magic.subject" if flow == "magic-link" else "auth.recovery.subject"
+    assert mailbox.messages[-1].subject == text(key, language)
+    assert mailbox.messages[-1].to == ADDRESS
+    assert "token=" in mailbox.messages[-1].body

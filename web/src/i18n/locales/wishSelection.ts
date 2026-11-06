@@ -2,6 +2,7 @@ const wishSelection = {
   title: 'Worauf habt ihr Lust?',
   entryBody: 'Aus euren Wünschen wird euer nächster Plan.',
   entryAction: 'Ideen auswählen',
+  compactEntryAction: 'Gemeinsam auswählen',
   setupTitle: 'Was kommt in die Auswahl?',
   setupIntro: 'Nehmt zwei bis fünf Wünsche, auf die ihr gerade neugierig seid.',
   occasion: 'Anlass · optional',

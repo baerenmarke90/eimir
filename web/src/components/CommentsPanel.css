@@ -13,6 +13,7 @@
 }
 
 .comment-card {
+  position: relative;
   display: grid;
   gap: var(--space-2);
   border: var(--border-surface-width) solid var(--color-border-subtle);
@@ -28,7 +29,7 @@
 
 .comment-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   color: var(--color-text-secondary);
@@ -52,9 +53,16 @@
 }
 
 .comment-menu {
-  position: relative;
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: calc(1.5em + var(--space-2));
   display: inline-block;
   justify-self: end;
+}
+
+.comment-card:has(.comment-menu) > p {
+  padding-inline-end: calc(var(--touch-target-web) + var(--space-2));
+  min-height: var(--touch-target-web);
 }
 
 .comment-menu-trigger {

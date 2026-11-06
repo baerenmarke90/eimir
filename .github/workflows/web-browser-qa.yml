@@ -67,11 +67,15 @@ jobs:
           --output=test-results-pr-${{ matrix.shard }}
 
       - name: Upload PR failure diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: web-browser-failure-pr-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
-          path: web/e2e/test-results-pr-${{ matrix.shard }}/
+          path: |
+            ${{ job.status != 'success' && format('web/e2e/test-results-pr-{0}/', matrix.shard) || '' }}
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/trace.zip
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/error-context.md
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/test-failed-*.png
           if-no-files-found: ignore
           retention-days: 3
 
@@ -164,11 +168,15 @@ jobs:
         run: npm run test:full -- --output=test-results-changed-specs
 
       - name: Upload changed-spec failure diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: web-browser-failure-changed-${{ github.sha }}-attempt-${{ github.run_attempt }}
-          path: web/e2e/test-results-changed-specs/
+          path: |
+            ${{ job.status != 'success' && 'web/e2e/test-results-changed-specs/' || '' }}
+            web/e2e/test-results-changed-specs/**/trace.zip
+            web/e2e/test-results-changed-specs/**/error-context.md
+            web/e2e/test-results-changed-specs/**/test-failed-*.png
           if-no-files-found: ignore
           retention-days: 3
 
@@ -238,11 +246,15 @@ jobs:
           --output=test-results-full-${{ matrix.shard }}
 
       - name: Upload full-regression failure diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: web-browser-failure-full-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
-          path: web/e2e/test-results-full-${{ matrix.shard }}/
+          path: |
+            ${{ job.status != 'success' && format('web/e2e/test-results-full-{0}/', matrix.shard) || '' }}
+            web/e2e/test-results-full-${{ matrix.shard }}/**/trace.zip
+            web/e2e/test-results-full-${{ matrix.shard }}/**/error-context.md
+            web/e2e/test-results-full-${{ matrix.shard }}/**/test-failed-*.png
           if-no-files-found: ignore
           retention-days: 3
 

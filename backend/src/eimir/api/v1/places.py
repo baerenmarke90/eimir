@@ -330,7 +330,7 @@ def list_places(
     session: DbSession,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    order: Annotated[Literal["NEWEST", "NAME"], Query()] = "NEWEST",
+    order: Annotated[Literal["NEWEST", "NAME"], Query()] = "NAME",
     scope: Annotated[Literal["ACTIVE", "ARCHIVED", "ALL"], Query()] = "ALL",
 ) -> PlacePage:
     page = service.list_places(

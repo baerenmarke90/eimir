@@ -53,11 +53,11 @@ describe('monthly recap invitation', () => {
       monthlyRecapInvitation([month], new Date('2026-10-31'))?.isPartial,
     ).toBe(true);
   });
-  it('continues into the previous month for seven days, including year rollover', () => {
+  it('expires after the first three days of the next month, including year rollover', () => {
     const month = edition(2025, 12, { isPartial: false });
-    expect(monthlyRecapInvitation([month], new Date('2026-01-07'))).toBe(month);
+    expect(monthlyRecapInvitation([month], new Date('2026-01-03'))).toBe(month);
     expect(
-      monthlyRecapInvitation([month], new Date('2026-01-08')),
+      monthlyRecapInvitation([month], new Date('2026-01-04')),
     ).toBeUndefined();
   });
   it('uses calendar month length including leap February', () => {

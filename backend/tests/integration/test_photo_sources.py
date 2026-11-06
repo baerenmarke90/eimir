@@ -1,10 +1,12 @@
 """Real authentication, tenant/device ownership, Pro and credential lifecycle."""
 
+import io
 from datetime import timedelta
 from unittest.mock import Mock
 from uuid import UUID, uuid4
 
 import pytest
+from PIL import Image
 from sqlalchemy import select, text
 
 from eimir.auth.sessions import resolve
@@ -134,7 +136,10 @@ def test_link_is_pro_encrypted_and_not_shared_with_partner(client, session, owne
     assert "my-photos.example" not in str(raw)
 
 
-def test_selection_is_bound_to_device_account_and_space_before_transfer(client, session, owners):
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_selection_is_bound_to_device_account_and_space_before_transfer(
+    client, session, owners, method
+):
     grant(session, owners)
     assert link(client, owners).status_code == 204
     selection = begin(client, owners)
@@ -147,12 +152,56 @@ def test_selection_is_bound_to_device_account_and_space_before_transfer(client, 
     item = selection["items"][0]["id"]
     assert "aaaaaaaa-aaaa" not in str(selection)
     assert "synthetic-private-key" not in str(selection)
-    assert client.post(target + "/items/unselected", headers=owners["a"]).status_code == 404
-    photo = client.post(target + "/items/" + item, headers=owners["a"])
+    read = getattr(client, method)
+    for headers in [owners["b"], owners["second"], owners["out"]]:
+        assert read(target + "/items/" + item, headers=headers).status_code == 404
+    assert read(target + "/items/" + item).status_code == 401
+    assert read(target + "/items/unselected", headers=owners["a"]).status_code == 404
+    photo = read(target + "/items/" + item, headers=owners["a"])
     assert photo.content == b"selected-photo"
     assert photo.headers["Cache-Control"] == "private, no-store"
     assert client.delete(target, headers=owners["a"]).status_code == 204
     assert session.scalar(select(PhotoSelection)) is None
+    assert read(target + "/items/" + item, headers=owners["a"]).status_code == 404
+
+
+@pytest.mark.parametrize("method", ["get", "post"])
+@pytest.mark.parametrize("thumbnail", [True, False])
+def test_photo_reads_preserve_decodable_binary_bytes_and_private_headers(
+    client, session, owners, monkeypatch, method, thumbnail
+):
+    from eimir.attachments.images import process
+    from eimir.attachments.limits import rule_for
+
+    target = io.BytesIO()
+    Image.new("RGB", (32, 24), (65, 130, 220)).save(target, format="JPEG")
+    content = target.getvalue()
+
+    def photo(self, selected, expected_owner):
+        assert expected_owner == str(EXTERNAL_ACCOUNT)
+        return SelectedPhoto(content, "image/jpeg", "selected-photo.jpg")
+
+    monkeypatch.setattr(ImmichFixture, "read_selected_photo", photo)
+    monkeypatch.setattr(ImmichFixture, "thumbnail", photo, raising=False)
+    grant(session, owners)
+    assert link(client, owners).status_code == 204
+    selection = begin(client, owners)
+    item = selection["items"][0]["id"]
+    response = getattr(client, method)(
+        path(owners) + f"/photo-selections/{selection['id']}/items/{item}",
+        params={"thumbnail": str(thumbnail).lower()},
+        headers=owners["a"],
+    )
+    assert response.status_code == 200
+    assert response.content == content
+    assert response.headers["Content-Type"] == "image/jpeg"
+    assert response.headers["Cache-Control"] == "private, no-store"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
+    rule = rule_for("image/jpeg")
+    assert rule is not None
+    processed = process(response.content, rule)
+    assert (processed.width, processed.height) == (32, 24)
 
 
 def test_downgrade_blocks_new_work_but_disconnect_erases_credentials_and_selection(

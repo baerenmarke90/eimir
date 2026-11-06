@@ -1,3 +1,4 @@
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import {
   useInfiniteQuery,
   useQuery,
@@ -71,12 +72,14 @@ import {
   storyFiltersToSearch,
   storyRequest,
 } from '../client/storyProduct';
-import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { EimirIcon } from './EimirIcon';
 import { ExperienceAnswers } from './ExperienceAnswers';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -86,13 +89,13 @@ import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
 import './PlanningReference.css';
-import { StoryList } from './StoryList';
+import { DiaryList } from './DiaryList';
+import { groupDiaryEntries } from '../client/diaryEntries';
 import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import {
   formatStoryDate,
-  groupStoryItems,
   resolveStoryKindLabel,
   storyItemKey,
   storyItemPresentation,
@@ -217,16 +220,6 @@ function buildTapestryBands(
   ];
 }
 
-function documentLayoutTop(element: HTMLElement): number {
-  let top = 0;
-  let current: HTMLElement | null = element;
-  while (current) {
-    top += current.offsetTop;
-    current = current.offsetParent as HTMLElement | null;
-  }
-  return top;
-}
-
 export function StoryProductPage({
   apis,
   accountId,
@@ -268,8 +261,7 @@ export function StoryProductPage({
   const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { captureOrigin, resolveOrigin, registerOriginMetadata } =
-    useTaskOrigin();
+  const { captureOrigin } = useTaskOrigin();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
@@ -368,8 +360,10 @@ export function StoryProductPage({
     },
     enabled: true,
     staleTime: 30_000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval:
+      activeView === 'discover' && !renewing ? 15 * 60_000 : false,
     retry: false,
   });
   // Reuse Today's authorized #452 candidate and its canonical Query key.
@@ -398,7 +392,7 @@ export function StoryProductPage({
     onRefresh: async () => {
       const [result] = await Promise.all([
         storyQuery.refetch(),
-        discoverQuery.refetch(),
+        renewSelection(),
         ...(dashboardApi ? [retrospectiveQuery.refetch()] : []),
       ]);
       if (!result.isError)
@@ -486,112 +480,26 @@ export function StoryProductPage({
     ...new Set([...availableYears, ...(filters.year ? [filters.year] : [])]),
   ].sort((a, b) => b - a);
 
-  const returnKey = (location.state as { taskReturnKey?: unknown } | null)
-    ?.taskReturnKey;
-  const candidateOrigin = resolveOrigin(returnKey);
-  const returnOrigin =
-    candidateOrigin?.to === taskOriginPath(location.pathname, location.search)
-      ? candidateOrigin
-      : null;
-  const restoredEntryRef = useRef<string | null>(null);
-  const [restoredTimelineEntry, setRestoredTimelineEntry] = useState<
-    string | null
-  >(null);
   const timelineMonthsRef = useRef<HTMLDivElement>(null);
   const paginationSentinelRef = useRef<HTMLDivElement>(null);
-  const returnEntry = returnOrigin
-    ? `${location.key}:${String(returnKey)}`
-    : null;
-  const restoringTimeline = Boolean(
-    returnEntry && restoredTimelineEntry !== returnEntry,
-  );
   const loadedPageCount = storyQuery.data?.pages.length ?? 1;
-  useEffect(
-    () => registerOriginMetadata({ loadedPageCount }),
-    [loadedPageCount, registerOriginMetadata],
-  );
-  useEffect(() => {
-    if (
-      !returnOrigin ||
-      (activeView === 'timeline' &&
-        (!combinedStory || storyQuery.isFetching)) ||
-      (activeView === 'discover' &&
-        (!discoverQuery.data || discoverQuery.isFetching))
-    )
-      return;
-    const entry = `${location.key}:${String(returnKey)}`;
-    if (restoredEntryRef.current === entry) {
-      setRestoredTimelineEntry(entry);
-      return;
-    }
-    if (
-      activeView === 'timeline' &&
-      loadedPageCount < returnOrigin.loadedPageCount &&
-      storyQuery.hasNextPage &&
-      !storyQuery.isError &&
-      !offline
-    ) {
-      void storyQuery.fetchNextPage();
-      return;
-    }
-    let settleFrame: number | null = null;
-    const findSelected = () =>
-      Array.from(
-        document.querySelectorAll<HTMLElement>('[data-task-item-key]'),
-      ).find(
-        (element) => element.dataset.taskItemKey === returnOrigin.selectedKey,
-      );
-    const restorePosition = () => {
-      const selected = findSelected();
-      const top =
-        selected && returnOrigin.selectedOffset !== undefined
-          ? documentLayoutTop(selected) - returnOrigin.selectedOffset
-          : returnOrigin.scrollY;
-      window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
-      return selected;
-    };
-    const frame = window.requestAnimationFrame(() => {
-      const selected = restorePosition();
-      const focusTarget =
-        selected ??
-        (returnOrigin.focusTarget === 'quick-create'
-          ? Array.from(
-              document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
-            ).find((element) => element.getClientRects().length > 0)
-          : null);
-      focusTarget?.focus({ preventScroll: true });
-
-      // Browser history restoration and late layout work can settle one frame
-      // after the first paint. Re-apply the exact captured offset before the
-      // task origin is marked restored so return continuity stays geometry-stable.
-      // Use layout coordinates so task-return geometry stays independent of
-      // bounded presentation transforms. Motion ownership must never become
-      // part of the scroll-restoration coordinate system.
-      settleFrame = window.requestAnimationFrame(() => {
-        restorePosition();
-        restoredEntryRef.current = entry;
-        setRestoredTimelineEntry(entry);
-      });
-    });
-    return () => {
-      window.cancelAnimationFrame(frame);
-      if (settleFrame !== null) window.cancelAnimationFrame(settleFrame);
-    };
-  }, [
-    returnOrigin,
-    combinedStory,
+  const restoringTimeline = useTaskListReturn({
+    ready:
+      activeView === 'timeline'
+        ? Boolean(combinedStory)
+        : Boolean(discoverQuery.data),
+    busy:
+      activeView === 'timeline'
+        ? storyQuery.isFetching
+        : discoverQuery.isFetching,
     loadedPageCount,
-    location.key,
-    returnKey,
-    storyQuery.isFetching,
-    storyQuery.hasNextPage,
-    storyQuery.isError,
-    storyQuery.fetchNextPage,
-    offline,
-    activeView,
-    discoverQuery.data,
-    discoverQuery.isFetching,
-  ]);
+    canLoadMore:
+      activeView === 'timeline' &&
+      Boolean(storyQuery.hasNextPage) &&
+      !storyQuery.isError &&
+      !offline,
+    loadMore: storyQuery.fetchNextPage,
+  });
 
   const timelineItems = useMemo(
     () => combinedStory?.items ?? [],
@@ -622,10 +530,6 @@ export function StoryProductPage({
   // paired with a new Dashboard day or presented as today's retrospective.
   const discoverDay = discoverQuery.data?.value.selectionDate;
   const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
-  const newDayAvailable =
-    discoverDay != null &&
-    dashboardDay != null &&
-    dashboardDay.getTime() > discoverDay.getTime();
   const sameSelectionDay =
     discoverDay != null &&
     dashboardDay != null &&
@@ -652,15 +556,35 @@ export function StoryProductPage({
       ? retrospective
       : null;
 
+  const timelineChapterMarkers = useMemo(
+    () => (filters.kind ? [] : (combinedStory?.chapterMarkers ?? [])),
+    [combinedStory, filters.kind],
+  );
+  const timelineEntryCount =
+    timelineItems.length + timelineChapterMarkers.length;
   const timelineMonthGroups = useMemo(
-    () => groupStoryItems(timelineItems, locale),
-    [timelineItems, locale],
+    () =>
+      groupDiaryEntries(
+        timelineItems,
+        timelineChapterMarkers,
+        locale,
+        filters.kind ? [] : (combinedStory?.chapterPeriods ?? []),
+        filters.year,
+      ),
+    [
+      timelineItems,
+      timelineChapterMarkers,
+      locale,
+      combinedStory?.chapterPeriods,
+      filters.kind,
+      filters.year,
+    ],
   );
   useTimelineReveal({
     rootRef: timelineMonthsRef,
-    enabled: activeView === 'timeline' && timelineItems.length > 0,
+    enabled: activeView === 'timeline' && timelineEntryCount > 0,
     scopeKey: `${spaceId}:${cacheResourceId}`,
-    revision: timelineItems.length,
+    revision: timelineEntryCount,
   });
 
   const discoverTapestryRef = useRef<HTMLDivElement>(null);
@@ -867,14 +791,6 @@ export function StoryProductPage({
       </div>
       <h2 className="new-space-title">{t('story.emptyTitle')}</h2>
       <p className="new-space-body">{t('story.emptyBody')}</p>
-      <div className="new-space-actions">
-        <Link
-          to="/story/memories/new"
-          className="button-link primary new-space-cta"
-        >
-          {t('story.emptyAction')}
-        </Link>
-      </div>
     </div>
   );
 
@@ -896,6 +812,7 @@ export function StoryProductPage({
 
       <PageHeader variant="root" title={t('story.timelineTitle')} />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
+      <MomentCreateMenu />
 
       <div
         id="momente-panel-discover"
@@ -929,6 +846,9 @@ export function StoryProductPage({
         (featuredItem || discoverItems.length > 0) ? (
           <section
             className="momente-discover-page"
+            aria-busy={
+              renewing || storyQuery.isFetching || discoverQuery.isFetching
+            }
             aria-labelledby="momente-tab-discover"
           >
             {/* 1. Featured Editorial Highlight */}
@@ -1012,7 +932,7 @@ export function StoryProductPage({
               aria-labelledby="momente-tapestry-heading"
             >
               <div className="momente-tapestry-bands" ref={discoverTapestryRef}>
-                {curatedBands.map((band) => (
+                {curatedBands.map((band, bandIndex) => (
                   <section
                     className="momente-tapestry-band"
                     key={band.key}
@@ -1027,7 +947,7 @@ export function StoryProductPage({
                       </h4>
                     ) : null}
                     <div className="momente-tapestry">
-                      {visibleRetrospective ? (
+                      {visibleRetrospective && bandIndex === 0 ? (
                         <StoryRetrospective
                           compact
                           item={visibleRetrospective}
@@ -1164,21 +1084,6 @@ export function StoryProductPage({
                 ))}
               </div>
             </section>
-            <div className="discover-toolbar" aria-busy={renewing}>
-              <button
-                type="button"
-                className="secondary"
-                disabled={renewing || discoverQuery.isFetching}
-                onClick={() => void renewSelection()}
-              >
-                {t(renewing ? 'story.discoverRenewing' : 'story.discoverRenew')}
-              </button>
-            </div>
-            {newDayAvailable ? (
-              <p className="discover-feedback" role="status">
-                {t('story.discoverNewDay')}
-              </p>
-            ) : null}
             {renewed ? (
               <p className="sr-only" role="status">
                 {t('story.discoverRenewed')}
@@ -1220,7 +1125,7 @@ export function StoryProductPage({
         ) : null}
         {activeView === 'timeline' &&
         storyQuery.data &&
-        timelineItems.length === 0 &&
+        timelineMonthGroups.length === 0 &&
         availableYears.length === 0 &&
         !hasActiveFilters
           ? emptyState
@@ -1366,7 +1271,7 @@ export function StoryProductPage({
           </ShortTaskSheet>
           {activeView === 'timeline' &&
           combinedStory &&
-          (timelineItems.length > 0 ||
+          (timelineMonthGroups.length > 0 ||
             availableYears.length > 0 ||
             hasActiveFilters) ? (
             <div className="layout-single-column">
@@ -1429,7 +1334,7 @@ export function StoryProductPage({
                     {t('story.timelineHeading')}
                   </h2>
 
-                  {timelineItems.length === 0 ? (
+                  {timelineMonthGroups.length === 0 ? (
                     <div className="story-filter-empty-state">
                       <p className="story-filter-empty-text">
                         {t('storyFilters.noMatches')}
@@ -1463,8 +1368,33 @@ export function StoryProductPage({
                               </h2>
                               {groupIndex === 0 ? filterTrigger : null}
                             </header>
-                            <StoryList
-                              items={group.items}
+                            <DiaryChapterPeriods
+                              chapters={group.periods}
+                              month={group.key}
+                              loadedPageCount={loadedPageCount}
+                            />
+                            <DiaryList
+                              entries={group.entries}
+                              onOpenChapter={(event, chapter, to) => {
+                                if (
+                                  event.button !== 0 ||
+                                  event.metaKey ||
+                                  event.ctrlKey ||
+                                  event.shiftKey ||
+                                  event.altKey
+                                )
+                                  return;
+                                const taskOriginKey = captureOrigin({
+                                  selectedKey: `chapter-${chapter.id}`,
+                                  selectedOffset:
+                                    event.currentTarget.getBoundingClientRect()
+                                      .top,
+                                  loadedPageCount,
+                                });
+                                if (!taskOriginKey) return;
+                                event.preventDefault();
+                                void navigate(to, { state: { taskOriginKey } });
+                              }}
                               loadMemoryImage={loadMemoryImage}
                               loadHeartMomentImage={loadHeartMomentImage}
                               profilesApi={profilesApi}

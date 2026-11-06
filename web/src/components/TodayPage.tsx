@@ -1,3 +1,7 @@
+import {
+  useAttentionReceipt,
+  useAttentionReceipts,
+} from '../client/attentionReceipt';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -93,6 +97,7 @@ import {
 } from './MonthlyRecapInvitation';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
+import { OnceIncomingSignal } from './OnceMessages';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -207,7 +212,13 @@ function RecentItemTypeIcon({ type }: { type: DashboardItemType }) {
   );
 }
 
-function RecentSharedItemCard({ item }: { item: DashboardItem }) {
+function RecentSharedItemCard({
+  item,
+  onFollow,
+}: {
+  item: DashboardItem;
+  onFollow?: () => void;
+}) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
@@ -245,7 +256,11 @@ function RecentSharedItemCard({ item }: { item: DashboardItem }) {
 
   if (path) {
     return (
-      <TodayDestinationLink to={path} className="today-recent-tile">
+      <TodayDestinationLink
+        onFollow={onFollow}
+        to={path}
+        className="today-recent-tile"
+      >
         {tileInner}
       </TodayDestinationLink>
     );
@@ -498,10 +513,12 @@ function TodayLivingModuleCard({
   partnerName,
   partnerAvatarUrl,
   loadMemoryImage,
+  onFollow,
 }: {
   module: LivingModule;
   partnerName: string;
   partnerAvatarUrl?: string | null;
+  onFollow?: () => void;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -553,6 +570,7 @@ function TodayLivingModuleCard({
           <TodayDestinationLink
             to={path}
             className="today-living-action"
+            onFollow={onFollow}
             ariaLabel={t('m5s5.today.relationshipSignal.ariaLabel', {
               name: partnerName,
             })}
@@ -614,9 +632,11 @@ function TodayLivingModuleCard({
  * The bounded projection deliberately makes no counted-total claim.
  */
 function TodayMonthlyStrip({
+  onFollow,
   items,
   loadMemoryImage,
 }: {
+  onFollow?: () => void;
   items: readonly DashboardItem[];
   loadMemoryImage: (
     memoryId: string,
@@ -658,7 +678,11 @@ function TodayMonthlyStrip({
             }`}
           >
             {path ? (
-              <TodayDestinationLink to={path} className="today-monthly-tile">
+              <TodayDestinationLink
+                onFollow={onFollow}
+                to={path}
+                className="today-monthly-tile"
+              >
                 {tile}
                 <span className="today-monthly-caption">
                   <strong>{title}</strong>
@@ -841,6 +865,13 @@ export function TodayPage({
 
   const activityQuery = useActivityQuery(apis.activity, spaceId, account?.id);
   const activityItems = readableActivityItems(activityQuery);
+  const signalReceipts = useAttentionReceipts(
+    [apiBaseUrl ?? '', account?.id ?? '', spaceId, 'partner-signals'],
+    activityItems.map((item) => ({
+      id: item.id,
+      expiresAt: item.createdAt.getTime() + 3 * 24 * 60 * 60_000,
+    })),
+  );
 
   const partner = dashboardQuery.data?.space.partner;
   const partnerName = relationshipLabel(
@@ -1002,7 +1033,9 @@ export function TodayPage({
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
   const livingModule = selectLivingModule({
     partnerId: partner?.id,
-    activityItems,
+    activityItems: activityItems.filter((item) =>
+      signalReceipts.pendingIds.has(item.id),
+    ),
     recentShared,
     excludeItemIds: [
       ...(retrospectiveId ? [retrospectiveId] : []),
@@ -1048,8 +1081,27 @@ export function TodayPage({
     excludeItemIds: [...featuredIds, ...monthlyStrip.map((item) => item.id)],
   });
 
+  const monthlyItems = [...monthlyStrip, ...monthlyNotes];
+  const monthlyReceipt = useAttentionReceipt(
+    [apiBaseUrl ?? '', account?.id ?? '', spaceId],
+    `month:${new Date().getFullYear()}:${new Date().getMonth()}:${monthlyItems.map((item) => item.id).join(':')}`,
+    Math.max(
+      0,
+      ...monthlyItems.map(
+        (item) => (item.occurredOn ?? item.createdAt)?.getTime() ?? 0,
+      ),
+    ) +
+      3 * 24 * 60 * 60_000,
+  );
+
   // The quiet trace is the same first page as Activities, including comments.
-  const recentActivities = activityItems.slice(0, 4);
+  const currentSignalId =
+    livingModule?.kind === 'partner_signal'
+      ? livingModule.activityItem.id
+      : null;
+  const recentActivities = activityItems
+    .filter((item) => item.id !== currentSignalId)
+    .slice(0, 4);
 
   /*
    * Per-user module visibility (#817). This is presentation only: every
@@ -1245,8 +1297,9 @@ export function TodayPage({
       incomingExperience &&
       isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
         <SharedExperienceReveal
+          scope={[apiBaseUrl ?? '', account?.id ?? '', spaceId]}
           entry={incomingExperience}
-          partnerName={partnerName}
+          partnerName={relationshipLabel(partner?.id, partner?.displayName, '')}
         />
       ) : null,
     daily_quote: dailyQuote,
@@ -1277,6 +1330,7 @@ export function TodayPage({
           )
         ) : null}
         {dailyVibe}
+        <OnceIncomingSignal />
       </>
     ),
     keepsake: (
@@ -1337,7 +1391,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-pinned-collection"
             title={pinnedCollectionQuery.data.title}
-            kicker={t('m5s5.today.pinnedCollection.kicker')}
             headerAction={
               <TodayDestinationLink
                 to={collectionDetailPath(pinnedCollectionId)}
@@ -1423,6 +1476,11 @@ export function TodayPage({
               partnerName={partnerName}
               partnerAvatarUrl={partnerAvatar.avatarUrl}
               loadMemoryImage={loadMemoryImage}
+              onFollow={
+                currentSignalId
+                  ? () => signalReceipts.consume(currentSignalId)
+                  : undefined
+              }
             />
           </TodayModuleSection>
         ) : null}
@@ -1457,28 +1515,29 @@ export function TodayPage({
     ),
     monthly_highlights: (
       <>
+        {monthlyRecapEntry}
         {/* 5. Diesen Monat — this month's shared life, shown rather than
                   counted. */}
         {monthlyHighlightsVisible &&
-        (monthlyStrip.length > 0 ||
-          monthlyNotes.length > 0 ||
-          monthlyRecapEdition) ? (
+        monthlyReceipt.visible &&
+        (monthlyStrip.length > 0 || monthlyNotes.length > 0) ? (
           <TodayModuleSection
             className="today-section-monthly"
             title={t('m5s5.today.monthly.title')}
             headerAction={
-              <Link
+              <TodayDestinationLink
+                onFollow={monthlyReceipt.consume}
                 to={`${appRoutePath('story')}?tab=timeline`}
                 className="today-section-link"
                 aria-label={t('m5s5.today.monthly.allAriaLabel')}
               >
                 {t('m5s5.today.monthly.allAction')}
-              </Link>
+              </TodayDestinationLink>
             }
           >
-            {monthlyRecapEntry}
             {loadMemoryImage && monthlyStrip.length > 0 ? (
               <TodayMonthlyStrip
+                onFollow={monthlyReceipt.consume}
                 items={monthlyStrip}
                 loadMemoryImage={loadMemoryImage}
               />
@@ -1486,13 +1545,15 @@ export function TodayPage({
             {monthlyNotes.length > 0 ? (
               <div className="today-monthly-notes">
                 {monthlyNotes.map((item) => (
-                  <RecentSharedItemCard key={item.id} item={item} />
+                  <RecentSharedItemCard
+                    key={item.id}
+                    item={item}
+                    onFollow={monthlyReceipt.consume}
+                  />
                 ))}
               </div>
             ) : null}
           </TodayModuleSection>
-        ) : monthlyHighlightsVisible ? (
-          monthlyRecapEntry
         ) : null}
       </>
     ),

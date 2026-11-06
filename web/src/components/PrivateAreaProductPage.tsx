@@ -1,9 +1,12 @@
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
+import type { SpacesApi } from '../api/generated/apis/SpacesApi';
+import type { ProfilesApi } from '../client/mediaApis';
 import {
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
+  PRIVATE_PARTNER_NOTES_PATH,
 } from '../client/privateArea';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
@@ -14,6 +17,7 @@ import {
   GiftIdeasListPage,
 } from './GiftIdeasPage';
 import { PrivateAreaFrame } from './PrivateAreaLayout';
+import { PrivatePartnerNotesPage } from './PrivatePartnerNotesPage';
 import {
   PrivateCollectionCreatePage,
   PrivateCollectionDetailPage,
@@ -47,6 +51,12 @@ const destinations = [
     icon: 'listen',
     href: PRIVATE_COLLECTIONS_PATH,
     title: 'privateArea.collections.title',
+  },
+  {
+    key: 'partner-notes',
+    icon: 'profil',
+    href: PRIVATE_PARTNER_NOTES_PATH,
+    title: 'privateArea.partnerNotes.title',
   },
 ] as const;
 
@@ -84,10 +94,14 @@ export function PrivateAreaProductPage({
   api,
   accountId,
   spaceId,
+  profilesApi,
+  spacesApi,
 }: {
   api: PrivateAreaApi;
   accountId: string;
   spaceId: string;
+  profilesApi?: ProfilesApi;
+  spacesApi?: SpacesApi;
 }) {
   const props = { api, accountId, spaceId };
   const { pathname } = useLocation();
@@ -98,6 +112,19 @@ export function PrivateAreaProductPage({
     <PrivateAreaFrame showNavigation={!isOverview}>
       <Routes>
         <Route index element={<PrivateAreaOverview />} />
+        {profilesApi && spacesApi ? (
+          <Route
+            path="partner-notes"
+            element={
+              <PrivatePartnerNotesPage
+                profilesApi={profilesApi}
+                spacesApi={spacesApi}
+                accountId={accountId}
+                spaceId={spaceId}
+              />
+            }
+          />
+        ) : null}
         <Route path="notes" element={<PrivateNotesListPage {...props} />} />
         <Route
           path="notes/new"

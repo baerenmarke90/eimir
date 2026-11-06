@@ -1,3 +1,4 @@
+import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
@@ -224,12 +225,9 @@ function ActiveOurMomentsSessionView({
           <button type="button" onClick={() => session.restart()}>
             {t('games.momentsGame.restart')}
           </button>
-          <Link
-            className="button-link secondary-link"
-            to={appRoutePath('games')}
-          >
+          <TaskBackLink to={appRoutePath('games')}>
             {t('games.momentsGame.backToGames')}
-          </Link>
+          </TaskBackLink>
         </div>
       </section>
     );

@@ -271,6 +271,8 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
+  // The URL already matches before sign-in; wait for authenticated content.
+  await expect(page.locator('.today-agenda-row').first()).toBeVisible();
 }
 
 test('Today "Demnächst" renders compact, bounded-width planning tiles instead of full-width table rows on desktop', async ({
@@ -601,6 +603,7 @@ test('touch dragging starts on the handle and keeps normal row scrolling availab
   browser,
 }) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 390, height: 844 },

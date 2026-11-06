@@ -579,3 +579,15 @@ After this S0 package merges:
    - normal CI/Security/Self-Hosted evidence and status sync.
 
 Full Web/Android screen productization and systematic parity remain M5.
+
+
+## Uploader video failure outcome (#1655)
+
+`VIDEO_PROCESSING_FAILED` is a policy-v8 immediate self outcome, using the existing
+reference-only Outbox and recipient preferences. It produces no Activity entry.
+Only the attachment uploader is eligible; the projector re-resolves its current
+Memory/HeartMoment and authorization before delivery. Removed media and revoked
+membership do not retain a stale destination. In-app copy is neutral; the generic
+external preview includes no filename, source text or sensitive classification.
+There is no success or progress notification. Migration 0111 extends both kind
+constraints and retains failed-placeholder metadata after bounded raw-byte purge.

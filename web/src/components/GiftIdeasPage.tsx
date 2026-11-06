@@ -1,3 +1,5 @@
+import { TaskBackButton } from './TaskBackButton';
+import { AutoLoadMore } from './AutoLoadMore';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { type FormEvent, useState } from 'react';
 import {
@@ -26,7 +28,6 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
-  LoadMoreButton,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   usePrivateAreaTaskContext,
@@ -290,11 +291,9 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
               </li>
             ))}
           </ul>
-          <LoadMoreButton
-            hasMore={Boolean(query.hasNextPage)}
-            loading={query.isFetchingNextPage}
-            onLoadMore={() => void query.fetchNextPage()}
-          />
+          <AutoLoadMore query={query} className="secondary">
+            {t('privateArea.loadMore')}
+          </AutoLoadMore>
         </section>
       ) : null}
     </>
@@ -360,14 +359,14 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
             {t('privateArea.gifts.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.gifts.createTitle')}
         description={t('privateArea.gifts.intro')}
@@ -624,14 +623,14 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending || deleteMutation.isPending}
           >
             {t('privateArea.gifts.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.gifts.editTitle')}
         description={t('privateArea.gifts.intro')}

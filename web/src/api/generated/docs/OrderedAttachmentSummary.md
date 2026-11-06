@@ -7,7 +7,9 @@ A bound photo with its stable position in a parent\'s gallery.
 
 Name | Type
 ------------ | -------------
+`canEditSensitivity` | boolean
 `durationSeconds` | number
+`failureCode` | string
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
@@ -26,7 +28,9 @@ import type { OrderedAttachmentSummary } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "canEditSensitivity": null,
   "durationSeconds": null,
+  "failureCode": null,
   "hasThumbnail": null,
   "height": null,
   "id": null,

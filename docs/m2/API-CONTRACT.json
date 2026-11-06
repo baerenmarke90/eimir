@@ -310,7 +310,8 @@
         "year",
         "order",
         "cursor",
-        "limit"
+        "limit",
+        "includeChapters"
       ]
     }
   ],
@@ -347,7 +348,8 @@
         "spaceId",
         "type",
         "year",
-        "order"
+        "order",
+        "includeChapters"
       ],
       "payload": [
         "v",

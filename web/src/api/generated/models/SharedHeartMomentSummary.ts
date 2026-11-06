@@ -34,6 +34,13 @@ import {
     HeartEmotionToJSON,
     HeartEmotionToJSONTyped,
 } from './HeartEmotion';
+import type { StoryPlaceSummary } from './StoryPlaceSummary';
+import {
+    StoryPlaceSummaryFromJSON,
+    StoryPlaceSummaryFromJSONTyped,
+    StoryPlaceSummaryToJSON,
+    StoryPlaceSummaryToJSONTyped,
+} from './StoryPlaceSummary';
 import type { AuthorSummary } from './AuthorSummary';
 import {
     AuthorSummaryFromJSON,
@@ -114,6 +121,12 @@ export interface SharedHeartMomentSummary {
     id: string;
     /**
      * 
+     * @type {Array<StoryPlaceSummary>}
+     * @memberof SharedHeartMomentSummary
+     */
+    places?: Array<StoryPlaceSummary>;
+    /**
+     * 
      * @type {string}
      * @memberof SharedHeartMomentSummary
      */
@@ -168,6 +181,7 @@ export function SharedHeartMomentSummaryFromJSONTyped(json: any, ignoreDiscrimin
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
+        'places': json['places'] == null ? undefined : ((json['places'] as Array<any>).map(StoryPlaceSummaryFromJSON)),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'text': json['text'],
         'visibility': ContentVisibilityFromJSON(json['visibility']),
@@ -193,6 +207,7 @@ export function SharedHeartMomentSummaryToJSONTyped(value?: SharedHeartMomentSum
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
+        'places': value['places'] == null ? undefined : ((value['places'] as Array<any>).map(StoryPlaceSummaryToJSON)),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'text': value['text'],
         'visibility': ContentVisibilityToJSON(value['visibility']),

@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import photoSources from '../../src/i18n/locales/photoSources';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -76,6 +77,7 @@ async function fixture(
     capabilities: CAPABILITIES,
   });
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const method = request.method();
@@ -245,6 +247,8 @@ async function fixture(
       return route.fulfill({
         json: {
           items:
+            new URL(request.url()).searchParams.get('overviewScope') ===
+              'OPEN' ||
             new URL(request.url()).searchParams.get('status') === 'PLANNED'
               ? [plan()]
               : [],
@@ -419,7 +423,7 @@ for (const [width, theme, largeText] of [
     );
     await page.goto('/more');
     await page
-      .getByRole('link', { name: new RegExp(recapCopy.shortTitle) })
+      .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
       .click();
     await page.getByText(recapCopy.details, { exact: true }).click();
     if (largeText)
@@ -478,7 +482,7 @@ test('Free Passport remains reachable from More without requesting Pro counts', 
   await expect(page.locator('.profile-passport-entry')).toHaveCount(0);
   await page.goto('/more');
   await page
-    .getByRole('link', { name: new RegExp(recapCopy.shortTitle) })
+    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
     .click();
   await expect(page.getByText(recapCopy.gateBody)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);
@@ -536,6 +540,7 @@ test('Plan overview bounds prose, preserves full detail, and restores a cold sna
     release = resolve;
   });
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     if (new URL(route.request().url()).pathname === `${BASE}/plans`)
       await delayed;
     await route.fallback();
@@ -681,7 +686,7 @@ for (const [width, theme] of [
     await expect(
       page.locator('.plan-photo-gallery .media-gallery-carousel-content'),
     ).toBeVisible();
-    await expect(page.locator('.planen-detail-context')).toContainText(
+    await expect(page.locator('.planen-detail-when-where')).toContainText(
       'Sankt Peter-Ording',
     );
     expect(state.patches()).toBe(1);

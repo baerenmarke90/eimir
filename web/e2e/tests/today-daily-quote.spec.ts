@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -45,6 +46,7 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
   };
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());
@@ -609,9 +611,11 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
 
   const preferencesSheet = page.locator('.daily-quote-preferences-sheet');
   const mindfulness = preferencesSheet.getByRole('checkbox', {
-    name: /Mindfulness/u,
+    name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
   });
-  await preferencesSheet.getByText('Mindfulness', { exact: true }).click();
+  await preferencesSheet
+    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
+    .click();
   await expect(mindfulness).toBeChecked();
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
@@ -636,7 +640,7 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
 
 test('personal visibility hides the Wir card and Settings -> Wir restores it', async ({
   page,
-}) => {
+}, testInfo) => {
   const requests = await installMocks(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
@@ -680,6 +684,27 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
   await expect(settingsToggle).toBeChecked();
   expect(requests.patches.at(-1)?.body).toEqual({ enabled: true });
 
+  for (const [width, theme, large] of [
+    [390, 'light', false],
+    [320, 'dark', true],
+  ] as const) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme });
+    await page.evaluate((largeText) => {
+      document.documentElement.style.fontSize = largeText ? '200%' : '100%';
+    }, large);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.locator('#settings-dashboard').screenshot({
+      path: testInfo.outputPath(`wir-wording-settings-${width}-${theme}.png`),
+    });
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '100%';
+  });
   await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
@@ -753,17 +778,21 @@ test('losing the quote capability shows discovery and restores personal preferen
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
 
   await openQuoteSettings(page);
-  const mindfulness = page.getByRole('checkbox', { name: /Mindfulness/u });
+  const mindfulness = page.getByRole('checkbox', {
+    name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+  });
   await page
     .locator('.daily-quote-preferences-sheet')
-    .getByText('Mindfulness', { exact: true })
+    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
     .click();
   await expect(mindfulness).toBeChecked();
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
   await openQuoteSettings(page);
   await expect(
-    page.getByRole('checkbox', { name: /Mindfulness/u }),
+    page.getByRole('checkbox', {
+      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+    }),
   ).toBeChecked();
   const personalReads = requests.preferences;
 
@@ -784,7 +813,9 @@ test('losing the quote capability shows discovery and restores personal preferen
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
   await openQuoteSettings(page);
   await expect(
-    page.getByRole('checkbox', { name: /Mindfulness/u }),
+    page.getByRole('checkbox', {
+      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+    }),
   ).toBeChecked();
   await expectQuoteSurfaceAccessible(page);
 });
@@ -798,10 +829,12 @@ test('signing into the partner account cannot reuse the previous account quote o
   await openQuoteSettings(page);
   await page
     .locator('.daily-quote-preferences-sheet')
-    .getByText('Mindfulness', { exact: true })
+    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
     .click();
   await expect(
-    page.getByRole('checkbox', { name: /Mindfulness/u }),
+    page.getByRole('checkbox', {
+      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+    }),
   ).toBeChecked();
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
@@ -818,7 +851,9 @@ test('signing into the partner account cannot reuse the previous account quote o
   await expect(page.getByText('A calm thought for today.')).toHaveCount(0);
   await openQuoteSettings(page);
   await expect(
-    page.getByRole('checkbox', { name: /Mindfulness/u }),
+    page.getByRole('checkbox', {
+      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+    }),
   ).not.toBeChecked();
   expect(requests.preferenceAccounts).toContain(PARTNER_ID);
   await expectQuoteSurfaceAccessible(page);
@@ -1037,8 +1072,12 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
   await openQuoteSettings(page);
   const sheet = page.getByRole('dialog', { name: dailyQuote.sheetTitle });
   await expect(sheet).toBeVisible();
-  const mindfulness = sheet.getByRole('checkbox', { name: /Mindfulness/u });
-  await sheet.getByText('Mindfulness', { exact: true }).click();
+  const mindfulness = sheet.getByRole('checkbox', {
+    name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+  });
+  await sheet
+    .getByText(dailyQuote.catalog.categories.mindfulness, { exact: true })
+    .click();
   await expect(mindfulness).toBeChecked();
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
@@ -1102,7 +1141,9 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
   await expect(sheet).not.toBeVisible();
   await openQuoteSettings(page);
   await expect(
-    sheet.getByRole('checkbox', { name: /Mindfulness/u }),
+    sheet.getByRole('checkbox', {
+      name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
+    }),
   ).toBeChecked();
 });
 
@@ -1169,7 +1210,9 @@ test('monthly highlights include visible photo captions and dates plus distinct 
           item('photo-3', 'MEMORY', 'Coffee break', 4, 'month-photo-3'),
           item('text-1', 'HEART_MOMENT', 'A lovely quiet evening', 5),
           item('milestone-1', 'MILESTONE', 'Our first home', 6),
-          item('milestone-2', 'MILESTONE', 'A year of adventures', 7),
+          // A current contribution keeps this monthly invitation within its
+          // 72-hour window; older photos still retain their original captions.
+          item('milestone-2', 'MILESTONE', 'A year of adventures', 28),
         ],
       },
     }),

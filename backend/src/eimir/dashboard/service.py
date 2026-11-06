@@ -14,7 +14,7 @@ from hashlib import sha256
 from typing import cast as cast_type
 from uuid import UUID
 
-from sqlalchemy import Date, and_, case, cast, extract, func, or_, select
+from sqlalchemy import Date, and_, case, cast, exists, extract, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -38,6 +38,7 @@ from eimir.relationship.models import (
     MembershipStatus,
     SpaceProfile,
 )
+from eimir.story.view_models import StoryItemViewAggregate
 from eimir.wishes.models import Wish
 
 SECTION_LIMIT = 8
@@ -93,6 +94,7 @@ class DashboardExperience:
     id: UUID
     kind: str
     text: str
+    prompt: str
     author_id: UUID
     happened_on: date | None
     created_at: datetime
@@ -104,12 +106,22 @@ def read_incoming_experience(
     partner = _partner(session, authorization)
     if partner is None:
         return None
+    canonical_id = func.coalesce(Memory.experience_root_id, Memory.id)
+    already_opened = exists().where(
+        StoryItemViewAggregate.space_id == authorization.space_id,
+        StoryItemViewAggregate.viewer_account_id == authorization.account_id,
+        StoryItemViewAggregate.item_kind == "MEMORY",
+        StoryItemViewAggregate.item_id == canonical_id,
+        StoryItemViewAggregate.last_viewed_at >= Memory.updated_at,
+    )
     memory = session.execute(
         readable(Memory, authorization)
         .where(
             Memory.owner_id == partner.id,
             Memory.experience_kind.is_not(None),
             Memory.privacy_class == PrivacyClass.SPACE_SHARED.value,
+            Memory.created_at >= clock.now() - timedelta(days=3),
+            ~already_opened,
         )
         .order_by(Memory.created_at.desc(), Memory.id.desc())
         .limit(1)
@@ -117,9 +129,14 @@ def read_incoming_experience(
     if memory is None:
         return None
     return DashboardExperience(
-        id=memory.id,
+        id=memory.experience_root_id or memory.id,
         kind=memory.experience_kind or "",
-        text=memory.payload.body[:280],
+        text=(
+            memory.payload.body[:279].rstrip() + "…"
+            if len(memory.payload.body) > 280
+            else memory.payload.body
+        ),
+        prompt=memory.payload.title,
         author_id=memory.owner_id,
         happened_on=memory.happened_on,
         created_at=memory.created_at,

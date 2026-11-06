@@ -11,7 +11,11 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from eimir.api.errors import register_error_handlers
 from eimir.api.openapi import EimirFastAPI
-from eimir.api.transport import RequestBodyLimitMiddleware, RequireHttpsForExternalHostsMiddleware
+from eimir.api.transport import (
+    PackagedUploadCorsMiddleware,
+    RequestBodyLimitMiddleware,
+    RequireHttpsForExternalHostsMiddleware,
+)
 from eimir.api.v1 import router as v1_router
 from eimir.config import Environment, Settings, get_settings
 from eimir.engagement import push_providers
@@ -89,6 +93,7 @@ def create_app() -> FastAPI:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
     app.add_middleware(RequestBodyLimitMiddleware)
+    app.add_middleware(PackagedUploadCorsMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(RequestIdMiddleware)
 

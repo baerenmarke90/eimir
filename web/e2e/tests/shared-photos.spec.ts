@@ -232,11 +232,14 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     .poll(() => reads.filter((read) => read.variant === 'original').length)
     .toBe(3);
   await screenshot(page, testInfo, 'story-photos-viewer-390.png');
-  await page
+  await expect(page.locator('.media-lightbox-footer button')).toHaveCount(1);
+  const next = page
     .getByRole('dialog')
-    .locator('.media-lightbox-footer-nav')
-    .getByRole('button', { name: storyProducts.gallery.next })
-    .click();
+    .getByRole('button', { name: storyProducts.gallery.next });
+  await expect(next).toHaveCount(1);
+  await next.focus();
+  await expect(next).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(page.locator('.media-lightbox-counter')).toHaveText(
     storyProducts.gallery.counter
       .replace('{{index}}', '3')
@@ -247,9 +250,7 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
   await expect(page.locator('.shared-photos-tile').nth(1)).toBeFocused();
   await expect(page).toHaveURL(/\/story\/photos$/);
 
-  await page
-    .getByRole('button', { name: sharedPhotos.more, exact: true })
-    .click();
+  await page.locator('.auto-load-sentinel').scrollIntoViewIfNeeded();
   await expect(page.locator('.shared-photos-tile')).toHaveCount(44);
   const selected = page.locator('[data-photo-id="photo-42"]');
   await selected.scrollIntoViewIfNeeded();
@@ -396,13 +397,20 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
     .getByRole('button', { name: productTour.later, exact: true })
     .click();
   await page
-    .getByRole('link', { name: sharedPhotos.browse, exact: true })
+    .getByRole('link', { name: de.more.destinations.photos, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/more$/);
+  await page
+    .getByRole('link', { name: de.more.destinations.photos, exact: true })
+    .click();
   await page.goBack();
   await expect(page).toHaveURL(/\/more$/);
   await expect(
-    page.getByRole('link', { name: sharedPhotos.browse, exact: true }),
+    page.getByRole('link', { name: de.more.destinations.photos, exact: true }),
   ).toBeVisible();
   await page.getByRole('link', { name: navigation.story, exact: true }).click();
   await page
@@ -424,6 +432,10 @@ test('shared photos: empty and failed first page disclose no count, offline stat
   await screenshot(page, testInfo, 'story-photos-empty.png');
   await page.unroute('**/api/v1/**');
   await mocks(page, 'error');
+  // This case exercises a failed cold read, independently of the warm snapshot.
+  await page.evaluate(() =>
+    localStorage.removeItem('eimir-web-read-cache-context-v3'),
+  );
   await page.reload();
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.locator('.shared-photos-count')).toHaveCount(0);
@@ -468,9 +480,7 @@ test('shared photos: a failed next page retains loaded photos and retries the sa
     });
   });
 
-  await page
-    .getByRole('button', { name: sharedPhotos.more, exact: true })
-    .click();
+  await page.locator('.auto-load-sentinel').scrollIntoViewIfNeeded();
   await expect(page.getByText(sharedPhotos.pageError)).toBeVisible();
   await expect(page.locator('.shared-photos-tile')).toHaveCount(40);
   expect(cursors).toEqual(['second-page']);

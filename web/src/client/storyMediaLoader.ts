@@ -1,10 +1,12 @@
 import type { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
+import type { ReadDescriptor } from '../api/generated/models/ReadDescriptor';
 import {
   assertMediaCacheLease,
   captureMediaCacheLease,
   evictAuthorizedMedia,
   loadCachedMediaBlob,
+  consumeAuthorizedMediaPreview,
 } from './authorizedMediaCache';
 import type { OwnedObjectUrl } from './objectUrlResource';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
@@ -53,15 +55,25 @@ async function loadAuthorizedStoryBlob(
     },
   };
   try {
-    const descriptor = options.signal
-      ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
-          signal: options.signal,
-        })
-      : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
+    const requestDescriptor = async (signal?: AbortSignal) =>
+      signal
+        ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
+            signal,
+          })
+        : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
+    let descriptor: ReadDescriptor | undefined;
+    const identity = [
+      ...parentIdentity,
+      attachmentId,
+      options.variant ?? 'original',
+    ];
+    if (!consumeAuthorizedMediaPreview(lease, identity)) {
+      descriptor = await requestDescriptor(options.signal);
+    }
 
     // Every existing image consumer remains bounded when its source becomes a
     // video. Playback has a distinct grant path; image caches own posters only.
-    if (descriptor.mediaType === 'VIDEO' && options.variant !== 'thumbnail')
+    if (descriptor?.mediaType === 'VIDEO' && options.variant !== 'thumbnail')
       return loadAuthorizedStoryBlob(
         apis,
         spaceId,
@@ -73,11 +85,12 @@ async function loadAuthorizedStoryBlob(
 
     const blob = await loadCachedMediaBlob(
       lease,
-      [...parentIdentity, attachmentId, options.variant ?? 'original'],
+      identity,
       async (signal) => {
-        if (descriptor.method === ReadDescriptorMethodEnum.SIGNED_URL) {
+        const access = descriptor ?? (await requestDescriptor(signal));
+        if (access.method === ReadDescriptorMethodEnum.SIGNED_URL) {
           const fetchApi = options.fetchApi ?? fetch;
-          const response = await fetchApi(descriptor.url, { signal });
+          const response = await fetchApi(access.url, { signal });
           if (!response.ok) {
             throw Object.assign(
               new Error(`Story media load failed: ${response.status}`),

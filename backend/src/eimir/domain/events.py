@@ -25,6 +25,7 @@ from eimir.domain.experiences import ExperienceKind
 class EventType(StrEnum):
     """Event catalog. A shipped name is never renamed."""
 
+    ONCE_MESSAGE_SENT = "ONCE_MESSAGE_SENT"
     MEMORY_CREATED = "MEMORY_CREATED"
     GENTLE_PROMPT_READY = "GENTLE_PROMPT_READY"
     REMINDER_CREATED = "REMINDER_CREATED"
@@ -32,12 +33,17 @@ class EventType(StrEnum):
     TRANSFER_READY = "TRANSFER_READY"
     TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
     TRANSFER_FAILED = "TRANSFER_FAILED"
+    VIDEO_PROCESSING_FAILED = "VIDEO_PROCESSING_FAILED"
     PLAN_ATTENDANCE_CHANGED = "PLAN_ATTENDANCE_CHANGED"
     PLAN_SCHEDULED = "PLAN_SCHEDULED"
     PLAN_CANCELLED = "PLAN_CANCELLED"
     WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
     WISH_SELECTION_READY = "WISH_SELECTION_READY"
     MEMORY_UPDATED = "MEMORY_UPDATED"
+    MEMORY_PLAN_LINKED = "MEMORY_PLAN_LINKED"
+    MEMORY_PLAN_UNLINKED = "MEMORY_PLAN_UNLINKED"
+    MEMORY_WISH_LINKED = "MEMORY_WISH_LINKED"
+    MEMORY_WISH_UNLINKED = "MEMORY_WISH_UNLINKED"
     MEMORY_DELETED = "MEMORY_DELETED"
     HEART_MOMENT_CREATED = "HEART_MOMENT_CREATED"
     HEART_MOMENT_UPDATED = "HEART_MOMENT_UPDATED"
@@ -126,7 +132,7 @@ class PublicEventPayload(BaseModel):
     visibility: ContentVisibility | None = None
     experience_kind: ExperienceKind | None = None
 
-    target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN"] | None = None
+    target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH"] | None = None
     target_id: UUID | None = None
     recipient_id: UUID | None = None
     occurrence_id: UUID | None = None

@@ -1,9 +1,12 @@
+import de from '../../src/i18n/locales/de';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import copy from '../../src/i18n/locales/recaps';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { recapDetailPath } from '../../src/client/routes';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
 const fixtureCopy = fixtures.recaps;
@@ -72,6 +75,8 @@ async function setup(
     hideMonthly?: boolean;
   } = {},
 ) {
+  // The API fixture's current day and the system clock share one timeline.
+  await page.clock.setFixedTime(new Date('2026-10-30T12:00:00Z'));
   await page.addInitScript(
     ({ account, space }) =>
       localStorage.setItem(`eimir:product-tour:v1:${account}:${space}`, 'seen'),
@@ -92,6 +97,7 @@ async function setup(
   let deniedOverview = false;
   let overviewReads = 0;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const req = route.request(),
       path = new URL(req.url()).pathname,
       method = req.method();
@@ -292,7 +298,9 @@ async function setup(
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
     .click();
-  await page.getByRole('link', { name: new RegExp(copy.shortTitle) }).click();
+  await page
+    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
   ).toBeVisible();
@@ -345,11 +353,8 @@ for (const [width, theme] of [
       ),
     ).toBe(true);
     expect(
-      (
-        await new AxeBuilder({ page })
-          .include('.today-section-monthly')
-          .analyze()
-      ).violations,
+      (await new AxeBuilder({ page }).include('.monthly-recap-entry').analyze())
+        .violations,
     ).toEqual([]);
     expect(state.prepares()).toBe(0);
     expect(state.writes()).toBe(0);
@@ -414,7 +419,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
-  await page.locator('.recap-back').click();
+  await page.locator('.subpage-back-slot .task-back-control').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);
@@ -525,7 +530,7 @@ test('an authoritative overview denial removes a previously visible recap cover'
     document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
   });
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
-  await expect(page.locator('.monthly-recap-library-link')).toBeVisible();
+  await expect(page.locator('.monthly-recap-library-link')).toHaveCount(0);
 });
 
 for (const [width, theme] of [
@@ -765,4 +770,32 @@ test('pending generation remains readable as a background task', async ({
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
   ).toBeVisible();
+});
+
+test('the previous month invitation expires on the fourth day and stays absent after reload', async ({
+  page,
+}) => {
+  await setup(page, { start: 'wir' });
+  await expect(page.locator('.monthly-recap-invitation')).toBeVisible();
+  await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('.today-content')).toBeVisible();
+  await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+});
+
+test('opening a monthly invitation consumes that edition on return', async ({
+  page,
+}) => {
+  await setup(page, { start: 'wir' });
+  await page
+    .locator('.monthly-recap-invitation')
+    .getByRole('link', { name: new RegExp(copy.watchNow) })
+    .click();
+  await expect(page).toHaveURL(new RegExp(recapDetailPath('october')));
+  await page.goBack();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.today-content')).toBeVisible();
+  await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
 });

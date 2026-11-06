@@ -2,26 +2,34 @@ import { Link, useNavigate } from 'react-router-dom';
 import { WISH_SELECTION_ROUTE } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import './WishSelection.css';
 
 export function WishSelectionEntry({
   segment,
+  compact = false,
 }: {
   segment: 'plans' | 'wishes';
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const { captureOrigin } = useTaskOrigin();
   const navigate = useNavigate();
   return (
     <section
-      className="wish-selection-entry"
+      className={`wish-selection-entry${compact ? ' is-compact' : ''}`}
       aria-labelledby={`wish-selection-entry-${segment}`}
     >
-      <h2 id={`wish-selection-entry-${segment}`}>{t('wishSelection.title')}</h2>
+      {!compact ? (
+        <h2 id={`wish-selection-entry-${segment}`}>
+          {t('wishSelection.title')}
+        </h2>
+      ) : null}
       <div className="wish-selection-invitation">
-        <p>{t('wishSelection.entryBody')}</p>
+        {!compact ? <p>{t('wishSelection.entryBody')}</p> : null}
         <Link
-          className="button-link"
+          id={compact ? `wish-selection-entry-${segment}` : undefined}
+          className={compact ? 'wish-selection-compact-link' : 'button-link'}
           to={WISH_SELECTION_ROUTE}
           onClick={(event) => {
             // Keep the ordinary link/deep-link destination. Only an unmodified
@@ -41,7 +49,12 @@ export function WishSelectionEntry({
             });
           }}
         >
-          {t('wishSelection.entryAction')}
+          {compact ? <EimirIcon name="gemeinsam" /> : null}
+          {t(
+            compact
+              ? 'wishSelection.compactEntryAction'
+              : 'wishSelection.entryAction',
+          )}
         </Link>
       </div>
     </section>

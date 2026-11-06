@@ -59,6 +59,8 @@ class HeartMomentPayload(ProtectedPayload):
     """
 
     text: str
+    audio_title: str = Field(default="", max_length=120)
+    audio_speaker_name: str = Field(default="", max_length=80)
     emotion: HeartEmotion
     tags: HeartMomentTags = Field(default_factory=list)
     selected_cover_attachment_id: UUID | None = None
@@ -115,6 +117,7 @@ class HeartMoment(
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # Prevent the same attachment from belonging to two HeartMoments.
         UniqueConstraint("attachment_id", name="uq_heart_moments_attachment"),
+        UniqueConstraint("id", "space_id", name="uq_heart_moments_id_space_id"),
         # Target of the foreign key from `place_heart_moments`. The privacy
         # class deliberately participates in it so the join row can carry the
         # shared state of its target, and so a transition to OWNER_ONLY breaks

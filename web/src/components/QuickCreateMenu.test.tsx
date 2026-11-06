@@ -220,7 +220,7 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
 });
 
 describe('QuickCreateMenu - Desktop Popover', () => {
-  it('renders desktop menu popover when opened with title and 8 actions', () => {
+  it('renders desktop menu popover when opened with title and 9 actions', () => {
     render(
       <MemoryRouter initialEntries={['/today']}>
         <QuickCreateMenu variant="desktop" />
@@ -238,17 +238,20 @@ describe('QuickCreateMenu - Desktop Popover', () => {
     expect(screen.getByText(navigation.quickCreateTitle)).toBeDefined();
 
     const items = screen.getAllByRole('menuitem');
-    expect(items).toHaveLength(8);
+    expect(items).toHaveLength(9);
 
-    // Order: memory, heart moment, milestone, wish, collection, plan, note, gift idea
-    expect(items[0].getAttribute('href')).toBe('/story/memories/new');
-    expect(items[1].getAttribute('href')).toBe('/story/heart-moments/new');
-    expect(items[2].getAttribute('href')).toBe('/story/milestones/new');
-    expect(items[3].getAttribute('href')).toBe('/plan/wishes/new');
-    expect(items[4].getAttribute('href')).toBe('/more/collections/new');
-    expect(items[5].getAttribute('href')).toBe('/plan/plans/new');
-    expect(items[6].getAttribute('href')).toBe('/more/private/notes/new');
-    expect(items[7].getAttribute('href')).toBe('/more/private/gift-ideas/new');
+    // Existing capture entries keep their relative order around the optional Pro action.
+    expect(items.map((item) => item.getAttribute('href'))).toEqual([
+      '/story/memories/new',
+      '/story/heart-moments/new',
+      '/today/only-you/new',
+      '/story/milestones/new',
+      '/plan/wishes/new',
+      '/more/collections/new',
+      '/plan/plans/new',
+      '/more/private/notes/new',
+      '/more/private/gift-ideas/new',
+    ]);
 
     // Verify sublines exist
     expect(screen.getByText(navigation.quickCreateMemorySubline)).toBeDefined();
@@ -321,7 +324,7 @@ describe('QuickCreateMenu - Desktop Popover', () => {
 
     // End key moves to last item (gift idea)
     fireEvent.keyDown(menu, { key: 'End' });
-    expect(document.activeElement).toBe(items[7]);
+    expect(document.activeElement).toBe(items.at(-1));
 
     // Home key moves to first item (memory)
     fireEvent.keyDown(menu, { key: 'Home' });

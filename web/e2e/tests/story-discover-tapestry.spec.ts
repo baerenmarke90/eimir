@@ -28,7 +28,9 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
   const summary = result.violations
     .map(
       (violation) =>
-        `${violation.id} (${violation.impact ?? 'unknown'}): ${violation.nodes.length} node(s)`,
+        `${violation.id} (${violation.impact ?? 'unknown'}): ${violation.nodes
+          .map((node) => `${node.target.join(' ')}: ${node.failureSummary}`)
+          .join('\n')}`,
     )
     .join('\n');
   expect(result.violations, summary || 'No axe violations').toEqual([]);
@@ -521,6 +523,73 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
   });
 });
 
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`long retrospective uses one full reading row without stretching its neighboring photo at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    const longText = localizedFixture.appContinuity.longRetrospective;
+    const unknown = await installDiscoverApiMocks(page, {
+      retrospective: {
+        id: 'long-text-retrospective',
+        type: 'MEMORY',
+        titleOrText: longText,
+        occurredOn: '2023-09-17',
+        createdAt: null,
+        scheduledAt: null,
+        previewAttachmentId: null,
+        previewIsSensitive: false,
+      },
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.goto('/story?tab=discover');
+    await signIn(page);
+    await page.goto('/story?tab=discover');
+    const retrospective = page.locator('.momente-retrospective-compact');
+    await expect(retrospective).toHaveCount(1);
+    await retrospective.scrollIntoViewIfNeeded();
+    const grid = page.locator('.momente-tapestry').first();
+    const geometry = await retrospective.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      gridWidth: node.parentElement!.getBoundingClientRect().width,
+      right: node.getBoundingClientRect().right,
+    }));
+    expect(geometry.width).toBeCloseTo(geometry.gridWidth, 0);
+    const photo = grid.locator('.momente-tapestry-media').first();
+    const bounds = await retrospective.boundingBox();
+    const photoBounds = await photo.boundingBox();
+    expect(photoBounds!.y).toBeGreaterThanOrEqual(
+      bounds!.y + bounds!.height - 1,
+    );
+    const frame = photo.locator('.momente-tapestry-media-frame');
+    const shape = await frame.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height,
+      ratio: getComputedStyle(node).aspectRatio,
+    }));
+    const [numerator, denominator] = shape.ratio.split('/').map(Number);
+    expect(shape.width / shape.height).toBeCloseTo(numerator / denominator, 1);
+    await retrospective.evaluate((node) =>
+      window.scrollTo(
+        0,
+        window.scrollY + node.getBoundingClientRect().top - 24,
+      ),
+    );
+    await expect(photo.locator('img').first()).toBeVisible();
+    await page.screenshot({
+      path: info.outputPath(
+        `story-retrospective-full-row-${width}-${theme}.png`,
+      ),
+      fullPage: false,
+    });
+    await expectNoWcagViolations(page);
+    expect(unknown).toEqual([]);
+  });
+}
+
 test('Momente Discover preserves canonical backend order in its desktop CSS grid and stays axe-clean', async ({
   page,
 }, testInfo) => {
@@ -618,16 +687,10 @@ test('Momente Discover mixes narrow and full-width memories with natural heights
   await expect(
     page.getByText(de.story.discoverInvitation, { exact: true }),
   ).toHaveCount(0);
-  const renewalFollowsContent = await page
-    .locator('.discover-toolbar')
-    .evaluate((toolbar) =>
-      Boolean(
-        toolbar.previousElementSibling?.contains(
-          document.querySelector('.momente-tapestry'),
-        ),
-      ),
-    );
-  expect(renewalFollowsContent).toBe(true);
+  await expect(page.locator('.discover-toolbar')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: de.story.discoverRenew, exact: true }),
+  ).toHaveCount(0);
   const tapestryLinkTitles = await page
     .locator('.momente-tapestry-item')
     .evaluateAll((nodes) =>
@@ -672,6 +735,37 @@ test('Momente Discover mixes narrow and full-width memories with natural heights
   expect(
     layoutBounds.gridBottom - layoutBounds.contentBottom,
   ).toBeLessThanOrEqual(layoutBounds.rowUnit + layoutBounds.gap);
+
+  const vacantRows = await grid.evaluate((element) => {
+    const children = Array.from(element.children) as HTMLElement[];
+    return children.flatMap((item, index) => {
+      if (
+        item.offsetWidth >= element.clientWidth - 1 ||
+        (index > 0 && item.offsetTop === children[index - 1].offsetTop)
+      )
+        return [];
+      const next = children[index + 1];
+      // Inline milestone labels center in their tracks; material cards fill them.
+      if (
+        item.matches('.momente-tapestry-milestone') ||
+        next?.matches('.momente-tapestry-milestone')
+      )
+        return [];
+      if (
+        !next ||
+        Math.abs(item.offsetTop - next.offsetTop) > 1 ||
+        Math.abs(
+          item.offsetTop +
+            item.offsetHeight -
+            next.offsetTop -
+            next.offsetHeight,
+        ) > 1
+      )
+        return [index];
+      return [];
+    });
+  });
+  expect(vacantRows).toEqual([]);
 
   // Browse the real reveal lifecycle before capturing the entire album.
   for (const card of await grid.locator('.momente-tapestry-item').all()) {
@@ -882,16 +976,16 @@ for (const [width, theme] of [
     );
     expect(photoWidth).toBeGreaterThan(cardWidth * 0.75);
     if (width === 390) {
-      const toggle = memory.getByRole('button', {
-        name: sensitiveMedia.show,
-      });
-      await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-      await toggle.click();
+      await expect(memory.locator('.sensitive-media-cover')).toBeVisible();
+      await expect(
+        memory.locator('.sensitive-media-blurred img'),
+      ).toBeVisible();
+      await expect(
+        memory.getByRole('button', { name: sensitiveMedia.show }),
+      ).toHaveCount(0);
       await expect(
         memory.getByRole('button', { name: sensitiveMedia.hide }),
-      ).toHaveAttribute('aria-pressed', 'true');
-      await memory.getByRole('button', { name: sensitiveMedia.hide }).click();
-      await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      ).toHaveCount(0);
     }
     await expect(memory.locator('time')).toHaveCount(1);
     await expect(memory).not.toContainText('Erinnerung vom');
@@ -989,6 +1083,9 @@ for (const [width, theme] of [
 test('Discover renewal confirms alternatives, guards duplicate activation and preserves content on rate/offline errors', async ({
   page,
 }) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 1 }),
+  );
   await installDiscoverApiMocks(page, { viewerLocalDate: '2026-09-18' });
   await page.goto('/story?tab=discover');
   await signIn(page);
@@ -997,7 +1094,7 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
   await expect(oldLead).toContainText('Danke');
   await expect(
     page.getByText(de.story.discoverNewDay, { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   let requests = 0;
   let release: () => void = () => {};
   const waiting = new Promise<void>((resolve) => {
@@ -1030,12 +1127,11 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
       }
     },
   );
-  await page
-    .getByRole('button', { name: de.story.discoverRenew, exact: true })
-    .click();
-  await expect(
-    page.getByRole('button', { name: de.story.discoverRenewing, exact: true }),
-  ).toBeDisabled();
+  await pullDiscover(page);
+  await expect(page.locator('.app-pull-refresh-indicator')).toHaveClass(
+    /is-refreshing/,
+  );
+  await pullDiscover(page);
   await expect(oldLead).toContainText('Danke');
   expect(requests).toBe(1);
   release();
@@ -1048,9 +1144,7 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
   await expect(
     page.getByRole('status').filter({ hasText: de.story.discoverRenewed }),
   ).toBeAttached();
-  await page
-    .getByRole('button', { name: de.story.discoverRenew, exact: true })
-    .click();
+  await pullDiscover(page);
   await expect(
     page.getByText(de.story.discoverRateLimit, { exact: true }),
   ).toBeVisible();
@@ -1058,9 +1152,7 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
     'Konzertabend',
   );
   await page.context().setOffline(true);
-  await page
-    .getByRole('button', { name: de.story.discoverRenew, exact: true })
-    .click();
+  await pullDiscover(page);
   await expect(
     page.getByText(de.story.discoverOffline, { exact: true }),
   ).toBeVisible();
@@ -1069,6 +1161,10 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
     'Konzertabend',
   );
   await page.context().setOffline(false);
+  await expect(page.locator('.momente-discover-page')).toHaveAttribute(
+    'aria-busy',
+    'false',
+  );
   await page.route(`**/api/v1/spaces/${SPACE_ID}/discover/renew`, (route) =>
     route.fulfill({
       status: 404,
@@ -1080,9 +1176,26 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
       }),
     }),
   );
-  await page
-    .getByRole('button', { name: de.story.discoverRenew, exact: true })
-    .click();
+  await pullDiscover(page);
   await expect(page.locator('.momente-hero-highlight')).toHaveCount(0);
   await expect(page.locator('.momente-tapestry-item')).toHaveCount(0);
 });
+
+/** Exercise the shared touch primitive, including pending duplicate gestures. */
+async function pullDiscover(page: Page) {
+  await page.evaluate(() => {
+    const target = document.querySelector('.story-page');
+    if (!target) throw new Error('Discover surface unavailable');
+    for (const [type, y] of [
+      ['touchstart', 40],
+      ['touchmove', 200],
+      ['touchend', null],
+    ] as const) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'touches', {
+        value: y === null ? [] : [{ clientX: 10, clientY: y }],
+      });
+      target.dispatchEvent(event);
+    }
+  });
+}

@@ -4,8 +4,7 @@ const experiences = {
     'Mit der Leertaste aufnehmen, mit den Pfeiltasten verschieben und mit der Leertaste ablegen. Escape bricht ab.',
   dragStarted: 'Medium aufgenommen.',
   dragCancelled: 'Verschieben abgebrochen.',
-  dragFinished:
-    'Medium abgelegt. Fertig übernimmt die Reihenfolge in deinen Entwurf.',
+  dragFinished: 'Reihenfolge im Entwurf geändert.',
   arrangeHelp:
     'Halte den Griff gedrückt und ziehe das Medium. Oder wähle es aus und verschiebe es mit den Tasten.',
   finish: 'Fertig',
@@ -20,7 +19,7 @@ const experiences = {
   automaticCover: 'Automatisch das erste Medium',
   coverHelp:
     'Das Titelbild bleibt beim Verschieben erhalten. Ohne Auswahl wird das erste Medium angezeigt.',
-  through: 'Bis einschließlich',
+  through: 'Bis',
   addPeriod: 'Zeitraum hinzufügen',
   removePeriod: 'Nur einen Tag merken',
   invalidPeriod: 'Das Ende muss am selben Tag oder nach dem Beginn liegen.',

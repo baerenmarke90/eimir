@@ -9,6 +9,10 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import {
+  dragDraftMedia,
+  expectInlineDraftActions,
+} from '../support/mediaDraft';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 /** #1618: strict mocked API journeys and actual browser/visual evidence.
@@ -25,7 +29,7 @@ const EVIDENCE_DIR = path.join(
   '..',
   '..',
   '..',
-  'docs/product/design/references/1618-memory-experiences/evidence',
+  'docs/product/design/references/moment-media-controls/evidence',
 );
 const CABIN_FIXTURE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -348,12 +352,9 @@ for (const [width, colorScheme] of [
     await page.getByRole('button', { name: experiences.addPeriod }).click();
     await page.getByLabel(experiences.through).fill('2027-01-03');
     // The native date editor keeps calendar dates rather than timezone instants.
-    await page
-      .getByRole('button', { name: de.memory.dateChangeAction })
-      .click();
     await page.locator('#happenedOn').fill('2026-12-31');
     await page.getByRole('button', { name: photoSources.addMedia }).click();
-    const input = page.locator('dialog[open] input[type="file"]');
+    const input = page.locator('#memory-create-images');
     await expect(input).toBeAttached();
     await expect(input).toBeEnabled();
     await input.setInputFiles(
@@ -371,64 +372,103 @@ for (const [width, colorScheme] of [
       })),
     );
     const gallery = page.locator('.photo-draft-gallery');
-    await expect(gallery.locator('.attachment-status-ready')).toBeVisible();
-    await gallery
-      .getByRole('button', { name: /second.jpg/, pressed: false })
-      .click();
-    await gallery
+    const visibleCount = width === 390 && colorScheme === 'dark' ? 6 : 3;
+    await expect(
+      gallery.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(visibleCount);
+    await gallery.locator('.photo-draft-tile').nth(1).click();
+    const actions = page.getByRole('group', {
+      name: de.memory.photoSelected,
+      exact: true,
+    });
+    await actions
       .getByRole('button', { name: experiences.chooseCover })
       .click();
-    await gallery.getByRole('button', { name: experiences.arrange }).click();
-    const task = page.getByRole('dialog', { name: experiences.arrange });
+    await expectInlineDraftActions(page);
     if (width === 390 && colorScheme === 'light') {
-      const handle = task.getByRole('button', {
-        name: 'first.jpg verschieben',
-        exact: true,
+      // A quick swipe on the photo scrolls before the hold-to-drag activates.
+      await page.setViewportSize({ width, height: 600 });
+      const session = await page.context().newCDPSession(page);
+      await session.send('Emulation.setTouchEmulationEnabled', {
+        enabled: true,
       });
-      const start = await handle.boundingBox();
-      const end = await task.locator('.photo-draft-tile').nth(2).boundingBox();
-      if (!start || !end)
-        throw new Error('Arrange gesture targets are missing');
-      await page.mouse.move(
-        start.x + start.width / 2,
-        start.y + start.height / 2,
-      );
-      await page.mouse.down();
-      await expect(handle).toHaveAttribute('aria-grabbed', 'true');
-      await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, {
-        steps: 12,
+      await gallery
+        .locator('.photo-draft-tile')
+        .first()
+        .scrollIntoViewIfNeeded();
+      const frame = await gallery
+        .locator('.photo-draft-tile')
+        .first()
+        .boundingBox();
+      if (!frame) throw new Error('Missing photo scroll geometry');
+      const scrollBefore = await page.evaluate(() => window.scrollY);
+      const point = {
+        x: frame.x + frame.width / 2,
+        y: frame.y + frame.height / 2,
+      };
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [point],
       });
-      await page.mouse.up();
-      await expect(task.locator('.photo-draft-tile').last()).toHaveAttribute(
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ ...point, y: point.y + 60 }],
+      });
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+      await expect
+        .poll(() => page.evaluate(() => window.scrollY))
+        .toBeLessThan(scrollBefore);
+      await session.detach();
+      await page.setViewportSize({ width, height: 900 });
+      await expect(
+        gallery.locator('.photo-draft-tile').first(),
+      ).toHaveAttribute('aria-label', /first.jpg/);
+      await dragDraftMedia(page, 0, 2);
+      await expect(gallery.locator('.photo-draft-tile').last()).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      await handle.focus();
-      await page.keyboard.press('Space');
-      await page.keyboard.press('ArrowLeft');
-      await page.keyboard.press('Space');
-      await expect(task.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
+      await dragDraftMedia(page, 2, 1, 'touch');
+      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      await task
-        .getByRole('button', { name: experiences.cancel, exact: true })
-        .click();
-      await expect(task).toBeHidden();
-      await gallery.getByRole('button', { name: experiences.arrange }).click();
+      await dragDraftMedia(page, 1, 0, 'touch', true);
+      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
+        'aria-label',
+        /first.jpg/,
+      );
+      await dragDraftMedia(page, 1, 0, 'touch');
+      await expect(
+        gallery.locator('.photo-draft-tile').first(),
+      ).toHaveAttribute('aria-label', /first.jpg/);
     }
-    await task
-      .getByRole('button', { name: /^Foto .*third.jpg/, pressed: false })
-      .click();
-    await task
-      .getByRole('button', { name: experiences.first, exact: true })
-      .click();
+    await dragDraftMedia(page, 2, 0);
+    await expectInlineDraftActions(page);
+    await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
+      'aria-label',
+      /third.jpg/,
+    );
+    await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const selectedColor = await gallery
+      .locator('.photo-draft-tile')
+      .first()
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    const otherColor = await gallery
+      .locator('.photo-draft-tile')
+      .nth(1)
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    expect(selectedColor).not.toBe(otherColor);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, `arrange-${width}-${colorScheme}.png`),
     });
-    await task.getByRole('button', { name: experiences.finish }).click();
-    await expect(task).toBeHidden();
     await expect(gallery.locator('.photo-draft-number').first()).toHaveText(
       '1',
     );

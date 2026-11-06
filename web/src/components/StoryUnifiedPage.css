@@ -165,7 +165,7 @@
 
 .story-page.story-page-unified .momente-tapestry {
   display: grid;
-  align-items: start;
+  align-items: stretch;
   grid-template-columns: repeat(
       auto-fill,
       minmax(min(100%, max(8rem, calc((100% - var(--space-3)) / 2))), 1fr)
@@ -412,7 +412,8 @@
 .momente-tapestry[data-discover-measured] > * {
   grid-row-end: span var(--discover-rows, 1);
 }
-.story-page-unified [data-discover-wide="true"] {
+.story-page-unified [data-discover-wide="true"],
+.story-page-unified [data-discover-fill-row="true"] {
   grid-column: 1 / -1;
 }
 .story-page-unified .momente-tapestry-quote {
@@ -468,7 +469,29 @@
   aspect-ratio: 16 / 10;
 }
 .story-page-unified
+  .momente-tapestry-media[data-discover-fill-row="true"]
+  .momente-tapestry-media-frame {
+  aspect-ratio: 16 / 10;
+}
+.story-page-unified
   .momente-tapestry-media[data-discover-wide="true"]
   .momente-tapestry-title {
   font: var(--font-content-heading);
+}
+
+/* Paired cards share row bounds; photos retain their own aspect ratio while
+   text can use the remaining reading space. */
+.story-page-unified .momente-tapestry-media,
+.story-page-unified .momente-tapestry-note,
+.story-page-unified .momente-tapestry-text {
+  display: flex;
+  flex-direction: column;
+}
+.story-page-unified .momente-tapestry-media-frame {
+  flex: 0 0 auto;
+}
+.story-page-unified .momente-tapestry-note .momente-tapestry-body,
+.story-page-unified .momente-tapestry-text .momente-tapestry-body {
+  flex: 1;
+  justify-content: center;
 }

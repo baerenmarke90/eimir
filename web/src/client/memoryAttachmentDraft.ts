@@ -11,9 +11,11 @@ import {
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
 
-export type DraftUploadPhase = 'uploading' | 'validating';
+export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
 
+/** Uploaded and bindable; submitted video output is still server-owned. */
 export interface ReadyDraftAttachment {
+  processing?: boolean;
   attachmentId: string;
   hasThumbnail?: boolean;
   durationSeconds?: number | null;
@@ -48,7 +50,8 @@ export async function uploadMemoryDraftAttachment(
   const video = file.type === 'video/mp4' || file.type === 'video/quicktime';
   if (!video && file.type.startsWith('video/'))
     throw new ReferenceFlowError(i18n.t('video.unsupported'));
-  if (!video && !file.type.startsWith('image/'))
+  const audio = file.type.startsWith('audio/');
+  if (!video && !audio && !file.type.startsWith('image/'))
     throw new ReferenceFlowError(i18n.t('flow.imageOnly'));
   if (video && file.size > 250 * 1024 * 1024)
     throw new ReferenceFlowError(i18n.t('video.tooLarge'));
@@ -60,15 +63,21 @@ export async function uploadMemoryDraftAttachment(
   let createdAttachment: { id: string; version: number } | null = null;
   try {
     throwIfAborted(options.signal);
+    const uploadFile = file;
     onPhase?.('uploading');
     const upload = await apis.attachments.createAttachmentUpload({
       spaceId,
       attachmentUploadCreate: {
-        expectedMimeType: file.type,
-        expectedSize: file.size,
-        mediaType: video ? MediaType.VIDEO : MediaType.IMAGE,
-        originalName: file.name,
-        preserveMetadata: video ? false : (options.preserveMetadata ?? false),
+        expectedMimeType: uploadFile.type,
+        expectedSize: uploadFile.size,
+        mediaType: audio
+          ? MediaType.AUDIO
+          : video
+            ? MediaType.VIDEO
+            : MediaType.IMAGE,
+        originalName: uploadFile.name,
+        preserveMetadata:
+          video || audio ? false : (options.preserveMetadata ?? false),
       },
     });
     createdAttachment = {
@@ -80,17 +89,24 @@ export async function uploadMemoryDraftAttachment(
       apiBaseUrl,
       accessToken,
       upload,
-      file,
+      uploadFile,
       options,
       fetchApi,
     );
     throwIfAborted(options.signal);
     onPhase?.('validating');
-    await apis.attachments.finalizeAttachmentUpload({
+    const finalized = await apis.attachments.finalizeAttachmentUpload({
       spaceId,
       attachmentId: upload.attachment.id,
       body: {},
     });
+    if (video)
+      return {
+        attachmentId: upload.attachment.id,
+        processing: finalized.status !== 'READY',
+        hasThumbnail: finalized.status === 'READY' && finalized.hasThumbnail,
+        durationSeconds: finalized.durationSeconds,
+      };
     const ready = await waitUntilAttachmentReady(
       apis,
       spaceId,
@@ -98,13 +114,10 @@ export async function uploadMemoryDraftAttachment(
       options.signal,
     );
 
-    return video
-      ? {
-          attachmentId: upload.attachment.id,
-          hasThumbnail: ready.hasThumbnail,
-          durationSeconds: ready.durationSeconds,
-        }
-      : { attachmentId: upload.attachment.id };
+    return {
+      attachmentId: upload.attachment.id,
+      ...(audio ? { durationSeconds: ready.durationSeconds } : {}),
+    };
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (createdAttachment) {

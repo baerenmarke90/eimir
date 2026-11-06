@@ -1,6 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import legal from '../../src/i18n/locales/legal';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { termsOfUseDe } from '../../src/i18n/locales/legalDocuments/termsOfUse.de.generated';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -37,6 +40,216 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
+
+const CLOUD_STATUS_WITH_TERMS = {
+  maintenanceMode: false,
+  registrationAvailable: true,
+  accountCreation: 'self_service',
+  selfServiceSignupAvailable: true,
+  termsOfUseVersion: termsOfUseDe.version,
+  auth: { localPassword: false, magicLink: true, oidc: false, passkey: false },
+};
+const ACCEPTANCE_LABEL = legal.accept.replace(/<\/?termsLink>/g, '');
+
+test.describe('Terms of use at Cloud signup', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install({ time: new Date(TEST_NOW) });
+  });
+
+  test('requires the acceptance and keeps the typed address while the terms are read', async ({
+    page,
+  }) => {
+    const signupBodies: unknown[] = [];
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
+      const request = route.request();
+      const pathname = new URL(request.url()).pathname;
+      if (
+        request.method() === 'GET' &&
+        pathname === '/api/v1/instance/status'
+      ) {
+        await route.fulfill({ json: CLOUD_STATUS_WITH_TERMS });
+        return;
+      }
+      if (
+        request.method() === 'POST' &&
+        pathname === '/api/v1/auth/signup/request'
+      ) {
+        signupBodies.push(request.postDataJSON());
+        await route.fulfill({ status: 202 });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page
+      .getByRole('group', { name: de.identity.entryModesAria })
+      .getByRole('button', { name: de.identity.startTogether })
+      .click();
+    await page.getByLabel(de.login.email).fill('couple@example.org');
+    const form = page.locator('form');
+    const acceptance = form.getByRole('checkbox', { name: ACCEPTANCE_LABEL });
+    const submit = form.getByRole('button', {
+      name: de.identity.startTogetherSubmit,
+    });
+
+    await submit.click();
+    await expect(acceptance).toBeFocused();
+    expect(signupBodies).toEqual([]);
+
+    await form.getByRole('link', { name: legal.termsLink }).click();
+    const sheet = page.getByRole('dialog', { name: legal.termsSheetTitle });
+    await expect(sheet).toBeVisible();
+    await expect(
+      sheet.getByRole('heading', { name: '§ 1 Geltungsbereich' }),
+    ).toBeVisible();
+    await expectNoWcagViolations(page);
+    await sheet.getByRole('button', { name: legal.sheetClose }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.getByLabel(de.login.email)).toHaveValue(
+      'couple@example.org',
+    );
+    await expect(acceptance).not.toBeChecked();
+
+    await acceptance.check();
+    await submit.click();
+    await expect(page.getByText(de.identity.mailRequestedTitle)).toBeVisible();
+    expect(signupBodies).toEqual([
+      {
+        email: 'couple@example.org',
+        acceptedTermsVersion: termsOfUseDe.version,
+      },
+    ]);
+    for (const width of [360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  test('the public terms page needs no account and returns to the entry', async ({
+    page,
+  }) => {
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname === '/api/v1/instance/status') {
+        await route.fulfill({ json: CLOUD_STATUS_WITH_TERMS });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/legal/terms');
+    await expect(
+      page.getByRole('heading', { level: 1, name: termsOfUseDe.title }),
+    ).toBeVisible();
+    await expect(page.getByText(legal.draftBadge)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 2, name: '§ 18 Schlussbestimmungen' }),
+    ).toBeAttached();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expectNoWcagViolations(page);
+
+    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole('group', { name: de.identity.entryModesAria }),
+    ).toBeVisible();
+  });
+
+  test('an opened link that would create an account asks for the terms first', async ({
+    page,
+  }) => {
+    const consumeBodies: Record<string, unknown>[] = [];
+    await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
+      const request = route.request();
+      const method = request.method();
+      const pathname = new URL(request.url()).pathname;
+      if (method === 'GET' && pathname === '/api/v1/instance/status') {
+        await route.fulfill({ json: CLOUD_STATUS_WITH_TERMS });
+        return;
+      }
+      if (method === 'POST' && pathname === '/api/v1/auth/signup/consume') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        consumeBodies.push(body);
+        if (!body.acceptedTermsVersion) {
+          await route.fulfill({
+            status: 409,
+            json: {
+              type: 'conflict',
+              title: 'Conflict',
+              status: 409,
+              detail: 'Terms acceptance required.',
+              code: 'TERMS_ACCEPTANCE_REQUIRED',
+            },
+          });
+          return;
+        }
+        await route.fulfill({
+          json: {
+            account: { id: ACCOUNT_ID, displayName: 'Lea' },
+            tokens: {
+              accessToken: 'session-access-token',
+              refreshToken: 'session-refresh-token',
+              accessExpiresAt: '2026-09-01T12:00:00Z',
+              refreshExpiresAt: '2026-09-08T12:00:00Z',
+            },
+            accountCreated: true,
+          },
+        });
+        return;
+      }
+      if (method === 'GET' && pathname === '/api/v1/auth/me') {
+        await route.fulfill({ json: { id: ACCOUNT_ID, displayName: 'Lea' } });
+        return;
+      }
+      if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
+        await route.fulfill({ json: { serverAdmin: false } });
+        return;
+      }
+      if (
+        method === 'GET' &&
+        (pathname === '/api/v1/auth/memberships' ||
+          pathname === '/api/v1/spaces')
+      ) {
+        await route.fulfill({ json: [] });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/auth/signup?token=sign-in-form-proof');
+    await expect(page).not.toHaveURL(/sign-in-form-proof/);
+    await expect(
+      page.getByRole('heading', { name: legal.pendingTitle }),
+    ).toBeVisible();
+    await expect(page.getByText(de.identity.signupFailedTitle)).toHaveCount(0);
+    await expectNoWcagViolations(page);
+
+    await page.getByRole('checkbox', { name: ACCEPTANCE_LABEL }).check();
+    await page.getByRole('button', { name: legal.createAccount }).click();
+
+    await expect(
+      page.getByRole('heading', {
+        name: de.spaceContext.createFirstSpaceTitle,
+      }),
+    ).toBeVisible();
+    expect(consumeBodies.map((body) => body.acceptedTermsVersion)).toEqual([
+      undefined,
+      termsOfUseDe.version,
+    ]);
+    expect(
+      consumeBodies.every((body) => body.token === 'sign-in-form-proof'),
+    ).toBe(true);
+  });
+});
 
 test.describe('Cloud Onboarding Entry Flow (#622)', () => {
   test.beforeEach(async ({ page }) => {

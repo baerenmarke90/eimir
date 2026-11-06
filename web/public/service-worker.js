@@ -1,11 +1,12 @@
 const CACHE_PREFIX = 'eimir-pwa-';
-const SHELL_CACHE = `${CACHE_PREFIX}shell-v2`;
-const STATIC_CACHE = `${CACHE_PREFIX}static-v2`;
+const SHELL_CACHE = `${CACHE_PREFIX}shell-v3`;
+const STATIC_CACHE = `${CACHE_PREFIX}static-v3`;
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
   OFFLINE_URL,
   '/offline.css',
+  '/offline-language.js',
   '/manifest.webmanifest',
   '/identity/app-icon-light.png',
   '/identity/app-icon-dark.png',

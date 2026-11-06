@@ -152,12 +152,12 @@ describe('usePullToRefresh', () => {
     expect(onRefresh).not.toHaveBeenCalled();
   });
 
-  it('ignores gestures that begin on interactive or modal content', () => {
+  it('ignores gestures that begin on form controls', () => {
     const onRefresh = vi.fn();
     renderHook(() =>
       usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
     );
-    const button = document.createElement('button');
+    const button = document.createElement('input');
     document.body.append(button);
 
     act(() => {
@@ -182,5 +182,64 @@ describe('usePullToRefresh', () => {
       dispatchTouch('touchend');
     });
     expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  it.each(['a', 'button'])(
+    'refreshes from a content %s without activating it and keeps ordinary taps working',
+    async (tag) => {
+      const refresh = vi.fn().mockResolvedValue(undefined);
+      const activate = vi.fn();
+      const target = document.createElement(tag);
+      document.body.append(target);
+      target.addEventListener('click', activate);
+      renderHook(() =>
+        usePullToRefresh({ enabled: true, blocked: false, onRefresh: refresh }),
+      );
+      await act(async () => {
+        dispatchTouch('touchstart', 100, 100, target);
+        dispatchTouch('touchmove', 200, 100, target);
+        dispatchTouch('touchend', undefined, 100, target);
+      });
+      const trailingClick = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        detail: 1,
+      });
+      target.dispatchEvent(trailingClick);
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(trailingClick.defaultPrevented).toBe(true);
+      expect(activate).not.toHaveBeenCalled();
+      act(() => {
+        dispatchTouch('touchstart', 100, 100, target);
+        dispatchTouch('touchend', undefined, 100, target);
+      });
+      target.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, detail: 1 }),
+      );
+      expect(activate).toHaveBeenCalledTimes(1);
+      target.remove();
+    },
+  );
+
+  it.each([
+    '<form><button>Save</button></form>',
+    '<div class="leaflet-container"><button>Map</button></div>',
+    '<section role="dialog" aria-modal="true"><button>Pick</button></section>',
+  ])('leaves owned gestures alone: %s', (html) => {
+    const refresh = vi.fn();
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    document.body.append(wrapper);
+    const target = wrapper.querySelector('button')!;
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh: refresh }),
+    );
+    act(() => {
+      dispatchTouch('touchstart', 100, 100, target);
+      dispatchTouch('touchmove', 200, 100, target);
+      dispatchTouch('touchend', undefined, 100, target);
+    });
+    expect(refresh).not.toHaveBeenCalled();
+    wrapper.remove();
   });
 });

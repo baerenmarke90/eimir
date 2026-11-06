@@ -1,6 +1,13 @@
 import '../i18n';
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StoryItem } from '../api/generated/models/StoryItem';
@@ -166,6 +173,95 @@ describe('StoryList card hierarchy (#969)', () => {
     ).getAttribute('aria-describedby');
     expect(heartFooterId).not.toBe(footerId);
   });
+
+  it('moves happiness identity onto its chronology node while retaining both authored answers', () => {
+    if (memory.kind !== 'MEMORY') throw new Error('Expected a Memory fixture');
+    const happiness: StoryItem = {
+      ...memory,
+      memory: {
+        ...memory.memory,
+        attachments: [],
+        experienceKind: 'HAPPINESS',
+        experienceAnswers: [
+          {
+            id: 'answer-1',
+            author,
+            body: 'Our coffee together.',
+            version: 1,
+            capabilities,
+            attachments: [],
+          },
+          {
+            id: 'answer-2',
+            author: { id: 'author-2', displayName: 'Sam' },
+            body: 'Your smile this morning.',
+            version: 1,
+            capabilities,
+            attachments: [],
+          },
+        ],
+      },
+    };
+    const { container } = renderList([happiness]);
+    const card = cardFor(
+      `${i18n.t('coupleExperiences.sharedHappiness')}: Evening at the lake`,
+    );
+    expect(
+      container.querySelector('.story-timeline-marker .eimir-icon-highlights'),
+    ).not.toBeNull();
+    expect(card.querySelector('.experience-shared-label')).toBeNull();
+    expect(card.querySelector('.eimir-icon-highlights')).toBeNull();
+    expect(within(card).getByText('Our coffee together.')).toBeDefined();
+    expect(within(card).getByText('Your smile this morning.')).toBeDefined();
+    expect(within(card).getByText(author.displayName)).toBeDefined();
+    expect(within(card).getByText('Sam')).toBeDefined();
+    expect(card.getAttribute('href')).toBe('/story/memories/memory-1');
+  });
+
+  it.each(['MEMORY', 'HEART_MOMENT'] as const)(
+    'keeps a sensitive %s preview concealed with a direct detail link and no reveal action',
+    async (kind) => {
+      const item = kind === 'MEMORY' ? memory : heartMoment;
+      const attachment = { ...image('sensitive-photo'), isSensitive: true };
+      const sensitive =
+        item.kind === 'MEMORY'
+          ? { ...item, memory: { ...item.memory, attachments: [attachment] } }
+          : item.kind === 'HEART_MOMENT'
+            ? { ...item, heartMoment: { ...item.heartMoment, attachment } }
+            : item;
+      const { container } = render(
+        <MemoryRouter>
+          <StoryList
+            items={[sensitive as StoryItem]}
+            loadMemoryImage={async () => 'blob:sensitive-preview'}
+            loadHeartMomentImage={async () => 'blob:sensitive-preview'}
+          />
+        </MemoryRouter>,
+      );
+      await waitFor(() =>
+        expect(
+          container.querySelector('.sensitive-media-blurred img'),
+        ).not.toBeNull(),
+      );
+      expect(screen.queryByRole('button')).toBeNull();
+      const preview = container.querySelector('.sensitive-media-preview');
+      if (!preview) throw new Error('Expected a sensitive preview');
+      expect(within(preview as HTMLElement).queryByRole('img')).toBeNull();
+      expect(screen.getByText(i18n.t('sensitiveMedia.label'))).toBeDefined();
+      const card = screen.getByRole('link');
+      expect(
+        card.contains(container.querySelector('.sensitive-media-cover')),
+      ).toBe(true);
+      fireEvent.mouseEnter(card);
+      fireEvent.focus(card);
+      expect(container.querySelector('.sensitive-media-cover')).not.toBeNull();
+      expect(card.getAttribute('href')).toBe(
+        kind === 'MEMORY'
+          ? '/story/memories/memory-1'
+          : '/story/heart-moments/heart-1',
+      );
+    },
+  );
 
   it('shows photo count and shared visibility as named icon metadata', () => {
     renderList([memory, heartMoment, milestone]);

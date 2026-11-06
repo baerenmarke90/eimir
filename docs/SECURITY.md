@@ -644,7 +644,9 @@ required by the current Vite build:
 | `img-src` | `'self' blob: https://tile.openstreetmap.org` | local assets, authorized image bytes through short-lived object URLs and deliberately loaded OSM raster map tiles |
 | `connect-src` | `'self'` plus explicit hosting origins | API plus direct presigned uploads/reads through `fetch()` |
 | `font-src` | `'self'` | no external font CDNs |
-| `object-src`, `frame-src`, `media-src`, `manifest-src`, `worker-src` | `'none'` | no currently approved domain requirement; video remains fail-closed |
+| `media-src` | `'self'` plus explicit hosting origins | deliberate authorized video playback from the API/media store |
+| `worker-src` | `'self'` | bundled local video compression worker; no remote or blob workers |
+| `object-src`, `frame-src`, `manifest-src` | `'none'` | no approved domain requirement |
 | `base-uri` / `frame-ancestors` | `'none'` | no base-URL rewriting and no framing |
 | `form-action` | `'self'` | forms may navigate only to the same origin |
 
@@ -769,7 +771,7 @@ encryption: the running application holds the keys and can read the content.
 
 ## End-to-end encryption
 
-**Not yet implemented.** The architecture is prepared for it; see
+**Product-wide E2EE is not yet implemented.** The architecture is prepared for it; see
 [ARCHITECTURE.md](ARCHITECTURE.md). The proposed MX design (a concept for review, not an
 implementation) is [mx/E2EE-CONCEPT.md](mx/E2EE-CONCEPT.md).
 
@@ -781,9 +783,25 @@ Sensitive domain content is bound as a concrete `ProtectedPayload` class to a
 designated JSONB column; raw dictionaries are rejected. With `crypto_version = 2`
 the column holds application-encrypted ciphertext; `crypto_version = 0` is legacy
 plaintext that `required` mode rejects. In both cases the server can read the
-content: there is no client-side sealing and no protection from the server operator.
+content. Core records have no client-side sealing and no protection from the server operator.
 Application-controlled encryption at rest protects a stolen database dump, replica,
 or bucket, not a compromised or malicious operator.
+
+One-time partner messages (#1672) are a separate optional, client-sealed domain:
+standard JWE ciphertext is encrypted on the sender's device for the explicitly
+registered public keys of the recipient. Private keys stay on recipient devices.
+This recipient-only temporary domain uses the shared tenant guard plus an explicit
+current-membership/consent/expiry predicate; ordinary durable owner reads cannot
+represent a single claim. Metadata GETs never return the envelope.
+The server-side ProtectedPayload wrapper may add encryption at rest around that
+opaque JWE; it does not give the server the message decryption key. See the
+[threat model and lifetime contract](product/once-messages.md). The authenticated
+public-key directory and delivered client code remain trusted, and there is no
+device verification, forward secrecy, recovery or external audit. This does not
+upgrade Core encryption or authorize a product-wide E2EE marketing claim.
+Official database dumps omit temporary messages and recipient-device registration
+rows so restore does not replay pending content. External infrastructure snapshots
+may retain opaque envelopes until their normal retention expires.
 
 Outbox payloads are separately restricted to explicitly allowed,
 non-sensitive metadata. Free-text fields and `ProtectedPayload` objects are

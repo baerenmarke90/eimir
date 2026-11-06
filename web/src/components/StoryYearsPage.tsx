@@ -1,7 +1,9 @@
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
+import { AutoLoadMore } from './AutoLoadMore';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { StoryOrder } from '../api/generated/models/StoryOrder';
@@ -16,11 +18,7 @@ import {
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
-import {
-  appRoutePath,
-  STORY_YEARS_ROUTE,
-  storyYearPath,
-} from '../client/routes';
+import { storyYearPath } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
@@ -31,12 +29,16 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
-import { StoryList } from './StoryList';
-import { groupStoryItems } from './storyPresentation';
+import { DiaryList } from './DiaryList';
+import { groupDiaryEntries } from '../client/diaryEntries';
+import { storyItemKey } from '../client/storyProduct';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { UiState } from './UiState';
+import { TaskOriginLink } from './TodayDestinationLink';
 import './StoryYearsPage.css';
 
-const INDEX_RESOURCE_ID = 'years:index';
+const INDEX_RESOURCE_ID = 'years:diary-v2';
 const MIN_YEAR = 1900;
 const MAX_YEAR = 2100;
 
@@ -70,9 +72,6 @@ function EmptyYearsState() {
     >
       <h2 id="story-years-empty-title">{t('storyYears.emptyTitle')}</h2>
       <p>{t('storyYears.emptyBody')}</p>
-      <Link className="button-link secondary-link" to={appRoutePath('story')}>
-        {t('storyYears.backToMoments')}
-      </Link>
     </section>
   );
 }
@@ -99,6 +98,7 @@ export function StoryYearsIndexPage({
             spaceId,
             order: StoryOrder.DESC,
             limit: 1,
+            includeChapters: true,
           }),
         serialize: StoryPageToJSON,
         deserialize: StoryPageFromJSON,
@@ -151,10 +151,10 @@ export function StoryYearsIndexPage({
             const isCurrent = year === currentYear;
             return (
               <li key={year}>
-                <Link
+                <TaskOriginLink
                   to={storyYearPath(year)}
                   className={`story-year-link ${isCurrent ? 'is-current' : ''}`}
-                  aria-label={t('storyYears.openYear', { year })}
+                  ariaLabel={t('storyYears.openYear', { year })}
                 >
                   <span className="story-year-number">{year}</span>
                   <span className="story-year-copy">
@@ -169,7 +169,7 @@ export function StoryYearsIndexPage({
                         : t('storyYears.pastYearHint')}
                     </span>
                   </span>
-                </Link>
+                </TaskOriginLink>
               </li>
             );
           })}
@@ -188,6 +188,8 @@ export function StoryYearDetailPage({
 }: StoryYearsProps) {
   const { t } = useTranslation();
   const { year: yearParam } = useParams<{ year: string }>();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const year = parseYear(yearParam);
   const currentYear = new Date().getFullYear();
   const filters = useMemo<StoryFilters>(
@@ -285,12 +287,35 @@ export function StoryYearDetailPage({
     [apis, spaceId],
   );
 
+  useTaskListReturn({
+    ready: Boolean(combinedStory),
+    busy: storyQuery.isFetching,
+    loadedPageCount: storyQuery.data?.pages.length ?? 1,
+    canLoadMore:
+      Boolean(storyQuery.hasNextPage) && !storyQuery.isError && !offline,
+    loadMore: storyQuery.fetchNextPage,
+  });
   const items = useMemo(() => combinedStory?.items ?? [], [combinedStory]);
   const locale = resolvedLocale();
   const monthGroups = useMemo(
-    () => groupStoryItems(items, locale),
-    [items, locale],
+    () =>
+      groupDiaryEntries(
+        items,
+        combinedStory?.chapterMarkers ?? [],
+        locale,
+        combinedStory?.chapterPeriods ?? [],
+        year,
+      ),
+    [
+      items,
+      combinedStory?.chapterMarkers,
+      combinedStory?.chapterPeriods,
+      locale,
+      year,
+    ],
   );
+  const entryCount =
+    items.length + (combinedStory?.chapterMarkers?.length ?? 0);
   const availableYears = combinedStory?.availableYears ?? [];
   const isAvailable = year !== null && availableYears.includes(year);
   const title =
@@ -319,9 +344,6 @@ export function StoryYearDetailPage({
         >
           <h2 id="story-year-invalid-title">{t('storyYears.invalidTitle')}</h2>
           <p>{t('storyYears.invalidBody')}</p>
-          <Link className="button-link secondary-link" to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </Link>
         </section>
       ) : null}
 
@@ -340,7 +362,11 @@ export function StoryYearDetailPage({
         />
       ) : null}
 
-      {year !== null && combinedStory && !isAvailable && items.length === 0 ? (
+      {year !== null &&
+      combinedStory &&
+      !isAvailable &&
+      entryCount === 0 &&
+      monthGroups.length === 0 ? (
         <section
           className="story-years-empty"
           aria-labelledby="story-year-unavailable-title"
@@ -349,13 +375,10 @@ export function StoryYearDetailPage({
             {t('storyYears.unavailableTitle')}
           </h2>
           <p>{t('storyYears.unavailableBody', { year })}</p>
-          <Link className="button-link secondary-link" to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </Link>
         </section>
       ) : null}
 
-      {year !== null && items.length > 0 ? (
+      {year !== null && monthGroups.length > 0 ? (
         <div className="story-year-months">
           {monthGroups.map((group) => (
             <section
@@ -366,8 +389,51 @@ export function StoryYearDetailPage({
               <header className="story-year-month-header">
                 <h2 id={`story-year-month-${group.key}`}>{group.label}</h2>
               </header>
-              <StoryList
-                items={group.items}
+              <DiaryChapterPeriods
+                chapters={group.periods}
+                month={group.key}
+                loadedPageCount={storyQuery.data?.pages.length ?? 1}
+              />
+              <DiaryList
+                entries={group.entries}
+                onOpenChapter={(event, chapter, to) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  const taskOriginKey = captureOrigin({
+                    selectedKey: `chapter-${chapter.id}`,
+                    selectedOffset:
+                      event.currentTarget.getBoundingClientRect().top,
+                    loadedPageCount: storyQuery.data?.pages.length ?? 1,
+                  });
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(to, { state: { taskOriginKey } });
+                }}
+                onOpenItem={(event, item, to) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  const taskOriginKey = captureOrigin({
+                    selectedKey: storyItemKey(item),
+                    selectedOffset:
+                      event.currentTarget.getBoundingClientRect().top,
+                    loadedPageCount: storyQuery.data?.pages.length ?? 1,
+                  });
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(to, { state: { taskOriginKey } });
+                }}
                 loadMemoryImage={loadMemoryImage}
                 loadHeartMomentImage={loadHeartMomentImage}
                 profilesApi={profilesApi}
@@ -379,16 +445,15 @@ export function StoryYearDetailPage({
 
           {storyQuery.hasNextPage ? (
             <div className="story-year-pagination">
-              <button
-                type="button"
+              <AutoLoadMore
+                query={storyQuery}
                 className="secondary"
-                onClick={() => void storyQuery.fetchNextPage()}
-                disabled={storyQuery.isFetchingNextPage}
+                blocked={storyQuery.isFetchingNextPage}
               >
                 {storyQuery.isFetchingNextPage
                   ? t('storyYears.loadingMore')
                   : t('storyYears.loadMore')}
-              </button>
+              </AutoLoadMore>
             </div>
           ) : null}
         </div>

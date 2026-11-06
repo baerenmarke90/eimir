@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,7 +28,7 @@ const PHOTO = fs.readFileSync(
 );
 const PLACE_ID = '66666666-6666-4666-8666-666666666666';
 
-test('the visible address opens the pinned map directly and retains the saved moment', async ({
+test('the saved Place discloses its address, opens the pinned map and retains the moment', async ({
   page,
   context,
 }) => {
@@ -40,18 +41,28 @@ test('the visible address opens the pinned map directly and retains the saved mo
   const state = await installPhotoPlaces(page);
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  const address = page.getByRole('link', {
+  const place = page.getByRole('button', {
+    name: localeFixture.photoPlaces.resolvedName,
+    exact: true,
+  });
+  await expect(place).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: photoPlaceCopy.add }),
+  ).toHaveCount(0);
+  await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
+  await place.click();
+  const sheet = page.getByRole('dialog', {
+    name: localeFixture.photoPlaces.resolvedName,
+  });
+  await expect(sheet).toBeVisible();
+  const address = sheet.getByRole('link', {
     name: photoPlaceCopy.mapAddress.replace(
       '{{address}}',
       localeFixture.photoPlaces.resolvedAddress,
     ),
   });
   await expect(address).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: photoPlaceCopy.add }),
-  ).toHaveCount(0);
-  await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
   const popupPromise = page.waitForEvent('popup');
   await address.click();
   const popup = await popupPromise;
@@ -62,6 +73,9 @@ test('the visible address opens the pinned map directly and retains the saved mo
   expect(state.writes).toEqual([]);
   expect(state.unexpected).toEqual([]);
   await popup.close();
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await expect(place).toBeFocused();
 });
 
 test('a pending photo location becomes a readable address without another upload', async ({
@@ -72,6 +86,12 @@ test('a pending photo location becomes a readable address without another upload
   await page.goto('/story/memories/mem-canal');
   await expect(
     page.getByText(photoPlaceCopy.locationFallback, { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: photoPlaceCopy.locationFallback, exact: true })
+    .click();
+  await expect(
+    page.getByRole('dialog', { name: photoPlaceCopy.locationFallback }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', {
@@ -86,7 +106,7 @@ test('a pending photo location becomes a readable address without another upload
   );
   state.resolvePlace();
   await expect(
-    page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
+    page.getByRole('dialog', { name: localeFixture.photoPlaces.resolvedName }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', {
@@ -96,6 +116,13 @@ test('a pending photo location becomes a readable address without another upload
       ),
     }),
   ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('button', {
+      name: localeFixture.photoPlaces.resolvedName,
+      exact: true,
+    }),
+  ).toBeFocused();
   expect(state.writes).toEqual([]);
   expect(state.unexpected).toEqual([]);
 });
@@ -267,6 +294,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
   const writes: string[] = [];
   let memoryVersion = 1;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const req = route.request(),
       pathname = new URL(req.url()).pathname,
       method = req.method();

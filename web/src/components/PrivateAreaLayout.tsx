@@ -1,9 +1,11 @@
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
+  PRIVATE_PARTNER_NOTES_PATH,
 } from '../client/privateArea';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -53,6 +55,9 @@ export function PrivateAreaFrame({
           </NavLink>
           <NavLink to={PRIVATE_COLLECTIONS_PATH}>
             {t('privateArea.navigation.collections')}
+          </NavLink>
+          <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
+            {t('privateArea.partnerNotes.shortTitle')}
           </NavLink>
         </nav>
       ) : null}
@@ -114,22 +119,14 @@ export function PrivateAreaDetailBack({
   const { t } = useTranslation();
   const { origin, returnToOrigin } = usePrivateAreaTaskContext(fallbackPath);
   if (!origin) {
-    return (
-      <Link className="back-link" to={fallbackPath}>
-        {fallbackLabel}
-      </Link>
-    );
+    return <TaskBackLink to={fallbackPath}>{fallbackLabel}</TaskBackLink>;
   }
   return (
-    <button
-      type="button"
-      className="back-link tertiary"
-      onClick={returnToOrigin}
-    >
+    <TaskBackButton type="button" onClick={returnToOrigin}>
       {origin.to === '/search'
         ? t('privateArea.backToSearch')
         : t('privateArea.backToOrigin')}
-    </button>
+    </TaskBackButton>
   );
 }
 
@@ -225,28 +222,5 @@ export function DeleteConfirmation({
       )}
       {error ? <ProblemState error={error} /> : null}
     </section>
-  );
-}
-
-export function LoadMoreButton({
-  hasMore,
-  loading,
-  onLoadMore,
-}: {
-  hasMore: boolean;
-  loading: boolean;
-  onLoadMore: () => void;
-}) {
-  const { t } = useTranslation();
-  if (!hasMore) return null;
-  return (
-    <button
-      type="button"
-      className="secondary"
-      onClick={onLoadMore}
-      disabled={loading}
-    >
-      {loading ? t('privateArea.loadingMore') : t('privateArea.loadMore')}
-    </button>
   );
 }

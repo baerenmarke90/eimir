@@ -49,7 +49,7 @@ class ChapterStory:
 
     title: str
     description: str
-    start_days_ago: int
+    start_days_ago: int | None
     end_days_ago: int | None
     memory_keys: tuple[str, ...]
     place: DemoPlace | None = None
@@ -258,5 +258,21 @@ CHAPTERS: tuple[ChapterStory, ...] = (
         end_days_ago=5,
         memory_keys=("lake-walk", "picnic", "day-trip", "weekend-water", "rain-walk"),
         place="lake",
+    ),
+    ChapterStory(
+        title="Abende ohne Uhr",
+        description=(
+            "Kochen, einen Film aussuchen und einfach zusammen bleiben, ohne auf die Uhr zu sehen."
+        ),
+        start_days_ago=None,
+        end_days_ago=None,
+        memory_keys=("ravioli-evening", "movie-night"),
+    ),
+    ChapterStory(
+        title="Unser Anfang",
+        description="Die ersten gemeinsamen Abende, bevor aus zwei Wohnungen ein Zuhause wurde.",
+        start_days_ago=None,
+        end_days_ago=730,
+        memory_keys=("first-evening-together",),
     ),
 )

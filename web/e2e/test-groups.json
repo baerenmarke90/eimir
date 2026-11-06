@@ -12,6 +12,16 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "moments-local-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Feature-owned local Memory/HeartMoment/Milestone creation, actual save/result/filtered return, dirty exit, all Moments views, Core availability, dialog focus and responsive accessible composition."
+    },
+    "app-continuity-polish.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 8,
+      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention and persistent preview bytes across browser/native restoration."
+    },
     "media-url-continuity.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
@@ -52,7 +62,7 @@
     },
     "cloud-onboarding-entry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 14
     },
     "comments-offline-writes.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -100,12 +110,12 @@
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 30,
-      "reason": "Also protects bounded dense photo selection, exact persisted order and saved/new interleaving."
+      "reason": "Also protects bounded dense photo selection, exact persisted order and saved/new interleaving. Browser module probes share the application bundle graph and production singleton state."
     },
     "memory-diary-storage.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
-      "reason": "Real IndexedDB/File upgrade, scoped payload reads, metadata-only expiry/logout and rejected late-open connection ownership."
+      "reason": "Real IndexedDB/File upgrade, scoped payload reads, metadata-only expiry/logout and rejected late-open connection ownership. Browser module probes share the application bundle graph and production singleton state."
     },
     "memory-delete-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -291,7 +301,7 @@
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 19
+      "baselineTests": 20
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -324,11 +334,13 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 20,
+      "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
     "shared-photos.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3
+      "baselineTests": 3,
+      "reason": "Shared photo access, gallery navigation without duplicate controls, More origin return, cache ownership and responsive/accessibility evidence."
     },
     "app-icon-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -416,8 +428,8 @@
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
-      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled."
+      "baselineTests": 10,
+      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text. Direct media controls retain inline saved-video failure status and replacement."
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -432,12 +444,71 @@
     "memory-experiences.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
-      "reason": "Period/cover/order-save-return acceptance across Compact/Expanded, Light/Dark, 200% text, reduced motion, pointer/keyboard movement and Axe."
+      "reason": "Memory periods, independent direct cover controls and whole-photo mouse/touch sorting retain identity and draft cancellation through Save/result/return."
     },
     "shared-experience-answers.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
       "reason": "Shared response authorship, own-answer edit and return, comment chronology, mobile/Expanded Light/Dark and accessible reflow."
+    },
+    "chapter-experience.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Affected-feature acceptance for Chapter capture/read/edit/link/unlink, dated diary pagination and return; visual variants remain feature-scoped, never always-run core."
+    },
+    "device-review.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Device-review typed links, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded."
+    },
+    "subpage-navigation-context.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "reason": "Feature-owned secondary navigation, More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
+    },
+    "media-planning-corrections.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9,
+      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop and the real local video codec worker; broad theme/reflow variants do not expand the always-run core."
+    },
+    "planning-search-private-profile.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "Feature-owned complete scoped search, pagination failure/retry, Unicode matching, wishbook composition, return context, Plan place context and private navigation/More avatar evidence."
+    },
+    "mobile-diary-planning-media.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11,
+      "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, touch photo viewing and session-owned draft restoration."
+    },
+    "polish-people-photo-sources.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6,
+      "reason": "Feature-owned avatar source cancellation, single-image Pro import, explicit person persistence, accessibility and Compact/Expanded composition."
+    },
+    "polish-root-refresh.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Feature-owned real touch refresh from Momente and Planen content links without accidental navigation or duplicate reads."
+    },
+    "polish-sensitive-media.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Shared Memory photo classification persists for either active partner regardless of photo or parent authorship; retains versioned Save and reopen semantics with direct lock controls."
+    },
+    "multilingual-product.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
+    },
+    "heart-voice-notes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "HeartMoment-owned audio record/import/review/save/playback, permission/error recovery and accessible responsive reading."
+    },
+    "once-messages.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Actual browser JWE across two accounts/devices, deliberate single view, uncertain-send idempotency, ephemeral audio and clear-on-close with mobile/reflow/theme evidence."
     }
   }
 }

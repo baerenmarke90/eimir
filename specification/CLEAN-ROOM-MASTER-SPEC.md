@@ -749,6 +749,12 @@ The shared mobile arrangement subtask applies only to the parent draft until Sav
 HeartMoments use the same bounded 20-media/500 MiB gallery lifecycle while retaining owner-only privacy and backward-compatible primary attachment reads.
 Plans retain image-only galleries. Device photos and these authoring controls remain Core; existing video and external-source capabilities still apply.
 
+PO extension #1674 (2026-11-06): both active partners may mark and unmark
+sensitive photos already bound to a shared Memory. This metadata decision is
+independent of uploader/Memory authorship; it does not broaden removal, new
+binding, private HeartMoment or authored experience-answer rights. Versioned
+atomic writes and Space membership/tenant checks still apply.
+
 Authorship matters.
 
 Base rule:
@@ -758,6 +764,14 @@ The partner may read the shared Memory.
 ---
 
 # 15. Heart Moments
+
+PO extension #1671 (2026-11-06): one optional voice note per HeartMoment, up to
+180 seconds and 20 MiB input. Audio alone is valid. Reuse Attachment/MediaStore
+binding, parent privacy, deletion and transfer; validate decoded duration and
+normalize metadata-stripped audio in the restricted media role. Optional audio
+title and speaker name are protected authored payload, distinct from authorship.
+Recording/import is Free/Core and an operator media capability; existing reads
+and essential export do not depend on intake availability.
 
 HeartMoment:
 

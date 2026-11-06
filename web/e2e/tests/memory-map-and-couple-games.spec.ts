@@ -692,6 +692,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
                       id: incoming.id,
                       kind: incoming.experienceKind,
                       text: incoming.body,
+                      prompt: incoming.title,
                       authorId: incoming.authorId,
                       happenedOn: incoming.happenedOn,
                       createdAt: incoming.createdAt,
@@ -703,11 +704,19 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           return route.fallback();
         });
       }
+      // The authored contribution and viewer day belong to this fixed fixture.
+      // The invitation must be fresh here; expiry is covered separately.
+      await page.clock.install({ time: new Date('2026-11-01T10:00:00Z') });
       await installMocks(page);
       await installExperienceRoutes(page);
       await signIn(page);
-      const partnerContext = await browser.newContext();
+      const partnerContext = await browser.newContext({
+        serviceWorkers: 'block',
+      });
       const partnerPage = await partnerContext.newPage();
+      await partnerPage.clock.install({
+        time: new Date('2026-11-01T10:00:00Z'),
+      });
       await installMocks(partnerPage, { asPartner: true });
       await installExperienceRoutes(partnerPage, true);
       try {
@@ -841,6 +850,17 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
         const reveal = partnerPage.locator('.shared-experience-reveal');
         await expect(reveal.getByText(words, { exact: true })).toBeVisible();
+        await expect(
+          partnerPage.getByRole('heading', {
+            name: experienceCopy.incoming.from.replace('{{name}}', 'Lea'),
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(reveal.locator('.shared-experience-from')).toHaveText(
+          kind === 'happiness'
+            ? experienceCopy.incoming.happiness
+            : experienceCopy.incoming.timeTravel,
+        );
         await partnerPage.setViewportSize({ width, height: 900 });
         await partnerPage.emulateMedia({
           colorScheme: theme,
@@ -895,8 +915,8 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await partnerPage.goBack();
         await expect(partnerPage).toHaveURL(/\/today$/);
         await expect(
-          partnerPage.locator('.shared-experience-words'),
-        ).toHaveText(words);
+          partnerPage.locator('.shared-experience-reveal'),
+        ).toHaveCount(0);
       } finally {
         await partnerContext.close();
       }

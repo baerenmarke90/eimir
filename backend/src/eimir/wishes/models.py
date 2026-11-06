@@ -5,6 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import ClassVar
 
+from pydantic import Field
 from sqlalchemy import CheckConstraint, Index, SmallInteger, UniqueConstraint, text
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -15,6 +16,7 @@ from eimir.authorization import (
     ResourceAbsence,
     SharedWrite,
 )
+from eimir.core.context_tags import ContextTags
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
@@ -54,13 +56,14 @@ def wish_status_type() -> SqlEnum:
 class WishPayload(ProtectedPayload):
     """Protected content of a wish.
 
-    M3 wishes contain only a title, but it still lives behind the
-    ``ProtectedPayload`` boundary. Per M3-D13, wish titles belong neither in
+    Wish titles and authored context tags live behind the
+    ``ProtectedPayload`` boundary. Per M3-D13, authored content belongs neither in
     logs nor event payloads, and status, ordering, and authorization must not
     depend on their plaintext.
     """
 
     title: str
+    tags: ContextTags = Field(default_factory=list)
 
 
 class Wish(

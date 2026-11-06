@@ -193,7 +193,7 @@ def poll(
     return _view(row)
 
 
-@router.post(
+@router.get(
     "/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}",
     response_class=Response,
     operation_id="readSelectedPhoto",
@@ -205,6 +205,11 @@ def poll(
         },
         **problem_responses(401, 403, 404, 409, 429, 503),
     },
+)
+@router.post(
+    "/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}",
+    response_class=Response,
+    include_in_schema=False,
 )
 def read(
     authorization: Authorization,

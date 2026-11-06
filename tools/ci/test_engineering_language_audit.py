@@ -17,6 +17,8 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/capacitor-cordova-android-plugins/build.gradle",
             "web/e2e/fixtures/locales/de.ts",
             "web/src/api/generated/models/index.ts",
+            "web/public/offline-language.js",
+            "backend/src/eimir/i18n/locales/de.json",
         ):
             self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)
         for handwritten in (
@@ -26,6 +28,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             "android/app/src/main/res/values/strings.xml",
             "web/e2e/fixtures/product-reference-foundations.tsx",
             "web/e2e/tests/product-reference-foundations.spec.ts",
+            "backend/src/eimir/i18n/__init__.py",
+            "backend/src/eimir/i18n/locales/runtime.py",
+            "web/public/other-language.js",
         ):
             self.assertFalse(_is_excluded_platform_path(Path(handwritten)), handwritten)
 
@@ -81,6 +86,22 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         self,
     ) -> None:
         for suffix, product_copy in (
+            (
+                ".json",
+                '"de": "Dein Video konnte nicht verarbeitet werden."',
+            ),
+            (
+                ".xml",
+                '<string name="push_video_processing_failed">Dein Video konnte nicht verarbeitet werden.</string>',
+            ),
+            (
+                ".json",
+                '"de": "Alex hat „Unser Spaziergang“ kommentiert."',
+            ),
+            (
+                ".xml",
+                '<string name="push_gentle_writing">Wenn du magst: Halte einen Moment fest.</string>',
+            ),
             (
                 ".xml",
                 '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
@@ -231,6 +252,8 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
 
         for logical_path in (
+            Path("docs/product/design/1661-wir-wording-proposal.md"),
+            Path("docs/product/integrations/1467-google-enablement-design.md"),
             Path("docs/design/eimir/565-fcm/evidence/review-results.json"),
             Path("docs/design/eimir/565-fcm/evidence/accessibility-results.json"),
             Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"),

@@ -3,7 +3,6 @@ import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { DailyCheckInVisibilityMode } from '../api/generated/models/DailyCheckInVisibilityMode';
 import type { SpaceConfigurationUpdate } from '../api/generated/models/SpaceConfigurationUpdate';
 import {
-  dailyContextTimezoneOptions,
   dailyModuleToggleUpdate,
   spaceConfigurationQueryKey,
   spaceConfigurationQueryOptions,
@@ -182,11 +181,6 @@ export function SpaceConfigurationPanel({
       },
     },
   ];
-  const dailyContextTimezone = configuration.dailyContextTimezone;
-  const timezoneLocked =
-    configurationMutation.error instanceof ClientProblemError &&
-    configurationMutation.error.code ===
-      'SPACE_DAILY_CONTEXT_TIMEZONE_ACTIVE_CHECK_IN';
 
   return (
     <section
@@ -303,46 +297,6 @@ export function SpaceConfigurationPanel({
         })}
       </div>
 
-      {dailyContextTimezone ? (
-        <div className="space-timezone-row">
-          {canManage ? (
-            <>
-              <label htmlFor="space-daily-timezone">
-                {t('profileIdentity.dailyContextTimezoneLabel')}
-              </label>
-              <p id="space-daily-timezone-hint">
-                {t('profileIdentity.dailyContextTimezoneIntro')}
-              </p>
-              <select
-                id="space-daily-timezone"
-                aria-describedby="space-daily-timezone-hint"
-                value={dailyContextTimezone}
-                disabled={configurationMutation.isPending}
-                onChange={(event) =>
-                  configurationMutation.mutate({
-                    dailyContextTimezone: event.target.value,
-                  })
-                }
-              >
-                {dailyContextTimezoneOptions(dailyContextTimezone).map(
-                  (zone) => (
-                    <option key={zone} value={zone}>
-                      {zone}
-                    </option>
-                  ),
-                )}
-              </select>
-            </>
-          ) : (
-            <p>
-              {t('profileIdentity.dailyContextTimezoneReadOnly', {
-                timezone: dailyContextTimezone,
-              })}
-            </p>
-          )}
-        </div>
-      ) : null}
-
       {canManage ? (
         <p className="space-configuration-note">
           {t('profileIdentity.spaceModulesKeepDataNote')}
@@ -365,25 +319,6 @@ export function SpaceConfigurationPanel({
         >
           {t('profileIdentity.spaceConfigurationSaved')}
         </p>
-      ) : null}
-
-      {timezoneLocked ? (
-        <p className="space-configuration-status" role="alert">
-          {t('profileIdentity.dailyContextTimezoneLocked')}
-        </p>
-      ) : configurationMutation.error ? (
-        <ProblemState
-          error={configurationMutation.error}
-          onRetry={
-            configurationMutation.error instanceof ClientProblemError &&
-            configurationMutation.error.kind === 'conflict'
-              ? () => {
-                  configurationMutation.reset();
-                  void configurationQuery.refetch();
-                }
-              : undefined
-          }
-        />
       ) : null}
     </section>
   );

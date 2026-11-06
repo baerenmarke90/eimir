@@ -1,3 +1,7 @@
+import { TaskBackButton } from './TaskBackButton';
+import { MemoryTagChoices } from './MemoryTagChoices';
+import { ContextTagList } from './ContextTagList';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import {
   useIsMutating,
   useMutation,
@@ -58,6 +62,8 @@ export function WishProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [dismissedCompletion, setDismissedCompletion] =
     useState<WishDetail | null>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -104,16 +110,27 @@ export function WishProductPage({
 
   const updateMutation = useMutation({
     mutationKey: wishWriteKey,
-    mutationFn: ({ wish, title }: { wish: WishDetail; title: string }) =>
+    mutationFn: ({
+      wish,
+      title,
+      tags,
+    }: {
+      wish: WishDetail;
+      title: string;
+      tags: string[];
+    }) =>
       apiCall(() =>
         apis.wishes.updateWish({
           spaceId,
           wishId: wish.id,
           ifMatch: planningIfMatch(wish),
-          wishUpdate: { title },
+          wishUpdate: { title, tags },
         }),
       ),
     onSuccess: async (wish) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['context-tags', spaceId],
+      });
       queryClient.setQueryData(key, wish);
       await queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'wishes', spaceId],
@@ -182,6 +199,9 @@ export function WishProductPage({
         }),
       ),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['context-tags', spaceId],
+      });
       queryClient.removeQueries({ queryKey: key });
       await queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'wishes', spaceId],
@@ -222,8 +242,14 @@ export function WishProductPage({
   function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!wish || isWishWritePending()) return;
+    const tags = tagEditor.current?.commitDraft();
+    if (!tags) return;
     const data = new FormData(event.currentTarget);
-    updateMutation.mutate({ wish, title: String(data.get('title')).trim() });
+    updateMutation.mutate({
+      wish,
+      title: String(data.get('title')).trim(),
+      tags,
+    });
   }
 
   function submitConvert(event: FormEvent<HTMLFormElement>) {
@@ -277,7 +303,7 @@ export function WishProductPage({
       ) : null}
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             ref={backLinkRef}
             className="back-link tertiary"
@@ -290,7 +316,7 @@ export function WishProductPage({
                 ? 'taskBoundary.back'
                 : 'm5s3.common.back',
             )}
-          </button>
+          </TaskBackButton>
         }
         eyebrow={t('m5s3.wish.detailEyebrow')}
         title={wish.title}
@@ -315,7 +341,10 @@ export function WishProductPage({
               className="tertiary"
               label={t('common.edit')}
               onClick={() => {
-                if (!isWishWritePending()) setIsEditing(true);
+                if (!isWishWritePending()) {
+                  setEditTags(wish.tags ?? []);
+                  setIsEditing(true);
+                }
               }}
               disabled={writesPending}
             />
@@ -329,6 +358,7 @@ export function WishProductPage({
         </p>
       ) : null}
 
+      {!isEditing ? <ContextTagList tags={wish.tags} /> : null}
       <div className="planning-detail-grid">
         {wish.status === 'COMPLETED' && showCompletionContinuation ? (
           <section
@@ -367,6 +397,14 @@ export function WishProductPage({
         {isEditing ? (
           <section className="planning-subsection">
             <h2>{t('m5s3.common.edit')}</h2>
+            <MemoryTagChoices
+              parentType="WISH"
+              parentId={wish.id}
+              selected={editTags}
+              onChange={setEditTags}
+              editorRef={tagEditor}
+              disabled={writesPending}
+            />
             <div className="form-grid">
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button

@@ -1,3 +1,5 @@
+import { TaskBackButton } from './TaskBackButton';
+import { AutoLoadMore } from './AutoLoadMore';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
@@ -30,7 +32,6 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import './SharedPlanningPages.css';
 import {
-  LoadMoreButton,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   usePrivateTaskEditorLifecycle,
@@ -175,11 +176,9 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
               </li>
             ))}
           </ul>
-          <LoadMoreButton
-            hasMore={Boolean(query.hasNextPage)}
-            loading={query.isFetchingNextPage}
-            onLoadMore={() => void query.fetchNextPage()}
-          />
+          <AutoLoadMore query={query} className="secondary">
+            {t('privateArea.loadMore')}
+          </AutoLoadMore>
         </section>
       ) : null}
     </>
@@ -252,14 +251,14 @@ export function PrivateCollectionCreatePage({
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
             {t('privateArea.collections.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.collections.createTitle')}
         description={t('privateArea.collections.intro')}
@@ -1018,7 +1017,7 @@ export function PrivateCollectionDetailPage({
         className="page-heading-collection"
         before={
           isEditing ? (
-            <button
+            <TaskBackButton
               type="button"
               className="back-link tertiary"
               onClick={requestCollectionEditClose}
@@ -1029,7 +1028,7 @@ export function PrivateCollectionDetailPage({
               }
             >
               {t('common.cancel')}
-            </button>
+            </TaskBackButton>
           ) : (
             <PrivateAreaDetailBack
               fallbackPath={PRIVATE_COLLECTIONS_PATH}
@@ -1327,14 +1326,14 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
             {t('privateArea.collections.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.collections.editTitle')}
         description={t('privateArea.collections.intro')}

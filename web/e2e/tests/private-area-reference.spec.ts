@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
@@ -448,7 +449,7 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   await expect(page.getByRole('note')).toHaveCount(0);
 
   const cards = page.locator('.private-area-destination-card');
-  await expect(cards).toHaveCount(3);
+  await expect(cards).toHaveCount(4);
   await expect(cards.nth(0)).toHaveAttribute('href', '/more/private/notes');
   await expect(cards.nth(1)).toHaveAttribute(
     'href',
@@ -461,6 +462,11 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   await expect(cards.nth(0)).toContainText(privateArea.notes.title);
   await expect(cards.nth(1)).toContainText(privateArea.gifts.title);
   await expect(cards.nth(2)).toContainText(privateArea.collections.title);
+  await expect(cards.nth(3)).toHaveAttribute(
+    'href',
+    '/more/private/partner-notes',
+  );
+  await expect(cards.nth(3)).toContainText(privateArea.partnerNotes.title);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1852,6 +1858,7 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
     finish = resolve;
   });
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === 'POST' && path === endpoint) {

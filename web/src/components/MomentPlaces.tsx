@@ -17,12 +17,14 @@ import { clientProblemKind } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
+import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MomentPlaceActionsMenu } from './MomentPlaceActionsMenu';
 import { MomentPlacePicker } from './MomentPlacePicker';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './MomentPlaces.css';
+import './MomentMetadata.css';
 
 export function MomentPlaces({
   apiBaseUrl,
@@ -36,6 +38,7 @@ export function MomentPlaces({
   canManage = false,
   onNavigate,
   orderedIds,
+  inline = false,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -48,6 +51,7 @@ export function MomentPlaces({
   canManage?: boolean;
   onNavigate?: (proceed: () => void) => void;
   orderedIds?: string[];
+  inline?: boolean;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -56,6 +60,8 @@ export function MomentPlaces({
   const [addingPending, setAddingPending] = useState(false);
   const addTrigger = useRef<HTMLButtonElement>(null);
   const [removed, setRemoved] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedTrigger = useRef<HTMLButtonElement>(null);
   const isPlaceholder = (name: string) =>
     name === t('photoPlaces.initialName') || name === 'Photo location';
   const readableName = (place: PlaceDetail) =>
@@ -156,11 +162,11 @@ export function MomentPlaces({
     return null;
   return (
     <section
-      className={`moment-places${compact ? ' moment-places-compact' : ''}`}
+      className={`moment-places${compact ? ' moment-places-compact' : ''}${inline ? ' moment-places-inline' : ''}`}
       aria-labelledby={`moment-places-${targetId}`}
     >
       <h2
-        className={compact ? 'sr-only' : undefined}
+        className={compact || inline ? 'sr-only' : undefined}
         ref={heading}
         tabIndex={-1}
         id={`moment-places-${targetId}`}
@@ -232,38 +238,66 @@ export function MomentPlaces({
         {items.map((place) => {
           const destination = photoPlaceMapUrl(place.latitude, place.longitude);
           const name = readableName(place);
-          return (
+          const context = (
+            <>
+              {destination ? (
+                <a
+                  className="moment-place-address"
+                  href={destination}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
+                  aria-label={t('photoPlaces.mapAddress', {
+                    address: place.address || name,
+                  })}
+                >
+                  {place.address || t('photoPlaces.viewMap')}
+                </a>
+              ) : place.address ? (
+                <span>{place.address}</span>
+              ) : null}
+              {place.geocodingSource === 'openstreetmap' ? (
+                <a
+                  className="moment-place-attribution"
+                  href="https://www.openstreetmap.org/copyright"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
+                >
+                  © OpenStreetMap
+                </a>
+              ) : null}
+            </>
+          );
+          return inline ? (
+            <li key={place.id}>
+              <button
+                type="button"
+                className="tertiary moment-place-summary"
+                aria-haspopup="dialog"
+                onClick={(event) => {
+                  selectedTrigger.current = event.currentTarget;
+                  setSelectedId(place.id);
+                }}
+              >
+                <EimirIcon name="orte" />
+                <span>{name}</span>
+              </button>
+              <ShortTaskSheet
+                open={selectedId === place.id}
+                title={name}
+                onClose={() => setSelectedId(null)}
+                restoreFocusRef={selectedTrigger}
+              >
+                {context}
+              </ShortTaskSheet>
+            </li>
+          ) : (
             <li key={place.id}>
               <EimirIcon name="orte" className="moment-place-pin" />
               <div className="moment-place-context">
                 <strong>{name}</strong>
-                {destination ? (
-                  <a
-                    className="moment-place-address"
-                    href={destination}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    referrerPolicy="no-referrer"
-                    aria-label={t('photoPlaces.mapAddress', {
-                      address: place.address || name,
-                    })}
-                  >
-                    {place.address || t('photoPlaces.viewMap')}
-                  </a>
-                ) : place.address ? (
-                  <span>{place.address}</span>
-                ) : null}
-                {place.geocodingSource === 'openstreetmap' ? (
-                  <a
-                    className="moment-place-attribution"
-                    href="https://www.openstreetmap.org/copyright"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    referrerPolicy="no-referrer"
-                  >
-                    © OpenStreetMap
-                  </a>
-                ) : null}
+                {context}
               </div>
               {canManage ? (
                 <MomentPlaceActionsMenu
@@ -280,14 +314,13 @@ export function MomentPlaces({
         })}
       </ul>
       {query.hasNextPage ? (
-        <button
-          type="button"
+        <AutoLoadMore
+          query={query}
           className="tertiary"
-          disabled={query.isFetchingNextPage}
-          onClick={() => void query.fetchNextPage()}
+          blocked={query.isFetchingNextPage}
         >
           {t('photoPlaces.more')}
-        </button>
+        </AutoLoadMore>
       ) : null}
     </section>
   );

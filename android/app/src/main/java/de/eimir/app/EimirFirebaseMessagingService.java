@@ -1,9 +1,12 @@
 package de.eimir.app;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.HashSet;
 
 /** Direct FCM carries activation routing and an optional encrypted preview, never plaintext or a route. */
 // The legacy token-refresh detector does not yet recognize Messaging 26 FID
@@ -13,7 +16,7 @@ public final class EimirFirebaseMessagingService extends FirebaseMessagingServic
     public static boolean acceptsWake(RemoteMessage message, PushActivation active) {
         if (active == null || !"fcm".equals(active.providerKey) || message.getNotification() != null) return false;
         Map<String, String> data = message.getData();
-        return (data.size() == 2 || (data.size() == 3 && data.containsKey("preview")))
+        return new HashSet<>(Arrays.asList("type", "activationId", "preview", "locale")).containsAll(data.keySet())
             && data.containsKey("type") && data.containsKey("activationId") && "wake".equals(data.get("type"))
             && active.activationId.equals(data.get("activationId"));
     }
@@ -22,10 +25,12 @@ public final class EimirFirebaseMessagingService extends FirebaseMessagingServic
     public void onMessageReceived(RemoteMessage message) {
         PushActivation active = PushActivation.read(this);
         if (!PushActivation.cleanupPending(this) && acceptsWake(message, active)) {
-            if (!message.getData().containsKey("preview")) NativePushNotifications.present(this, active);
+            Context localized = message.getData().containsKey("locale")
+                ? RecipientLanguage.context(this, message.getData().get("locale")) : this;
+            if (!message.getData().containsKey("preview")) NativePushNotifications.present(localized, active);
             else {
                 PushPreview preview = PushPreview.decrypt(this, active, message.getData().get("preview"));
-                if (preview != null) NativePushNotifications.presentPreview(this, active, preview);
+                if (preview != null) NativePushNotifications.presentPreview(localized, active, preview);
             }
         }
     }

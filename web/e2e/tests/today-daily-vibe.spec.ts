@@ -383,6 +383,44 @@ async function signIn(page: Page) {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
+test('Very good saves, survives return, and keeps the existing Energy value', async ({
+  page,
+}, testInfo) => {
+  const state = await installMocks(page, { energyEnabled: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await signIn(page);
+  await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
+  const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  await expect(sheet.locator('[data-vibe-icon]')).toHaveCount(5);
+  await sheet
+    .getByRole('button', { name: dailyVibe.values.VERY_GOOD, exact: true })
+    .click();
+  await sheet
+    .getByRole('button', { name: dailyVibe.share, exact: true })
+    .click();
+  await expect(sheet).toHaveCount(0);
+  expect(state.lastPatch()).toEqual({ vibe: 'VERY_GOOD', vibeNote: null });
+  await expect(
+    page.locator('.daily-vibe-own [data-vibe-icon="VERY_GOOD"]'),
+  ).toBeVisible();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
+  await expect(
+    page.locator('.daily-vibe-own [data-vibe-icon="VERY_GOOD"]'),
+  ).toBeVisible();
+  await expect(page.getByTestId('daily-energy-own-battery')).toHaveAttribute(
+    'aria-label',
+    dailyEnergy.badgeAriaValue.replace('{{value}}', '60'),
+  );
+  expect(state.patchCount()).toBe(1);
+  expect(state.unexpectedRequests).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath('very-good-confirmed-390-dark.png'),
+    fullPage: false,
+  });
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test(`disabled Vibe cleanup keeps section spacing and clears only Vibe in ${theme}`, async ({
     page,
@@ -671,7 +709,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await expect(sheet).toBeVisible();
   const noteField = sheet.getByPlaceholder(dailyVibe.notePlaceholder);
   await expect(
-    sheet.getByRole('button', { name: dailyVibe.values.GOOD }),
+    sheet.getByRole('button', { name: dailyVibe.values.VERY_GOOD }),
   ).toBeFocused();
   await expect(noteField).not.toBeFocused();
 
@@ -689,7 +727,8 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await ownTrigger.click();
   await expect(sheet).toBeVisible();
 
-  for (const [value, label] of Object.entries(dailyVibe.values)) {
+  await expect(sheet.locator('[data-vibe]')).toHaveCount(5);
+  for (const [value, label] of Object.entries(dailyVibe.values).slice(0, 5)) {
     const option = sheet.getByRole('button', { name: label, exact: true });
     await expect(option).toBeVisible();
     await expect(option.locator('svg')).toHaveAttribute(
@@ -699,11 +738,11 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     await expect(option.locator('svg')).toHaveAttribute('aria-hidden', 'true');
   }
   await sheet.screenshot({
-    path: testInfo.outputPath('today-vibe-six-labeled-symbols-390-light.png'),
+    path: testInfo.outputPath('today-vibe-five-feelings-390-light.png'),
     animations: 'disabled',
   });
 
-  const intro = sheet.locator('.daily-vibe-sheet-intro');
+  const intro = sheet.locator('.daily-vibe-note-field > span');
   const introBox = await intro.boundingBox();
   expect(introBox).not.toBeNull();
   if (!introBox) throw new Error('Missing Vibe sheet content area');
@@ -742,7 +781,10 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await expect(partnerCard).toHaveClass(/is-revealed/);
   await expect(
     page.getByRole('button', {
-      name: dailyVibe.changeAria.replace('{{value}}', dailyVibe.values.GOOD),
+      name: dailyVibe.changeWithNoteAria.replace(
+        '{{value}}',
+        dailyVibe.values.GOOD,
+      ),
     }),
   ).toHaveClass(/is-startup-reveal/);
 
@@ -753,6 +795,10 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   expect(state.lastPatch()).not.toHaveProperty('energyLevel');
 
   await expect(page.getByText(partnerNote)).toHaveCount(0);
+  await expect(partnerCard.getByTitle(dailyVibe.noteAvailable)).toBeVisible();
+  await expect(
+    page.getByTestId('daily-vibe-own').getByTitle(dailyVibe.noteAvailable),
+  ).toBeVisible();
   await partnerCard.click();
   const partnerSheet = page.getByRole('dialog', {
     name: dailyVibe.partnerNoteTitle.replace('{{name}}', 'Ben'),
@@ -779,7 +825,10 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
 
   await page
     .getByRole('button', {
-      name: dailyVibe.changeAria.replace('{{value}}', dailyVibe.values.GOOD),
+      name: dailyVibe.changeWithNoteAria.replace(
+        '{{value}}',
+        dailyVibe.values.GOOD,
+      ),
     })
     .click();
   await page.getByRole('button', { name: dailyVibe.remove }).click();
@@ -1046,6 +1095,94 @@ for (const viewport of [
   }
 }
 
+for (const [width, theme, largeText] of [
+  [360, 'light', false],
+  [390, 'dark', false],
+  [430, 'light', false],
+  [1280, 'dark', false],
+  [320, 'dark', true],
+] as const) {
+  test(`five feelings and note markers save and return (${width}, ${theme})`, async ({
+    page,
+  }, testInfo) => {
+    await installMocks(page, {
+      ownVibe: 'GOOD',
+      ownVibeNote: 'A quiet afternoon.',
+      partnerState: { state: 'VISIBLE', value: 'STRESSED' },
+      partnerVibeNote: 'A difficult meeting.',
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await signIn(page);
+    if (largeText)
+      await page.locator('html').evaluate((node) => {
+        node.style.fontSize = '200%';
+      });
+    const own = page.getByTestId('daily-vibe-own');
+    const partner = page.getByTestId('daily-vibe-partner');
+    await expect(own.getByTitle(dailyVibe.noteAvailable)).toBeVisible();
+    await expect(partner.getByTitle(dailyVibe.noteAvailable)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`vibe-notes-${width}-${theme}.png`),
+      fullPage: true,
+    });
+    await own.click();
+    const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+    await expect(sheet.locator('[data-vibe]')).toHaveCount(5);
+    for (const option of await sheet.locator('[data-vibe]').all()) {
+      const geometry = await option.evaluate((node) => {
+        const label = node.querySelectorAll(':scope > span')[1];
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        return {
+          height: node.getBoundingClientRect().height,
+          lines: range.getClientRects().length,
+        };
+      });
+      expect(geometry.height).toBeGreaterThanOrEqual(44);
+      expect(geometry.lines).toBe(1);
+    }
+    await expectNoHorizontalOverflow(page);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath(`vibe-feelings-${width}-${theme}.png`),
+      fullPage: true,
+    });
+    await sheet
+      .getByRole('button', { name: dailyVibe.values.SAD, exact: true })
+      .click();
+    await sheet
+      .getByRole('button', { name: dailyVibe.saveChanges, exact: true })
+      .click();
+    await expect(sheet).toHaveCount(0);
+    await expect(
+      own.getByText(dailyVibe.values.SAD, { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    await expect(own).toHaveCount(0);
+    await page
+      .getByRole('link', { name: navigation.today, exact: true })
+      .click();
+    await expect(
+      own.getByText(dailyVibe.values.SAD, { exact: true }),
+    ).toBeVisible();
+    await expect(own.getByTitle(dailyVibe.noteAvailable)).toBeVisible();
+    await partner.click();
+    const note = page.getByRole('dialog', {
+      name: dailyVibe.partnerNoteTitle.replace('{{name}}', 'Ben'),
+    });
+    await expect(
+      note.getByText('A difficult meeting.', { exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(note).toHaveCount(0);
+    await expect(partner).toBeFocused();
+  });
+}
+
 test('Daily Vibe reflows at 320px with large text and Reduced Motion', async ({
   page,
 }, testInfo) => {
@@ -1061,7 +1198,7 @@ test('Daily Vibe reflows at 320px with large text and Reduced Motion', async ({
   const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
   await expect(sheet).toBeVisible();
   await expect(
-    sheet.getByRole('button', { name: dailyVibe.values.NEEDS_CONNECTION }),
+    sheet.getByRole('button', { name: dailyVibe.values.STRESSED }),
   ).toBeVisible();
 
   await expectNoHorizontalOverflow(page);

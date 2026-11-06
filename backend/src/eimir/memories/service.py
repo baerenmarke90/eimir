@@ -670,6 +670,7 @@ def replace_attachments(
                 else context.account_id
             ),
             already_bound=attachment_id in previous,
+            allow_submitted_video=True,
         )
         binding.ensure_unlinked(session, attachment_id, allow=("MEMORY", memory.id))
         attachments.append(attachment)
@@ -678,7 +679,12 @@ def replace_attachments(
         binding.set_sensitive(
             attachment,
             (sensitivity or {}).get(attachment.id),
-            allow_change=context.account_id in (memory.owner_id, attachment.owner_id),
+            allow_change=(
+                (memory.experience_kind is None and attachment.media_type == "IMAGE")
+                or binding.can_edit_sensitivity(
+                    attachment, account_id=context.account_id, parent_owner_id=memory.owner_id
+                )
+            ),
         )
 
     session.execute(
@@ -719,6 +725,9 @@ def replace_attachments(
 
     memory.updated_at = now()
     _flush(session)
+    for attachment in attachments:
+        if attachment.id not in previous:
+            binding.notify_video_failure(session, attachment)
     _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
     _flush(session)
     return memory

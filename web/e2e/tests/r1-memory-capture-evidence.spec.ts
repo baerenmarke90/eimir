@@ -334,7 +334,9 @@ test.describe('R1 Memory Create evidence', () => {
       .getByRole('button', { name: photoSources.addMedia, exact: true })
       .click();
     await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
-    await expect(page.getByText(de.memory.photoReady)).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toBeVisible();
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, 'r1-photo-only-390-light.png'),
     });
@@ -351,7 +353,9 @@ test.describe('R1 Memory Create evidence', () => {
         .getByRole('button', { name: photoSources.addMedia, exact: true })
         .click();
       await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
-      await expect(page.getByText(de.memory.photoReady)).toBeVisible();
+      await expect(
+        page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+      ).toBeVisible();
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
         .fill('Wir haben heute den ganzen Nachmittag am See verbracht.');
@@ -362,9 +366,10 @@ test.describe('R1 Memory Create evidence', () => {
       await page.screenshot({
         path: path.join(EVIDENCE_DIR, `r1-mixed-390-${colorScheme}.png`),
       });
-      await page
-        .getByRole('button', { name: new RegExp(de.memory.dateLabel) })
-        .click();
+      const date = page.getByLabel(de.memory.dateLabel, { exact: true });
+      await expect(date).toHaveAttribute('type', 'date');
+      await date.fill('2026-08-15');
+      await expect(date).toHaveValue('2026-08-15');
       await page.screenshot({
         path: path.join(
           EVIDENCE_DIR,

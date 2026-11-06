@@ -428,6 +428,8 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert not hasattr(delivery, "payload")
     assert not hasattr(delivery, "body")
 
+    couple["ben"].language_preference = "en"
+    session.flush()
     push.handle_delivery(session, {"deliveryId": str(delivery.id)})
     session.flush()
 
@@ -440,7 +442,8 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert call["presentationKey"] == push.GENERIC_PRESENTATION_KEY
     reference = call["notificationReference"]
     assert isinstance(reference, dict)
-    assert set(reference) == {"id", "kind"}
+    assert set(reference) == {"id", "kind", "locale"}
+    assert reference["locale"] == "en"
     assert reference["kind"] == NotificationKind.THINKING_OF_YOU.value
     assert "Anna" not in repr(call)
     assert "Ben" not in repr(call)

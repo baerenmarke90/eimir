@@ -584,7 +584,7 @@ class TestSensitiveMedia:
         item = next(item for item in story.json()["items"] if item["kind"] == "MEMORY")
         assert item["memory"]["attachments"][0]["isSensitive"] is True
 
-    def test_stale_or_unauthorized_edit_cannot_unmark_and_legacy_edits_preserve_classification(
+    def test_stale_edit_cannot_unmark_and_partner_edits_preserve_legacy_classification(
         self, client, couple, session
     ) -> None:  # type: ignore[no-untyped-def]
         photo = ready_attachment(client, couple, session)
@@ -602,9 +602,32 @@ class TestSensitiveMedia:
             ).status_code
             == 409
         )
-        assert client.put(
+        outsider = make_account(session, "Another account")
+        make_space(session, outsider)
+        outsider_token = sign_in(session, outsider)
+        for headers, expected in [
+            ({"If-Match": str(initial.json()["version"])}, 401),
+            (if_match(outsider_token, initial.json()["version"]), 404),
+        ]:
+            assert client.put(path, json=body, headers=headers).status_code == expected
+        unchanged = client.get(
+            f"{base_path(couple['space'].id)}/memories/{created['id']}",
+            headers=auth(couple["token_a"]),
+        ).json()
+        assert unchanged["version"] == initial.json()["version"]
+        assert unchanged["attachments"][0]["isSensitive"] is True
+        partner = client.put(
             path, json=body, headers=if_match(couple["token_b"], initial.json()["version"])
-        ).status_code in {403, 404}
+        )
+        assert partner.status_code == 200
+        assert partner.json()["attachments"][0]["isSensitive"] is False
+        body["attachments"][0]["isSensitive"] = True
+        marked = client.put(
+            path, json=body, headers=if_match(couple["token_b"], partner.json()["version"])
+        )
+        assert marked.status_code == 200
+        assert marked.json()["attachments"][0]["canEditSensitivity"] is True
+        initial = marked
         session.get(Attachment, UUID(photo)).ready_at = now() - timedelta(days=30)
         session.flush()
         del body["attachments"][0]["isSensitive"]
@@ -884,10 +907,63 @@ class TestPartnerEnrichment:
         assert enriched.status_code == 200
         assert [item["id"] for item in enriched.json()["attachments"]] == [original, own]
         assert enriched.json()["authorId"] == str(couple["anna"].id)
+        assert [item["canEditSensitivity"] for item in enriched.json()["attachments"]] == [
+            True,
+            True,
+        ]
+        owner_view = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_a"]))
+        assert [item["canEditSensitivity"] for item in owner_view.json()["attachments"]] == [
+            True,
+            True,
+        ]
+        classified = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": own, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_b"], enriched.json()["version"]),
+        )
+        assert classified.status_code == 200
+        assert [item["isSensitive"] for item in classified.json()["attachments"]] == [False, True]
+        partner_marked = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0, "isSensitive": True},
+                    {"attachmentId": own, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_b"], classified.json()["version"]),
+        )
+        assert partner_marked.status_code == 200
+        reloaded = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))
+        assert [item["isSensitive"] for item in reloaded.json()["attachments"]] == [True, True]
+        timeline = client.get(f"{root}/timeline", headers=auth(couple["token_b"]))
+        projected = next(
+            item["memory"]
+            for item in timeline.json()["items"]
+            if item["kind"] == "MEMORY" and item["memory"]["id"] == created["id"]
+        )
+        assert [item["canEditSensitivity"] for item in projected["attachments"]] == [True, True]
+        unmarked = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0, "isSensitive": False},
+                    {"attachmentId": own, "position": 1, "isSensitive": False},
+                ]
+            },
+            headers=if_match(couple["token_b"], reloaded.json()["version"]),
+        )
+        assert unmarked.status_code == 200
+        assert [item["isSensitive"] for item in unmarked.json()["attachments"]] == [False, False]
         removed = client.put(
             url,
             json={"attachments": [{"attachmentId": own, "position": 0}]},
-            headers=if_match(couple["token_b"], enriched.json()["version"]),
+            headers=if_match(couple["token_b"], unmarked.json()["version"]),
         )
         assert removed.status_code == 403
         final = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))

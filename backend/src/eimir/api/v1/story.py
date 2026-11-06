@@ -37,16 +37,24 @@ from eimir.api.v1.memories import (
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, readable, visibility_of
+from eimir.chapters.models import Chapter
 from eimir.core import clock
 from eimir.domain.experiences import ExperienceKind
 from eimir.heart_moments import media as heart_media
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
+from eimir.places.models import Place
+from eimir.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
 from eimir.story import discover_service, photo_service, service, view_service
 from eimir.story.service import StoryKind, StoryOrder, StoryRow
 
 router = APIRouter(tags=["story"])
+
+
+class StoryPlaceSummary(ApiModel):
+    id: UUID
+    name: str
 
 
 class MemorySummary(ApiModel):
@@ -59,6 +67,7 @@ class MemorySummary(ApiModel):
 
     id: UUID
     title: str
+    places: list[StoryPlaceSummary] = Field(default_factory=list)
     happened_on: date | None
     happened_until: date | None = None
     selected_cover_attachment_id: UUID | None = None
@@ -85,6 +94,7 @@ class SharedHeartMomentSummary(ApiModel):
 
     id: UUID
     text: str
+    places: list[StoryPlaceSummary] = Field(default_factory=list)
     emotion: HeartEmotion
     visibility: ContentVisibility
     happened_on: date
@@ -99,6 +109,7 @@ class SharedHeartMomentSummary(ApiModel):
 class MilestoneSummary(ApiModel):
     id: UUID
     title: str
+    places: list[StoryPlaceSummary] = Field(default_factory=list)
     happened_on: date
     created_at: datetime
     author: AuthorSummary
@@ -146,11 +157,32 @@ class StoryItem(RootModel[StoryItemVariant]):
     root: StoryItemVariant
 
 
+class ChapterTimelineMarker(ApiModel):
+    """A diary-only destination at an authored chapter start, not Story content."""
+
+    id: UUID
+    title: str
+    start_on: date
+    end_on: date | None
+    position: int = Field(ge=0, lt=service.MAX_LIMIT)
+
+
+class ChapterPeriodSummary(ApiModel):
+    """Calendar context, separate from chronological start markers and counts."""
+
+    id: UUID
+    title: str
+    start_on: date
+    end_on: date | None
+
+
 class StoryPage(ApiModel):
     items: list[StoryItem]
     next_cursor: str | None
     has_more: bool
     available_years: list[int] = Field(default_factory=list)
+    chapter_markers: list[ChapterTimelineMarker] = Field(default_factory=list)
+    chapter_periods: list[ChapterPeriodSummary] = Field(default_factory=list)
 
 
 class DiscoverLeadContext(ApiModel):
@@ -206,7 +238,8 @@ def _authors(session: DbSession, owner_ids: set[UUID]) -> dict[UUID, AuthorSumma
 def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
     return AttachmentSummary(
         id=attachment.id,
-        status="READY",
+        status="PROCESSING" if attachment.status == "VALIDATING" else attachment.status,
+        failure_code=attachment.failure_code if attachment.status == "FAILED" else None,
         media_type=MediaType(attachment.media_type),
         mime_type=attachment.mime_type,
         size=attachment.size,
@@ -352,6 +385,7 @@ def get_story_timeline(
     order: Annotated[StoryOrder, Query()] = StoryOrder.DESC,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=service.MAX_LIMIT)] = service.DEFAULT_LIMIT,
+    include_chapters: Annotated[bool, Query(alias="includeChapters")] = False,
 ) -> StoryPage:
     """Return the caller's viewer-authorized timeline of memories, milestones, and heart moments.
 
@@ -367,18 +401,92 @@ def get_story_timeline(
         order=order,
         cursor=cursor,
         limit=limit,
+        include_chapters=include_chapters,
     )
     available_years = service.read_available_years(
         session,
         authorization,
         kinds=kinds_tuple,
+        include_chapters=include_chapters,
     )
+    items = project_story_items(session, authorization, page.items)
+    periods: list[ChapterPeriodSummary] = []
+    if include_chapters and not kinds_tuple:
+        dates = [entry.effective_date for entry in page.items] + [
+            entry.effective_date for entry in page.chapter_markers
+        ]
+        lower = (
+            date(year, 1, 1)
+            if year
+            else min(dates, default=service.viewer_today(session, authorization))
+        )
+        upper = date(year, 12, 31) if year else max(dates, default=lower)
+        for chapter in session.scalars(
+            readable(Chapter, authorization)
+            .where(
+                Chapter.start_on.is_not(None),
+                Chapter.start_on <= upper,
+                (Chapter.end_on.is_(None)) | (Chapter.end_on >= lower),
+            )
+            .order_by(Chapter.start_on.desc(), Chapter.id)
+        ):
+            if chapter.start_on is not None:
+                periods.append(
+                    ChapterPeriodSummary(
+                        id=chapter.id,
+                        title=chapter.payload.title,
+                        start_on=chapter.start_on,
+                        end_on=chapter.end_on,
+                    )
+                )
     return StoryPage(
-        items=project_story_items(session, authorization, page.items),
+        items=items,
         next_cursor=page.next_cursor,
         has_more=page.has_more,
         available_years=available_years,
+        chapter_periods=periods,
+        chapter_markers=project_chapter_markers(
+            session, authorization, page.chapter_markers, page.items, items
+        ),
     )
+
+
+def project_chapter_markers(
+    session: DbSession,
+    authorization: Authorization,
+    rows: list[service.ChapterTimelineRow],
+    source_rows: list[StoryRow],
+    source_items: list[StoryItem],
+) -> list[ChapterTimelineMarker]:
+    if not rows:
+        return []
+    chapters = {
+        chapter.id: chapter
+        for chapter in session.scalars(
+            readable(Chapter, authorization).where(Chapter.id.in_([row.id for row in rows]))
+        )
+    }
+    surviving_sources = {_story_item_identity(item) for item in source_items}
+    prefix = [0]
+    for source_row in source_rows:
+        prefix.append(prefix[-1] + int((source_row.kind, source_row.id) in surviving_sources))
+    markers: list[ChapterTimelineMarker] = []
+    for marker_index, row in enumerate(rows):
+        chapter = chapters.get(row.id)
+        if chapter is None or chapter.start_on != row.effective_date:
+            continue
+        markers.append(
+            ChapterTimelineMarker(
+                id=chapter.id,
+                title=chapter.payload.title,
+                start_on=chapter.start_on,
+                end_on=chapter.end_on,
+                # A source can become unreadable between the key query and its
+                # authorized projection. Keep the surviving combined order exact.
+                position=prefix[row.position - marker_index] + len(markers),
+            )
+        )
+    return markers
 
 
 def project_story_items(
@@ -405,6 +513,33 @@ def project_story_items(
     heart_moments = _load(session, authorization, HeartMoment, ids_by_kind[StoryKind.HEART_MOMENT])
     milestones = _load(session, authorization, Milestone, ids_by_kind[StoryKind.MILESTONE])
 
+    # Parent keys have already passed authorization. Recheck Place access in the
+    # batch query before decrypting names; never fetch one Place per card.
+    places: dict[UUID, list[StoryPlaceSummary]] = {}
+    for relation, foreign_key, parents in (
+        (PlaceMemory, PlaceMemory.memory_id, memories),
+        (PlaceHeartMoment, PlaceHeartMoment.heart_moment_id, heart_moments),
+        (PlaceMilestone, PlaceMilestone.milestone_id, milestones),
+    ):
+        if not parents:
+            continue
+        rows = session.execute(
+            readable(Place, authorization)
+            .join(relation, relation.place_id == Place.id)
+            .where(foreign_key.in_(parents))
+            .with_only_columns(foreign_key, Place)
+            .order_by(relation.created_at, Place.id)
+        )
+        for parent_id, place in rows:
+            places.setdefault(parent_id, []).append(
+                StoryPlaceSummary(id=place.id, name=place.payload.name)
+            )
+    for linked_memory in memories.values():
+        order = linked_memory.payload.place_order
+        places.get(linked_memory.id, []).sort(
+            key=lambda place: order.index(place.id) if place.id in order else len(order)
+        )
+
     galleries = binding.attachments_of_memories(session, list(memories))
     answers = project_experience_answers(session, authorization, list(memories.values()))
     heart_galleries = heart_media.galleries(session, list(heart_moments.values()))
@@ -430,6 +565,7 @@ def project_story_items(
                     memory=MemorySummary(
                         id=memory.id,
                         title=memory.payload.title,
+                        places=places.get(memory.id, []),
                         experience_kind=ExperienceKind(memory.experience_kind)
                         if memory.experience_kind
                         else None,
@@ -444,6 +580,17 @@ def project_story_items(
                             MemoryAttachmentSummary(
                                 **_attachment_summary(bound.attachment).model_dump(),
                                 position=bound.position,
+                                can_edit_sensitivity=(
+                                    (
+                                        memory.experience_kind is None
+                                        and bound.attachment.media_type == "IMAGE"
+                                    )
+                                    or binding.can_edit_sensitivity(
+                                        bound.attachment,
+                                        account_id=authorization.account_id,
+                                        parent_owner_id=memory.owner_id,
+                                    )
+                                ),
                             )
                             for bound in galleries.get(memory.id, [])
                         ],
@@ -465,7 +612,8 @@ def project_story_items(
                     effective_date=item.effective_date,
                     heart_moment=SharedHeartMomentSummary(
                         id=heart_moment.id,
-                        text=heart_moment.payload.text,
+                        text=heart_moment.payload.text or heart_moment.payload.audio_title,
+                        places=places.get(heart_moment.id, []),
                         emotion=heart_moment.payload.emotion,
                         visibility=visibility,
                         happened_on=heart_moment.happened_on,
@@ -495,6 +643,7 @@ def project_story_items(
                     milestone=MilestoneSummary(
                         id=milestone.id,
                         title=milestone.payload.title,
+                        places=places.get(milestone.id, []),
                         happened_on=milestone.happened_on,
                         created_at=milestone.created_at,
                         author=_author(authors, milestone.owner_id),

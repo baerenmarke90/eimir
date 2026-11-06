@@ -15,11 +15,11 @@ invitations, post-Plan inference, new rituals or a native feature project.
 It defaults to false for both existing and new accounts. The notification
 preferences API exposes the dedicated `GENTLE_PROMPT/PUSH` choice through that
 same value; ordinary group inheritance, email, Center choices and OS permission
-cannot enable it. No independent NotificationPreference override can grant it.
+cannot enable it. The explicit device-onboarding action described below can opt in through this same API; OS permission alone cannot. No independent NotificationPreference override can grant it.
 
 The existing settings category adds one localized switch, with confirmed
 immediate-save/pending/error feedback. Device permission remains separate and
-uses the existing explicit device-enablement flow when relevant. There is no
+uses the existing explicit device-enablement flow when relevant. The combined onboarding copy names Small Invitations: choosing Activate first confirms device registration and then enables `GENTLE_PROMPT/PUSH`. Later, denial and token refresh never enable it. A failed preference write retains an explicit retry without repeating registration. The independent settings switch remains authoritative after onboarding. There is no
 day, time, frequency, topic or per-channel configuration for these invitations.
 
 The existing contextual Wir region may offer one quiet invitation when it has

@@ -369,13 +369,13 @@ def list_places(
     cursor: str | None,
     limit: int,
     related_to: tuple[str, UUID] | None = None,
-    order: Literal["NEWEST", "NAME"] = "NEWEST",
+    order: Literal["NEWEST", "NAME"] = "NAME",
     scope: Literal["ACTIVE", "ARCHIVED", "ALL"] = "ALL",
 ) -> PlacePageResult:
     """Return the requested authorized lifecycle scope and order.
 
-    Existing consumers default to newest first; the Places overview and choice
-    tasks request NAME to sort decrypted names within the tenant boundary.
+    Every unqualified consumer sorts decrypted names within the tenant boundary.
+    A historical consumer can explicitly request NEWEST without changing names.
 
     There is no proximity filter, radius, or distance ordering: that would be
     a geospatial query and needs a deliberate later scope with an appropriate

@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -29,6 +30,7 @@ from eimir.authorization import (
     ResourceAbsence,
     SharedWrite,
 )
+from eimir.core.context_tags import ContextTags
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
@@ -76,6 +78,7 @@ class PlanPayload(ProtectedPayload):
     title: str
     selected_cover_attachment_id: UUID | None = None
     description: str | None = None
+    tags: ContextTags = Field(default_factory=list)
 
 
 class Plan(
@@ -161,6 +164,7 @@ class Plan(
 
     __table_args__ = (
         UniqueConstraint("cover_attachment_id", name="uq_plans_cover_attachment"),
+        UniqueConstraint("id", "space_id", name="uq_plans_id_space_id"),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # A schedule has exactly one semantic start representation. Keeping the

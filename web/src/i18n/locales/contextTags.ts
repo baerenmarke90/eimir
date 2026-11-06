@@ -1,5 +1,6 @@
 export default {
-  label: 'Tags für euren Moment',
+  label: 'Tags',
+  proposed: 'KI-Vorschläge · Du entscheidest, was passt.',
   help: 'Beschreibt euren Moment mit euren eigenen Worten.',
   newLabel: 'Eigenen Tag hinzufügen',
   placeholder: 'Zum Beispiel: Unser Urlaub',
@@ -9,5 +10,5 @@ export default {
   empty: 'Gib deinem Tag einen Namen.',
   duplicate: 'Dieser Tag ist schon dabei.',
   tooLong: 'Ein Tag darf höchstens {{count}} Zeichen haben.',
-  tooMany: 'Du kannst bis zu {{count}} Tags pro Moment hinzufügen.',
+  tooMany: 'Du kannst bis zu {{count}} Tags pro Eintrag hinzufügen.',
 };

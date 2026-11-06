@@ -65,7 +65,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "space.json": ("space_profiles",),
     "profiles.json": ("partner_profiles", "partner_nicknames", "profile_preferences"),
     "people.json": ("related_persons", "important_dates"),
-    "memories.json": ("memories", "memory_attachments"),
+    "memories.json": ("memories", "memory_attachments", "memory_plans", "memory_wishes"),
     "heart-moments.json": ("heart_moments", "heart_moment_attachments"),
     "milestones.json": ("milestones",),
     "comments.json": ("comments",),
@@ -108,6 +108,8 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
     "recap_sources": ("edition_id", "recap_editions"),
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
+    "memory_plans": (("memory_id", "memories"), ("plan_id", "plans")),
+    "memory_wishes": (("memory_id", "memories"), ("wish_id", "wishes")),
     "place_memories": (("place_id", "places"), ("memory_id", "memories")),
     "place_milestones": (("place_id", "places"), ("milestone_id", "milestones")),
     "place_heart_moments": (("place_id", "places"), ("heart_moment_id", "heart_moments")),
@@ -148,6 +150,8 @@ INSERT_ORDER = (
     "recap_editions",
     "recap_sources",
     "recap_reflections",
+    "memory_plans",
+    "memory_wishes",
     "place_memories",
     "place_milestones",
     "place_heart_moments",
@@ -1238,6 +1242,15 @@ def _validate_experience_galleries(
                 raise TransferArchiveError(
                     "Transfer gallery is too large.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
+            audio_ids = [
+                identifier
+                for identifier in ids
+                if indexed.get(identifier, {}).get("mediaType") == "AUDIO"
+            ]
+            if audio_ids and (kind != "heart_moments" or len(audio_ids) > 1):
+                raise TransferArchiveError(
+                    "Invalid voice binding.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
             payload = row.get("payload") or {}
             if not isinstance(payload, dict):
                 raise TransferArchiveError(
@@ -1249,6 +1262,10 @@ def _validate_experience_galleries(
             ):
                 raise TransferArchiveError(
                     "Transfer cover is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            if str(payload.get("selected_cover_attachment_id")) in audio_ids:
+                raise TransferArchiveError(
+                    "Invalid voice cover.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
             if kind == "memories":
                 try:
@@ -1404,7 +1421,7 @@ def _validate_media(
     source_member_ids: set[UUID],
     tables: dict[str, list[dict[str, Any]]],
     media: list[dict[str, Any]],
-    archive_names: set[str],
+    archive_sizes: dict[str, int],
 ) -> None:
     referenced: set[UUID] = set()
     for raw in tables.get("memory_attachments", []):
@@ -1431,6 +1448,21 @@ def _validate_media(
             raise TransferArchiveError(
                 "Transfer media classification is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
+        if item.get("mediaType") == "AUDIO":
+            from eimir.attachments.limits import AUDIO_MAX_SIZE, contracted_mime_types
+
+            size = item.get("size")
+            if (
+                type(size) is not int
+                or not 0 < size <= AUDIO_MAX_SIZE
+                or item.get("mimeType") not in contracted_mime_types()
+                or not str(item.get("mimeType")).startswith("audio/")
+                or item.get("variants") != ["original"]
+                or archive_sizes.get(f"media/{item.get('sourceId')}/original") != size
+            ):
+                raise TransferArchiveError(
+                    "Invalid voice media.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
         source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
@@ -1448,7 +1480,7 @@ def _validate_media(
                 "Transfer media relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
         for variant in variants:
-            if f"media/{source_id}/{variant}" not in archive_names:
+            if f"media/{source_id}/{variant}" not in archive_sizes:
                 raise TransferArchiveError(
                     "Transfer media relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
@@ -1624,7 +1656,7 @@ def validate_import_bundle(
         source_members,
         tables,
         media,
-        set(validated_zip.entries),
+        {name: entry.file_size for name, entry in validated_zip.entries.items()},
     )
     _validate_experience_galleries(tables, media)
     media_ids = {_uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID) for item in media}
@@ -1915,6 +1947,19 @@ def apply_import_bundle(
                     },
                     "version": 1,
                 }
+                if item["mediaType"] == "AUDIO":
+                    # Never publish untrusted transfer metadata as validated audio.
+                    attachment_values.update(
+                        status=AttachmentStatus.VALIDATING.value,
+                        mime_type=None,
+                        size=None,
+                        duration_seconds=None,
+                        ready_at=None,
+                        has_thumbnail=False,
+                    )
+                    from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION
+
+                    enqueue(session, ATTACHMENT_AUDIO_VALIDATION, {"attachmentId": str(target_id)})
                 session.execute(
                     attachment_table.insert().values(
                         **protect_values("attachments", attachment_values)

@@ -62,7 +62,7 @@ UNIQUE(spaceId, accountId, checkedOn)
 Rules:
 
 - `vibe` is a typed product enum owned by #429, never free-form diagnostic text;
-- the #429 V1 Vibe catalog is `GOOD`, `OKAY`, `STRESSED`, `SAD`,
+- the Vibe catalog is `VERY_GOOD` (PO follow-up #1647), `GOOD`, `OKAY`, `STRESSED`, `SAD`,
   `NEEDS_CONNECTION`, and `NEEDS_SPACE`; these are stable domain values for
   today's state, while localized labels remain UI copy. They deliberately do
   not reuse `HeartEmotion`, whose values describe a remembered HeartMoment;

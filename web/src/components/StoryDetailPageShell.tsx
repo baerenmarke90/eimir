@@ -6,7 +6,9 @@ export interface StoryDetailPageShellProps {
   eyebrow?: string;
   title: ReactNode;
   titleAction?: ReactNode;
+  titleContext?: ReactNode;
   description?: ReactNode;
+  metadata?: ReactNode;
   offline?: boolean;
   beforeHeader?: ReactNode;
   pageClassName?: string;
@@ -27,7 +29,9 @@ export function StoryDetailPageShell({
   eyebrow,
   title,
   titleAction,
+  titleContext,
   description,
+  metadata,
   offline = false,
   beforeHeader,
   pageClassName = 'product-detail-page',
@@ -50,6 +54,8 @@ export function StoryDetailPageShell({
         eyebrow={eyebrow}
         title={title}
         titleAction={titleAction}
+        titleContext={titleContext}
+        metadata={metadata}
         description={description}
       />
 

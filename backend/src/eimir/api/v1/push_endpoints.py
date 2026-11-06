@@ -26,7 +26,7 @@ _REGISTER_LIMIT = rate_limit.Limit(attempts=30, window=timedelta(minutes=15))
 
 class FcmPreviewRegistration(ApiModel):
     model_config = ConfigDict(extra="forbid")
-    version: Literal[1]
+    version: Literal[1, 2]
     key: str = Field(min_length=43, max_length=43, repr=False)
 
     @field_validator("version", mode="before")
@@ -74,13 +74,16 @@ class PushEndpointRegistrationResult(ApiModel):
 
 
 class UnifiedPushConfiguration(ApiModel):
+    locale_version: Literal[1] = 1
     notification_reference_version: Literal[1] = 1
     provider_key: str
     vapid_public_key: str
 
 
 class FcmConfiguration(ApiModel):
+    locale_version: Literal[1] = 1
     encrypted_preview_version: Literal[1] = 1
+    encrypted_preview_max_version: Literal[2] = 2
     provider_key: str
     project_id: str
     android_package: str
@@ -192,6 +195,7 @@ def register_own_push_endpoint(
             registration_identity=provider.registration_identity(body.endpoint_value),
             preview_key=body.encrypted_preview.key if body.encrypted_preview is not None else None,
             preview_session_id=device_session.id if body.encrypted_preview is not None else None,
+            preview_version=body.encrypted_preview.version if body.encrypted_preview else 1,
         )
     response.headers["Cache-Control"] = "private, no-store"
     return PushEndpointRegistrationResult(id=endpoint.id)

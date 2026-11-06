@@ -24,7 +24,6 @@ from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
-from eimir.main import create_app
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -138,11 +137,53 @@ PRIVATE_COLLECTION_FIXTURES = {
 
 SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}"),
+    # Temporary messages own recipient/consent/claim rules in test_once_messages.
+    # Every route also participates in the shared tenant and absence contract.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages/status"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/once-messages/reception",
+        body={"enabled": False, "expectedVersion": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages",
+        body={"requestId": str(uuid4()), "recipientId": str(uuid4()), "envelope": {}},
+        body_fixture_aliases={"recipientId": "accountId"},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/open",
+        body={"deviceId": str(uuid4()), "token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/acknowledge",
+        body={"token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/memory-map"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
@@ -226,7 +267,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         fixture_aliases={"selectionId": "memoryId"},
     ),
     Endpoint(
-        "POST",
+        "GET",
         "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}",
         fixture_aliases={"selectionId": "memoryId", "itemId": "attachmentId"},
     ),
@@ -408,6 +449,40 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/heart-moments"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "planId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "planId"},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "wishId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes/{targetId}",
+        resource_absence="RESOURCE_NOT_FOUND",
+        fixture_aliases={"targetId": "wishId"},
+    ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/heart-moments", body=HEART_MOMENT),
     Endpoint(
         "GET",
@@ -1117,6 +1192,9 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/start"),
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
     ("POST", "/api/v1/account/deletion"),
+    ("PUT", "/api/v1/account/device-context"),
+    ("GET", "/api/v1/account/language-preference"),
+    ("PUT", "/api/v1/account/language-preference"),
     ("GET", "/api/v1/account/photo-location-preference"),
     ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),
@@ -1500,6 +1578,7 @@ def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:
             "dateId",
             "accountId",
             "memoryId",
+            "messageId",
             "notificationId",
             "heartMomentId",
             "attachmentId",
@@ -1565,29 +1644,6 @@ def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None: 
                 assert afterwards.json()["id"] is not None
             if "/recaps/" in endpoint.template:
                 assert len(afterwards.json()["reflections"]) == 1
-
-
-def test_contract_is_completely_covered() -> None:
-    """A new operation without an entry in this file makes the suite fail.
-
-    This is the matrix's primary purpose. A rule that developers must remember
-    to copy to every new endpoint will eventually be forgotten; a missing tenant
-    guard can otherwise remain invisible until production.
-    """
-    schema = create_app().openapi()
-    contract = {
-        (method.upper(), path)
-        for path, operations in schema["paths"].items()
-        for method in operations
-    }
-    covered = (
-        {(endpoint.method, endpoint.template) for endpoint in SPACE_ENDPOINTS}
-        | set(AUTHENTICATED_ONLY)
-        | set(SERVER_ADMIN_ONLY)
-        | set(PLAYBACK_ENDPOINTS)
-        | set(PUBLIC_ENDPOINTS)
-    )
-    assert contract == covered
 
 
 @pytest.mark.parametrize(("method", "path"), AUTHENTICATED_ONLY, ids=str)

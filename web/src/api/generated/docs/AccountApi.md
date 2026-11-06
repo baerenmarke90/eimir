@@ -5,8 +5,11 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**deleteOwnAccountApiV1AccountDeletionPost**](AccountApi.md#deleteownaccountapiv1accountdeletionpost) | **POST** /api/v1/account/deletion | Delete the authenticated Account |
+| [**getLanguagePreference**](AccountApi.md#getlanguagepreference) | **GET** /api/v1/account/language-preference | Get Language Preference |
 | [**getPhotoLocationPreference**](AccountApi.md#getphotolocationpreference) | **GET** /api/v1/account/photo-location-preference | Get Photo Location Preference |
+| [**setLanguagePreference**](AccountApi.md#setlanguagepreference) | **PUT** /api/v1/account/language-preference | Set Language Preference |
 | [**setPhotoLocationPreference**](AccountApi.md#setphotolocationpreference) | **PUT** /api/v1/account/photo-location-preference | Set Photo Location Preference |
+| [**updateOwnDeviceContext**](AccountApi.md#updateowndevicecontext) | **PUT** /api/v1/account/device-context | Update Own Device Context |
 
 
 
@@ -81,6 +84,64 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getLanguagePreference
+
+> LanguagePreferenceView getLanguagePreference()
+
+Get Language Preference
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AccountApi,
+} from '';
+import type { GetLanguagePreferenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AccountApi();
+
+  try {
+    const data = await api.getLanguagePreference();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**LanguagePreferenceView**](LanguagePreferenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getPhotoLocationPreference
 
 > PhotoLocationPreference getPhotoLocationPreference()
@@ -135,6 +196,77 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setLanguagePreference
+
+> LanguagePreferenceView setLanguagePreference(ifMatch, languagePreferenceUpdate)
+
+Set Language Preference
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AccountApi,
+} from '';
+import type { SetLanguagePreferenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AccountApi();
+
+  const body = {
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+    // LanguagePreferenceUpdate
+    languagePreferenceUpdate: ...,
+  } satisfies SetLanguagePreferenceRequest;
+
+  try {
+    const data = await api.setLanguagePreference(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+| **languagePreferenceUpdate** | [LanguagePreferenceUpdate](LanguagePreferenceUpdate.md) |  | |
+
+### Return type
+
+[**LanguagePreferenceView**](LanguagePreferenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -205,6 +337,74 @@ No authorization required
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateOwnDeviceContext
+
+> DeviceContextView updateOwnDeviceContext(deviceContextUpdate)
+
+Update Own Device Context
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AccountApi,
+} from '';
+import type { UpdateOwnDeviceContextRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AccountApi();
+
+  const body = {
+    // DeviceContextUpdate
+    deviceContextUpdate: ...,
+  } satisfies UpdateOwnDeviceContextRequest;
+
+  try {
+    const data = await api.updateOwnDeviceContext(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **deviceContextUpdate** | [DeviceContextUpdate](DeviceContextUpdate.md) |  | |
+
+### Return type
+
+[**DeviceContextView**](DeviceContextView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

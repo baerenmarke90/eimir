@@ -3,7 +3,6 @@ import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
-import { StoryApi } from '../api/generated/apis/StoryApi';
 import type { AttachmentDetail } from '../api/generated/models/AttachmentDetail';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { MediaType } from '../api/generated/models/MediaType';
@@ -16,8 +15,11 @@ import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescri
 import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
 import { Configuration, createSessionFetch } from './apiConfiguration';
-import { AttachmentsApi } from './mediaApis';
+import { createBinaryUploadRequest } from './binaryUploadTransport';
+import { AttachmentsApi, StoryApi } from './mediaApis';
 import { loadAuthorizedStoryImage } from './storyMediaLoader';
+
+export const UPLOAD_STALL_TIMEOUT_MS = 90_000;
 
 export interface FlowResult {
   memory: MemoryDetail;
@@ -109,6 +111,7 @@ export async function uploadAttachmentBytes(
   descriptor: UploadDescriptor,
   file: File,
   fetchApi: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<void> {
   const headers = new Headers(descriptor.requiredHeaders);
   if (descriptor.method === UploadDescriptorMethodEnum.STREAM) {
@@ -125,6 +128,7 @@ export async function uploadAttachmentBytes(
       method: 'PUT',
       headers,
       body: file,
+      signal,
     },
   );
   await assertOk(response, i18n.t('flow.uploadFailed'));
@@ -149,6 +153,7 @@ export async function uploadAttachmentBytesWithProgress(
       descriptor,
       file,
       fetchApi,
+      options.signal,
     );
     options.onProgress?.(100);
     return;
@@ -161,13 +166,39 @@ export async function uploadAttachmentBytesWithProgress(
 
   const xhrTransport: typeof fetch = (url, init) =>
     new Promise<Response>((resolve, reject) => {
-      const request = new XMLHttpRequest();
+      const request = createBinaryUploadRequest();
+      let finished = false;
+      let lastLoaded = 0;
+      let stallTimer: ReturnType<typeof setTimeout>;
+      const clear = () => {
+        finished = true;
+        clearTimeout(stallTimer);
+        options.signal?.removeEventListener('abort', abort);
+      };
+      const fail = (error: Error) => {
+        if (finished) return;
+        clear();
+        reject(error);
+      };
+      const armStallTimer = () => {
+        if (finished) return;
+        clearTimeout(stallTimer);
+        stallTimer = setTimeout(() => {
+          fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+          request.abort();
+        }, UPLOAD_STALL_TIMEOUT_MS);
+      };
       request.open('PUT', String(url));
+      request.timeout = 30 * 60_000;
       new Headers(init?.headers).forEach((value, key) => {
         request.setRequestHeader(key, value);
       });
 
       request.upload.onprogress = (event) => {
+        if (event.loaded > lastLoaded) {
+          lastLoaded = event.loaded;
+          armStallTimer();
+        }
         if (!event.lengthComputable || event.total <= 0) return;
         const progress = Math.min(
           100,
@@ -176,6 +207,12 @@ export async function uploadAttachmentBytesWithProgress(
         options.onProgress?.(progress);
       };
       request.onload = () => {
+        if (finished) return;
+        if (request.status < 200 || request.status > 599) {
+          fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+          return;
+        }
+        clear();
         resolve(
           new Response(null, {
             status: request.status,
@@ -184,22 +221,27 @@ export async function uploadAttachmentBytesWithProgress(
         );
       };
       request.onerror = () =>
-        reject(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+        fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+      request.ontimeout = () =>
+        fail(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
       request.onabort = () =>
-        reject(new DOMException('Upload aborted.', 'AbortError'));
+        fail(new DOMException('Upload aborted.', 'AbortError'));
 
       const abort = () => request.abort();
       if (options.signal?.aborted) {
-        reject(new DOMException('Upload aborted.', 'AbortError'));
+        fail(new DOMException('Upload aborted.', 'AbortError'));
         return;
       }
       options.signal?.addEventListener('abort', abort, { once: true });
-      request.addEventListener(
-        'loadend',
-        () => options.signal?.removeEventListener('abort', abort),
-        { once: true },
-      );
-      request.send(file);
+      request.addEventListener('loadend', clear, { once: true });
+      armStallTimer();
+      try {
+        request.send(file);
+      } catch (error) {
+        fail(
+          error instanceof Error ? error : new Error('Binary upload failed.'),
+        );
+      }
     });
   const transport =
     descriptor.method === UploadDescriptorMethodEnum.STREAM
@@ -246,28 +288,34 @@ export async function waitUntilAttachmentReady(
     ) {
       throw new ReferenceFlowError(
         i18n.t(
-          attachment.mediaType === 'VIDEO' &&
-            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-            ? 'video.tooLarge'
-            : attachment.failureCode?.startsWith('VIDEO_')
-              ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
-                ? 'video.unsupported'
-                : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
-                  ? 'video.tooLong'
-                  : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
-                    ? 'video.dimensions'
-                    : 'video.failed'
-              : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
-                  attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-                ? 'flow.imageTooLarge'
-                : attachment.failureCode === 'IMAGE_UNREADABLE'
-                  ? 'flow.imageUnreadable'
-                  : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
-                      attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
-                    ? 'flow.imageTypeMismatch'
-                    : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
-                      ? 'flow.imageNotSanitizable'
-                      : 'flow.processingStatus',
+          attachment.mediaType === 'AUDIO'
+            ? attachment.failureCode === 'AUDIO_DURATION_EXCEEDED'
+              ? 'voiceNotes.tooLong'
+              : attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+                ? 'voiceNotes.tooLarge'
+                : 'voiceNotes.unsupported'
+            : attachment.mediaType === 'VIDEO' &&
+                attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+              ? 'video.tooLarge'
+              : attachment.failureCode?.startsWith('VIDEO_')
+                ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
+                  ? 'video.unsupported'
+                  : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
+                    ? 'video.tooLong'
+                    : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
+                      ? 'video.dimensions'
+                      : 'video.failed'
+                : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
+                    attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+                  ? 'flow.imageTooLarge'
+                  : attachment.failureCode === 'IMAGE_UNREADABLE'
+                    ? 'flow.imageUnreadable'
+                    : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
+                        attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
+                      ? 'flow.imageTypeMismatch'
+                      : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
+                        ? 'flow.imageNotSanitizable'
+                        : 'flow.processingStatus',
         ),
         attachment.failureCode ?? undefined,
       );

@@ -10,13 +10,14 @@ import {
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
 } from '../client/routes';
-import * as whoOfUsSession from '../client/whoOfUsSession';
 import type {
   WhoOfUsParticipant,
   WhoOfUsSession,
 } from '../client/whoOfUsSession';
+import * as whoOfUsSession from '../client/whoOfUsSession';
 import games from '../i18n/locales/games';
 import { GAMES_COUPLE_CAPABILITY, GamesProductArea } from './GamesProductArea';
+import { SubpageNavigation } from './SubpageNavigation';
 
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PARTICIPANTS: readonly [WhoOfUsParticipant, WhoOfUsParticipant] = [
@@ -47,13 +48,15 @@ function renderGames(
   const ui = (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/games']}>
-        <GamesProductArea
-          apiBaseUrl="http://api.example.test"
-          accessToken="test-token"
-          spaceId={SPACE_ID}
-          loadEntitlement={async () => view}
-          loadPerspectiveParticipants={async () => PARTICIPANTS}
-        />
+        <SubpageNavigation>
+          <GamesProductArea
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            spaceId={SPACE_ID}
+            loadEntitlement={async () => view}
+            loadPerspectiveParticipants={async () => PARTICIPANTS}
+          />
+        </SubpageNavigation>
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -75,6 +78,58 @@ function expectGameStatus(status: string, count: number): void {
 }
 
 describe('GamesProductArea', () => {
+  it('keeps one safe upper-left return after finishing the perspective game', async () => {
+    const selection = vi
+      .spyOn(whoOfUsSession, 'selectWhoOfUsQuestions')
+      .mockReturnValue([whoOfUsSession.WHO_OF_US_QUESTION_IDS[0]]);
+    const view = renderGames(entitlement([GAMES_COUPLE_CAPABILITY]));
+    try {
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: new RegExp(games.entries.perspective.title),
+        }),
+      );
+      for (const responder of PARTICIPANTS) {
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: games.whoOfUs.choiceAria
+              .replace('{{responder}}', responder.displayName)
+              .replace('{{choice}}', PARTICIPANTS[0].displayName),
+          }),
+        );
+        if (responder === PARTICIPANTS[0]) {
+          fireEvent.click(
+            await screen.findByRole('button', {
+              name: games.whoOfUs.handoffConfirm.replace(
+                '{{name}}',
+                PARTICIPANTS[1].displayName,
+              ),
+            }),
+          );
+        }
+      }
+      fireEvent.click(
+        screen.getByRole('button', { name: games.whoOfUs.continue }),
+      );
+      await screen.findByRole('heading', { name: games.whoOfUs.finishTitle });
+      expect(
+        view.container.querySelectorAll(
+          '.subpage-back-slot .task-back-control',
+        ),
+      ).toHaveLength(1);
+      fireEvent.click(screen.getByRole('button', { name: games.whoOfUs.back }));
+      expectThreeGameEntries();
+      expect(
+        view.container.querySelectorAll(
+          '.subpage-back-slot .task-back-control',
+        ),
+      ).toHaveLength(1);
+    } finally {
+      view.unmount();
+      selection.mockRestore();
+    }
+  });
+
   it('keeps the catalog discoverable for a Free Space without a page-level Premium upsell', async () => {
     renderGames(entitlement([]));
 

@@ -43,11 +43,13 @@ class ActivityKind(StrEnum):
 
 
 class NotificationKind(StrEnum):
+    ONCE_MESSAGE_RECEIVED = "ONCE_MESSAGE_RECEIVED"
     GENTLE_PROMPT = "GENTLE_PROMPT"
     REMINDER_CREATED = "REMINDER_CREATED"
     TRANSFER_READY = "TRANSFER_READY"
     TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
     TRANSFER_FAILED = "TRANSFER_FAILED"
+    VIDEO_PROCESSING_FAILED = "VIDEO_PROCESSING_FAILED"
     PLAN_CREATED = "PLAN_CREATED"
     PLAN_CHANGED = "PLAN_CHANGED"
     PLAN_CANCELLED = "PLAN_CANCELLED"
@@ -75,6 +77,7 @@ class SupportGestureKind(StrEnum):
 
 
 class EngagementTarget(StrEnum):
+    ONCE_MESSAGE = "ONCE_MESSAGE"
     REMINDER = "REMINDER"
     TRANSFER_EXPORT = "TRANSFER_EXPORT"
     TRANSFER_IMPORT = "TRANSFER_IMPORT"
@@ -528,13 +531,19 @@ class PushPreviewSecret(IdMixin, Base):
         nullable=False,
         index=True,
     )
+    preview_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=1, server_default=text("1")
+    )
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=CRYPTO_VERSION_PLAINTEXT, server_default=text("0")
     )
     payload: Mapped[PushPreviewKeyPayload] = mapped_column(
         ProtectedPayloadJSON(PushPreviewKeyPayload), nullable=False
     )
-    __table_args__ = (CheckConstraint("crypto_version >= 0", name="preview_secret_crypto_valid"),)
+    __table_args__ = (
+        CheckConstraint("crypto_version >= 0", name="preview_secret_crypto_valid"),
+        CheckConstraint("preview_version IN (1, 2)", name="preview_protocol_version_valid"),
+    )
 
 
 class PushDelivery(IdMixin, Base):

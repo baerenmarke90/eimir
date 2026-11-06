@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ShellUtilitiesContext } from '../client/shellUtilities';
-import navigation from '../i18n/locales/navigation';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import de from '../i18n/locales/de';
+import { ShellUtilitiesContext } from '../client/shellUtilities';
 import dailyInsights from '../i18n/locales/dailyInsights';
+import de from '../i18n/locales/de';
 import games from '../i18n/locales/games';
+import navigation from '../i18n/locales/navigation';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
 describe('MoreOverviewPage', () => {
@@ -71,13 +71,17 @@ describe('MoreOverviewPage', () => {
     expect(html).not.toContain('more-destination-description');
     expect(html).not.toContain(de.more.intro);
 
-    const rowMatches = html.match(/class="more-destination"/g);
+    const rowMatches = html.match(
+      /class="more-destination(?: more-profile-destination)?"/g,
+    );
     expect(rowMatches).toHaveLength(14);
+    expect(html).toContain('more-profile-avatar');
+    expect(html).toContain('person-identity-avatar-medium');
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
     expect(badgeMatches).toHaveLength(3);
     expect(html).toContain(games.status.premium);
-    expect(html).toContain(dailyInsights.week.title);
+    expect(html).toContain(de.more.destinations.insights);
     expect(html).toContain(dailyInsights.pro);
     expect(html).not.toContain(dailyInsights.week.subtitle);
   });
@@ -157,4 +161,36 @@ describe('MoreOverviewPage', () => {
       queryClient.clear();
     },
   );
+  it.each([
+    ['2026-11-05.draft-1', true],
+    [null, false],
+  ])('links the terms of use only where they apply (%s)', (version, shown) => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['instance-status', 'http://api.example.test'], {
+      availability: 'available',
+      auth: null,
+      accountCreation: version ? 'self_service' : 'invitation',
+      selfServiceSignupAvailable: Boolean(version),
+      maintenanceMode: false,
+      registrationAvailable: true,
+      termsOfUseVersion: version,
+    });
+
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MoreOverviewPage
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex' }}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(html.includes('href="/legal/terms"')).toBe(shown);
+  });
 });

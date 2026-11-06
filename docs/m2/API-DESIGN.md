@@ -101,6 +101,7 @@ G2 filters:
 - `order`: `DESC` by default, alternatively `ASC`.
 - `cursor`: opaque.
 - `limit`: default `50`, maximum `100`.
+- `includeChapters`: optional boolean, default `false` (#1635). The unfiltered diary may opt into `chapterMarkers`, at authored `startOn` only. Markers share the complete keyset cursor and combined page limit, contribute only their start year, and never extend `StoryKind`, Discover, photo flows or relation choices. A type-filtered timeline excludes markers.
 
 `q` is **not** part of the M2/G2 contract and remains M4 Search.
 

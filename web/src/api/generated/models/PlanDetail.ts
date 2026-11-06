@@ -165,6 +165,12 @@ export interface PlanDetail {
     status: PlanStatus;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof PlanDetail
+     */
+    tags?: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof PlanDetail
      */
@@ -236,6 +242,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'sourceWishId': json['sourceWishId'],
         'spaceId': json['spaceId'],
         'status': PlanStatusFromJSON(json['status']),
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
@@ -271,6 +278,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
         'sourceWishId': value['sourceWishId'],
         'spaceId': value['spaceId'],
         'status': PlanStatusToJSON(value['status']),
+        'tags': value['tags'],
         'title': value['title'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],

@@ -1,0 +1,20 @@
+/* The label combines text and an inline link; keep it one readable line flow. */
+.choice-row.terms-acceptance {
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.choice-row.terms-acceptance > input {
+  margin-top: 0.1em;
+}
+
+.choice-row.terms-acceptance > span {
+  display: block;
+  line-height: 1.45;
+}
+
+.choice-row.terms-acceptance a {
+  color: var(--color-link-text);
+  font-weight: 600;
+}

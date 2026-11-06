@@ -21,6 +21,14 @@ export function DailyVibeIcon({
 
   let shape: ReactNode = null;
   switch (value) {
+    case DailyVibe.VERY_GOOD:
+      shape = (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M7.5 9.5q1.5-2 3 0m3 0q1.5-2 3 0M7.5 13h9a4.5 4.5 0 0 1-9 0Z" />
+        </>
+      );
+      break;
     case DailyVibe.GOOD:
       shape = (
         <>

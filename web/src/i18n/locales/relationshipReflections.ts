@@ -21,7 +21,7 @@ const relationshipReflections = {
     couple: '{{own}} & {{partner}}',
     since: 'Euer Anfang: {{date}}',
     history: 'Was ihr gemeinsam festgehalten habt',
-    wirStatisticsTitle: 'Beziehungsstatistik',
+    wirStatisticsTitle: 'Eure Geschichte in Zahlen',
     wirStatisticsToggle: 'Statistik auf Wir anzeigen',
     wirStatisticsHelp:
       'Freiwillig für dich auf diesem Gerät. Hier kannst du eure gemeinsamen Zähler zusätzlich auf Wir einblenden. Die Einstellung bei euren Rückblicken bleibt unabhängig davon.',

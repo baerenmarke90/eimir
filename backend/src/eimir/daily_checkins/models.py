@@ -40,6 +40,7 @@ class DailyVibe(StrEnum):
     presentation concern.
     """
 
+    VERY_GOOD = "VERY_GOOD"
     GOOD = "GOOD"
     OKAY = "OKAY"
     STRESSED = "STRESSED"
@@ -129,7 +130,7 @@ class DailyCheckIn(IdMixin, TimestampMixin, VersionMixin, Base):
         ),
         CheckConstraint(
             "vibe IS NULL OR vibe IN "
-            "('GOOD', 'OKAY', 'STRESSED', 'SAD', 'NEEDS_CONNECTION', 'NEEDS_SPACE')",
+            "('VERY_GOOD', 'GOOD', 'OKAY', 'STRESSED', 'SAD', 'NEEDS_CONNECTION', 'NEEDS_SPACE')",
             name="vibe_is_known",
         ),
         CheckConstraint(

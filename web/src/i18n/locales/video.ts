@@ -2,6 +2,10 @@ export default {
   add: 'Video hinzufügen',
   label: 'Fotos & Videos',
   preview: 'Video-Vorschau',
+  preparing: 'Video wird auf deinem Gerät vorbereitet …',
+  processing: 'Video wird verarbeitet …',
+  processingShort: 'Wird vorbereitet',
+  savedFailedShort: 'Nicht verfügbar',
   show: 'Video anzeigen',
   hide: 'Video verbergen',
   play: 'Video abspielen',
@@ -25,7 +29,9 @@ export default {
   selectedItem: 'Video ausgewählt',
   failures_one: 'Eine Aufnahme braucht deine Hilfe.',
   failures_other: '{{count}} Aufnahmen brauchen deine Hilfe.',
-  pendingSave: 'Warte, bis alle Aufnahmen bereit zum Speichern sind.',
+  pendingSave: 'Medien werden übertragen …',
+  savedFailed:
+    'Video konnte nicht verarbeitet werden. Wähle beim Bearbeiten ein anderes Video.',
   selectItem: 'Video {{position}} von {{count}}: {{name}} · {{status}}',
   showLess: 'Weniger Aufnahmen anzeigen',
   showAll: 'Alle {{count}} Aufnahmen anzeigen',
@@ -33,5 +39,5 @@ export default {
   failedNotSaved:
     'Dieses Video wird erst nach erfolgreichem Upload gespeichert.',
   volatile:
-    'Warte, bis das Video bereit zum Speichern ist. Wenn du die App vorher neu startest, musst du es erneut auswählen.',
+    'Lass die App für den Upload geöffnet. Danach verarbeitet der Server das Video.',
 };

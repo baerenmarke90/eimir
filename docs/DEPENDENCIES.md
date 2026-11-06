@@ -6,17 +6,54 @@ here does not belong in the project.
 
 As of: 2026-10-20
 
-## Optional video processor (2026-11-02)
+## Client-sealed temporary messages (2026-11-06, #1672)
+
+`jose` **6.2.13**, [panva/jose](https://github.com/panva/jose), MIT license,
+provides standard General JWE RSA-OAEP-256/A256GCM framing through Web Crypto.
+The exact npm package and integrity are pinned in the Web lockfile. It runs
+locally in the canonical Web/Capacitor UI; no provider, account, service fee,
+network request, API key or hoster setting is added. The server only receives
+public keys and opaque, bounded ciphertext. Existing server-side `joserfc`
+Push previews remain a separate operator-keyed boundary. Native MediaRecorder,
+IndexedDB, canvas export and the shared HeartMoment voice primitives own capture,
+non-extractable device-key persistence and display. No cryptographic primitive
+is implemented in application code. No recovery/forward-secrecy or independently
+audited product-wide E2EE claim follows from this bounded transport.
+
+The generated #1672 UI reference in `product/design/references/once-messages/`
+was created with the built-in imagegen tool using fictional people and generated
+woodland imagery. Prompts, corrections and baseline are recorded alongside it.
+It is a product reference, not a runtime asset or third-party photograph.
+
+## Optional video processor (2026-11-05)
 
 FFmpeg 9.0.2, upstream commit `946fcce07b6dcd0331c8cc609192aeff5e1924f8`,
 is built from the checksum-pinned official archive only in `backend/Dockerfile.media`.
 License: LGPL-2.1-or-later for this restricted build; GPL, nonfree, autodetected
 libraries and network protocols are disabled. Corresponding source, license,
-configuration and the local MOV encryption rejection patch ship with the image.
-No new Python/npm/native dependency or external media provider is introduced.
+configuration and the local MOV, codec-context and HDR serialization hardening
+patches ship with the image. No external media provider or new Python/npm
+dependency is introduced. The optional role statically links these source-built
+normalization dependencies (no GPL/nonfree components):
+
+| Component | Source/version | License |
+| --- | --- | --- |
+| OpenH264 encoder | [Cisco 2.7.0](https://github.com/cisco/openh264/tree/1bca62311e447fd9c39fc93de2c4b96cd5ce971c), archive SHA-256 `2238d3e5956ef0d288dd43842a0220015cf72c4327d98684e8bc47ffa7cf5308` | BSD-2-Clause |
+| zimg color conversion | [3.0.6](https://github.com/sekrit-twc/zimg/tree/f819b14e8f39d1282400b0d9543e8ef73c1b2bbd), archive SHA-256 `4dc9faba466bce429226f0f5454cb7948ec2b70f6b5b6de383898227b38e51da` | WTFPL-2.0 |
+
+`tools/media/build-video-dependencies.sh` verifies both archives; complete
+corresponding source, licenses and shared build helpers ship under
+`/opt/eimir-media/share/ffmpeg`. FFmpeg does not enable the OpenH264 decoder.
+OpenH264 source builds are not covered by an assumed Cisco binary patent grant;
+OSS source/attribution obligations and codec-patent distribution/operation review
+are distinct. The build never fetches a Cisco binary or adds a user/provider
+account. Both hosting modes use the same bounded optional role.
 The synthetic blue H.264/AAC fixture in `backend/tests/fixtures/media/` was
 created for #88 using FFmpeg color/anullsrc generators; it contains no third-party
-imagery, personal data or audio recording. Its deliberately synthetic metadata
+imagery, personal data or audio recording. The additional #1649 fixtures use
+FFmpeg-generated test colors and a 440 Hz tone, reproduced by
+`tools/media/generate-video-fixtures.sh`; they cover HEVC SDR/Main10/HLG/PQ,
+rotation, silence, H.264 High10/PCM and H.264/MP3. Their deliberately synthetic metadata
 is only a stripping-test input. See [operations and security review](operations/video-uploads.md)
 and `tools/media/advisory-review.json`; unresolved evidence is not a blanket waiver.
 
@@ -143,9 +180,10 @@ in a background job under resource limits — never in the request path.
 optional Google Photos Picker (#1444, 2026-10-27). It supplies PKCE/state and
 OAuth protocol handling instead of a custom token-flow implementation. Its
 Apache-2.0 license is recorded below using the package metadata spelling so the
-inventory gate can verify it exactly. The locked transitive Google auth,
-requests-oauthlib and oauthlib dependencies remain in `backend/uv.lock`; no
-upstream server code or Immich SDK is bundled. The application requests online
+inventory gate can verify it exactly. The adopted Google auth, requests-oauthlib
+and OAuthLib stack remains in `backend/uv.lock`. OAuthLib now has an explicit
+`>=4.0.1,<5` security floor and its installed version/license is recorded below.
+No upstream server code or Immich SDK is bundled. The application requests online
 Picker-only access and bounds transport without persisting refresh tokens.
 
 ## Backend — Runtime
@@ -167,6 +205,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | google-auth[requests] | 2.62.0 | PyPI | Apache 2.0 |
+| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
@@ -194,6 +233,17 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
 | leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
+| mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
+
+Mediabunny is used unmodified in a lazy, same-origin Web Worker for optional
+on-device MP4/MOV optimization (#1647). It supplies container handling around
+native WebCodecs; no software codec, WASM runtime, remote converter or provider
+is added. Its two transitive dependencies are Web API type declarations, recorded
+with integrity hashes in the npm lock. The MPL notice and source location ship
+in `web/public/licenses/mediabunny-NOTICE.txt`; the complete license ships beside
+it. Cloud and Self-Hosted use the same bundled code without provider fees or
+additional user setup. Unsupported, failed, oversized or uneconomical local
+conversion retains the original and existing server-side validation.
 
 ## Web — M2-S8 Development
 
@@ -508,3 +558,12 @@ Nimbus 10.10 embeds Gson 2.14.0 (Apache-2.0). The unchanged upstream Nimbus
 copyright header, Apache-2.0 license and Gson license are packaged under
 `android/app/src/main/assets/licenses/`. Backend wheel license metadata remains
 in the installed distribution. No additional provider account or terms are introduced.
+
+### HeartMoment audio processing
+
+#1671 extends the existing LGPL FFmpeg media role, not the application's dependency
+stack. Its reviewed build adds Ogg, Matroska/WebM, MP3, WAV and AAC demuxers,
+Opus/Vorbis decoders/parsers, and WAV output for bounded PCM frame-count validation.
+The existing AAC encoder and MP4 muxer provide sanitized playback. No external
+codec/speech SDK or provider is added. See the [voice contract](product/design/heart-voice-notes.md)
+and [operator delivery](operations/video-uploads.md#heartmoment-voice-intake-1671).

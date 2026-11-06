@@ -86,6 +86,8 @@ EXCLUDED_PLATFORM_PATHS = {
     Path("android/app/src/main/res/xml/config.xml"),
     Path("web/e2e/fixtures/locales/de.ts"),
     Path("web/package-lock.json"),
+    # Generated solely from the audited, bundled localization resource contract.
+    Path("web/public/offline-language.js"),
     Path("tools/ci/engineering_language_audit.py"),
     Path("tools/ci/test_engineering_language_audit.py"),
 }
@@ -292,11 +294,44 @@ ALLOWED_LEGACY_INPUT = "Aktueller `main`"
 # domain-content fixtures. Keeping the exception value-based rather than
 # excluding whole test files still audits their engineering prose.
 ALLOWED_LOCALIZED_TEXTS = (
+    # Exact static German fallback, generated from the bundled offline resource.
+    "Auf dieser Offline-Seite werden keine privaten Inhalte gespeichert.",
+    # Exact #1655 native outcome copy and its bilingual encrypted fixtures.
+    "Dein Video konnte nicht verarbeitet werden.",
     # Exact #1590 native recovery copy; resource localization, never diagnostics.
     "eimir. wurde unterbrochen",
     "Die App-Ansicht konnte nicht weiter ausgeführt werden. Du kannst eimir. erneut öffnen. Bereits gespeicherte Inhalte bleiben erhalten. Nicht gespeicherte Eingaben können verloren sein.",
     "Erneut öffnen",
     "Schließen",
+    # Exact #1644 native product copy and bilingual presentation fixtures.
+    "%1$s hat auf ein Foto in „%2$s“ reagiert.",
+    "%1$s hat auf ein Foto reagiert.",
+    "%1$s hat den Termin „%2$s“ geplant.",
+    "%1$s hat einen Kommentar geschrieben.",
+    "%1$s hat einen gemeinsamen Termin geplant.",
+    "%1$s ist jetzt mit dir verbunden.",
+    "Alex hat auf ein Foto in „Unser Spaziergang“ reagiert.",
+    "Alex hat auf ein Foto reagiert.",
+    "Alex hat den Moment „Unser Spaziergang“ mit dir geteilt.",
+    "Alex hat den Termin „Unser Spaziergang“ geplant.",
+    "Alex hat den Termin „Unser Spaziergang“ geändert.",
+    "Alex hat die Erinnerung „Unser Spaziergang“ erstellt.",
+    "Alex hat eine Erinnerung erstellt.",
+    "Alex hat einen Kommentar geschrieben.",
+    "Alex hat einen Moment mit dir geteilt.",
+    "Alex hat einen Termin abgesagt.",
+    "Alex hat einen Termin geändert.",
+    "Alex hat einen gemeinsamen Termin geplant.",
+    "Alex ist jetzt mit dir verbunden.",
+    "Alex möchte mit dir Wünsche auswählen.",
+    "Dein Partner hat einen Kommentar geschrieben.",
+    "Deine Erinnerung „Unser Spaziergang“ ist fällig.",
+    "Ein Moment zum Wiederentdecken.",
+    "Ein Moment zum Wiederentdecken: „%2$s“.",
+    "Ein Moment zum Wiederentdecken: „Unser Spaziergang“.",
+    "Neue Kommentare für dich, zuletzt zu „%2$s“.",
+    "Neue Kommentare für dich, zuletzt zu „Unser Spaziergang“.",
+    "Wenn du magst: Halte einen Moment fest.",
     # Exact #565 native localized copy and German content/assertion fixtures.
     "Alex hat die Erinnerung „Einkaufen“ erstellt.",
     "Alex hat dir einen Kuss geschickt.",
@@ -536,8 +571,10 @@ def backend_files() -> list[Path]:
 
 
 def _is_excluded_platform_path(path: Path) -> bool:
-    return path in EXCLUDED_PLATFORM_PATHS or any(
-        path == prefix or prefix in path.parents for prefix in EXCLUDED_PLATFORM_PREFIXES
+    return (
+        (path.suffix == ".json" and Path("backend/src/eimir/i18n/locales") in path.parents)
+        or path in EXCLUDED_PLATFORM_PATHS
+        or any(path == prefix or prefix in path.parents for prefix in EXCLUDED_PLATFORM_PREFIXES)
     )
 
 

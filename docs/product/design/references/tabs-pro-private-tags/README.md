@@ -99,9 +99,11 @@ before publishing the authorized PR. Merge only after required final-head checks
 Implementation commit: `34dc312a5`. Main reconciliation: `8ec98dbb5` incorporates
 main `271aaa99c` with merged #1681; it changes no implementation file. People
 integration `70c6010b5` incorporates published #1684 head `89a175f18`; the
-subsequent test alignment is `3403b27cf`. PR creation still awaits completion of
-the owning dependency and reconciliation with its main merge, as requested.
-Final hosted checks remain required before merge.
+subsequent test alignment is `3403b27cf`. The later PO handoff request authorizes
+immediate push and PR creation for online continuation while #1684 finishes its
+hosted checks. Before merging this PR, reconcile the dependency's final main
+merge and require all applicable final-head checks. No merge is performed as
+part of this handoff.
 
 - Primary selection now has one canonical root contract for links and swipes;
   obsolete root-resume storage is removed. Detail/task origins keep their

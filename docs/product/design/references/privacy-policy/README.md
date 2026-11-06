@@ -1,6 +1,6 @@
 # Privacy policy: public reading and signup notice
 
-Issue: to be linked when the issue is created (follow-up to #1657).
+Issue: [#1677](https://github.com/baerenmarke90/eimir/issues/1677) (follow-up to #1657).
 Status: implementation preflight, recorded before UI code.
 Baseline: `main` at `e98202bff3aefe33c46724fa0ad7b5e2ac6f6e1c` (includes the
 terms-of-use slice #1658).

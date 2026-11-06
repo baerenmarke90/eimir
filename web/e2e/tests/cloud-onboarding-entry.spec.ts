@@ -335,6 +335,11 @@ test.describe('Privacy policy on eimir. Cloud', () => {
       page.getByRole('navigation', { name: legal.eyebrow }).getByRole('link'),
     ).toHaveText([legal.termsLink, legal.privacyLink]);
 
+    await expectNoWcagViolations(page);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expectNoWcagViolations(page);
+    await page.emulateMedia({ colorScheme: 'light' });
+
     await notice.getByRole('link', { name: PRIVACY_NOTICE_LINK }).click();
     const sheet = page.getByRole('dialog', { name: legal.privacySheetTitle });
     await expect(sheet).toBeVisible();
@@ -476,6 +481,7 @@ test.describe('Privacy policy on eimir. Cloud', () => {
       legal.termsLink,
       legal.privacyLink,
     ]);
+    await expectNoWcagViolations(page);
     await legalLinks.getByRole('link', { name: legal.privacyLink }).click();
 
     await expect(page).toHaveURL(/\/legal\/privacy$/);

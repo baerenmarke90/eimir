@@ -25,6 +25,12 @@ import { mapValues } from '../runtime';
 export interface WishUpdate {
     /**
      * 
+     * @type {Array<string>}
+     * @memberof WishUpdate
+     */
+    tags?: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof WishUpdate
      */
@@ -48,6 +54,7 @@ export function WishUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'] == null ? undefined : json['title'],
     };
 }
@@ -63,6 +70,7 @@ export function WishUpdateToJSONTyped(value?: WishUpdate | null, ignoreDiscrimin
 
     return {
         
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

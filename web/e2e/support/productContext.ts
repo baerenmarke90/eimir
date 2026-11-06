@@ -6,6 +6,18 @@ export async function fulfillDefaultProductContext(
 ): Promise<boolean> {
   const request = route.request();
   const pathname = new URL(request.url()).pathname;
+  // An unrelated journey starts without pending one-time messages. Feature
+  // journeys install their explicit encrypted-message contract before this fallback.
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/once-messages$/.test(pathname)
+  ) {
+    await route.fulfill({
+      json: { items: [] },
+      headers: { 'Cache-Control': 'private, no-store' },
+    });
+    return true;
+  }
   // Explicit shell/bootstrap additions only. Dedicated acceptance journeys
   // intercept these before this default; arbitrary writes remain unexpected.
   if (

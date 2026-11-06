@@ -887,12 +887,12 @@ for (const view of [
       }
       await route.fallback();
     });
-    await page.goto('/more/profile');
+    await page.goto('/more/private');
     await signIn(page);
-    const partnerDetails = page.locator('.profile-partner-disclosure');
-    await expect(partnerDetails).not.toHaveAttribute('open');
-    await partnerDetails.locator(':scope > summary').click();
-    await expect(partnerDetails).toHaveAttribute('open');
+    await page
+      .getByRole('link', { name: privateArea.partnerNotes.title, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/private\/partner-notes$/);
     const trigger = page.getByRole('button', {
       name: profiles.addNoteShort,
       exact: true,
@@ -1024,6 +1024,15 @@ for (const view of [
         `private-area-profile-note-saved-${view.width}-${view.scheme}.png`,
       ),
     });
+    await page
+      .getByRole('link', { name: privateArea.backToHub, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/private$/);
+    await page.goto('/more/profile');
+    await expect(
+      page.getByText('Book the cabin for autumn', { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.locator('.private-partner-notes-panel')).toHaveCount(0);
     await page
       .getByRole('button', { name: profiles.addPreferenceShort, exact: true })
       .click();
@@ -1803,7 +1812,7 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
   await expect(
     page.getByRole('heading', { name: m5s3.overview.title, level: 1 }),
   ).toBeVisible();
-  await expect(page.getByText(m5s3.overview.plansEmpty)).toBeVisible();
+  await expect(page.getByText(m5s3.overview.openPlansEmpty)).toBeVisible();
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(page.getByText(m5s3.overview.wishesEmpty)).toBeVisible();
@@ -1823,7 +1832,7 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
   await page.keyboard.press('Enter');
   await expect(page.locator('#planning-create-title')).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/\/plan$/);
+  await expect(page).toHaveURL(/\/plan#plans$/);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -2254,9 +2263,7 @@ for (const view of [
   { width: 1280, height: 1000, scheme: 'dark', large: false },
   { width: 320, height: 1000, scheme: 'dark', large: true },
 ] as const) {
-  test(`gentle prompts: saved consent, quiet dismissal and blank composer at ${view.width} ${view.scheme}`, async ({
-    page,
-  }, info) => {
+  async function prepareGentlePrompts(page: Page, enabled = false) {
     await page.setViewportSize(view);
     await page.emulateMedia({
       colorScheme: view.scheme,
@@ -2275,8 +2282,18 @@ for (const view of [
       }
     }, view.large);
     const requests = await installAuthorizedApiMocks(page);
+    requests.gentleState.enabled = enabled;
     await page.goto('/today');
     await signIn(page);
+    return requests;
+  }
+
+  // Keep saved consent and invitation use as complete journeys with independent
+  // normal test budgets; reload, accessibility and receipt contracts stay intact.
+  test(`gentle prompts: saved consent survives failure and reload at ${view.width} ${view.scheme}`, async ({
+    page,
+  }, info) => {
+    const requests = await prepareGentlePrompts(page);
     await page.goto('/more/settings/notifications');
     const toggle = page.getByRole('switch', {
       name: gentleCopy.label,
@@ -2321,6 +2338,19 @@ for (const view of [
       path: info.outputPath(`today-gentle-${view.width}-${view.scheme}.png`),
       fullPage: true,
     });
+    expect(requests).toEqual([]);
+  });
+
+  test(`gentle prompts: quiet dismissal and blank composer retain saved consent at ${view.width} ${view.scheme}`, async ({
+    page,
+  }) => {
+    const requests = await prepareGentlePrompts(page, true);
+    await expect(
+      page.getByRole('heading', { name: gentleCopy.writingTitle }),
+    ).toBeVisible();
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(1);
+    if (view.large)
+      await expect(page.locator('html')).toHaveCSS('font-size', '32px');
     await page
       .getByRole('button', { name: gentleCopy.dismiss, exact: true })
       .click();

@@ -63,53 +63,27 @@ async function expectHiddenGeometry(input: Locator): Promise<void> {
   await expect(input).toHaveCSS('border-top-width', '0px');
 }
 
-async function tabToElement(page: Page, id: string): Promise<void> {
-  await page.evaluate(() => {
-    const active = document.activeElement;
-    if (active instanceof HTMLElement) active.blur();
-  });
-
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    await page.keyboard.press('Tab');
-    const activeId = await page.evaluate(
-      () => document.activeElement?.id ?? '',
-    );
-    if (activeId === id) return;
-  }
-
-  throw new Error(`Keyboard focus did not reach #${id}.`);
-}
-
 async function expectKeyboardFilePicker(page: Page): Promise<void> {
   const trigger = page.getByRole('button', {
     name: photoSources.addMedia,
     exact: true,
   });
-  await trigger.focus();
-  await trigger.press('Enter');
-  const sourceSheet = page.getByRole('dialog', {
-    name: photoSources.addMedia,
-    exact: true,
-  });
-  await expect(sourceSheet).toBeVisible();
-  const input = sourceSheet.locator('input[type="file"]');
+  const input = page.locator('input[type="file"]').last();
   await expect(input).toHaveCount(1);
-  const id = await input.getAttribute('id');
-  if (!id) throw new Error('The device file input needs a label target.');
   await expect(input).toBeEnabled();
   await expectHiddenGeometry(input);
   await expect(input).not.toHaveAccessibleName('');
-
-  await tabToElement(page, id);
-  await expect(input).toBeFocused();
-
-  const picker = page.locator(`label.file-picker[for="${id}"]`);
-  await expect(picker).toBeVisible();
-  await expect(picker).toHaveCSS('outline-style', 'solid');
-  await expect(picker).toHaveCSS('outline-width', '3px');
-  await page.keyboard.press('Escape');
-  await expect(sourceSheet).not.toBeVisible();
-  await expect(trigger).toBeFocused();
+  await expect(input).toHaveAttribute('tabindex', '-1');
+  await trigger.focus();
+  await expect(trigger).toHaveCSS('outline-style', 'solid');
+  await expect(trigger).toHaveCSS('outline-width', '3px');
+  for (const key of ['Enter', 'Space']) {
+    const native = page.waitForEvent('filechooser');
+    await trigger.press(key);
+    await (await native).setFiles([]);
+    await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  }
 }
 
 async function installApiMocks(page: Page): Promise<void> {

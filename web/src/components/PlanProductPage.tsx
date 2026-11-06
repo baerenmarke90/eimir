@@ -68,6 +68,9 @@ import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { TaskBackButton } from './TaskBackButton';
+import { MemoryTagChoices } from './MemoryTagChoices';
+import { ContextTagList } from './ContextTagList';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { UiState } from './UiState';
 import { usePlanCompletion } from './usePlanCompletion';
 import './SharedPlanningPages.css';
@@ -104,6 +107,8 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [completionTarget, setCompletionTarget] = useState<string | null>(null);
   const completionTrigger = useRef<HTMLButtonElement>(null);
   const [completionSheetPresent, setCompletionSheetPresent] = useState(false);
@@ -163,7 +168,28 @@ export function PlanProductPage({
     staleTime: 30_000,
     retry: false,
   });
+  const linkedPlaceId = planQuery.data?.placeId;
+  const listedPlace = placesQuery.data?.find(
+    (place) => place.id === linkedPlaceId,
+  );
+  const linkedPlaceQuery = useQuery({
+    queryKey: authorSummaryQueryKeys.placeDetail(
+      spaceId,
+      linkedPlaceId ?? undefined,
+    ),
+    queryFn: () => {
+      if (!linkedPlaceId) throw new Error('Missing linked Plan place.');
+      return apiCall(() =>
+        apis.places.getPlace({ spaceId, placeId: linkedPlaceId }),
+      );
+    },
+    enabled: Boolean(linkedPlaceId && !listedPlace && !placesQuery.isPending),
+    retry: false,
+  });
   const commitPlan = async (plan: PlanDetail) => {
+    await queryClient.invalidateQueries({
+      queryKey: ['context-tags', spaceId],
+    });
     queryClient.setQueryData(key, plan);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['m5-s3', 'plans', spaceId] }),
@@ -333,6 +359,8 @@ export function PlanProductPage({
       photos.entries.length !== photos.items.length
     )
       return;
+    const tags = tagEditor.current?.commitDraft();
+    if (!tags) return;
     const data = new FormData(event.currentTarget);
     const description = String(data.get('description')).trim();
     const placeId = String(data.get('placeId')).trim();
@@ -341,6 +369,7 @@ export function PlanProductPage({
       plan: editingPlan ?? plan,
       values: {
         title: String(data.get('title')).trim(),
+        tags,
         description: description || null,
         placeId: placeId || null,
         experiencedOn: experiencedOn ? dateFromInput(experiencedOn) : undefined,
@@ -377,7 +406,7 @@ export function PlanProductPage({
 
   const lifecycleError = completion.error || returnMutation.error;
 
-  const place = placesQuery.data?.find((item) => item.id === plan.placeId);
+  const place = listedPlace ?? linkedPlaceQuery.data;
   const placeName = place?.name ?? null;
   const scheduleLabel = planScheduleLabel(plan);
   const hasSubfacts = Boolean(plan.experiencedOn);
@@ -445,6 +474,7 @@ export function PlanProductPage({
               onClick={() => {
                 if (!isPlanWritePending()) {
                   setEditingPlan(plan);
+                  setEditTags(plan.tags ?? []);
                   setIsEditing(true);
                   setEditDirty(false);
                   photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
@@ -458,13 +488,34 @@ export function PlanProductPage({
         }
       />
 
+      {!isEditing ? <ContextTagList tags={plan.tags} /> : null}
       <section
         className="planning-facts planen-detail-summary"
         aria-label={t('m5s3.plan.scheduleFacts')}
       >
-        <p className="planen-detail-schedule">
-          {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
-        </p>
+        <div className="planen-detail-when-where">
+          <p className="planen-detail-schedule">
+            {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
+          </p>
+          {!isEditing && placeName && plan.placeId ? (
+            <Link
+              className="planen-schedule-place"
+              to={placeDetailPath(plan.placeId)}
+            >
+              <EimirIcon name="orte" />
+              <span className="planen-place-copy">
+                <strong>{placeName}</strong>
+                {place?.address ? <span>{place.address}</span> : null}
+              </span>
+            </Link>
+          ) : null}
+        </div>
+        {!isEditing && linkedPlaceQuery.error && !place ? (
+          <ProblemState
+            error={linkedPlaceQuery.error}
+            onRetry={() => void linkedPlaceQuery.refetch()}
+          />
+        ) : null}
         {!isEditing && plan.status !== 'COMPLETED' ? (
           <PlanCalendarAction plan={plan} location={placeName ?? undefined} />
         ) : null}
@@ -504,6 +555,18 @@ export function PlanProductPage({
                 onDiscard={editorLifecycle.discard}
               />
             ) : null}
+            <MemoryTagChoices
+              parentType="PLAN"
+              parentId={plan.id}
+              selected={editTags}
+              onChange={(tags) => {
+                setEditTags(tags);
+                setEditDirty(true);
+              }}
+              editorRef={tagEditor}
+              onDraftChange={() => setEditDirty(true)}
+              disabled={writesPending}
+            />
             <PlanPhotosEditor
               controller={photos}
               spaceId={spaceId}
@@ -518,6 +581,26 @@ export function PlanProductPage({
               onChange={() => {
                 setPhotosChanged(true);
                 setEditDirty(true);
+              }}
+            />
+            <PlanWishLink
+              key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+              apis={apis}
+              spaceId={spaceId}
+              plan={plan}
+              editing
+              disabled={writesPending}
+              onLinked={async (updated) => {
+                setEditingPlan((current) =>
+                  current
+                    ? {
+                        ...current,
+                        version: updated.version,
+                        sourceWishId: updated.sourceWishId,
+                      }
+                    : current,
+                );
+                await commitPlan(updated);
               }}
             />
             <fieldset
@@ -710,18 +793,6 @@ export function PlanProductPage({
 
         {!isEditing ? (
           <div className="planen-detail-context">
-            {placeName && plan.placeId ? (
-              <Link
-                className="button-link secondary-link planen-place-context"
-                to={placeDetailPath(plan.placeId)}
-              >
-                <EimirIcon name="orte" />
-                <span className="planen-place-copy">
-                  <strong>{placeName}</strong>
-                  {place?.address ? <span>{place.address}</span> : null}
-                </span>
-              </Link>
-            ) : null}
             <PlanWishLink
               key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
               apis={apis}

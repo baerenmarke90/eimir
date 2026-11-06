@@ -1,6 +1,10 @@
 package de.eimir.app;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import android.content.Context;
 import java.util.UUID;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,16 +27,22 @@ public final class EimirPushService extends PushService {
                 || !active.activationId.equals(instance) || !message.getDecrypted()
                 || message.getContent().length > 256) return;
         String notificationId = null;
+        Context localized;
         try {
             JSONObject payload = new JSONObject(new String(message.getContent(), StandardCharsets.UTF_8));
             if (!"wake".equals(payload.optString("type"))) return;
-            if (payload.length() == 2 && payload.has("notificationId")) {
+            HashSet<String> allowed = new HashSet<>(Arrays.asList("type", "notificationId", "locale"));
+            Iterator<String> keys = payload.keys();
+            while (keys.hasNext()) if (!allowed.contains(keys.next())) return;
+            if (payload.has("notificationId")) {
                 String raw = payload.getString("notificationId");
                 notificationId = UUID.fromString(raw).toString();
                 if (!notificationId.equals(raw)) return;
-            } else if (payload.length() != 1) return;
+            }
+            localized = payload.has("locale")
+                ? RecipientLanguage.context(this, payload.optString("locale", "de")) : this;
         } catch (JSONException | IllegalArgumentException invalid) { return; }
-        NativePushNotifications.present(this, active, notificationId);
+        NativePushNotifications.present(localized, active, notificationId);
     }
 
     @Override

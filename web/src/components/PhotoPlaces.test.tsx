@@ -294,3 +294,53 @@ it('keeps a saved location readable without add or management controls in readin
     }),
   ).toBeNull();
 });
+
+it('keeps all ordered Places beside the date while disclosing map context on demand', async () => {
+  const places = ['Riverbank', 'Old town'].map(
+    (name, index) =>
+      ({
+        id: `inline-${index}`,
+        name,
+        address: `${name} address`,
+        latitude: 49.23,
+        longitude: 6.99,
+        geocodingSource: 'openstreetmap',
+      }) as PlaceDetail,
+  );
+  vi.spyOn(PlacesApi.prototype, 'listMomentPlaces').mockResolvedValue({
+    items: places,
+    nextCursor: null,
+    hasMore: false,
+  });
+  const { container } = wrapper(
+    <div className="moment-metadata">
+      <time dateTime="2026-11-04">4 November 2026</time>
+      <MomentPlaces
+        apiBaseUrl="http://example.test"
+        accessToken="test"
+        accountId="account"
+        spaceId="space"
+        targetId="moment"
+        kind="memories"
+        offline={false}
+        inline
+        orderedIds={['inline-1', 'inline-0']}
+      />
+    </div>,
+  );
+  await screen.findByRole('button', { name: 'Old town' });
+  const names = Array.from(
+    container.querySelectorAll('.moment-place-summary'),
+  ).map((button) => button.textContent);
+  expect(names).toEqual(['Old town', 'Riverbank']);
+  expect(
+    container.querySelector('.moment-metadata > .moment-places-inline'),
+  ).not.toBeNull();
+  expect(screen.queryByRole('link', { name: /Old town address/ })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Old town' }));
+  expect(await screen.findByRole('dialog', { name: 'Old town' })).toBeTruthy();
+  expect(
+    screen.getByRole('link', { name: /Old town address/ }).getAttribute('href'),
+  ).toContain('49.23');
+  expect(screen.getByRole('link', { name: '© OpenStreetMap' })).toBeTruthy();
+});

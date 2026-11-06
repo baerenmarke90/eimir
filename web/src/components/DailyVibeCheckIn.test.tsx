@@ -141,12 +141,14 @@ async function openVibeSheet(name: string = dailyVibe.chooseAria) {
   return screen.getByRole('dialog', { name: dailyVibe.sheetTitle });
 }
 
-function changeAria(value: string): string {
-  return dailyVibe.changeAria.replace('{{value}}', value);
+function changeAria(value: string, withNote = false): string {
+  return (
+    withNote ? dailyVibe.changeWithNoteAria : dailyVibe.changeAria
+  ).replace('{{value}}', value);
 }
 
 describe('DailyVibeCheckIn', () => {
-  it('offers all six semantic values without rendering an empty or hidden person', async () => {
+  it('offers five feelings without exposing needs or a hidden person', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
@@ -166,12 +168,16 @@ describe('DailyVibeCheckIn', () => {
     expect(screen.queryByText(dailyVibe.kicker)).toBeNull();
 
     const dialog = await openVibeSheet();
-    for (const label of Object.values(dailyVibe.values)) {
+    for (const label of Object.values(dailyVibe.values).slice(0, 5)) {
       expect(
         within(dialog).getByRole('button', { name: label }),
       ).not.toBeNull();
     }
-    expect(dialog.querySelectorAll('[data-vibe-icon]')).toHaveLength(6);
+    expect(dialog.querySelectorAll('[data-vibe-icon]')).toHaveLength(5);
+    expect(
+      within(dialog).queryByText(dailyVibe.values.NEEDS_CONNECTION),
+    ).toBeNull();
+    expect(within(dialog).queryByText(dailyVibe.values.NEEDS_SPACE)).toBeNull();
   });
 
   it('keeps the Vibe sheet open while partner sync refetches in the background', async () => {
@@ -421,7 +427,7 @@ describe('DailyVibeCheckIn', () => {
       expect(
         screen
           .getByRole('button', {
-            name: changeAria(dailyVibe.values.SAD),
+            name: changeAria(dailyVibe.values.SAD, true),
           })
           .getAttribute('aria-disabled'),
       ).toBe('false'),
@@ -497,6 +503,9 @@ describe('DailyVibeCheckIn', () => {
         .replace('{{name}}', 'Marie')
         .replace('{{value}}', dailyVibe.values.OKAY),
     });
+    expect(
+      within(partnerButton).getByTitle(dailyVibe.noteAvailable),
+    ).not.toBeNull();
     fireEvent.click(partnerButton);
 
     const detail = screen.getByRole('dialog', {
@@ -526,13 +535,70 @@ describe('DailyVibeCheckIn', () => {
     expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
   });
 
+  it.each(['NEEDS_CONNECTION', 'NEEDS_SPACE'] as const)(
+    'preserves an existing %s without inventing a feeling',
+    async (value) => {
+      const update = vi.fn();
+      const api = {
+        getDailyCheckInTodayRaw: vi
+          .fn()
+          .mockResolvedValue(
+            rawResponse(
+              projection({ ownVibe: value, ownVibeNote: 'A little context.' }),
+              '"today:1"',
+            ),
+          ),
+        updateDailyCheckInTodayRaw: update,
+      } as unknown as DailyCheckInsApi;
+      renderVibe(api);
+      const trigger = await screen.findByTestId('daily-vibe-own');
+      expect(
+        within(trigger).getByTitle(dailyVibe.noteAvailable),
+      ).not.toBeNull();
+      const dialog = await openVibeSheet(
+        changeAria(dailyVibe.values[value], true),
+      );
+      expect(
+        within(dialog)
+          .getByRole('button', { name: dailyVibe.values[value] })
+          .getAttribute('aria-pressed'),
+      ).toBe('true');
+      expect(dialog.querySelectorAll('[data-vibe]')).toHaveLength(6);
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: dailyVibe.saveChanges }),
+      );
+      expect(update).not.toHaveBeenCalled();
+      expect(screen.queryByRole('dialog')).toBeNull();
+    },
+  );
+
+  it('does not mark whitespace-only notes or give an empty partner note a destination', async () => {
+    const api = {
+      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
+        rawResponse(
+          projection({
+            ownVibe: 'GOOD',
+            ownVibeNote: '  ',
+            partner: { state: 'VISIBLE', value: 'SAD' },
+            partnerVibeNote: '  ',
+          }),
+          '"today:1"',
+        ),
+      ),
+    } as unknown as DailyCheckInsApi;
+    renderVibe(api);
+    await screen.findByTestId('daily-vibe-partner');
+    expect(screen.queryByTitle(dailyVibe.noteAvailable)).toBeNull();
+    expect(screen.getByTestId('daily-vibe-partner').tagName).toBe('DIV');
+  });
+
   it('changes and removes only the Vibe dimension', async () => {
     const update = vi
       .fn()
       .mockResolvedValueOnce(
         rawResponse(
           projection({
-            ownVibe: 'NEEDS_SPACE',
+            ownVibe: 'STRESSED',
             partner: { state: 'VISIBLE', value: 'GOOD' },
           }),
           '"today:2"',
@@ -564,24 +630,24 @@ describe('DailyVibeCheckIn', () => {
     let dialog = await openVibeSheet(changeAria(dailyVibe.values.OKAY));
     fireEvent.click(
       within(dialog).getByRole('button', {
-        name: dailyVibe.values.NEEDS_SPACE,
+        name: dailyVibe.values.STRESSED,
       }),
     );
     fireEvent.click(
       within(dialog).getByRole('button', { name: dailyVibe.saveChanges }),
     );
     await screen.findByRole('button', {
-      name: changeAria(dailyVibe.values.NEEDS_SPACE),
+      name: changeAria(dailyVibe.values.STRESSED),
     });
 
-    dialog = await openVibeSheet(changeAria(dailyVibe.values.NEEDS_SPACE));
+    dialog = await openVibeSheet(changeAria(dailyVibe.values.STRESSED));
     fireEvent.click(
       within(dialog).getByRole('button', { name: dailyVibe.remove }),
     );
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
     expect(update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
-      vibe: 'NEEDS_SPACE',
+      vibe: 'STRESSED',
       vibeNote: null,
     });
     expect(update.mock.calls[1][0].dailyCheckInUpdate).toEqual({ vibe: null });

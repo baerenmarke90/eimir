@@ -31,6 +31,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         registerPlugin(PlanCalendarPlugin.class);
+        registerPlugin(VoiceSharePlugin.class);
         super.onCreate(savedInstanceState);
         if (getBridge() != null) {
             getBridge().getWebView().setBackgroundColor(

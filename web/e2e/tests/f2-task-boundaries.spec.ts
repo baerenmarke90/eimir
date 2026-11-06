@@ -1,10 +1,10 @@
-import photoSources from '../../src/i18n/locales/photoSources';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
+import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
@@ -360,7 +360,7 @@ async function fillMemory(page: Page, withPhoto = false) {
       buffer: await readFile(PHOTO),
     });
     await expect(
-      page.getByText(de.memory.photoReady, { exact: true }),
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toBeVisible();
   }
 }
@@ -486,6 +486,13 @@ test('Quick Create native modality prevents background focus and activation', as
     body: JSON.stringify(checkpoints, null, 2),
     contentType: 'application/json',
   });
+  await dialog.evaluate(async (element) => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished),
+    );
+  });
   const backgroundBounds = await backgroundMore.boundingBox();
   const dialogBounds = await dialog.boundingBox();
   if (!backgroundBounds || !dialogBounds)
@@ -562,7 +569,7 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
     buffer: await readFile(PHOTO),
   });
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
 
   const createRequest = page.waitForRequest(
@@ -1116,7 +1123,7 @@ test('failed uploads retain authored content and can retry before the first crea
     buffer: await readFile(PHOTO),
   });
   await expect(
-    page.getByText(de.memory.photoFailed, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: de.memory.save, exact: true }),
@@ -1126,11 +1133,16 @@ test('failed uploads retain authored content and can retry before the first crea
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toHaveValue(BODY);
   await page
-    .getByRole('group', { name: de.memory.photoSelected, exact: true })
+    .getByRole('button', { name: new RegExp(de.memory.photoFailed) })
+    .click();
+  await page
+    .locator('.photo-draft-inspector')
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
+  await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));

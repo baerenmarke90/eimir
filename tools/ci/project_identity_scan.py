@@ -20,6 +20,12 @@ LEGACY_PATTERN = re.compile(
     r"SideBySide-Next|SideBySide|sidebyside|side-by-side|side by side|SBS_|\bSBS\b|sbs_|sbs-|sbs(?=[A-Z])",
     re.IGNORECASE,
 )
+# Only a complete compact direct-encryption value is opaque. Keep every other
+# field and any prose on the same line subject to the normal identity rules.
+PUSH_PREVIEW_JWE_LINE = re.compile(
+    r'\s*"jwe"\s*:\s*"[A-Za-z0-9_-]+\.\.[A-Za-z0-9_-]{16}\.'
+    r'[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{22}"[,]?\s*'
+)
 
 
 class Classification(StrEnum):
@@ -86,6 +92,15 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
 
     normalized = line.casefold()
 
+    if (
+        path == Path("android/app/src/androidTest/assets/push-preview-catalog.json")
+        and PUSH_PREVIEW_JWE_LINE.fullmatch(line)
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the compact sender-encrypted fixture value is opaque ciphertext, not a project identity",
+        )
+
     if path in GUARD_FILES:
         return (
             Classification.FALSE_POSITIVE,
@@ -131,6 +146,59 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "side-by-side is used as generic responsive-layout terminology",
         )
 
+    if (
+        path == Path("docs/product/design/references/1647-media-planning/reference-prompt.txt")
+        and match == "side by side"
+        and "three complete 390px smartphone screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact reference prompt describes three adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/references/vibe-immich-clarity/reference-prompt.txt")
+        and match == "side-by-side"
+        and "two small side-by-side people cards:" in normalized
+        and normalized.count("side-by-side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact Vibe reference prompt describes adjacent person cards, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/references/once-messages/prompt.md")
+        and match == "side by side"
+        and "three complete smartphone app screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact one-time-message reference prompt describes adjacent screens, not a project name",
+        )
+
+    planning_prompt_phrases = {
+        Path("docs/product/design/references/planning-search-private-profile/prompt.txt"): (
+            "four complete flat smartphone screen compositions, each 390 css pixels wide, "
+            "side by side",
+        ),
+        Path("docs/product/design/references/planning-search-private-profile/follow-up-prompts.txt"): (
+            "three complete smartphone app screens side by side",
+            "three complete smartphone screens side by side",
+        ),
+    }
+    if (
+        match == "side by side"
+        and normalized.count("side by side") == 1
+        and any(phrase in normalized for phrase in planning_prompt_phrases.get(path, ()))
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact planning reference prompt describes adjacent screens, not a project name",
+        )
+
     if match == "side by side" and (
         (
             path == Path("docs/product/design/references/1477/image-prompt.txt")
@@ -166,6 +234,17 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         return (
             Classification.FALSE_POSITIVE,
             "the exact generated-reference prompt describes four adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/chapter-experience/reference-prompt.txt")
+        and match == "side by side"
+        and "four complete smartphone screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact reference prompt describes four adjacent screens, not a project name",
         )
 
     if "side by side" in normalized and any(

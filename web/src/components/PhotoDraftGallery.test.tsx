@@ -16,138 +16,173 @@ import {
 } from './PhotoDraftGallery';
 
 afterEach(cleanup);
-
-it('keeps protected photo classification read-only while an own draft remains editable', () => {
-  const onSensitive = vi.fn();
-  render(
-    <PhotoDraftGallery
-      items={[
-        {
-          key: 'protected',
-          name: 'shared.jpg',
-          preview: <span>Shared</span>,
-          isSensitive: true,
-          canEditSensitivity: false,
-        },
-        {
-          key: 'own',
-          name: 'new.jpg',
-          preview: <span>New</span>,
-          isSensitive: false,
-        },
-      ]}
-      onSensitive={onSensitive}
-      onRemove={() => {}}
-    />,
-  );
-  expect(screen.queryByRole('checkbox')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: /new.jpg/ }));
-  fireEvent.click(screen.getByRole('checkbox'));
-  expect(onSensitive).toHaveBeenCalledExactlyOnceWith('own', true);
-  fireEvent.click(screen.getByRole('button', { name: /shared.jpg/ }));
-  expect(screen.queryByRole('checkbox')).toBeNull();
-});
+const items: PhotoDraftGalleryItem[] = ['first', 'second', 'third'].map(
+  (key) => ({
+    key,
+    name: `${key}.jpg`,
+    preview: <span>Preview</span>,
+    isSensitive: false,
+  }),
+);
+const chosen = () =>
+  screen.getByRole('group', { name: i18n.t('memory.photoSelected') });
 
 function Harness() {
-  const [items, setItems] = useState<PhotoDraftGalleryItem[]>(() =>
-    Array.from({ length: 10 }, (_, index) => ({
-      key: `photo-${index}`,
-      name: `camera-${index}.jpg`,
-      preview: <span>Preview</span>,
-      isSensitive: index === 2,
-      draft: {
-        id: `photo-${index}`,
-        file: new File(['photo'], `camera-${index}.jpg`, {
-          type: 'image/jpeg',
-        }),
-        previewUrl: 'blob:photo',
-        status: index === 9 ? 'failed' : 'ready',
-        progress: 100,
-        attempt: 1,
-        attachmentId: `attachment-${index}`,
-        error: index === 9 ? 'A safe validation message' : undefined,
-      } as AttachmentDraft,
-    })),
-  );
+  const [photos, setPhotos] = useState(items);
+  const [cover, setCover] = useState<string | null>(null);
   return (
     <PhotoDraftGallery
-      items={items}
-      onMove={(key, offset) =>
-        setItems((old) => {
-          const next = [...old];
-          const from = next.findIndex((item) => item.key === key);
-          [next[from], next[from + offset]] = [next[from + offset], next[from]];
-          return next;
-        })
-      }
+      items={photos}
+      selectedCoverKey={cover}
+      onSelectCover={setCover}
       onSensitive={(key, value) =>
-        setItems((old) =>
+        setPhotos((old) =>
           old.map((item) =>
             item.key === key ? { ...item, isSensitive: value } : item,
           ),
         )
       }
-      onRetry={(key) =>
-        setItems((old) =>
-          old.map((item) =>
-            item.key === key && item.draft
-              ? {
-                  ...item,
-                  draft: { ...item.draft, status: 'ready', error: undefined },
-                }
-              : item,
-          ),
-        )
-      }
       onRemove={(key) =>
-        setItems((old) => old.filter((item) => item.key !== key))
+        setPhotos((old) => old.filter((item) => item.key !== key))
       }
     />
   );
 }
 
-it('keeps a bounded overview, exposes offscreen failures and retries the selected identity', () => {
-  render(<Harness />);
-  const list = screen.getByRole('list', {
-    name: i18n.t('memory.photoDraftsAria'),
-  });
-  expect(within(list).getAllByRole('button')).toHaveLength(6);
-  expect(screen.getAllByRole('checkbox')).toHaveLength(1);
-  expect(screen.getByRole('alert').textContent).toContain(
-    i18n.t('memory.photoFailures', { count: 1 }),
+it('keeps image selection independent from direct cover and sensitivity controls', () => {
+  const view = render(<Harness />);
+  const tiles = () => view.container.querySelectorAll('.photo-draft-tile');
+  fireEvent.click(tiles()[1]);
+  expect(tiles()[1].getAttribute('aria-pressed')).toBe('true');
+  expect(
+    view.container
+      .querySelector('.photo-draft-cover-toggle[aria-pressed="true"]')
+      ?.closest('li')?.textContent,
+  ).toContain('1');
+  fireEvent.click(
+    within(chosen()).getByRole('button', {
+      name: i18n.t('experiences.chooseCover'),
+    }),
   );
+  expect(tiles()[1].getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(
+    within(chosen()).getByRole('checkbox', {
+      name: i18n.t('sensitiveMedia.mark'),
+    }),
+  );
+  expect(
+    within(chosen()).getByRole('checkbox', {
+      name: i18n.t('sensitiveMedia.mark'),
+      checked: true,
+    }),
+  ).toBeTruthy();
+  fireEvent.click(tiles()[2]);
+  expect(tiles()[2].getAttribute('aria-pressed')).toBe('true');
+  expect(
+    view.container
+      .querySelectorAll('.photo-draft-cover-toggle')[1]
+      .getAttribute('aria-pressed'),
+  ).toBe('true');
+  expect(
+    (
+      view.container.querySelectorAll(
+        '.photo-draft-sensitive input',
+      )[1] as HTMLInputElement
+    ).checked,
+  ).toBe(true);
+  expect(screen.queryByText(i18n.t('memory.photoReady'))).toBeNull();
+  expect(screen.queryByText(i18n.t('experiences.chooseCover'))).toBeNull();
+  expect(screen.queryByText(i18n.t('memory.photoRemove'))).toBeNull();
+  expect(view.container.querySelector('button button')).toBeNull();
+});
+
+it('removes the clicked identity and restores the first cover without changing another selection', () => {
+  const view = render(<Harness />);
+  const tiles = () => view.container.querySelectorAll('.photo-draft-tile');
+  fireEvent.click(tiles()[1]);
+  fireEvent.click(
+    within(chosen()).getByRole('button', {
+      name: i18n.t('experiences.chooseCover'),
+    }),
+  );
+  fireEvent.click(tiles()[2]);
+  fireEvent.click(
+    within(screen.getByRole('group', { name: 'second.jpg' })).getByRole(
+      'button',
+      { name: i18n.t('memory.photoRemove') },
+    ),
+  );
+  expect(tiles()).toHaveLength(2);
+  expect(tiles()[1].getAttribute('aria-pressed')).toBe('true');
+  expect(
+    view.container
+      .querySelector('.photo-draft-cover-toggle')
+      ?.getAttribute('aria-pressed'),
+  ).toBe('true');
+  fireEvent.click(
+    within(chosen()).getByRole('button', {
+      name: i18n.t('memory.photoRemove'),
+    }),
+  );
+  expect(tiles()).toHaveLength(1);
+  expect(tiles()[0].getAttribute('aria-pressed')).toBe('true');
+});
+
+it('retains per-item classification and removal authority and disables mutations during save', () => {
+  const remove = vi.fn(),
+    sensitive = vi.fn(),
+    cover = vi.fn();
+  const props = {
+    items: [{ ...items[0], canEditSensitivity: false, canRemove: false }],
+    onRemove: remove,
+    onSensitive: sensitive,
+    onSelectCover: cover,
+  };
+  const view = render(<PhotoDraftGallery {...props} />);
+  expect(
+    screen
+      .getByRole('checkbox', { name: i18n.t('sensitiveMedia.mark') })
+      .hasAttribute('disabled'),
+  ).toBe(true);
+  expect(
+    screen.queryByRole('button', { name: i18n.t('memory.photoRemove') }),
+  ).toBeNull();
+  view.rerender(<PhotoDraftGallery {...props} items={items} disabled />);
+  for (const button of [
+    ...screen.getAllByRole('button'),
+    ...screen.getAllByRole('checkbox'),
+  ])
+    fireEvent.click(button);
+  expect(remove).not.toHaveBeenCalled();
+  expect(sensitive).not.toHaveBeenCalled();
+  expect(cover).not.toHaveBeenCalled();
+});
+
+it('reveals failures beyond the bounded overview and retries without a second task', () => {
+  const retry = vi.fn();
+  const photos = Array.from({ length: 10 }, (_, index) => ({
+    ...items[0],
+    key: String(index),
+    name: `camera-${index}.jpg`,
+    draft: {
+      id: String(index),
+      file: new File(['photo'], `camera-${index}.jpg`, { type: 'image/jpeg' }),
+      status: index === 9 ? 'failed' : 'ready',
+      progress: 100,
+      attempt: 1,
+      error: index === 9 ? 'A safe validation message' : undefined,
+    } as AttachmentDraft,
+  }));
+  const view = render(
+    <PhotoDraftGallery items={photos} onRemove={() => {}} onRetry={retry} />,
+  );
+  expect(view.container.querySelectorAll('.photo-draft-tile')).toHaveLength(6);
   fireEvent.click(
     screen.getByRole('button', { name: i18n.t('memory.photoReviewFailure') }),
   );
-  expect(within(list).getAllByRole('button')).toHaveLength(10);
-  expect(screen.getByText('camera-9.jpg')).toBeTruthy();
+  expect(view.container.querySelectorAll('.photo-draft-tile')).toHaveLength(10);
+  expect(screen.getByText('A safe validation message')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: i18n.t('common.retry') }));
-  expect(screen.queryByRole('alert')).toBeNull();
-  expect(screen.getByText('camera-9.jpg')).toBeTruthy();
-});
-
-it('reorders the selected photo without losing selection, sensitivity or ready status', () => {
-  render(<Harness />);
-  fireEvent.click(screen.getByRole('button', { name: /camera-2.jpg/ }));
-  expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true);
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: i18n.t('memory.photoMoveEarlier', { name: 'camera-2.jpg' }),
-    }),
-  );
-  const selected = screen.getByRole('button', { pressed: true });
-  expect(selected.getAttribute('aria-label')).toBe(
-    i18n.t('memory.photoSelectItem', {
-      name: 'camera-2.jpg',
-      position: 2,
-      count: 10,
-      status: i18n.t('memory.photoReady'),
-    }),
-  );
-  expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true);
-  fireEvent.click(
-    screen.getByRole('button', { name: i18n.t('memory.photoRemove') }),
-  );
-  expect(screen.queryByText('camera-2.jpg')).toBeNull();
-  expect(screen.getByText('camera-1.jpg')).toBeTruthy();
+  expect(retry).toHaveBeenCalledExactlyOnceWith('9');
+  expect(screen.queryByRole('dialog')).toBeNull();
 });

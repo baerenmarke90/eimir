@@ -172,6 +172,8 @@ jobs:
           trap 'kill "$device_log_pid" 2>/dev/null || true' EXIT
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb -e shell cmd uimode night no
+          adb -e shell settings put system font_scale 1.0
           # Seed under shell's UID: eimir must not own/read this image before selection.
           external_photo_uri=not-applicable
           external_video_uri=not-applicable
@@ -234,10 +236,10 @@ jobs:
             | tee -a instrumentation.log
           grep -Eq '^OK \(9 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
-            -e class de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest \
+            -e class de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest,de.eimir.app.RecipientLanguageTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee -a instrumentation.log
-          grep -Eq '^OK \(16 tests\)' instrumentation.log
+          grep -Eq '^OK \(18 tests\)' instrumentation.log
           # System picker journeys have their own bounded invocation, as do
           # renderer recovery and notification handoff below. The combined
           # 46-test process exhausted its 180-second budget on API 36.
@@ -249,6 +251,12 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee photo-file-chooser.log
           grep -Eq '^OK \(11 tests\)' photo-file-chooser.log
+          # Voice handoff owns a separate volatile Activity/provider contract.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.VoiceNotesContractTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee voice-notes.log
+          grep -Eq '^OK \(4 tests\)' voice-notes.log
           # Keep deliberate renderer termination isolated from other WebViews.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.RuntimeRecoveryTest \
@@ -274,11 +282,30 @@ jobs:
             -e class de.eimir.app.PushPreviewTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee push-preview.log
-          grep -Eq '^OK \(4 tests\)' push-preview.log
+          grep -Eq '^OK \(6 tests\)' push-preview.log
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png
           fi
+      - name: Expanded contextual push in Dark with large text
+        if: matrix.api == 36
+        working-directory: android
+        run: |
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          restore_display() {
+            adb -e shell cmd statusbar collapse
+            adb -e shell cmd uimode night no
+            adb -e shell settings put system font_scale 1.0
+          }
+          trap restore_display EXIT
+          adb -e shell cmd uimode night yes
+          adb -e shell settings put system font_scale 1.5
+          timeout 180 adb -e shell am instrument -w -r \
+            -e pushEvidenceFile push-contextual-content-dark-large.png \
+            -e class de.eimir.app.NotificationOpenTest#contextualNoticesKeepIndependentRealPendingIntentsAndRedactTheirPublicVersion \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee notification-open-dark-large.log
+          grep -Eq '^OK \(1 test\)' notification-open-dark-large.log
       - name: Actual Android File through Web upload, API, worker and shared Place
         if: matrix.api == 36
         run: |
@@ -294,7 +321,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+          for proof in push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
             # `test` is a shell builtin, not a run-as executable on these images.
             if "$ANDROID_HOME/platform-tools/adb" -e shell \
                 "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then
@@ -305,6 +332,12 @@ jobs:
             fi
           done
           test -s renderer-real-crash.png
+          test -s push-contextual-content.png
+          test -s push-contextual-content.xml
+          if [ '${{ matrix.api }}' = '36' ]; then
+            test -s push-contextual-content-dark-large.png
+            test -s push-contextual-content-dark-large.xml
+          fi
           if [ '${{ matrix.api }}' != '28' ]; then
             test -s renderer-background-return.png
           fi
@@ -342,7 +375,12 @@ jobs:
             android/renderer-background-return.png
             android/renderer-real-crash.png
             android/notification-open.log
+            android/notification-open-dark-large.log
             android/push-preview.log
+            android/push-contextual-content.png
+            android/push-contextual-content.xml
+            android/push-contextual-content-dark-large.png
+            android/push-contextual-content-dark-large.xml
             android/fixture-logcat.log
             android/native-crash.log
             android/native-system.log

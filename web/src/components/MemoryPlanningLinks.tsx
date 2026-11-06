@@ -15,7 +15,8 @@ import {
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { planDetailPath, wishDetailPath } from '../client/routes';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { ProblemState } from './ProblemState';
@@ -31,6 +32,7 @@ type Props = {
   spaceId: string;
   memoryId: string;
   canManage: boolean;
+  editing?: boolean;
   offline: boolean;
   initialPlanId?: string;
   onInitialPlanConsumed?: () => void;
@@ -57,6 +59,7 @@ function ScopedMemoryPlanningLinks({
   spaceId,
   memoryId,
   canManage,
+  editing = false,
   offline,
   initialPlanId,
   onInitialPlanConsumed,
@@ -117,6 +120,7 @@ function ScopedMemoryPlanningLinks({
     },
   });
   const mutation = useMutation({
+    mutationKey: [...queryKey, 'write'],
     networkMode: 'always',
     retry: false,
     onMutate: () => ({ current: captureAuthorizedQuery(client, queryKey) }),
@@ -196,6 +200,8 @@ function ScopedMemoryPlanningLinks({
   );
   const targets = denied ? [] : (linked.data ?? []);
   if (!canManage && !targets.length) return null;
+  if (!editing && !targets.length && !linked.error && !mutation.error)
+    return null;
   return (
     <section
       className="memory-planning-links"
@@ -216,7 +222,7 @@ function ScopedMemoryPlanningLinks({
                 >
                   {target.title}
                 </TodayDestinationLink>
-                {canManage ? (
+                {canManage && editing ? (
                   <button
                     type="button"
                     className="tertiary"
@@ -234,7 +240,7 @@ function ScopedMemoryPlanningLinks({
           </ul>
         </>
       ) : null}
-      {canManage ? (
+      {canManage && editing ? (
         <button
           type="button"
           className="tertiary"
@@ -260,7 +266,7 @@ function ScopedMemoryPlanningLinks({
         />
       ) : null}
       <ShortTaskSheet
-        open={open}
+        open={open && editing}
         onClose={() => {
           if (!mutation.isPending) setOpen(false);
         }}
@@ -350,14 +356,23 @@ function PlanningTargetPicker({
   const denied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(query.error),
   );
+  useEffect(() => {
+    if (query.hasNextPage && !query.isFetching && !query.error)
+      void query.fetchNextPage();
+  }, [query.hasNextPage, query.isFetching, query.error, query.fetchNextPage]);
+  const assembling = Boolean(query.hasNextPage && !query.error);
   const items = denied
     ? []
-    : (query.data?.pages.flatMap((page) =>
-        page.items.map((item) => ({ id: item.id, title: item.title })),
-      ) ?? []);
+    : sortByProductLabel(
+        query.data?.pages.flatMap((page) =>
+          page.items.map((item) => ({ id: item.id, title: item.title })),
+        ) ?? [],
+        (item) => item.title,
+        resolvedLocale(),
+      );
   return (
     <>
-      {query.isLoading ? (
+      {query.isLoading || assembling ? (
         <p role="status">{t('m5s3.common.loadingMore')}</p>
       ) : null}
       {query.error ? (
@@ -370,7 +385,7 @@ function PlanningTargetPicker({
         <p>{t('memoryProduct.planning.empty')}</p>
       ) : null}
       <ul className="memory-planning-choices">
-        {items.map((item) => (
+        {(assembling ? [] : items).map((item) => (
           <li key={item.id}>
             <button
               type="button"

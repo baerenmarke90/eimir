@@ -80,6 +80,7 @@ class DashboardExperience(ApiModel):
     id: UUID
     kind: ExperienceKind
     text: str
+    prompt: str | None = None
     author_id: UUID
     happened_on: date | None
     created_at: datetime
@@ -205,6 +206,7 @@ def get_dashboard(
             id=incoming.id,
             kind=ExperienceKind(incoming.kind),
             text=incoming.text,
+            prompt=incoming.prompt,
             author_id=incoming.author_id,
             happened_on=incoming.happened_on,
             created_at=incoming.created_at,

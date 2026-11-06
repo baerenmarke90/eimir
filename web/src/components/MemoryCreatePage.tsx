@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -333,6 +334,7 @@ export function MemoryCreatePage({
       return;
     sourceApplied.current = true;
     setTitle(source.title);
+    setTags(source.tags ?? []);
     setBody(source.description ?? '');
     if (source.experiencedOn)
       setHappenedOn(source.experiencedOn.toISOString().slice(0, 10));
@@ -694,7 +696,12 @@ export function MemoryCreatePage({
           spaceId,
           attachmentId: ids[index],
         });
-        if (metadata.status === 'READY') continue;
+        if (
+          metadata.status === 'READY' ||
+          (metadata.mediaType === 'VIDEO' &&
+            ['PROCESSING', 'FAILED'].includes(metadata.status))
+        )
+          continue;
       } catch (error) {
         if ((await normalizeClientError(error)).kind !== 'notFound')
           throw error;
@@ -816,14 +823,13 @@ export function MemoryCreatePage({
         <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
           <PageHeader
             before={
-              <button
+              <TaskBackButton
                 type="button"
-                className="back-link tertiary"
                 onClick={requestClose}
                 aria-disabled={pending}
               >
                 {t('taskBoundary.close')}
-              </button>
+              </TaskBackButton>
             }
             title={t(
               experienceKind

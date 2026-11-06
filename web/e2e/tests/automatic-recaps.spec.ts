@@ -1,3 +1,4 @@
+import de from '../../src/i18n/locales/de';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -297,7 +298,9 @@ async function setup(
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
     .click();
-  await page.getByRole('link', { name: new RegExp(copy.shortTitle) }).click();
+  await page
+    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
   ).toBeVisible();
@@ -416,7 +419,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
-  await page.locator('.recap-back').click();
+  await page.locator('.subpage-back-slot .task-back-control').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);
@@ -792,6 +795,7 @@ test('opening a monthly invitation consumes that edition on return', async ({
     .click();
   await expect(page).toHaveURL(new RegExp(recapDetailPath('october')));
   await page.goBack();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
 });

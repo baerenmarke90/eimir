@@ -59,6 +59,8 @@ class HeartMomentPayload(ProtectedPayload):
     """
 
     text: str
+    audio_title: str = Field(default="", max_length=120)
+    audio_speaker_name: str = Field(default="", max_length=80)
     emotion: HeartEmotion
     tags: HeartMomentTags = Field(default_factory=list)
     selected_cover_attachment_id: UUID | None = None

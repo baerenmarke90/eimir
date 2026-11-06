@@ -6,20 +6,15 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useRef,
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import { PlanDetailToJSON } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
-import { authorDisplayName } from '../client/authorPresentation';
-import { decodePlansOverview } from '../client/overviewSnapshots';
 import { formatCalendarDate } from '../client/formatRecency';
-import { usePartnerNickname } from '../client/partnerNickname';
-import {
-  groupPlanningOverviewPlans,
-  loadPlanningOverviewPlans,
-} from '../client/planningOverview';
+import { groupPlanningOverviewPlans } from '../client/planningOverview';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -32,9 +27,10 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { textExcerpt } from '../client/textExcerpt';
-import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
 import { PlanningStatusScope, type PlanningScope } from './PlanningStatusScope';
@@ -48,6 +44,80 @@ const PAGE_SIZE = 20;
 type PlanenSegment = 'wishes' | 'plans';
 type PageShape<T> = { items: T[]; nextCursor: string | null };
 
+function searchText(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .toLocaleLowerCase(resolvedLocale())
+    .replace(/ß/g, 'ss');
+}
+
+function matchesSearch(query: string, ...content: (string | null)[]) {
+  const text = searchText(content.filter(Boolean).join(' '));
+  return searchText(query)
+    .trim()
+    .split(/\s+/u)
+    .every((word) => text.includes(word));
+}
+
+function wishInitial(title: string): string {
+  const initial = Array.from(searchText(title.trim()))[0] ?? '#';
+  return /\p{L}/u.test(initial)
+    ? initial.toLocaleUpperCase(resolvedLocale())
+    : '#';
+}
+
+function PlanningSearch({
+  kind,
+  value,
+  onChange,
+}: {
+  kind: PlanenSegment;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const label = t(
+    kind === 'plans'
+      ? 'm5s3.overview.searchPlans'
+      : 'm5s3.overview.searchWishes',
+  );
+  return (
+    <search className="planen-search">
+      <label className="sr-only" htmlFor={id}>
+        {label}
+      </label>
+      <div className="planen-search-field">
+        <EimirIcon name="suche" />
+        <input
+          ref={inputRef}
+          id={id}
+          type="search"
+          placeholder={label}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete="off"
+        />
+        {value ? (
+          <button
+            type="button"
+            className="tertiary"
+            aria-label={t('m5s3.overview.clearSearch')}
+            onClick={() => {
+              onChange('');
+              inputRef.current?.focus();
+            }}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        ) : null}
+      </div>
+    </search>
+  );
+}
+
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
     return await request();
@@ -56,8 +126,16 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
-function nextCursor<T>(page: PageShape<T>): string | undefined {
-  return page.nextCursor ?? undefined;
+function nextCursor<T>(
+  page: PageShape<T>,
+  _pages: PageShape<T>[],
+  previous: string | null,
+  cursors: (string | null)[],
+): string | undefined {
+  const next = page.nextCursor;
+  return next && next !== previous && !cursors.includes(next)
+    ? next
+    : undefined;
 }
 
 function segmentForHash(hash: string): PlanenSegment | null {
@@ -168,7 +246,6 @@ function PlanenPanel({
 export function SharedPlanningOverviewPage({
   apis,
   spaceId,
-  accountId,
   apiBaseUrl,
   accessToken,
 }: {
@@ -179,7 +256,6 @@ export function SharedPlanningOverviewPage({
   accessToken?: string;
 }) {
   const { t } = useTranslation();
-  const { relationshipLabel } = usePartnerNickname();
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -201,6 +277,9 @@ export function SharedPlanningOverviewPage({
   const [planStatus, setPlanStatus] = useState<PlanningScope>(() =>
     location.hash === '#experienced-plans' ? 'COMPLETED' : 'OPEN',
   );
+  const [planSearch, setPlanSearch] = useState('');
+  const [wishSearch, setWishSearch] = useState('');
+  const restoredOrigin = useRef<unknown>(null);
   function changeStatus(kind: PlanenSegment, status: PlanningScope) {
     if (kind === 'plans') setPlanStatus(status);
     else setWishStatus(status);
@@ -216,6 +295,10 @@ export function SharedPlanningOverviewPage({
       { pathname: location.pathname, search: location.search, hash },
       { replace: true, state: location.state },
     );
+  }
+  function changeSegment(segment: PlanenSegment) {
+    setActiveSegment(segment);
+    changeStatus(segment, segment === 'plans' ? planStatus : wishStatus);
   }
 
   useLayoutEffect(() => {
@@ -235,16 +318,28 @@ export function SharedPlanningOverviewPage({
         planningSegment: activeSegment,
         planningWishStatus: wishStatus,
         planningPlanStatus: planStatus,
+        planningPlanSearch: planSearch,
+        planningWishSearch: wishSearch,
       }),
-    [activeSegment, wishStatus, planStatus, registerOriginMetadata],
+    [
+      activeSegment,
+      wishStatus,
+      planStatus,
+      planSearch,
+      wishSearch,
+      registerOriginMetadata,
+    ],
   );
 
   useLayoutEffect(() => {
     const state = location.state as { taskReturnKey?: unknown } | null;
-    const origin = resolveOrigin(
-      state?.taskReturnKey ?? primaryDestination('/plan').returnKey,
-    );
-    if (!origin) return;
+    const originKey =
+      state?.taskReturnKey ?? primaryDestination('/plan').returnKey;
+    const origin = resolveOrigin(originKey);
+    if (!origin || restoredOrigin.current === originKey) return;
+    restoredOrigin.current = originKey;
+    setPlanSearch(origin.planningPlanSearch ?? '');
+    setWishSearch(origin.planningWishSearch ?? '');
     const segment = segmentForHash(location.hash) ?? origin.planningSegment;
     if (segment) setActiveSegment(segment);
     if (location.hash === '#experienced-plans') setPlanStatus('COMPLETED');
@@ -276,47 +371,129 @@ export function SharedPlanningOverviewPage({
       spaceId,
       ...(wishStatus === 'COMPLETED' ? [wishStatus] : []),
     ],
-    queryFn: ({ pageParam }) =>
+    enabled: activeSegment === 'wishes',
+    queryFn: ({ pageParam, signal }) =>
       apiCall(() =>
-        apis.wishes.listWishes({
-          spaceId,
-          cursor: pageParam,
-          limit: PAGE_SIZE,
-          status: wishStatus,
-        }),
+        apis.wishes.listWishes(
+          {
+            spaceId,
+            cursor: pageParam,
+            limit: PAGE_SIZE,
+            status: wishStatus,
+          },
+          { signal },
+        ),
       ),
     initialPageParam: null as string | null,
     getNextPageParam: nextCursor<WishDetail>,
     retry: false,
   });
 
-  const plans = useWarmOverviewQuery({
-    queryKey: ['m5-s3', 'plans', spaceId],
-    accountId,
-    apiBaseUrl,
-    spaceId,
-    kind: 'plans-overview',
-    load: () =>
-      apiCall(async () => ({
-        pages: [
-          {
-            items: await loadPlanningOverviewPlans(apis, spaceId),
-            nextCursor: null,
-          },
-        ],
-        pageParams: [null],
-      })),
-    serialize: (value) =>
-      value.pages.flatMap((page) => page.items).map(PlanDetailToJSON),
-    deserialize: (payload) => decodePlansOverview(payload, spaceId),
-  });
+  // The API cursor intentionally sorts by creation, preserving protected titles.
+  // Complete this lightweight metadata snapshot before presenting an alphabet;
+  // sorting separate pages would insert earlier letters above the user's scroll.
+  useEffect(() => {
+    if (
+      activeSegment !== 'wishes' ||
+      !wishes.hasNextPage ||
+      wishes.isFetching ||
+      wishes.error
+    )
+      return;
+    void wishes.fetchNextPage({ cancelRefetch: false });
+  }, [
+    activeSegment,
+    wishes.hasNextPage,
+    wishes.isFetching,
+    wishes.error,
+    wishes.fetchNextPage,
+  ]);
+  const assemblingWishes = Boolean(wishes.hasNextPage && !wishes.error);
 
-  const wishItems = (
-    wishes.data?.pages.flatMap((page) => page.items) ?? []
-  ).filter((wish) => wish.status === wishStatus);
-  const planGroups = groupPlanningOverviewPlans(
-    plans.data?.pages.flatMap((page) => page.items) ?? [],
+  const plans = useWarmInfiniteQuery(
+    {
+      queryKey: ['m5-s3', 'plans', spaceId, 'overview', planStatus],
+      staleTime: OVERVIEW_STALE_TIME,
+      enabled: activeSegment === 'plans',
+      queryFn: ({ pageParam, signal }) =>
+        apiCall(() =>
+          apis.plans.listPlans(
+            {
+              spaceId,
+              cursor: pageParam,
+              limit: PAGE_SIZE,
+              overviewScope: planStatus,
+            },
+            { signal },
+          ),
+        ),
+      initialPageParam: null as string | null,
+      getNextPageParam: nextCursor<PlanDetail>,
+      retry: false,
+    },
+    { revalidateOnRestore: true },
   );
+
+  // A search must inspect the whole authorized scope, not just visible pages.
+  useEffect(() => {
+    if (
+      activeSegment !== 'plans' ||
+      !planSearch.trim() ||
+      !plans.hasNextPage ||
+      plans.isFetching ||
+      plans.error
+    )
+      return;
+    void plans.fetchNextPage({ cancelRefetch: false });
+  }, [
+    activeSegment,
+    planSearch,
+    plans.hasNextPage,
+    plans.isFetching,
+    plans.error,
+    plans.fetchNextPage,
+  ]);
+  const assemblingPlanSearch = Boolean(
+    planSearch.trim() && plans.hasNextPage && !plans.error,
+  );
+
+  const wishItems = sortByProductLabel(
+    [
+      ...new Map(
+        (wishes.data?.pages.flatMap((page) => page.items) ?? [])
+          .filter((wish) => wish.status === wishStatus)
+          .filter((wish) =>
+            matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
+          )
+          .map((wish) => [wish.id, wish]),
+      ).values(),
+    ],
+    (wish) => wish.title,
+    resolvedLocale(),
+  );
+  const wishGroups = new Map<string, WishDetail[]>();
+  for (const wish of wishItems) {
+    const initial = wishInitial(wish.title);
+    const group = wishGroups.get(initial) ?? [];
+    group.push(wish);
+    wishGroups.set(initial, group);
+  }
+  const planItems = [
+    ...new Map(
+      (plans.data?.pages.flatMap((page) => page.items) ?? []).map((plan) => [
+        plan.id,
+        plan,
+      ]),
+    ).values(),
+  ].filter((plan) =>
+    matchesSearch(
+      planSearch,
+      plan.title,
+      plan.description,
+      ...(plan.tags ?? []),
+    ),
+  );
+  const planGroups = groupPlanningOverviewPlans(planItems);
   const hasPlans =
     planStatus === 'COMPLETED'
       ? planGroups.completed.length > 0
@@ -339,6 +516,8 @@ export function SharedPlanningOverviewPage({
       planningSegment: segment,
       planningWishStatus: wishStatus,
       planningPlanStatus: planStatus,
+      planningPlanSearch: planSearch,
+      planningWishSearch: wishSearch,
       selectedKey,
     });
     void navigate(to, {
@@ -409,7 +588,7 @@ export function SharedPlanningOverviewPage({
       <PageHeader variant="root" title={t('m5s3.overview.title')} />
       <PlanenSegmentedControl
         active={activeSegment}
-        onChange={setActiveSegment}
+        onChange={changeSegment}
         wishesTabId={wishesTabId}
         plansTabId={plansTabId}
         wishesPanelId={wishesPanelId}
@@ -428,6 +607,11 @@ export function SharedPlanningOverviewPage({
           <span aria-hidden="true">+</span>
           {t('m5s3.overview.addPlan')}
         </Link>
+        <PlanningSearch
+          kind="plans"
+          value={planSearch}
+          onChange={setPlanSearch}
+        />
         <PlanningStatusScope
           kind="plans"
           value={planStatus}
@@ -442,21 +626,42 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void plans.refetch()}
           />
         ) : null}
-        {plans.isCached ? (
-          <OverviewCacheNotice cachedAt={plans.cachedAt} />
+        {plans.data &&
+        (plans.isCached ||
+          plans.fetchStatus === 'paused' ||
+          (typeof navigator !== 'undefined' && navigator.onLine === false)) ? (
+          <OverviewCacheNotice
+            cachedAt={plans.cachedAt ?? new Date(plans.dataUpdatedAt)}
+          />
         ) : null}
-        {!plans.isLoading && !plans.error && !hasPlans ? (
+        {assemblingPlanSearch ? (
+          <UiState kind="loading" title={t('states.loading.title')} />
+        ) : null}
+        {planSearch.trim() &&
+        !plans.isLoading &&
+        !assemblingPlanSearch &&
+        !plans.error ? (
+          <p className="planen-search-result" role="status">
+            {t('m5s3.overview.searchResults', { count: planItems.length })}
+          </p>
+        ) : null}
+        {!plans.isLoading &&
+        !assemblingPlanSearch &&
+        !plans.error &&
+        !hasPlans ? (
           <div className="planen-empty-state">
             <h2>
               {t(
-                planStatus === 'COMPLETED'
-                  ? 'm5s3.overview.experiencedPlansEmpty'
-                  : planGroups.completed.length
-                    ? 'm5s3.overview.openPlansEmpty'
-                    : 'm5s3.overview.plansEmpty',
+                planSearch.trim()
+                  ? 'm5s3.overview.noSearchResults'
+                  : planStatus === 'COMPLETED'
+                    ? 'm5s3.overview.experiencedPlansEmpty'
+                    : 'm5s3.overview.openPlansEmpty',
               )}
             </h2>
-            {planStatus === 'OPEN' ? <p>{t('m5s3.plan.createIntro')}</p> : null}
+            {!planSearch.trim() && planStatus === 'OPEN' ? (
+              <p>{t('m5s3.plan.createIntro')}</p>
+            ) : null}
           </div>
         ) : null}
 
@@ -486,8 +691,6 @@ export function SharedPlanningOverviewPage({
           </section>
         ) : null}
 
-        {planStatus === 'OPEN' ? <WishSelectionEntry segment="plans" /> : null}
-
         {planStatus === 'OPEN' && planGroups.undated.length ? (
           <section
             className="planen-undated"
@@ -497,7 +700,6 @@ export function SharedPlanningOverviewPage({
               <h2 id="planen-undated-heading">
                 {t('m5s3.overview.undatedHeading')}
               </h2>
-              <p>{t('m5s3.overview.undatedIntro')}</p>
             </div>
             <ul>
               {planGroups.undated.map((plan) => (
@@ -548,6 +750,13 @@ export function SharedPlanningOverviewPage({
             </ul>
           </section>
         ) : null}
+        {activeSegment === 'plans' && plans.hasNextPage ? (
+          <AutoLoadMore query={plans} className="tertiary compact-action">
+            {plans.isFetchingNextPage
+              ? t('m5s3.common.loadingMore')
+              : t('m5s3.common.loadMore')}
+          </AutoLoadMore>
+        ) : null}
       </PlanenPanel>
 
       <PlanenPanel
@@ -562,13 +771,18 @@ export function SharedPlanningOverviewPage({
           <span aria-hidden="true">+</span>
           {t('m5s3.overview.addWish')}
         </Link>
+        <PlanningSearch
+          kind="wishes"
+          value={wishSearch}
+          onChange={setWishSearch}
+        />
         <PlanningStatusScope
           kind="wishes"
           value={wishStatus}
           onChange={(status) => changeStatus('wishes', status)}
         />
-        <WishSelectionEntry segment="wishes" />
-        {wishes.isLoading && !wishes.data ? (
+        <WishSelectionEntry segment="wishes" compact />
+        {(wishes.isLoading && !wishes.data) || assemblingWishes ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
         {wishes.error ? (
@@ -577,50 +791,70 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void wishes.refetch()}
           />
         ) : null}
-        {!wishes.isLoading && !wishes.error && wishItems.length === 0 ? (
+        {wishes.data &&
+        (wishes.isCached ||
+          wishes.fetchStatus === 'paused' ||
+          (typeof navigator !== 'undefined' && navigator.onLine === false)) ? (
+          <OverviewCacheNotice
+            cachedAt={wishes.cachedAt ?? new Date(wishes.dataUpdatedAt)}
+          />
+        ) : null}
+        {wishSearch.trim() &&
+        !wishes.isLoading &&
+        !assemblingWishes &&
+        !wishes.error ? (
+          <p className="planen-search-result" role="status">
+            {t('m5s3.overview.searchResults', { count: wishItems.length })}
+          </p>
+        ) : null}
+        {!wishes.isLoading &&
+        !assemblingWishes &&
+        !wishes.error &&
+        wishItems.length === 0 ? (
           <div className="planen-empty-state">
             <h2>
               {t(
-                wishStatus === 'COMPLETED'
-                  ? 'm5s3.overview.fulfilledWishesEmpty'
-                  : 'm5s3.overview.wishesEmpty',
+                wishSearch.trim()
+                  ? 'm5s3.overview.noSearchResults'
+                  : wishStatus === 'COMPLETED'
+                    ? 'm5s3.overview.fulfilledWishesEmpty'
+                    : 'm5s3.overview.wishesEmpty',
               )}
             </h2>
           </div>
         ) : null}
-        {wishItems.length ? (
-          <ul className="planen-wish-list">
-            {wishItems.map((wish) => (
-              <li key={wish.id}>
-                <Link
-                  className="planen-wish-link"
-                  {...planningLinkProps(
-                    wishDetailPath(wish.id),
-                    'wishes',
-                    wish.id,
-                  )}
-                >
-                  <strong>{wish.title}</strong>
-                  {wishStatus === 'COMPLETED' ? (
-                    <span>{t('m5s3.wish.status.COMPLETED')}</span>
-                  ) : null}
-                  <span>
-                    {t('m5s3.overview.createdBy', {
-                      name: wish.creator.isFormerMember
-                        ? authorDisplayName(wish.creator)
-                        : relationshipLabel(
-                            wish.creator.id,
-                            wish.creator.displayName,
-                            t('couplePresencePartnerFallback'),
-                          ),
-                    })}
-                  </span>
-                </Link>
-              </li>
+        {!assemblingWishes && wishItems.length ? (
+          <div className="planen-wish-groups">
+            {[...wishGroups].map(([initial, items]) => (
+              <section
+                className="planen-wish-group"
+                key={initial}
+                aria-label={initial}
+              >
+                <h2>{initial}</h2>
+                <ul className="planen-wish-list">
+                  {items.map((wish) => (
+                    <li key={wish.id}>
+                      <Link
+                        className="planen-wish-link"
+                        {...planningLinkProps(
+                          wishDetailPath(wish.id),
+                          'wishes',
+                          wish.id,
+                        )}
+                      >
+                        <span className="planen-wish-copy">
+                          <strong>{wish.title}</strong>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         ) : null}
-        {wishes.hasNextPage ? (
+        {activeSegment === 'wishes' && wishes.hasNextPage && wishes.error ? (
           <AutoLoadMore
             query={wishes}
             className="tertiary compact-action"

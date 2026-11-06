@@ -2,29 +2,65 @@
 
 from __future__ import annotations
 
+import io
+import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
+from PIL import Image
 
 from eimir.attachments import videos
 from eimir.config import get_settings
+from tests.support.video import processor as processor
 
 SAMPLE = Path(__file__).parents[1] / "fixtures/media/video-with-metadata.mp4"
 
 
-@pytest.fixture
-def processor(monkeypatch: pytest.MonkeyPatch):  # type: ignore[no-untyped-def]
-    executable = os.environ.get("EIMIR_TEST_FFMPEG")
-    probe = os.environ.get("EIMIR_TEST_FFPROBE")
-    if not executable or not probe:
-        pytest.skip("The dedicated restricted-codec job supplies verified binaries.")
-    monkeypatch.setenv("EIMIR_FFMPEG_PATH", executable)
-    monkeypatch.setenv("EIMIR_FFPROBE_PATH", probe)
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
+def audio_packet_hashes(path: Path) -> list[str]:
+    content = videos._run(
+        [
+            get_settings().ffprobe_path,
+            "-v",
+            "error",
+            *videos._input(path),
+            "-select_streams",
+            "a:0",
+            "-show_packets",
+            "-show_data_hash",
+            "sha256",
+            "-show_entries",
+            "packet=data_hash",
+            "-of",
+            "json",
+        ],
+        probe=True,
+    )
+    return [packet["data_hash"] for packet in json.loads(content)["packets"]]
+
+
+def test_standalone_worker_can_prepare_attachment_persistence_without_api_bootstrap() -> None:
+    program = """
+from eimir.jobs import video_worker
+from eimir.attachments.models import Attachment
+from sqlalchemy.orm import configure_mappers
+configure_mappers()
+assert Attachment.__mapper__._sorted_tables
+for foreign_key in Attachment.__table__.foreign_keys:
+    assert foreign_key.column.table.name in {"accounts", "spaces"}
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", program],
+        cwd=Path(__file__).parents[2],
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_real_video_is_sanitized_fully_decoded_and_has_clean_poster(
@@ -66,9 +102,9 @@ def test_poster_failure_keeps_an_independently_validated_video(
 @pytest.mark.parametrize(
     ("update", "code"),
     [
-        ({"codec_name": "hevc"}, "VIDEO_CODEC_UNSUPPORTED"),
-        ({"color_transfer": "smpte2084"}, "VIDEO_CODEC_UNSUPPORTED"),
-        ({"pix_fmt": "yuv420p10le"}, "VIDEO_CODEC_UNSUPPORTED"),
+        ({"codec_name": "av1"}, "VIDEO_CODEC_UNSUPPORTED"),
+        ({"codec_name": "vp9"}, "VIDEO_CODEC_UNSUPPORTED"),
+        ({"pix_fmt": "yuv420p12le"}, "VIDEO_CODEC_UNSUPPORTED"),
         ({"width": 4096}, "VIDEO_DIMENSIONS_EXCEEDED"),
         ({"height": 0}, "VIDEO_DIMENSIONS_EXCEEDED"),
         ({"duration": "181"}, "VIDEO_DURATION_EXCEEDED"),
@@ -86,6 +122,127 @@ def test_video_constraints_are_server_owned(update: dict[str, Any], code: str) -
     }
     with pytest.raises(videos.VideoRejectedError, match=code):
         videos._metadata({"format": {"duration": "1"}, "streams": [stream]})
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"codec_name": "hevc"},
+        {"color_transfer": "smpte2084"},
+        {"color_transfer": "arib-std-b67"},
+        {"pix_fmt": "yuv420p10le"},
+        {"pix_fmt": "yuv422p10le"},
+        {"pix_fmt": "yuv444p10le"},
+        {"pix_fmt": "yuvj422p"},
+        {"pix_fmt": "yuvj444p"},
+    ],
+)
+def test_normalizable_input_does_not_relax_retained_playback_contract(
+    update: dict[str, Any],
+) -> None:
+    info = {
+        "format": {"duration": "1"},
+        "streams": [
+            {
+                "codec_type": "video",
+                "codec_name": "h264",
+                "pix_fmt": "yuv420p",
+                "width": 96,
+                "height": 64,
+                **update,
+            }
+        ],
+    }
+    assert videos._metadata(info) == (96, 64, 1)
+    with pytest.raises(videos.VideoRejectedError, match="VIDEO_CODEC_UNSUPPORTED"):
+        videos._metadata(info, clean=True)
+
+
+@pytest.mark.parametrize(
+    ("filename", "dimensions", "has_audio"),
+    [
+        ("hevc-sdr.mp4", (96, 64), True),
+        ("hevc-hlg.mp4", (96, 64), True),
+        ("hevc-pq.mp4", (96, 64), True),
+        ("hevc-main10.mov", (96, 64), False),
+        ("hevc-rotated.mov", (64, 96), False),
+        ("h264-high10-pcm.mov", (96, 64), True),
+        ("h264-mp3.mp4", (96, 64), True),
+    ],
+)
+def test_common_smartphone_recordings_produce_clean_playable_media(
+    processor, tmp_path: Path, filename: str, dimensions: tuple[int, int], has_audio: bool
+) -> None:  # type: ignore[no-untyped-def]
+    source = SAMPLE.parent / filename
+    result = videos.process(source, tmp_path)
+    assert (result.width, result.height) == dimensions
+    assert result.thumbnail
+    info = videos._probe(result.path)
+    primary, audio = videos._streams(info)
+    assert primary["codec_name"] == "h264"
+    assert primary["pix_fmt"] in {"yuv420p", "yuvj420p"}
+    assert len(audio) == int(has_audio)
+    assert all(s["codec_name"] == "aac" for s in audio)
+    assert abs(float(info["format"]["duration"]) - 1) < 0.1
+    assert all(s["codec_type"] in {"video", "audio"} for s in info["streams"])
+    if filename.startswith("hevc"):
+        assert not any("rotation" in side for side in primary.get("side_data_list", []))
+    assert b"synthetic-private" not in result.path.read_bytes()
+    assert b"synthetic-private" not in result.thumbnail
+    if filename in {"hevc-sdr.mp4", "hevc-hlg.mp4", "hevc-pq.mp4"}:
+        # The existing AAC recording survives normalization byte for byte.
+        original_audio = audio_packet_hashes(source)
+        assert original_audio and audio_packet_hashes(result.path) == original_audio
+    if filename in {"hevc-hlg.mp4", "hevc-pq.mp4"}:
+        assert primary["color_transfer"] == primary["color_primaries"] == "bt709"
+        assert primary["color_space"] == "bt709"
+        assert not primary.get("side_data_list")
+        # Known flat red/green/blue bars in the synthetic source must retain
+        # readable brightness and their dominant hue after actual tone mapping.
+        # Merely relabelling the HDR YUV samples does not satisfy these bounds.
+        with Image.open(io.BytesIO(result.thumbnail)) as poster:
+            rgb = poster.convert("RGB")
+            for channel, x in enumerate([50, 130, 360]):
+                pixel = rgb.getpixel((x, 400))
+                assert pixel[channel] > 160
+                assert all(
+                    value < pixel[channel] / 2 for c, value in enumerate(pixel) if c != channel
+                )
+    assert videos._metadata(info, clean=True)[:2] == dimensions
+
+
+def test_non_media_tracks_and_attached_pictures_cannot_replace_the_recording() -> None:
+    info = {
+        "streams": [
+            {
+                "index": 0,
+                "codec_type": "video",
+                "codec_name": "mjpeg",
+                "disposition": {"attached_pic": 1},
+            },
+            {"index": 3, "codec_type": "data"},
+            {"index": 5, "codec_type": "video", "codec_name": "h264", "pix_fmt": "yuv420p"},
+            {"index": 6, "codec_type": "audio", "codec_name": "aac"},
+        ]
+    }
+    assert videos._normalization(info) == [
+        "-map",
+        "0:5",
+        "-map",
+        "0:6",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "copy",
+    ]
+
+
+def test_truncated_hevc_tail_is_not_published(processor, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    source = tmp_path / "truncated.mp4"
+    content = (SAMPLE.parent / "hevc-hlg.mp4").read_bytes()
+    source.write_bytes(content[:-1000])
+    with pytest.raises(videos.VideoRejectedError):
+        videos.process(source, tmp_path)
 
 
 def test_unknown_output_metadata_cannot_be_published() -> None:

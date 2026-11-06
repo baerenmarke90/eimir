@@ -37,7 +37,8 @@ import {
   ShellUtilitiesContext,
   useShellUtilities,
 } from '../client/shellUtilities';
-import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { TaskOriginProvider } from '../client/taskOrigin';
+import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -48,7 +49,7 @@ import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
-import { TaskBackButton } from './TaskBackButton';
+import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
 import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
 
@@ -233,25 +234,17 @@ function AuthenticatedAppShell({
     routeKey: location.key,
     onNavigate: navigatePrimary,
   });
-  const { requestReturn } = useTaskOrigin();
   const isPrivateArea = location.pathname.startsWith('/more/private');
-  const storyDetailMatch =
-    /^\/story\/(?:memories|heart-moments|milestones)\/([^/]+)$/.exec(
-      location.pathname,
-    );
-  const isStoryDetail = Boolean(
-    (storyDetailMatch && storyDetailMatch[1] !== 'new') ||
-      location.pathname === '/story/happiness' ||
-      location.pathname === '/story/time-travel',
-  );
-  const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
-    ?.taskOriginKey;
+  const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
+    location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||
+    location.pathname === '/plan/chapters/new' ||
+    (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -308,13 +301,6 @@ function AuthenticatedAppShell({
     enabled: Boolean(spaceId && accessToken),
   });
   const unreadCount = unreadQuery.data?.unreadCount;
-
-  const detailBackButton = (
-    <TaskBackButton
-      className="shell-detail-back"
-      onClick={() => requestReturn(taskOriginKey)}
-    />
-  );
 
   return (
     <ShellUtilitiesContext.Provider
@@ -386,18 +372,17 @@ function AuthenticatedAppShell({
             tabIndex={-1}
           >
             <AppSurfacePullToRefresh pathname={location.pathname} />
-            {isStoryDetail ? (
-              <div className="shell-detail-context">{detailBackButton}</div>
-            ) : null}
-            {isGamesHub ? (
-              <GamesProductArea
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                spaceId={spaceId}
-              />
-            ) : (
-              children
-            )}
+            <SubpageNavigation>
+              {isGamesHub ? (
+                <GamesProductArea
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={accessToken}
+                  spaceId={spaceId}
+                />
+              ) : (
+                children
+              )}
+            </SubpageNavigation>
           </main>
         </div>
 

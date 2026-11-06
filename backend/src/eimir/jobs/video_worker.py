@@ -11,8 +11,9 @@ from datetime import timedelta
 from types import FrameType
 
 from eimir.attachments import video_jobs
-from eimir.attachments.service import ATTACHMENT_VIDEO_VALIDATION
+from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION, ATTACHMENT_VIDEO_VALIDATION
 from eimir.config import get_settings
+from eimir.db.session import unit_of_work
 from eimir.jobs.worker import run_once
 from eimir.observability import configure_logging
 
@@ -30,11 +31,21 @@ def main() -> None:
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)
     video_jobs.register()
+    while not _shutdown:
+        with unit_of_work() as session:
+            recovered = video_jobs.recover_stranded_validations(session)
+        if recovered:
+            log.info("stranded video validations recovered", extra={"count": recovered})
+        if recovered < video_jobs.RECOVERY_BATCH_SIZE:
+            break
     name = f"video-{socket.gethostname()}-{os.getpid()}"
     while not _shutdown:
         try:
             completed = run_once(
-                name, limit=1, kinds=[ATTACHMENT_VIDEO_VALIDATION], lease=timedelta(minutes=20)
+                name,
+                limit=1,
+                kinds=[ATTACHMENT_VIDEO_VALIDATION, ATTACHMENT_AUDIO_VALIDATION],
+                lease=timedelta(minutes=30),
             )
         except Exception:
             log.exception("video worker round failed")

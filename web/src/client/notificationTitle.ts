@@ -7,6 +7,8 @@ export function getNotificationItemTitle(
   t: TFunction,
   currentAccountId?: string,
 ): string {
+  if (item.kind === 'ONCE_MESSAGE_RECEIVED')
+    return t('onceMessages.notification');
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );
@@ -39,6 +41,7 @@ export function getNotificationItemTitle(
       'TRANSFER_READY',
       'TRANSFER_COMPLETED',
       'TRANSFER_FAILED',
+      'VIDEO_PROCESSING_FAILED',
     ].includes(item.kind)
   ) {
     return t(`coupleExperiences.notifications.${item.kind}`, {

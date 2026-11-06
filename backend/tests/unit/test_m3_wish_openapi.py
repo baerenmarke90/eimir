@@ -104,13 +104,13 @@ def test_direct_completion_has_no_request_body() -> None:
 
 def test_create_requires_only_a_title() -> None:
     schema = _components()["WishCreate"]
-    assert set(schema["properties"]) == {"title"}
+    assert set(schema["properties"]) == {"title", "tags"}
     assert schema["required"] == ["title"]
 
 
-def test_update_offers_only_the_title() -> None:
+def test_update_offers_authored_title_and_tags_only() -> None:
     """There is no field through which PATCH could set the status."""
-    assert set(_components()["WishUpdate"]["properties"]) == {"title"}
+    assert set(_components()["WishUpdate"]["properties"]) == {"title", "tags"}
 
 
 def test_detail_exposes_status_and_attribution_read_only() -> None:

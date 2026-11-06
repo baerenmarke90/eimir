@@ -561,6 +561,31 @@ def test_mail_uses_current_verified_address_and_does_not_repeat_after_job_retry(
         assert delivery.status == EmailDeliveryStatus.SENT.value
 
 
+@pytest.mark.parametrize(
+    ("locale", "subject"), [("de", "Neues bei eimir."), ("en", "Something new in eimir.")]
+)
+def test_queued_partner_mail_uses_the_current_recipient_language(
+    mail_setup, locale, subject
+) -> None:  # type: ignore[no-untyped-def]
+    engine, provider, (actor_id, recipient_id, space_id, _, _) = mail_setup
+    delivery_id, _ = _queue_partner_mail(
+        engine, ben_id=recipient_id, space_id=space_id, anna_id=actor_id, created_at=now()
+    )
+    with Session(engine) as session:
+        recipient = session.get(Account, recipient_id)
+        actor = session.get(Account, actor_id)
+        assert recipient is not None and actor is not None
+        recipient.language_preference = locale
+        recipient.locale = "de" if locale == "en" else "en"
+        actor.language_preference = "de" if locale == "en" else "en"
+        session.commit()
+    _handle(engine, delivery_id)
+    assert len(provider.messages) == 1
+    assert provider.messages[0].subject == subject
+    assert "Anna" not in provider.messages[0].body
+    assert "Ben" not in provider.messages[0].body
+
+
 def test_disabling_email_after_queueing_suppresses_it_permanently(mail_setup) -> None:  # type: ignore[no-untyped-def]
     engine, provider, (_, ben_id, _, _, delivery_id) = mail_setup
     with Session(engine) as session:

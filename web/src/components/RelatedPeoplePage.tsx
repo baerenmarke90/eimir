@@ -602,6 +602,7 @@ export function RelatedPeoplePage({
           spaceId={spaceId}
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}
+          accountId={currentAccountId}
           attachmentsApi={attachmentsApi}
           onCancel={() => {
             setIsCreating(false);

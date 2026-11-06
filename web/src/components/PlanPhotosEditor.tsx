@@ -1,3 +1,4 @@
+import { MediaProcessingState } from './MediaProcessingState';
 import { useState } from 'react';
 import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAttachmentSummary';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
@@ -129,6 +130,13 @@ export function PlanPhotosEditor({
         }}
       />
       <PhotoDraftGallery
+        key={JSON.stringify([
+          photoSourceContext?.apiBaseUrl,
+          photoSourceContext?.accountId,
+          spaceId,
+          parentType,
+          planId,
+        ])}
         disabled={disabled}
         items={controller.items.map((item, index) => ({
           key: item.key,
@@ -138,32 +146,38 @@ export function PlanPhotosEditor({
           isSensitive: item.isSensitive,
           draft: item.draft,
           mediaType: item.existing?.mediaType,
+          status: item.existing?.status,
           canRemove: !item.existing || canManageExisting,
-          canEditSensitivity: !item.existing || canManageExisting,
-          preview: item.isSensitive ? (
-            <SensitiveMediaCover />
-          ) : item.existing && planId ? (
-            <SavedPhoto
-              photo={item.existing}
-              controller={controller}
-              spaceId={spaceId}
-              planId={planId}
-              parentType={parentType}
-            />
-          ) : item.draft ? (
-            <DraftMediaPreview
-              draft={item.draft}
-              context={
-                photoSourceContext
-                  ? {
-                      apis: controller.apis,
-                      spaceId,
-                      accountId: photoSourceContext.accountId,
-                    }
-                  : undefined
-              }
-            />
-          ) : null,
+          canEditSensitivity:
+            !item.existing ||
+            (item.existing.canEditSensitivity ?? canManageExisting),
+          preview:
+            item.existing && item.existing.status !== 'READY' ? (
+              <MediaProcessingState status={item.existing.status} compact />
+            ) : item.isSensitive ? (
+              <SensitiveMediaCover />
+            ) : item.existing && planId ? (
+              <SavedPhoto
+                photo={item.existing}
+                controller={controller}
+                spaceId={spaceId}
+                planId={planId}
+                parentType={parentType}
+              />
+            ) : item.draft ? (
+              <DraftMediaPreview
+                draft={item.draft}
+                context={
+                  photoSourceContext
+                    ? {
+                        apis: controller.apis,
+                        spaceId,
+                        accountId: photoSourceContext.accountId,
+                      }
+                    : undefined
+                }
+              />
+            ) : null,
         }))}
         selectedCoverKey={controller.selectedCoverKey}
         onSelectCover={(key) => {
@@ -174,13 +188,13 @@ export function PlanPhotosEditor({
           controller.reorder(keys);
           onChange();
         }}
-        onMove={(key, offset) => {
-          controller.move(key, offset);
-          onChange();
-        }}
         onSensitive={(key, value) => {
           const item = controller.items.find((item) => item.key === key);
-          if (item) {
+          if (
+            item &&
+            (!item.existing ||
+              (item.existing.canEditSensitivity ?? canManageExisting))
+          ) {
             controller.setSensitive(item, value);
             onChange();
           }

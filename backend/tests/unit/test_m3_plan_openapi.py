@@ -141,6 +141,7 @@ def test_direct_create_needs_only_a_title() -> None:
     schema = _components()["PlanCreate"]
     assert set(schema["properties"]) == {
         "title",
+        "tags",
         "description",
         "placeId",
         "schedule",

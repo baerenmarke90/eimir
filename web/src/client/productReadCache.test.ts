@@ -8,10 +8,13 @@ import {
   PRODUCT_READ_CACHE_MAX_AGE_MS,
   canPersistProductReadPayload,
   clearProductReadCache,
+  captureSharedListCacheWrite,
+  deleteProductReadCacheKind,
   isFreshProductCacheTimestamp,
   loadProductWithReadCache,
   mayUseOfflineProductCache,
   saveProductReadCacheEntry,
+  revokeSharedListCache,
   type ProductReadCacheStorage,
 } from './productReadCache';
 
@@ -71,6 +74,26 @@ class MemoryProductReadCacheStorage implements ProductReadCacheStorage {
       throw new Error('remove failed');
     }
     this.records.delete(key);
+  }
+
+  async removeKind(
+    accountId: string,
+    spaceId: string,
+    kind: string,
+  ): Promise<void> {
+    for (const [key, value] of this.records) {
+      const record = value as {
+        accountId: string;
+        spaceId: string;
+        kind: string;
+      };
+      if (
+        record.accountId === accountId &&
+        record.spaceId === spaceId &&
+        record.kind === kind
+      )
+        this.records.delete(key);
+    }
   }
 
   async clear(): Promise<void> {
@@ -151,6 +174,110 @@ describe('M5 Web S6 persistent read cache policy', () => {
     await __waitForProductReadCacheMutationsForTests();
     __resetProductReadCacheStateForTests();
     vi.unstubAllGlobals();
+  });
+
+  it('revokes derived diary snapshots without removing unrelated detail reads', async () => {
+    await loadMemory('account-a', 'space-a', 'memory-1', async () => ({
+      id: 'memory-1',
+      label: 'Retained source',
+    }));
+    const options = {
+      accountId: 'account-a',
+      spaceId: 'space-a',
+      kind: 'story' as const,
+      resourceId: 'diary-v2:ALL:ALL:DESC',
+      serialize: (value: unknown) => value,
+      deserialize: (value: unknown) => value,
+    };
+    await loadProductWithReadCache({
+      ...options,
+      load: async () => ({ chapterMarkers: [{ id: 'removed-chapter' }] }),
+    });
+    await deleteProductReadCacheKind('account-a', 'space-a', 'story');
+    await expect(
+      loadProductWithReadCache({
+        ...options,
+        load: async () => {
+          throw new ClientProblemError('offline');
+        },
+      }),
+    ).rejects.toMatchObject({ kind: 'offline' });
+    const memory = await loadMemory(
+      'account-a',
+      'space-a',
+      'memory-1',
+      async () => {
+        throw new ClientProblemError('offline');
+      },
+    );
+    expect(memory.value.label).toBe('Retained source');
+  });
+
+  it('does not repersist a collection read that started before its group was revoked', async () => {
+    const pending = deferred<{ id: string }>();
+    const load = loadProductWithReadCache({
+      accountId: 'account-a',
+      spaceId: 'space-a',
+      kind: 'story',
+      resourceId: 'diary-v2:ALL:ALL:DESC',
+      load: () => pending.promise,
+      serialize: (value) => value,
+      deserialize: (value) => value as { id: string },
+    });
+    await deleteProductReadCacheKind('account-a', 'space-a', 'story');
+    pending.resolve({ id: 'stale-chapter' });
+    await load;
+    expect(
+      storedRecords(storage).filter((record) => record.kind === 'story'),
+    ).toEqual([]);
+  });
+
+  it('revokes loaded lists and diary markers through the same scoped storage contract', async () => {
+    await loadMemory('account-a', 'space-a', 'memory-1', async () => ({
+      id: 'memory-1',
+      label: 'Retained source',
+    }));
+    for (const kind of ['story', 'shared-list'] as const) {
+      await saveProductReadCacheEntry({
+        accountId: 'account-a',
+        spaceId: 'space-a',
+        kind,
+        resourceId: 'chapters',
+        value: {
+          pages: [{ items: [{ id: 'old-chapter' }] }],
+          pageParams: [null],
+        },
+        serialize: (value) => value,
+      });
+    }
+    const remove = vi.spyOn(storage, 'removeKind');
+    const listLease = captureSharedListCacheWrite('account-a', 'space-a');
+    expect(listLease()).toBe(true);
+    const diary = deferred<{ id: string }>();
+    const pending = loadProductWithReadCache({
+      accountId: 'account-a',
+      spaceId: 'space-a',
+      kind: 'story',
+      resourceId: 'late-diary',
+      load: () => diary.promise,
+      serialize: (value) => value,
+      deserialize: (value) => value as { id: string },
+    });
+
+    revokeSharedListCache('space-a');
+    await deleteProductReadCacheKind('account-a', 'space-a', 'story');
+    diary.resolve({ id: 'old-chapter' });
+    await pending;
+    await __waitForProductReadCacheMutationsForTests();
+
+    expect(remove.mock.calls).toEqual([
+      ['account-a', 'space-a', 'shared-list'],
+      ['account-a', 'space-a', 'story'],
+    ]);
+    expect(listLease()).toBe(false);
+    expect(storedRecords(storage).map((record) => record.kind)).toEqual([
+      'memory',
+    ]);
   });
 
   it('allows cache fallback only for transport and server availability failures', () => {

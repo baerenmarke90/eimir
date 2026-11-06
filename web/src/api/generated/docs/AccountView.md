@@ -9,6 +9,9 @@ Name | Type
 `displayName` | string
 `gentlePromptsEnabled` | boolean
 `id` | string
+`languagePreference` | string
+`languageVersion` | number
+`locale` | string
 
 ## Example
 
@@ -20,6 +23,9 @@ const example = {
   "displayName": null,
   "gentlePromptsEnabled": null,
   "id": null,
+  "languagePreference": null,
+  "languageVersion": null,
+  "locale": null,
 } satisfies AccountView
 
 console.log(example)

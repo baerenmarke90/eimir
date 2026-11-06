@@ -6,7 +6,7 @@ const photoSources = {
   addMedia: 'Medien hinzufügen',
   device: 'Vom Gerät auswählen',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',
-  previewFailed: 'Vorschau nicht verfügbar',
+  previewFailed: 'Vorschau fehlt',
   videoAvailabilityUnavailable:
     'Videos sind gerade nicht verfügbar. Du kannst Fotos auswählen oder es erneut versuchen.',
   more: 'Andere Fotoquelle',
@@ -26,15 +26,20 @@ const photoSources = {
     'Wähle deine Fotos im geöffneten Fenster. Kehre anschließend hierher zurück.',
   progress: 'Fotos werden übernommen …',
   selected: '{{count}} ausgewählt',
-  import: 'Ausgewählte Fotos übernehmen',
-  limit: 'Du kannst noch {{count}} Fotos hinzufügen.',
+  import: 'Fotos übernehmen',
+  importFailed:
+    'Fotos konnten nicht geladen werden. Deine Auswahl bleibt erhalten. Versuche es erneut.',
+  limit_one: 'Du kannst noch {{count}} Foto hinzufügen.',
+  limit_other: 'Du kannst noch {{count}} Fotos hinzufügen.',
   empty:
     'Hier sind noch keine passenden Fotos. Du kannst weitere Fotos laden oder auf deinem Gerät auswählen.',
   loadMore: 'Weitere Fotos laden',
   photo: 'Foto {{number}}',
   unavailable:
     'Die Fotoquelle ist gerade nicht erreichbar. Dein Eintrag bleibt erhalten. Versuche es erneut oder wähle Fotos auf deinem Gerät.',
-  partial:
+  partial_one:
+    '{{count}} Foto wurde in deinen Entwurf übernommen. Weitere Fotos konnten nicht geladen werden. Dein bisheriger Eintrag bleibt erhalten.',
+  partial_other:
     '{{count}} Fotos wurden in deinen Entwurf übernommen. Weitere Fotos konnten nicht geladen werden. Dein bisheriger Eintrag bleibt erhalten.',
   offline:
     'Für diese Fotoquelle brauchst du eine Internetverbindung. Dein Entwurf bleibt erhalten.',

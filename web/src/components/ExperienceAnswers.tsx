@@ -12,12 +12,14 @@ export function ExperienceAnswers({
   answers,
   kind,
   compact = false,
+  showLabel = true,
   editable = false,
   originKey,
 }: {
   answers: readonly ExperienceAnswer[];
   kind: ExperienceKind;
   compact?: boolean;
+  showLabel?: boolean;
   editable?: boolean;
   originKey?: string;
 }) {
@@ -27,14 +29,16 @@ export function ExperienceAnswers({
     <div
       className={`experience-answers${compact ? ' experience-answers-compact' : ''}`}
     >
-      <span className="experience-shared-label">
-        <EimirIcon name={kind === 'HAPPINESS' ? 'highlights' : 'kapitel'} />
-        {t(
-          kind === 'HAPPINESS'
-            ? 'coupleExperiences.sharedHappiness'
-            : 'coupleExperiences.sharedTimeTravel',
-        )}
-      </span>
+      {showLabel ? (
+        <span className="experience-shared-label">
+          <EimirIcon name={kind === 'HAPPINESS' ? 'highlights' : 'kapitel'} />
+          {t(
+            kind === 'HAPPINESS'
+              ? 'coupleExperiences.sharedHappiness'
+              : 'coupleExperiences.sharedTimeTravel',
+          )}
+        </span>
+      ) : null}
       {answers.map((answer, index) => (
         <div
           key={answer.id}

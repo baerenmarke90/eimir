@@ -643,11 +643,11 @@ required by the current Vite build:
 | `script-src-attr` / `style-src-attr` | `'none'` | no inline handlers or styles embedded in HTML; CSSOM property assignments require no source allowance |
 | `img-src` | `'self' blob: https://tile.openstreetmap.org` | local assets, authorized image bytes through short-lived object URLs and deliberately loaded OSM raster map tiles |
 | `connect-src` | `'self'` plus explicit hosting origins | API plus direct presigned uploads/reads through `fetch()` |
-| `media-src` | `'self'` plus the same explicit hosting origins | native `video` controls stream short-lived, parent-bound playback grants from the API origin (#88), which may differ from the Web origin |
 | `font-src` | `'self'` | no external font CDNs |
+| `media-src` | `'self'` plus explicit hosting origins | deliberate authorized video playback: native `video` controls stream short-lived, parent-bound playback grants from the API origin (#88), which may differ from the Web origin |
+| `worker-src` | `'self'` | bundled local video compression module worker and the first-party service worker `/service-worker.js`; no remote or `blob:` workers |
 | `manifest-src` | `'self'` | first-party Web App Manifest `/manifest.webmanifest` for PWA installation (ADR 0011, #1040) |
-| `worker-src` | `'self'` | only the first-party service worker `/service-worker.js`; no other dedicated, shared, or `blob:` worker exists |
-| `object-src` / `frame-src` | `'none'` | no plugins and no embedded frames |
+| `object-src` / `frame-src` | `'none'` | no plugins, no embedded frames, and no approved domain requirement |
 | `base-uri` / `frame-ancestors` | `'none'` | no base-URL rewriting and no framing |
 | `form-action` | `'self'` | forms may navigate only to the same origin |
 
@@ -658,15 +658,18 @@ fall under `connect-src`. Video bytes are requested by the `video` element
 itself through the validated playback-grant URL and therefore fall under
 `media-src`; they never become `blob:` media.
 
-The PWA allowances are deliberately narrow. Only production browser clients
-register the service worker; the native Capacitor container never does. The
-worker never intercepts `/api/`, media, upload, attachment, authenticated,
-non-`GET`, or cross-origin requests, and its own requests are governed by the
-same delivered header. `worker-src 'self'` admits no origin beyond
-`script-src 'self'`; registration still requires same-origin script execution,
-which the policy already restricts to the first-party bundle. Without these two
-allowances, browsers refuse the manifest and the service-worker registration,
-which silently disables installation and the privacy-safe offline fallback.
+The worker and manifest allowances are deliberately narrow. `worker-src 'self'`
+admits only same-origin worker scripts: the compiled local video compression
+module worker and the first-party service worker. It admits no origin beyond
+`script-src 'self'`, and creating or registering a worker still requires
+same-origin script execution, which the policy already restricts to the
+first-party bundle. Only production browser clients register the service
+worker; the native Capacitor container never does. The service worker never
+intercepts `/api/`, media, upload, attachment, authenticated, non-`GET`, or
+cross-origin requests, and its own requests are governed by the same delivered
+header. Without `manifest-src 'self'` and `worker-src 'self'`, browsers refuse
+the manifest and the service-worker registration, which silently disables
+installation and the privacy-safe offline fallback.
 `web/scripts/check-pwa-foundation.mjs` therefore fails when `web/nginx.conf`
 no longer admits the shipped PWA foundation, and
 `web/scripts/check_csp_header.sh` pins the complete delivered header in the
@@ -788,7 +791,7 @@ encryption: the running application holds the keys and can read the content.
 
 ## End-to-end encryption
 
-**Not yet implemented.** The architecture is prepared for it; see
+**Product-wide E2EE is not yet implemented.** The architecture is prepared for it; see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 The claim that even the operator cannot read content may be used **only** after
@@ -799,9 +802,25 @@ Sensitive domain content is bound as a concrete `ProtectedPayload` class to a
 designated JSONB column; raw dictionaries are rejected. With `crypto_version = 2`
 the column holds application-encrypted ciphertext; `crypto_version = 0` is legacy
 plaintext that `required` mode rejects. In both cases the server can read the
-content: there is no client-side sealing and no protection from the server operator.
+content. Core records have no client-side sealing and no protection from the server operator.
 Application-controlled encryption at rest protects a stolen database dump, replica,
 or bucket, not a compromised or malicious operator.
+
+One-time partner messages (#1672) are a separate optional, client-sealed domain:
+standard JWE ciphertext is encrypted on the sender's device for the explicitly
+registered public keys of the recipient. Private keys stay on recipient devices.
+This recipient-only temporary domain uses the shared tenant guard plus an explicit
+current-membership/consent/expiry predicate; ordinary durable owner reads cannot
+represent a single claim. Metadata GETs never return the envelope.
+The server-side ProtectedPayload wrapper may add encryption at rest around that
+opaque JWE; it does not give the server the message decryption key. See the
+[threat model and lifetime contract](product/once-messages.md). The authenticated
+public-key directory and delivered client code remain trusted, and there is no
+device verification, forward secrecy, recovery or external audit. This does not
+upgrade Core encryption or authorize a product-wide E2EE marketing claim.
+Official database dumps omit temporary messages and recipient-device registration
+rows so restore does not replay pending content. External infrastructure snapshots
+may retain opaque envelopes until their normal retention expires.
 
 Outbox payloads are separately restricted to explicitly allowed,
 non-sensitive metadata. Free-text fields and `ProtectedPayload` objects are

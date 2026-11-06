@@ -23,7 +23,11 @@ def target_titles(
         by_type.setdefault(target_type, set()).add(target_id)
     titles: dict[tuple[EngagementTarget, UUID], str] = {}
     for target_type, ids in by_type.items():
-        if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
+        if target_type in {
+            EngagementTarget.ONCE_MESSAGE,
+            EngagementTarget.TRANSFER_EXPORT,
+            EngagementTarget.TRANSFER_IMPORT,
+        }:
             continue
         model = service._TARGET_MODELS.get(target_type)
         if model is None:

@@ -1,14 +1,58 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { HeartMomentProductPage } from '../components/HeartMomentProductPage';
 import { MemoryProductPage } from '../components/MemoryProductPage';
 import { i18n } from '../i18n';
 import { authorSummaryQueryKeys } from './authorSummaryConsumers';
 import type { ReferenceApis } from './referenceFlow';
+
+async function removePhoto(label: string) {
+  const tile = document.querySelector<HTMLButtonElement>('.photo-draft-tile');
+  if (!tile) throw new Error('Missing editable photo');
+  await act(async () => {
+    fireEvent.click(tile);
+  });
+  const remove = await screen.findByRole('button', {
+    name: label,
+  });
+  await act(async () => {
+    fireEvent.click(remove);
+  });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(document.querySelector('.photo-draft-tile')).toBeNull();
+}
+
+function expectRestoredPhoto() {
+  expect(document.querySelectorAll('.photo-draft-tile')).toHaveLength(1);
+  expect(screen.queryByRole('dialog')).toBeNull();
+}
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 
 const getMemoryMock = vi.fn();
 const getHeartMomentMock = vi.fn();
@@ -116,15 +160,7 @@ describe('Attachment form state context binding (#700)', () => {
       </QueryClientProvider>,
     );
 
-    const markButton = screen.getByText(
-      i18n.t('memoryProduct.markPhotoForRemoval'),
-    );
-    expect(markButton).toBeDefined();
-
-    // Mark photo for removal
-    await act(async () => {
-      fireEvent.click(markButton);
-    });
+    await removePhoto(i18n.t('memoryProduct.markPhotoForRemoval'));
     expect(
       screen.getByText(i18n.t('memoryProduct.photoMarkedForRemoval')),
     ).toBeDefined();
@@ -159,16 +195,10 @@ describe('Attachment form state context binding (#700)', () => {
     expect(
       screen.queryByText(i18n.t('memoryProduct.photoMarkedForRemoval')),
     ).toBeNull();
-    expect(
-      screen.getByText(i18n.t('memoryProduct.markPhotoForRemoval')),
-    ).toBeDefined();
+    expectRestoredPhoto();
 
     // Mark again
-    await act(async () => {
-      fireEvent.click(
-        screen.getByText(i18n.t('memoryProduct.markPhotoForRemoval')),
-      );
-    });
+    await removePhoto(i18n.t('memoryProduct.markPhotoForRemoval'));
     expect(
       screen.getByText(i18n.t('memoryProduct.photoMarkedForRemoval')),
     ).toBeDefined();
@@ -269,13 +299,7 @@ describe('Attachment form state context binding (#700)', () => {
       </QueryClientProvider>,
     );
 
-    const removeBtn = screen.getByText(i18n.t('memory.photoRemove'));
-    expect(removeBtn).toBeDefined();
-
-    // Click remove photo -> photo & button disappear
-    await act(async () => {
-      fireEvent.click(removeBtn);
-    });
+    await removePhoto(i18n.t('memory.photoRemove'));
     expect(screen.queryByText(i18n.t('memory.photoRemove'))).toBeNull();
 
     // Change Space to space-2
@@ -305,12 +329,10 @@ describe('Attachment form state context binding (#700)', () => {
     });
 
     // Verify removeExistingPhoto was reset: photo & remove button reappear
-    expect(screen.getByText(i18n.t('memory.photoRemove'))).toBeDefined();
+    expectRestoredPhoto();
 
     // Mark again -> disappears
-    await act(async () => {
-      fireEvent.click(screen.getByText(i18n.t('memory.photoRemove')));
-    });
+    await removePhoto(i18n.t('memory.photoRemove'));
     expect(screen.queryByText(i18n.t('memory.photoRemove'))).toBeNull();
 
     // Change Account to acc-2
@@ -340,7 +362,7 @@ describe('Attachment form state context binding (#700)', () => {
     });
 
     // Verify reset on Account change -> photo & remove button reappear
-    expect(screen.getByText(i18n.t('memory.photoRemove'))).toBeDefined();
+    expectRestoredPhoto();
   });
 
   it('MemoryProductPage and HeartMomentProductPage operate cleanly under React.StrictMode', async () => {
@@ -407,12 +429,7 @@ describe('Attachment form state context binding (#700)', () => {
       </React.StrictMode>,
     );
 
-    const markButton = screen.getByText(
-      i18n.t('memoryProduct.markPhotoForRemoval'),
-    );
-    await act(async () => {
-      fireEvent.click(markButton);
-    });
+    await removePhoto(i18n.t('memoryProduct.markPhotoForRemoval'));
     expect(
       screen.getByText(i18n.t('memoryProduct.photoMarkedForRemoval')),
     ).toBeDefined();

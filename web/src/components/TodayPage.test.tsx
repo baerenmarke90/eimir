@@ -2,6 +2,7 @@ import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { onTestFinished, vi } from 'vitest';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
@@ -805,7 +806,7 @@ describe('TodayPage', () => {
           actorId: 'partner-1',
           targetId: 'mem-1',
           targetType: 'MEMORY',
-          createdAt: new Date('2026-09-03T12:00:00Z'),
+          createdAt: new Date(),
           occurredAt: new Date('2026-09-03T12:00:00Z'),
           sourceEventId: 'ev-1',
         },
@@ -1031,7 +1032,7 @@ describe('TodayPage', () => {
           actorId: 'partner-1',
           targetId: 'mem-signal',
           targetType: 'MEMORY',
-          createdAt: new Date('2026-09-03T12:00:00Z'),
+          createdAt: new Date(),
           occurredAt: new Date('2026-09-03T12:00:00Z'),
           sourceEventId: 'ev-1',
         },
@@ -1215,7 +1216,7 @@ describe('TodayPage', () => {
           actorId: 'partner-1',
           targetId: 'mem-99',
           targetType: 'MEMORY',
-          createdAt: new Date('2026-09-03T14:00:00Z'),
+          createdAt: new Date(),
           occurredAt: new Date('2026-09-03T14:00:00Z'),
           sourceEventId: 'ev-99',
         },
@@ -1934,6 +1935,12 @@ it('requires activity events even when recent content contains no photos', () =>
 });
 
 it('renders `Diesen Monat` as up to three real shared photos, never a count derived from the capped feed', () => {
+  // Keep the photo fixtures inside the product's three-day attention window.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-04T12:00:00Z'));
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
   const now = new Date();
   // `occurredOn` is a date-only API value: the generated client materializes
   // it at midnight UTC, so the fixture is built the same way.
@@ -2284,7 +2291,7 @@ describe('formatRelationshipDuration', () => {
             id: 'mem-monthly',
             type: 'MEMORY',
             titleOrText: 'Monthly Photo',
-            occurredOn: thisMonth(2),
+            occurredOn: thisMonth(now.getDate()),
             previewAttachmentId: 'att-monthly',
             previewIsSensitive: false,
           },
@@ -2340,6 +2347,14 @@ describe('formatRelationshipDuration', () => {
               actorId: 'partner-1',
               targetType: 'MEMORY',
               targetId: 'another-shared-memory',
+              createdAt: new Date(),
+            },
+            {
+              id: 'earlier-shared-event',
+              kind: 'MEMORY_CREATED',
+              actorId: 'partner-1',
+              targetType: 'MEMORY',
+              targetId: 'earlier-memory',
               createdAt: new Date(),
             },
           ],

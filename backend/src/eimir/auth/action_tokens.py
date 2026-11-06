@@ -343,7 +343,11 @@ def consume_account_recovery(session: Session, token: str) -> AccountRecoveryTok
 
 
 def issue_signup_proof(
-    session: Session, email: str, *, invitation_token_hash: str | None = None
+    session: Session,
+    email: str,
+    *,
+    invitation_token_hash: str | None = None,
+    accepted_terms_version: str | None = None,
 ) -> tuple[SignupProof, IssuedActionToken]:
     """Issue a Cloud signup proof, superseding older open proofs for the address.
 
@@ -365,6 +369,7 @@ def issue_signup_proof(
         token_hash=hash_token(token),
         expires_at=issued_at + SIGNUP_PROOF_LIFETIME,
         invitation_token_hash=invitation_token_hash,
+        accepted_terms_version=accepted_terms_version,
     )
     session.add(model)
     session.flush()

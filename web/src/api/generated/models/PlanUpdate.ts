@@ -94,6 +94,12 @@ export interface PlanUpdate {
     selectedCoverAttachmentId?: string | null;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof PlanUpdate
+     */
+    tags?: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof PlanUpdate
      */
@@ -126,6 +132,7 @@ export function PlanUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
         'schedule': json['schedule'] === undefined ? undefined : json['schedule'] === null ? null : PlanScheduleFromJSON(json['schedule']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'] == null ? undefined : json['title'],
     };
 }
@@ -150,6 +157,7 @@ export function PlanUpdateToJSONTyped(value?: PlanUpdate | null, ignoreDiscrimin
         'placeId': value['placeId'],
         'schedule': PlanScheduleToJSON(value['schedule']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

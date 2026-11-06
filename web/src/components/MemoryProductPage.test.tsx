@@ -298,7 +298,11 @@ describe('Memory detail edit action (#1014)', () => {
       name: '15. September 2025',
       level: 1,
     });
-    expect(title.closest('header')?.querySelector('time')).toBeNull();
+    expect(title.querySelector('time')?.getAttribute('datetime')).toBe(
+      '2025-09-15',
+    );
+    expect(title.querySelector('.moment-date svg')).not.toBeNull();
+    expect(title.closest('header')?.querySelectorAll('time')).toHaveLength(1);
     expect(screen.queryByText('Erinnerung vom 15.09.2025')).toBeNull();
   });
 });

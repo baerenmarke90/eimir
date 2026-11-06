@@ -36,6 +36,8 @@ export interface TaskOriginMetadata {
   planningSegment?: 'plans' | 'wishes';
   planningWishStatus?: 'OPEN' | 'COMPLETED';
   planningPlanStatus?: 'OPEN' | 'COMPLETED';
+  planningPlanSearch?: string;
+  planningWishSearch?: string;
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -90,8 +92,10 @@ export function taskOriginPath(
     pathname,
   );
   const recapReader = /^\/more\/passport\/[^/]+$/.test(pathname);
+  const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
     !recapReader &&
+    !storyYear &&
     !memoryEditor &&
     !planningDetail &&
     !secondaryDetail &&
@@ -99,6 +103,8 @@ export function taskOriginPath(
     ![
       '/today',
       '/story',
+      '/story/chapters',
+      '/story/years',
       '/story/happiness',
       '/story/time-travel',
       STORY_PHOTOS_ROUTE,
@@ -239,6 +245,8 @@ export function TaskOriginProvider({
         planningSegment: snapshot.planningSegment,
         planningWishStatus: snapshot.planningWishStatus,
         planningPlanStatus: snapshot.planningPlanStatus,
+        planningPlanSearch: snapshot.planningPlanSearch,
+        planningWishSearch: snapshot.planningWishSearch,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,

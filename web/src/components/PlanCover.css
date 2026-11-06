@@ -28,11 +28,24 @@
   min-height: 0;
 }
 .plan-cover--preview {
-  --plan-cover-max-height: 10rem;
-  flex: 0 1 6rem;
-  width: min(100%, 6rem);
+  --plan-cover-max-height: none;
+  aspect-ratio: 1;
+  width: var(--space-16);
+  max-width: none;
+  align-self: start;
   margin: 0;
   border-radius: var(--radius-medium);
+}
+.plan-cover--preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.plan-cover--preview > .sensitive-media-cover {
+  position: absolute;
+  inset: 0;
 }
 .plan-cover .sensitive-media-control {
   position: absolute;

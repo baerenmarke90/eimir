@@ -202,6 +202,17 @@ describe('PlanningRelationManager pagination', () => {
         .getAttribute('href'),
     ).toBe('/story/memories/memory-late');
     expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.relations.unlink') }),
+    ).toBeNull();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.relations.actions', { title: 'Our older memory' }),
+      }),
+    );
+    expect(
+      screen.getByText(i18n.t('m5s3.relations.unlinkChapterConsequence')),
+    ).toBeTruthy();
+    expect(
       screen.getByRole('button', { name: i18n.t('m5s3.relations.unlink') }),
     ).toBeTruthy();
   });

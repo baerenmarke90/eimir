@@ -325,3 +325,147 @@ def test_local_ai_proposes_without_rewriting_tags_and_rejects_a_changed_source(
         ]
         == []
     )
+
+
+@pytest.mark.parametrize("collection", ["plans", "wishes"])
+def test_planning_tags_share_authored_vocabulary_without_private_labels(
+    client: TestClient, session: Session, world: dict[str, Any], collection: str
+) -> None:
+    memory = create(client, world, "memories", {"title": "A day", "tags": ["Weekend"]})
+    create(
+        client,
+        world,
+        "heart-moments",
+        {
+            "text": "Personal",
+            "happenedOn": "2026-11-04",
+            "emotion": "HAPPY",
+            "visibility": "PRIVATE",
+            "tags": ["Private label"],
+        },
+    )
+    item = create(client, world, collection, {"title": "Together", "tags": ["  By   the sea  "]})
+    assert item["tags"] == ["By the sea"]
+    base = f"/api/v1/spaces/{world['space']}"
+    suggestions = client.get(
+        base + "/context-tag-suggestions",
+        headers=world["a"],
+        params={
+            "parentType": "PLAN" if collection == "plans" else "WISH",
+            "parentId": item["id"],
+        },
+    )
+    assert suggestions.status_code == 200, suggestions.text
+    assert set(suggestions.json()["learned"]) == {"Weekend", "By the sea"}
+    assert suggestions.json()["proposed"] == []
+    shared = client.get(
+        base + "/context-tag-suggestions", headers=world["a"], params={"sharedOnly": True}
+    )
+    assert "Private label" not in shared.json()["learned"]
+    assert (
+        client.get(base + "/context-tag-suggestions", headers=world["b"]).json()["learned"]
+        == suggestions.json()["learned"]
+    )
+    updated = client.patch(
+        base + f"/{collection}/{item['id']}",
+        headers={**world["b"], "If-Match": str(item["version"])},
+        json={"tags": ["Weekend"]},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["tags"] == memory["tags"]
+    version = updated.json()["version"]
+    for tags in (None, ["duplicate", "duplicate"], ["a"] * 9, ["x" * 41]):
+        invalid = client.patch(
+            base + f"/{collection}/{item['id']}",
+            headers={**world["a"], "If-Match": str(version)},
+            json={"tags": tags},
+        )
+        assert invalid.status_code == 422, invalid.text
+    preserved = client.patch(
+        base + f"/{collection}/{item['id']}",
+        headers={**world["a"], "If-Match": str(version)},
+        json={"title": "Renamed"},
+    )
+    assert preserved.status_code == 200, preserved.text
+    assert preserved.json()["tags"] == ["Weekend"]
+    found = client.get(base + "/search", headers=world["b"], params={"q": "Weekend"}).json()
+    assert item["id"] in [entry["id"] for entry in found["items"]]
+
+
+def test_wish_conversion_and_create_identity_preserve_authored_tags(
+    client: TestClient, world: dict[str, Any]
+) -> None:
+    base = f"/api/v1/spaces/{world['space']}"
+    headers = {**world["a"], "Idempotency-Key": "11111111-1111-4111-8111-111111111111"}
+    body = {"title": "Summer trip", "tags": ["Sea"]}
+    first = client.post(base + "/wishes", headers=headers, json=body)
+    assert first.status_code == 201, first.text
+    repeated = client.post(base + "/wishes", headers=headers, json=body)
+    assert repeated.json()["id"] == first.json()["id"]
+    changed = client.post(base + "/wishes", headers=headers, json={**body, "tags": ["Mountains"]})
+    assert changed.status_code == 409, changed.text
+    wish = first.json()
+    converted = client.post(
+        base + f"/wishes/{wish['id']}/plan",
+        headers={**world["a"], "If-Match": str(wish["version"])},
+        json={},
+    )
+    assert converted.status_code == 201, converted.text
+    assert converted.json()["plan"]["tags"] == ["Sea"]
+
+
+def test_diary_places_follow_authored_order_and_private_parent_authorization(
+    client: TestClient, world: dict[str, Any]
+) -> None:
+    park = create(client, world, "places", {"name": "River park"})
+    lake = create(client, world, "places", {"name": "Lake shore"})
+    memory = create(
+        client,
+        world,
+        "memories",
+        {"title": "A walk", "happenedOn": "2026-10-01", "placeIds": [lake["id"], park["id"]]},
+    )
+    shared = create(
+        client,
+        world,
+        "heart-moments",
+        {
+            "text": "Personal words",
+            "emotion": "HAPPY",
+            "visibility": "SHARED",
+            "happenedOn": "2026-10-01",
+            "placeId": park["id"],
+        },
+    )
+    path = f"/api/v1/spaces/{world['space']}/timeline"
+    own = client.get(path, headers=world["a"])
+    assert own.status_code == 200, own.text
+    cards = own.json()["items"]
+    assert next(
+        item["memory"]["places"]
+        for item in cards
+        if item.get("memory", {}).get("id") == memory["id"]
+    ) == [{"id": lake["id"], "name": lake["name"]}, {"id": park["id"], "name": park["name"]}]
+    assert next(
+        item["heartMoment"]["places"]
+        for item in cards
+        if item.get("heartMoment", {}).get("id") == shared["id"]
+    ) == [{"id": park["id"], "name": park["name"]}]
+    partner = client.get(path, headers=world["b"]).json()["items"]
+    assert any(item.get("heartMoment", {}).get("id") == shared["id"] for item in partner)
+    private = create(
+        client,
+        world,
+        "heart-moments",
+        {
+            "text": "Personal",
+            "emotion": "HAPPY",
+            "visibility": "PRIVATE",
+            "happenedOn": "2026-10-01",
+        },
+    )
+    assert not any(
+        item.get("heartMoment", {}).get("id") == private["id"]
+        for item in client.get(path, headers=world["b"]).json()["items"]
+    )
+    assert client.get(path, headers=world["foreign"]).status_code == 404

@@ -1,7 +1,9 @@
+import type { InitOverrideFunction } from '../api/generated/runtime';
+import { resolvedLocale } from '../i18n';
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
+import type { MembershipView } from '../api/generated/models/MembershipView';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
-import type { MembershipView } from '../api/generated/models/MembershipView';
 import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
@@ -13,6 +15,13 @@ import {
 
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
+
+// Native HTTP adapters cannot rely on a browser-added Accept-Language header.
+const mailRequestLocale: InitOverrideFunction = async ({ init }) => {
+  const headers = new Headers(init.headers);
+  headers.set('Accept-Language', resolvedLocale());
+  return { headers };
+};
 
 export class ActiveAccountMismatchError extends Error {
   constructor() {
@@ -172,9 +181,12 @@ export async function requestMagicLink(
   try {
     await createReferenceApis(
       apiBaseUrl,
-    ).auth.requestMagicLinkApiV1AuthMagicLinkRequestPost({
-      emailRequest: { email },
-    });
+    ).auth.requestMagicLinkApiV1AuthMagicLinkRequestPost(
+      {
+        emailRequest: { email },
+      },
+      mailRequestLocale,
+    );
   } catch (error) {
     throw await normalizeClientError(error);
   }
@@ -218,16 +230,21 @@ export async function requestSignup(
   apiBaseUrl: string,
   email: string,
   invitationToken?: string | null,
+  acceptedTermsVersion?: string | null,
 ): Promise<void> {
   try {
     await createReferenceApis(
       apiBaseUrl,
-    ).auth.requestSignupApiV1AuthSignupRequestPost({
-      signupEmailRequest: {
-        email,
-        ...(invitationToken ? { invitationToken } : {}),
+    ).auth.requestSignupApiV1AuthSignupRequestPost(
+      {
+        signupEmailRequest: {
+          email,
+          ...(invitationToken ? { invitationToken } : {}),
+          ...(acceptedTermsVersion ? { acceptedTermsVersion } : {}),
+        },
       },
-    });
+      mailRequestLocale,
+    );
   } catch (error) {
     throw await normalizeClientError(error);
   }
@@ -237,6 +254,7 @@ export async function consumeSignup(
   apiBaseUrl: string,
   token: string,
   invitationToken?: string,
+  acceptedTermsVersion?: string,
 ): Promise<SignupSessionView> {
   try {
     const session = await createReferenceApis(
@@ -246,6 +264,7 @@ export async function consumeSignup(
         token,
         deviceName: WEB_DEVICE_NAME,
         platform: WEB_PLATFORM,
+        ...(acceptedTermsVersion ? { acceptedTermsVersion } : {}),
       },
     });
     if (invitationToken && !session.spaceId) {

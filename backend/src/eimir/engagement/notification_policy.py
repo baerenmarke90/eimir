@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import NotificationKind
 
-POLICY_VERSION = 7
+POLICY_VERSION = 9
 GENERIC_PRESENTATION_KEY = "notification.generic"
 DIGEST_WINDOW = timedelta(hours=1)
 
@@ -71,6 +71,9 @@ class NotificationPolicy:
 # the reviewed comment Push path without changing Email frequency.
 POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
     {
+        NotificationKind.ONCE_MESSAGE_RECEIVED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.GENTLE_PROMPT: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
@@ -84,6 +87,9 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.TRANSFER_FAILED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.VIDEO_PROCESSING_FAILED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.PLAN_CREATED: NotificationPolicy(
@@ -176,7 +182,10 @@ def _external_choice_allowed(kind: str) -> bool:
 
 def email_choice_allowed(kind: str) -> bool:
     """Expose only reviewed immediate or digest Email kinds as a choice."""
-    return kind != NotificationKind.GENTLE_PROMPT.value and _external_choice_allowed(kind)
+    return kind not in {
+        NotificationKind.GENTLE_PROMPT.value,
+        NotificationKind.ONCE_MESSAGE_RECEIVED.value,
+    } and _external_choice_allowed(kind)
 
 
 def digest_window(at: datetime) -> tuple[datetime, datetime]:

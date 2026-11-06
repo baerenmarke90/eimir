@@ -139,6 +139,8 @@ test('shared foundations, dependencies, workflow and unknown paths require every
     'web/src/client/sessionPersistence.ts',
     'web/src/client/routes.ts',
     'web/src/api/generated/runtime.ts',
+    'web/src/i18n/locales/en.json',
+    'web/src/i18n/locale.ts',
     'web/package-lock.json',
     '.github/workflows/web-browser-qa.yml',
     'web/src/client/new-unknown.ts',

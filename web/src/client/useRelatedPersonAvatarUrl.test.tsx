@@ -19,7 +19,7 @@ afterEach(() => {
 
 it('keeps a related person avatar stable across view return and isolates replacement clients', async () => {
   const download = vi.fn(async () => ({
-    raw: new Response(new Blob(['avatar'])),
+    raw: new Response('avatar'),
   }));
   const api = {
     getAttachmentContentRaw: download,

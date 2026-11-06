@@ -1,7 +1,7 @@
 # Module notification workflow
 
 **Product Owner decision:** 2026-11-01, approved implementation on PR #1568.
-**Runtime policy:** v7 in `engagement/notification_policy.py`.
+**Runtime policy:** v9 in `engagement/notification_policy.py`.
 
 **Narrow follow-up decision #1620 (2026-11-03):** personal default-off gentle
 prompts may offer adaptive writing/Memory invitations under the complete
@@ -44,6 +44,15 @@ foundation. It does not introduce the previously rejected daily summary.
    generic wake. Legacy registrations keep their generic wake. The UnifiedPush wake may carry
    only a canonical Notification ID, never actor, category, title, body, photo,
    private choice, filename or an arbitrary route. Legacy wakes open the Center.
+   The 2026-11-04 [content-completeness correction](design/references/565-contextual-push/content-completeness.md)
+   adds negotiated preview v2 with a short current comment/shared-answer excerpt.
+   V1 retains its exact field set. Additive server/native maximum-version fields
+   select v2 only when both support it; older workers retain readable keys and
+   emit v1. Text is projected from the exact currently authorized source only
+   for delivery, never persisted in notification/event/job metadata. Public
+   lock-screen content remains neutral. Every known native kind has its own
+   accurate localized label, including content-free automatic invitations and
+   source-free due notices; a digest remains explicitly plural.
 6. A tap resolves current authenticated recipient state and opens its canonical
    destination. An unavailable target falls back to the Center. Account/Space
    changes invalidate pending navigation, and an active editor defers navigation
@@ -56,6 +65,7 @@ foundation. It does not introduce the previously rejected daily summary.
 
 | Module / surface | Meaningful occasion | App behavior / external delivery |
 | --- | --- | --- |
+| One-time partner message (#1672) | Deliberately send a one-time message after bilateral reception consent | One recipient Center item and neutral Push; never a rich native preview or Email. Tap opens the sealed page; claim/discard/expiry removes its derived notice. Existing channels and Quiet Hours apply; sending is Pro, pending reception is not. |
 | Glucksmomente | Deliberately share an authored present joy/appreciation | One partner Notification and neutral immediate Push; latest incoming source on Wir; canonical Memory read/history. |
 | Zeitreise | Deliberately share a recollection | Same authored-source workflow, optional past date. |
 | Daily writing questions | Three optional inspirations per module/Space day | Fetch only; no Outbox, Notification, Push or completion obligation. Free writing is unlimited. |

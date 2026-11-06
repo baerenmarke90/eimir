@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { AutoLoadMore } from './AutoLoadMore';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { type FormEvent, useState } from 'react';
@@ -265,14 +266,14 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
             {t('privateArea.notes.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.notes.createTitle')}
         description={t('privateArea.notes.intro')}
@@ -495,14 +496,14 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending || deleteMutation.isPending}
           >
             {t('privateArea.notes.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.notes.editTitle')}
         description={t('privateArea.notes.intro')}

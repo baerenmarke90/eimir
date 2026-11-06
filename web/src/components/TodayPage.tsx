@@ -1,4 +1,7 @@
-import { useAttentionReceipt } from '../client/attentionReceipt';
+import {
+  useAttentionReceipt,
+  useAttentionReceipts,
+} from '../client/attentionReceipt';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -94,6 +97,7 @@ import {
 } from './MonthlyRecapInvitation';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
+import { OnceIncomingSignal } from './OnceMessages';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -509,10 +513,12 @@ function TodayLivingModuleCard({
   partnerName,
   partnerAvatarUrl,
   loadMemoryImage,
+  onFollow,
 }: {
   module: LivingModule;
   partnerName: string;
   partnerAvatarUrl?: string | null;
+  onFollow?: () => void;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -564,6 +570,7 @@ function TodayLivingModuleCard({
           <TodayDestinationLink
             to={path}
             className="today-living-action"
+            onFollow={onFollow}
             ariaLabel={t('m5s5.today.relationshipSignal.ariaLabel', {
               name: partnerName,
             })}
@@ -858,6 +865,13 @@ export function TodayPage({
 
   const activityQuery = useActivityQuery(apis.activity, spaceId, account?.id);
   const activityItems = readableActivityItems(activityQuery);
+  const signalReceipts = useAttentionReceipts(
+    [apiBaseUrl ?? '', account?.id ?? '', spaceId, 'partner-signals'],
+    activityItems.map((item) => ({
+      id: item.id,
+      expiresAt: item.createdAt.getTime() + 3 * 24 * 60 * 60_000,
+    })),
+  );
 
   const partner = dashboardQuery.data?.space.partner;
   const partnerName = relationshipLabel(
@@ -1019,7 +1033,9 @@ export function TodayPage({
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
   const livingModule = selectLivingModule({
     partnerId: partner?.id,
-    activityItems,
+    activityItems: activityItems.filter((item) =>
+      signalReceipts.pendingIds.has(item.id),
+    ),
     recentShared,
     excludeItemIds: [
       ...(retrospectiveId ? [retrospectiveId] : []),
@@ -1079,7 +1095,13 @@ export function TodayPage({
   );
 
   // The quiet trace is the same first page as Activities, including comments.
-  const recentActivities = activityItems.slice(0, 4);
+  const currentSignalId =
+    livingModule?.kind === 'partner_signal'
+      ? livingModule.activityItem.id
+      : null;
+  const recentActivities = activityItems
+    .filter((item) => item.id !== currentSignalId)
+    .slice(0, 4);
 
   /*
    * Per-user module visibility (#817). This is presentation only: every
@@ -1277,7 +1299,7 @@ export function TodayPage({
         <SharedExperienceReveal
           scope={[apiBaseUrl ?? '', account?.id ?? '', spaceId]}
           entry={incomingExperience}
-          partnerName={partnerName}
+          partnerName={relationshipLabel(partner?.id, partner?.displayName, '')}
         />
       ) : null,
     daily_quote: dailyQuote,
@@ -1308,6 +1330,7 @@ export function TodayPage({
           )
         ) : null}
         {dailyVibe}
+        <OnceIncomingSignal />
       </>
     ),
     keepsake: (
@@ -1368,7 +1391,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-pinned-collection"
             title={pinnedCollectionQuery.data.title}
-            kicker={t('m5s5.today.pinnedCollection.kicker')}
             headerAction={
               <TodayDestinationLink
                 to={collectionDetailPath(pinnedCollectionId)}
@@ -1454,6 +1476,11 @@ export function TodayPage({
               partnerName={partnerName}
               partnerAvatarUrl={partnerAvatar.avatarUrl}
               loadMemoryImage={loadMemoryImage}
+              onFollow={
+                currentSignalId
+                  ? () => signalReceipts.consume(currentSignalId)
+                  : undefined
+              }
             />
           </TodayModuleSection>
         ) : null}

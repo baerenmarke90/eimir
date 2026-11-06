@@ -76,6 +76,18 @@ export interface HeartMomentDetail {
     attachments?: Array<OrderedAttachmentSummary>;
     /**
      * 
+     * @type {string}
+     * @memberof HeartMomentDetail
+     */
+    audioSpeakerName?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HeartMomentDetail
+     */
+    audioTitle?: string;
+    /**
+     * 
      * @type {AuthorSummary}
      * @memberof HeartMomentDetail
      */
@@ -195,6 +207,8 @@ export function HeartMomentDetailFromJSONTyped(json: any, ignoreDiscriminator: b
         
         'attachment': AttachmentSummaryFromJSON(json['attachment']),
         'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(OrderedAttachmentSummaryFromJSON)),
+        'audioSpeakerName': json['audioSpeakerName'] == null ? undefined : json['audioSpeakerName'],
+        'audioTitle': json['audioTitle'] == null ? undefined : json['audioTitle'],
         'author': AuthorSummaryFromJSON(json['author']),
         'authorId': json['authorId'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
@@ -225,6 +239,8 @@ export function HeartMomentDetailToJSONTyped(value?: HeartMomentDetail | null, i
         
         'attachment': AttachmentSummaryToJSON(value['attachment']),
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(OrderedAttachmentSummaryToJSON)),
+        'audioSpeakerName': value['audioSpeakerName'],
+        'audioTitle': value['audioTitle'],
         'author': AuthorSummaryToJSON(value['author']),
         'authorId': value['authorId'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),

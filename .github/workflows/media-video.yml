@@ -61,6 +61,9 @@ jobs:
           python-version: "3.14.8"
       - name: Build the pinned restricted codec
         run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends nasm autoconf automake libtool pkg-config
+          bash tools/media/build-video-dependencies.sh /tmp/eimir-codec-dependencies /tmp/eimir-codecs
           curl --fail --location --proto '=https' --tlsv1.2 \
             https://github.com/FFmpeg/FFmpeg/archive/946fcce07b6dcd0331c8cc609192aeff5e1924f8.tar.gz \
             --output /tmp/ffmpeg.tar.gz
@@ -78,9 +81,11 @@ jobs:
         working-directory: backend
         run: |
           uv run --frozen pytest -q --junitxml=/tmp/video-results.xml \
-            tests/unit/test_video_processing.py tests/unit/test_media_content.py \
-            tests/unit/test_media_streaming.py tests/integration/test_video_playback.py \
-            tests/integration/test_video_lifecycle.py
+            tests/unit/test_video_processing.py tests/unit/test_audio_processing.py tests/unit/test_media_content.py \
+            tests/unit/test_media_streaming.py tests/unit/test_codec_advisories.py \
+            tests/integration/test_video_playback.py \
+            tests/integration/test_video_lifecycle.py tests/integration/test_heart_voice_notes.py \
+            tests/media/acceptance_video_lifecycle.py
           python - <<'PY'
           import xml.etree.ElementTree as ET
           cases = ET.parse("/tmp/video-results.xml").findall(".//testcase")

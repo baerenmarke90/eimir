@@ -375,6 +375,58 @@ Memories or backfills new story relations. Updating the Demo images alone theref
 not immediately add these examples to an existing Space; the next scheduled or explicit
 canonical reset does.
 
+### November device-review and Chapter coverage (#1645)
+
+The operator's recorded pre-update source is `52d2eeda39f11d430d01676de93ebe11c92a6567`.
+The comparison through `0d0ab5f809b61059a862fa2bd97d414684d449e1` contains the delivered
+#1634/#1637 device-review work and #1635/#1636 Chapter experience. Use the following
+coverage map after building the updated images and intentionally resetting the Demo.
+It describes fictional content in ordinary product views, not a separate Demo UI.
+
+| Delivered area | Canonical content or deliberate acceptance boundary |
+| --- | --- |
+| Memory links to Plans and Wishes | The spontaneous day-trip Memory links to its completed Plan and Wish; the lake-walk Memory links to the future autumn-hike Plan and Wish; the ravioli evening links to the new-recipe idea. The movie-night Memory remains unlinked. Links never copy or complete sources. |
+| Chapter reader and diary markers | The five original, overlapping dated Chapters retain their explicit Memory links. A new unhurried-evenings Chapter is undated; a new relationship-beginnings Chapter has only an end date. All seven Chapters have authored words and linked content. Only the five authored starts contribute diary markers; neither an end-only nor an undated Chapter invents a diary position/year. |
+| Learned context tags | Existing shared Memory and HeartMoment labels populate ordinary suggestions immediately, including repeated lake/home themes. Lea's private surprise label remains absent for Alex. No generated proposal rows are fabricated; optional local inference uses its ordinary configured worker. |
+| Own and partner comments | The lake-walk Memory has a two-person exchange, so either persona can compare their own contextual actions with the partner's comment alignment. |
+| Alphabetical Places and lifecycle scopes | Four active Places (the mill, cafe, park and lake) and an archived cinema exercise distinct Active/Archived/All results. Names are fictional; new Places have no invented GPS. |
+| Discover, photo layout and removed manual renewal | Existing mixed photo/text Memories, single/multi-image content and untagged examples remain. The ordinary daily authorized Discover selection and reading flow own composition and safe rotation. |
+| Automatic list loading and retained browsing | The same canonical records are used by existing paginated views. Integration acceptance reads real diary and Place projections across small pages, without multiplying filler content or creating a second pagination mechanism. Device/browser acceptance still owns scrolling, offline retention and return behavior. |
+| Native dates, Plan labels and HeartMoment field order | Existing scheduled Plans, complete/open Chapter periods, dated Memories and the shared/private HeartMoments populate the actual forms. Field interaction and keyboard/large-text behavior are client acceptance, not seeded state. |
+| Notification onboarding and Small Invitations | Explicit real visitor/device consent remains required. The seed never enables personal prompt consent or fabricates a registered push device. |
+| System time zone | The current device supplies its actual IANA zone through the normal foreground/resume path. Fictional calendar dates are not shifted to manufacture a demo. |
+| Shared-experience and monthly invitation expiry | Existing fictional source history remains available. The ordinary source/period, entitlement, sharing and receipt rules decide whether an invitation exists. The seed does not invent a partner's current contribution or label an old month as the current month. |
+| Video upload progress and recovery | Requires a real supported short video, the ordinary `media.video_upload` grant and an available operator processor. The seed does not bypass those boundaries, pretend an upload succeeded or enable processing infrastructure. Existing curated photos are unchanged. |
+
+### Integration after #1643 and #1644
+
+The dependency integration baseline is main `107c9db7ac7d9e8bf38aea54311fc9a633b51e01`,
+which contains the regular merges of #1643 and #1644. Neither dependency changes
+the canonical seed or its domain service signatures.
+
+| Delivered area | Canonical content or deliberate acceptance boundary |
+| --- | --- |
+| Shared-experience question and full authored answer (#1643) | Visitors can author a guided experience through the normal flow, retaining its title/question and body. No guided-experience entry is pre-seeded. Current source authorization, sharing, expiry and receipt rules decide whether Today presents an incoming experience; do not fabricate a current partner contribution. |
+| Secondary-page Back control and date presentation (#1643) | Existing Memory, Plan, Wish, Chapter and Place records populate the normal detail/editor routes. Browser/native acceptance owns guarded return, retained origin and date typography; no additional seed state is necessary. |
+| Complete native contextual push content (#1644) | The two-person lake comment exchange provides ordinary authored comment sources. A real visitor must register their own device and consent through the normal flow before new actions can generate eligible notifications. Historical seeded comments are not replayed to manufacture previews. Public redaction, encrypted-preview version negotiation, Quiet Hours and source authorization remain normal product behavior. |
+
+No new push endpoint, preview key, personal consent, notification receipt or generated
+AI proposal is seeded for these capabilities. The additive push-preview metadata
+migration runs through the normal migration chain before Demo initialization.
+The existing typed links, source content and curated photos already cover the
+remaining dependency presentation changes.
+
+Both public personas use the same authorized relations, diary and Place read services.
+The regression suite verifies private-label exclusion, typed planning links, source
+retention after unlink, non-destructive ensure, and canonical reset restoration.
+These new examples appear only on a new canonical creation or intentional reset;
+redeploying or running `ensure` must not restore a link that a visitor removed.
+
+For the existing public instance, run the reset in the **`eimir-demo`** Compose project
+after both application images have been updated, using its existing project directory,
+environment and volumes. The independent test instance is outside this lifecycle.
+No repository merge by itself updates a running Demo or proves physical-device acceptance.
+
 The canonical demo ships a hash-pinned set of curated real stock photos under
 `backend/demo_assets/`. They are imported locally through upload registration, normal MediaStore
 storage, finalize, validation/sanitization, thumbnailing, and normal binding. Runtime bootstrap and
@@ -404,7 +456,7 @@ The runtime image copies `demo_assets` explicitly and validates it during image 
 
 Reset first validates the local catalog, then detaches all demo bindings and purges every attachment provider object before replacing the verified demo Space. The same local asset ids are re-imported in the same deterministic order, so repeated resets do not accumulate duplicate or orphaned media.
 
-The five album-like demo themes declared by `eimir.demo.story.CHAPTERS` use the existing Chapter model. eimir. currently has no separate Album product model, and this demo change intentionally does not add a DB column, API, or Web feature solely to simulate one.
+The seven album-like demo themes declared by `eimir.demo.story.CHAPTERS` use the existing Chapter model. eimir. currently has no separate Album product model, and this demo change intentionally does not add a DB column, API, or Web feature solely to simulate one.
 
 ### Maintainer flow for a new image
 

@@ -1,4 +1,3 @@
-import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
@@ -7,7 +6,13 @@ import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoReactions from '../../src/i18n/locales/photoReactions';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import {
+  expectInlineDraftActions,
+  selectDraftMedia,
+} from '../support/mediaDraft';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
@@ -17,6 +22,7 @@ import {
   nativeAppState,
 } from '../support/nativeAppLifecycle';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -556,7 +562,9 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.today-content')).toBeVisible();
 }
 
 async function installApprovedMemoryDetail(page: Page) {
@@ -564,7 +572,7 @@ async function installApprovedMemoryDetail(page: Page) {
   const mocks = await installApiMocks(page, [photo]);
   let current = {
     ...memory(MEMORY_ID, [attachment(photo, 0)]),
-    title: 'Erinnerung vom 27.10.2026',
+    title: fixtureCopy.subpageNavigation.legacyMemoryTitle,
     happenedOn: '2026-10-27',
     body: '',
     attachments: [
@@ -590,8 +598,8 @@ async function installApprovedMemoryDetail(page: Page) {
               spaceId: SPACE_ID,
               createdBy: ACCOUNT_ID,
               creator: { id: ACCOUNT_ID, displayName: 'Lea' },
-              name: 'Beispielort',
-              address: 'Musterstraße 1, 12345 Beispielort',
+              name: fixtureCopy.subpageNavigation.approvedPlace,
+              address: fixtureCopy.subpageNavigation.approvedAddress,
               latitude: 0,
               longitude: 0,
               description: null,
@@ -724,7 +732,7 @@ for (const state of [
   { width: 1280, theme: 'dark', textScale: 1 },
   { width: 320, theme: 'dark', textScale: 2 },
 ] as const) {
-  test(`overview Privacy icons independently reveal blurred photos at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
+  test(`overview privacy keeps independent Wir reveal and concealed Diary previews at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: state.width, height: 900 });
@@ -747,7 +755,7 @@ for (const state of [
       const card = page.locator(
         surface === 'wir'
           ? '.today-moment.preview-card-link'
-          : '.story-card-link.preview-card-link',
+          : '.story-card-link',
       );
       const photo = card.locator('.sensitive-media-preview');
       const button = card.getByRole('button', {
@@ -756,7 +764,66 @@ for (const state of [
       });
       await photo.scrollIntoViewIfNeeded();
       await expect(photo.locator('.sensitive-media-blurred img')).toBeVisible();
-      await expect(button.locator('.eimir-icon-privatsphaere')).toBeVisible();
+      if (surface === 'diary') {
+        await expect(card.locator('.sensitive-media-control')).toHaveCount(0);
+        await expect(photo.getByRole('img')).toHaveCount(0);
+        await expect(
+          card.getByText(sensitiveMedia.label, { exact: true }),
+        ).toHaveCount(1);
+        await expect(photo.locator('.sensitive-media-blurred')).toHaveCSS(
+          'filter',
+          'blur(12px)',
+        );
+        await expect(card).toHaveAttribute(
+          'href',
+          `/story/memories/${MEMORY_ID}`,
+        );
+        const violations = await new AxeBuilder({ page })
+          .include('.story-card-link')
+          .analyze();
+        expect(violations.violations).toEqual([]);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          page,
+          info,
+          `diary-sensitive-${state.width}-${state.theme}-concealed.png`,
+          { fullPage: true },
+        );
+        await card.focus();
+        await page.keyboard.press('Enter');
+        await expect(page).toHaveURL(
+          new RegExp(`/story/memories/${MEMORY_ID}$`),
+        );
+        const detailPhoto = page.locator(
+          '.media-gallery-carousel-slide.is-active',
+        );
+        await expect(
+          detailPhoto.locator('.sensitive-media-cover'),
+        ).toBeVisible();
+        const detailGallery = page.locator('.media-gallery-carousel');
+        await detailGallery
+          .getByRole('button', { name: sensitiveMedia.show, exact: true })
+          .click();
+        await expect(detailPhoto.locator('.sensitive-media-cover')).toHaveCount(
+          0,
+        );
+        await expect(
+          detailGallery.getByRole('button', {
+            name: sensitiveMedia.hide,
+            exact: true,
+          }),
+        ).toBeVisible();
+        await page.goBack();
+        await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
+        await expect(card.locator('.sensitive-media-control')).toHaveCount(0);
+        continue;
+      }
+      await expect(button.locator('svg')).toHaveCount(0);
+      await expect(button).toHaveText(sensitiveMedia.reveal);
       expect(await button.evaluate((node) => node.closest('a'))).toBeNull();
       await button.hover();
       const frame = await photo.boundingBox();
@@ -775,7 +842,10 @@ for (const state of [
       });
       expect(target.width).toBeGreaterThanOrEqual(44);
       expect(target.height).toBeGreaterThanOrEqual(44);
-      expect(target.x).toBeGreaterThan(frame.x + frame.width / 2);
+      expect(target.x).toBeGreaterThanOrEqual(frame.x);
+      expect(target.x + target.width).toBeLessThanOrEqual(
+        frame.x + frame.width,
+      );
       expect(target.y).toBeGreaterThanOrEqual(frame.y);
       expect(
         await photo
@@ -810,29 +880,15 @@ for (const state of [
       expect(revealedTarget.height).toBe(target.height);
       expect(revealedTarget.width).toBeGreaterThanOrEqual(44);
       expect(revealedTarget.height).toBeGreaterThanOrEqual(44);
-      if (surface === 'diary') {
-        expect(revealedTarget.x).toBeGreaterThanOrEqual(revealedFrame.x);
-        expect(revealedTarget.y).toBeGreaterThanOrEqual(revealedFrame.y);
-        expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
-          revealedFrame.x + revealedFrame.width,
-        );
-        expect(revealedTarget.y + revealedTarget.height).toBeLessThanOrEqual(
-          revealedFrame.y + revealedFrame.height,
-        );
-        expect(revealedTarget.x).toBeGreaterThan(
-          revealedFrame.x + revealedFrame.width / 2,
-        );
-        expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
-          revealedFrame.y + revealedFrame.height / 2,
-        );
-      } else {
-        expect(revealedTarget.x).toBeGreaterThan(
-          revealedFrame.x + revealedFrame.width / 2,
-        );
-        expect(revealedTarget.y).toBeLessThan(
-          revealedFrame.y + revealedFrame.height / 2,
-        );
-      }
+      expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
+        revealedFrame.x + revealedFrame.width,
+      );
+      expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
+        revealedFrame.y + revealedFrame.height / 2,
+      );
+      expect(revealedTarget.y).toBeLessThan(
+        revealedFrame.y + revealedFrame.height / 2,
+      );
       const material = await revealedButton.evaluate((node) => {
         const style = getComputedStyle(node);
         return {
@@ -857,7 +913,7 @@ for (const state of [
         .include('.preview-card-link-target')
         .analyze();
       expect(violations.violations).toEqual([]);
-      // A click on the photo outside the icon still opens detail, concealed.
+      // A click on the photo outside the control still opens detail, concealed.
       const currentFrame = await photo.boundingBox();
       if (!currentFrame) throw new Error('Expected a visible photo frame.');
       await page.mouse.click(currentFrame.x + 12, currentFrame.y + 12);
@@ -882,7 +938,7 @@ for (const state of [
   { width: 430, theme: 'dark' },
   { width: 1280, theme: 'light' },
 ] as const) {
-  test(`approved Memory composition keeps location 12px from media at ${state.width}px ${state.theme}`, async ({
+  test(`Memory context stays above media and preserves reactions at ${state.width}px ${state.theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: state.width, height: 900 });
@@ -900,21 +956,34 @@ for (const state of [
     await signIn(page);
     await page.goto(`/story/memories/${MEMORY_ID}`);
     await expect(
-      page.getByRole('heading', { name: '27. Oktober 2026', level: 1 }),
+      page.getByRole('heading', {
+        name: fixtureCopy.subpageNavigation.approvedDate,
+        level: 1,
+      }),
     ).toBeVisible();
-    await expect(page.locator('.moment-place-context strong')).toHaveText(
-      'Beispielort',
-    );
+    const place = page.locator('header .moment-metadata').getByRole('button', {
+      name: fixtureCopy.subpageNavigation.approvedPlace,
+      exact: true,
+    });
+    await expect(place).toBeVisible();
     await expect(page.locator('.moment-places h2')).toHaveClass('sr-only');
-    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
-    const gap = await page.evaluate(
-      () =>
-        document.querySelector('.moment-places')!.getBoundingClientRect().top -
-        document
-          .querySelector('.media-gallery-carousel-viewport')!
-          .getBoundingClientRect().bottom,
+    await expect(page.locator('header .moment-date svg')).toBeVisible();
+    await expect(page.locator('header time')).toHaveCount(1);
+    await expect(page.locator('header time')).toHaveAttribute(
+      'datetime',
+      '2026-10-27',
     );
-    expect(gap).toBeCloseTo(12, 0);
+    await expect(
+      page.locator('.memory-media-context .moment-places'),
+    ).toHaveCount(0);
+    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
+    const placeBox = await place.boundingBox();
+    const mediaBox = await page
+      .locator('.media-gallery-carousel-viewport')
+      .boundingBox();
+    if (!placeBox || !mediaBox)
+      throw new Error('Place and media bounds must be measurable');
+    expect(placeBox.y + placeBox.height).toBeLessThanOrEqual(mediaBox.y);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -1283,6 +1352,7 @@ for (const width of [320, 390] as const) {
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       hasTouch: true,
       isMobile: true,
       viewport: { width, height: 844 },
@@ -1299,7 +1369,10 @@ for (const width of [320, 390] as const) {
       await positionGalleryForReading(page);
 
       const next = page.locator('.media-gallery-carousel-next');
-      await expect(next).toBeHidden();
+      await expect(next).toHaveCSS('clip-path', 'inset(50%)');
+      expect(
+        await next.evaluate((node) => node.getBoundingClientRect().width),
+      ).toBeLessThanOrEqual(1);
 
       const interaction = await carouselInteractionContract(page);
       expect(interaction.usesSharedTrack).toBe(true);
@@ -1608,6 +1681,34 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   await expect(
     dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
   ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await dialog
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
+    .click();
+  const largePrivacy = await privacy.boundingBox();
+  const largeClose = await close.boundingBox();
+  const largeStage = await dialog
+    .locator('.media-lightbox-stage')
+    .boundingBox();
+  if (!largePrivacy || !largeClose || !largeStage)
+    throw new Error('Missing scaled fullscreen controls.');
+  expect(largePrivacy.x).toBeGreaterThanOrEqual(largeStage.x);
+  expect(
+    largePrivacy.x + largePrivacy.width < largeClose.x ||
+      largePrivacy.y >= largeClose.y + largeClose.height,
+  ).toBe(true);
+  expect(largePrivacy.width).toBeGreaterThan(largePrivacy.height);
+  expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
+    largeStage.y + largeStage.height,
+  );
+  await page.screenshot({
+    path: info.outputPath('fullscreen-sensitive-320-large.png'),
+  });
+  await privacy.click();
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
   await close.click();
   await expect(dialog).toHaveCount(0);
 });
@@ -1813,6 +1914,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await page.goto('/');
   await signIn(page);
   await page.goto(`/story/memories/${MEMORY_ID}/edit`);
+  await selectDraftMedia(page);
   const mark = page
     .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
     .first();
@@ -1822,6 +1924,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
     path: '../../docs/product/design/references/1477/runtime-edit-390.png',
     fullPage: true,
   });
+  await expectInlineDraftActions(page);
   let rejectNext = true;
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`,
@@ -1846,8 +1949,10 @@ test('sensitive photo editing retains a failed classification draft and saves on
       exact: true,
     })
     .click();
-  await expect(mark).not.toBeChecked();
   await expect(page).toHaveURL(/edit$/);
+  await selectDraftMedia(page);
+  await expect(mark).not.toBeChecked();
+  await expectInlineDraftActions(page);
   await page
     .getByRole('button', {
       name: memoryProduct.save,

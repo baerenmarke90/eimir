@@ -57,6 +57,7 @@ export function usePlanningEditorLifecycle({
   return {
     showDiscardConfirm,
     keepEditing,
+    closeConfirmed,
     discard: closeConfirmed,
     requestClose,
   };

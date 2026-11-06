@@ -1,5 +1,5 @@
 import { ActivityApi } from '../api/generated/apis/ActivityApi';
-import { DashboardApi } from '../api/generated/apis/DashboardApi';
+import { DashboardApi } from './mediaApis';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
 import { RecapsApi } from '../api/generated/apis/RecapsApi';
@@ -7,6 +7,7 @@ import { Configuration } from './apiConfiguration';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { EngagementTarget } from '../api/generated/models/EngagementTarget';
 import type { SearchKind } from '../api/generated/models/SearchKind';
+import { onceMessagePath } from './onceMessages';
 import {
   appRoutePath,
   MEMORY_CREATE_ROUTE,
@@ -127,6 +128,8 @@ export function engagementTargetPath(
   if (!targetType || !targetId) return null;
 
   switch (targetType) {
+    case 'ONCE_MESSAGE':
+      return onceMessagePath(targetId);
     case 'REMINDER':
       return reminderDetailPath(targetId);
     case 'MEMORY':

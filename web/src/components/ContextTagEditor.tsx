@@ -25,7 +25,7 @@ type ContextTagEditorProps = {
   draftValue?: string;
   onDraftValueChange?: (value: string) => void;
   ref?: Ref<ContextTagEditorHandle>;
-  parentType?: 'MEMORY' | 'HEART_MOMENT';
+  parentType?: 'MEMORY' | 'HEART_MOMENT' | 'PLAN' | 'WISH';
   parentId?: string;
 };
 
@@ -105,7 +105,6 @@ function ContextTagEditorContent({
   return (
     <fieldset className="memory-tag-choices" disabled={disabled}>
       <legend>{t('contextTags.label')}</legend>
-      <p className="field-help">{t('contextTags.help')}</p>
       {selected.length ? (
         <ul className="context-tag-selected memory-tag-list">
           {selected.map((tag) => (
@@ -129,7 +128,9 @@ function ContextTagEditorContent({
           ))}
         </ul>
       ) : null}
-      <label htmlFor={id}>{t('contextTags.newLabel')}</label>
+      <label className="sr-only" htmlFor={id}>
+        {t('contextTags.newLabel')}
+      </label>
       <div className="context-tag-entry">
         <input
           ref={inputRef}

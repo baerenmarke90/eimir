@@ -9,6 +9,8 @@ Name | Type
 `attachmentId` | string
 `attachmentIsSensitive` | boolean
 `attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
+`audioSpeakerName` | string
+`audioTitle` | string
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `placeId` | string
@@ -27,6 +29,8 @@ const example = {
   "attachmentId": null,
   "attachmentIsSensitive": null,
   "attachments": null,
+  "audioSpeakerName": null,
+  "audioTitle": null,
   "emotion": null,
   "happenedOn": null,
   "placeId": null,

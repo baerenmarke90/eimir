@@ -5,7 +5,7 @@ import { Configuration } from './apiConfiguration';
 import { useApiRuntime } from './apiRuntimeContext';
 
 export function useContextTagSuggestions(
-  parentType?: 'MEMORY' | 'HEART_MOMENT',
+  parentType?: 'MEMORY' | 'HEART_MOMENT' | 'PLAN' | 'WISH',
   parentId?: string,
 ) {
   const runtime = useApiRuntime();
@@ -37,6 +37,7 @@ export function useContextTagSuggestions(
       return api.getContextTagSuggestions(
         {
           spaceId: runtime.spaceId,
+          sharedOnly: parentType !== 'HEART_MOMENT',
           ...(parentId && parentType ? { parentType, parentId } : {}),
         },
         { signal },

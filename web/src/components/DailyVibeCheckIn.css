@@ -125,12 +125,29 @@ button.daily-vibe-person:focus-visible {
   font-weight: 650;
 }
 
+.daily-vibe-person-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.daily-vibe-note-marker {
+  display: inline-flex;
+  color: var(--color-brand-text);
+}
+
+.daily-vibe-note-marker .eimir-icon {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
 .daily-vibe-person-copy > strong {
   min-width: 0;
   font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.25;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .daily-vibe-pending-status {
@@ -200,18 +217,12 @@ button.daily-vibe-person:focus-visible {
 .daily-vibe-sheet .short-task-sheet-body {
   display: grid;
   gap: var(--space-3);
-}
-
-.daily-vibe-sheet-intro {
-  margin: calc(-1 * var(--space-2)) 0 0;
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.45;
+  container: vibe-selection / inline-size;
 }
 
 .daily-vibe-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   max-width: 100%;
   gap: var(--space-2);
 }
@@ -219,11 +230,11 @@ button.daily-vibe-person:focus-visible {
 .daily-vibe-option {
   display: grid;
   min-width: 0;
-  min-height: 64px;
-  grid-template-columns: auto minmax(0, 1fr);
+  min-height: var(--touch-target-web);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface);
@@ -233,7 +244,7 @@ button.daily-vibe-person:focus-visible {
   line-height: 1.3;
   text-align: left;
   cursor: pointer;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   transition:
     border-color var(--duration-feedback) var(--easing-standard),
     background var(--duration-feedback) var(--easing-standard),
@@ -263,9 +274,15 @@ button.daily-vibe-person:focus-visible {
 }
 
 .daily-vibe-option-glyph {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
   font-size: 1.05rem;
+}
+
+.daily-vibe-option-check {
+  inline-size: 1em;
+  color: var(--color-brand-text);
+  font-weight: 700;
 }
 
 .daily-vibe-note-field {
@@ -275,15 +292,9 @@ button.daily-vibe-person:focus-visible {
   font-weight: 650;
 }
 
-.daily-vibe-note-hint {
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  font-weight: 500;
-}
-
 .daily-vibe-note-field textarea {
   width: 100%;
-  min-height: 6.5rem;
+  min-height: 4.5rem;
   box-sizing: border-box;
   resize: vertical;
   border: var(--border-surface-width) solid var(--color-border-subtle);
@@ -405,16 +416,6 @@ button.daily-vibe-person:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .daily-vibe-option {
-    grid-template-columns: minmax(0, 1fr);
-    overflow-wrap: break-word;
-    hyphens: auto;
-  }
-
-  .daily-vibe-option-glyph {
-    display: none;
-  }
-
   .daily-vibe-unavailable {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -425,9 +426,13 @@ button.daily-vibe-person:focus-visible {
   }
 }
 
-@media (max-width: 340px) {
-  .daily-vibe-options {
-    grid-template-columns: minmax(0, 1fr);
+@container vibe-selection (max-width: 14rem) {
+  .daily-vibe-option {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .daily-vibe-option-glyph {
+    display: none;
   }
 }
 

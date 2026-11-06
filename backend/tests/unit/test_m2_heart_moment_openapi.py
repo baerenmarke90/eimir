@@ -55,6 +55,8 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "attachmentIsSensitive",
         "attachments",
         "selectedCoverAttachmentId",
+        "audioTitle",
+        "audioSpeakerName",
         "tags",
         "placeId",
     }
@@ -70,6 +72,8 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "attachmentIsSensitive",
         "attachments",
         "selectedCoverAttachmentId",
+        "audioTitle",
+        "audioSpeakerName",
         "tags",
     }
     assert update["additionalProperties"] is False

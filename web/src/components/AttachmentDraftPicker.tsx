@@ -5,6 +5,7 @@ import { DeviceMediaPicker } from './DeviceMediaPicker';
 import { DraftMediaPreview } from './DraftMediaPreview';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
+import { AttachmentMediaDropZone } from './MediaDropZone';
 import type { VideoCaptureContext } from './VideoUploadAction';
 
 export interface AttachmentDraftPickerController {
@@ -65,73 +66,90 @@ export function AttachmentDraftPicker({
   );
 
   return (
-    <div className="field-group attachment-draft-picker">
-      {sourceContext ? (
-        <PhotoSourcePicker
-          {...sourceContext}
-          beginSelection={() => {
-            const ticket = sourceContext.beginSelection();
-            return {
-              ...ticket,
-              commit: (files) => {
-                if (ticket.signal.aborted || !files.length) return false;
-                if (!multiple)
-                  for (const item of attachments.items)
-                    attachments.remove(item.id);
-                return ticket.commit(files);
-              },
-            };
-          }}
-          disabled={disabled}
-          devicePicker={devicePicker}
-        />
-      ) : (
-        devicePicker(() => {})
-      )}
+    <AttachmentMediaDropZone
+      videoContext={videoContext}
+      multiple={multiple}
+      disabled={disabled}
+      onFiles={(files) => {
+        if (!multiple && files.length)
+          for (const item of attachments.items) attachments.remove(item.id);
+        attachments.addFiles(files);
+      }}
+    >
+      <div className="field-group attachment-draft-picker">
+        {sourceContext ? (
+          <PhotoSourcePicker
+            {...sourceContext}
+            beginSelection={() => {
+              const ticket = sourceContext.beginSelection();
+              return {
+                ...ticket,
+                commit: (files) => {
+                  if (ticket.signal.aborted || !files.length) return false;
+                  if (!multiple)
+                    for (const item of attachments.items)
+                      attachments.remove(item.id);
+                  return ticket.commit(files);
+                },
+              };
+            }}
+            disabled={disabled}
+            devicePicker={devicePicker}
+          />
+        ) : (
+          devicePicker(() => {})
+        )}
 
-      {showItems && attachments.items.length > 0 ? (
-        <p className="field-help">{t('sensitiveMedia.help')}</p>
-      ) : null}
-      {showItems && attachments.items.length > 0 ? (
-        <PhotoDraftGallery
-          disabled={disabled}
-          items={attachments.items.map((attachment) => ({
-            key: attachment.id,
-            name: attachment.file.name,
-            draft: attachment,
-            isSensitive: attachment.isSensitive === true,
-            preview: (
-              <DraftMediaPreview draft={attachment} context={videoContext} />
-            ),
-          }))}
-          onMove={multiple ? attachments.move : undefined}
-          onOrderChange={multiple ? attachments.reorder : undefined}
-          selectedCoverKey={selectedCoverKey}
-          onSelectCover={onSelectCover}
-          onSensitive={attachments.setSensitive}
-          onRemove={attachments.remove}
-          onRetry={(key) => {
-            const draft = attachments.items.find((item) => item.id === key);
-            if (draft) attachments.retry(draft);
-          }}
-        />
-      ) : null}
-      {attachments.hasPending ? (
-        <p className="field-help" role="status" aria-live="polite">
-          {t(
-            attachments.items.some((item) =>
-              item.file.type.startsWith('video/'),
-            )
-              ? 'video.pendingSave'
-              : 'memory.photoPendingSave',
-          )}
-        </p>
-      ) : null}
-      {attachments.rejectedCount ? (
-        <p className="field-help" role="alert" aria-live="assertive">
-          {t('memory.photoLimitReached', { count: attachments.rejectedCount })}
-        </p>
-      ) : null}
-    </div>
+        {showItems && attachments.items.length > 0 ? (
+          <PhotoDraftGallery
+            key={JSON.stringify([
+              id,
+              sourceContext?.apiBaseUrl,
+              sourceContext?.accountId,
+              sourceContext?.spaceId,
+              videoContext?.accountId,
+              videoContext?.spaceId,
+            ])}
+            disabled={disabled}
+            items={attachments.items.map((attachment) => ({
+              key: attachment.id,
+              name: attachment.file.name,
+              draft: attachment,
+              isSensitive: attachment.isSensitive === true,
+              preview: (
+                <DraftMediaPreview draft={attachment} context={videoContext} />
+              ),
+            }))}
+            onOrderChange={multiple ? attachments.reorder : undefined}
+            selectedCoverKey={selectedCoverKey}
+            onSelectCover={onSelectCover}
+            onSensitive={attachments.setSensitive}
+            onRemove={attachments.remove}
+            onRetry={(key) => {
+              const draft = attachments.items.find((item) => item.id === key);
+              if (draft) attachments.retry(draft);
+            }}
+          />
+        ) : null}
+        {attachments.hasPending ? (
+          <p className="field-help" role="status" aria-live="polite">
+            {t(
+              attachments.items.some((item) =>
+                item.file.type.startsWith('video/'),
+              )
+                ? 'video.pendingSave'
+                : 'memory.photoPendingSave',
+            )}
+          </p>
+        ) : null}
+        {attachments.rejectedCount ? (
+          <p className="field-help" role="alert" aria-live="assertive">
+            {t('memory.photoLimitReached', {
+              count: attachments.rejectedCount,
+            })}
+          </p>
+        ) : null}
+      </div>
+    </AttachmentMediaDropZone>
   );
 }

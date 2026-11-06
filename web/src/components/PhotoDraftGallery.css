@@ -11,8 +11,23 @@
   padding: 0;
   margin: 0;
 }
-.photo-draft-grid > li {
+.photo-draft-grid > li,
+.photo-draft-frame {
   min-inline-size: 0;
+  position: relative;
+}
+.photo-draft-frame {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.photo-draft-sensitive:has(input:focus-visible) {
+  outline: auto;
+  outline-color: var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.photo-draft-item.is-dragging {
+  z-index: 3;
 }
 .photo-draft-tile {
   display: block;
@@ -42,8 +57,7 @@
   min-block-size: 0;
   object-fit: cover;
 }
-.photo-draft-number,
-.photo-draft-selected {
+.photo-draft-number {
   position: absolute;
   inset-block-start: var(--space-2);
   padding-inline: var(--space-2);
@@ -55,14 +69,85 @@
 .photo-draft-number {
   inset-inline-start: var(--space-2);
 }
-.photo-draft-selected {
-  inset-inline-end: var(--space-2);
-  background: var(--color-brand-strong);
+/* Corner controls are siblings of the image button, never nested activators. */
+/* Small visible glyphs keep their full transparent touch targets. */
+.photo-draft-action {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  margin: 0;
+  cursor: pointer;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  padding: var(--media-action-inset);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+.photo-draft-action::before {
+  content: "";
+  position: absolute;
+  inset: var(--media-action-inset);
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--color-surface);
+}
+.photo-draft-action .eimir-icon {
+  inline-size: var(--media-action-icon);
+  block-size: var(--media-action-icon);
+}
+/* The native checkbox occupies the full hit area; the glyph cannot intercept it. */
+.photo-draft-sensitive input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.photo-draft-sensitive .eimir-icon {
+  pointer-events: none;
+}
+.photo-draft-sensitive:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+.photo-draft-remove {
+  inset: var(--space-1) var(--space-1) auto auto;
+}
+.photo-draft-sensitive {
+  inset: auto auto var(--space-1) var(--space-1);
+}
+.photo-draft-cover-toggle {
+  inset: auto var(--space-1) var(--space-1) auto;
+}
+.photo-draft-cover-toggle[aria-pressed="true"] {
   color: var(--color-on-accent);
+}
+.photo-draft-cover-toggle[aria-pressed="true"]::before {
+  background: var(--color-brand-strong);
+}
+.photo-draft-cover-toggle[aria-pressed="false"] .eimir-icon {
+  opacity: var(--opacity-subtle);
+}
+.photo-draft-tile {
+  -webkit-touch-callout: none;
+  user-select: none;
+  cursor: grab;
+}
+.photo-draft-tile-preview {
+  pointer-events: none;
+}
+.photo-draft-item.is-dragging .photo-draft-tile {
+  cursor: grabbing;
 }
 .photo-draft-tile-status {
   position: absolute;
-  inset: auto var(--space-1) var(--space-1);
+  inset: auto var(--space-1) calc(var(--touch-target-web) + var(--space-2));
   background: var(--color-surface);
   color: var(--color-text-secondary);
   border-radius: 0 0 var(--radius-small) var(--radius-small);
@@ -78,9 +163,7 @@
   margin: 0;
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
+  padding: 0;
   min-inline-size: 0;
 }
 .photo-draft-inspector-heading {
@@ -122,4 +205,8 @@
   .photo-draft-tile {
     transition: none;
   }
+}
+
+.photo-draft-item.is-drop-target .photo-draft-tile-preview {
+  opacity: var(--opacity-subtle);
 }

@@ -8,6 +8,29 @@ from project_identity_scan import LEGACY_PATTERN, Classification, classify
 
 
 class ProjectIdentityScanTest(unittest.TestCase):
+    def test_opaque_push_ciphertext_is_exempt_only_as_a_complete_jwe_field(self) -> None:
+        path = Path("android/app/src/androidTest/assets/push-preview-catalog.json")
+        compact = "eyJhbGciOiJkaXIifQ..AAAAAAAAAAAAAAAA.AAsbsBcc.AAAAAAAAAAAAAAAAAAAAAA"
+        line = f'      "jwe": "{compact}",'
+        self.assertEqual(classify(path, line, "sbs")[0], Classification.FALSE_POSITIVE)
+        for candidate, text in (
+            (Path("android/app/src/main/assets/push-preview-catalog.json"), line),
+            (Path("android/app/src/androidTest/assets/other.json"), line),
+            (path, line.replace('"jwe"', '"title"')),
+            (path, line.replace(compact, "SideBySide")),
+            (path, line.replace("..", ".")),
+            (path, line.replace("AAAAAAAAAAAAAAAA.", "short.")),
+            (path, line.replace(".AAAAAAAAAAAAAAAAAAAAAA", ".short")),
+            (path, line + ' "title": "SideBySide"'),
+            (path, line + " // SideBySide"),
+            (path, '"jwe": "SideBySide. is not ciphertext"'),
+        ):
+            with self.subTest(path=candidate, line=text):
+                self.assertEqual(
+                    classify(candidate, text, "SideBySide")[0],
+                    Classification.MUST_RENAME,
+                )
+
     def test_unclassified_active_reference_must_be_renamed(self) -> None:
         classification, _ = classify(
             Path("backend/src/example.py"),
@@ -96,6 +119,32 @@ class ProjectIdentityScanTest(unittest.TestCase):
         )
         self.assertEqual(classification, Classification.MUST_RENAME)
 
+    def test_once_message_prompt_retains_only_exact_layout_provenance(self) -> None:
+        path = Path("docs/product/design/references/once-messages/prompt.md")
+        line = "Three complete smartphone app screens side by side, mobile-first proportions."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use side by side branding.", "side by side"),
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, line + " Use side by side branding.", "side by side"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
+    def test_media_planning_prompt_exception_preserves_exact_layout_provenance(self) -> None:
+        path = Path("docs/product/design/references/1647-media-planning/reference-prompt.txt")
+        line = "Create three complete 390px smartphone screens side by side."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use side by side branding.", "side by side"),
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, line + " Use side by side branding.", "side by side"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
     def test_exact_places_and_lists_prompt_retains_ordinary_layout_wording(self) -> None:
         path = Path("docs/product/design/references/places-and-lists/reference-prompt.txt")
         line = "Preflight, four whole Compact smartphone app screens side-by-side."
@@ -105,6 +154,57 @@ class ProjectIdentityScanTest(unittest.TestCase):
         self.assertEqual(classification, Classification.MUST_RENAME)
         classification, _ = classify(Path("backend/src/example.py"), line, "side-by-side")
         self.assertEqual(classification, Classification.MUST_RENAME)
+
+    def test_chapter_prompt_exception_preserves_layout_provenance_only(self) -> None:
+        path = Path("docs/product/design/chapter-experience/reference-prompt.txt")
+        line = "FOUR complete smartphone screens side by side, each about 390 CSS px wide."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use side by side branding.", "side by side"),
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, line + " Use side by side branding.", "side by side"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
+    def test_vibe_prompt_retains_only_its_exact_person_layout_wording(self) -> None:
+        path = Path("docs/product/design/references/vibe-immich-clarity/reference-prompt.txt")
+        line = "Below the heading, two small side-by-side people cards: Du and Ben."
+        self.assertEqual(classify(path, line, "side-by-side")[0], Classification.FALSE_POSITIVE)
+        for candidate, value, match in (
+            (path, "Use side-by-side branding.", "side-by-side"),
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, line + " Use side-by-side branding.", "side-by-side"),
+            (Path("backend/src/example.py"), line, "side-by-side"),
+        ):
+            with self.subTest(path=candidate, line=value, match=match):
+                self.assertEqual(classify(candidate, value, match)[0], Classification.MUST_RENAME)
+
+    def test_planning_prompts_preserve_only_their_exact_layout_provenance(self) -> None:
+        root = Path("docs/product/design/references/planning-search-private-profile")
+        for path, line in (
+            (
+                root / "prompt.txt",
+                "Four complete flat smartphone screen compositions, each 390 CSS pixels wide, "
+                "side by side, no device bezels.",
+            ),
+            (root / "follow-up-prompts.txt", "THREE complete smartphone app screens side by side."),
+            (root / "follow-up-prompts.txt", "THREE complete smartphone screens side by side."),
+        ):
+            with self.subTest(path=path, line=line):
+                self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+                for candidate, text, match in (
+                    (path, "Use side by side branding.", "side by side"),
+                    (path, line + " Use SideBySide branding.", "SideBySide"),
+                    (path, line + " Use side by side branding.", "side by side"),
+                    (root / "other-prompt.txt", line, "side by side"),
+                    (Path("backend/src/example.py"), line, "side by side"),
+                ):
+                    with self.subTest(candidate=candidate, match=match):
+                        self.assertEqual(
+                            classify(candidate, text, match)[0], Classification.MUST_RENAME
+                        )
 
     def test_required_patterns_are_case_insensitive_and_complete(self) -> None:
         samples = (

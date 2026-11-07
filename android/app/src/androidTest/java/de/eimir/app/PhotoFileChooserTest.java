@@ -497,7 +497,8 @@ public class PhotoFileChooserTest {
             + "video.onseeked=()=>window.videoSeeked=true;"
             + "video.requestVideoFrameCallback(()=>window.videoDecoded=true);"
             + "}catch(error){window.photoReadError=error.name;}};"
-            + "document.getElementById('play-video').onclick=()=>video.play().catch(e=>window.videoError=e.name);"
+            + "document.getElementById('play-video').onclick=event=>{window.videoPlayTrusted=event.isTrusted;"
+            + "return video.play().catch(e=>window.videoError=e.name);};"
             + "return input.type==='file';})()"));
         Rect input = photoInputScreenBounds(view);
         try {
@@ -546,7 +547,8 @@ public class PhotoFileChooserTest {
         // Match production preload=none: only a deliberate Play requests metadata/frames.
         tapScreenBounds(webControlScreenBounds(view, "play-video"));
         awaitJavascript(view, "window.videoReady===true");
-        awaitJavascript(view, "window.videoDecoded===true && document.getElementById('video').currentTime>0 && !window.videoError");
+        awaitJavascript(view, "window.videoPlayTrusted===true && window.videoDecoded===true"
+            + " && document.getElementById('video').currentTime>0 && !window.videoError");
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').videoWidth===96"
             + " && document.getElementById('video').videoHeight===64"));
@@ -577,7 +579,8 @@ public class PhotoFileChooserTest {
         throw new AssertionError("The native video condition did not complete: " + condition
             + "; state=" + javascriptValue(view, "JSON.stringify((()=>{const v=document.getElementById('video');"
                 + "return {ready:v?.readyState,network:v?.networkState,error:window.videoError,"
-                + "mediaError:v?.error?.message,mime:window.videoMime,paused:v?.paused,time:v?.currentTime}})())"));
+                + "mediaError:v?.error?.message,mime:window.videoMime,paused:v?.paused,time:v?.currentTime,"
+                + "decoded:window.videoDecoded,playTrusted:window.videoPlayTrusted}})())"));
     }
 
     private void captureNativeDiagnostics(String label) throws Exception {
@@ -748,6 +751,16 @@ public class PhotoFileChooserTest {
 
     private void tapScreenBounds(Rect bounds) throws Exception {
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
+        // A selected File can arrive before the system picker's closing animation.
+        // Its remaining dim layer rejects touches as obscured even after the app
+        // regains focus. Await fresh-root/pixel stability before starting the tap.
+        assertFalse("The WebView window settles before native touch",
+            UiDeviceExt.waitForStableInActiveWindow(UiDevice.getInstance(instrumentation),
+                3000, 500, 50, true).isTimeout());
+        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
+        assertNotNull("The WebView owns an active window", root);
+        assertEquals("The touch belongs to the active app window",
+            context.getPackageName(), String.valueOf(root.getPackageName()));
         Espresso.onView(ViewMatchers.isAssignableFrom(WebView.class)).perform(new ViewAction() {
             @Override public Matcher<View> getConstraints() { return ViewMatchers.isDisplayed(); }
             @Override public String getDescription() { return "Tap the identified live WebView control"; }

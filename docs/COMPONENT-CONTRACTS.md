@@ -85,6 +85,11 @@ ActionState     = idle | submitting | success | error
   native link/button and ref/focus semantics. Do not override the surface with
   contextual transparent or secondary styling. The Product Owner explicitly
   requested this familiar round action in #1693, including inline tags.
+- Hover feedback must keep the control's hit target stationary. Translating a
+  button away from a pointer at its edge can alternate hover state indefinitely
+  and prevent both a real click and native actionability checks. Reuse color
+  feedback for hover; the existing deliberate press/reduced-motion contract
+  remains separate (#1693).
 
 ### 3.2 Icon Button
 

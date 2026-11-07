@@ -611,10 +611,12 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await capture(page, info, 'person-edit-390-light');
   await page.getByLabel(people.nameLabel, { exact: true }).fill('Lea Sommer');
   await page
-    .getByLabel(people.relationshipLabel, { exact: true })
+    .getByRole('combobox', { name: people.relationshipLabel, exact: true })
     .selectOption('DAUGHTER');
   const note = 'Likes the sea.\nRemember the strawberry cake.';
-  await page.getByLabel(people.noteLabel, { exact: true }).fill(note);
+  await page
+    .getByRole('textbox', { name: people.noteLabel, exact: true })
+    .fill(note);
   await page
     .getByRole('button', { name: people.saveChanges, exact: true })
     .click();
@@ -628,11 +630,11 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     people.relationship.DAUGHTER,
   );
   await openEditor(page);
-  await expect(page.getByLabel(people.noteLabel, { exact: true })).toHaveValue(
-    note,
-  );
   await expect(
-    page.getByLabel(people.relationshipLabel, { exact: true }),
+    page.getByRole('textbox', { name: people.noteLabel, exact: true }),
+  ).toHaveValue(note);
+  await expect(
+    page.getByRole('combobox', { name: people.relationshipLabel, exact: true }),
   ).toHaveValue('DAUGHTER');
   await capture(page, info, 'person-note-edit-390-light');
   await page

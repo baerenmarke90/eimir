@@ -89,7 +89,7 @@ def test_person_note_uses_the_existing_encrypted_payload_boundary(
         owner_id=account.id,
         privacy_class=PrivacyClass.SPACE_SHARED.value,
         relationship="DAUGHTER",
-        payload=RelatedPersonPayload(display_name="Emma", note=BODY),
+        payload=RelatedPersonPayload(display_name="Emma privacy test person", note=BODY),
     )
     session.add(person)
     session.flush()
@@ -97,8 +97,8 @@ def test_person_note_uses_the_existing_encrypted_payload_boundary(
         text("SELECT payload::text, crypto_version FROM related_persons WHERE id = :id"),
         {"id": person.id},
     ).one()
-    assert "Emma" not in raw
-    assert "rain" not in raw
+    assert "Emma privacy test person" not in raw
+    assert BODY not in raw
     assert json.loads(raw)["_enc"] == CRYPTO_VERSION_SERVER_AEAD
     assert version == CRYPTO_VERSION_SERVER_AEAD
     session.expire(person)

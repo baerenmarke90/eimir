@@ -45,7 +45,8 @@ transfer and deletion continue to operate on the protected parent payload.
 
 Deploy the matching backend and Web client. A schema downgrade normalizes new
 relationship values to legacy categories and increments affected versions. It
-deliberately retains notes: pre-note backend binaries use a strict payload
-schema and cannot read newly authored notes. Use a roll-forward correction or a
+deliberately retains notes: newly written payloads include the note field, even
+when empty. Pre-note backend binaries use a strict payload schema and cannot
+read those payloads. Use a roll-forward correction or a
 complete matching backup restore instead of downgrading only the binary and
 silently discarding protected content.

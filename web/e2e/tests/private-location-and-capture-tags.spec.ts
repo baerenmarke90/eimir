@@ -151,7 +151,7 @@ for (const variant of [
 ]) {
   test(`private location creates no shared Place, survives save/edit/reload: ${variant.width} ${variant.theme}`, async ({
     page,
-  }) => {
+  }, info) => {
     await page.setViewportSize({ width: variant.width, height: 844 });
     await page.emulateMedia({
       colorScheme: variant.theme as 'light' | 'dark',
@@ -197,6 +197,13 @@ for (const variant of [
       ),
       fullPage: true,
     });
+    await fs.copyFile(
+      path.join(
+        EVIDENCE,
+        `private-create-${variant.width}-${variant.theme}.png`,
+      ),
+      info.outputPath(`shell-1693-tags-${variant.width}-${variant.theme}.png`),
+    );
     expect(
       (
         await new AxeBuilder({ page })
@@ -316,7 +323,7 @@ for (const destination of [
 ]) {
   test(`capture tag entry stays on one row at 320px and 200% text: ${destination}`, async ({
     page,
-  }) => {
+  }, info) => {
     await page.setViewportSize({ width: 320, height: 844 });
     await setup(page);
     await page.goto(destination);
@@ -332,5 +339,11 @@ for (const destination of [
         (element as HTMLDetailsElement).open = true;
       });
     await tagGeometry(page);
+    await page.screenshot({
+      path: info.outputPath(
+        `shell-1693-tags-large-${destination.replaceAll('/', '-')}.png`,
+      ),
+      fullPage: true,
+    });
   });
 }

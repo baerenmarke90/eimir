@@ -59,7 +59,14 @@ async function staleWhileRevalidateStatic(request) {
     })
     .catch(() => undefined);
 
-  return cached ?? (await network) ?? Response.error();
+  // The offline document's own stylesheet and language script live only in the
+  // install-time shell precache, so a failed network fetch falls back to it.
+  return (
+    cached ??
+    (await network) ??
+    (await caches.match(request, { cacheName: SHELL_CACHE })) ??
+    Response.error()
+  );
 }
 
 self.addEventListener('install', (event) => {

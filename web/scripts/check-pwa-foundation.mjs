@@ -110,8 +110,22 @@ assert(
 
 const serviceWorkerHandlers = new Map();
 const offlineResponse = { kind: 'offline' };
+const offlineStylesheetResponse = { kind: 'offline-stylesheet' };
+const offlineLanguageResponse = { kind: 'offline-language' };
 const networkResponse = { kind: 'network' };
 let rejectNetwork = false;
+
+// Only the install-time shell precache holds entries; the runtime static cache
+// starts empty, as it does on the first offline visit after installation.
+const shellResponses = new Map([
+  ['/offline.html', offlineResponse],
+  ['/offline.css', offlineStylesheetResponse],
+  ['/offline-language.js', offlineLanguageResponse],
+]);
+const isShellCache = (name) => name.startsWith('eimir-pwa-shell-');
+const requestPath = (key) =>
+  new URL(typeof key === 'string' ? key : key.url, 'https://eimir.test')
+    .pathname;
 
 const serviceWorkerContext = {
   URL,
@@ -125,15 +139,18 @@ const serviceWorkerContext = {
     },
   },
   caches: {
-    open: async () => ({
+    open: async (name) => ({
       addAll: async () => undefined,
-      match: async () => undefined,
+      match: async (key) =>
+        isShellCache(name) ? shellResponses.get(requestPath(key)) : undefined,
       put: async () => undefined,
     }),
     keys: async () => [],
     delete: async () => true,
-    match: async (key) =>
-      key === '/offline.html' ? offlineResponse : undefined,
+    match: async (key, options = {}) =>
+      options.cacheName === undefined || isShellCache(options.cacheName)
+        ? shellResponses.get(requestPath(key))
+        : undefined,
   },
   fetch: async () => {
     if (rejectNetwork) {
@@ -234,6 +251,33 @@ assert(
   'Failed top-level navigation must return the privacy-safe offline fallback.',
 );
 
+// The offline document is controlled by the worker, so its own subresources
+// must come from the shell precache instead of failing without the network.
+for (const [path, expected] of [
+  ['/offline.css', offlineStylesheetResponse],
+  ['/offline-language.js', offlineLanguageResponse],
+]) {
+  const offlineSubresource = await dispatchFetch(makeRequest(path));
+  assert(
+    offlineSubresource.responded && offlineSubresource.response === expected,
+    `Offline fallback subresource ${path} must be served from the shell precache.`,
+  );
+}
+
+const offlineUncachedAsset = await dispatchFetch(makeRequest('/assets/app.js'));
+assert(
+  offlineUncachedAsset.responded &&
+    offlineUncachedAsset.response.kind === 'error',
+  'Uncached static assets must fail closed offline instead of borrowing shell entries.',
+);
+
+rejectNetwork = false;
+const onlineShellAsset = await dispatchFetch(makeRequest('/offline.css'));
+assert(
+  onlineShellAsset.responded && onlineShellAsset.response === networkResponse,
+  'Precached shell assets must stay network-fresh while online.',
+);
+
 const registration = read('src/pwa.ts');
 assert(
   registration.includes('import.meta.env.PROD'),
@@ -243,5 +287,33 @@ assert(
   registration.includes("register('/service-worker.js'"),
   'Production registration must target the first-party service worker.',
 );
+
+// The production CSP must admit the shipped foundation. Otherwise browsers
+// refuse the manifest and the service-worker registration, and the swallowed
+// registration error hides that installation and the offline fallback are off.
+const cspHeaders = [
+  ...read('nginx.conf').matchAll(
+    /add_header\s+Content-Security-Policy\s+"([^"]*)"/g,
+  ),
+];
+assert(
+  cspHeaders.length === 1,
+  'nginx.conf must deliver exactly one Content-Security-Policy header.',
+);
+const cspDirectives = new Map();
+for (const directive of cspHeaders[0][1].split(';')) {
+  const [name, ...sources] = directive.trim().split(/\s+/);
+  // Browsers ignore repeated directives, so only the first occurrence counts.
+  if (name && !cspDirectives.has(name.toLowerCase())) {
+    cspDirectives.set(name.toLowerCase(), sources);
+  }
+}
+for (const directive of ['manifest-src', 'worker-src']) {
+  const sources = cspDirectives.get(directive) ?? [];
+  assert(
+    sources.length === 1 && sources[0] === "'self'",
+    `nginx.conf CSP must set ${directive} to exactly 'self' for the first-party PWA foundation.`,
+  );
+}
 
 console.log('PWA foundation checks passed.');

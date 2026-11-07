@@ -3,6 +3,11 @@ export default {
   termsLink: 'Nutzungsbedingungen',
   termsSheetTitle: 'Nutzungsbedingungen',
   sheetClose: 'Nutzungsbedingungen schließen',
+  privacyLink: 'Datenschutz',
+  privacySheetTitle: 'Datenschutzhinweise',
+  privacySheetClose: 'Datenschutzhinweise schließen',
+  privacyNotice:
+    'Wie wir mit deinen Daten umgehen, erklären wir in den <privacyLink>Datenschutzhinweisen</privacyLink>.',
   draftBadge: 'Entwurf · noch nicht in Kraft',
   documentLanguageNotice:
     'Dieses Dokument liegt nur auf {{language}} vor. Diese Fassung ist verbindlich.',

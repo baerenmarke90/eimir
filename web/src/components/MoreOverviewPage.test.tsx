@@ -162,35 +162,39 @@ describe('MoreOverviewPage', () => {
     },
   );
   it.each([
-    ['2026-11-05.draft-1', true],
+    ['2026-11-06.draft-2', true],
     [null, false],
-  ])('links the terms of use only where they apply (%s)', (version, shown) => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    queryClient.setQueryData(['instance-status', 'http://api.example.test'], {
-      availability: 'available',
-      auth: null,
-      accountCreation: version ? 'self_service' : 'invitation',
-      selfServiceSignupAvailable: Boolean(version),
-      maintenanceMode: false,
-      registrationAvailable: true,
-      termsOfUseVersion: version,
-    });
+  ])(
+    'links the Cloud legal texts only where they apply (%s)',
+    (version, shown) => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      queryClient.setQueryData(['instance-status', 'http://api.example.test'], {
+        availability: 'available',
+        auth: null,
+        accountCreation: version ? 'self_service' : 'invitation',
+        selfServiceSignupAvailable: Boolean(version),
+        maintenanceMode: false,
+        registrationAvailable: true,
+        termsOfUseVersion: version,
+      });
 
-    const html = renderToStaticMarkup(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MoreOverviewPage
-            apiBaseUrl="http://api.example.test"
-            accessToken="test-token"
-            account={{ id: 'account-1', displayName: 'Alex' }}
-            spaceId="space-1"
-          />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+      const html = renderToStaticMarkup(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <MoreOverviewPage
+              apiBaseUrl="http://api.example.test"
+              accessToken="test-token"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
 
-    expect(html.includes('href="/legal/terms"')).toBe(shown);
-  });
+      expect(html.includes('href="/legal/terms"')).toBe(shown);
+      expect(html.includes('href="/legal/privacy"')).toBe(shown);
+    },
+  );
 });

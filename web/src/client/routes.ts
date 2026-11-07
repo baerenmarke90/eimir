@@ -205,6 +205,8 @@ export const SERVER_ADMIN_ROUTE = '/server-admin';
 
 /** Public, login-free reading page for the eimir. Cloud terms of use. */
 export const LEGAL_TERMS_ROUTE = '/legal/terms';
+/** Public, login-free reading page for the eimir. Cloud privacy policy. */
+export const LEGAL_PRIVACY_ROUTE = '/legal/privacy';
 
 /* Games content ---------------------------------------------------------- */
 

@@ -83,7 +83,7 @@ contract.
 | **M7 · Relationship Depth** | deepen everyday connection without making it mandatory | module configuration, Daily Check-in/Vibe/Energy, partner notes/support gestures, Questions, shared achievements, monthly/yearly recaps | optional post-launch relationship depth |
 | **M8 · Discover & Integrations** | bring optional external inspiration into the product | Shopping, Recipes, Events/Entertainment, external media and provider adapters | integrations without Core dependency |
 | **M9 · Context & Presence** | add explicit, privacy-sensitive context only when enabled | Maps/location history, opt-in location context, Geofencing, Presence, contextual suggestions | separately consented context features |
-| **MX · E2EE** | real cryptographic protection | key model, migration, client crypto, Recovery | separately evaluated E2EE version |
+| **MX · E2EE** | real cryptographic protection | key model, migration, client crypto, Recovery ([concept](./mx/E2EE-CONCEPT.md)) | separately evaluated E2EE version |
 
 ## M6 — Operate & Launch
 

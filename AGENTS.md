@@ -223,6 +223,11 @@ A user-facing PR is not merge-ready when it is functionally correct but violates
 
 ## Semantic design tokens
 
+Standalone create/add task entry points must remain visibly filled buttons in
+empty and populated views. Apply the binding [Button contract](docs/COMPONENT-CONTRACTS.md#31-button)
+rather than styling an icon/text or tertiary action as the main creation control
+(Product Owner correction #1688). Preserve the single-primary-action hierarchy.
+
 Reusable visual values must use semantic design tokens instead of repeated component-level literals.
 
 Rules:

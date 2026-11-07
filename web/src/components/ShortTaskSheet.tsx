@@ -40,6 +40,7 @@ const INTERACTIVE_DRAG_EXCLUSION_SELECTOR = [
   'iframe',
   'video',
   'audio',
+  '.leaflet-container',
   '[draggable="true"]',
   '[contenteditable]:not([contenteditable="false"])',
   '[role="button"]',

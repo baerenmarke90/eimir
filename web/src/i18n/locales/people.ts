@@ -1,6 +1,6 @@
 const people = {
   invalidBirthday: 'Bitte prüfe den Geburtstag.',
-  photoAction: 'Foto ansehen',
+  photoAction: 'Profilfoto ansehen',
   viewPhoto: 'Foto von {{name}} ansehen',
   moreActions: 'Weitere Aktionen',
   addBirthday: 'Geburtstag ergänzen',

@@ -397,9 +397,15 @@ for (const view of [
     const gallery = page.getByRole('dialog', {
       name: storyCopy.gallery.dialogAria,
     });
-    await expect(
-      gallery.getByRole('button', { name: storyCopy.gallery.close }),
-    ).toHaveText(storyCopy.gallery.done);
+    const closePhoto = gallery.getByRole('button', {
+      name: storyCopy.gallery.close,
+    });
+    await expect(closePhoto).toHaveText('');
+    await expect(closePhoto.locator('svg')).toBeVisible();
+    await expect(closePhoto).toHaveAttribute('title', storyCopy.gallery.close);
+    const closeBounds = await closePhoto.boundingBox();
+    expect(closeBounds?.width).toBeGreaterThanOrEqual(44);
+    expect(closeBounds?.height).toBeGreaterThanOrEqual(44);
     expect(
       await gallery
         .locator('.media-lightbox-nav')

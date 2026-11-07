@@ -792,7 +792,7 @@ export function ImportantDatesPanel({
       <button
         ref={createActionRef}
         type="button"
-        className="tertiary compact-action occasions-add"
+        className="compact-action occasions-add"
         onClick={() => {
           readerReturnRef.current = createActionRef.current;
           setEditing(null);

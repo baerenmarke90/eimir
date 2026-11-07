@@ -43,6 +43,7 @@ async function exerciseMapTouchOwnership(page: Page) {
     (node) => getComputedStyle(node).transform,
   );
   const touch = await page.context().newCDPSession(page);
+  let touching = false;
   const x = bounds.x + bounds.width * 0.7;
   const y = bounds.y + bounds.height * 0.2;
   try {
@@ -54,6 +55,7 @@ async function exerciseMapTouchOwnership(page: Page) {
       type: 'touchStart',
       touchPoints: [{ x, y, id: 1 }],
     });
+    touching = true;
     for (const offset of [20, 80, 180]) {
       await touch.send('Input.dispatchTouchEvent', {
         type: 'touchMove',
@@ -66,6 +68,7 @@ async function exerciseMapTouchOwnership(page: Page) {
       type: 'touchEnd',
       touchPoints: [],
     });
+    touching = false;
     await expect(pane).not.toHaveCSS('transform', beforePan);
     await expect(sheet).toBeVisible();
 
@@ -90,6 +93,7 @@ async function exerciseMapTouchOwnership(page: Page) {
           { x: centerX + spread, y: centerY, id: 2 },
         ],
       });
+      touching = true;
       await page.evaluate(() => new Promise(requestAnimationFrame));
       await expect(sheet).not.toHaveAttribute('data-dragging', 'true');
     }
@@ -97,15 +101,17 @@ async function exerciseMapTouchOwnership(page: Page) {
       type: 'touchEnd',
       touchPoints: [],
     });
+    touching = false;
     await expect
       .poll(async () => Math.max(...(await tileZooms())))
       .toBeGreaterThan(beforeZoom);
     await expect(sheet).toBeVisible();
   } finally {
-    await touch.send('Input.dispatchTouchEvent', {
-      type: 'touchEnd',
-      touchPoints: [],
-    });
+    if (touching)
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
     await touch.detach();
   }
 }

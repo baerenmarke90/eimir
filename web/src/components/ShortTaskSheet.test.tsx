@@ -584,6 +584,62 @@ describe('ShortTaskSheet history ownership', () => {
     ).toBe('0px');
   });
 
+  it.each(['pointer', 'touch'] as const)(
+    'leaves a downward %s drag on map tiles to the map',
+    (input) => {
+      mockMatchMedia(false);
+      const onClose = vi.fn();
+      render(
+        <ShortTaskSheet open title="Map" onClose={onClose}>
+          <div className="leaflet-container">
+            <span data-testid="map-tile">Map tile</span>
+          </div>
+        </ShortTaskSheet>,
+      );
+      const dialog = screen.getByRole('dialog');
+      const tile = screen.getByTestId('map-tile');
+      if (input === 'touch') {
+        fireEvent.touchStart(tile, {
+          touches: [{ identifier: 41, clientX: 100, clientY: 100 }],
+        });
+        fireEvent.touchMove(tile, {
+          touches: [{ identifier: 41, clientX: 100, clientY: 300 }],
+        });
+      } else {
+        fireEvent.pointerDown(tile, {
+          pointerId: 41,
+          button: 0,
+          isPrimary: true,
+          clientX: 100,
+          clientY: 100,
+        });
+        fireEvent.pointerMove(tile, {
+          pointerId: 41,
+          clientX: 100,
+          clientY: 300,
+        });
+      }
+      expect(dialog.getAttribute('data-dragging')).toBeNull();
+      expect(
+        dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+      ).toBe('0px');
+      if (input === 'touch') {
+        fireEvent.touchEnd(tile, {
+          touches: [],
+          changedTouches: [{ identifier: 41, clientX: 100, clientY: 300 }],
+        });
+      } else {
+        fireEvent.pointerUp(tile, {
+          pointerId: 41,
+          clientX: 100,
+          clientY: 300,
+        });
+      }
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog')).toBe(dialog);
+    },
+  );
+
   it('keeps scroll ownership until the sheet body is at its top boundary', () => {
     mockMatchMedia(false);
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);

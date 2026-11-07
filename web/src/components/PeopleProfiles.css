@@ -229,7 +229,6 @@
 }
 .occasions-add {
   justify-self: start;
-  color: var(--color-brand-text);
 }
 .occasions-list {
   list-style: none;

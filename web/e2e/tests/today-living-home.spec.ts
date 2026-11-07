@@ -40,7 +40,12 @@ const PHOTO_FOR_ATTACHMENT: Record<string, string> = {
   'att-nostalgia': 'lake-sunrise.jpg',
 };
 
-const NOW = new Date();
+// Keep layout fixtures inside the three-day monthly attention window.
+// Fixed time preserves real timers and motion; only the calendar is anchored.
+const NOW = new Date('2026-10-06T12:00:00.000Z');
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(NOW);
+});
 /*
  * `occurredOn` is an OpenAPI `format: date` field, so the server sends a bare
  * `YYYY-MM-DD` string. The mock sends the same shape: a full timestamp here

@@ -649,9 +649,25 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expect(editor).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText('Our anniversary');
   await page.keyboard.press('Escape');
-  await page
-    .getByRole('button', { name: importantDates.create, exact: true })
-    .click();
+  const addDay = page.getByRole('button', {
+    name: importantDates.create,
+    exact: true,
+  });
+  const addDayStyle = await addDay.evaluate((node) => {
+    const style = getComputedStyle(node);
+    const bounds = node.getBoundingClientRect();
+    return {
+      background: style.backgroundColor,
+      color: style.color,
+      width: bounds.width,
+      height: bounds.height,
+    };
+  });
+  expect(addDayStyle.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(addDayStyle.background).not.toBe(addDayStyle.color);
+  expect(addDayStyle.width).toBeGreaterThanOrEqual(44);
+  expect(addDayStyle.height).toBeGreaterThanOrEqual(44);
+  await addDay.click();
   editor = page.locator('.important-date-editor');
   await editor.getByLabel(importantDates.dateLabel).fill('2026-12-10');
   await editor.getByLabel(importantDates.labelLabel).fill('Winter evening');

@@ -71,6 +71,14 @@ ActionState     = idle | submitting | success | error
 - `disabled` does not replace validation or permission explanations.
 - Minimum target size: 48 dp in the app, 44 CSS px on Web.
 - The accessible name matches the visible label or meaningfully extends it.
+- Standalone create/add actions that start a task use a visibly filled primary
+  or secondary button in both empty and populated views. An icon plus bare text
+  or a transparent tertiary action is insufficient. Reuse the shared button
+  surface, contrast, focus, pressed and target-size rules; do not emulate the
+  button with local styling. This includes the important-date creation action
+  (Product Owner correction, 2026-11-07, #1688). Contextual tertiary actions and
+  inline insertion controls retain their distinct roles. Keep at most one
+  visually dominant primary action in the current view/state.
 
 ### 3.2 Icon Button
 

@@ -73,7 +73,9 @@ The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RES
 - On touch input, a horizontal swipe on a primary root can select its adjacent
   destination in the visible navigation order, without wrapping (#1521). It is
   an additional shortcut: labeled navigation links remain available and both
-  inputs share the same history and bounded account/Space-scoped return context.
+  inputs share the same history and default-root navigation contract. Explicit
+  primary selection opens the canonical default at the top (#1682). Detail/task
+  Back retains its bounded account/Space-scoped originating context.
   Vertical scrolling, galleries, horizontal content scrollers, controls, editing,
   text selection, modal/menu layers and system edge gestures retain ownership.
   Details, editors and secondary destinations do not swipe between primary tabs.

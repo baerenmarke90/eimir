@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`acceptedTermsVersion` | string
 `deviceName` | string
 `displayName` | string
 `platform` | string
@@ -18,6 +19,7 @@ import type { SignupConsumeRequest } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "acceptedTermsVersion": null,
   "deviceName": null,
   "displayName": null,
   "platform": null,

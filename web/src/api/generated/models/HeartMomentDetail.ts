@@ -55,6 +55,13 @@ import {
     AttachmentSummaryToJSON,
     AttachmentSummaryToJSONTyped,
 } from './AttachmentSummary';
+import type { HeartMomentLocation } from './HeartMomentLocation';
+import {
+    HeartMomentLocationFromJSON,
+    HeartMomentLocationFromJSONTyped,
+    HeartMomentLocationToJSON,
+    HeartMomentLocationToJSONTyped,
+} from './HeartMomentLocation';
 
 /**
  * 
@@ -74,6 +81,18 @@ export interface HeartMomentDetail {
      * @memberof HeartMomentDetail
      */
     attachments?: Array<OrderedAttachmentSummary>;
+    /**
+     * 
+     * @type {string}
+     * @memberof HeartMomentDetail
+     */
+    audioSpeakerName?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HeartMomentDetail
+     */
+    audioTitle?: string;
     /**
      * 
      * @type {AuthorSummary}
@@ -116,6 +135,12 @@ export interface HeartMomentDetail {
      * @memberof HeartMomentDetail
      */
     id: string;
+    /**
+     * 
+     * @type {HeartMomentLocation}
+     * @memberof HeartMomentDetail
+     */
+    location?: HeartMomentLocation | null;
     /**
      * 
      * @type {string}
@@ -195,6 +220,8 @@ export function HeartMomentDetailFromJSONTyped(json: any, ignoreDiscriminator: b
         
         'attachment': AttachmentSummaryFromJSON(json['attachment']),
         'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(OrderedAttachmentSummaryFromJSON)),
+        'audioSpeakerName': json['audioSpeakerName'] == null ? undefined : json['audioSpeakerName'],
+        'audioTitle': json['audioTitle'] == null ? undefined : json['audioTitle'],
         'author': AuthorSummaryFromJSON(json['author']),
         'authorId': json['authorId'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
@@ -202,6 +229,7 @@ export function HeartMomentDetailFromJSONTyped(json: any, ignoreDiscriminator: b
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
+        'location': json['location'] === undefined ? undefined : json['location'] === null ? null : HeartMomentLocationFromJSON(json['location']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'spaceId': json['spaceId'],
         'tags': json['tags'],
@@ -225,6 +253,8 @@ export function HeartMomentDetailToJSONTyped(value?: HeartMomentDetail | null, i
         
         'attachment': AttachmentSummaryToJSON(value['attachment']),
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(OrderedAttachmentSummaryToJSON)),
+        'audioSpeakerName': value['audioSpeakerName'],
+        'audioTitle': value['audioTitle'],
         'author': AuthorSummaryToJSON(value['author']),
         'authorId': value['authorId'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
@@ -232,6 +262,7 @@ export function HeartMomentDetailToJSONTyped(value?: HeartMomentDetail | null, i
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
+        'location': HeartMomentLocationToJSON(value['location']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'spaceId': value['spaceId'],
         'tags': value['tags'],

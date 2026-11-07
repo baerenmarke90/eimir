@@ -1242,6 +1242,15 @@ def _validate_experience_galleries(
                 raise TransferArchiveError(
                     "Transfer gallery is too large.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
+            audio_ids = [
+                identifier
+                for identifier in ids
+                if indexed.get(identifier, {}).get("mediaType") == "AUDIO"
+            ]
+            if audio_ids and (kind != "heart_moments" or len(audio_ids) > 1):
+                raise TransferArchiveError(
+                    "Invalid voice binding.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
             payload = row.get("payload") or {}
             if not isinstance(payload, dict):
                 raise TransferArchiveError(
@@ -1253,6 +1262,10 @@ def _validate_experience_galleries(
             ):
                 raise TransferArchiveError(
                     "Transfer cover is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            if str(payload.get("selected_cover_attachment_id")) in audio_ids:
+                raise TransferArchiveError(
+                    "Invalid voice cover.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
             if kind == "memories":
                 try:
@@ -1408,7 +1421,7 @@ def _validate_media(
     source_member_ids: set[UUID],
     tables: dict[str, list[dict[str, Any]]],
     media: list[dict[str, Any]],
-    archive_names: set[str],
+    archive_sizes: dict[str, int],
 ) -> None:
     referenced: set[UUID] = set()
     for raw in tables.get("memory_attachments", []):
@@ -1435,6 +1448,21 @@ def _validate_media(
             raise TransferArchiveError(
                 "Transfer media classification is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
+        if item.get("mediaType") == "AUDIO":
+            from eimir.attachments.limits import AUDIO_MAX_SIZE, contracted_mime_types
+
+            size = item.get("size")
+            if (
+                type(size) is not int
+                or not 0 < size <= AUDIO_MAX_SIZE
+                or item.get("mimeType") not in contracted_mime_types()
+                or not str(item.get("mimeType")).startswith("audio/")
+                or item.get("variants") != ["original"]
+                or archive_sizes.get(f"media/{item.get('sourceId')}/original") != size
+            ):
+                raise TransferArchiveError(
+                    "Invalid voice media.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
         source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
@@ -1452,7 +1480,7 @@ def _validate_media(
                 "Transfer media relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
         for variant in variants:
-            if f"media/{source_id}/{variant}" not in archive_names:
+            if f"media/{source_id}/{variant}" not in archive_sizes:
                 raise TransferArchiveError(
                     "Transfer media relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
@@ -1524,6 +1552,23 @@ def _validate_domain_schema_and_links(
                     value = row[foreign_key.parent.name]
                     target_column = foreign_key.column
                     target_table = target_column.table.name
+                    if target_column.name == "privacy_class":
+                        # A composite person FK includes a class string, not a UUID.
+                        # Validate the complete tuple against one included parent;
+                        # membership/ID checks alone cannot establish this boundary.
+                        valid = any(
+                            all(
+                                _row_snake(parent).get(part.column.name) == row[part.parent.name]
+                                for part in constraint.elements
+                            )
+                            for parent in tables.get(target_table, [])
+                        )
+                        if not valid:
+                            raise TransferArchiveError(
+                                "Transfer relation is invalid.",
+                                ErrorCode.TRANSFER_RELATION_INVALID,
+                            )
+                        continue
                     value_id = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
                     if target_column.name == "space_id" or target_table == "spaces":
                         valid = value_id == source_space_id
@@ -1628,7 +1673,7 @@ def validate_import_bundle(
         source_members,
         tables,
         media,
-        set(validated_zip.entries),
+        {name: entry.file_size for name, entry in validated_zip.entries.items()},
     )
     _validate_experience_galleries(tables, media)
     media_ids = {_uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID) for item in media}
@@ -1728,6 +1773,12 @@ def _prepare_row(
     ids: Mapping[UUID, UUID],
 ) -> dict[str, Any]:
     row = _row_snake(raw)
+    # Only after archive ownership/privacy validation: migrate legacy people to
+    # the approved shared model, while dates retain their own privacy class.
+    if table.name == "related_persons":
+        row["privacy_class"] = PrivacyClass.SPACE_SHARED.value
+    if table.name == "important_dates" and row.get("related_person_id") is not None:
+        row["related_person_privacy_class"] = PrivacyClass.SPACE_SHARED.value
     if table.name == "recap_editions":
         # Imported editions are retained artifacts, never new automation authority.
         row.update(
@@ -1919,6 +1970,19 @@ def apply_import_bundle(
                     },
                     "version": 1,
                 }
+                if item["mediaType"] == "AUDIO":
+                    # Never publish untrusted transfer metadata as validated audio.
+                    attachment_values.update(
+                        status=AttachmentStatus.VALIDATING.value,
+                        mime_type=None,
+                        size=None,
+                        duration_seconds=None,
+                        ready_at=None,
+                        has_thumbnail=False,
+                    )
+                    from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION
+
+                    enqueue(session, ATTACHMENT_AUDIO_VALIDATION, {"attachmentId": str(target_id)})
                 session.execute(
                     attachment_table.insert().values(
                         **protect_values("attachments", attachment_values)

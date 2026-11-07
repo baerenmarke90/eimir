@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { waitForSettledMotion } from '../support/settledMotion';
 import {
   captureScreenshot,
   installMocks,
@@ -753,6 +754,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
         colorScheme,
       );
 
+      await waitForSettledMotion(page);
       const result = await new AxeBuilder({ page })
         .withTags([
           'wcag2a',

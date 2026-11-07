@@ -580,10 +580,16 @@ def project_story_items(
                             MemoryAttachmentSummary(
                                 **_attachment_summary(bound.attachment).model_dump(),
                                 position=bound.position,
-                                can_edit_sensitivity=binding.can_edit_sensitivity(
-                                    bound.attachment,
-                                    account_id=authorization.account_id,
-                                    parent_owner_id=memory.owner_id,
+                                can_edit_sensitivity=(
+                                    (
+                                        memory.experience_kind is None
+                                        and bound.attachment.media_type == "IMAGE"
+                                    )
+                                    or binding.can_edit_sensitivity(
+                                        bound.attachment,
+                                        account_id=authorization.account_id,
+                                        parent_owner_id=memory.owner_id,
+                                    )
                                 ),
                             )
                             for bound in galleries.get(memory.id, [])
@@ -606,7 +612,7 @@ def project_story_items(
                     effective_date=item.effective_date,
                     heart_moment=SharedHeartMomentSummary(
                         id=heart_moment.id,
-                        text=heart_moment.payload.text,
+                        text=heart_moment.payload.text or heart_moment.payload.audio_title,
                         places=places.get(heart_moment.id, []),
                         emotion=heart_moment.payload.emotion,
                         visibility=visibility,

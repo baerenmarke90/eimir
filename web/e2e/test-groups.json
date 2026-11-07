@@ -16,6 +16,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "moments-local-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Feature-owned local Memory/HeartMoment/Milestone creation, actual save/result/filtered return, dirty exit, all Moments views, Core availability, dialog focus and responsive accessible composition."
+    },
     "app-continuity-polish.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 8,
@@ -61,7 +66,7 @@
     },
     "cloud-onboarding-entry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 14
     },
     "comments-offline-writes.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -79,7 +84,7 @@
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 18,
-      "reason": "Persistent navigation clearance, bounded account/Space-scoped primary context, browser history/native tab replacement and native touch swipe ownership."
+      "reason": "Persistent navigation clearance, canonical default-root selection with independent nested-task return, browser history/native tab replacement and native touch swipe ownership (#1682)."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -142,7 +147,8 @@
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5
+      "baselineTests": 5,
+      "reason": "Feature-owned People overview/profile/gallery/edit/save/result/return, shared-only capture, independent planning occasions, dirty Back, full retained 200%/400% zoom, keyboard, small-height, Expanded Light/Dark, reflow and axe acceptance."
     },
     "partner-nickname.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -333,7 +339,8 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 22,
+      "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
     "shared-photos.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -427,7 +434,7 @@
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
-      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text."
+      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text. Direct media controls retain inline saved-video failure status and replacement."
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -442,7 +449,7 @@
     "memory-experiences.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
-      "reason": "Period/cover/order-save-return acceptance across Compact/Expanded, Light/Dark, 200% text, reduced motion, pointer/keyboard movement and Axe."
+      "reason": "Memory periods, independent direct cover controls and whole-photo mouse/touch sorting retain identity and draft cancellation through Save/result/return."
     },
     "shared-experience-answers.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -491,12 +498,27 @@
     "polish-sensitive-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 2,
-      "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
+      "reason": "Shared Memory photo classification persists for either active partner regardless of photo or parent authorship; retains versioned Save and reopen semantics with direct lock controls."
     },
     "multilingual-product.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 12,
       "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
+    },
+    "heart-voice-notes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "HeartMoment-owned audio record/import/review/save/playback, permission/error recovery and accessible responsive reading."
+    },
+    "once-messages.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Actual browser JWE across two accounts/devices, deliberate single view, uncertain-send idempotency, ephemeral audio and clear-on-close with mobile/reflow/theme evidence."
+    },
+    "private-location-and-capture-tags.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Feature-owned parent-private location capture, map selection without shared Place writes, save/edit/reload, subscribed feature marks and shared capture-tag reflow. No always-run expansion."
     }
   }
 }

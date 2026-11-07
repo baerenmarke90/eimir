@@ -37,6 +37,7 @@ class AccountCapabilitiesView(ApiModel):
 
     server_admin: bool
     video_processing_enabled: bool = False
+    audio_processing_enabled: bool = False
     auth: AuthCapabilities = Field(default_factory=resolve_auth_capabilities)
 
 
@@ -54,6 +55,7 @@ def get_account_capabilities(
     return AccountCapabilitiesView(
         server_admin=is_server_admin(session, account),
         video_processing_enabled=get_settings().video_upload_enabled,
+        audio_processing_enabled=get_settings().audio_upload_enabled,
         auth=auth_policy,
     )
 

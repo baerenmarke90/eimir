@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.50
+
+- Voice notes can be recorded, imported and played in HeartMoments.
+- "Only for you" adds optional one-time messages with text, photos or audio under the existing consent and Pro rules.
+- Registration includes the current Terms of Use and a readable in-app document.
+- Photo dragging, gallery controls and video handling include the latest media corrections.
+- Includes main aa62b721 (#1658, #1671, #1673 and #1675), previous test.49 functionality and the existing test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.49; increasing versionCode 50. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

@@ -1,6 +1,12 @@
 const people = {
+  invalidBirthday: 'Bitte prüfe den Geburtstag.',
+  photoAction: 'Profilfoto ansehen',
+  viewPhoto: 'Foto von {{name}} ansehen',
+  moreActions: 'Weitere Aktionen',
+  addBirthday: 'Geburtstag ergänzen',
+  optionalYear: 'Jahr (optional)',
   eyebrow: 'Wichtige Menschen',
-  title: 'Menschen in eurem Leben',
+  title: 'Menschen',
   intro: 'Ihr entscheidet, welche Angaben ihr teilt.',
   formRailAria: 'Person anlegen oder bearbeiten',
   createTitle: 'Person hinzufügen',
@@ -20,7 +26,7 @@ const people = {
   birthdayMonthPlaceholder: 'Monat auswählen',
   birthdayUnknownYearHelp:
     'Wenn das Geburtsjahr unbekannt ist, speichert und zeigt eimir. nur Tag und Monat.',
-  birthdayShowOnDashboard: 'Geburtstag auf Wir anzeigen',
+  birthdayShowOnDashboard: 'Auf Wir anzeigen',
   birthdayShowOnDashboardHelp:
     'Erscheint dann für euch beide unter Wir. Unabhängig von Erinnerungen, die ihr separat einstellt.',
   visibilityLabel: 'Sichtbarkeit',
@@ -30,7 +36,7 @@ const people = {
   lifecycleHelp:
     'Das Löschen bleibt bewusst getrennt vom Speichern. Verknüpfte Termine werden erst im nächsten Schritt behandelt.',
   create: 'Person hinzufügen',
-  saveChanges: 'Änderungen speichern',
+  saveChanges: 'Speichern',
   saving: 'Wird gespeichert …',
   created: 'Person wurde hinzugefügt.',
   updated: 'Änderungen wurden gespeichert.',
@@ -76,13 +82,13 @@ const people = {
   avatarAlt: 'Foto von {{name}}',
   avatarUploading: 'Foto wird hochgeladen …',
   avatarValidating: 'Foto wird geprüft …',
-  addPersonAction: 'Person hinzufügen',
+  addPersonAction: 'Person',
   closeDialogAria: 'Schließen',
   relationship: {
     CHILD: 'Kind',
     PARENT: 'Elternteil',
     SIBLING: 'Geschwister',
-    FRIEND: 'Freund oder Freundin',
+    FRIEND: 'Freundschaft',
     OTHER: 'Andere Beziehung',
   },
   visibility: {

@@ -8,6 +8,8 @@ Name | Type
 ------------ | -------------
 `attachment` | [AttachmentSummary](AttachmentSummary.md)
 `attachments` | [Array&lt;OrderedAttachmentSummary&gt;](OrderedAttachmentSummary.md)
+`audioSpeakerName` | string
+`audioTitle` | string
 `author` | [AuthorSummary](AuthorSummary.md)
 `authorId` | string
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
@@ -15,6 +17,7 @@ Name | Type
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `id` | string
+`location` | [HeartMomentLocation](HeartMomentLocation.md)
 `selectedCoverAttachmentId` | string
 `spaceId` | string
 `tags` | Array&lt;string&gt;
@@ -32,6 +35,8 @@ import type { HeartMomentDetail } from ''
 const example = {
   "attachment": null,
   "attachments": null,
+  "audioSpeakerName": null,
+  "audioTitle": null,
   "author": null,
   "authorId": null,
   "capabilities": null,
@@ -39,6 +44,7 @@ const example = {
   "emotion": null,
   "happenedOn": null,
   "id": null,
+  "location": null,
   "selectedCoverAttachmentId": null,
   "spaceId": null,
   "tags": null,

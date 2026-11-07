@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.52
+
+- Fullscreen memory maps retain their own pan and pinch gestures without dragging or closing the sheet.
+- The Planning occasions action uses a visible filled add-day button. The shared component contract records the rule for standalone creation actions.
+- Photo viewing uses the familiar X close control with an accessible name and a full touch target.
+- Partner actions use the specific profile-photo label and omit the explanatory check-in text while retaining actual cooldown and availability feedback.
+- Includes main 72cad788 (#1689), previous test.51 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.51; increasing versionCode 52. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

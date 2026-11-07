@@ -25,6 +25,7 @@ from eimir.domain.experiences import ExperienceKind
 class EventType(StrEnum):
     """Event catalog. A shipped name is never renamed."""
 
+    ONCE_MESSAGE_SENT = "ONCE_MESSAGE_SENT"
     MEMORY_CREATED = "MEMORY_CREATED"
     GENTLE_PROMPT_READY = "GENTLE_PROMPT_READY"
     REMINDER_CREATED = "REMINDER_CREATED"

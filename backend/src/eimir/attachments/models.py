@@ -48,6 +48,7 @@ class AttachmentStatus(StrEnum):
 class MediaType(StrEnum):
     IMAGE = "IMAGE"
     VIDEO = "VIDEO"
+    AUDIO = "AUDIO"
 
 
 class AttachmentPayload(ProtectedPayload):

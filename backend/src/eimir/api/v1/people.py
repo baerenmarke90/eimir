@@ -38,7 +38,11 @@ class RelatedPersonFields(ApiModel):
     relationship: PersonRelationship
     birthday: date | None = None
     birthday_year_known: bool = False
-    visibility: ContentVisibility
+    visibility: ContentVisibility = Field(
+        default=ContentVisibility.SHARED,
+        json_schema_extra={"deprecated": True},
+        description="People are always shared within their Space. Only SHARED is accepted.",
+    )
     show_birthday_on_dashboard: bool = False
     """Explicit opt-in for this birthday to appear on the shared Dashboard.
 
@@ -46,6 +50,13 @@ class RelatedPersonFields(ApiModel):
     off, and requires ``birthday`` to be set.
     """
     avatar_attachment_id: UUID | None = None
+
+    @field_validator("visibility")
+    @classmethod
+    def _shared_person(cls, value: ContentVisibility) -> ContentVisibility:
+        if value is not ContentVisibility.SHARED:
+            raise ValueError("People are always shared within their Space.")
+        return value
 
     @field_validator("display_name")
     @classmethod

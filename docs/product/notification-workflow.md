@@ -1,7 +1,7 @@
 # Module notification workflow
 
 **Product Owner decision:** 2026-11-01, approved implementation on PR #1568.
-**Runtime policy:** v7 in `engagement/notification_policy.py`.
+**Runtime policy:** v9 in `engagement/notification_policy.py`.
 
 **Narrow follow-up decision #1620 (2026-11-03):** personal default-off gentle
 prompts may offer adaptive writing/Memory invitations under the complete
@@ -65,6 +65,7 @@ foundation. It does not introduce the previously rejected daily summary.
 
 | Module / surface | Meaningful occasion | App behavior / external delivery |
 | --- | --- | --- |
+| One-time partner message (#1672) | Deliberately send a one-time message after bilateral reception consent | One recipient Center item and neutral Push; never a rich native preview or Email. Tap opens the sealed page; claim/discard/expiry removes its derived notice. Existing channels and Quiet Hours apply; sending is Pro, pending reception is not. |
 | Glucksmomente | Deliberately share an authored present joy/appreciation | One partner Notification and neutral immediate Push; latest incoming source on Wir; canonical Memory read/history. |
 | Zeitreise | Deliberately share a recollection | Same authored-source workflow, optional past date. |
 | Daily writing questions | Three optional inspirations per module/Space day | Fetch only; no Outbox, Notification, Push or completion obligation. Free writing is unlimited. |

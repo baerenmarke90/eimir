@@ -100,7 +100,7 @@ eimir.
 └── Mehr
     ├── Unser Jahr (annual shared history; canonical route `/story/years`)
     ├── Spielen (relationship-native games; canonical route `/games`)
-    ├── Menschen (related people and important dates)
+    ├── Menschen (shared people and their profiles)
     ├── Orte (shared places and destinations)
     ├── Gemeinsame Listen (collections)
     ├── Für mich (owner-only area)
@@ -174,13 +174,15 @@ Links. IDs are opaque, stable identifiers.
 | Collections (Mehr) | `/plan/collections` |
 | Open collection | `/plan/collections/:collectionId` |
 | Space and partner | `/more/space` |
-| Related people and important dates | `/more/people` |
+| Shared people and profiles | `/more/people` |
+| Important dates and derived birthdays | `/plan#dates` |
 | Owner-only area (Für mich) | `/more/private` |
 | Privacy | `/more/privacy` |
 | Notifications | `/more/notifications` |
 | Profile | `/more/profile` |
 | Settings | `/more/settings` |
 | Data and account | `/more/data-account` |
+| Terms of use (public, no session; linked in the More footer on eimir. Cloud) | `/legal/terms` |
 | Search | `/search` |
 
 ### Utility and account placement

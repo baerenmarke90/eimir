@@ -1,6 +1,17 @@
 {
   "version": 1,
   "specs": {
+    "moments-local-create.spec.ts": {
+      "roots": [
+        "web/src/components/MomentCreateMenu.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/QuickCreateMenu.tsx"
+      ]
+    },
     "app-continuity-polish.spec.ts": {
       "roots": [
         "web/src/client/referenceFlow.ts",
@@ -69,7 +80,10 @@
       "roots": [
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NativeSessionGate.tsx",
-        "web/src/components/FirstSpaceGate.tsx"
+        "web/src/components/FirstSpaceGate.tsx",
+        "web/src/components/TermsAcceptanceField.tsx",
+        "web/src/components/LegalTermsPage.tsx",
+        "web/src/components/LegalDocumentView.tsx"
       ]
     },
     "comments-create-ownership.spec.ts": {
@@ -235,7 +249,9 @@
         "web/src/components/PhotoSourceSettingsPanel.tsx",
         "web/src/client/memoryDiaryDraft.ts",
         "web/src/client/selectedMediaRetention.ts",
-        "web/src/client/sessionPersistence.ts"
+        "web/src/client/sessionPersistence.ts",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoDraftSorting.tsx"
       ]
     },
     "memory-delete-ownership.spec.ts": {
@@ -264,7 +280,9 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/TodayPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoDraftSorting.tsx"
       ]
     },
     "memory-map-and-couple-games.spec.ts": {
@@ -344,6 +362,8 @@
     },
     "partner-quick-actions.spec.ts": {
       "roots": [
+        "web/src/components/PartnerQuickActions.tsx",
+        "web/src/components/OnceMessages.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"
       ]
@@ -351,7 +371,11 @@
     "people-important-dates-mobile-first.spec.ts": {
       "roots": [
         "web/src/components/RelatedPeoplePage.tsx",
-        "web/src/components/ProfilePage.tsx"
+        "web/src/components/RelatedPersonEditorSheet.tsx",
+        "web/src/components/AvatarPhoto.tsx",
+        "web/src/components/PlanningOccasions.tsx",
+        "web/src/components/ImportantDatesPanel.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "perspective-game.spec.ts": {
@@ -737,7 +761,8 @@
         "web/src/components/MediaGallery.tsx",
         "web/src/components/MediaGallery.css",
         "web/src/components/SensitiveMedia.tsx",
-        "web/src/components/SensitiveMedia.css"
+        "web/src/components/SensitiveMedia.css",
+        "web/src/components/PhotoDraftGallery.tsx"
       ]
     },
     "wir-design-selection.spec.ts": {
@@ -836,7 +861,8 @@
       "roots": [
         "web/src/components/RelatedPeoplePage.tsx",
         "web/src/components/RelatedPersonEditorSheet.tsx",
-        "web/src/components/PhotoSourcePicker.tsx"
+        "web/src/components/PhotoSourcePicker.tsx",
+        "web/src/components/AvatarPhoto.tsx"
       ]
     },
     "polish-root-refresh.spec.ts": {
@@ -851,7 +877,8 @@
       "roots": [
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/PlanPhotosEditor.tsx",
-        "web/src/components/PhotoDraftGallery.tsx"
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoDraftSorting.tsx"
       ]
     },
     "multilingual-product.spec.ts": {
@@ -860,6 +887,42 @@
         "web/src/client/useAccountLanguage.ts",
         "web/src/i18n/index.ts",
         "web/src/client/sessionPersistence.ts"
+      ]
+    },
+    "heart-voice-notes.spec.ts": {
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/VoiceNoteEditor.tsx",
+        "web/src/components/VoiceNotePlayer.tsx",
+        "web/src/components/SavedVoiceNote.tsx",
+        "web/src/components/VoiceShareIngress.tsx",
+        "web/src/client/useVoiceRecorder.ts",
+        "web/src/client/useHeartVoiceDraft.ts",
+        "web/src/client/sharedVoiceImport.ts"
+      ]
+    },
+    "once-messages.spec.ts": {
+      "roots": [
+        "web/src/components/OnceMessages.tsx",
+        "web/src/client/onceMessages.tsx",
+        "web/src/client/onceMessageCrypto.ts",
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/VoiceNotePlayer.tsx",
+        "web/src/client/useVoiceRecorder.ts",
+        "web/src/client/voiceNotes.ts"
+      ]
+    },
+    "private-location-and-capture-tags.spec.ts": {
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/HeartMomentLocation.tsx",
+        "web/src/components/PlaceChoicePicker.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/client/proPresentation.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PlanningCreatePage.tsx"
       ]
     }
   }

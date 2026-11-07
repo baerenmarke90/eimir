@@ -71,11 +71,12 @@ export interface RelatedPersonFields {
      */
     showBirthdayOnDashboard?: boolean;
     /**
-     * 
+     * People are always shared within their Space. Only SHARED is accepted.
      * @type {ContentVisibility}
      * @memberof RelatedPersonFields
+     * @deprecated
      */
-    visibility: ContentVisibility;
+    visibility?: ContentVisibility;
 }
 
 
@@ -86,7 +87,6 @@ export interface RelatedPersonFields {
 export function instanceOfRelatedPersonFields(value: object): value is RelatedPersonFields {
     if (!('displayName' in value) || value['displayName'] === undefined) return false;
     if (!('relationship' in value) || value['relationship'] === undefined) return false;
-    if (!('visibility' in value) || value['visibility'] === undefined) return false;
     return true;
 }
 
@@ -106,7 +106,7 @@ export function RelatedPersonFieldsFromJSONTyped(json: any, ignoreDiscriminator:
         'displayName': json['displayName'],
         'relationship': PersonRelationshipFromJSON(json['relationship']),
         'showBirthdayOnDashboard': json['showBirthdayOnDashboard'] == null ? undefined : json['showBirthdayOnDashboard'],
-        'visibility': ContentVisibilityFromJSON(json['visibility']),
+        'visibility': json['visibility'] == null ? undefined : ContentVisibilityFromJSON(json['visibility']),
     };
 }
 

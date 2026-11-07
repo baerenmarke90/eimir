@@ -298,6 +298,16 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     if (method === 'POST' && path === `/api/v1/spaces/${SPACE}/presence`) {
       return json({ state: null });
     }
+    if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/entitlements`) {
+      return json({
+        spaceId: SPACE,
+        tier: 'FREE',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: ['core'],
+      });
+    }
     state.unexpected.push(`${method} ${path}`);
     return problem(500, 'E2E_UNEXPECTED_REQUEST');
   });
@@ -1136,14 +1146,10 @@ test('failed uploads retain authored content and can retry before the first crea
     .getByRole('button', { name: new RegExp(de.memory.photoFailed) })
     .click();
   await page
-    .getByRole('group', { name: de.memory.photoSelected, exact: true })
+    .locator('.photo-draft-inspector')
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
-  await expect(
-    page
-      .getByRole('group', { name: de.memory.photoSelected, exact: true })
-      .getByText(de.memory.photoReady, { exact: true }),
-  ).toBeVisible();
+  await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),

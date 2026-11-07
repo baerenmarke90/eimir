@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.51
+
+- People opens shared portrait profiles with deliberate editing and whole-photo viewing. Birthdays and other occasions are available in Planning.
+- Primary tabs open their normal starting view while nested tasks retain their own return context.
+- Pro marks follow the current relationship entitlement. Existing capabilities and privacy rights remain authoritative.
+- HeartMoments support optional private location snapshots without creating shared Places. Capture tags remain usable on narrow screens and with large text.
+- Moments and partner actions include the current contextual creation flows. The checked private test channel forwards the existing audio capability.
+- Includes main 43cec016 (#1680, #1681, #1684 and #1685), previous test.50 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.50; increasing versionCode 51. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

@@ -36,6 +36,7 @@ from eimir.media import get_media_store
 from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
+from eimir.people import service as people_service
 from eimir.people.models import ImportantDate, RelatedPerson
 from eimir.places.models import Place
 from eimir.plans.models import Plan, PlanStatus
@@ -306,6 +307,15 @@ def test_private_demo_content_stays_owner_only_across_read_models(session: Sessi
     result = _seed(session)
     lea_context = AuthorizationContext(account_id=result.lea_id, space_id=result.space_id)
     alex_context = AuthorizationContext(account_id=result.alex_id, space_id=result.space_id)
+
+    for context in (lea_context, alex_context):
+        people = people_service.list_persons(session, context)
+        assert {person.payload.display_name for person in people} == {"Mara", "Jule", "Noah"}
+        assert all(person.privacy_class == "SPACE_SHARED" for person in people)
+        dates = people_service.list_dates(session, context)
+        private_dates = [date for date in dates if date.privacy_class == "OWNER_ONLY"]
+        assert len(private_dates) == 1
+        assert private_dates[0].owner_id == context.account_id
 
     private_heart = session.execute(
         select(HeartMoment).where(

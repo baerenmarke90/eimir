@@ -1,5 +1,3 @@
-import { MomentDate } from './MomentDate';
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import {
   useIsMutating,
   useMutation,
@@ -23,6 +21,12 @@ import {
   HeartMomentDetailToJSON,
 } from '../api/generated/models/HeartMomentDetail';
 import type { HeartMomentUpdate } from '../api/generated/models/HeartMomentUpdate';
+import type { HeartMomentLocation } from '../api/generated/models/HeartMomentLocation';
+import {
+  HeartMomentLocationField,
+  HeartMomentLocationSummary,
+  locationFromPlace,
+} from './HeartMomentLocation';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -53,10 +57,12 @@ import {
   heartMomentEditPath,
 } from '../client/routes';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
+import { takeSharedVoice } from '../client/sharedVoiceImport';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { formatAttachmentDraftContextKey } from '../client/useAttachmentDrafts';
+import { useHeartVoiceDraft } from '../client/useHeartVoiceDraft';
 import { useOrderedPhotoDrafts } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
@@ -73,6 +79,7 @@ import {
   HeartMomentTagChoices,
 } from './HeartMomentTagChoices';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
+import { MomentDate } from './MomentDate';
 import {
   MomentPlaceField,
   type MomentPlaceSelection,
@@ -82,6 +89,7 @@ import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { ProblemState } from './ProblemState';
+import { SavedVoiceNote } from './SavedVoiceNote';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import {
@@ -89,8 +97,10 @@ import {
   StoryEditorPageShell,
 } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
+import { VoiceNoteEditor } from './VoiceNoteEditor';
 
 export type HeartMomentProductMode = 'create' | 'detail' | 'edit';
 
@@ -100,6 +110,8 @@ type ContentVisibilityValue =
 
 interface HeartMomentCreateValues {
   readonly text: string;
+  readonly audioTitle?: string;
+  readonly audioSpeakerName?: string;
   readonly emotion: HeartEmotionValue;
   readonly happenedOn: Date;
   readonly visibility: ContentVisibilityValue;
@@ -107,6 +119,7 @@ interface HeartMomentCreateValues {
   readonly selectedCoverAttachmentId?: string | null;
   readonly tags: string[];
   readonly placeId?: string;
+  readonly location?: HeartMomentLocation;
 }
 
 interface HeartMomentCreateSnapshot {
@@ -191,12 +204,26 @@ export function HeartMomentProductPage({
   const [formDirty, setFormDirty] = useState(false);
   const [createPlace, setCreatePlace] = useState<MomentPlaceSelection>();
   const [placePending, setPlacePending] = useState(false);
+  const [createLocation, setCreateLocation] =
+    useState<HeartMomentLocation | null>(null);
+  const [editLocation, setEditLocation] = useState<HeartMomentLocation | null>(
+    null,
+  );
+  const [editLocationChanged, setEditLocationChanged] = useState(false);
   const [editContentError, setEditContentError] = useState(false);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
   const createAttemptRef =
     useRef<CreateRequestAttempt<HeartMomentCreateSnapshot> | null>(null);
+  const voice = useHeartVoiceDraft({
+    apis,
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId: currentAccountId,
+    resourceKey: `${heartMomentId ?? 'new'}:${mode}`,
+  });
   const photos = useOrderedPhotoDrafts({
     apis,
     apiBaseUrl,
@@ -206,6 +233,34 @@ export function HeartMomentProductPage({
     resourceKey: `${heartMomentId ?? 'new'}:${mode}`,
   });
   const attachments = photos.uploads;
+  const combinedEntries: AttachmentEntry[] = [
+    ...photos.entries,
+    ...(voice.attachmentId
+      ? [
+          {
+            attachmentId: voice.attachmentId,
+            position: photos.entries.length,
+            isSensitive: voice.existing?.isSensitive ?? false,
+          },
+        ]
+      : []),
+  ];
+  const voiceImportKey = (location.state as { voiceImportKey?: string } | null)
+    ?.voiceImportKey;
+  const voiceIngress = useRef(voice.add);
+  voiceIngress.current = voice.add;
+  useLayoutEffect(() => {
+    if (mode !== 'create' || !voiceImportKey) return;
+    const file = takeSharedVoice(
+      JSON.stringify([apiBaseUrl, currentAccountId, spaceId]),
+      voiceImportKey,
+    );
+    if (file) {
+      voiceIngress.current(file);
+      setFormDirty(true);
+      setCreateVisibility(ContentVisibility.PRIVATE);
+    }
+  }, [mode, voiceImportKey, apiBaseUrl, currentAccountId, spaceId]);
 
   const heartMomentQuery = useQuery({
     queryKey,
@@ -242,20 +297,25 @@ export function HeartMomentProductPage({
     mode,
   ]);
   const loadPhotos = photos.load;
+  const loadVoice = voice.load;
   useLayoutEffect(() => {
     const moment = heartMomentQuery.data?.value;
     if (mode !== 'edit' || !moment || loadedMediaScope.current === mediaScope)
       return;
     loadedMediaScope.current = mediaScope;
+    setEditLocation(moment.location ?? null);
+    setEditLocationChanged(false);
+    loadVoice(moment);
     loadPhotos(
-      moment.attachments?.length
+      (moment.attachments?.length
         ? moment.attachments
         : moment.attachment
           ? [{ ...moment.attachment, position: 0 }]
-          : [],
+          : []
+      ).filter((item) => item.mediaType !== 'AUDIO'),
       moment.selectedCoverAttachmentId,
     );
-  }, [mediaScope, mode, heartMomentQuery.data, loadPhotos]);
+  }, [mediaScope, mode, heartMomentQuery.data, loadPhotos, loadVoice]);
 
   useStoryViewReceipt({
     apis,
@@ -311,7 +371,9 @@ export function HeartMomentProductPage({
     },
     onSuccess: async (heartMoment, request) => {
       if (!request.isCurrent()) return;
+      setFormDirty(false);
       attachments.clear();
+      voice.uploads.clear();
       await Promise.all([
         invalidateStoryProjections(queryClient, spaceId),
         invalidateDashboard(queryClient, spaceId),
@@ -392,8 +454,10 @@ export function HeartMomentProductPage({
     },
     onSuccess: async (heartMoment, request) => {
       if (!request.isCurrent()) return;
+      setFormDirty(false);
       attachments.clear();
       photos.clear();
+      voice.uploads.clear();
       queryClient.setQueryData(queryKey, {
         value: heartMoment,
         source: 'network',
@@ -529,12 +593,15 @@ export function HeartMomentProductPage({
       !deleteMutation.isPending &&
       (formDirty ||
         Boolean(createPlace) ||
-        photos.items.some((item) => item.draft !== undefined)),
+        Boolean(createLocation) ||
+        photos.items.some((item) => item.draft !== undefined) ||
+        Boolean(voice.draft)),
     isCloseBlocked:
       createMutation.isPending ||
       updateMutation.isPending ||
       placePending ||
-      attachments.hasPending,
+      attachments.hasPending ||
+      voice.hasPending,
     onClose: () => {
       if (mode === 'create') requestReturn(originKey);
       else if (heartMomentId)
@@ -548,6 +615,8 @@ export function HeartMomentProductPage({
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (
+        voice.hasPending ||
+        voice.hasFailed ||
         attachments.hasPending ||
         attachments.items.some((item) => item.status === 'failed') ||
         placePending ||
@@ -560,7 +629,7 @@ export function HeartMomentProductPage({
       const text = String(data.get('text') || '').trim();
       const tags = tagEditorRef.current?.commitDraft();
       if (!tags) return;
-      if (!text && !tags.length && !attachments.readyIds.length) {
+      if (!text && !tags.length && !combinedEntries.length) {
         setCreateContentError(true);
         return;
       }
@@ -569,13 +638,23 @@ export function HeartMomentProductPage({
         values: {
           text,
           tags,
-          ...(createVisibility === ContentVisibility.SHARED && createPlace
-            ? { placeId: createPlace.id }
-            : {}),
+          ...(createLocation
+            ? { location: createLocation }
+            : createPlace
+              ? createVisibility === ContentVisibility.SHARED
+                ? { placeId: createPlace.id }
+                : { location: locationFromPlace(createPlace) }
+              : {}),
           emotion: String(data.get('emotion')) as HeartEmotionValue,
           happenedOn: new Date(`${happenedOn}T00:00:00Z`),
           visibility: String(data.get('visibility')) as ContentVisibilityValue,
-          attachments: photos.entries,
+          attachments: combinedEntries,
+          ...(voice.hasAudio
+            ? {
+                audioTitle: voice.title.trim(),
+                audioSpeakerName: voice.speaker.trim(),
+              }
+            : {}),
           selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
         },
         isCurrent: captureCreateOwnership(),
@@ -645,6 +724,13 @@ export function HeartMomentProductPage({
               />
             </div>
 
+            <VoiceNoteEditor
+              voice={voice}
+              apis={apis}
+              spaceId={spaceId}
+              disabled={createMutation.isPending}
+              onChange={() => setFormDirty(true)}
+            />
             <div className="field-group heart-moment-create-field heart-moment-create-note">
               <label htmlFor="heart-moment-text">
                 {t('heartMomentProduct.textLabel')}
@@ -659,7 +745,24 @@ export function HeartMomentProductPage({
               />
             </div>
 
-            {createVisibility === ContentVisibility.SHARED ? (
+            {createVisibility === ContentVisibility.PRIVATE ||
+            createLocation ? (
+              <HeartMomentLocationField
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                value={createLocation ?? createPlace}
+                privateAudience={createVisibility === ContentVisibility.PRIVATE}
+                onChange={(next) => {
+                  setCreateLocation(next);
+                  setCreatePlace(undefined);
+                  setFormDirty(true);
+                }}
+                disabled={createMutation.isPending}
+                onPendingChange={setPlacePending}
+              />
+            ) : (
               <MomentPlaceField
                 apiBaseUrl={apiBaseUrl}
                 accessToken={accessToken}
@@ -670,7 +773,7 @@ export function HeartMomentProductPage({
                 disabled={createMutation.isPending}
                 onPendingChange={setPlacePending}
               />
-            ) : null}
+            )}
 
             <div className="heart-moment-create-field-grid">
               <div className="heart-moment-create-field heart-moment-create-emotion-picker">
@@ -733,6 +836,8 @@ export function HeartMomentProductPage({
                 disabled={
                   createMutation.isPending ||
                   placePending ||
+                  voice.hasPending ||
+                  voice.hasFailed ||
                   attachments.hasPending ||
                   attachments.items.some((item) => item.status === 'failed')
                 }
@@ -822,8 +927,11 @@ export function HeartMomentProductPage({
     function submitEdit(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (
+        voice.hasPending ||
+        voice.hasFailed ||
         attachments.hasPending ||
         attachments.items.some((item) => item.status === 'failed') ||
+        placePending ||
         queryClient.isMutating({ mutationKey: deleteKey }) ||
         queryClient.isMutating({ mutationKey: updateKey }) ||
         queryClient.isMutating({
@@ -836,17 +944,20 @@ export function HeartMomentProductPage({
       const text = String(data.get('text') || '').trim();
       const tags = tagEditorRef.current?.commitDraft();
       if (!tags) return;
-      if (!text && !tags.length && !photos.entries.length) {
+      if (!text && !tags.length && !combinedEntries.length) {
         setEditContentError(true);
         return;
       }
       setEditContentError(false);
       const update: HeartMomentUpdate = {
+        ...(editLocationChanged ? { location: editLocation } : {}),
         text,
         tags,
         emotion: String(data.get('emotion')) as HeartEmotionValue,
         happenedOn: new Date(`${happenedOn}T00:00:00Z`),
-        attachments: photos.entries,
+        attachments: combinedEntries,
+        audioTitle: voice.hasAudio ? voice.title.trim() : '',
+        audioSpeakerName: voice.hasAudio ? voice.speaker.trim() : '',
         selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
       };
       const ownsTask = captureEditOwnership();
@@ -888,10 +999,39 @@ export function HeartMomentProductPage({
             onChange={() => setFormDirty(true)}
             onSubmit={submitEdit}
           >
+            <VoiceNoteEditor
+              voice={voice}
+              apis={apis}
+              spaceId={spaceId}
+              momentId={heartMomentId}
+              canManageExisting={heartMoment.capabilities.canDelete}
+              disabled={updateMutation.isPending}
+              onChange={() => setFormDirty(true)}
+            />
             <HeartMomentFields
               heartMoment={heartMoment}
               editorRef={tagEditorRef}
             />
+            {heartMoment.visibility === ContentVisibility.PRIVATE ||
+            editLocation ? (
+              <HeartMomentLocationField
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                value={editLocation}
+                privateAudience={
+                  heartMoment.visibility === ContentVisibility.PRIVATE
+                }
+                onChange={(next) => {
+                  setEditLocation(next);
+                  setEditLocationChanged(true);
+                  setFormDirty(true);
+                }}
+                disabled={updateMutation.isPending}
+                onPendingChange={setPlacePending}
+              />
+            ) : null}
             {heartMoment.visibility === ContentVisibility.SHARED ? (
               <MomentPlaces
                 apiBaseUrl={apiBaseUrl}
@@ -946,6 +1086,9 @@ export function HeartMomentProductPage({
                 type="submit"
                 disabled={
                   updateMutation.isPending ||
+                  placePending ||
+                  voice.hasPending ||
+                  voice.hasFailed ||
                   attachments.hasPending ||
                   attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked
@@ -1019,6 +1162,13 @@ export function HeartMomentProductPage({
 
   const shared = heartMoment.visibility === ContentVisibility.SHARED;
   const changingVisibility = visibilityWrites > 0;
+  const allMedia = heartMoment.attachments?.length
+    ? heartMoment.attachments
+    : heartMoment.attachment
+      ? [{ ...heartMoment.attachment, position: 0 }]
+      : [];
+  const voiceAttachment = allMedia.find((item) => item.mediaType === 'AUDIO');
+  const visualMedia = allMedia.filter((item) => item.mediaType !== 'AUDIO');
 
   return (
     <StoryDetailPageShell
@@ -1031,6 +1181,9 @@ export function HeartMomentProductPage({
             >
               {formatDateOnly(heartMoment.happenedOn)}
             </MomentDate>
+          ) : null}
+          {heartMoment.location && !changingVisibility ? (
+            <HeartMomentLocationSummary location={heartMoment.location} />
           ) : null}
           {shared && !changingVisibility ? (
             <MomentPlaces
@@ -1062,6 +1215,16 @@ export function HeartMomentProductPage({
       containerClassName="heart-moment-detail-container"
       containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
     >
+      {voiceAttachment ? (
+        <SavedVoiceNote
+          apis={apis}
+          spaceId={spaceId}
+          momentId={heartMoment.id}
+          attachment={voiceAttachment}
+          title={heartMoment.audioTitle}
+          speaker={heartMoment.audioSpeakerName}
+        />
+      ) : null}
       {heartMoment.text ? (
         <ExpandableDescription
           text={heartMoment.text}
@@ -1094,16 +1257,11 @@ export function HeartMomentProductPage({
         </ul>
       ) : null}
 
-      {heartMoment.attachments?.length || heartMoment.attachment ? (
+      {visualMedia.length ? (
         <section aria-label={t('heartMomentProduct.photoLabel')}>
           <MediaGallery
             initialMediaId={heartMoment.selectedCoverAttachmentId ?? undefined}
-            items={(heartMoment.attachments?.length
-              ? heartMoment.attachments
-              : heartMoment.attachment
-                ? [{ ...heartMoment.attachment, position: 0 }]
-                : []
-            ).map((item) => ({
+            items={visualMedia.map((item) => ({
               id: item.id,
               status: item.status,
               mediaType: item.mediaType,

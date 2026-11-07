@@ -196,6 +196,13 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             result["backend"] = True
             known = True
 
+        # Canonical legal documents feed the Backend's required terms version,
+        # which a Backend unit test compares with the document front matter.
+        # Web S8 regenerates and checks its bundled copy through its own filter.
+        if path.startswith("legal/"):
+            result["backend"] = True
+            known = True
+
         # PostgreSQL/Alembic integration is relevant for runtime backend code,
         # migrations, integration fixtures/tests and Python dependency changes.
         if _matches(

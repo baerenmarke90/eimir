@@ -18,18 +18,25 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
 import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.espresso.Espresso;
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
+import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.BySelector;
 import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.UiDeviceExt;
 import androidx.test.uiautomator.UiObject2;
-import androidx.test.uiautomator.UiObject2Ext;
 import androidx.test.uiautomator.Until;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,6 +55,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
+import org.hamcrest.Matcher;
 
 /** Real foreign-owned Android photo grants and Chromium File handoff. */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -489,7 +497,8 @@ public class PhotoFileChooserTest {
             + "video.onseeked=()=>window.videoSeeked=true;"
             + "video.requestVideoFrameCallback(()=>window.videoDecoded=true);"
             + "}catch(error){window.photoReadError=error.name;}};"
-            + "document.getElementById('play-video').onclick=()=>video.play().catch(e=>window.videoError=e.name);"
+            + "document.getElementById('play-video').onclick=event=>{window.videoPlayTrusted=event.isTrusted;"
+            + "return video.play().catch(e=>window.videoError=e.name);};"
             + "return input.type==='file';})()"));
         Rect input = photoInputScreenBounds(view);
         try {
@@ -538,7 +547,8 @@ public class PhotoFileChooserTest {
         // Match production preload=none: only a deliberate Play requests metadata/frames.
         tapScreenBounds(webControlScreenBounds(view, "play-video"));
         awaitJavascript(view, "window.videoReady===true");
-        awaitJavascript(view, "window.videoDecoded===true && document.getElementById('video').currentTime>0 && !window.videoError");
+        awaitJavascript(view, "window.videoPlayTrusted===true && window.videoDecoded===true"
+            + " && document.getElementById('video').currentTime>0 && !window.videoError");
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').videoWidth===96"
             + " && document.getElementById('video').videoHeight===64"));
@@ -569,7 +579,8 @@ public class PhotoFileChooserTest {
         throw new AssertionError("The native video condition did not complete: " + condition
             + "; state=" + javascriptValue(view, "JSON.stringify((()=>{const v=document.getElementById('video');"
                 + "return {ready:v?.readyState,network:v?.networkState,error:window.videoError,"
-                + "mediaError:v?.error?.message,mime:window.videoMime,paused:v?.paused,time:v?.currentTime}})())"));
+                + "mediaError:v?.error?.message,mime:window.videoMime,paused:v?.paused,time:v?.currentTime,"
+                + "decoded:window.videoDecoded,playTrusted:window.videoPlayTrusted}})())"));
     }
 
     private void captureNativeDiagnostics(String label) throws Exception {
@@ -698,10 +709,10 @@ public class PhotoFileChooserTest {
         UiDevice device = UiDevice.getInstance(instrumentation);
         UiObject2 control = device.wait(Until.findObject(selector), 10000);
         assertNotNull("The identified system control remains available", control);
+        // A picker adapter can replace the identified media node while loading.
+        // Observe the active window with fresh roots, then reacquire the control.
         assertFalse("The system control's hierarchy and pixels become stable",
-            UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
-        // Stability screenshots can replace accessibility nodes. Reacquire before
-        // resolving the system control's actual action owner.
+            UiDeviceExt.waitForStableInActiveWindow(device, 3000, 500, 50, true).isTimeout());
         control = device.findObject(selector);
         assertNotNull("The stable system control remains attached", control);
         assertTrue("The stable system control is enabled", control.isEnabled());
@@ -740,15 +751,41 @@ public class PhotoFileChooserTest {
 
     private void tapScreenBounds(Rect bounds) throws Exception {
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
-        // UiAutomation synchronizes surfaces between injected events, even for
-        // asynchronous gestures. A slow renderer can hold DOWN until Android
-        // recognizes a long press. The platform input command dispatches one
-        // complete tap without that per-event surface synchronization. It still
-        // traverses the real touchscreen path; selection, confirmation and File
-        // handoff are verified below, with no action replay or accessibility click.
-        String output = UiDevice.getInstance(instrumentation).executeShellCommand(
-            "input touchscreen tap " + bounds.centerX() + " " + bounds.centerY());
-        assertEquals("Android accepts the identified control's native tap", "", output.trim());
+        // A selected File can arrive before the system picker's closing animation.
+        // Its remaining dim layer rejects touches as obscured even after the app
+        // regains focus. Await fresh-root/pixel stability before starting the tap.
+        assertFalse("The WebView window settles before native touch",
+            UiDeviceExt.waitForStableInActiveWindow(UiDevice.getInstance(instrumentation),
+                3000, 500, 50, true).isTimeout());
+        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
+        assertNotNull("The WebView owns an active window", root);
+        assertEquals("The touch belongs to the active app window",
+            context.getPackageName(), String.valueOf(root.getPackageName()));
+        Espresso.onView(ViewMatchers.isAssignableFrom(WebView.class)).perform(new ViewAction() {
+            @Override public Matcher<View> getConstraints() { return ViewMatchers.isDisplayed(); }
+            @Override public String getDescription() { return "Tap the identified live WebView control"; }
+            @Override public void perform(UiController controller, View view) {
+                long now = SystemClock.uptimeMillis();
+                MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN,
+                    bounds.centerX(), bounds.centerY(), 0);
+                MotionEvent up = MotionEvent.obtain(now, now, MotionEvent.ACTION_UP,
+                    bounds.centerX(), bounds.centerY(), 0);
+                down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+                up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+                try {
+                    // Espresso 3.7 queues the sequence asynchronously until its last
+                    // event. Shell input tap waits for DOWN processing before UP,
+                    // turning a short tap into a long press on a busy renderer.
+                    assertTrue("Android accepts the identified control's native tap",
+                        controller.injectMotionEventSequence(Arrays.asList(down, up)));
+                } catch (androidx.test.espresso.InjectEventSecurityException failure) {
+                    throw new AssertionError("The touch target belongs to the active WebView", failure);
+                } finally {
+                    down.recycle();
+                    up.recycle();
+                }
+            }
+        });
     }
 
     private AccessibilityNodeInfo findDocument(String... names) throws Exception {

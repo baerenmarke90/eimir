@@ -71,6 +71,14 @@ ActionState     = idle | submitting | success | error
 - `disabled` does not replace validation or permission explanations.
 - Minimum target size: 48 dp in the app, 44 CSS px on Web.
 - The accessible name matches the visible label or meaningfully extends it.
+- Standalone create/add actions that start a task use a visibly filled primary
+  or secondary button in both empty and populated views. An icon plus bare text
+  or a transparent tertiary action is insufficient. Reuse the shared button
+  surface, contrast, focus, pressed and target-size rules; do not emulate the
+  button with local styling. This includes the important-date creation action
+  (Product Owner correction, 2026-11-07, #1688). Contextual tertiary actions and
+  inline insertion controls retain their distinct roles. Keep at most one
+  visually dominant primary action in the current view/state.
 
 ### 3.2 Icon Button
 
@@ -169,7 +177,9 @@ See [the composition and evidence](product/design/subpage-navigation-context/REA
 Memory and shared HeartMoment readers group the calendar date and all authorized
 Places above media in one wrapping row. Each Place opens its address/map and
 attribution in the existing short sheet; no external request occurs until an
-explicit link. Private HeartMoments do not request shared Places. A Memory's
+explicit link. Private HeartMoment readers display their protected parent location snapshot and
+do not request shared Place relations. Private capture may deliberately copy a
+saved Place or map choice into that snapshot without creating a shared Place. A Memory's
 date-only fallback heading displays its calendar date once, with Places beside
 it where space permits. `MomentDate` provides the same calendar treatment to
 timeline and relation previews; formatting and date-only semantics stay with
@@ -482,21 +492,25 @@ failure stays inline. Offline saved relations cannot be changed. A caller's
 navigation guard must protect dirty/pending work before invoking the supplied
 continuation. No map/provider request runs before an explicit external link.
 
-## Selected photo gallery and inspector (#1586)
+## Selected photo gallery and direct controls (#1586, #1674)
 
 `PhotoDraftGallery` owns presentation and local selection only. Callers own
 uploads, authorized previews, sensitivity, order and persistence. Reuse it for
-Memory drafts/editing, single-photo HeartMoment selection and Plan galleries.
-The caller may mark an item `canEditSensitivity: false` to retain its protected
-classification without exposing a mutation control; removal authority is separate.
-Show six thumbnails initially with an explicit all-photos disclosure. Each
-thumbnail has an accessible position/name/status and selected state. Pending
-and failed files remain recognizable; an aggregate failure action reveals a
-failed file even beyond the collapsed subset. Only the selected identity shows
-filename, sensitivity, progress/error/retry, removal and earlier/later actions.
-Moving retains selection and announces position without restarting media work.
-Keep removal reversible within the Memory edit draft through its existing
-keep-photo action. Disabled operations cannot mutate; complete saves cannot
-silently omit failed selected media. Preserve 44px targets, wrapping at 200%
-text, Light/Dark contrast and reduced-motion feedback. This component does not
-add a multi-photo HeartMoment domain or change existing authorship/privacy.
+Memory drafts/editing, HeartMoment media and Plan galleries. Image outline
+indicates selection. Independent named 44 px controls occupy three corners:
+removal X at top right, sensitivity lock at bottom left (closed sensitive/open
+normal), and cover check at bottom right. One position appears at top left.
+Whole-image mouse drag and touch hold/drag reorder without a separate grip;
+touch movement before activation remains page scrolling. Sibling controls
+never start dragging. No redundant ready status or earlier/later/cover toolbar.
+
+Show six thumbnails initially with an explicit all-media disclosure. Pending
+and failed media remain recognizable; aggregate failure review reveals even an
+offscreen file. The selected pending/failed file retains inline progress,
+error and retry. Removing a saved Memory photo stays reversible in the draft.
+A chosen cover retains identity through sorting; removal restores first-item
+fallback. Callers retain removal and sensitivity authority independently.
+Both partners may classify shared Memory photos under #1674, while private
+HeartMoment and authored experience-answer permissions stay unchanged. Disabled
+operations cannot mutate or silently omit failed media. Preserve wrapping,
+Light/Dark contrast, reduced-motion feedback, upload identity and task safety.

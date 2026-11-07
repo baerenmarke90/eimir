@@ -50,7 +50,8 @@ export async function uploadMemoryDraftAttachment(
   const video = file.type === 'video/mp4' || file.type === 'video/quicktime';
   if (!video && file.type.startsWith('video/'))
     throw new ReferenceFlowError(i18n.t('video.unsupported'));
-  if (!video && !file.type.startsWith('image/'))
+  const audio = file.type.startsWith('audio/');
+  if (!video && !audio && !file.type.startsWith('image/'))
     throw new ReferenceFlowError(i18n.t('flow.imageOnly'));
   if (video && file.size > 250 * 1024 * 1024)
     throw new ReferenceFlowError(i18n.t('video.tooLarge'));
@@ -69,9 +70,14 @@ export async function uploadMemoryDraftAttachment(
       attachmentUploadCreate: {
         expectedMimeType: uploadFile.type,
         expectedSize: uploadFile.size,
-        mediaType: video ? MediaType.VIDEO : MediaType.IMAGE,
+        mediaType: audio
+          ? MediaType.AUDIO
+          : video
+            ? MediaType.VIDEO
+            : MediaType.IMAGE,
         originalName: uploadFile.name,
-        preserveMetadata: video ? false : (options.preserveMetadata ?? false),
+        preserveMetadata:
+          video || audio ? false : (options.preserveMetadata ?? false),
       },
     });
     createdAttachment = {
@@ -101,14 +107,17 @@ export async function uploadMemoryDraftAttachment(
         hasThumbnail: finalized.status === 'READY' && finalized.hasThumbnail,
         durationSeconds: finalized.durationSeconds,
       };
-    await waitUntilAttachmentReady(
+    const ready = await waitUntilAttachmentReady(
       apis,
       spaceId,
       upload.attachment.id,
       options.signal,
     );
 
-    return { attachmentId: upload.attachment.id };
+    return {
+      attachmentId: upload.attachment.id,
+      ...(audio ? { durationSeconds: ready.durationSeconds } : {}),
+    };
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (createdAttachment) {

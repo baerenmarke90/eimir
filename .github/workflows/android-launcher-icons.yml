@@ -82,10 +82,11 @@ jobs:
             --path "$ANDROID_AVD_HOME/eimir-launcher.avd" \
             --package 'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           test -s "$ANDROID_AVD_HOME/eimir-launcher.ini"
-          if [ '${{ matrix.api }}' = '36' ]; then
+          if [ '${{ matrix.api }}' = '36' ] || [ '${{ matrix.api }}' = '37.1' ]; then
             # Headless software rendering saturated the two-core 1080p guest
-            # during cold boot: the Pixel Launcher ANR then covered the photo
-            # input. Keep the same ~392 dp phone viewport with fewer pixels and
+            # during cold boot: API 36 covered the input with a Launcher ANR;
+            # API 37.1 delayed notification expansion and turned a tap into a
+            # long press. Keep the same ~392 dp phone viewport with fewer pixels and
             # allow the guest to use the runner's four cores. No app/system
             # packages, ANR checks, picker assertions or deadlines are disabled.
             # https://developer.android.com/studio/run/managing-avds
@@ -213,6 +214,12 @@ jobs:
           adb -e shell wm size > guest-display-before-tests.log
           adb -e shell wm density >> guest-display-before-tests.log
           adb -e shell getprop | tr -d '\r' > guest-properties-before-tests.log
+          if [ '${{ matrix.api }}' = '36' ] || [ '${{ matrix.api }}' = '37.1' ]; then
+            # Verify actual guest resources, rather than assuming AVD settings applied.
+            test "$(tr -d '\r\n' < guest-cpu-before-tests.log)" = '0-3'
+            grep -Fx 'Physical size: 720x1560' guest-display-before-tests.log
+            grep -Fx 'Physical density: 294' guest-display-before-tests.log
+          fi
           if [ '${{ matrix.api }}' = '36' ]; then
             ! grep -Eq '^\[(ro\.boot\.)?qemu\.hwcodec\.(avcdec|hevcdec|vpxdec)\]: \[2\]$' \
               guest-properties-before-tests.log
@@ -251,6 +258,12 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee photo-file-chooser.log
           grep -Eq '^OK \(11 tests\)' photo-file-chooser.log
+          # Voice handoff owns a separate volatile Activity/provider contract.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.VoiceNotesContractTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee voice-notes.log
+          grep -Eq '^OK \(4 tests\)' voice-notes.log
           # Keep deliberate renderer termination isolated from other WebViews.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.RuntimeRecoveryTest \

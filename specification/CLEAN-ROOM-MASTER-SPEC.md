@@ -625,6 +625,14 @@ Children/family members are not SideBySide Accounts.
 
 RelatedPerson:
 
+PO decision [#1683](https://github.com/baerenmarke90/eimir/issues/1683)
+(2026-11-06): related people are always shared and collaboratively editable by
+the existing Space members. The compatibility visibility field accepts SHARED
+only; the UI presents no audience decision or hint. Existing person records are
+migrated with their identity, birthday and photo intact. Linked ImportantDates
+retain their own visibility; this decision does not share independent private
+dates or expand Space membership.
+
 ```text
 - id
 - spaceId
@@ -749,6 +757,12 @@ The shared mobile arrangement subtask applies only to the parent draft until Sav
 HeartMoments use the same bounded 20-media/500 MiB gallery lifecycle while retaining owner-only privacy and backward-compatible primary attachment reads.
 Plans retain image-only galleries. Device photos and these authoring controls remain Core; existing video and external-source capabilities still apply.
 
+PO extension #1674 (2026-11-06): both active partners may mark and unmark
+sensitive photos already bound to a shared Memory. This metadata decision is
+independent of uploader/Memory authorship; it does not broaden removal, new
+binding, private HeartMoment or authored experience-answer rights. Versioned
+atomic writes and Space membership/tenant checks still apply.
+
 Authorship matters.
 
 Base rule:
@@ -758,6 +772,20 @@ The partner may read the shared Memory.
 ---
 
 # 15. Heart Moments
+
+PO extension #1682 (2026-11-06): optional authored location snapshots (name,
+address and paired coordinates) belong to the protected HeartMoment payload and
+inherit its current visibility, version, deletion and portability. PRIVATE
+locations never create shared Places, shared relations or shared map entries.
+Existing shared Place relations remain supported.
+
+PO extension #1671 (2026-11-06): one optional voice note per HeartMoment, up to
+180 seconds and 20 MiB input. Audio alone is valid. Reuse Attachment/MediaStore
+binding, parent privacy, deletion and transfer; validate decoded duration and
+normalize metadata-stripped audio in the restricted media role. Optional audio
+title and speaker name are protected authored payload, distinct from authorship.
+Recording/import is Free/Core and an operator media capability; existing reads
+and essential export do not depend on intake availability.
 
 HeartMoment:
 

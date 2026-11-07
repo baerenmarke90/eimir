@@ -4,6 +4,7 @@ import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import people from '../../src/i18n/locales/people';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectCircularAddAction } from '../support/addAction';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
@@ -617,6 +618,15 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await page
     .getByRole('textbox', { name: people.noteLabel, exact: true })
     .fill(note);
+  const noteBounds = await page
+    .getByRole('textbox', { name: people.noteLabel, exact: true })
+    .boundingBox();
+  const footerBounds = await page
+    .locator('.people-editor-footer')
+    .boundingBox();
+  if (!noteBounds || !footerBounds)
+    throw new Error('Person note and completion are missing');
+  expect(noteBounds.y + noteBounds.height).toBeLessThanOrEqual(footerBounds.y);
   await page
     .getByRole('button', { name: people.saveChanges, exact: true })
     .click();
@@ -638,7 +648,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   ).toHaveValue('DAUGHTER');
   await capture(page, info, 'person-note-edit-390-light');
   await page
-    .getByRole('button', { name: de.taskBoundary.back, exact: true })
+    .getByRole('button', { name: taskBoundary.back, exact: true })
     .click();
   await capture(page, info, 'person-saved-390-light');
   await page.locator('.people-birthday-link').click();

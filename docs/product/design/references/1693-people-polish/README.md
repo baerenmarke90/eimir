@@ -31,6 +31,9 @@ govern actual implementation.
 - Optional bounded notes in the person's ProtectedPayload and saved reader;
   the same shared authorization, concurrency, portability and deletion apply.
 - Failed saves, source cancellation and dirty Back retain the entire draft.
+- Completion stays in the page's normal flow after the optional note. It must
+  not obscure textarea content at the bottom of a Compact viewport; existing
+  small-height, large-text and keyboard journeys retain reachable completion.
 
 Runtime evidence and exact-source validation will be recorded in the owning PR.
 

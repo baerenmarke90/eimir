@@ -194,8 +194,6 @@
   flex-shrink: 0;
 }
 .people-editor-footer {
-  position: sticky;
-  bottom: 0;
   padding-block: var(--space-3);
   background: var(--color-background);
 }

@@ -33,6 +33,89 @@ async function expectSecondaryProIcons(page: Page) {
   }
 }
 
+async function exerciseMapTouchOwnership(page: Page) {
+  const sheet = page.getByRole('dialog', { name: mapCopy.title });
+  const map = sheet.locator('.place-map-viewport');
+  const bounds = await map.boundingBox();
+  if (!bounds) throw new Error('Fullscreen map has no touch bounds');
+  const pane = map.locator('.leaflet-map-pane');
+  const beforePan = await pane.evaluate(
+    (node) => getComputedStyle(node).transform,
+  );
+  const touch = await page.context().newCDPSession(page);
+  let touching = false;
+  const x = bounds.x + bounds.width * 0.7;
+  const y = bounds.y + bounds.height * 0.2;
+  try {
+    await touch.send('Emulation.setTouchEmulationEnabled', {
+      enabled: true,
+      maxTouchPoints: 2,
+    });
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y, id: 1 }],
+    });
+    touching = true;
+    for (const offset of [20, 80, 180]) {
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: y + offset, id: 1 }],
+      });
+      await page.evaluate(() => new Promise(requestAnimationFrame));
+      await expect(sheet).not.toHaveAttribute('data-dragging', 'true');
+    }
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    touching = false;
+    await expect(pane).not.toHaveCSS('transform', beforePan);
+    await expect(sheet).toBeVisible();
+
+    const tileZooms = () =>
+      map
+        .locator('img.leaflet-tile')
+        .evaluateAll((images) =>
+          images.map((image) =>
+            Number(
+              new URL((image as HTMLImageElement).src).pathname.split('/')[1],
+            ),
+          ),
+        );
+    const beforeZoom = Math.max(...(await tileZooms()));
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    for (const [index, spread] of [35, 70, 110].entries()) {
+      await touch.send('Input.dispatchTouchEvent', {
+        type: index === 0 ? 'touchStart' : 'touchMove',
+        touchPoints: [
+          { x: centerX - spread, y: centerY, id: 1 },
+          { x: centerX + spread, y: centerY, id: 2 },
+        ],
+      });
+      touching = true;
+      await page.evaluate(() => new Promise(requestAnimationFrame));
+      await expect(sheet).not.toHaveAttribute('data-dragging', 'true');
+    }
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    touching = false;
+    await expect
+      .poll(async () => Math.max(...(await tileZooms())))
+      .toBeGreaterThan(beforeZoom);
+    await expect(sheet).toBeVisible();
+  } finally {
+    if (touching)
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+    await touch.detach();
+  }
+}
+
 for (const [width, theme] of [
   [360, 'light'],
   [390, 'dark'],
@@ -228,6 +311,7 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
+    if (width < 840) await exerciseMapTouchOwnership(page);
     await page.keyboard.press('Escape');
     await expect(fullscreen).toBeHidden();
     await expect(expand).toBeFocused();

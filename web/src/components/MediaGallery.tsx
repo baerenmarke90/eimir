@@ -959,8 +959,9 @@ export function MediaGallery({
                       className="media-lightbox-close media-overlay"
                       onClick={closeLightbox}
                       aria-label={t('gallery.close')}
+                      title={t('gallery.close')}
                     >
-                      <span>{t('gallery.done')}</span>
+                      <EimirIcon name="close" />
                     </button>
                     {activeItem.isSensitive === true ? (
                       <SensitiveMediaControl

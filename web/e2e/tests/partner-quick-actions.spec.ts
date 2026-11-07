@@ -1002,7 +1002,7 @@ for (const [width, theme] of [
     }
     await expect(surface.getByText(copy.intro)).toHaveCount(0);
     await expect(surface.getByText(copy.thinkingHint)).toHaveCount(0);
-    await expect(surface.getByText(copy.checkInHint)).toBeVisible();
+    await expect(surface.getByText(copy.checkInHint)).toHaveCount(0);
     const entry = surface.getByRole('link', {
       name: new RegExp(onceCopy.title),
     });

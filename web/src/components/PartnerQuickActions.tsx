@@ -382,11 +382,9 @@ export function PartnerQuickActions({
               </span>
               <span className="partner-quick-action-copy">
                 <strong>{t('partnerQuickActions.checkIn')}</strong>
-                <span>
-                  {hasExtendedCapability && checkInCoolingDown
-                    ? t('partnerQuickActions.cooldown')
-                    : t('partnerQuickActions.checkInHint')}
-                </span>
+                {hasExtendedCapability && checkInCoolingDown ? (
+                  <span>{t('partnerQuickActions.cooldown')}</span>
+                ) : null}
               </span>
               {!hasExtendedCapability ? (
                 <ProMark label={t('partnerQuickActions.pro')} />

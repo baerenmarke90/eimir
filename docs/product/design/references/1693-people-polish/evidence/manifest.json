@@ -1,0 +1,181 @@
+{
+  "source_head": "1752a341294cb180d855bd07cce90c175452284e",
+  "tested_merge_sha": "275e5f5d795b8f61d928cd9b8eb88000dfb163a2",
+  "baseline_main": "72cad78823337f32293bb0041b05e748824b7f51",
+  "browser_run_id": 42425384799,
+  "browser_run_attempt": 1,
+  "artifacts": {
+    "people": {
+      "id": 13595343855,
+      "name": "web-product-visual-evidence-changed-275e5f5d795b8f61d928cd9b8eb88000dfb163a2-attempt-1"
+    },
+    "tags": {
+      "id": 13594853635,
+      "name": "web-product-visual-evidence-pr-3-275e5f5d795b8f61d928cd9b8eb88000dfb163a2-attempt-1"
+    }
+  },
+  "validation": {
+    "web_passed": 2771,
+    "web_existing_skips": 2,
+    "backend_passed": 1360,
+    "backend_environment_skips": 45,
+    "postgresql_passed": 3463,
+    "browser_core_passed": 878,
+    "browser_additional_passed": 271,
+    "browser_failed": 0,
+    "browser_flaky_reported": 0,
+    "manual_workflow_reruns": 0
+  },
+  "images": [
+    {
+      "name": "people-compact-light.png",
+      "artifact_path": "people-important-dates-mob-400e7-hands-birthdays-to-Planning-chromium/shell-831-people-overview-390-light.png",
+      "size_bytes": 44349,
+      "width": 390,
+      "height": 844,
+      "git_blob_sha": "83e98737e53979a144713d41b2f0fbef19a8c745",
+      "sha256": "f75f63822e7b705c24d45cc9d0edb63b909f5b160128b87070be69a6d484fcf9",
+      "artifact": "people"
+    },
+    {
+      "name": "person-note-reopened-compact-light.png",
+      "artifact_path": "people-important-dates-mob-400e7-hands-birthdays-to-Planning-chromium/shell-831-person-note-edit-390-light.png",
+      "size_bytes": 42709,
+      "width": 390,
+      "height": 906,
+      "git_blob_sha": "5399034d2c3e47237e33be784d1dd5c0319e1096",
+      "sha256": "5bebd3b24e7ea542d739646672af4e90fc2a83af6ee4b39c73776c2c9135ee77",
+      "artifact": "people"
+    },
+    {
+      "name": "person-saved-compact-light.png",
+      "artifact_path": "people-important-dates-mob-400e7-hands-birthdays-to-Planning-chromium/shell-831-person-saved-390-light.png",
+      "size_bytes": 50266,
+      "width": 390,
+      "height": 844,
+      "git_blob_sha": "a899d219fe7c782caad5feb4cd8f773f14700a1a",
+      "sha256": "bebea1a4df97c5d8ab7d98abc82f0fe5517906a347c9c9c027c06bf87e0d0f3a",
+      "artifact": "people"
+    },
+    {
+      "name": "day-add-compact-light.png",
+      "artifact_path": "people-important-dates-mob-400e7-hands-birthdays-to-Planning-chromium/shell-831-occasions-390-light.png",
+      "size_bytes": 54752,
+      "width": 390,
+      "height": 968,
+      "git_blob_sha": "73f1c6ec229546164d3d067ebc6d7f6ebd18d6a5",
+      "sha256": "5d1121375fe97d5978f9a22c006dd441ddca75aa69eaac73f5e414d42938c6d5",
+      "artifact": "people"
+    },
+    {
+      "name": "person-editor-expanded-dark.png",
+      "artifact_path": "people-important-dates-mob-77afa-ded-preserves-the-same-task-chromium/shell-831-person-edit-1440-dark.png",
+      "size_bytes": 54612,
+      "width": 1440,
+      "height": 972,
+      "git_blob_sha": "ff2babca1183791affda835754e26ef2ba7a5277",
+      "sha256": "01345c450da2076c76615814923f5fbdb19c6105b6592e863aea263636d18801",
+      "artifact": "people"
+    },
+    {
+      "name": "person-editor-short-height-dark.png",
+      "artifact_path": "people-important-dates-mob-77afa-ded-preserves-the-same-task-chromium/shell-831-person-edit-small-height-dark.png",
+      "size_bytes": 49822,
+      "width": 430,
+      "height": 906,
+      "git_blob_sha": "e9f37cff3be7a05b1d504744d0783e1a519ff58d",
+      "sha256": "ca4bd71ba5f7fc75a55309fd1ae25a5f9a8c7c16af7be66042baa332f5f027c4",
+      "artifact": "people"
+    },
+    {
+      "name": "person-editor-200-light.png",
+      "artifact_path": "people-important-dates-mob-566b3-percent-zoom-and-large-text-chromium/shell-831-person-edit-200-light.png",
+      "size_bytes": 119004,
+      "width": 780,
+      "height": 1822,
+      "git_blob_sha": "027827f9a93a70f4bf640fa4c9ef8d866dfd5455",
+      "sha256": "deffbf7971fa1211823a248438f8790e54bd15a4dc47e4fec4bbcdb9cc6101de",
+      "artifact": "people"
+    },
+    {
+      "name": "person-editor-400-dark.png",
+      "artifact_path": "people-important-dates-mob-223e9--1280-with-400-percent-zoom-chromium/shell-831-person-edit-400-dark.png",
+      "size_bytes": 313487,
+      "width": 1280,
+      "height": 4096,
+      "git_blob_sha": "5104158e14eefb54797b2f58fe1f4905e79b56f5",
+      "sha256": "23da6b63ffc4319dbccf2ed52cb99f5bf5fb988c3539833158f7dfbc672b90ab",
+      "artifact": "people"
+    },
+    {
+      "name": "tag-compact-light.png",
+      "artifact_path": "private-location-and-captu-7bcac--save-edit-reload-360-light-chromium/shell-1693-tags-360-light.png",
+      "size_bytes": 76696,
+      "width": 360,
+      "height": 1685,
+      "git_blob_sha": "8769309bb767e9b9c1e52298e241c26a17b5e69d",
+      "sha256": "18af8f303b9a50608754a27de0483f5f0845adb2e429a901377314fa9b70c45f",
+      "artifact": "tags"
+    },
+    {
+      "name": "tag-compact-dark.png",
+      "artifact_path": "private-location-and-captu-715d5-s-save-edit-reload-390-dark-chromium/shell-1693-tags-390-dark.png",
+      "size_bytes": 83466,
+      "width": 390,
+      "height": 1691,
+      "git_blob_sha": "bcb0b6f225f767cf9066296c48a5ca90da148225",
+      "sha256": "f68388fb7a0f3b88ece13dbd9817d86b79fbded781f381787a27ee20f14e7af0",
+      "artifact": "tags"
+    },
+    {
+      "name": "tag-expanded-dark.png",
+      "artifact_path": "private-location-and-captu-11151--save-edit-reload-1280-dark-chromium/shell-1693-tags-1280-dark.png",
+      "size_bytes": 95188,
+      "width": 1280,
+      "height": 1737,
+      "git_blob_sha": "fd68b9b9a3b3dd1f246e16ba8f2a67ace0e01ef4",
+      "sha256": "f094351cdb8bce37b7f3af771f689ef0008372cd694921f282d2268cb022ca89",
+      "artifact": "tags"
+    },
+    {
+      "name": "tag-large-memory.png",
+      "artifact_path": "private-location-and-captu-5b4c3-200-text-story-memories-new-chromium/shell-1693-tags-large--story-memories-new.png",
+      "size_bytes": 92589,
+      "width": 320,
+      "height": 2520,
+      "git_blob_sha": "cac18ca98fd7596fad5082ae404ed22657cd5ce0",
+      "sha256": "b5d70f4dad34230f3d1c36a803d7f14b023d90564c0246bcd855f29b1d7f0a3a",
+      "artifact": "tags"
+    },
+    {
+      "name": "tag-large-heart.png",
+      "artifact_path": "private-location-and-captu-91215-ext-story-heart-moments-new-chromium/shell-1693-tags-large--story-heart-moments-new.png",
+      "size_bytes": 148100,
+      "width": 320,
+      "height": 4240,
+      "git_blob_sha": "f409d31a1c6d0699129f12f940ba32bcfba6bddb",
+      "sha256": "657c0fbf709932aa77acf4bc773c37fde0288beba259ccf92cbe9732054163d1",
+      "artifact": "tags"
+    },
+    {
+      "name": "tag-large-plan.png",
+      "artifact_path": "private-location-and-captu-79bd7-and-200-text-plan-plans-new-chromium/shell-1693-tags-large--plan-plans-new.png",
+      "size_bytes": 64587,
+      "width": 320,
+      "height": 2017,
+      "git_blob_sha": "74448c58321db21ee51cfed2e6bf116f85b34055",
+      "sha256": "a87c7eca729e18dd916a4d3abfb1b1c936de98348c363f532fd332c7a82c9df7",
+      "artifact": "tags"
+    },
+    {
+      "name": "tag-large-wish.png",
+      "artifact_path": "private-location-and-captu-fbe01-nd-200-text-plan-wishes-new-chromium/shell-1693-tags-large--plan-wishes-new.png",
+      "size_bytes": 38780,
+      "width": 320,
+      "height": 1252,
+      "git_blob_sha": "57394ec1398a42e4bab3ecf3796551abf6738849",
+      "sha256": "5a6b158ba0362e2b9f7a5755de4dae914aefffe559539ccbe117acd7a2e154e8",
+      "artifact": "tags"
+    }
+  ]
+}

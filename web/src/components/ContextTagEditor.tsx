@@ -4,7 +4,7 @@ import { useApiRuntime } from '../client/apiRuntimeContext';
 import { useContextTagSuggestions } from '../client/useContextTagSuggestions';
 import { useTranslation } from '../i18n';
 import './MemoryTagChoices.css';
-import { EimirIcon } from './EimirIcon';
+import { AddActionButton } from './AddAction';
 
 const MAX_TAGS = 8;
 const MAX_LABEL_LENGTH = 40;
@@ -167,18 +167,11 @@ function ContextTagEditorContent({
               commit(true);
           }}
         />
-        <button
+        <AddActionButton
           ref={addRef}
-          type="button"
-          className="secondary"
-          aria-label={t('contextTags.add')}
+          label={t('contextTags.add')}
           onClick={() => commit()}
-        >
-          <span className="context-tag-add-label">{t('contextTags.add')}</span>
-          <span className="context-tag-add-icon" aria-hidden="true">
-            <EimirIcon name="hinzufuegen" />
-          </span>
-        </button>
+        />
       </div>
       {error ? (
         <p className="field-error" id={`${id}-error`} role="alert">

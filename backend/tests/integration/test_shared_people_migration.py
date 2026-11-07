@@ -108,7 +108,7 @@ def test_legacy_person_is_shared_once_without_opening_linked_private_dates(clien
 def test_legacy_bundle_preserves_dates_and_rejects_mismatched_parent_class(
     client, session, couple, copied_class
 ):  # type: ignore[no-untyped-def]
-    person = create_person(client, couple).json()
+    person = create_person(client, couple, note="Remember the annual seaside walk.").json()
     create_date(client, couple, related_person_id=person["id"], visibility="PRIVATE")
     source = AuthorizationContext(account_id=couple["anna"].id, space_id=couple["space"].id)
     target_space = make_space(session, couple["anna"])
@@ -159,9 +159,45 @@ def test_legacy_bundle_preserves_dates_and_rejects_mismatched_parent_class(
     imported_date = session.query(ImportantDate).filter_by(space_id=target_space.id).one()
     assert imported_person.privacy_class == "SPACE_SHARED"
     assert imported_person.payload.display_name == person["displayName"]
+    assert imported_person.payload.note == person["note"]
     assert imported_date.related_person_id == imported_person.id
     assert imported_date.related_person_privacy_class == "SPACE_SHARED"
     assert imported_date.privacy_class == "OWNER_ONLY"
     partner_dates = client.get(dates_path(target_space.id), headers=auth(couple["token_b"]))
     assert partner_dates.status_code == 200
     assert partner_dates.json() == []
+
+
+def test_concrete_relationship_upgrade_and_rollback_preserve_protected_content(
+    client, session, couple
+):  # type: ignore[no-untyped-def]
+    person = create_person(
+        client, couple, relationship="DAUGHTER", note="A remembered detail."
+    ).json()
+    connection = session.connection()
+    context = MigrationContext.configure(connection, opts={"target_metadata": Base.metadata})
+    migration = run_path(
+        str(Path(__file__).resolve().parents[2] / "alembic/versions/0117_person_relationships.py")
+    )
+    with Operations.context(context):
+        migration["downgrade"]()
+    session.expire_all()
+    row = session.get(RelatedPerson, person["id"])
+    assert row.relationship == "CHILD"
+    assert row.version == person["version"] + 1
+    assert row.payload.note == person["note"]
+    with Operations.context(context):
+        migration["upgrade"]()
+    changed = client.put(
+        f"{persons_path(couple['space'].id)}/{person['id']}",
+        json={
+            "displayName": person["displayName"],
+            "relationship": "GRANDMOTHER",
+            "birthday": person["birthday"],
+            "birthdayYearKnown": True,
+        },
+        headers={**auth(couple["token_a"]), "If-Match": str(row.version)},
+    )
+    assert changed.status_code == 200
+    assert changed.json()["relationship"] == "GRANDMOTHER"
+    assert changed.json()["note"] == person["note"]

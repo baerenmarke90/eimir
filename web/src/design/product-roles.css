@@ -44,6 +44,8 @@
   --border-surface-width: 0px;
   --border-control-width: 0px;
   --touch-target-web: 44px;
+  --touch-target-comfortable: 48px;
+  --icon-size-standard: 24px;
   --media-action-icon: 20px;
   --media-action-inset: 8px;
   --space-content-group: 0.75rem;

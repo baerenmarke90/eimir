@@ -7,11 +7,6 @@
 .people-overview .page-heading-action {
   align-self: center;
 }
-.people-overview .page-heading-action .button-link {
-  background: transparent;
-  color: var(--color-brand-text);
-  padding-inline: var(--space-2);
-}
 .people-portrait-list {
   list-style: none;
   padding: 0;
@@ -115,11 +110,17 @@
   color: var(--color-text-secondary);
   margin: var(--space-2) 0 0;
 }
-.people-profile-birthday {
+.people-profile-birthday,
+.people-profile-note {
   margin-top: var(--space-8);
 }
-.people-profile-birthday h2 {
+.people-profile-birthday h2,
+.people-profile-note h2 {
   font-size: 1.2rem;
+}
+.people-profile-note p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .people-birthday-link {
   display: flex;
@@ -148,7 +149,8 @@
   font-weight: 600;
 }
 .people-editor-form input:not([type="file"]),
-.people-editor-form select {
+.people-editor-form select,
+.people-editor-form textarea {
   min-width: 0;
   width: 100%;
   font-weight: 400;

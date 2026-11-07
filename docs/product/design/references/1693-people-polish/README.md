@@ -24,7 +24,7 @@ govern actual implementation.
 
 ## Intended behavior
 
-- One shared circular blue plus action for person creation and authored tags,
+- One shared circular blue plus action for person/day creation and authored tags,
   with native link/button semantics, localized name/tooltip and 48 px target.
 - Concrete localized relationship options; legacy values remain readable and
   editable without invented relationship changes.
@@ -33,3 +33,19 @@ govern actual implementation.
 - Failed saves, source cancellation and dirty Back retain the entire draft.
 
 Runtime evidence and exact-source validation will be recorded in the owning PR.
+
+## Upgrade and compatibility
+
+Migration 0117 expands the existing relationship check constraint without
+rewriting existing people. Notes add an optional defaulted ProtectedPayload
+field, requiring no new queryable column or media resource. Current API updates
+that omit or send null for the note preserve it; explicit empty text clears it.
+Existing pre-note payloads load with an empty note. Standard encryption-at-rest,
+transfer and deletion continue to operate on the protected parent payload.
+
+Deploy the matching backend and Web client. A schema downgrade normalizes new
+relationship values to legacy categories and increments affected versions. It
+deliberately retains notes: pre-note backend binaries use a strict payload
+schema and cannot read newly authored notes. Use a roll-forward correction or a
+complete matching backup restore instead of downgrading only the binary and
+silently discarding protected content.

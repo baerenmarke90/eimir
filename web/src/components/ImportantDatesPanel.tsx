@@ -30,7 +30,8 @@ import {
 import { normalizeClientError } from '../client/problemDetails';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { AddActionButton } from './AddAction';
+import { DestinationIcon } from './DestinationIcon';
 import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -789,10 +790,10 @@ export function ImportantDatesPanel({
       className="important-dates-section occasions-panel"
       aria-label={t('importantDates.heading')}
     >
-      <button
+      <AddActionButton
         ref={createActionRef}
-        type="button"
-        className="compact-action occasions-add"
+        label={t('importantDates.create')}
+        className="occasions-add"
         onClick={() => {
           readerReturnRef.current = createActionRef.current;
           setEditing(null);
@@ -801,10 +802,7 @@ export function ImportantDatesPanel({
           deleteMutation.reset();
           setSavedMessage(null);
         }}
-      >
-        <AddIcon />
-        {t('importantDates.create')}
-      </button>
+      />
       {savedMessage ? (
         <p className="people-saved" role="status">
           {savedMessage}

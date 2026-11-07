@@ -5,9 +5,10 @@ not sign in, have no session, and receive no invitation. They are records
 maintained by a partner in their space and therefore contain data about
 third parties who cannot manage those records themselves. For that reason,
 less is stored here than would technically be possible: display name,
-relationship type, and a birthday. No address, school, or phone number.
+relationship type, a birthday and an optional bounded note. No structured
+address, school, or phone-number collection.
 
-The display name and the label of an important date are the protected parts
+The display name, note and label of an important date are the protected parts
 and are stored as `ProtectedPayload`, separate from metadata. Everything
 needed for sorting, linking, and later reminders - relationship, date,
 recurrence, and visibility - remains queryable as columns.
@@ -53,6 +54,24 @@ class PersonRelationship(StrEnum):
     SIBLING = "SIBLING"
     FRIEND = "FRIEND"
     OTHER = "OTHER"
+    DAUGHTER = "DAUGHTER"
+    SON = "SON"
+    MOTHER = "MOTHER"
+    FATHER = "FATHER"
+    SISTER = "SISTER"
+    BROTHER = "BROTHER"
+    GRANDMOTHER = "GRANDMOTHER"
+    GRANDFATHER = "GRANDFATHER"
+    GRANDDAUGHTER = "GRANDDAUGHTER"
+    GRANDSON = "GRANDSON"
+    MOTHER_IN_LAW = "MOTHER_IN_LAW"
+    FATHER_IN_LAW = "FATHER_IN_LAW"
+    AUNT = "AUNT"
+    UNCLE = "UNCLE"
+    COUSIN = "COUSIN"
+    RELATIVE = "RELATIVE"
+    ACQUAINTANCE = "ACQUAINTANCE"
+    COLLEAGUE = "COLLEAGUE"
 
 
 class ImportantDateType(StrEnum):
@@ -89,6 +108,7 @@ class RelatedPersonPayload(ProtectedPayload):
     """Protected plaintext for a related person."""
 
     display_name: str = Field(min_length=1, max_length=120)
+    note: str = Field(default="", max_length=2000)
 
 
 class ImportantDatePayload(ProtectedPayload):
@@ -155,7 +175,7 @@ class RelatedPerson(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin,
             name="uq_related_persons_avatar_attachment",
         ),
         CheckConstraint(
-            "relationship IN ('CHILD', 'PARENT', 'SIBLING', 'FRIEND', 'OTHER')",
+            "relationship IN (" + ", ".join(f"'{value}'" for value in PersonRelationship) + ")",
             name="relationship_is_known",
         ),
         CheckConstraint(

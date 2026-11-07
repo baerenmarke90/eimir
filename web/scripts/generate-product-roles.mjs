@@ -107,6 +107,8 @@ declare('radius-sheet-top', rem('radius.sheet'));
 declare('border-surface-width', value('border.surfaceFrame'));
 declare('border-control-width', value('border.controlFrame'));
 declare('touch-target-web', value('size.touchTarget.webMinimum'));
+declare('touch-target-comfortable', value('size.control.comfortable'));
+declare('icon-size-standard', value('size.icon.standard'));
 declare('media-action-icon', value('size.icon.medium'));
 declare('media-action-inset', value('spacing.2'));
 declare('space-content-group', rem('spacing.3'));

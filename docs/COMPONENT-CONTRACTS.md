@@ -79,6 +79,12 @@ ActionState     = idle | submitting | success | error
   (Product Owner correction, 2026-11-07, #1688). Contextual tertiary actions and
   inline insertion controls retain their distinct roles. Keep at most one
   visually dominant primary action in the current view/state.
+- Person creation, important-day creation and authored-tag insertion use `AddActionLink` and
+  `AddActionButton`: the same circular, filled canonical-blue plus surface,
+  comfortable 48 px target, localized accessible name and tooltip. Preserve
+  native link/button and ref/focus semantics. Do not override the surface with
+  contextual transparent or secondary styling. The Product Owner explicitly
+  requested this familiar round action in #1693, including inline tags.
 
 ### 3.2 Icon Button
 

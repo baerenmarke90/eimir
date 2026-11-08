@@ -14,6 +14,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.PersistableBundle;
+import android.os.SystemClock;
 import android.util.AtomicFile;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSArray;
@@ -258,11 +259,13 @@ final class BackgroundMediaTransfers {
                     connection.setDoOutput(true); connection.setFixedLengthStreamingMode(size);
                     connection.setRequestProperty("Content-Type", record.value.getString("mimeType"));
                     try (InputStream input = new FileInputStream(source(context, id)); OutputStream output = connection.getOutputStream()) {
-                        byte[] buffer = new byte[64 * 1024]; long sent = 0; int last = -1; int count;
+                        byte[] buffer = new byte[64 * 1024]; long sent = 0; int count;
+                        TransferProgress updates = new TransferProgress();
                         while ((count = input.read(buffer)) != -1) {
                             requireActive(context, id); output.write(buffer, 0, count); sent += count;
                             int percent = (int) Math.min(99, sent * 100 / size);
-                            if (percent != last) { last = percent; progress.update(update(context, id, "uploading", percent)); }
+                            if (updates.advance(percent, SystemClock.elapsedRealtime()))
+                                progress.update(update(context, id, "uploading", percent));
                         }
                     }
                     int response = connection.getResponseCode();

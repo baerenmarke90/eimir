@@ -16,7 +16,9 @@ import android.util.AtomicFile;
 import androidx.core.content.FileProvider;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.Until;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -148,10 +150,17 @@ public class BackgroundMediaTransfersTest {
             assertEquals(100, notification.extras.getInt(Notification.EXTRA_PROGRESS_MAX));
             assertFalse(notification.extras.toString().contains("private-selected"));
             assertFalse(notification.extras.toString().contains(account));
-            assertTrue(device.openNotification()); device.waitForIdle();
+            // Drain the SystemUI command, then observe its real notification row.
+            device.executeShellCommand("cmd statusbar expand-notifications");
+            boolean visible = device.wait(Until.hasObject(By.text(
+                notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString())), 5000);
+            device.dumpWindowHierarchy(new File(context.getFilesDir(), "native-media-upload-background.xml"));
             assertTrue(device.takeScreenshot(new File(context.getFilesDir(), "native-media-upload-background.png")));
+            assertTrue("The actual progress notification must be visible", visible);
             server.release.countDown();
-            assertTrue("Background PUT and finalize must finish", server.finished.await(25, TimeUnit.SECONDS));
+            boolean finished = server.finished.await(25, TimeUnit.SECONDS);
+            assertTrue("Background PUT and finalize must finish; received=" + server.received
+                + ", lastMethod=" + server.lastMethod + ", state=" + transferState(), finished);
             if (server.error.get() != null) throw new AssertionError(server.error.get());
             await(() -> { try { return !BackgroundMediaTransfers.source(context, id).exists(); } catch (Exception failure) { return false; } }, 10_000);
             assertArrayEquals(expectedDigest, server.digest);
@@ -159,6 +168,12 @@ public class BackgroundMediaTransfersTest {
             assertFalse(MainActivity.isForeground());
             device.pressBack();
         }
+    }
+    private String transferState() {
+        try {
+            BackgroundMediaTransfers.Record record = BackgroundMediaTransfers.read(context, id);
+            return record.phase() + ":" + record.progress();
+        } catch (Exception removed) { return "removed"; }
     }
     private static void await(BooleanSupplier condition, long timeout) {
         long deadline = SystemClock.elapsedRealtime() + timeout;
@@ -170,6 +185,8 @@ public class BackgroundMediaTransfersTest {
         final CountDownLatch started = new CountDownLatch(1), release = new CountDownLatch(1), finished = new CountDownLatch(1);
         final AtomicReference<Throwable> error = new AtomicReference<>();
         byte[] digest; int finalizes;
+        volatile long received;
+        volatile String lastMethod = "none";
         final Thread thread;
         TransferServer() throws Exception {
             socket.setSoTimeout(30_000);
@@ -179,6 +196,7 @@ public class BackgroundMediaTransfersTest {
                         connection.setSoTimeout(30_000);
                         InputStream input = new BufferedInputStream(connection.getInputStream());
                         String first = line(input); int length = 0;
+                        lastMethod = first.split(" ", 2)[0];
                         for (String header = line(input); !header.isEmpty(); header = line(input))
                             if (header.toLowerCase(java.util.Locale.ROOT).startsWith("content-length:")) length = Integer.parseInt(header.substring(15).trim());
                         if (first.startsWith("PUT ")) {
@@ -187,7 +205,7 @@ public class BackgroundMediaTransfersTest {
                             while (remaining > 0) {
                                 int count = input.read(block, 0, Math.min(remaining, block.length));
                                 if (count < 0) throw new java.io.EOFException();
-                                hash.update(block, 0, count); remaining -= count;
+                                hash.update(block, 0, count); remaining -= count; received += count;
                                 // Gate after a real measurable percentage, rather than
                                 // depending on the emulator's TCP send-buffer capacity.
                                 if (started.getCount() > 0 && length - remaining >= 1024 * 1024) { started.countDown(); if (!release.await(25, TimeUnit.SECONDS)) throw new java.io.IOException("Fixture transfer was not released"); }

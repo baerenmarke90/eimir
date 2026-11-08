@@ -130,7 +130,11 @@ Android 14+ uses user-initiated JobScheduler transfers; Android 8–13 uses a
 foreground data-sync service. Both outlive the WebView/Activity and display
 localized, generic progress with secret lock-screen visibility. Android 13+
 requests notification permission at the first explicit upload; when denied the
-OS may limit visibility to its active-task UI. Jobs start only from a visible
+OS may limit visibility to its active-task UI. Intermediate upload percentages
+are persisted/notified at most once per second; the first positive percentage,
+final percentage and phase changes bypass coalescing. This avoids repeated
+Keystore/file/notification work throttling the byte stream on slower devices.
+Jobs start only from a visible
 user action. They stream the existing authenticated, same-instance API route,
 including with object storage, without persisting a signed URL or refresh token.
 Redirects are disabled. Every request resolves current Keystore-protected

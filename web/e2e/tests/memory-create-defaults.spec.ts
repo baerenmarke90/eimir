@@ -13,6 +13,7 @@ import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoSources from '../../src/i18n/locales/photoSources';
+import { expectLabeledAddAction } from '../support/addAction';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
@@ -126,6 +127,7 @@ for (const [width, colorScheme] of [
       name: photoSources.addMedia,
       exact: true,
     });
+    await expectLabeledAddAction(sourcePicker);
     const sourceBox = await sourcePicker.boundingBox();
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);

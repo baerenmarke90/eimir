@@ -19,6 +19,10 @@ export async function expectLabeledAddAction(action: Locator) {
       label: element.getAttribute('aria-label'),
       title: element.getAttribute('title'),
       text: element.querySelector<HTMLElement>('.add-action-label')?.innerText,
+      iconSize: getComputedStyle(
+        element.querySelector('.button-icon') as Element,
+      ).inlineSize,
+      expectedIconSize: style.getPropertyValue('--icon-size-standard').trim(),
     };
   });
   expect(appearance.width).toBeGreaterThanOrEqual(48);
@@ -29,6 +33,7 @@ export async function expectLabeledAddAction(action: Locator) {
   expect(appearance.label).toBeTruthy();
   expect(appearance.title).toBe(appearance.label);
   expect(appearance.text).toBe(appearance.label);
+  expect(appearance.iconSize).toBe(appearance.expectedIconSize);
   await expect(action.locator('.add-action-label')).toBeVisible();
   await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
 }

@@ -546,9 +546,9 @@ for (const width of [390, 320] as const) {
       if (!addPlaceBox) throw new Error('Add Place did not render.');
       expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
-      // 5. Media picker remains compact with solid boundaries
+      // 5. Media stays bounded; its entry uses the shared filled pill.
       expect(mediaBorder).toBe('solid');
-      expect(pickerBorder).toBe('solid');
+      expect(pickerBorder).toBe('none');
       expect(mediaBox.height).toBeLessThan(125);
       expect(pickerBox.height).toBeLessThan(80);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);

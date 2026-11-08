@@ -7,7 +7,8 @@ import { useTranslation } from '../i18n';
 import { AddActionContent } from './AddAction';
 import { EimirIcon } from './EimirIcon';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
-import { ShortTaskSheet } from './ShortTaskSheet';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { MomentMapLink } from './MomentMapLink';
 import './MomentPlaces.css';
 
 /** Copy only location content; shared Place identity never enters the private payload. */
@@ -136,6 +137,7 @@ export function HeartMomentLocationSummary({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const sheet = useRef<ShortTaskSheetHandle>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const map = photoPlaceMapUrl(
     location.latitude ?? null,
@@ -154,6 +156,7 @@ export function HeartMomentLocationSummary({
         <span>{location.name}</span>
       </button>
       <ShortTaskSheet
+        ref={sheet}
         open={open}
         title={location.name}
         restoreFocusRef={trigger}
@@ -161,15 +164,13 @@ export function HeartMomentLocationSummary({
       >
         {location.address ? <p>{location.address}</p> : null}
         {map ? (
-          <a
+          <MomentMapLink
             className="moment-place-address"
-            href={map}
-            target="_blank"
-            rel="noopener noreferrer"
-            referrerPolicy="no-referrer"
+            to={map}
+            onNavigate={(proceed) => sheet.current?.closeForNavigation(proceed)}
           >
             {t('photoPlaces.viewMap')}
-          </a>
+          </MomentMapLink>
         ) : null}
       </ShortTaskSheet>
     </span>

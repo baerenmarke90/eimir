@@ -70,11 +70,13 @@ export function MomentPlaceField({
       {value ? (
         <button
           type="button"
-          className="tertiary"
+          className="tertiary moment-place-remove"
           disabled={disabled}
+          aria-label={t('experiences.removePlace', { name: value.name })}
+          title={t('experiences.removePlace', { name: value.name })}
           onClick={() => onChange(undefined)}
         >
-          {t('photoPlaces.removeSelection')}
+          <EimirIcon name="trash" />
         </button>
       ) : null}
       <ShortTaskSheet

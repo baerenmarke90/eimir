@@ -1,5 +1,3 @@
-import { AddActionButton } from './AddAction';
-import { TaskBackButton } from './TaskBackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -52,16 +50,18 @@ import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import type { MomentPlaceSelection } from './MomentPlaceField';
+import { NativeDateField, NativeDateInput } from './NativeDateField';
 import { OrderedMomentPlacesField } from './OrderedMomentPlacesField';
 import { PageHeader } from './PageHeader';
-import { NativeDateField, NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryCreatePageShell } from './StoryFormPageShell';
+import { TaskBackButton } from './TaskBackButton';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -700,7 +700,7 @@ export function MemoryCreatePage({
         if (
           metadata.status === 'READY' ||
           (metadata.mediaType === 'VIDEO' &&
-            ['PROCESSING', 'FAILED'].includes(metadata.status))
+            ['PENDING', 'PROCESSING', 'FAILED'].includes(metadata.status))
         )
           continue;
       } catch (error) {
@@ -747,7 +747,25 @@ export function MemoryCreatePage({
       draftSnapshot.files.some(({ file }) => memoryOnlyPhotoDescriptor(file))
         ? { ids: [...attempt.attachmentIds], files: draftSnapshot.files }
         : await recoverReadyFiles(attempt.attachmentIds);
-    const verifiedAttempt = { ...attempt, attachmentIds: recovered.ids };
+    const verifiedAttempt = {
+      ...attempt,
+      attachmentIds: recovered.ids,
+      snapshot:
+        attempt.atomicAttachments && attempt.snapshot.attachments === undefined
+          ? {
+              ...attempt.snapshot,
+              attachments: recovered.ids.map((attachmentId, position) => ({
+                attachmentId,
+                position,
+                isSensitive: attempt.attachmentSensitivity?.[position] ?? false,
+              })),
+              selectedCoverAttachmentId:
+                attempt.selectedCoverPosition == null
+                  ? null
+                  : recovered.ids[attempt.selectedCoverPosition],
+            }
+          : attempt.snapshot,
+    };
     attemptRef.current = verifiedAttempt;
     const allowed = await diaryDraft.checkpoint({
       ...draftSnapshot,
@@ -763,7 +781,7 @@ export function MemoryCreatePage({
     return createMemoryWithReadyAttachments(
       apis,
       spaceId,
-      attempt.snapshot,
+      verifiedAttempt.snapshot,
       recovered.ids,
       {
         idempotencyKey: attempt.idempotencyKey,

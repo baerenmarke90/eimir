@@ -1,4 +1,5 @@
 import { MediaProcessingState } from './MediaProcessingState';
+import { VideoTransferFeedback } from './VideoTransferFeedback';
 import {
   type ReactNode,
   useCallback,
@@ -579,7 +580,9 @@ export function MediaGallery({
     activeVideo = false,
   ) {
     if (item.status && item.status !== 'READY')
-      return <MediaProcessingState status={item.status} />;
+      return (
+        <MediaProcessingState status={item.status} attachmentId={item.id} />
+      );
     if (item.mediaType === MediaType.VIDEO) {
       const revealed =
         item.isSensitive === false || reveals.isRevealed(item.id);
@@ -623,7 +626,9 @@ export function MediaGallery({
 
   function renderCarouselMedia(item: GalleryMediaItem) {
     if (item.status && item.status !== 'READY')
-      return <MediaProcessingState status={item.status} />;
+      return (
+        <MediaProcessingState status={item.status} attachmentId={item.id} />
+      );
     if (item.mediaType === MediaType.VIDEO) return videoPoster(item);
     if (failed.has(item.id)) {
       return (
@@ -871,6 +876,11 @@ export function MediaGallery({
         </section>
       )}
 
+      {items
+        .filter((item) => item.status === 'PENDING')
+        .map((item) => (
+          <VideoTransferFeedback key={item.id} attachmentId={item.id} />
+        ))}
       {activeItem && activeIndex !== null && typeof document !== 'undefined'
         ? createPortal(
             <div

@@ -3,6 +3,7 @@ import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { VideoTransferFeedback } from './VideoTransferFeedback';
 import './PhotoDraftGallery.css';
 import {
   insertMedia,
@@ -251,6 +252,16 @@ export function PhotoDraftGallery({
           ))}
         </ol>
       </PhotoDraftSorting>
+      {items.flatMap((item) =>
+        item.draft?.attachmentId
+          ? [
+              <VideoTransferFeedback
+                key={item.key}
+                attachmentId={item.draft.attachmentId}
+              />,
+            ]
+          : [],
+      )}
       {items.length > 6 ? (
         <button
           type="button"

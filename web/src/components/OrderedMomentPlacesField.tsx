@@ -68,25 +68,22 @@ export function OrderedMomentPlacesField({
                   place={place}
                   disabled={props.disabled}
                   onNavigate={onNavigate}
-                  onRemove={() =>
-                    onChange(value.filter((item) => item.id !== place.id))
-                  }
                 />
-              ) : (
-                <button
-                  type="button"
-                  className="tertiary"
-                  disabled={props.disabled}
-                  aria-label={t('experiences.removePlace', {
-                    name: place.name,
-                  })}
-                  onClick={() =>
-                    onChange(value.filter((item) => item.id !== place.id))
-                  }
-                >
-                  {t('memory.photoRemove')}
-                </button>
-              )}
+              ) : null}
+              <button
+                type="button"
+                className="tertiary moment-place-remove"
+                disabled={props.disabled}
+                aria-label={t('experiences.removePlace', {
+                  name: place.name,
+                })}
+                title={t('experiences.removePlace', { name: place.name })}
+                onClick={() =>
+                  onChange(value.filter((item) => item.id !== place.id))
+                }
+              >
+                <EimirIcon name="trash" />
+              </button>
             </div>
           </li>
         ))}

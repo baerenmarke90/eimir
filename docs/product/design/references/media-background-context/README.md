@@ -88,8 +88,8 @@ data-sync services, Media3 Transformer, browser WebCodecs/mediabunny, and the
 existing restricted FFmpeg worker. Select native Android scheduling/notification
 and bounded streaming over the existing authenticated Attachment protocol;
 reuse the server's 1080p normalization and validation instead of adding another
-mandatory codec dependency. Existing local WebCodecs optimization can reduce
-bytes where supported; the server remains authoritative. References reviewed:
+mandatory codec dependency. Normal capture transfers originals directly; the existing diagnostic WebCodecs
+utility remains optional and is not invoked by this flow. The server is authoritative. References reviewed:
 
 - <https://developer.android.com/develop/background-work/background-tasks/uidt>
 - <https://developer.android.com/develop/background-work/services/fgs/service-types>
@@ -110,3 +110,44 @@ No pending bytes become readable, exportable as completed video or playable.
 The same placeholder/status contract serves Memory and HeartMoment consumers.
 Validate cross-tenant/private denial, pending -> processing -> ready/failure,
 interruption, logout, retries and deletion races at the appropriate test layer.
+
+## Implemented visual and behavioral evidence
+
+These are browser captures of the implemented product with synthetic fixtures,
+not the generated preflight reference. The existing canonical-blue actions,
+media controls, selected Place address, author/content hierarchy and shell remain.
+
+| State | Evidence |
+| --- | --- |
+| Compact Place and 48px trash action, Light | [Capture editor](evidence/place-trash-light.jpg) |
+| Compact Place and trash action, Dark | [Capture editor](evidence/place-trash-dark.jpg) |
+| Explicit linked Plan destination, Dark | [Memory reader](evidence/linked-plan-dark.jpg) |
+| Expanded linked destination, Dark | [Memory reader](evidence/linked-plan-expanded.jpg) |
+| Selected Place, zoom and one visible marker, 360px Light | [Focused map](evidence/place-focus-light.jpg) |
+| Standard Place filter, 390px Dark | [Filter sheet](evidence/place-filter-dark.jpg) |
+| Saved parent while video PUT is deliberately held, Light | [Uploading placeholder](evidence/saved-upload-light.jpg) |
+
+Behavioral coverage belongs to the existing feature specs: `photo-places`,
+`video-attachments`, `memory-map-and-couple-games`, `shared-wish-selection`,
+`memory-create-defaults`, `memory-experiences` and `f2-task-boundaries`. It checks
+open -> interact -> save -> inspect -> return, internal address navigation and
+Back, 48px Place deletion in the draft before any write, typed destination
+links, real Leaflet zoom/marker filtering/reset, unavailable IndexedDB during
+atomic save, upload survival across navigation, sensitive media and retained
+playback, ordering/cover stability, and legacy uncertain/partial draft recovery.
+
+New captures use one atomic create. The old two-step recovery journeys explicitly
+seed the pre-atomic persisted attempt format; they still exercise real browser
+reload, failed/lost binding responses, stable identity and duplicate prevention.
+They no longer incorrectly expect a new capture to produce a partial parent.
+The browser inventory keeps these as affected feature work, with their production
+entry roots reviewed. The generated API model conservatively selects the full
+browser plan: 1,154 collected cases in 102 specs at this implementation, without
+expanding the always-run core.
+
+Local checks cover the Web build/typecheck/unit suite, targeted real Chromium
+journeys at 320/360/390/430/1280px, both themes, large text/reduced motion,
+backend schema/codec invariants, Ruff, full mypy, and an Android debug/test APK
+build with Lint/JVM tests. Database/restricted-codec and actual API 28/36/37.1
+background-notification execution are the existing GitHub CI gates, augmented
+with `BackgroundMediaTransfersTest` and its notification screenshot artifact.

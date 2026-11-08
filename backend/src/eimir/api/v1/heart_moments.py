@@ -24,7 +24,12 @@ from eimir.api.schema import (
     ResourceCapabilities,
     story_resource_capabilities,
 )
-from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, OrderedAttachmentSummary
+from eimir.api.v1.attachments import (
+    AttachmentEntry,
+    AttachmentSummary,
+    OrderedAttachmentSummary,
+    public_attachment_status,
+)
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment, can_edit_sensitivity
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, visibility_of
@@ -232,9 +237,7 @@ def _heart_moment_detail(
             OrderedAttachmentSummary(
                 id=entry.attachment.id,
                 position=entry.position,
-                status="PROCESSING"
-                if entry.attachment.status == "VALIDATING"
-                else entry.attachment.status,
+                status=public_attachment_status(entry.attachment.status),
                 failure_code=entry.attachment.failure_code
                 if entry.attachment.status == "FAILED"
                 else None,
@@ -257,7 +260,7 @@ def _heart_moment_detail(
         attachment=(
             AttachmentSummary(
                 id=attachment.id,
-                status="PROCESSING" if attachment.status == "VALIDATING" else attachment.status,
+                status=public_attachment_status(attachment.status),
                 failure_code=attachment.failure_code if attachment.status == "FAILED" else None,
                 media_type=MediaType(attachment.media_type),
                 mime_type=attachment.mime_type,

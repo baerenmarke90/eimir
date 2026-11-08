@@ -365,7 +365,7 @@
     "photo-places.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
-      "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility."
+      "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility. Place addresses navigate to the existing map and return; draft trash remains beside the Place, and linked Plans identify their destination."
     },
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -415,7 +415,7 @@
     "memory-map-and-couple-games.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
-      "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics."
+      "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics. Feature-owned selection zoom, marker isolation and standard Place filter/reset across Compact/Expanded themes."
     },
     "contextual-reminder-notification.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -430,7 +430,7 @@
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
-      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text. Direct media controls retain inline saved-video failure status and replacement."
+      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text. Direct media controls retain inline saved-video failure status and replacement. Atomic save with unavailable local journal and pending bytes must preserve the placeholder and admitted transfer through route return."
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",

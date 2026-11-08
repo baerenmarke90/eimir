@@ -81,12 +81,16 @@ async function setup(
     retained?: boolean;
     sensitive?: boolean;
     processing?: boolean;
+    uploadGate?: Promise<void>;
   } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
   const state = {
-    videoStatus:
-      options.processing || !options.retained ? 'PROCESSING' : 'READY',
+    videoStatus: options.processing
+      ? 'PROCESSING'
+      : options.retained
+        ? 'READY'
+        : 'PENDING',
     bound: [] as string[],
     grants: 0,
     ranges: 0,
@@ -144,9 +148,13 @@ async function setup(
         a = attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE');
       if (p.endsWith('/content') && method === 'PUT') {
         state.uploads++;
+        if (id === VIDEO) await options.uploadGate;
         return route.fulfill({ status: 204 });
       }
-      if (p.endsWith('/finalize')) return json({ status: 'PROCESSING' }, 202);
+      if (p.endsWith('/finalize')) {
+        if (id === VIDEO) state.videoStatus = 'PROCESSING';
+        return json({ status: id === VIDEO ? 'PROCESSING' : 'READY' }, 202);
+      }
       if (p.endsWith('/read-access'))
         return json({
           method: 'STREAM',
@@ -193,11 +201,24 @@ async function setup(
         ).toBe(true);
         return route.fulfill({ body: image, contentType: 'image/jpeg' });
       }
-      if (method === 'GET') return json(a);
+      if (method === 'GET')
+        return json({
+          ...a,
+          status: id === VIDEO ? state.videoStatus : a.status,
+        });
     }
     if (p === `/api/v1/spaces/${SPACE_ID}/memories` && method === 'POST') {
       const body = request.postDataJSON();
-      state.saved = memory([], body.body);
+      state.bound = (body.attachments ?? []).map(
+        (item: { attachmentId: string }) => item.attachmentId,
+      );
+      state.saved = memory(
+        state.bound.map((id) => ({
+          ...attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE'),
+          status: id === VIDEO ? state.videoStatus : 'READY',
+        })),
+        body.body,
+      );
       state.saved.title = body.title ?? '';
       return json(state.saved, 201);
     }
@@ -589,4 +610,74 @@ test('saved processing survives reload and a later failure remains replaceable w
   expect(state.grants).toBe(0);
   expect(state.originalVideoReads).toBe(0);
   expect(unknown).toEqual([]);
+});
+
+test('an interrupted local journal does not block an atomic save while video bytes are uploading', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  let releaseUpload!: () => void;
+  const uploadGate = new Promise<void>((resolve) => {
+    releaseUpload = resolve;
+  });
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = () => {
+      throw new DOMException(
+        'Fixture storage is unavailable',
+        'QuotaExceededError',
+      );
+    };
+  });
+  const { state, unknown } = await setup(page, { uploadGate });
+  try {
+    await signIn(page);
+    await page.goto('/story/memories/new');
+    await page
+      .getByLabel(de.memory.bodyLabel, { exact: true })
+      .fill(momentBody);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
+    await page.locator('input[type=file]').setInputFiles({
+      name: 'private-video.mp4',
+      mimeType: 'video/mp4',
+      buffer: movie,
+    });
+    await expect.poll(() => state.uploads).toBe(1);
+    await expect(
+      page.getByRole('button', { name: de.memory.save, exact: true }),
+    ).toBeEnabled();
+    await page
+      .getByRole('button', { name: de.memory.save, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp('/memories/' + MEMORY + '$'));
+    expect(state.bound).toEqual([VIDEO]);
+    expect(state.videoStatus).toBe('PENDING');
+    await expect(page.locator('.media-processing-state')).toContainText(
+      videoCopy.uploading,
+    );
+    await expect(page.locator('video')).toHaveCount(0);
+    await page.screenshot({
+      path: info.outputPath('saved-while-uploading-390-light.png'),
+      fullPage: true,
+    });
+    // Real client navigation leaves the admitted transfer alive outside its editor.
+    await page
+      .getByRole('link', { name: de.navigation.story, exact: true })
+      .click();
+    await page.goBack();
+    await expect(page.locator('.media-processing-state')).toContainText(
+      videoCopy.uploading,
+    );
+    releaseUpload();
+    await expect.poll(() => state.videoStatus).toBe('PROCESSING');
+    await expect(page.locator('.media-processing-state')).toContainText(
+      videoCopy.processing,
+    );
+    expect(state.uploads).toBe(1);
+    expect(unknown).toEqual([]);
+  } finally {
+    releaseUpload();
+  }
 });

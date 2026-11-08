@@ -281,8 +281,8 @@ export function HeartMomentProductPage({
     enabled: mode !== 'create' && Boolean(heartMomentId),
     refetchInterval: (query) =>
       !query.state.error &&
-      (query.state.data?.value.attachments ?? []).some(
-        (item) => item.status === 'PROCESSING',
+      (query.state.data?.value.attachments ?? []).some((item) =>
+        ['PENDING', 'PROCESSING'].includes(item.status),
       )
         ? 2500
         : false,

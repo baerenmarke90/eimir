@@ -9,6 +9,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
@@ -198,6 +199,19 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       state.saved = {
         ...memory(MEMORY, payload.title, payload.happenedOn),
         body: payload.body,
+        attachments: (payload.attachments ?? []).map(
+          (entry: {
+            attachmentId: string;
+            position: number;
+            isSensitive?: boolean;
+          }) => ({
+            ...attachment,
+            id: entry.attachmentId,
+            position: entry.position,
+            isSensitive: entry.isSensitive ?? false,
+          }),
+        ),
+        selectedCoverAttachmentId: payload.selectedCoverAttachmentId ?? null,
       };
       // Model a committed write followed by a lost response. The browser must
       // not assume that another POST is safe merely because fetch rejected.
@@ -534,7 +548,7 @@ test('content and photo save opens the confirmed canonical Memory and returns to
     page.getByRole('status').filter({ hasText: taskBoundary.saved }),
   ).toBeVisible();
   expect(api.createRequests).toBe(1);
-  expect(api.bindRequests).toBe(1);
+  expect(api.bindRequests).toBe(0);
   const savedPhoto = page.locator('.media-gallery-thumb-content');
   await expect(savedPhoto).toBeVisible();
   await expect
@@ -607,7 +621,7 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
     )
     .toBeGreaterThan(0);
   expect(api.createRequests).toBe(1);
-  expect(api.bindRequests).toBe(1);
+  expect(api.bindRequests).toBe(0);
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .click();
@@ -780,7 +794,10 @@ test('failed photo binding retries only binding and never creates a second Memor
   await signIn(page);
   await openMemory(page);
   await fillMemory(page, true);
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -956,7 +973,7 @@ test('a verified unknown create continues photo association against the same Mem
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   expect(api.createdMemories).toBe(1);
   expect(api.createRequests).toBe(2);
-  expect(api.bindRequests).toBe(1);
+  expect(api.bindRequests).toBe(0);
   expect(api.unexpected).toEqual([]);
 });
 
@@ -1080,7 +1097,10 @@ test('a committed photo bind with a lost response reconciles without another wri
   await signIn(page);
   await openMemory(page);
   await fillMemory(page, true);
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -1100,7 +1120,10 @@ test('a partial result can open the known Memory with its photo warning', async 
   await signIn(page);
   await openMemory(page);
   await fillMemory(page, true);
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();

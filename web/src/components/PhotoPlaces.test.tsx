@@ -104,9 +104,7 @@ it('opens a map only as an explicit link and requires deliberate unlink confirma
     }),
   );
   const map = await screen.findByRole('link', { name: photoPlaceCopy.maps });
-  expect(map.getAttribute('href')).toBe(
-    'https://www.google.com/maps/search/?api=1&query=0%2C0',
-  );
+  expect(map.getAttribute('href')).toBe('/story/map?place=0%3A0');
   fireEvent.click(screen.getByRole('button', { name: photoPlaceCopy.remove }));
   expect(unlink).not.toHaveBeenCalled();
   list.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
@@ -151,10 +149,10 @@ it('shows the resolved address as a direct coordinate map link before opening an
   });
   expect(address.textContent).toBe(place.address);
   expect(address.getAttribute('href')).toBe(
-    'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
+    '/story/map?place=52.516667%3A13.4',
   );
-  expect(address.getAttribute('target')).toBe('_blank');
-  expect(address.getAttribute('referrerpolicy')).toBe('no-referrer');
+  expect(address.getAttribute('target')).toBeNull();
+  expect(address.getAttribute('referrerpolicy')).toBeNull();
   expect(screen.getByText(place.name).tagName).toBe('STRONG');
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(

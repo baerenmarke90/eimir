@@ -46,6 +46,14 @@
   margin-inline-start: auto;
 }
 
+.shared-content-page > .content-overview-heading {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.shared-content-page > .content-overview-heading .page-heading-action {
+  margin-inline-start: 0;
+}
+
 .shared-content-page .planning-subsection,
 .shared-content-page .planning-danger-zone {
   display: grid;
@@ -275,6 +283,9 @@
   background: transparent;
   box-shadow: none;
   border: 0;
+}
+.shared-content-page .planning-relation-target:hover {
+  color: var(--color-link-text);
 }
 .shared-content-page .layout-section-head {
   flex-direction: row;

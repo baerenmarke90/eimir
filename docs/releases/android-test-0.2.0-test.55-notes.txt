@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.55
+
+- Lists: "Liste hinzufügen" now sits at the left below the page title.
+- Places: "Ort hinzufügen" now sits at the left below the title and above the lifecycle filters.
+- Both actions retain the shared filled blue pill, plus icon and visible label, including narrow layouts and large text.
+- Linked moments in Places retain readable hover text in Dark.
+- Includes main 6d1c61d7 (#1700), previous test.54 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.54; increasing versionCode 55. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

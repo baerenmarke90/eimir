@@ -200,6 +200,7 @@ export function PlacesOverviewPage({
   return (
     <div className="page shared-content-page">
       <PageHeader
+        className="content-overview-heading"
         title={t('m5s3.place.heading')}
         action={
           <AddActionButton

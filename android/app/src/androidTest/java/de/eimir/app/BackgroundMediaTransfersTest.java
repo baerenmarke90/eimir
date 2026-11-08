@@ -115,7 +115,7 @@ public class BackgroundMediaTransfersTest {
             assertEquals(id, job.getExtras().getString("attachmentId"));
         }
     }
-    @Test public void stagingRejectsInvalidSizesFromTheWebBridgeWithoutRetainingBytes() throws Exception {
+    @Test public void stagingRejectsInvalidWebSelectionsAndChangedOwner() throws Exception {
         session(account);
         String name = selection(128 * 1024);
         Object[] invalid = {null, JSONObject.NULL, "131072", 0, -1, 1.5,
@@ -129,9 +129,6 @@ public class BackgroundMediaTransfersTest {
                 assertEquals(0, BackgroundMediaTransfers.list(context, instance, account, space).length());
             }
         }
-    }
-    @Test public void stagingRejectsUnselectedBytesAndChangedOwner() throws Exception {
-        session(account); String name = selection(128 * 1024);
         try { stage("eimir-selected-" + UUID.randomUUID() + ".mp4"); fail("An opaque name is not a selected-file grant"); }
         catch (java.io.FileNotFoundException expected) { assertFalse(BackgroundMediaTransfers.source(context, id).exists()); }
         session(UUID.randomUUID().toString());

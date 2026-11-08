@@ -5,6 +5,7 @@ import de from '../../src/i18n/locales/de';
 import photoSources from '../../src/i18n/locales/photoSources';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyCopy from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
@@ -764,7 +765,7 @@ for (const [width, colorScheme] of [
         .getByRole('button', { name: photoSources.addMedia, exact: true })
         .click();
       await page.locator('input[type=file]').setInputFiles({
-        name: 'eimir-selected-32af906e-6c29-433e-aaca-e426a6762572.mp4',
+        name: `eimir-selected-${VIDEO}.mp4`,
         mimeType: 'video/mp4',
         buffer: movie,
       });
@@ -783,6 +784,9 @@ for (const [width, colorScheme] of [
       await expect(
         page.getByText(de.flow.uploadFailed, { exact: true }),
       ).toHaveCount(0);
+      await expect(
+        page.getByText(taskBoundary.failedPhotos, { exact: true }),
+      ).toBeVisible();
       const save = page.getByRole('button', {
         name: de.memory.save,
         exact: true,

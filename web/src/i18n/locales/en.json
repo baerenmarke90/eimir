@@ -3283,7 +3283,7 @@
     "close": "Close",
     "invalidDate": "Please check the date and choose a valid day, month and year.",
     "pending": "Saving. Please stay here briefly until your moment is confirmed.",
-    "failedPhotos": "A photo is not ready yet. Retry or remove it before saving.",
+    "failedPhotos": "A selected photo or video is not ready yet. Retry its upload or remove it before saving.",
     "offline": "Not saved yet. Your entries stay here. Try again when you are online.",
     "uncertainTitle": "Confirmation is missing",
     "uncertainBody": "Your moment may already be saved. Your entries stay here. We can check whether it was saved without creating a second moment.",

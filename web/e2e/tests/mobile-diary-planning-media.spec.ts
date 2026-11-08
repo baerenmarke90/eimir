@@ -255,7 +255,7 @@ for (const view of [
       })
       .check();
     await page
-      .getByRole('button', { name: copy.common.place, exact: true })
+      .getByRole('button', { name: placeCopy.add, exact: true })
       .click();
     const picker = page.getByRole('dialog');
     await picker.getByLabel(placeCopy.savedSearch).fill('Garten');

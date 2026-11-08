@@ -8,6 +8,7 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { expectLabeledAddAction } from '../support/addAction';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -350,11 +351,17 @@ test('ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishe
   await plansTab.focus();
   await expect(plansTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText(PLAN_TITLE)).toBeVisible();
+  await expectLabeledAddAction(
+    page.getByRole('link', { name: m5s3.overview.addPlan, exact: true }),
+  );
 
   await page.keyboard.press('ArrowRight');
   await expect(wishesTab).toHaveAttribute('aria-selected', 'true');
   await expect(wishesTab).toBeFocused();
   await expect(page.getByText(WISH_TITLE)).toBeVisible();
+  await expectLabeledAddAction(
+    page.getByRole('link', { name: m5s3.overview.addWish, exact: true }),
+  );
 
   await page.keyboard.press('ArrowLeft');
   await expect(plansTab).toHaveAttribute('aria-selected', 'true');

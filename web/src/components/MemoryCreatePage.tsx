@@ -1,3 +1,4 @@
+import { AddActionButton } from './AddAction';
 import { TaskBackButton } from './TaskBackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -964,13 +965,10 @@ export function MemoryCreatePage({
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    className="tertiary"
+                  <AddActionButton
+                    label={t('experiences.addPeriod')}
                     onClick={() => setHappenedUntil(happenedOn || initialDate)}
-                  >
-                    {t('experiences.addPeriod')}
-                  </button>
+                  />
                 )}
                 {invalidDate && happenedUntil && happenedUntil < happenedOn ? (
                   <p role="alert">{t('experiences.invalidPeriod')}</p>

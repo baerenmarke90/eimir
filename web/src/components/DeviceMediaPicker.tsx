@@ -1,11 +1,11 @@
 import { useContext, useRef } from 'react';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
-import { EimirIcon } from './EimirIcon';
+import { AddActionButton } from './AddAction';
 import {
-  VideoUploadAction,
-  type VideoCaptureContext,
   useVideoUploadPolicy,
+  type VideoCaptureContext,
+  VideoUploadAction,
 } from './VideoUploadAction';
 
 const IMAGE_TYPES = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
@@ -97,17 +97,11 @@ function DeviceInput({
           event.currentTarget.value = '';
         }}
       />
-      <button
-        type="button"
-        className="file-picker secondary photo-source-trigger"
+      <AddActionButton
+        label={t('photoSources.addMedia')}
         disabled={disabled}
         onClick={() => input.current?.click()}
-      >
-        <EimirIcon name="foto" />
-        <span>
-          <strong>{t('photoSources.addMedia')}</strong>
-        </span>
-      </button>
+      />
     </div>
   );
 }

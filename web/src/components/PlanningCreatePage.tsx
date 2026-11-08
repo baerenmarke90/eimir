@@ -35,6 +35,7 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 import { PageHeader } from './PageHeader';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { MemoryTagChoices } from './MemoryTagChoices';
@@ -348,12 +349,20 @@ export function PlanningCreatePage({
             <div className="planning-place-choice">
               <button
                 type="button"
-                className="secondary"
+                className={placeId ? 'secondary' : 'add-action'}
+                aria-label={placeId ? undefined : t('photoPlaces.add')}
+                title={placeId ? undefined : t('photoPlaces.add')}
                 onClick={() => setPlaceOpen(true)}
               >
-                <EimirIcon name="orte" />
-                {placesQuery.data?.find((place) => place.id === placeId)
-                  ?.name ?? t('m5s3.common.place')}
+                {placeId ? (
+                  <>
+                    <EimirIcon name="orte" />
+                    {placesQuery.data?.find((place) => place.id === placeId)
+                      ?.name ?? t('m5s3.common.place')}
+                  </>
+                ) : (
+                  <AddActionContent label={t('photoPlaces.add')} />
+                )}
               </button>
               {placeId ? (
                 <button

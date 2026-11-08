@@ -425,29 +425,6 @@
 }
 
 /* R3 — anticipation-first Planning composition. */
-.planen-local-add {
-  display: inline-flex;
-  width: fit-content;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  min-height: 44px;
-  align-items: center;
-  gap: var(--space-2);
-  border-radius: var(--radius-large);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-brand-strong);
-  color: var(--color-on-accent);
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: var(--shadow-soft);
-}
-
-.planen-local-add > span {
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.planen-local-add:focus-visible,
 .planen-next-link:focus-visible,
 .planen-agenda-link:focus-visible,
 .planen-undated-link:focus-visible,

@@ -1,5 +1,3 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useMutation,
@@ -45,12 +43,15 @@ import {
   wishSelectionSourceToken,
 } from '../client/wishSelection';
 import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { PlanningDiscardConfirmation } from './PlanningEditorLifecycle';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './WishSelection.css';
 
@@ -752,9 +753,8 @@ function WishSelectionTask({
                 }}
               />
             </label>
-            <button
-              type="button"
-              className="secondary"
+            <AddActionButton
+              label={t('wishSelection.addIdea')}
               disabled={!newIdea.trim()}
               onClick={() => {
                 clearProblems();
@@ -762,9 +762,7 @@ function WishSelectionTask({
                 if (current)
                   createWish.mutate({ current, title: newIdea.trim() });
               }}
-            >
-              {t('wishSelection.addIdea')}
-            </button>
+            />
             <div className="wish-selection-actions">
               <button
                 type="submit"

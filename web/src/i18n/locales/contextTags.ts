@@ -4,7 +4,7 @@ export default {
   help: 'Beschreibt euren Moment mit euren eigenen Worten.',
   newLabel: 'Eigenen Tag hinzufügen',
   placeholder: 'Zum Beispiel: Unser Urlaub',
-  add: 'Hinzufügen',
+  add: 'Tag hinzufügen',
   suggestions: 'Vorschläge',
   remove: 'Tag „{{tag}}“ entfernen',
   empty: 'Gib deinem Tag einen Namen.',

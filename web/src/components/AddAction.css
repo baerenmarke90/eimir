@@ -1,20 +1,58 @@
 button.add-action,
-a.add-action {
+a.add-action,
+label.add-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: none;
-  inline-size: var(--touch-target-comfortable);
-  block-size: var(--touch-target-comfortable);
+  flex: 0 1 auto;
+  inline-size: fit-content;
+  max-inline-size: 100%;
   min-inline-size: var(--touch-target-comfortable);
   min-block-size: var(--touch-target-comfortable);
-  padding: 0;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
   border-radius: var(--radius-pill);
   background: var(--color-action-primary);
   color: var(--color-on-action-primary);
+  font: var(--font-action-label);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .add-action .button-icon {
   inline-size: var(--icon-size-standard);
   block-size: var(--icon-size-standard);
+  flex: 0 0 var(--icon-size-standard);
+}
+
+.add-action-label {
+  display: grid;
+  min-inline-size: 0;
+}
+
+/* Reserve both captions so submitting cannot move the action or its neighbors. */
+.add-action-label > span,
+.add-action-label[data-pending-label]::before,
+.add-action-label[data-pending-label]::after {
+  grid-area: 1 / 1;
+}
+
+.add-action-label[data-pending-label]::before {
+  content: attr(data-idle-label);
+  visibility: hidden;
+}
+
+.add-action-label[data-pending-label]::after {
+  content: attr(data-pending-label);
+  visibility: hidden;
+}
+
+button.add-action:disabled {
+  background: var(--color-border-subtle);
+  color: var(--color-text-muted);
 }

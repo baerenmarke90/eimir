@@ -1295,6 +1295,7 @@
 
 .today-pinned-list-actions {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
   justify-content: space-between;
@@ -1323,34 +1324,7 @@
 }
 
 .today-pinned-list-add-button {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  flex: 0 0 auto;
-  place-items: center;
   margin-inline-start: auto;
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  padding: 0;
-  background: var(--color-surface-subtle);
-  color: var(--color-text);
-  transition:
-    background var(--duration-feedback) var(--easing-standard),
-    transform var(--duration-feedback) var(--easing-standard);
-}
-
-.today-pinned-list-add-button .button-icon {
-  width: var(--space-5);
-  height: var(--space-5);
-}
-
-.today-pinned-list-add-button:hover {
-  background: var(--color-surface-raised);
-}
-
-.today-pinned-list-add-button:active {
-  transform: scale(0.97);
 }
 
 .today-pinned-list-add-sheet-form,

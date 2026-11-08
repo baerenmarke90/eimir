@@ -24,8 +24,8 @@
     padding: var(--space-2);
   }
 
-  .memory-form button,
-  .memory-form .button-link,
+  .memory-form button:not(.add-action),
+  .memory-form .button-link:not(.add-action),
   .memory-delete-confirmation button {
     padding-inline: var(--space-2);
   }

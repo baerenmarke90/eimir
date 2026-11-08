@@ -7,6 +7,10 @@ import { expect, type Page, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import deFixture from '../fixtures/locales/de';
 import {
+  expectInlineAddLayout,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import {
   ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
@@ -280,14 +284,15 @@ for (const scenario of [
         .analyze();
       expect(axe.violations).toEqual([]);
       if (kind === 'collections') {
-        const field = await page
-          .getByRole('textbox', { name: m5s3.collection.newItem })
-          .boundingBox();
-        const add = await page
-          .getByRole('button', { name: m5s3.collection.addItem, exact: true })
-          .boundingBox();
-        if (!field || !add) throw new Error('Missing add controls');
-        expect(Math.abs(field.y - add.y)).toBeLessThan(16);
+        const field = page.getByRole('textbox', {
+          name: m5s3.collection.newItem,
+        });
+        const add = page.getByRole('button', {
+          name: m5s3.collection.addItem,
+          exact: true,
+        });
+        await expectLabeledAddAction(add);
+        await expectInlineAddLayout(field, add);
         expect(await page.getByRole('textbox').count()).toBe(1);
       } else {
         if (!scenario.large) {

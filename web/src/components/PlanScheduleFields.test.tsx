@@ -1,6 +1,6 @@
 import { i18n } from '../i18n';
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { PlanScheduleFields } from './PlanScheduleFields';
 
@@ -48,7 +48,11 @@ describe('PlanScheduleFields', () => {
 
     fireEvent.change(timeInput, { target: { value: '09:30' } });
     expect(timeInput.disabled).toBe(false);
-    expect(container.textContent).toContain('+ Endzeit hinzufügen');
+    const addEnd = screen.getByRole('button', {
+      name: i18n.t('m5s3.plan.addEndTime'),
+    });
+    expect(addEnd.textContent).toBe(i18n.t('m5s3.plan.addEndTime'));
+    expect(addEnd.querySelector('.eimir-icon-hinzufuegen')).not.toBeNull();
 
     fireEvent.change(dateInput, { target: { value: '' } });
 

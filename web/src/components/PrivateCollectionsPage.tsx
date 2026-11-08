@@ -1,35 +1,36 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { captureCollectionOrder } from '../client/collectionOrder';
-import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
-import { captureQueryIdentity } from '../client/queryIdentity';
-import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
+import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
+import { captureCollectionOrder } from '../client/collectionOrder';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import {
-  PRIVATE_COLLECTIONS_PATH,
   capturePrivateCreate,
   capturePrivateDelete,
   capturePrivateEdit,
+  PRIVATE_COLLECTIONS_PATH,
   privateApiCall,
   privateAreaQueryKeys,
   privateCollectionPath,
 } from '../client/privateArea';
-import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { clientProblemKind } from '../client/problemDetails';
+import { captureQueryIdentity } from '../client/queryIdentity';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
+import { AddActionButton, AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import './SharedPlanningPages.css';
 import {
   PrivateAreaDetailBack,
@@ -37,8 +38,8 @@ import {
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
-import { useTransientFlag } from './useTransientFlag';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
+import { useTransientFlag } from './useTransientFlag';
 
 const PAGE_SIZE = 20;
 
@@ -139,9 +140,10 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.collections.title')}
         description={t('privateArea.collections.intro')}
         action={
-          <Link className="button-link" to={`${PRIVATE_COLLECTIONS_PATH}/new`}>
-            {t('privateArea.collections.add')}
-          </Link>
+          <AddActionLink
+            label={t('privateArea.collections.add')}
+            to={`${PRIVATE_COLLECTIONS_PATH}/new`}
+          />
         }
       />
       {query.isLoading ? (
@@ -780,15 +782,11 @@ function CollectionItems({
             placeholder={t('privateArea.collections.itemTitleLabel')}
             disabled={pending || readBlocked}
           />
-          <ListEntryIconButton
+          <AddActionButton
             type="submit"
-            icon="add"
-            className="list-entry-add-button is-private"
-            label={
-              createMutation.isPending
-                ? t('common.saving')
-                : t('privateArea.collections.addItem')
-            }
+            label={t('privateArea.collections.addItem')}
+            pending={createMutation.isPending}
+            pendingLabel={t('common.saving')}
             disabled={pending || readBlocked}
           />
         </form>

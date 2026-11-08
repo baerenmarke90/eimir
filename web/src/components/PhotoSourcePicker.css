@@ -13,8 +13,7 @@
   width: 100%;
 }
 
-.photo-source-trigger .eimir-icon,
-.media-device-choice .eimir-icon {
+.photo-source-trigger .eimir-icon {
   inline-size: var(--space-6);
   block-size: var(--space-6);
   flex: 0 0 auto;

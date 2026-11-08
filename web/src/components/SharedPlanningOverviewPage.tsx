@@ -30,6 +30,7 @@ import { textExcerpt } from '../client/textExcerpt';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
@@ -648,13 +649,10 @@ export function SharedPlanningOverviewPage({
         labelledBy={plansTabId}
         hidden={activeSegment !== 'plans'}
       >
-        <Link
-          className="planen-local-add"
+        <AddActionLink
+          label={t('m5s3.overview.addPlan')}
           {...planningLinkProps(PLAN_CREATE_ROUTE, 'plans')}
-        >
-          <span aria-hidden="true">+</span>
-          {t('m5s3.overview.addPlan')}
-        </Link>
+        />
         <PlanningSearch
           kind="plans"
           value={planSearch}
@@ -812,13 +810,10 @@ export function SharedPlanningOverviewPage({
         labelledBy={wishesTabId}
         hidden={activeSegment !== 'wishes'}
       >
-        <Link
-          className="planen-local-add"
+        <AddActionLink
+          label={t('m5s3.overview.addWish')}
           {...planningLinkProps(WISH_CREATE_ROUTE, 'wishes')}
-        >
-          <span aria-hidden="true">+</span>
-          {t('m5s3.overview.addWish')}
-        </Link>
+        />
         <PlanningSearch
           kind="wishes"
           value={wishSearch}

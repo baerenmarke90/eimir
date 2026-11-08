@@ -76,3 +76,29 @@ accessible icon/text contract rather than looking for a text plus character.
 
 No API, schema, authorization, draft/storage, request, subscription or commercial
 boundary changes. No dependency, provider, native wrapper or release change.
+
+## PO follow-up: overview action placement (2026-11-08)
+
+Baseline main: `04d625cc68bc960c92b990fa6c3a75fe534f32d6` (#1698).
+The Product Owner's current Lists and Places screenshots require the existing
+add action to sit at the left content edge below the page title, before filters
+and content. This is a bounded placement correction to existing controls; the
+supplied screenshots and explicit instruction define the result, with no new
+feature or alternative visual composition.
+
+Reuse `PageHeader`, `AddActionButton` and existing spacing tokens. Scope the
+stacked heading layout to these two overviews, including Expanded, so detail
+headings retain their existing composition. R5 utility, the existing Places and
+Lists interaction contract and the labeled-pill contract above still apply.
+Keep native button/ref/focus ownership, create sheets, protected drafts,
+save/result/return, loading/empty/error/offline states, shared privacy and all
+existing feedback/reduced-motion behavior. No extra typing, romantic microcopy,
+decoration or motion is appropriate for this utility alignment correction.
+
+No business/freemium impact: basic Place CRUD remains the Free side of Mixed,
+and shared Collections/Checklists remain Free/Core in Cloud and Self-Hosted.
+No entitlement, cost, quota, storage, data or downgrade change. No dependency,
+provider, API or native-wrapper change. Validate the existing browser overview
+and creation journeys, left alignment below both titles, filter order, narrow
+and large-text reflow, Light/Dark and Expanded; retain the existing inventory
+and impact-selection ownership.

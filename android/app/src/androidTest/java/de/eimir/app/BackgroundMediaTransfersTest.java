@@ -20,6 +20,8 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.Until;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.PluginCall;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -77,7 +79,14 @@ public class BackgroundMediaTransfersTest {
         }
     }
     private BackgroundMediaTransfers.Record stage(String sourceName) throws Exception {
-        return BackgroundMediaTransfers.stage(context, instance, account, space, id, sourceName, selected.length(), "video/mp4");
+        return BackgroundMediaUploadsPlugin.stageSelection(context, selectionCall(sourceName, selected.length()));
+    }
+    private PluginCall selectionCall(String sourceName, Object size) throws Exception {
+        JSONObject data = new JSONObject().put("instance", instance).put("accountId", account)
+            .put("spaceId", space).put("attachmentId", id).put("sourceName", sourceName)
+            .put("size", size).put("mimeType", "video/mp4");
+        // Parse the serialized payload just as Capacitor's Web message handler does.
+        return new PluginCall(null, "BackgroundMediaUploads", "fixture", "enqueue", new JSObject(data.toString()));
     }
     @After public void cleanup() throws Exception {
         BackgroundMediaTransfers.cancel(context, id);
@@ -104,6 +113,21 @@ public class BackgroundMediaTransfersTest {
             assertTrue(job.isUserInitiated()); assertNotNull(job.getRequiredNetwork());
             assertEquals(selected.length(), job.getEstimatedNetworkUploadBytes());
             assertEquals(id, job.getExtras().getString("attachmentId"));
+        }
+    }
+    @Test public void stagingRejectsInvalidSizesFromTheWebBridgeWithoutRetainingBytes() throws Exception {
+        session(account);
+        String name = selection(128 * 1024);
+        Object[] invalid = {null, JSONObject.NULL, "131072", 0, -1, 1.5,
+            BackgroundMediaTransfers.MAX_FILE + 1, Long.MAX_VALUE};
+        for (Object size : invalid) {
+            try {
+                BackgroundMediaUploadsPlugin.stageSelection(context, selectionCall(name, size));
+                fail("Invalid bridge size must not be staged: " + size);
+            } catch (java.io.IOException expected) {
+                assertFalse(BackgroundMediaTransfers.source(context, id).exists());
+                assertEquals(0, BackgroundMediaTransfers.list(context, instance, account, space).length());
+            }
         }
     }
     @Test public void stagingRejectsUnselectedBytesAndChangedOwner() throws Exception {

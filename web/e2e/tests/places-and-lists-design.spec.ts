@@ -1,23 +1,23 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import de from '../../src/i18n/locales/de';
-import navigation from '../../src/i18n/locales/navigation';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import navigation from '../../src/i18n/locales/navigation';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixture from '../fixtures/locales/de';
 import {
   expectInlineAddLayout,
   expectLabeledAddAction,
 } from '../support/addAction';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
   installMocks,
   ME,
-  signIn,
   SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 test.setTimeout(60_000);
@@ -221,6 +221,25 @@ async function openOverview(page: Page, kind: 'places' | 'collections') {
     kind === 'places' ? m5s3.place.heading : m5s3.collection.overviewHeading,
   );
   await expect(page.locator('.content-overview-row').first()).toBeVisible();
+  const action = page.getByRole('button', {
+    name: kind === 'places' ? m5s3.place.create : m5s3.collection.create,
+    exact: true,
+  });
+  await expectLabeledAddAction(action);
+  const [heading, control, content] = await Promise.all([
+    page.locator('h1').boundingBox(),
+    action.boundingBox(),
+    page
+      .locator(
+        kind === 'places' ? '.planen-status-scope' : '.content-overview-list',
+      )
+      .boundingBox(),
+  ]);
+  if (!heading || !control || !content)
+    throw new Error('Overview heading, add action and content must be visible');
+  expect(control.x).toBeCloseTo(heading.x, 0);
+  expect(control.y).toBeGreaterThanOrEqual(heading.y + heading.height);
+  expect(control.y + control.height).toBeLessThanOrEqual(content.y);
 }
 
 for (const scenario of [
@@ -250,7 +269,11 @@ for (const scenario of [
     for (const kind of ['places', 'collections'] as const) {
       await openOverview(page, kind);
       const suffix = `${scenario.width}-${scenario.theme}${scenario.large ? '-large' : ''}${scenario.dense ? '-dense' : ''}`;
-      await captureScreenshot(page, testInfo, `${kind}-overview-${suffix}.png`);
+      await captureScreenshot(
+        page,
+        testInfo,
+        `planning-${kind}-overview-${suffix}.png`,
+      );
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,

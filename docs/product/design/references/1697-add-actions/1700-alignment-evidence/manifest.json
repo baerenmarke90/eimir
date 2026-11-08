@@ -1,0 +1,71 @@
+{
+  "source": "3092f971cf178b6e9c8f08bf2d211116f95b77cc",
+  "sourceTree": "3abbcbe6c9e2ffecd4589c3402256006f6caa492",
+  "baseline": "04d625cc68bc960c92b990fa6c3a75fe534f32d6",
+  "testedMerge": "52cbdc7664248799cf44a6dc76ca7808fbdd3a7d",
+  "workflowRun": 42497972028,
+  "artifactId": 13624441559,
+  "artifactSha256": "edc8ad8b7661e7af37971907a2134a33c42bbba5f487757b8f0b068b0bcb6b93",
+  "files": [
+    {
+      "file": "planning-collections-overview-390-light-large.png",
+      "artifactPath": "places-and-lists-design-co-7e282-ight-dense-false-large-true-chromium/planning-collections-overview-390-light-large.png",
+      "sha256": "924c42f58383da16a0290945c31f8813bb36d5eb2142ee13f874cdc5a4386b2d"
+    },
+    {
+      "file": "planning-places-overview-390-light-large.png",
+      "artifactPath": "places-and-lists-design-co-7e282-ight-dense-false-large-true-chromium/planning-places-overview-390-light-large.png",
+      "sha256": "208889adff99bf8c8b9aa0cedd045c2434ba92c211fdb735041f6e2353f3946c"
+    },
+    {
+      "file": "planning-collections-overview-390-dark.png",
+      "artifactPath": "places-and-lists-design-co-8e350-ark-dense-false-large-false-chromium/planning-collections-overview-390-dark.png",
+      "sha256": "62699940d5a6132c47e794e5f68fd6fcb59a77c295a895214d432f41eb503078"
+    },
+    {
+      "file": "planning-places-overview-390-dark.png",
+      "artifactPath": "places-and-lists-design-co-8e350-ark-dense-false-large-false-chromium/planning-places-overview-390-dark.png",
+      "sha256": "9b7936f427c4716060891f2e9ea8b326051d42fab4075fe228710e061dead844"
+    },
+    {
+      "file": "planning-collections-overview-360-light.png",
+      "artifactPath": "places-and-lists-design-co-95228-ght-dense-false-large-false-chromium/planning-collections-overview-360-light.png",
+      "sha256": "44716be106d2dccccbe1b257e0412f7c3db77b6c82eabace3ac01949e3461f87"
+    },
+    {
+      "file": "planning-places-overview-360-light.png",
+      "artifactPath": "places-and-lists-design-co-95228-ght-dense-false-large-false-chromium/planning-places-overview-360-light.png",
+      "sha256": "3247e5b21019e7f90826691ecaf791d9ab66168cde93a0d0c771e7f6d85566ba"
+    },
+    {
+      "file": "planning-collections-overview-1280-dark.png",
+      "artifactPath": "places-and-lists-design-co-e59dc-ark-dense-false-large-false-chromium/planning-collections-overview-1280-dark.png",
+      "sha256": "e303864723f3bdebc0727dd283a2af1a3d7a4cdb7d6be14a2f36bb1c0b67684e"
+    },
+    {
+      "file": "planning-places-overview-1280-dark.png",
+      "artifactPath": "places-and-lists-design-co-e59dc-ark-dense-false-large-false-chromium/planning-places-overview-1280-dark.png",
+      "sha256": "568ea60bba9c33531b56e52bf6f0cc9fd6c93c15be9f05fe7c55d0848203b3ae"
+    },
+    {
+      "file": "planning-places-overview-390-dark-dense.png",
+      "artifactPath": "places-and-lists-design-co-ed2f9-dark-dense-true-large-false-chromium/planning-places-overview-390-dark-dense.png",
+      "sha256": "9b7936f427c4716060891f2e9ea8b326051d42fab4075fe228710e061dead844"
+    },
+    {
+      "file": "planning-collections-overview-430-light.png",
+      "artifactPath": "places-and-lists-design-co-f033b-ght-dense-false-large-false-chromium/planning-collections-overview-430-light.png",
+      "sha256": "4533b3056cf924deb0fa56a461d99d38259fd1280a9a1d20f2d3936396b86942"
+    },
+    {
+      "file": "planning-collections-overview-390-dark-dense.png",
+      "artifactPath": "places-and-lists-design-co-ed2f9-dark-dense-true-large-false-chromium/planning-collections-overview-390-dark-dense.png",
+      "sha256": "31460de02bd77b3cf806a52a686687fb673bafcabbbc281542909e6f03386a69"
+    },
+    {
+      "file": "planning-places-overview-430-light.png",
+      "artifactPath": "places-and-lists-design-co-f033b-ght-dense-false-large-false-chromium/planning-places-overview-430-light.png",
+      "sha256": "87130f7345decf60ad54fb36e67d6507fe6bad5320d5ae84f5706749c1f77a44"
+    }
+  ]
+}

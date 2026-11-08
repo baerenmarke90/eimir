@@ -383,8 +383,8 @@
   }
 
   .layout-section-action,
-  .layout-section-action > .button-link,
-  .layout-section-action > button {
+  .layout-section-action > .button-link:not(.add-action),
+  .layout-section-action > button:not(.add-action) {
     width: 100%;
   }
 

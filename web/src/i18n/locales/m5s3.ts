@@ -146,7 +146,7 @@ const m5s3 = {
       'Ohne Uhrzeit bleibt der ausgewählte Tag genau so bestehen.',
     plannedStart: "Wann geht's los?",
     plannedEnd: 'Bis wann?',
-    addEndTime: '+ Endzeit hinzufügen',
+    addEndTime: 'Endzeit hinzufügen',
     removeEndTime: 'Endzeit entfernen',
     endTime: 'Endzeit',
     endsAnotherDay: 'Endet an einem anderen Tag',
@@ -412,7 +412,7 @@ const m5s3 = {
       'Gemeinsam ergänzen, abhaken und in die Reihenfolge bringen, die für euch passt.',
     newItem: 'Neuer Listeneintrag',
     newItemPlaceholder: 'Neuen Eintrag hinzufügen',
-    addItem: 'Hinzufügen',
+    addItem: 'Eintrag hinzufügen',
     itemTitle: 'Titel des Eintrags',
     itemsEmpty:
       'Noch nichts auf dieser Liste. Fügt den ersten gemeinsamen Eintrag hinzu.',

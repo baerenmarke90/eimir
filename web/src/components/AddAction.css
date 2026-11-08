@@ -1,20 +1,40 @@
 button.add-action,
-a.add-action {
+a.add-action,
+label.add-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: none;
-  inline-size: var(--touch-target-comfortable);
-  block-size: var(--touch-target-comfortable);
+  flex: 0 1 auto;
+  inline-size: fit-content;
+  max-inline-size: 100%;
   min-inline-size: var(--touch-target-comfortable);
   min-block-size: var(--touch-target-comfortable);
-  padding: 0;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
   border-radius: var(--radius-pill);
   background: var(--color-action-primary);
   color: var(--color-on-action-primary);
+  font: var(--font-action-label);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .add-action .button-icon {
   inline-size: var(--icon-size-standard);
   block-size: var(--icon-size-standard);
+  flex: 0 0 var(--icon-size-standard);
+}
+
+.add-action-label {
+  min-inline-size: 0;
+}
+
+button.add-action:disabled {
+  background: var(--color-border-subtle);
+  color: var(--color-text-muted);
 }

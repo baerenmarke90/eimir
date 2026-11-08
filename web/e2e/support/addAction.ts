@@ -1,7 +1,7 @@
 import { expect, type Locator } from '@playwright/test';
 
 /** Rendered geometry catches local surface overrides that component tests miss. */
-export async function expectCircularAddAction(action: Locator) {
+export async function expectLabeledAddAction(action: Locator) {
   await expect(action).toBeVisible();
   const appearance = await action.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -18,13 +18,17 @@ export async function expectCircularAddAction(action: Locator) {
       expected,
       label: element.getAttribute('aria-label'),
       title: element.getAttribute('title'),
+      text: element.querySelector('.add-action-label')?.textContent,
     };
   });
   expect(appearance.width).toBeGreaterThanOrEqual(48);
-  expect(appearance.height).toBe(appearance.width);
-  expect(appearance.radius).toBeGreaterThanOrEqual(appearance.width / 2);
+  expect(appearance.height).toBeGreaterThanOrEqual(48);
+  expect(appearance.width).toBeGreaterThan(appearance.height);
+  expect(appearance.radius).toBeGreaterThanOrEqual(appearance.height / 2);
   expect(appearance.background).toBe(appearance.expected);
   expect(appearance.label).toBeTruthy();
   expect(appearance.title).toBe(appearance.label);
+  expect(appearance.text).toBe(appearance.label);
+  await expect(action.locator('.add-action-label')).toBeVisible();
   await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
 }

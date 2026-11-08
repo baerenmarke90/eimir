@@ -1,3 +1,4 @@
+import { expectLabeledAddAction } from '../support/addAction';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -271,7 +272,7 @@ test('local creation reflows accessibly in Compact and Expanded, Light/Dark and 
     await expect(page.locator('.story-timeline').first()).toBeVisible();
     await captureScreenshot(page, info, `moments-local-${width}-${theme}.png`);
     const trigger = page.getByRole('button', { name: de.story.addMoment });
-    expect((await trigger.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    await expectLabeledAddAction(trigger);
     await trigger.click();
     const sheet = page.getByRole('dialog', { name: de.story.addMoment });
     await expect(sheet.getByRole('link').first()).toBeFocused();

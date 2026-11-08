@@ -1,4 +1,3 @@
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useQuery,
@@ -6,25 +5,27 @@ import {
 } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { GamesApi } from '../api/generated/apis/GamesApi';
-import type { CoupleExperienceQuestions } from '../api/generated/models/CoupleExperienceQuestions';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import { GamesApi } from '../api/generated/apis/GamesApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
+import type { CoupleExperienceQuestions } from '../api/generated/models/CoupleExperienceQuestions';
+import { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import type { MemoryPage } from '../api/generated/models/MemoryPage';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
-import { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import { Configuration } from '../client/apiConfiguration';
 import { isCoupleExperiencePromptId } from '../client/coupleExperiencePrompts';
 import { loadGameParticipants } from '../client/gameParticipants';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   HAPPINESS_ROUTE,
-  TIME_TRAVEL_ROUTE,
   memoryDetailPath,
+  TIME_TRAVEL_ROUTE,
 } from '../client/routes';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { resolvedLocale, useTranslation } from '../i18n';
 import experienceCopy from '../i18n/locales/coupleExperiences';
+import { AddActionContent } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { ExperienceAnswers } from './ExperienceAnswers';
 import { MemoryCreatePage } from './MemoryCreatePage';
 import { PageHeader } from './PageHeader';
@@ -293,10 +294,10 @@ export function CoupleExperiencePage({
             )}
           </section>
           <TaskOriginLink
-            className="button-link experience-create-action"
+            className="button-link add-action experience-create-action"
             to={`${route}/new`}
           >
-            {t(`coupleExperiences.create.${kind}`)}
+            <AddActionContent label={t(`coupleExperiences.create.${kind}`)} />
           </TaskOriginLink>
         </>
       )}

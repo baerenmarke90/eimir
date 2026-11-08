@@ -1,5 +1,3 @@
-import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
-import { AutoLoadMore } from './AutoLoadMore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
@@ -25,14 +23,17 @@ import {
 import { captureQueryIdentity } from '../client/queryIdentity';
 import { placeDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { AddActionButton } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
+import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
 import { ProblemState } from './ProblemState';
 import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
 import type { ShortTaskSheetHandle } from './ShortTaskSheet';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { StatusScope } from './StatusScope';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
@@ -201,17 +202,15 @@ export function PlacesOverviewPage({
       <PageHeader
         title={t('m5s3.place.heading')}
         action={
-          <button
+          <AddActionButton
+            label={t('m5s3.place.create')}
             ref={createActionRef}
             id="place-name"
-            type="button"
             onClick={() => {
               createPlace.reset();
               setCreateOpen(true);
             }}
-          >
-            <AddIcon /> {t('m5s3.place.create')}
-          </button>
+          />
         }
       />
 

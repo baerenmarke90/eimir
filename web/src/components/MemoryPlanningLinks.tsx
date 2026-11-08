@@ -1,26 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MemoryPlanningRelationsApi } from '../api/generated/apis/MemoryPlanningRelationsApi';
 import { Configuration } from '../client/apiConfiguration';
-import { createSharedPlanningApis } from '../client/sharedPlanning';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { planDetailPath, wishDetailPath } from '../client/routes';
+import { createSharedPlanningApis } from '../client/sharedPlanning';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { sortByProductLabel } from '../client/productLabelOrder';
-import { TodayDestinationLink } from './TodayDestinationLink';
-import { ShortTaskSheet } from './ShortTaskSheet';
-import { ProblemState } from './ProblemState';
+import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
+import { ProblemState } from './ProblemState';
+import { ShortTaskSheet } from './ShortTaskSheet';
+import { TodayDestinationLink } from './TodayDestinationLink';
 import './MemoryPlanningLinks.css';
 
 type Kind = 'plans' | 'wishes';
@@ -241,14 +242,11 @@ function ScopedMemoryPlanningLinks({
         </>
       ) : null}
       {canManage && editing ? (
-        <button
-          type="button"
-          className="tertiary"
+        <AddActionButton
+          label={t('memoryProduct.planning.add')}
           disabled={offline || linked.isLoading || denied || mutation.isPending}
           onClick={() => setOpen(true)}
-        >
-          {t('memoryProduct.planning.add')}
-        </button>
+        />
       ) : null}
       {linked.error && canManage ? (
         <ProblemState

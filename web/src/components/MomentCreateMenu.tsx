@@ -7,7 +7,7 @@ import {
 } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
-import { DestinationIcon } from './DestinationIcon';
+import { AddActionButton } from './AddAction';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MomentCreateMenu.css';
@@ -35,19 +35,15 @@ export function MomentCreateMenu() {
 
   return (
     <div className="moment-create">
-      <button
+      <AddActionButton
         ref={triggerRef}
-        type="button"
-        className="button secondary moment-create-trigger"
+        label={t('story.addMoment')}
         data-task-item-key="moment-create"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(true)}
-      >
-        <DestinationIcon icon="add" />
-        {t('story.addMoment')}
-      </button>
+      />
       <ShortTaskSheet
         ref={sheetRef}
         id={id}

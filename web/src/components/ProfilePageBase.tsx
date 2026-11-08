@@ -1,4 +1,3 @@
-import { NativeDateInput } from './NativeDateField';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -37,7 +36,9 @@ import {
 } from '../client/relationshipPreview';
 import { settingsCategoryPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { AddActionButton } from './AddAction';
+import { DestinationIcon } from './DestinationIcon';
+import { NativeDateInput } from './NativeDateField';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -769,9 +770,8 @@ export function PreferenceManager({
           <h2 id={`profile-manager-${visibility}`}>{title}</h2>
           {intro ? <p className="profile-section-intro">{intro}</p> : null}
         </div>
-        <button
-          type="button"
-          className="secondary compact-action"
+        <AddActionButton
+          label={triggerButtonLabel}
           onClick={(e) => {
             triggerElementRef.current = e.currentTarget;
             setEditing(null);
@@ -779,10 +779,7 @@ export function PreferenceManager({
             saveMutation.reset();
             deleteMutation.reset();
           }}
-        >
-          <AddIcon />
-          <span>{triggerButtonLabel}</span>
-        </button>
+        />
       </div>
 
       {savedMessage ? (

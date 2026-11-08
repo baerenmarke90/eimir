@@ -3,7 +3,17 @@ import { Link } from 'react-router-dom';
 import { AddIcon } from './DestinationIcon';
 import './AddAction.css';
 
-/** One product-sized add affordance; the consumer owns its action and name. */
+/** Shared content also supports existing task-origin links and file labels. */
+export function AddActionContent({ label }: { label: string }) {
+  return (
+    <>
+      <AddIcon />
+      <span className="add-action-label">{label}</span>
+    </>
+  );
+}
+
+/** One labeled add affordance; the consumer owns its action and name. */
 export function AddActionButton({
   label,
   className = '',
@@ -19,7 +29,7 @@ export function AddActionButton({
       aria-label={label}
       title={label}
     >
-      <AddIcon />
+      <AddActionContent label={label} />
     </button>
   );
 }
@@ -27,18 +37,19 @@ export function AddActionButton({
 /** Keep navigation, modified clicks, state and focus as native link behavior. */
 export function AddActionLink({
   label,
+  className = '',
   ...props
-}: Omit<ComponentProps<typeof Link>, 'children' | 'className'> & {
+}: Omit<ComponentProps<typeof Link>, 'children'> & {
   label: string;
 }) {
   return (
     <Link
       {...props}
-      className="button-link add-action"
+      className={`button-link add-action ${className}`}
       aria-label={label}
       title={label}
     >
-      <AddIcon />
+      <AddActionContent label={label} />
     </Link>
   );
 }

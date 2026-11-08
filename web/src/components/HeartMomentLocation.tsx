@@ -4,6 +4,7 @@ import type { HeartMomentLocation } from '../api/generated/models/HeartMomentLoc
 import { Configuration } from '../client/apiConfiguration';
 import { photoPlaceMapUrl } from '../client/photoPlaces';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 import { EimirIcon } from './EimirIcon';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -67,13 +68,19 @@ export function HeartMomentLocationField({
       <button
         ref={trigger}
         type="button"
-        className="secondary moment-place-add"
+        className={value ? 'secondary moment-place-add' : 'add-action'}
         aria-haspopup="dialog"
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
-        <EimirIcon name="orte" />
-        <span>{value?.name ?? t('photoPlaces.add')}</span>
+        {value ? (
+          <>
+            <EimirIcon name="orte" />
+            <span>{value.name}</span>
+          </>
+        ) : (
+          <AddActionContent label={t('photoPlaces.add')} />
+        )}
       </button>
       {value ? (
         <button

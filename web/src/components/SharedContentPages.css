@@ -28,7 +28,7 @@
 }
 .shared-content-page .page-heading-title-container {
   margin: 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: flex-start;
 }
 .shared-content-page .page-heading h1 {
@@ -188,8 +188,7 @@
 }
 .shared-content-page .planning-inline-create input {
   min-width: 0;
-  flex: 1 1 0;
-  width: 0;
+  flex: 1 1 10rem;
 }
 .shared-list-items > li {
   display: flex;
@@ -322,11 +321,4 @@
 .shared-content-sheet button.secondary {
   background: var(--color-surface);
   color: var(--color-text);
-}
-
-.shared-content-page button.list-entry-icon-button.list-entry-add-button,
-.shared-content-page
-  button.list-entry-icon-button.list-entry-add-button:hover:not(:disabled) {
-  background: var(--color-brand-strong);
-  color: var(--color-on-accent);
 }

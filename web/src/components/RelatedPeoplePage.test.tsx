@@ -17,6 +17,7 @@ import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import people from '../i18n/locales/people';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import {
   DeleteRelatedPersonDialogContent,
   RelatedPeoplePage,
@@ -304,6 +305,57 @@ describe('shared People profiles and focused tasks', () => {
       '1995-05-12',
     );
   });
+
+  it('saves a concrete relationship and a plain-text note in the actual profile', async () => {
+    const { api } = fixture();
+    await create();
+    fireEvent.change(screen.getByLabelText(people.nameLabel), {
+      target: { value: 'Emma' },
+    });
+    fireEvent.change(screen.getByLabelText(people.relationshipLabel), {
+      target: { value: PersonRelationship.DAUGHTER },
+    });
+    const note = '<b>Likes the sea.</b>\nRemember the cake.';
+    fireEvent.change(screen.getByLabelText(people.noteLabel), {
+      target: { value: note },
+    });
+    await save();
+    await screen.findByRole('heading', { name: 'Emma' });
+    expect(screen.getByText(people.relationship.DAUGHTER)).toBeDefined();
+    const reader = screen.getByRole('heading', {
+      name: people.noteTitle,
+    }).parentElement;
+    expect(reader?.textContent).toContain(note);
+    expect(reader?.querySelector('b')).toBeNull();
+    expect(
+      api.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost.mock
+        .calls[0][0].relatedPersonFields,
+    ).toMatchObject({ note, relationship: PersonRelationship.DAUGHTER });
+    await editProfile();
+    expect(
+      (screen.getByLabelText(people.noteLabel) as HTMLTextAreaElement).value,
+    ).toBe(note);
+  });
+
+  it('retains a legacy relationship and guards a note-only dirty draft', async () => {
+    const legacy = { ...person, relationship: PersonRelationship.SIBLING };
+    fixture([legacy]);
+    await openProfile();
+    await editProfile();
+    expect(
+      (screen.getByLabelText(people.relationshipLabel) as HTMLSelectElement)
+        .value,
+    ).toBe(PersonRelationship.SIBLING);
+    fireEvent.change(screen.getByLabelText(people.noteLabel), {
+      target: { value: 'A note-only change' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: taskBoundary.back }));
+    expect(screen.getByText(people.discardTitle)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: people.keepEditing }));
+    expect(
+      (screen.getByLabelText(people.noteLabel) as HTMLTextAreaElement).value,
+    ).toBe('A note-only change');
+  });
   it('keeps dashboard opt-in conditional and persists deliberate enabling', async () => {
     const { api } = fixture();
     await create();
@@ -380,6 +432,9 @@ describe('shared People profiles and focused tasks', () => {
     fireEvent.change(screen.getByLabelText(people.nameLabel), {
       target: { value: 'Retained name' },
     });
+    fireEvent.change(screen.getByLabelText(people.noteLabel), {
+      target: { value: 'Retained note' },
+    });
     await save();
     await waitFor(() =>
       expect(
@@ -389,6 +444,9 @@ describe('shared People profiles and focused tasks', () => {
     expect(
       (screen.getByLabelText(people.nameLabel) as HTMLInputElement).value,
     ).toBe('Retained name');
+    expect(
+      (screen.getByLabelText(people.noteLabel) as HTMLTextAreaElement).value,
+    ).toBe('Retained note');
     expect(
       api.createRelatedPersonApiV1SpacesSpaceIdRelatedPersonsPost,
     ).not.toHaveBeenCalled();

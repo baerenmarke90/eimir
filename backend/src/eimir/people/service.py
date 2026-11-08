@@ -198,6 +198,7 @@ def create_person(
     visibility: ContentVisibility,
     show_birthday_on_dashboard: bool = False,
     avatar_attachment_id: UUID | None = None,
+    note: str | None = None,
 ) -> RelatedPerson:
     _require_shared_person(visibility)
     normalized_birthday = normalize_birthday(birthday, year_known=birthday_year_known)
@@ -213,7 +214,8 @@ def create_person(
         birthday_year_known=birthday_year_known,
         show_birthday_on_dashboard=show_birthday_on_dashboard,
         payload=RelatedPersonPayload(
-            display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED)
+            display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED),
+            note=(note or "").strip(),
         ),
     )
     if avatar_attachment_id is not None:
@@ -237,6 +239,7 @@ def update_person(
     visibility: ContentVisibility,
     show_birthday_on_dashboard: bool = False,
     avatar_attachment_id: UUID | None = None,
+    note: str | None = None,
 ) -> RelatedPerson:
     person = require_writable_locked(session, RelatedPerson, context, person_id)
     _ensure_expected_version(person.version, expected_version, "related person")
@@ -255,7 +258,8 @@ def update_person(
     person.birthday_year_known = birthday_year_known
     person.show_birthday_on_dashboard = show_birthday_on_dashboard
     person.payload = RelatedPersonPayload(
-        display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED)
+        display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED),
+        note=person.payload.note if note is None else note.strip(),
     )
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)

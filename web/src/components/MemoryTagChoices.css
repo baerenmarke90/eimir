@@ -106,26 +106,6 @@
   min-width: 0;
   min-height: 44px;
 }
-.context-tag-entry button {
-  min-inline-size: 44px;
-  min-height: 44px;
-}
-.context-tag-add-icon {
-  display: none;
-}
-.context-tag-add-icon .eimir-icon {
-  inline-size: var(--space-5);
-  block-size: var(--space-5);
-  flex: none;
-}
-@container (max-width: 18rem) {
-  .context-tag-add-label {
-    display: none;
-  }
-  .context-tag-add-icon {
-    display: inline-flex;
-  }
-}
 .context-tag-suggestions {
   margin-top: var(--space-2);
 }

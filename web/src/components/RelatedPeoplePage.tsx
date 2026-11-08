@@ -29,8 +29,9 @@ import {
 } from '../client/relatedPersonDelete';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
 import { AvatarPhoto } from './AvatarPhoto';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { RelatedPersonEditorSheet } from './RelatedPersonEditorSheet';
@@ -552,6 +553,12 @@ export function RelatedPeoplePage({
                 </Link>
               )}
             </section>
+            {person.note ? (
+              <section className="people-profile-note">
+                <h2>{t('people.noteTitle')}</h2>
+                <p>{person.note}</p>
+              </section>
+            ) : null}
             <ShortTaskSheet
               open={menuOpen}
               title={person.displayName}
@@ -587,15 +594,12 @@ export function RelatedPeoplePage({
       <PageHeader
         title={t('people.title')}
         action={
-          <Link
-            className="button-link tertiary compact-action"
+          <AddActionLink
+            label={t('people.addPersonAction')}
             id="people-add-person"
             to="/more/people/new"
             state={originState}
-          >
-            <AddIcon />
-            {t('people.addPersonAction')}
-          </Link>
+          />
         }
       />
       {peopleQuery.isLoading ? (

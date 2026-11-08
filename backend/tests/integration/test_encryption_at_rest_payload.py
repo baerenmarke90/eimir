@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from eimir.authorization import PrivacyClass
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD
 from eimir.memories.models import Memory, MemoryPayload
+from eimir.people.models import RelatedPerson, RelatedPersonPayload
 from eimir.security import lifecycle
 from eimir.security.errors import DecryptionError, PlaintextRejectedError
 from eimir.security.runtime import get_key_ring
@@ -76,6 +77,32 @@ def test_raw_row_is_ciphertext_and_reads_return_plaintext(
     assert version == CRYPTO_VERSION_SERVER_AEAD
 
     assert _reload(session, memory) == MemoryPayload(title=TITLE, body=BODY)
+
+
+def test_person_note_uses_the_existing_encrypted_payload_boundary(
+    session: Session, space, encryption
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply("required")
+    space_row, account = space
+    person = RelatedPerson(
+        space_id=space_row.id,
+        owner_id=account.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        relationship="DAUGHTER",
+        payload=RelatedPersonPayload(display_name="Emma privacy test person", note=BODY),
+    )
+    session.add(person)
+    session.flush()
+    raw, version = session.execute(
+        text("SELECT payload::text, crypto_version FROM related_persons WHERE id = :id"),
+        {"id": person.id},
+    ).one()
+    assert "Emma privacy test person" not in raw
+    assert BODY not in raw
+    assert json.loads(raw)["_enc"] == CRYPTO_VERSION_SERVER_AEAD
+    assert version == CRYPTO_VERSION_SERVER_AEAD
+    session.expire(person)
+    assert person.payload.note == BODY
 
 
 def test_update_rewrites_the_envelope_with_a_fresh_key(session: Session, space, encryption) -> None:  # type: ignore[no-untyped-def]

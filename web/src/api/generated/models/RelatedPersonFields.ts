@@ -59,6 +59,12 @@ export interface RelatedPersonFields {
      */
     displayName: string;
     /**
+     * Optional shared note. Omission or null preserves an existing note; empty text clears it.
+     * @type {string}
+     * @memberof RelatedPersonFields
+     */
+    note?: string | null;
+    /**
      * 
      * @type {PersonRelationship}
      * @memberof RelatedPersonFields
@@ -104,6 +110,7 @@ export function RelatedPersonFieldsFromJSONTyped(json: any, ignoreDiscriminator:
         'birthday': json['birthday'] === undefined ? undefined : json['birthday'] === null ? null : (new Date(json['birthday'])),
         'birthdayYearKnown': json['birthdayYearKnown'] == null ? undefined : json['birthdayYearKnown'],
         'displayName': json['displayName'],
+        'note': json['note'] === undefined ? undefined : json['note'] === null ? null : json['note'],
         'relationship': PersonRelationshipFromJSON(json['relationship']),
         'showBirthdayOnDashboard': json['showBirthdayOnDashboard'] == null ? undefined : json['showBirthdayOnDashboard'],
         'visibility': json['visibility'] == null ? undefined : ContentVisibilityFromJSON(json['visibility']),
@@ -125,6 +132,7 @@ export function RelatedPersonFieldsToJSONTyped(value?: RelatedPersonFields | nul
         'birthday': value['birthday'] == null ? value['birthday'] : value['birthday'].toISOString().substring(0,10),
         'birthdayYearKnown': value['birthdayYearKnown'],
         'displayName': value['displayName'],
+        'note': value['note'],
         'relationship': PersonRelationshipToJSON(value['relationship']),
         'showBirthdayOnDashboard': value['showBirthdayOnDashboard'],
         'visibility': ContentVisibilityToJSON(value['visibility']),

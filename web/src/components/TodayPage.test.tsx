@@ -1636,6 +1636,15 @@ describe('TodayPage', () => {
   });
 });
 
+// Composition fixtures represent an active monthly strip, not its expiry.
+function freezeMonthlyCompositionClock(now = '2026-11-07T12:00:00Z'): void {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(now));
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+}
+
 /*
  * The no-duplicate composition contract for a partner signal.
  *
@@ -1645,6 +1654,7 @@ describe('TodayPage', () => {
  * content for both sections.
  */
 function renderWithPartnerComment(commentTargetId: string): string {
+  freezeMonthlyCompositionClock();
   const now = new Date();
   const thisMonth = (day: number) =>
     new Date(Date.UTC(now.getFullYear(), now.getMonth(), day));
@@ -1796,6 +1806,7 @@ function sectionHtml(html: string, className: string): string {
  * everything it did not select is still there.
  */
 function renderMonthlyOverflowSpace(): string {
+  freezeMonthlyCompositionClock();
   const now = new Date();
   const thisMonth = (day: number) =>
     new Date(Date.UTC(now.getFullYear(), now.getMonth(), day));
@@ -1936,11 +1947,7 @@ it('requires activity events even when recent content contains no photos', () =>
 
 it('renders `Diesen Monat` as up to three real shared photos, never a count derived from the capped feed', () => {
   // Keep the photo fixtures inside the product's three-day attention window.
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date('2026-11-04T12:00:00Z'));
-  onTestFinished(() => {
-    vi.useRealTimers();
-  });
+  freezeMonthlyCompositionClock('2026-11-04T12:00:00Z');
   const now = new Date();
   // `occurredOn` is a date-only API value: the generated client materializes
   // it at midnight UTC, so the fixture is built the same way.

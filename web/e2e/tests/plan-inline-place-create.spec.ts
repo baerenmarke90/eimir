@@ -325,7 +325,7 @@ async function openPlanCreateForm(page: Page) {
 
 async function openPlaceChoice(page: Page) {
   await planCreateForm(page)
-    .getByRole('button', { name: m5s3.common.place, exact: true })
+    .getByRole('button', { name: placeCopy.add, exact: true })
     .click();
   return page.getByRole('dialog', { name: m5s3.common.place, exact: true });
 }

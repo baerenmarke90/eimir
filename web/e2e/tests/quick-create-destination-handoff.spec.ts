@@ -4,6 +4,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -364,7 +365,7 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
     await expect(
-      page.getByRole('button', { name: m5s3.common.place, exact: true }),
+      page.getByRole('button', { name: photoPlaces.add, exact: true }),
     ).not.toBeFocused();
   });
 

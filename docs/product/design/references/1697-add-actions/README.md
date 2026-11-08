@@ -41,7 +41,7 @@ fieldset, pressed, stationary hover, focus and reduced-motion behavior remain.
 | Preferences and private profile notes | ProfilePageBase |
 | Partner nickname insertion | PartnerIdentityPanel |
 | Media and video intake | DeviceMediaPicker, VideoUploadAction |
-| Place insertion in capture and editing | MomentPlaceField, HeartMomentLocation, MomentPlaces |
+| Place insertion in capture and editing | PlanningCreatePage, MomentPlaceField, HeartMomentLocation, MomentPlaces |
 | Content and Plan/Wish associations | PlanningRelationManager, MemoryPlanningLinks, PlanWishLink |
 | Shared experiences | CoupleExperiencePage |
 | Wish selection idea | WishSelectionPage |

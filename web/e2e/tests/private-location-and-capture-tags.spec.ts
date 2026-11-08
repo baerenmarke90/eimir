@@ -335,6 +335,11 @@ for (const destination of [
         (element as HTMLDetailsElement).open = true;
       });
     await tagGeometry(page);
+    if (destination === '/plan/plans/new') {
+      await expectLabeledAddAction(
+        page.getByRole('button', { name: photoPlaces.add, exact: true }),
+      );
+    }
     await page.screenshot({
       path: info.outputPath(
         `shell-1693-tags-large-${destination.replaceAll('/', '-')}.png`,

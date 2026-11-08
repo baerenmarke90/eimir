@@ -301,6 +301,8 @@ for (const scenario of [
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
+      if (kind === 'places')
+        await page.locator('.relation-moment-link').first().hover();
       const axe = await new AxeBuilder({ page })
         .include('.shared-content-page')
         .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])

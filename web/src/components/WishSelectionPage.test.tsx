@@ -80,7 +80,7 @@ function projection(
   };
 }
 
-function renderTask(initial = projection()) {
+function renderTask(initial = projection(), paginated = false) {
   let current = structuredClone(initial);
   let sourceWishes = candidates.map((candidate) => ({
     id: candidate.wishId,
@@ -134,11 +134,21 @@ function renderTask(initial = projection()) {
       closeWishSelectionRound,
     },
     wishes: {
-      listWishes: vi.fn(async () => ({
-        items: sourceWishes,
-        nextCursor: null,
-        hasMore: false,
-      })),
+      listWishes: vi.fn(
+        async ({ cursor } = {} as { cursor?: string | null }) =>
+          paginated
+            ? {
+                items: cursor
+                  ? [{ id: 'a', title: 'Apple', status: 'OPEN' }]
+                  : [
+                      { id: 'z', title: 'Zoo', status: 'OPEN' },
+                      { id: 'b', title: 'Banana', status: 'OPEN' },
+                    ],
+                nextCursor: cursor ? null : 'second',
+                hasMore: !cursor,
+              }
+            : { items: sourceWishes, nextCursor: null, hasMore: false },
+      ),
       createWish,
     },
     plans: { convertWishToPlan },
@@ -187,6 +197,34 @@ function renderTask(initial = projection()) {
 }
 
 describe('WishSelectionPage', () => {
+  it('sorts the combined paginated open Wishes alphabetically without losing selection', async () => {
+    const { apis, replaceWishSelectionRound } = renderTask(
+      projection('NO_ROUND'),
+      true,
+    );
+    await screen.findByRole('checkbox', { name: 'Apple' });
+    expect(vi.mocked(apis.wishes.listWishes)).toHaveBeenCalledWith(
+      expect.objectContaining({ cursor: 'second' }),
+    );
+    expect(
+      screen
+        .getAllByRole('checkbox')
+        .map((input) => input.closest('label')?.textContent),
+    ).toEqual(['Apple', 'Banana', 'Zoo']);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Apple' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Zoo' }));
+    fireEvent.click(screen.getByRole('button', { name: copy.start }));
+    await waitFor(() =>
+      expect(replaceWishSelectionRound).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wishSelectionRoundUpdate: expect.objectContaining({
+            wishIds: ['a', 'z'],
+          }),
+        }),
+      ),
+    );
+  });
+
   it('starts a bounded round from real Wishes without opening the keyboard', async () => {
     const { replaceWishSelectionRound } = renderTask(projection('NO_ROUND'));
     const pasta = await screen.findByRole('checkbox', {

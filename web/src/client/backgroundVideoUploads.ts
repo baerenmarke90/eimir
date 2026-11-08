@@ -1,0 +1,288 @@
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import { useSyncExternalStore } from 'react';
+import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor';
+import { isAndroidApp } from './config';
+import type { ReferenceApis } from './referenceFlow';
+import { uploadAttachmentBytesWithProgress } from './referenceFlow';
+
+export interface VideoTransfer {
+  attachmentId: string;
+  phase: 'uploading' | 'processing' | 'failed';
+  progress: number;
+}
+interface NativeTransfers {
+  enqueue(options: {
+    instance: string;
+    accountId: string;
+    spaceId: string;
+    attachmentId: string;
+    sourceName: string;
+    size: number;
+    mimeType: string;
+  }): Promise<void>;
+  list(options: {
+    instance: string;
+    accountId: string;
+    spaceId: string;
+  }): Promise<{ items: VideoTransfer[] }>;
+  retry(options: {
+    instance: string;
+    accountId: string;
+    spaceId: string;
+    attachmentId: string;
+  }): Promise<void>;
+  cancel(options: {
+    instance: string;
+    accountId: string;
+    spaceId: string;
+    attachmentId: string;
+  }): Promise<void>;
+}
+const native = registerPlugin<NativeTransfers>('BackgroundMediaUploads');
+export const hasNativeVideoTransfers = () =>
+  isAndroidApp() && Capacitor.isPluginAvailable('BackgroundMediaUploads');
+type Owner = { instance: string; accountId: string; spaceId: string };
+type Transfer = VideoTransfer & {
+  owner: Owner;
+  native: boolean;
+  controller?: AbortController;
+  run?: (signal: AbortSignal) => Promise<void>;
+  size: number;
+};
+const transfers = new Map<string, Transfer>();
+const listeners = new Set<() => void>();
+let revision = 0;
+let running = 0;
+let poll: ReturnType<typeof setInterval> | undefined;
+let nativeOwner: Owner | undefined;
+let polling = false;
+
+function changed() {
+  for (const listener of listeners) listener();
+}
+function update(id: string, patch: Partial<VideoTransfer>) {
+  const current = transfers.get(id);
+  if (!current) return;
+  transfers.set(id, { ...current, ...patch });
+  changed();
+}
+async function readNative() {
+  if (!nativeOwner || polling || !hasNativeVideoTransfers()) return;
+  const owner = nativeOwner;
+  const generation = revision;
+  polling = true;
+  try {
+    const result = await native.list(owner);
+    if (generation !== revision || owner !== nativeOwner) return;
+    const ids = new Set(result.items.map((item) => item.attachmentId));
+    for (const [id, item] of transfers)
+      if (
+        item.native &&
+        JSON.stringify(item.owner) === JSON.stringify(owner) &&
+        !ids.has(id)
+      )
+        transfers.delete(id);
+    for (const item of result.items) {
+      const previous = transfers.get(item.attachmentId);
+      if (previous?.phase === item.phase && previous.progress === item.progress)
+        continue;
+      transfers.set(item.attachmentId, {
+        ...item,
+        owner,
+        native: true,
+        size: previous?.size ?? 0,
+      });
+    }
+    changed();
+  } catch {
+    // The authenticated parent remains the source of media readiness.
+  } finally {
+    polling = false;
+  }
+}
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  if (!poll && hasNativeVideoTransfers()) {
+    void readNative();
+    poll = setInterval(() => {
+      if (document.visibilityState !== 'hidden') void readNative();
+    }, 1500);
+  }
+  return () => {
+    listeners.delete(listener);
+    if (!listeners.size) {
+      clearInterval(poll);
+      poll = undefined;
+    }
+  };
+}
+export function useVideoTransfer(id?: string) {
+  return useSyncExternalStore(
+    subscribe,
+    () => (id ? transfers.get(id) : undefined),
+    () => undefined,
+  );
+}
+
+/** Set the authorized observation scope after login/resume; no upload is started. */
+export function observeNativeVideoTransfers(owner: Owner) {
+  if (!hasNativeVideoTransfers()) return;
+  if (nativeOwner && JSON.stringify(nativeOwner) !== JSON.stringify(owner))
+    clearBackgroundVideoTransfers();
+  nativeOwner = owner;
+  void readNative();
+}
+
+function pump() {
+  if (running >= 2) return;
+  const next = [...transfers.values()].find(
+    (item) => item.run && !item.controller && item.phase === 'uploading',
+  );
+  if (!next?.run) return;
+  const controller = new AbortController();
+  next.controller = controller;
+  running++;
+  const generation = revision;
+  void next
+    .run(controller.signal)
+    .then(
+      () => {
+        if (
+          generation === revision &&
+          transfers.get(next.attachmentId)?.controller === controller
+        ) {
+          transfers.delete(next.attachmentId);
+          changed();
+        }
+      },
+      () => {
+        if (generation === revision && !controller.signal.aborted)
+          update(next.attachmentId, { phase: 'failed' });
+      },
+    )
+    .finally(() => {
+      next.controller = undefined;
+      if (generation !== revision) return;
+      const current = transfers.get(next.attachmentId);
+      if (current?.controller === controller)
+        transfers.set(next.attachmentId, { ...current, controller: undefined });
+      running = Math.max(0, running - 1);
+      pump();
+    });
+  pump();
+}
+
+/** Admission returns after native staging, before transfer; the editor owns no worker. */
+export async function startBackgroundVideoTransfer({
+  apis,
+  apiBaseUrl,
+  accessToken,
+  accountId,
+  spaceId,
+  file,
+  descriptor,
+  fetchApi = fetch,
+}: {
+  apis: ReferenceApis;
+  apiBaseUrl: string;
+  accessToken: string;
+  accountId: string;
+  spaceId: string;
+  file: File;
+  descriptor: UploadDescriptor;
+  fetchApi?: typeof fetch;
+}): Promise<void> {
+  const owner = { instance: apiBaseUrl, accountId, spaceId };
+  const attachmentId = descriptor.attachment.id;
+  const generation = revision;
+  const nativeTransfer = hasNativeVideoTransfers();
+  const active = [...transfers.values()].filter((item) => item.run);
+  if (
+    active.length >= 20 ||
+    active.reduce((bytes, item) => bytes + item.size, file.size) >
+      500 * 1024 * 1024
+  )
+    throw new Error('The device transfer staging budget is full.');
+  if (nativeTransfer)
+    await native.enqueue({
+      ...owner,
+      attachmentId,
+      sourceName: file.name,
+      size: file.size,
+      mimeType: file.type,
+    });
+  if (generation !== revision) {
+    if (nativeTransfer)
+      void native.cancel({ ...owner, attachmentId }).catch(() => undefined);
+    throw new DOMException('Transfer ownership changed.', 'AbortError');
+  }
+  const entry: Transfer = {
+    attachmentId,
+    owner,
+    native: nativeTransfer,
+    phase: 'uploading',
+    progress: 0,
+    size: file.size,
+  };
+  if (!nativeTransfer)
+    entry.run = async (signal) => {
+      if (signal.aborted)
+        throw new DOMException('Upload aborted.', 'AbortError');
+      const current = await apis.attachments.getAttachment(
+        { spaceId, attachmentId },
+        { signal },
+      );
+      if (['READY', 'PROCESSING'].includes(current.status)) return;
+      await uploadAttachmentBytesWithProgress(
+        apiBaseUrl,
+        accessToken,
+        descriptor,
+        file,
+        {
+          signal,
+          onProgress: (progress) => {
+            if (!signal.aborted) update(attachmentId, { progress });
+          },
+        },
+        fetchApi,
+      );
+      signal.throwIfAborted();
+      update(attachmentId, { phase: 'processing', progress: 100 });
+      await apis.attachments.finalizeAttachmentUpload(
+        { spaceId, attachmentId, body: {} },
+        { signal },
+      );
+    };
+  transfers.set(attachmentId, entry);
+  nativeOwner = owner;
+  changed();
+  if (!nativeTransfer) pump();
+}
+
+export async function retryVideoTransfer(attachmentId: string) {
+  const item = transfers.get(attachmentId);
+  if (item?.phase !== 'failed') return;
+  if (item.native) await native.retry({ ...item.owner, attachmentId });
+  update(attachmentId, { phase: 'uploading', progress: 0 });
+  pump();
+}
+export function cancelVideoTransfer(attachmentId: string) {
+  const item = transfers.get(attachmentId);
+  if (!item) return;
+  item.controller?.abort();
+  transfers.delete(attachmentId);
+  if (item.native)
+    void native.cancel({ ...item.owner, attachmentId }).catch(() => undefined);
+  changed();
+}
+export function clearBackgroundVideoTransfers() {
+  revision++;
+  for (const item of transfers.values()) item.controller?.abort();
+  transfers.clear();
+  running = 0;
+  nativeOwner = undefined;
+  clearInterval(poll);
+  poll = undefined;
+  changed();
+  // Native session revocation separately cancels its files, jobs and sockets.
+}

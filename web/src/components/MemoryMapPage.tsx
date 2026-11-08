@@ -1,9 +1,8 @@
-import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   lazy,
   Suspense,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -17,12 +16,13 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { sortByProductLabel } from '../client/productLabelOrder';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { parseMapPlace } from '../client/photoPlaces';
 import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { memoryDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import {
@@ -31,8 +31,10 @@ import {
 } from '../client/storyProduct';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskListReturn } from '../client/useTaskListReturn';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppErrorBoundary } from './AppErrorBoundary';
+import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
@@ -41,6 +43,7 @@ import type { MapLocation } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './MemoryMapPage.css';
 
@@ -65,9 +68,15 @@ export function MemoryMapPage({
 }) {
   const { t } = useTranslation();
   const locale = resolvedLocale();
-  const { captureOrigin } = useTaskOrigin();
+  const { captureOrigin, resolveOrigin, requestReturn } = useTaskOrigin();
   const location = useLocation();
   const navigate = useNavigate();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const hasOrigin = Boolean(
+    (location.state as { mapFromMoment?: boolean } | null)?.mapFromMoment &&
+      resolveOrigin(originKey),
+  );
   const [revealedPlaceId, setRevealedPlaceId] = useState<string | null>(null);
   const fullscreenScope = JSON.stringify([apiBaseUrl, accountId, spaceId]);
   const [fullscreen, setFullscreen] = useState({
@@ -79,6 +88,9 @@ export function MemoryMapPage({
     setFullscreen({ scope: fullscreenScope, open });
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterTrigger = useRef<HTMLButtonElement>(null);
+  const filterSheet = useRef<ShortTaskSheetHandle>(null);
   useLayoutEffect(() => {
     setFullscreen((current) =>
       current.scope === fullscreenScope
@@ -87,7 +99,9 @@ export function MemoryMapPage({
     );
   }, [fullscreenScope]);
   const [params, setParams] = useSearchParams();
-  const selectedId = params.get('place');
+  const placeParam = params.get('place');
+  const focusPoint = useMemo(() => parseMapPlace(placeParam), [placeParam]);
+  const selectedId = focusPoint ? placeParam : null;
   const selectPlace = useCallback(
     (id: string) => {
       setRevealedPlaceId(id);
@@ -102,6 +116,17 @@ export function MemoryMapPage({
     },
     [setParams, location.state],
   );
+  function resetPlace() {
+    setRevealedPlaceId(null);
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('place');
+        return next;
+      },
+      { replace: true, state: location.state },
+    );
+  }
   const query = useWarmInfiniteQuery({
     queryKey: [
       ...authorSummaryQueryKeys.memoryMap(spaceId),
@@ -194,6 +219,28 @@ export function MemoryMapPage({
     [locations, t, thumbnail],
   );
   const selected = locations.find(({ point }) => point.id === selectedId);
+  const visiblePoints = useMemo(
+    () =>
+      selectedId ? points.filter((point) => point.id === selectedId) : points,
+    [points, selectedId],
+  );
+  useEffect(() => {
+    if (
+      selectedId &&
+      !selected &&
+      query.hasNextPage &&
+      !query.isFetching &&
+      !query.error
+    )
+      void query.fetchNextPage();
+  }, [
+    selectedId,
+    selected,
+    query.hasNextPage,
+    query.isFetching,
+    query.error,
+    query.fetchNextPage,
+  ]);
   const dateFormats = useMemo(
     () => ({
       full: new Intl.DateTimeFormat(locale, {
@@ -224,7 +271,17 @@ export function MemoryMapPage({
   }
   return (
     <div className="page memory-map-page">
-      <PageHeader variant="root" title={t('story.timelineTitle')} />
+      <PageHeader
+        variant="root"
+        title={t('story.timelineTitle')}
+        before={
+          hasOrigin ? (
+            <TaskBackButton
+              onClick={() => requestReturn(originKey, '/story')}
+            />
+          ) : undefined
+        }
+      />
       <StoryViewTabs activeView="map" onSelect={setView} />
       <MomentCreateMenu />
       <div
@@ -245,7 +302,7 @@ export function MemoryMapPage({
           />
         ) : query.isPending ? (
           <UiState kind="loading" title={t('states.loading.title')} />
-        ) : locations.length === 0 && !query.hasNextPage ? (
+        ) : locations.length === 0 && !query.hasNextPage && !focusPoint ? (
           <UiState
             kind="empty"
             title={t('memoryMap.emptyTitle')}
@@ -253,17 +310,32 @@ export function MemoryMapPage({
           />
         ) : (
           <>
-            {locations.length ? (
+            {locations.length || focusPoint ? (
               <div className="memory-map-surface">
-                <button
-                  ref={fullscreenTrigger}
-                  type="button"
-                  className="secondary memory-map-expand"
-                  onClick={() => setExpanded(true)}
-                >
-                  <EimirIcon name="expand" />
-                  {t('memoryMap.fullscreen')}
-                </button>
+                <div className="memory-map-tools">
+                  <button
+                    ref={filterTrigger}
+                    type="button"
+                    className={`secondary memory-map-filter${selectedId ? ' is-active' : ''}`}
+                    aria-haspopup="dialog"
+                    aria-expanded={filtersOpen}
+                    aria-label={t('memoryMap.filter')}
+                    title={t('memoryMap.filter')}
+                    onClick={() => setFiltersOpen(true)}
+                  >
+                    <EimirIcon name="filter" />
+                    {selectedId ? <span aria-hidden="true">1</span> : null}
+                  </button>
+                  <button
+                    ref={fullscreenTrigger}
+                    type="button"
+                    className="secondary memory-map-expand"
+                    onClick={() => setExpanded(true)}
+                  >
+                    <EimirIcon name="expand" />
+                    {t('memoryMap.fullscreen')}
+                  </button>
+                </div>
                 <AppErrorBoundary
                   resetKey={`${spaceId}:${accountId}`}
                   fallback={<p role="alert">{t('m5s3.map.tileError')}</p>}
@@ -282,7 +354,9 @@ export function MemoryMapPage({
                       />
                     ) : (
                       <MapCanvas
-                        locations={points}
+                        locations={visiblePoints}
+                        focus={focusPoint}
+                        value={selectedId && !selected ? focusPoint : undefined}
                         onLocationSelect={selectPlace}
                       />
                     )}
@@ -320,7 +394,11 @@ export function MemoryMapPage({
                     >
                       {expanded ? (
                         <MapCanvas
-                          locations={points}
+                          locations={visiblePoints}
+                          focus={focusPoint}
+                          value={
+                            selectedId && !selected ? focusPoint : undefined
+                          }
                           onLocationSelect={(id) => {
                             fullscreenSheet.current?.closeForNavigation(() =>
                               selectPlace(id),
@@ -330,6 +408,52 @@ export function MemoryMapPage({
                       ) : null}
                     </Suspense>
                   </AppErrorBoundary>
+                </ShortTaskSheet>
+                <ShortTaskSheet
+                  ref={filterSheet}
+                  open={filtersOpen}
+                  title={t('memoryMap.filter')}
+                  onClose={() => setFiltersOpen(false)}
+                  restoreFocusRef={filterTrigger}
+                >
+                  <fieldset className="memory-map-filter-choices">
+                    <legend>{t('memoryMap.places')}</legend>
+                    <label>
+                      <input
+                        type="radio"
+                        name="map-place-filter"
+                        checked={!selectedId}
+                        onChange={() =>
+                          filterSheet.current?.closeForNavigation(resetPlace)
+                        }
+                      />
+                      {t('memoryMap.allPlaces')}
+                    </label>
+                    {locations.map(({ point }) => (
+                      <label key={point.id}>
+                        <input
+                          type="radio"
+                          name="map-place-filter"
+                          checked={selectedId === point.id}
+                          onChange={() =>
+                            filterSheet.current?.closeForNavigation(() =>
+                              selectPlace(point.id),
+                            )
+                          }
+                        />
+                        <span>{point.label}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                  {query.hasNextPage ? (
+                    <AutoLoadMore
+                      query={query}
+                      className="tertiary"
+                      blocked={query.isFetchingNextPage}
+                    >
+                      {t('memoryMap.loadMore')}
+                    </AutoLoadMore>
+                  ) : null}
                 </ShortTaskSheet>
               </div>
             ) : null}
@@ -359,17 +483,7 @@ export function MemoryMapPage({
                   <button
                     type="button"
                     className="tertiary"
-                    onClick={() => {
-                      setRevealedPlaceId(null);
-                      setParams(
-                        (current) => {
-                          const next = new URLSearchParams(current);
-                          next.delete('place');
-                          return next;
-                        },
-                        { replace: true, state: location.state },
-                      );
-                    }}
+                    onClick={resetPlace}
                   >
                     {t('memoryMap.allPlaces')}
                   </button>

@@ -50,6 +50,8 @@ def test_memory_write_dtos_only_expose_approved_fields() -> None:
         "placeId",
         "placeIds",
         "happenedUntil",
+        "attachments",
+        "selectedCoverAttachmentId",
     }
     assert set(create["required"]) == {"title"}
     assert create["properties"]["body"]["default"] == ""
@@ -111,6 +113,6 @@ def test_memory_create_documents_the_optional_request_identity_contract() -> Non
         assert responses[status]["content"]["application/json"]["schema"] == {
             "$ref": "#/components/schemas/MemoryDetail"
         }
-    # Older clients keep working: the request body and required parameters are unchanged.
+    # #1701 adds optional atomic gallery fields; older required parameters stay unchanged.
     assert route["requestBody"]["required"] is True
     assert [p["name"] for p in route["parameters"] if p.get("required")] == ["spaceId"]

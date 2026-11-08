@@ -26,6 +26,36 @@
 .memory-planning-links > button {
   justify-self: start;
 }
+.memory-planning-links a.memory-planning-destination {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-block-size: var(--space-12);
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.memory-planning-destination > span {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--space-1);
+}
+.memory-planning-destination .memory-planning-kind {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.memory-planning-destination .eimir-icon {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  color: var(--color-link-text);
+}
+.memory-planning-destination:hover strong {
+  text-decoration: underline;
+}
 .memory-planning-choices {
   display: grid;
   gap: var(--space-2);

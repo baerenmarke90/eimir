@@ -1,8 +1,3 @@
-import {
-  selectDraftMedia,
-  dragDraftMedia,
-  expectInlineDraftActions,
-} from '../support/mediaDraft';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -13,11 +8,17 @@ import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoSources from '../../src/i18n/locales/photoSources';
-import { expectLabeledAddAction } from '../support/addAction';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { expectLabeledAddAction } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
+import {
+  dragDraftMedia,
+  expectInlineDraftActions,
+  selectDraftMedia,
+} from '../support/mediaDraft';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
@@ -31,6 +32,12 @@ const AUTHORED_TITLE = 'Authored memory title';
 const AUTHORED_BODY = 'A remembered detail';
 
 interface MemoryCreateRequestBody {
+  attachments?: {
+    attachmentId: string;
+    position: number;
+    isSensitive?: boolean;
+  }[];
+  selectedCoverAttachmentId?: string | null;
   body?: string;
   happenedOn?: string | null;
   tags?: string[];
@@ -906,9 +913,19 @@ async function installApiMocks(
       }
       const body = request.postDataJSON() as MemoryCreateRequestBody;
       savedCreateKey = identity;
-      if (photos) photos.creates++;
+      if (photos) {
+        photos.creates++;
+        photos.bound = (body.attachments ?? []).map(
+          (entry) => entry.attachmentId,
+        );
+      }
       savedMemory = {
-        attachments: [],
+        selectedCoverAttachmentId: body.selectedCoverAttachmentId ?? null,
+        attachments: (body.attachments ?? []).map((entry) => ({
+          ...attachment(entry.attachmentId),
+          position: entry.position,
+          isSensitive: entry.isSensitive ?? false,
+        })),
         author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
         authorId: ACCOUNT_ID,
         body: body.body ?? '',
@@ -1672,7 +1689,8 @@ test('diary recovery retries only attachment binding for an already created entr
     if (bindings === 1) await route.abort('failed');
     else await route.fallback();
   });
-  await page.getByRole('button', { name: de.memory.save }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page.getByRole('button', { name: taskBoundary.verify }).click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -1956,7 +1974,19 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
     )
       identities.push(request.headers()['idempotency-key']);
   });
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  const submitted = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname.endsWith('/memories'),
+  );
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
+  await submitted;
+  await expect(
+    page.getByRole('button', { name: taskBoundary.verify, exact: true }),
+  ).toBeEnabled();
   await expect(
     page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
   ).toBeVisible();
@@ -2033,7 +2063,10 @@ test('known-created recovery can bind original photos after transient read failu
     if (bindings < 3) await route.abort('failed');
     else await route.fallback();
   });
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -2113,7 +2146,7 @@ test('known-created recovery can bind original photos after transient read failu
   );
 });
 
-test('a failed local checkpoint cannot start a volatile-photo Save or invent an uncertain result', async ({
+test('an atomic photo save succeeds when the local journal cannot checkpoint', async ({
   page,
 }) => {
   test.setTimeout(60_000);
@@ -2137,20 +2170,10 @@ test('a failed local checkpoint cannot start a volatile-photo Save or invent an 
     };
   });
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
-  await expect(
-    page.getByText(de.memory.diary.recoveryRequired, { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByLabel(de.memory.bodyLabel, { exact: true }),
-  ).toHaveValue(AUTHORED_BODY);
-  expect(photos.creates).toBe(0);
-  await restore.evaluate((restore) => restore());
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
   expect(photos.creates).toBe(1);
+  expect(photos.bound).toHaveLength(2);
+  await restore.evaluate((restore) => restore());
 });
 
 for (const [width, colorScheme] of [

@@ -25,7 +25,11 @@ from eimir.api.schema import (
     ResourceCapabilities,
     story_resource_capabilities,
 )
-from eimir.api.v1.attachments import AttachmentEntry, OrderedAttachmentSummary
+from eimir.api.v1.attachments import (
+    AttachmentEntry,
+    OrderedAttachmentSummary,
+    public_attachment_status,
+)
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.domain.experiences import ExperienceKind
@@ -57,11 +61,15 @@ class MemoryCreate(ApiModel):
     place_ids: list[UUID] | None = Field(default=None, max_length=20)
     experience_kind: ExperienceKind | None = None
     experience_reply_to: UUID | None = None
+    attachments: list[AttachmentEntry] | None = Field(default=None, max_length=20)
+    selected_cover_attachment_id: UUID | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
     @model_validator(mode="after")
     def _validate_places(self) -> Self:
+        if self.selected_cover_attachment_id is not None and self.attachments is None:
+            raise ValueError("selectedCoverAttachmentId requires attachments")
         if "place_ids" in self.model_fields_set:
             if self.place_ids is None or "place_id" in self.model_fields_set:
                 raise ValueError("placeIds requires a list and cannot be combined with placeId")
@@ -183,9 +191,7 @@ def _memory_attachments(
     return [
         MemoryAttachmentSummary(
             id=entry.attachment.id,
-            status="PROCESSING"
-            if entry.attachment.status == "VALIDATING"
-            else entry.attachment.status,
+            status=public_attachment_status(entry.attachment.status),
             failure_code=entry.attachment.failure_code
             if entry.attachment.status == "FAILED"
             else None,
@@ -366,6 +372,12 @@ def create_memory(
         happened_on=body.happened_on,
         happened_until=body.happened_until,
         place_ids=body.place_ids,
+        attachments=[
+            (entry.attachment_id, entry.position, entry.is_sensitive) for entry in body.attachments
+        ]
+        if body.attachments is not None
+        else None,
+        selected_cover_attachment_id=body.selected_cover_attachment_id,
     )
     if not result.created:
         response.status_code = status.HTTP_200_OK

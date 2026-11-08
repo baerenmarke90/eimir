@@ -284,7 +284,10 @@
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/AccountSettingsPanel.tsx",
         "web/src/components/GamesProductArea.tsx",
-        "web/src/components/MemoryProductPage.tsx"
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlaceMapCanvas.tsx",
+        "web/src/components/MomentMapLink.tsx",
+        "web/src/client/photoPlaces.ts"
       ]
     },
     "milestone-delete-ownership.spec.ts": {
@@ -382,7 +385,14 @@
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PhotoSourceSettingsPanel.tsx",
-        "web/src/components/SettingsPage.tsx"
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/MomentMapLink.tsx",
+        "web/src/components/MomentPlaces.tsx",
+        "web/src/components/OrderedMomentPlacesField.tsx",
+        "web/src/components/MomentPlaceActionsMenu.tsx",
+        "web/src/components/MemoryPlanningLinks.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/client/photoPlaces.ts"
       ]
     },
     "places-and-lists-design.spec.ts": {
@@ -751,7 +761,16 @@
         "web/src/components/MediaGallery.css",
         "web/src/components/SensitiveMedia.tsx",
         "web/src/components/SensitiveMedia.css",
-        "web/src/components/PhotoDraftGallery.tsx"
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/client/backgroundVideoUploads.ts",
+        "web/src/client/memoryAttachmentDraft.ts",
+        "web/src/client/useAttachmentDrafts.ts",
+        "web/src/client/useMemoryDiaryDraft.ts",
+        "web/src/client/sessionPersistence.ts",
+        "web/src/client/galleryMedia.ts",
+        "web/src/components/MemoryPhotoGallery.tsx",
+        "web/src/components/MediaProcessingState.tsx",
+        "web/src/components/VideoTransferFeedback.tsx"
       ]
     },
     "wir-design-selection.spec.ts": {

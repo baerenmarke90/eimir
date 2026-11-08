@@ -383,7 +383,7 @@
       "startNew": "Discard draft and start again",
       "keepDraft": "Keep draft and close",
       "draft": {
-        "memoryOnlyUnavailable": "Your draft stays open here. Its save status cannot be secured on this device right now. Try again before saving this entry.",
+        "memoryOnlyUnavailable": "Your draft stays open here. Saving a copy on this device is currently unavailable.",
         "memoryOnly": "Your words and save status are secured on this device. Selected external or older photos remain only in the open draft. Available server photos can be loaded again after a restart.",
         "loading": "Preparing draft storage …",
         "idle": "Not saved together yet.",
@@ -2216,12 +2216,12 @@
     "play": "Play video",
     "unavailable": "The video cannot be played right now.",
     "retry": "Load again",
-    "formats": "MP4 or MOV · up to 3 minutes and 250 MiB",
+    "formats": "MP4 or MOV · up to 3 minutes and 250 MiB · saved at up to 1080p",
     "unsupported": "This video format is not supported yet. Please choose an MP4 or MOV video with H.264.",
     "tooLarge": "The video is too large. The limit is 250 MiB.",
     "empty": "This video is empty. Please choose another one.",
     "tooLong": "The video is too long. The limit is 3 minutes.",
-    "dimensions": "The video resolution is too high. Up to 4K is supported.",
+    "dimensions": "This video cannot be prepared. Choose a recording at up to 4K; it will be saved at up to 1080p.",
     "failed": "The video could not be processed. Your selection is retained.",
     "proTitle": "Your moments in motion",
     "proBody": "Capture short videos with eimir. Pro. Videos already saved remain accessible later too.",
@@ -2237,8 +2237,13 @@
     "showLess": "Show fewer recordings",
     "showAll": "Show all {{count}} recordings",
     "missing": "Please remove this video and choose it again.",
-    "failedNotSaved": "This video will only be saved after a successful upload.",
-    "volatile": "Keep the app open for the upload. The server then processes the video."
+    "failedNotSaved": "You can save your moment now. The video will appear when its upload is complete.",
+    "volatile": "You can save your moment now. In the Android app your video continues uploading in the background; in a browser keep the tab open.",
+    "uploading": "Uploading video …",
+    "uploadFailed": "The video upload was interrupted. You can resume it.",
+    "uploadInterrupted": "Upload interrupted",
+    "retryUpload": "Resume upload",
+    "retryUnavailable": "The upload could not start. Open the app with an internet connection and try again."
   },
   "photoPlaces": {
     "removeSelection": "Remove place selection",
@@ -3128,12 +3133,14 @@
   },
   "memoryProduct": {
     "planning": {
-      "heading": "Belongs with this",
+      "heading": "Linked wishes and plans",
       "add": "Link wish or plan",
       "plans": "Plans",
       "wishes": "Wishes",
       "empty": "There are no matching wishes or plans here yet.",
-      "remove": "Remove link to “{{title}}”"
+      "remove": "Remove link to “{{title}}”",
+      "linkedPlan": "Linked plan",
+      "linkedWish": "Linked wish"
     },
     "open": "Open memory",
     "backToStory": "Back",
@@ -3869,7 +3876,8 @@
     "keyboardHelp": "Memory map. Use the arrow keys to pan and plus or minus to zoom. Choose a marker or a place in the list.",
     "loadMore": "Load more memory places",
     "allPlaces": "View all places",
-    "untitled": "Memory"
+    "untitled": "Memory",
+    "filter": "Filter places"
   },
   "gentlePrompts": {
     "label": "Small prompts",

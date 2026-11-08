@@ -29,6 +29,7 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { planDetailPath } from '../client/routes';
 import {
   planScheduleFromInputs,
@@ -42,7 +43,7 @@ import {
   wishSelectionQueryKey,
   wishSelectionSourceToken,
 } from '../client/wishSelection';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
 import { DestinationIcon } from './DestinationIcon';
@@ -228,19 +229,38 @@ function WishSelectionTask({
     enabled: activeMode === 'setup',
     retry: false,
   });
-  const wishItems = [
-    ...new Map<string, { id: string; title: string }>(
-      [
-        ...(wishes.data?.pages.flatMap((page) => page.items) ?? []),
-        ...(view?.candidates
-          .filter((candidate) => candidate.status === 'OPEN')
-          .map((candidate) => ({
-            id: candidate.wishId,
-            title: candidate.title,
-          })) ?? []),
-      ].map((wish) => [wish.id, wish]),
-    ).values(),
-  ];
+  useEffect(() => {
+    if (
+      activeMode === 'setup' &&
+      wishes.hasNextPage &&
+      !wishes.isFetching &&
+      !wishes.error
+    )
+      void wishes.fetchNextPage();
+  }, [
+    activeMode,
+    wishes.hasNextPage,
+    wishes.isFetching,
+    wishes.error,
+    wishes.fetchNextPage,
+  ]);
+  const wishItems = sortByProductLabel(
+    [
+      ...new Map<string, { id: string; title: string }>(
+        [
+          ...(wishes.data?.pages.flatMap((page) => page.items) ?? []),
+          ...(view?.candidates
+            .filter((candidate) => candidate.status === 'OPEN')
+            .map((candidate) => ({
+              id: candidate.wishId,
+              title: candidate.title,
+            })) ?? []),
+        ].map((wish) => [wish.id, wish]),
+      ).values(),
+    ],
+    (wish) => wish.title,
+    resolvedLocale(),
+  );
 
   function begin() {
     if (submissionLock.current) return null;

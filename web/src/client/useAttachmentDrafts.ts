@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { i18n } from '../i18n';
+import { cancelVideoTransfer } from './backgroundVideoUploads';
 import {
   type AttachmentDraft,
   type AttachmentDraftAction,
@@ -218,6 +219,8 @@ export function useAttachmentDrafts({
     store.generation === currentGeneration.current &&
     committedContextKey.current === contextKey;
   const items = isCurrentContext ? store.items : [];
+  const currentItems = useRef(items);
+  currentItems.current = items;
 
   // `pump` and `runUpload` are mutually recursive (pump starts queued
   // uploads; each upload's completion calls pump again to start the next
@@ -289,6 +292,7 @@ export function useAttachmentDrafts({
           signal: controller.signal,
           onProgress: updateProgress,
           preserveMetadata,
+          accountId,
         },
       )
         .then(({ attachmentId, hasThumbnail, durationSeconds, processing }) => {
@@ -346,6 +350,7 @@ export function useAttachmentDrafts({
       spaceId,
       uploadAttachmentFn,
       preserveMetadata,
+      accountId,
     ],
   );
   useLayoutEffect(() => {
@@ -482,6 +487,10 @@ export function useAttachmentDrafts({
 
   const remove = useCallback(
     (id: string) => {
+      const attachmentId = currentItems.current.find(
+        (item) => item.id === id,
+      )?.attachmentId;
+      if (attachmentId) cancelVideoTransfer(attachmentId);
       cancel(id);
       draftCount.current = Math.max(0, draftCount.current - 1);
       previewUrls.current.get(id)?.dispose();

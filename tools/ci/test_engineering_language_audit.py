@@ -95,6 +95,18 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
                 '<string name="push_video_processing_failed">Dein Video konnte nicht verarbeitet werden.</string>',
             ),
             (
+                ".xml",
+                '<string name="media_transfer_title">Video wird hochgeladen</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_processing">Übertragung abgeschlossen. Video wird vorbereitet.</string>',
+            ),
+            (
+                ".xml",
+                '<string name="media_transfer_failed">Upload unterbrochen. Öffne eimir. zum Fortsetzen.</string>',
+            ),
+            (
                 ".json",
                 '"de": "Alex hat „Unser Spaziergang“ kommentiert."',
             ),

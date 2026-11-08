@@ -19,6 +19,7 @@ import { createSharedPlanningApis } from '../client/sharedPlanning';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -215,13 +216,27 @@ function ScopedMemoryPlanningLinks({
             {targets.map((target) => (
               <li key={`${target.kind}:${target.id}`}>
                 <TodayDestinationLink
+                  className="memory-planning-destination"
                   to={
                     target.kind === 'plans'
                       ? planDetailPath(target.id)
                       : wishDetailPath(target.id)
                   }
                 >
-                  {target.title}
+                  <EimirIcon
+                    name={target.kind === 'plans' ? 'kalender' : 'wuensche'}
+                  />
+                  <span>
+                    <span className="memory-planning-kind">
+                      {t(
+                        target.kind === 'plans'
+                          ? 'memoryProduct.planning.linkedPlan'
+                          : 'memoryProduct.planning.linkedWish',
+                      )}
+                    </span>
+                    <strong>{target.title}</strong>
+                  </span>
+                  <EimirIcon name="chevron-right" />
                 </TodayDestinationLink>
                 {canManage && editing ? (
                   <button

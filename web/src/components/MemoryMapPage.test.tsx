@@ -11,10 +11,18 @@ import { MemoryMapPage } from './MemoryMapPage';
 vi.mock('./PlaceMapCanvas', () => ({
   default: ({
     onLocationSelect,
+    locations,
+    focus,
   }: {
     onLocationSelect: (id: string) => void;
+    locations: { id: string }[];
+    focus?: { latitude: number; longitude: number };
   }) => (
-    <div data-testid="external-map">
+    <div
+      data-testid="external-map"
+      data-locations={locations.map((item) => item.id).join(',')}
+      data-focus={focus ? `${focus.latitude}:${focus.longitude}` : ''}
+    >
       <button type="button" onClick={() => onLocationSelect('49:7')}>
         Map marker
       </button>
@@ -60,6 +68,49 @@ function setup(
   );
 }
 describe('Pro memory map', () => {
+  it('focuses a selected place, hides other markers and resets through the standard filter', async () => {
+    setup(
+      vi.fn().mockResolvedValue({
+        items: [
+          item,
+          {
+            ...item,
+            memoryId: 'm2',
+            placeName: 'Zoo',
+            latitude: 53,
+            longitude: 10,
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' }),
+    );
+    expect(
+      (await screen.findByTestId('external-map')).getAttribute(
+        'data-locations',
+      ),
+    ).toBe('49:7');
+    expect(screen.getByTestId('external-map').getAttribute('data-focus')).toBe(
+      '49:7',
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.filter }));
+    fireEvent.click(await screen.findByRole('radio', { name: 'Zoo' }));
+    await screen.findByRole('heading', { name: 'Zoo' });
+    expect(
+      screen.getByTestId('external-map').getAttribute('data-locations'),
+    ).toBe('53:10');
+    fireEvent.click(screen.getByRole('button', { name: copy.filter }));
+    fireEvent.click(await screen.findByRole('radio', { name: copy.allPlaces }));
+    await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' });
+    expect(
+      screen.getByTestId('external-map').getAttribute('data-locations'),
+    ).toBe('49:7,53:10');
+    expect(screen.getByTestId('external-map').getAttribute('data-focus')).toBe(
+      '',
+    );
+  });
   it('sorts place choices by name after loading another page and retains grouping', async () => {
     const list = vi
       .fn()

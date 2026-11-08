@@ -19,11 +19,13 @@ export interface MapLocation extends MapPoint {
 
 export default function PlaceMapCanvas({
   value,
+  focus,
   onSelect,
   locations,
   onLocationSelect,
 }: {
   value?: MapPoint;
+  focus?: MapPoint;
   onSelect?: (point: MapPoint) => void;
   locations?: readonly MapLocation[];
   onLocationSelect?: (id: string) => void;
@@ -39,6 +41,9 @@ export default function PlaceMapCanvas({
   const [tileError, setTileError] = useState(false);
   const tileLayer = useRef<L.TileLayer | null>(null);
   const initialPoint = useRef(value);
+  const focusRef = useRef(focus);
+  const lastFocus = useRef(focus);
+  focusRef.current = focus;
   const [markerHosts, setMarkerHosts] = useState<
     { id: string; host: HTMLElement; preview: ReactNode }[]
   >([]);
@@ -95,7 +100,13 @@ export default function PlaceMapCanvas({
       framing = true;
       try {
         map.invalidateSize({ animate: false, pan: false });
-        if (bounds.current && autoFrame.current)
+        if (focusRef.current && autoFrame.current)
+          map.setView(
+            [focusRef.current.latitude, focusRef.current.longitude],
+            15,
+            { animate: false },
+          );
+        else if (bounds.current && autoFrame.current)
           map.fitBounds(bounds.current, {
             padding: [40, 40],
             maxZoom: 12,
@@ -183,6 +194,23 @@ export default function PlaceMapCanvas({
       layer.remove();
     };
   }, [locations, t]);
+
+  // An explicit Place selection owns the frame. User panning and later layout
+  // changes do not repeatedly steal it; clearing the filter restores bounds.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Locale changes recreate the map instance.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const wasFocused = lastFocus.current;
+    lastFocus.current = focus;
+    if (focus) {
+      autoFrame.current = false;
+      map.setView([focus.latitude, focus.longitude], 15, { animate: false });
+    } else if (wasFocused && !value) {
+      autoFrame.current = true;
+      updateFrame.current?.();
+    }
+  }, [focus, value, t]);
 
   return (
     <div className="place-map-canvas">

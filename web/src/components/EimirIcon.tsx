@@ -49,11 +49,21 @@ export const EIMIR_ICON_NAMES = [
   'check',
   'lock-open',
   'square',
+  'trash',
+  'filter',
+  'chevron-right',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  trash: (
+    <>
+      <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+    </>
+  ),
+  filter: <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" />,
+  'chevron-right': <path d="m9 5 7 7-7 7" />,
   square: <rect x="5" y="5" width="14" height="14" rx="3" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   check: <path d="m5 12 4.5 4.5L19 7" />,

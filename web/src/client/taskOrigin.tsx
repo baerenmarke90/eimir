@@ -8,6 +8,7 @@ import {
   useRef,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
   MEMORY_MAP_ROUTE,
@@ -150,12 +151,7 @@ export function taskOriginPath(
     const input = new URLSearchParams(search);
     const safe = storyFiltersToSearch(parseStoryFilters(input));
     const place = input.get('place') ?? '';
-    const coordinates = place.split(':').map(Number);
-    const valid =
-      /^-?\d{1,3}(?:\.\d{1,16})?:-?\d{1,3}(?:\.\d{1,16})?$/.test(place) &&
-      Math.abs(coordinates[0]) <= 90 &&
-      Math.abs(coordinates[1]) <= 180;
-    if (valid) safe.set('place', place);
+    if (parseMapPlace(place)) safe.set('place', place);
     return safe.size ? `${pathname}?${safe}` : pathname;
   }
   if (pathname !== '/story') return pathname;

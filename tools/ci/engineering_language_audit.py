@@ -298,6 +298,12 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Auf dieser Offline-Seite werden keine privaten Inhalte gespeichert.",
     # Exact #1655 native outcome copy and its bilingual encrypted fixtures.
     "Dein Video konnte nicht verarbeitet werden.",
+    # Exact #1701 native upload notification copy; surrounding prose stays audited.
+    "Video-Uploads",
+    "Video wird hochgeladen",
+    "%1$d%% übertragen",
+    "Übertragung abgeschlossen. Video wird vorbereitet.",
+    "Upload unterbrochen. Öffne eimir. zum Fortsetzen.",
     # Exact #1590 native recovery copy; resource localization, never diagnostics.
     "eimir. wurde unterbrochen",
     "Die App-Ansicht konnte nicht weiter ausgeführt werden. Du kannst eimir. erneut öffnen. Bereits gespeicherte Inhalte bleiben erhalten. Nicht gespeicherte Eingaben können verloren sein.",

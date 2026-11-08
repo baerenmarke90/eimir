@@ -192,16 +192,27 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.media_type == MediaType.AUDIO and not allow_audio:
         raise ValidationError("Audio requires a HeartMoment.", "AUDIO_PARENT_INVALID")
+    pending_video = (
+        allow_submitted_video
+        and attachment.media_type == MediaType.VIDEO.value
+        and attachment.status in {AttachmentStatus.PENDING.value, AttachmentStatus.UPLOADING.value}
+    )
     submitted_video = (
         allow_submitted_video
         and attachment.media_type == MediaType.VIDEO.value
         and attachment.status in {AttachmentStatus.VALIDATING.value, AttachmentStatus.FAILED.value}
-        and attachment.uploaded_at is not None
+        and (attachment.uploaded_at is not None or already_bound)
         and (already_bound or attachment.failed_media_purged_at is None)
     )
-    if attachment.status != AttachmentStatus.READY.value and not submitted_video:
+    if attachment.status != AttachmentStatus.READY.value and not (submitted_video or pending_video):
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
-    if submitted_video and not already_bound:
+    if pending_video:
+        from eimir.attachments.cleanup import UPLOAD_RETENTION
+        from eimir.attachments.service import expired
+
+        if not already_bound and expired(attachment.created_at, UPLOAD_RETENTION):
+            raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
+    elif submitted_video and not already_bound:
         from eimir.attachments.service import BINDING_WINDOW, expired
 
         if expired(attachment.uploaded_at, BINDING_WINDOW):

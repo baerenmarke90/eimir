@@ -158,6 +158,45 @@ def test_normalizable_input_does_not_relax_retained_playback_contract(
         videos._metadata(info, clean=True)
 
 
+@pytest.mark.parametrize("dimensions", [(3840, 2160), (2160, 3840), (1920, 1440)])
+def test_compatible_high_resolution_input_must_not_bypass_1080p_normalization(
+    dimensions: tuple[int, int],
+) -> None:
+    stream = {
+        "index": 0,
+        "codec_type": "video",
+        "codec_name": "h264",
+        "pix_fmt": "yuv420p",
+        "width": dimensions[0],
+        "height": dimensions[1],
+    }
+    info = {"streams": [stream], "format": {"duration": "1"}}
+    assert videos._metadata(info)[:2] == dimensions
+    options = videos._normalization(info)
+    assert options[options.index("-c:v") + 1] == "libopenh264"
+    assert "1080" in options[options.index("-vf") + 1]
+    with pytest.raises(videos.VideoRejectedError, match="VIDEO_DIMENSIONS_EXCEEDED"):
+        videos._metadata(info, clean=True)
+
+
+@pytest.mark.parametrize("dimensions", [(1920, 1080), (1080, 1920), (640, 480)])
+def test_compatible_1080p_and_smaller_recordings_keep_the_lossless_path(
+    dimensions: tuple[int, int],
+) -> None:
+    stream = {
+        "index": 0,
+        "codec_type": "video",
+        "codec_name": "h264",
+        "pix_fmt": "yuv420p",
+        "width": dimensions[0],
+        "height": dimensions[1],
+    }
+    info = {"streams": [stream], "format": {"duration": "1"}}
+    options = videos._normalization(info)
+    assert options[options.index("-c:v") + 1] == "copy"
+    assert videos._metadata(info, clean=True)[:2] == dimensions
+
+
 @pytest.mark.parametrize(
     ("filename", "dimensions", "has_audio"),
     [
@@ -221,7 +260,14 @@ def test_non_media_tracks_and_attached_pictures_cannot_replace_the_recording() -
                 "disposition": {"attached_pic": 1},
             },
             {"index": 3, "codec_type": "data"},
-            {"index": 5, "codec_type": "video", "codec_name": "h264", "pix_fmt": "yuv420p"},
+            {
+                "index": 5,
+                "codec_type": "video",
+                "codec_name": "h264",
+                "pix_fmt": "yuv420p",
+                "width": 96,
+                "height": 64,
+            },
             {"index": 6, "codec_type": "audio", "codec_name": "aac"},
         ]
     }

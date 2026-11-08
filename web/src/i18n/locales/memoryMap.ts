@@ -19,5 +19,6 @@ export default {
     'Erinnerungskarte. Mit den Pfeiltasten verschieben und mit Plus oder Minus zoomen. Wähle eine Markierung oder einen Ort in der Liste.',
   loadMore: 'Weitere Erinnerungsorte laden',
   allPlaces: 'Alle Orte ansehen',
+  filter: 'Orte filtern',
   untitled: 'Erinnerung',
 };

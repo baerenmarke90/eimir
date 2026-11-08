@@ -49,4 +49,9 @@
     <string name="push_view_wish_selection">View wish selection</string>
     <string name="push_view_transfer">View data transfer</string>
     <string name="push_view">View</string>
+    <string name="media_transfer_channel">Video uploads</string>
+    <string name="media_transfer_title">Uploading video</string>
+    <string name="media_transfer_progress">%1$d%% uploaded</string>
+    <string name="media_transfer_processing">Upload complete. Preparing video.</string>
+    <string name="media_transfer_failed">Upload interrupted. Open eimir. to resume.</string>
 </resources>

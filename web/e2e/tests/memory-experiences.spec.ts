@@ -1,4 +1,3 @@
-import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +9,7 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import {
   dragDraftMedia,
   expectInlineDraftActions,
@@ -44,6 +44,12 @@ const CABIN_FIXTURE = path.join(
 );
 
 interface MemoryCreateRequestBody {
+  attachments?: {
+    attachmentId: string;
+    position: number;
+    isSensitive?: boolean;
+  }[];
+  selectedCoverAttachmentId?: string | null;
   body?: string;
   happenedOn?: string | null;
   title?: string;
@@ -255,11 +261,15 @@ async function installApiMocks(page: Page): Promise<void> {
     ) {
       const body = request.postDataJSON() as MemoryCreateRequestBody;
       savedMemory = {
-        attachments: [],
+        attachments: (body.attachments ?? []).map((entry) => ({
+          ...media.get(entry.attachmentId),
+          ...entry,
+          id: entry.attachmentId,
+        })),
         tags: [],
         happenedUntil: (body as Record<string, unknown>).happenedUntil ?? null,
         placeIds: [],
-        selectedCoverAttachmentId: null,
+        selectedCoverAttachmentId: body.selectedCoverAttachmentId ?? null,
         author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
         authorId: ACCOUNT_ID,
         body: body.body ?? '',
@@ -476,8 +486,8 @@ for (const [width, colorScheme] of [
     );
     const binding = page.waitForRequest(
       (request) =>
-        request.method() === 'PUT' &&
-        request.url().endsWith(`/memories/${MEMORY_ID}/attachments`),
+        request.method() === 'POST' &&
+        request.url().endsWith(`/spaces/${SPACE_ID}/memories`),
     );
     await page
       .getByRole('button', { name: de.memory.save, exact: true })

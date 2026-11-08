@@ -49,4 +49,9 @@
     <string name="push_view_wish_selection">Wunschauswahl ansehen</string>
     <string name="push_view_transfer">Datentransfer ansehen</string>
     <string name="push_view">Ansehen</string>
+    <string name="media_transfer_channel">Video-Uploads</string>
+    <string name="media_transfer_title">Video wird hochgeladen</string>
+    <string name="media_transfer_progress">%1$d%% übertragen</string>
+    <string name="media_transfer_processing">Übertragung abgeschlossen. Video wird vorbereitet.</string>
+    <string name="media_transfer_failed">Upload unterbrochen. Öffne eimir. zum Fortsetzen.</string>
 </resources>

@@ -688,11 +688,9 @@ export function TodayPinnedCollection({
               <AddActionButton
                 type="submit"
                 disabled={addPending}
-                label={
-                  addPending
-                    ? t('m5s3.common.saving')
-                    : t('m5s3.collection.addItem')
-                }
+                label={t('m5s3.collection.addItem')}
+                pending={addPending}
+                pendingLabel={t('m5s3.common.saving')}
               />
             </div>
           )}

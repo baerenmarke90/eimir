@@ -130,9 +130,7 @@ for (const [width, colorScheme] of [
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
     await expect(
-      page.locator(
-        '.immersive-create-media .media-device-choice .photo-source-trigger',
-      ),
+      page.locator('.immersive-create-media .media-device-choice .add-action'),
     ).toHaveCount(1);
     await expect(
       page.getByText(de.memory.sharedTitle, { exact: true }),

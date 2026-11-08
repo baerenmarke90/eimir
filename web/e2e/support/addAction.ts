@@ -18,7 +18,7 @@ export async function expectLabeledAddAction(action: Locator) {
       expected,
       label: element.getAttribute('aria-label'),
       title: element.getAttribute('title'),
-      text: element.querySelector('.add-action-label')?.textContent,
+      text: element.querySelector<HTMLElement>('.add-action-label')?.innerText,
     };
   });
   expect(appearance.width).toBeGreaterThanOrEqual(48);
@@ -31,4 +31,22 @@ export async function expectLabeledAddAction(action: Locator) {
   expect(appearance.text).toBe(appearance.label);
   await expect(action.locator('.add-action-label')).toBeVisible();
   await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
+}
+
+/** Labeled insertion may wrap, but input and action must never overlap. */
+export async function expectInlineAddLayout(input: Locator, action: Locator) {
+  const [field, control] = await Promise.all([
+    input.boundingBox(),
+    action.boundingBox(),
+  ]);
+  if (!field || !control) throw new Error('Add controls must be visible.');
+  expect(field.width).toBeGreaterThanOrEqual(44);
+  if (
+    control.y < field.y + field.height &&
+    field.y < control.y + control.height
+  ) {
+    expect(field.x + field.width).toBeLessThanOrEqual(control.x);
+  } else {
+    expect(control.y).toBeGreaterThanOrEqual(field.y + field.height);
+  }
 }

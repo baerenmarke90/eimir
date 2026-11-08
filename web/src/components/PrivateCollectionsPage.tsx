@@ -784,11 +784,9 @@ function CollectionItems({
           />
           <AddActionButton
             type="submit"
-            label={
-              createMutation.isPending
-                ? t('common.saving')
-                : t('privateArea.collections.addItem')
-            }
+            label={t('privateArea.collections.addItem')}
+            pending={createMutation.isPending}
+            pendingLabel={t('common.saving')}
             disabled={pending || readBlocked}
           />
         </form>

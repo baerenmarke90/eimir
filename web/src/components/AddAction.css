@@ -31,7 +31,25 @@ label.add-action {
 }
 
 .add-action-label {
+  display: grid;
   min-inline-size: 0;
+}
+
+/* Reserve both captions so submitting cannot move the action or its neighbors. */
+.add-action-label > span,
+.add-action-label[data-pending-label]::before,
+.add-action-label[data-pending-label]::after {
+  grid-area: 1 / 1;
+}
+
+.add-action-label[data-pending-label]::before {
+  content: attr(data-idle-label);
+  visibility: hidden;
+}
+
+.add-action-label[data-pending-label]::after {
+  content: attr(data-pending-label);
+  visibility: hidden;
 }
 
 button.add-action:disabled {

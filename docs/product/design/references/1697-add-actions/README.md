@@ -21,7 +21,10 @@ where an existing task-origin link, native file label or add/edit chip must keep
 its own lifecycle. Add actions have one canonical blue surface, inverse label,
 pill radius, tokenized padding/gap/type and comfortable minimum touch target.
 Labels and inline rows wrap instead of hiding text or compressing fields.
-Layout-only classes cannot redefine the action's appearance. Native disabled,
+Layout-only classes cannot redefine the action's appearance. Pending insertion
+reserves both localized captions in the same grid cell, so confirmation cannot
+resize the button or move its neighbors. The obsolete People-only horizontal
+header is removed so the full action label sits below the Compact title. Native disabled,
 fieldset, pressed, stationary hover, focus and reduced-motion behavior remain.
 
 | Surface | Consumer |

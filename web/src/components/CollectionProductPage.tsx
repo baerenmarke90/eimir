@@ -796,11 +796,9 @@ function CollectionProductDetail({
             <AddActionButton
               ref={addButtonRef}
               type="submit"
-              label={
-                createItem.isPending
-                  ? t('m5s3.common.saving')
-                  : t('m5s3.collection.addItem')
-              }
+              label={t('m5s3.collection.addItem')}
+              pending={createItem.isPending}
+              pendingLabel={t('m5s3.common.saving')}
               disabled={createItem.isPending || isReordering}
             />
           </form>

@@ -586,6 +586,17 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expectLabeledAddAction(
     page.getByRole('link', { name: people.addPersonAction, exact: true }),
   );
+  const [headingBounds, addBounds] = await Promise.all([
+    page
+      .getByRole('heading', { name: people.title, exact: true })
+      .boundingBox(),
+    page.getByRole('link', { name: people.addPersonAction }).boundingBox(),
+  ]);
+  if (!headingBounds || !addBounds)
+    throw new Error('The People heading and add action must be visible.');
+  expect(addBounds.y).toBeGreaterThanOrEqual(
+    headingBounds.y + headingBounds.height,
+  );
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
   await capture(page, info, 'people-overview-390-light');

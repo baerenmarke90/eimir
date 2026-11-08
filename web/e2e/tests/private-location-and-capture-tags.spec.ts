@@ -6,7 +6,10 @@ import contextTags from '../../src/i18n/locales/contextTags';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import { expectLabeledAddAction } from '../support/addAction';
+import {
+  expectInlineAddLayout,
+  expectLabeledAddAction,
+} from '../support/addAction';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -123,17 +126,7 @@ async function tagGeometry(page: Page) {
     'open',
     '',
   );
-  const [field, action] = await Promise.all([
-    input.boundingBox(),
-    add.boundingBox(),
-  ]);
-  if (!field || !action) throw new Error('Tag controls are not visible');
-  expect(field.width).toBeGreaterThanOrEqual(44);
-  if (Math.abs(field.y - action.y) < 2) {
-    expect(field.x + field.width).toBeLessThanOrEqual(action.x);
-  } else {
-    expect(action.y).toBeGreaterThanOrEqual(field.y + field.height);
-  }
+  await expectInlineAddLayout(input, add);
   const icon = add.locator('.eimir-icon-hinzufuegen');
   await expect(icon).toBeVisible();
   const symbol = await icon.boundingBox();

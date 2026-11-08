@@ -1595,14 +1595,32 @@
     "avatarAlt": "Photo of {{name}}",
     "avatarUploading": "Uploading photo …",
     "avatarValidating": "Checking photo …",
-    "addPersonAction": "Person",
+    "addPersonAction": "Add person",
     "closeDialogAria": "Close",
     "relationship": {
       "CHILD": "Child",
       "PARENT": "Parent",
       "SIBLING": "Sibling",
       "FRIEND": "Friend",
-      "OTHER": "Other relationship"
+      "OTHER": "Not specified",
+      "DAUGHTER": "Daughter",
+      "SON": "Son",
+      "MOTHER": "Mother",
+      "FATHER": "Father",
+      "SISTER": "Sister",
+      "BROTHER": "Brother",
+      "GRANDMOTHER": "Grandmother",
+      "GRANDFATHER": "Grandfather",
+      "GRANDDAUGHTER": "Granddaughter",
+      "GRANDSON": "Grandson",
+      "MOTHER_IN_LAW": "Mother-in-law",
+      "FATHER_IN_LAW": "Father-in-law",
+      "AUNT": "Aunt",
+      "UNCLE": "Uncle",
+      "COUSIN": "Cousin",
+      "RELATIVE": "Extended family",
+      "ACQUAINTANCE": "Acquaintance",
+      "COLLEAGUE": "Colleague"
     },
     "visibility": {
       "SHARED": "For both of us",
@@ -1613,7 +1631,10 @@
     "addBirthday": "Add birthday",
     "optionalYear": "Year (optional)",
     "photoAction": "View profile photo",
-    "invalidBirthday": "Please check the birthday."
+    "invalidBirthday": "Please check the birthday.",
+    "noteLabel": "Note (optional)",
+    "noteTitle": "Note",
+    "notePlaceholder": "What would you like to remember?"
   },
   "importantDates": {
     "heading": "Special days",

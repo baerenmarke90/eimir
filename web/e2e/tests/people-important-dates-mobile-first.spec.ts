@@ -4,7 +4,9 @@ import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import people from '../../src/i18n/locales/people';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { expectCircularAddAction } from '../support/addAction';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -561,6 +563,9 @@ async function openDates(page: Page) {
   await expect(
     page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }),
   ).toBeVisible();
+  await expectCircularAddAction(
+    page.getByRole('button', { name: importantDates.create, exact: true }),
+  );
 }
 
 test('People opens profiles and whole photos, saves the actual result and hands birthdays to Planning', async ({
@@ -578,6 +583,9 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     page.getByText(people.visibility.PRIVATE, { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByText(LONG_DATE_LABEL)).toHaveCount(0);
+  await expectCircularAddAction(
+    page.getByRole('link', { name: people.addPersonAction, exact: true }),
+  );
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
   await capture(page, info, 'people-overview-390-light');
@@ -604,6 +612,22 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await capture(page, info, 'person-edit-390-light');
   await page.getByLabel(people.nameLabel, { exact: true }).fill('Lea Sommer');
   await page
+    .getByRole('combobox', { name: people.relationshipLabel, exact: true })
+    .selectOption('DAUGHTER');
+  const note = 'Likes the sea.\nRemember the strawberry cake.';
+  await page
+    .getByRole('textbox', { name: people.noteLabel, exact: true })
+    .fill(note);
+  const noteBounds = await page
+    .getByRole('textbox', { name: people.noteLabel, exact: true })
+    .boundingBox();
+  const footerBounds = await page
+    .locator('.people-editor-footer')
+    .boundingBox();
+  if (!noteBounds || !footerBounds)
+    throw new Error('Person note and completion are missing');
+  expect(noteBounds.y + noteBounds.height).toBeLessThanOrEqual(footerBounds.y);
+  await page
     .getByRole('button', { name: people.saveChanges, exact: true })
     .click();
   await expect(page).toHaveURL(/more\/people\/person-1$/);
@@ -611,6 +635,21 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     page.getByRole('heading', { name: 'Lea Sommer', exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('status')).toContainText(people.updated);
+  await expect(page.locator('.people-profile-note')).toContainText(note);
+  await expect(page.locator('.people-profile-hero')).toContainText(
+    people.relationship.DAUGHTER,
+  );
+  await openEditor(page);
+  await expect(
+    page.getByRole('textbox', { name: people.noteLabel, exact: true }),
+  ).toHaveValue(note);
+  await expect(
+    page.getByRole('combobox', { name: people.relationshipLabel, exact: true }),
+  ).toHaveValue('DAUGHTER');
+  await capture(page, info, 'person-note-edit-390-light');
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
   await capture(page, info, 'person-saved-390-light');
   await page.locator('.people-birthday-link').click();
   await expect(

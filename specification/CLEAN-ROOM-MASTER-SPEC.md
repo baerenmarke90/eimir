@@ -640,6 +640,7 @@ dates or expand Space membership.
 - displayName
 - relationship
 - birthday?
+- note? (bounded protected text)
 - birthdayYearKnown
 - visibility
 ```
@@ -653,6 +654,13 @@ SIBLING
 FRIEND
 OTHER
 ```
+
+PO extension #1693 (2026-11-07): concrete family and social relationships extend
+the legacy categories without guessing a more specific value for existing
+records. An optional note of at most 2,000 characters belongs to the shared
+person's ProtectedPayload and its existing authorization, export and deletion
+lifecycle. Omitted/null notes on updates preserve existing content; explicit
+empty text clears it. There is no new public or private-person mode.
 
 Data minimization:
 

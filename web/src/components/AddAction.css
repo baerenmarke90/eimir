@@ -1,0 +1,20 @@
+button.add-action,
+a.add-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: var(--touch-target-comfortable);
+  block-size: var(--touch-target-comfortable);
+  min-inline-size: var(--touch-target-comfortable);
+  min-block-size: var(--touch-target-comfortable);
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.add-action .button-icon {
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
+}

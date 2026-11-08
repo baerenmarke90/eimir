@@ -474,6 +474,14 @@ This assessment is not legal advice.
 
 ## Assets
 
+The #1693 preflight at
+`docs/product/design/references/1693-people-polish/generated-reference.png` was
+generated with OpenAI's built-in image tool on 2026-11-07 from the current empty
+People editor screenshot. It contains synthetic initials and text, no private
+photos, third-party imagery or predecessor assets. It is design guidance, not
+runtime evidence, with no separate public license grant. The adjacent README
+records the baseline, scope and intended preserved capabilities.
+
 The #1471 Android photo-location preflight at `docs/product/design/references/android-photo-location-import/compact-permission-reference.png` is an original ImageGen workflow asset generated on 2026-10-27 from the existing #1444 diary composition. It guides permission-layer placement only, with no separate public license grant; illustrative OEM wording is not runtime product copy. The embedded cabin image retains the existing Darkmoon_Art/Pixabay 3374201 CC0 provenance. Exact prompt and scope are recorded beside the image.
 
 The automatic photo places preflight `docs/product/design/references/1459/compact-current.png` is an original image generated through the eimir. project ImageGen workflow on 2026-10-27. It is a project asset with no separate public license grant; its illustrative photo is generated, not a third-party stock image. See the adjacent README and prompt for scope and provenance.

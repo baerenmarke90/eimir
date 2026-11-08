@@ -6823,7 +6823,25 @@
           "PARENT",
           "SIBLING",
           "FRIEND",
-          "OTHER"
+          "OTHER",
+          "DAUGHTER",
+          "SON",
+          "MOTHER",
+          "FATHER",
+          "SISTER",
+          "BROTHER",
+          "GRANDMOTHER",
+          "GRANDFATHER",
+          "GRANDDAUGHTER",
+          "GRANDSON",
+          "MOTHER_IN_LAW",
+          "FATHER_IN_LAW",
+          "AUNT",
+          "UNCLE",
+          "COUSIN",
+          "RELATIVE",
+          "ACQUAINTANCE",
+          "COLLEAGUE"
         ],
         "title": "PersonRelationship",
         "type": "string"
@@ -9453,6 +9471,19 @@
             "title": "Displayname",
             "type": "string"
           },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional shared note. Omission or null preserves an existing note; empty text clears it.",
+            "title": "Note"
+          },
           "relationship": {
             "$ref": "#/components/schemas/PersonRelationship"
           },
@@ -9517,6 +9548,11 @@
           "id": {
             "format": "uuid",
             "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
             "type": "string"
           },
           "relationship": {

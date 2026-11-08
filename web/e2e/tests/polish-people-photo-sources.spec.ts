@@ -252,9 +252,30 @@ for (const view of [
         info,
         `polish-avatar-${source}-${view.width}-${view.theme}.png`,
       );
-      await editor
-        .getByRole('button', { name: people.saveChanges, exact: true })
-        .click();
+      const save = editor.getByRole('button', {
+        name: people.saveChanges,
+        exact: true,
+      });
+      // The former import pointer can land at Save's edge. Hover must not
+      // move the hit target away and create an enter/leave feedback loop.
+      await page.mouse.move(0, 0);
+      await save.scrollIntoViewIfNeeded();
+      const bounds = await save.boundingBox();
+      if (!bounds) throw new Error('Person completion action is not visible');
+      await page.mouse.move(
+        bounds.x + bounds.width / 2,
+        bounds.y + bounds.height - 0.25,
+      );
+      const positions = await save.evaluate(async (element) => {
+        const values: number[] = [];
+        for (let frame = 0; frame < 4; frame += 1) {
+          await new Promise(requestAnimationFrame);
+          values.push(element.getBoundingClientRect().y);
+        }
+        return values;
+      });
+      expect(new Set(positions).size).toBe(1);
+      await save.click();
       await expect(editor).toHaveCount(0);
       await expect(
         page.getByRole('heading', { name: ME.displayName, exact: true }),

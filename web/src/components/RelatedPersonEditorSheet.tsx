@@ -31,7 +31,28 @@ import { MediaDropZone } from './MediaDropZone';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
 
-const RELATIONSHIPS = Object.values(PersonRelationship);
+const RELATIONSHIPS: PersonRelationship[] = [
+  PersonRelationship.DAUGHTER,
+  PersonRelationship.SON,
+  PersonRelationship.MOTHER,
+  PersonRelationship.FATHER,
+  PersonRelationship.SISTER,
+  PersonRelationship.BROTHER,
+  PersonRelationship.GRANDMOTHER,
+  PersonRelationship.GRANDFATHER,
+  PersonRelationship.GRANDDAUGHTER,
+  PersonRelationship.GRANDSON,
+  PersonRelationship.MOTHER_IN_LAW,
+  PersonRelationship.FATHER_IN_LAW,
+  PersonRelationship.AUNT,
+  PersonRelationship.UNCLE,
+  PersonRelationship.COUSIN,
+  PersonRelationship.RELATIVE,
+  PersonRelationship.FRIEND,
+  PersonRelationship.ACQUAINTANCE,
+  PersonRelationship.COLLEAGUE,
+  PersonRelationship.OTHER,
+];
 
 function dateInputValue(value: Date | null): string {
   if (!value) return '';
@@ -57,6 +78,7 @@ function personFields(
 
   return {
     displayName: String(form.get('displayName') || '').trim(),
+    note: String(form.get('note') || '').trim(),
     relationship: String(
       form.get('relationship'),
     ) as RelatedPersonFields['relationship'],
@@ -107,6 +129,7 @@ export function RelatedPersonEditorSheet({
       birthdayMonth: birthdayParts.monthValue,
       birthdayYearKnown: person?.birthday ? person.birthdayYearKnown : true,
       displayName: person?.displayName ?? '',
+      note: person?.note ?? '',
       knownBirthday:
         person?.birthday && person.birthdayYearKnown
           ? dateInputValue(person.birthday)
@@ -118,6 +141,7 @@ export function RelatedPersonEditorSheet({
     };
   }, [person]);
   const [displayName, setDisplayName] = useState(initialDraft.displayName);
+  const [note, setNote] = useState(initialDraft.note);
   const [relationship, setRelationship] = useState(initialDraft.relationship);
   const [birthdayYear, setBirthdayYear] = useState(
     initialDraft.birthdayYearKnown
@@ -186,6 +210,7 @@ export function RelatedPersonEditorSheet({
   const isDirty = useMemo(
     () =>
       displayName !== initialDraft.displayName ||
+      note !== initialDraft.note ||
       relationship !== initialDraft.relationship ||
       birthdayYear !==
         (initialDraft.birthdayYearKnown
@@ -204,6 +229,7 @@ export function RelatedPersonEditorSheet({
       currentAvatarId,
       displayName,
       initialDraft,
+      note,
       relationship,
       showBirthdayOnDashboard,
     ],
@@ -487,6 +513,11 @@ export function RelatedPersonEditorSheet({
               setRelationship(event.currentTarget.value as PersonRelationship)
             }
           >
+            {!RELATIONSHIPS.includes(relationship) ? (
+              <option value={relationship}>
+                {t(`people.relationship.${relationship}`)}
+              </option>
+            ) : null}
             {RELATIONSHIPS.map((value) => (
               <option key={value} value={value}>
                 {t(`people.relationship.${value}`)}
@@ -558,6 +589,19 @@ export function RelatedPersonEditorSheet({
             </label>
           ) : null}
         </details>
+        <label className="field-group" htmlFor="related-person-note">
+          {t('people.noteLabel')}
+          <textarea
+            id="related-person-note"
+            name="note"
+            rows={3}
+            disabled={pending}
+            maxLength={2000}
+            value={note}
+            placeholder={t('people.notePlaceholder')}
+            onChange={(event) => setNote(event.currentTarget.value)}
+          />
+        </label>
         {error ? <ProblemState error={error} /> : null}
         <footer className="people-editor-footer">
           <button type="submit" disabled={pending || avatarNotReady}>

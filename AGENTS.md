@@ -227,6 +227,9 @@ Standalone create/add task entry points must remain visibly filled buttons in
 empty and populated views. Apply the binding [Button contract](docs/COMPONENT-CONTRACTS.md#31-button)
 rather than styling an icon/text or tertiary action as the main creation control
 (Product Owner correction #1688). Preserve the single-primary-action hierarchy.
+Person, important-day and authored-tag add controls reuse the shared circular blue `AddAction`
+primitive (Product Owner correction #1693); local transparent styling must not
+replace its surface.
 
 Reusable visual values must use semantic design tokens instead of repeated component-level literals.
 

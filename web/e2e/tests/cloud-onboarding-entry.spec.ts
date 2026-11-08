@@ -19,7 +19,31 @@ const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const OWN_SPACE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
+/**
+ * Waits until no finite animation or transition is running. A color-scheme
+ * switch transitions theme colors (for example the active entry mode), and
+ * axe must measure the settled colors, not an intermediate frame.
+ */
+async function settleMotion(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        return document.getAnimations().filter((animation) => {
+          const timing = animation.effect?.getTiming();
+          return (
+            animation.playState === 'running' &&
+            timing?.iterations !== Number.POSITIVE_INFINITY
+          );
+        }).length;
+      }),
+    )
+    .toBe(0);
+}
+
 async function expectNoWcagViolations(page: Page): Promise<void> {
+  await settleMotion(page);
   const result = await new AxeBuilder({ page })
     .withTags([
       'wcag2a',

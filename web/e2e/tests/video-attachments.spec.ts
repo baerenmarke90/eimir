@@ -82,6 +82,7 @@ async function setup(
     sensitive?: boolean;
     processing?: boolean;
     uploadGate?: Promise<void>;
+    failUploadOnce?: boolean;
   } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
@@ -96,6 +97,7 @@ async function setup(
     ranges: 0,
     originalVideoReads: 0,
     uploads: 0,
+    creates: 0,
     saved: options.retained
       ? memory([
           {
@@ -148,6 +150,8 @@ async function setup(
         a = attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE');
       if (p.endsWith('/content') && method === 'PUT') {
         state.uploads++;
+        if (id === VIDEO && options.failUploadOnce && state.uploads === 1)
+          return route.abort('failed');
         if (id === VIDEO) await options.uploadGate;
         return route.fulfill({ status: 204 });
       }
@@ -209,6 +213,7 @@ async function setup(
     }
     if (p === `/api/v1/spaces/${SPACE_ID}/memories` && method === 'POST') {
       const body = request.postDataJSON();
+      state.creates++;
       state.bound = (body.attachments ?? []).map(
         (item: { attachmentId: string }) => item.attachmentId,
       );
@@ -680,4 +685,44 @@ test('an interrupted local journal does not block an atomic save while video byt
   } finally {
     releaseUpload();
   }
+});
+
+test('a saved interrupted video resumes the same upload without recreating its parent', async ({
+  page,
+}) => {
+  const { state, unknown } = await setup(page, { failUploadOnce: true });
+  await signIn(page);
+  await page.goto('/story/memories/new');
+  await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(momentBody);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'our-video.mp4',
+    mimeType: 'video/mp4',
+    buffer: movie,
+  });
+  await expect(
+    page.getByRole('button', { name: videoCopy.retryUpload, exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY}$`));
+  await expect(page.locator('.media-processing-state')).toContainText(
+    videoCopy.uploadInterrupted,
+  );
+  await expect(
+    page.getByText(videoCopy.savedFailed, { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator('video')).toHaveCount(0);
+  await page
+    .getByRole('button', { name: videoCopy.retryUpload, exact: true })
+    .click();
+  await expect.poll(() => state.videoStatus).toBe('PROCESSING');
+  await expect(page.locator('.media-processing-state')).toContainText(
+    videoCopy.processing,
+  );
+  expect(state.uploads).toBe(2);
+  expect(state.creates).toBe(1);
+  expect(state.bound).toEqual([VIDEO]);
+  expect(unknown).toEqual([]);
 });

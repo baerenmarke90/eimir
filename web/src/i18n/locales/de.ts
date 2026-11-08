@@ -382,7 +382,7 @@ const de = {
       keepDraft: 'Entwurf behalten und schließen',
       draft: {
         memoryOnlyUnavailable:
-          'Dein Entwurf bleibt hier geöffnet. Die Sicherung des Speicherstatus ist auf diesem Gerät gerade nicht verfügbar. Versuche es erneut, bevor du diesen Eintrag speicherst.',
+          'Dein Entwurf bleibt hier geöffnet. Die Sicherung auf diesem Gerät ist gerade nicht verfügbar.',
         memoryOnly:
           'Deine Worte und dein Speicherstatus sind auf diesem Gerät gesichert. Ausgewählte externe oder ältere Fotos bleiben nur im geöffneten Entwurf. Nach einem Neustart können verfügbare Serverfotos erneut geladen werden.',
         loading: 'Entwurfssicherung wird vorbereitet …',

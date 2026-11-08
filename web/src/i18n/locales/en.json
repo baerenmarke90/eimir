@@ -383,7 +383,7 @@
       "startNew": "Discard draft and start again",
       "keepDraft": "Keep draft and close",
       "draft": {
-        "memoryOnlyUnavailable": "Your draft stays open here. Its save status cannot be secured on this device right now. Try again before saving this entry.",
+        "memoryOnlyUnavailable": "Your draft stays open here. Saving a copy on this device is currently unavailable.",
         "memoryOnly": "Your words and save status are secured on this device. Selected external or older photos remain only in the open draft. Available server photos can be loaded again after a restart.",
         "loading": "Preparing draft storage …",
         "idle": "Not saved together yet.",
@@ -2241,6 +2241,7 @@
     "volatile": "You can save your moment now. In the Android app your video continues uploading in the background; in a browser keep the tab open.",
     "uploading": "Uploading video …",
     "uploadFailed": "The video upload was interrupted. You can resume it.",
+    "uploadInterrupted": "Upload interrupted",
     "retryUpload": "Resume upload",
     "retryUnavailable": "The upload could not start. Open the app with an internet connection and try again."
   },

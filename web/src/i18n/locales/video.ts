@@ -14,6 +14,7 @@ export default {
   formats:
     'MP4 oder MOV · bis 3 Minuten und 250 MiB · gespeichert mit maximal 1080p',
   uploading: 'Video wird hochgeladen …',
+  uploadInterrupted: 'Upload unterbrochen',
   uploadFailed:
     'Der Video-Upload wurde unterbrochen. Du kannst ihn fortsetzen.',
   retryUpload: 'Upload fortsetzen',

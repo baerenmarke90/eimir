@@ -170,6 +170,13 @@
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+.ordered-moment-place-reorder {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
 .moment-place-remove {
   display: inline-grid;
   place-items: center;

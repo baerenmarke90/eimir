@@ -1975,9 +1975,18 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
       identities.push(request.headers()['idempotency-key']);
   });
   await resumeLegacyMemoryAttempt(page);
+  const submitted = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname.endsWith('/memories'),
+  );
   await page
     .getByRole('button', { name: taskBoundary.verify, exact: true })
     .click();
+  await submitted;
+  await expect(
+    page.getByRole('button', { name: taskBoundary.verify, exact: true }),
+  ).toBeEnabled();
   await expect(
     page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
   ).toBeVisible();

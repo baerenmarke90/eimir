@@ -1,6 +1,6 @@
+import { useVideoTransfer } from '../client/backgroundVideoUploads';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
-import { useVideoTransfer } from '../client/backgroundVideoUploads';
 
 export function MediaProcessingState({
   status,
@@ -14,8 +14,8 @@ export function MediaProcessingState({
   const { t } = useTranslation();
   const transfer = useVideoTransfer(attachmentId);
   const uploading = status === 'PENDING';
-  const failed =
-    status === 'FAILED' || (uploading && transfer?.phase === 'failed');
+  const uploadFailed = uploading && transfer?.phase === 'failed';
+  const failed = status === 'FAILED' || uploadFailed;
   return (
     <div
       className={`media-processing-state${compact ? ' media-processing-state-compact' : ''}`}
@@ -24,15 +24,17 @@ export function MediaProcessingState({
       <EimirIcon name="video" />
       <span>
         {t(
-          failed
-            ? compact
-              ? 'video.savedFailedShort'
-              : 'video.savedFailed'
-            : uploading
-              ? 'video.uploading'
-              : compact
-                ? 'video.processingShort'
-                : 'video.processing',
+          uploadFailed
+            ? 'video.uploadInterrupted'
+            : failed
+              ? compact
+                ? 'video.savedFailedShort'
+                : 'video.savedFailed'
+              : uploading
+                ? 'video.uploading'
+                : compact
+                  ? 'video.processingShort'
+                  : 'video.processing',
         )}
       </span>
       {uploading && !failed ? (

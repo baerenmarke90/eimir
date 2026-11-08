@@ -480,14 +480,25 @@ def test_parent_is_saved_before_video_bytes_and_the_same_reservation_finishes(
 
 
 def test_atomic_memory_gallery_replay_checks_identity_and_rolls_back_invalid_binding(
-    client, session, owner
+    production_client, monkeypatch, request
 ):  # type: ignore[no-untyped-def]
     from uuid import uuid4
 
     from eimir.memories.models import Memory
     from eimir.outbox.models import OutboxEvent
+    from tests.conftest import make_account, make_space, sign_in
 
-    grant(session, owner)
+    # Rollback assertions require the real request unit of work, not the shared
+    # uncommitted-session client used by ordinary lifecycle tests.
+    monkeypatch.setenv("EIMIR_VIDEO_UPLOAD_ENABLED", "true")
+    get_settings.cache_clear()
+    request.addfinalizer(get_settings.cache_clear)
+    client, maker = production_client
+    with maker.begin() as session:
+        account = make_account(session, "Video author")
+        space = make_space(session, account)
+        owner = account, space, sign_in(session, account)
+        grant(session, owner)
     identifier = create(client, owner).json()["attachment"]["id"]
     base = f"/api/v1/spaces/{owner[1].id}/memories"
     body = {"title": "Our day", "attachments": [{"attachmentId": identifier, "position": 0}]}
@@ -507,15 +518,16 @@ def test_atomic_memory_gallery_replay_checks_identity_and_rolls_back_invalid_bin
     assert client.post(base, headers=auth(owner[2]), json=body).status_code == 409
     missing = {**body, "attachments": [{"attachmentId": str(uuid4()), "position": 0}]}
     assert client.post(base, headers=auth(owner[2]), json=missing).status_code == 404
-    assert len(list(session.scalars(select(Memory).where(Memory.space_id == owner[1].id)))) == 1
-    events = list(
-        session.scalars(
-            select(OutboxEvent).where(
-                OutboxEvent.event_type.in_(["MEMORY_CREATED", "MEMORY_UPDATED"])
+    with maker() as session:
+        assert len(list(session.scalars(select(Memory).where(Memory.space_id == owner[1].id)))) == 1
+        events = list(
+            session.scalars(
+                select(OutboxEvent).where(
+                    OutboxEvent.event_type.in_(["MEMORY_CREATED", "MEMORY_UPDATED"])
+                )
             )
         )
-    )
-    assert [event.event_type for event in events] == ["MEMORY_CREATED"]
+        assert [event.event_type for event in events] == ["MEMORY_CREATED"]
 
 
 @pytest.mark.parametrize("uploaded", [False, True])

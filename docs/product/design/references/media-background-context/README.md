@@ -142,7 +142,7 @@ reload, failed/lost binding responses, stable identity and duplicate prevention.
 They no longer incorrectly expect a new capture to produce a partial parent.
 The browser inventory keeps these as affected feature work, with their production
 entry roots reviewed. The generated API model conservatively selects the full
-browser plan: 1,154 collected cases in 102 specs at this implementation, without
+browser plan: 1,155 collected cases in 102 specs at this implementation, without
 expanding the always-run core.
 
 Local checks cover the Web build/typecheck/unit suite, targeted real Chromium

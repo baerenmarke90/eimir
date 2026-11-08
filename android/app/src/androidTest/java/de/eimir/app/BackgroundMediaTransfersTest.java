@@ -123,8 +123,8 @@ public class BackgroundMediaTransfersTest {
     }
     @Test public void nativeUploadContinuesWithProgressWhileActivityIsInBackground() throws Exception {
         if (Build.VERSION.SDK_INT >= 33) {
-            InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(
-                "pm grant " + context.getPackageName() + " " + Manifest.permission.POST_NOTIFICATIONS).close();
+            InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(
+                context.getPackageName(), Manifest.permission.POST_NOTIFICATIONS);
         }
         try (TransferServer server = new TransferServer(); ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(LauncherActivity.class)) {
             instance = "http://127.0.0.1:" + server.socket.getLocalPort();
@@ -143,7 +143,7 @@ public class BackgroundMediaTransfersTest {
             NotificationManager notifications = context.getSystemService(NotificationManager.class);
             await(() -> Arrays.stream(notifications.getActiveNotifications()).anyMatch(item -> item.getNotification().extras.getInt(Notification.EXTRA_PROGRESS) > 0), 10_000);
             Notification notification = Arrays.stream(notifications.getActiveNotifications()).filter(item ->
-                item.getId() == (Build.VERSION.SDK_INT >= 34 ? record.jobId() : BackgroundMediaTransfers.FOREGROUND_NOTIFICATION)).findFirst().orElseThrow().getNotification();
+                item.getId() == (Build.VERSION.SDK_INT >= 34 ? record.jobId() : BackgroundMediaTransfers.FOREGROUND_NOTIFICATION)).findFirst().orElseThrow(() -> new AssertionError("Transfer notification missing")).getNotification();
             assertEquals(Notification.VISIBILITY_SECRET, notification.visibility);
             assertEquals(100, notification.extras.getInt(Notification.EXTRA_PROGRESS_MAX));
             assertFalse(notification.extras.toString().contains("private-selected"));
@@ -188,7 +188,9 @@ public class BackgroundMediaTransfersTest {
                                 int count = input.read(block, 0, Math.min(remaining, block.length));
                                 if (count < 0) throw new java.io.EOFException();
                                 hash.update(block, 0, count); remaining -= count;
-                                if (started.getCount() > 0) { started.countDown(); if (!release.await(25, TimeUnit.SECONDS)) throw new java.io.IOException("Fixture transfer was not released"); }
+                                // Gate after a real measurable percentage, rather than
+                                // depending on the emulator's TCP send-buffer capacity.
+                                if (started.getCount() > 0 && length - remaining >= 1024 * 1024) { started.countDown(); if (!release.await(25, TimeUnit.SECONDS)) throw new java.io.IOException("Fixture transfer was not released"); }
                             }
                             digest = hash.digest(); respond(connection, 204, "");
                         } else if (first.startsWith("POST ")) {

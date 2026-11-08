@@ -37,32 +37,6 @@ export function OrderedMomentPlacesField({
               ) : null}
             </div>
             <div className="ordered-moment-place-controls">
-              {value.length > 1 ? (
-                <>
-                  <button
-                    type="button"
-                    className="tertiary"
-                    disabled={props.disabled || index === 0}
-                    aria-label={t('experiences.placeEarlier', {
-                      name: place.name,
-                    })}
-                    onClick={() => move(index, -1)}
-                  >
-                    {t('experiences.earlier')}
-                  </button>
-                  <button
-                    type="button"
-                    className="tertiary"
-                    disabled={props.disabled || index === value.length - 1}
-                    aria-label={t('experiences.placeLater', {
-                      name: place.name,
-                    })}
-                    onClick={() => move(index, 1)}
-                  >
-                    {t('experiences.later')}
-                  </button>
-                </>
-              ) : null}
               {onNavigate ? (
                 <MomentPlaceActionsMenu
                   place={place}
@@ -85,6 +59,32 @@ export function OrderedMomentPlacesField({
                 <EimirIcon name="trash" />
               </button>
             </div>
+            {value.length > 1 ? (
+              <div className="ordered-moment-place-reorder">
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={props.disabled || index === 0}
+                  aria-label={t('experiences.placeEarlier', {
+                    name: place.name,
+                  })}
+                  onClick={() => move(index, -1)}
+                >
+                  {t('experiences.earlier')}
+                </button>
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={props.disabled || index === value.length - 1}
+                  aria-label={t('experiences.placeLater', {
+                    name: place.name,
+                  })}
+                  onClick={() => move(index, 1)}
+                >
+                  {t('experiences.later')}
+                </button>
+              </div>
+            ) : null}
           </li>
         ))}
       </ol>

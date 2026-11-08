@@ -8,6 +8,7 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { expectLabeledAddAction } from '../support/addAction';
 import {
   fulfillEmptyMomentPlaces,
   fulfillUnconfiguredPhotoSources,
@@ -745,6 +746,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const sourceTrigger = media.getByRole('button', {
         name: new RegExp(photoSources.more),
       });
+      await expectLabeledAddAction(mediaTrigger);
       await expect(sourceTrigger).toBeVisible();
       const deviceBox = await mediaTrigger.boundingBox();
       const sourceBox = await sourceTrigger.boundingBox();
@@ -753,14 +755,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
       expect(
         sourceBox.y - deviceBox.y - deviceBox.height,
       ).toBeGreaterThanOrEqual(8);
-      const mediaLabelBox = await mediaTrigger.locator('strong').boundingBox();
-      if (!mediaLabelBox) throw new Error('Media action label is missing.');
+      const mediaLabelBox = await mediaTrigger
+        .locator('.add-action-label')
+        .boundingBox();
+      const iconBox = await mediaTrigger.locator('.button-icon').boundingBox();
+      if (!mediaLabelBox || !iconBox)
+        throw new Error('Media action icon or label is missing.');
+      const groupStart = Math.min(iconBox.x, mediaLabelBox.x);
+      const groupEnd = Math.max(
+        iconBox.x + iconBox.width,
+        mediaLabelBox.x + mediaLabelBox.width,
+      );
       expect(
         Math.abs(
-          mediaLabelBox.x +
-            mediaLabelBox.width / 2 -
-            deviceBox.x -
-            deviceBox.width / 2,
+          (groupStart + groupEnd) / 2 - deviceBox.x - deviceBox.width / 2,
         ),
       ).toBeLessThanOrEqual(2);
       await expect(sourceTrigger).toHaveCSS('justify-content', 'center');

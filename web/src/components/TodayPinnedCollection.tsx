@@ -20,8 +20,8 @@ import { sharedAchievementKind } from '../client/sharedAchievements';
 import { planningIfMatch } from '../client/sharedPlanning';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
 import { ChecklistToggle } from './ChecklistToggle';
-import { AddIcon } from './DestinationIcon';
 import { ProblemState } from './ProblemState';
 import { SharedAchievementCelebration } from './SharedAchievementCelebration';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -577,12 +577,10 @@ export function TodayPinnedCollection({
             </button>
           ) : null}
           {collection.capabilities.canEdit ? (
-            <button
+            <AddActionButton
               ref={addTriggerRef}
-              type="button"
               className="today-pinned-list-add-button"
-              aria-label={t('m5s5.today.pinnedCollection.addAction')}
-              title={t('m5s5.today.pinnedCollection.addAction')}
+              label={t('m5s5.today.pinnedCollection.addAction')}
               onClick={() => {
                 addTaskRef.current = { state: toggleState, pending: false };
                 createItem.reset();
@@ -590,9 +588,7 @@ export function TodayPinnedCollection({
                 setShowDiscardConfirm(false);
                 setAddOpen(true);
               }}
-            >
-              <AddIcon />
-            </button>
+            />
           ) : null}
         </div>
       ) : null}
@@ -689,11 +685,13 @@ export function TodayPinnedCollection({
               >
                 {t('common.cancel')}
               </button>
-              <button type="submit" disabled={addPending}>
-                {addPending
-                  ? t('m5s3.common.saving')
-                  : t('m5s3.collection.addItem')}
-              </button>
+              <AddActionButton
+                type="submit"
+                disabled={addPending}
+                label={t('m5s3.collection.addItem')}
+                pending={addPending}
+                pendingLabel={t('m5s3.common.saving')}
+              />
             </div>
           )}
         </form>

@@ -332,8 +332,8 @@
   }
 
   .page-heading-action,
-  .page-heading-action .button-link,
-  .page-heading-action button {
+  .page-heading-action .button-link:not(.add-action),
+  .page-heading-action button:not(.add-action) {
     width: 100%;
   }
 

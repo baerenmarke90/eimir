@@ -6,9 +6,11 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import navigation from '../../src/i18n/locales/navigation';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureR3Evidence } from './r3-evidence';
+import { expectLabeledAddAction } from '../support/addAction';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -365,9 +367,12 @@ test('an undated Plan is valid while optional context remains available', async 
   await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend in Berlin');
   await page.getByText(m5s3.plan.addDetails).click();
   await page.getByLabel(m5s3.common.description).fill('Time just for us');
-  await page
-    .getByRole('button', { name: m5s3.common.place, exact: true })
-    .click();
+  const addPlace = page.getByRole('button', {
+    name: photoPlaces.add,
+    exact: true,
+  });
+  await expectLabeledAddAction(addPlace);
+  await addPlace.click();
   await page
     .getByRole('dialog', { name: m5s3.common.place, exact: true })
     .getByRole('button', { name: 'Berlin', exact: true })

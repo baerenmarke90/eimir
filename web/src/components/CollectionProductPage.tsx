@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { captureCollectionOrder } from '../client/collectionOrder';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
+import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
@@ -28,7 +28,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
-import { SharedCollectionItemRow } from './SharedCollectionItemRow';
+import { AddActionButton } from './AddAction';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -36,6 +36,7 @@ import {
   usePlanningEditorLifecycle,
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
+import { SharedCollectionItemRow } from './SharedCollectionItemRow';
 import { UiState } from './UiState';
 import { useCollectionPin } from './useCollectionPin';
 import { useTransientFlag } from './useTransientFlag';
@@ -792,16 +793,12 @@ function CollectionProductDetail({
               maxLength={200}
               placeholder={t('m5s3.collection.newItemPlaceholder')}
             />
-            <ListEntryIconButton
+            <AddActionButton
               ref={addButtonRef}
               type="submit"
-              icon="add"
-              className="list-entry-add-button"
-              label={
-                createItem.isPending
-                  ? t('m5s3.common.saving')
-                  : t('m5s3.collection.addItem')
-              }
+              label={t('m5s3.collection.addItem')}
+              pending={createItem.isPending}
+              pendingLabel={t('m5s3.common.saving')}
               disabled={createItem.isPending || isReordering}
             />
           </form>

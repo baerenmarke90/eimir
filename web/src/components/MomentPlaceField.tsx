@@ -3,6 +3,7 @@ import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import { Configuration } from '../client/apiConfiguration';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 import { EimirIcon } from './EimirIcon';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -53,12 +54,18 @@ export function MomentPlaceField({
       <button
         ref={trigger}
         type="button"
-        className="secondary moment-place-add"
+        className={value ? 'secondary moment-place-add' : 'add-action'}
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
-        <EimirIcon name="orte" />
-        <span>{value ? value.name : t('photoPlaces.add')}</span>
+        {value ? (
+          <>
+            <EimirIcon name="orte" />
+            <span>{value.name}</span>
+          </>
+        ) : (
+          <AddActionContent label={t('photoPlaces.add')} />
+        )}
       </button>
       {value ? (
         <button

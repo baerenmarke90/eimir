@@ -150,7 +150,9 @@ describe('PlanningCreatePage', () => {
     fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
       target: { value: 'Picnic' },
     });
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.place }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('photoPlaces.add') }),
+    );
     fireEvent.change(screen.getByLabelText(i18n.t('photoPlaces.savedSearch')), {
       target: { value: 'Rose' },
     });

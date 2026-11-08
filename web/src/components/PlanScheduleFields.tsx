@@ -1,6 +1,7 @@
 import { NativeDateInput } from './NativeDateField';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 
 /**
  * Product-level Plan scheduling controls shared by create, Wish conversion and
@@ -129,7 +130,9 @@ export function PlanScheduleFields({
         <>
           <button
             type="button"
-            className="tertiary planning-schedule-disclosure"
+            className={
+              showEnd ? 'tertiary planning-schedule-disclosure' : 'add-action'
+            }
             aria-expanded={showEnd}
             aria-controls={endPanelId}
             onClick={() => {
@@ -140,7 +143,11 @@ export function PlanScheduleFields({
               }
             }}
           >
-            {showEnd ? t('m5s3.plan.removeEndTime') : t('m5s3.plan.addEndTime')}
+            {showEnd ? (
+              t('m5s3.plan.removeEndTime')
+            ) : (
+              <AddActionContent label={t('m5s3.plan.addEndTime')} />
+            )}
           </button>
 
           <div

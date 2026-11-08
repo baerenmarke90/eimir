@@ -24,6 +24,7 @@ import {
 import { postSnackbar } from '../client/snackbar';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
 import { sortByProductLabel } from '../client/productLabelOrder';
 import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
@@ -191,10 +192,9 @@ export function PlanWishLink({
           <span>{t('m5s3.plan.openWish')}</span>
         </Link>
       ) : (
-        <button
+        <AddActionButton
           ref={trigger}
-          type="button"
-          className="secondary plan-wish-source"
+          label={t('m5s3.plan.linkWish')}
           disabled={disabled}
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -203,10 +203,7 @@ export function PlanWishLink({
             setSelected(null);
             setOpen(true);
           }}
-        >
-          <EimirIcon name="wuensche" />
-          <span>{t('m5s3.plan.linkWish')}</span>
-        </button>
+        />
       )}
       <ShortTaskSheet
         open={open && eligible}

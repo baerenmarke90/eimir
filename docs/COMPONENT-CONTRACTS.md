@@ -79,12 +79,19 @@ ActionState     = idle | submitting | success | error
   (Product Owner correction, 2026-11-07, #1688). Contextual tertiary actions and
   inline insertion controls retain their distinct roles. Keep at most one
   visually dominant primary action in the current view/state.
-- Person creation, important-day creation and authored-tag insertion use `AddActionLink` and
-  `AddActionButton`: the same circular, filled canonical-blue plus surface,
-  comfortable 48 px target, localized accessible name and tooltip. Preserve
-  native link/button and ref/focus semantics. Do not override the surface with
-  contextual transparent or secondary styling. The Product Owner explicitly
-  requested this familiar round action in #1693, including inline tags.
+- All create/add entry points, including authored tags, media and inline list
+  insertion, use `AddActionLink` or `AddActionButton`: the same filled
+  canonical-blue pill, shared plus icon and **visible localized action label**
+  (de-DE example: **“+ Plan hinzufügen”**), with a comfortable 48 px target.
+  Existing task-origin links, native file labels and add/edit chips can reuse
+  `AddActionContent` with the same `add-action` surface without replacing their
+  lifecycle. Selected values keep their existing edit/selection meaning.
+  Preserve native semantics, refs, focus, pending/disabled behavior and link
+  state. Labels wrap; inline rows wrap before compressing input or text. Local
+  CSS may arrange the action but cannot redefine its surface, spacing, radius
+  or hide its label. Product Owner correction #1697 supersedes #1693's
+  icon-only circular interpretation. Existing selection choices, Back, Close,
+  overflow and the global shell plus retain their distinct interaction roles.
 - Hover feedback must keep the control's hit target stationary. Translating a
   button away from a pointer at its edge can alternate hover state indefinitely
   and prevent both a real click and native actionability checks. Reuse color

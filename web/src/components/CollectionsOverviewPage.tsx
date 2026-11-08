@@ -1,29 +1,30 @@
-import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
-import { AutoLoadMore } from './AutoLoadMore';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   type DeleteFocusTarget,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
-import { assertOnlineWrite } from '../client/connectivity';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureQueryIdentity } from '../client/queryIdentity';
 import { collectionDetailPath, MORE_COLLECTIONS_ROUTE } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
-import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
-import type { ShortTaskSheetHandle } from './ShortTaskSheet';
+import { AddActionButton } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
+import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
 import './SharedContentPages.css';
@@ -167,17 +168,15 @@ export function CollectionsOverviewPage({
       <PageHeader
         title={t('m5s3.collection.overviewHeading')}
         action={
-          <button
+          <AddActionButton
+            label={t('m5s3.collection.create')}
             ref={createActionRef}
             id="collection-title"
-            type="button"
             onClick={() => {
               createCollection.reset();
               setCreateOpen(true);
             }}
-          >
-            <AddIcon /> {t('m5s3.collection.create')}
-          </button>
+          />
         }
       />
 

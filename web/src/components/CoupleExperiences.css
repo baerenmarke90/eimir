@@ -8,10 +8,6 @@
 }
 
 .experience-create-action {
-  width: fit-content;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  min-height: var(--touch-target-web);
   margin-block: var(--space-4);
 }
 .couple-experience-questions ul {

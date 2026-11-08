@@ -1,31 +1,29 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
-import { type FormEvent, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
 import { GiftIdeaStatus } from '../api/generated/models/GiftIdeaStatus';
 import {
-  PRIVATE_GIFT_IDEAS_PATH,
   capturePrivateCreate,
   capturePrivateDelete,
   capturePrivateEdit,
+  PRIVATE_GIFT_IDEAS_PATH,
   privateApiCall,
   privateAreaQueryKeys,
   privateGiftIdeaEditPath,
   privateGiftIdeaPath,
 } from '../client/privateArea';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
-import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
   PrivateAreaDetailBack,
@@ -33,6 +31,9 @@ import {
   usePrivateAreaTaskContext,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
+import { ProblemState } from './ProblemState';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
 
@@ -243,9 +244,10 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.gifts.title')}
         description={t('privateArea.gifts.intro')}
         action={
-          <Link className="button-link" to={`${PRIVATE_GIFT_IDEAS_PATH}/new`}>
-            {t('privateArea.gifts.add')}
-          </Link>
+          <AddActionLink
+            label={t('privateArea.gifts.add')}
+            to={`${PRIVATE_GIFT_IDEAS_PATH}/new`}
+          />
         }
       />
       {query.isLoading ? (

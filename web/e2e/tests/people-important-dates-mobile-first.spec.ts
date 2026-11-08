@@ -5,8 +5,8 @@ import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import people from '../../src/i18n/locales/people';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { expectLabeledAddAction } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expectCircularAddAction } from '../support/addAction';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -563,7 +563,7 @@ async function openDates(page: Page) {
   await expect(
     page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }),
   ).toBeVisible();
-  await expectCircularAddAction(
+  await expectLabeledAddAction(
     page.getByRole('button', { name: importantDates.create, exact: true }),
   );
 }
@@ -583,8 +583,19 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     page.getByText(people.visibility.PRIVATE, { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByText(LONG_DATE_LABEL)).toHaveCount(0);
-  await expectCircularAddAction(
+  await expectLabeledAddAction(
     page.getByRole('link', { name: people.addPersonAction, exact: true }),
+  );
+  const [headingBounds, addBounds] = await Promise.all([
+    page
+      .getByRole('heading', { name: people.title, exact: true })
+      .boundingBox(),
+    page.getByRole('link', { name: people.addPersonAction }).boundingBox(),
+  ]);
+  if (!headingBounds || !addBounds)
+    throw new Error('The People heading and add action must be visible.');
+  expect(addBounds.y).toBeGreaterThanOrEqual(
+    headingBounds.y + headingBounds.height,
   );
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);

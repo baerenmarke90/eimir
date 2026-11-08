@@ -544,13 +544,11 @@ export function RelatedPeoplePage({
                   </span>
                 </Link>
               ) : (
-                <Link
-                  className="button-link tertiary"
+                <AddActionLink
+                  label={t('people.addBirthday')}
                   to={`${personPath(person.id)}/edit`}
                   state={originState}
-                >
-                  {t('people.addBirthday')}
-                </Link>
+                />
               )}
             </section>
             {person.note ? (

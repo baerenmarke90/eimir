@@ -1,0 +1,8 @@
+eimir. Android 0.2.0-test.54
+
+- Add actions now share the Planning pattern: a filled blue pill, plus icon and visible localized label.
+- The same control is used across People, important days, tags, media, places, chapters, profiles and shared/private lists.
+- Inline actions wrap on narrow screens and preserve their size while saving; existing task, focus and picker behavior stays intact.
+- Includes main 04d625cc (#1698), previous test.53 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.53; increasing versionCode 54. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

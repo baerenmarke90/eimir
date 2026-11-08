@@ -3,10 +3,13 @@ import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
-import { expectCircularAddAction } from '../support/addAction';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import {
+  expectInlineAddLayout,
+  expectLabeledAddAction,
+} from '../support/addAction';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -117,20 +120,13 @@ async function tagGeometry(page: Page) {
   const row = page.locator('.context-tag-entry');
   const input = row.locator('input');
   const add = row.getByRole('button', { name: contextTags.add });
-  await expectCircularAddAction(add);
+  await expectLabeledAddAction(add);
   await expect(input).toHaveAttribute('placeholder', contextTags.placeholder);
   await expect(page.locator('.context-tag-suggestions')).not.toHaveAttribute(
     'open',
     '',
   );
-  const [field, action] = await Promise.all([
-    input.boundingBox(),
-    add.boundingBox(),
-  ]);
-  if (!field || !action) throw new Error('Tag controls are not visible');
-  expect(Math.abs(field.y - action.y)).toBeLessThan(2);
-  expect(field.width).toBeGreaterThanOrEqual(44);
-  expect(field.x + field.width).toBeLessThanOrEqual(action.x);
+  await expectInlineAddLayout(input, add);
   const icon = add.locator('.eimir-icon-hinzufuegen');
   await expect(icon).toBeVisible();
   const symbol = await icon.boundingBox();
@@ -339,6 +335,11 @@ for (const destination of [
         (element as HTMLDetailsElement).open = true;
       });
     await tagGeometry(page);
+    if (destination === '/plan/plans/new') {
+      await expectLabeledAddAction(
+        page.getByRole('button', { name: photoPlaces.add, exact: true }),
+      );
+    }
     await page.screenshot({
       path: info.outputPath(
         `shell-1693-tags-large-${destination.replaceAll('/', '-')}.png`,

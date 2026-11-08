@@ -4,9 +4,6 @@
   max-width: var(--reading-max);
   margin-inline: auto;
 }
-.people-overview .page-heading-action {
-  align-self: center;
-}
 .people-portrait-list {
   list-style: none;
   padding: 0;
@@ -271,23 +268,6 @@
   border: 0;
 }
 
-.people-overview .page-heading {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.people-overview .page-heading > div:first-child {
-  min-width: 0;
-}
-.people-overview .page-heading-action {
-  width: auto;
-  margin: 0;
-}
-.people-overview .page-heading h1 {
-  margin: 0;
-}
 .occasions-list .important-date-meta svg {
   width: 1rem;
   height: 1rem;

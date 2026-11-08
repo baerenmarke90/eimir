@@ -1,7 +1,7 @@
 import { expect, type Locator } from '@playwright/test';
 
 /** Rendered geometry catches local surface overrides that component tests miss. */
-export async function expectCircularAddAction(action: Locator) {
+export async function expectLabeledAddAction(action: Locator) {
   await expect(action).toBeVisible();
   const appearance = await action.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -18,13 +18,40 @@ export async function expectCircularAddAction(action: Locator) {
       expected,
       label: element.getAttribute('aria-label'),
       title: element.getAttribute('title'),
+      text: element.querySelector<HTMLElement>('.add-action-label')?.innerText,
+      iconSize: getComputedStyle(
+        element.querySelector('.button-icon') as Element,
+      ).inlineSize,
+      expectedIconSize: style.getPropertyValue('--icon-size-standard').trim(),
     };
   });
   expect(appearance.width).toBeGreaterThanOrEqual(48);
-  expect(appearance.height).toBe(appearance.width);
-  expect(appearance.radius).toBeGreaterThanOrEqual(appearance.width / 2);
+  expect(appearance.height).toBeGreaterThanOrEqual(48);
+  expect(appearance.width).toBeGreaterThan(appearance.height);
+  expect(appearance.radius).toBeGreaterThanOrEqual(appearance.height / 2);
   expect(appearance.background).toBe(appearance.expected);
   expect(appearance.label).toBeTruthy();
   expect(appearance.title).toBe(appearance.label);
+  expect(appearance.text).toBe(appearance.label);
+  expect(appearance.iconSize).toBe(appearance.expectedIconSize);
+  await expect(action.locator('.add-action-label')).toBeVisible();
   await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
+}
+
+/** Labeled insertion may wrap, but input and action must never overlap. */
+export async function expectInlineAddLayout(input: Locator, action: Locator) {
+  const [field, control] = await Promise.all([
+    input.boundingBox(),
+    action.boundingBox(),
+  ]);
+  if (!field || !control) throw new Error('Add controls must be visible.');
+  expect(field.width).toBeGreaterThanOrEqual(44);
+  if (
+    control.y < field.y + field.height &&
+    field.y < control.y + control.height
+  ) {
+    expect(field.x + field.width).toBeLessThanOrEqual(control.x);
+  } else {
+    expect(control.y).toBeGreaterThanOrEqual(field.y + field.height);
+  }
 }

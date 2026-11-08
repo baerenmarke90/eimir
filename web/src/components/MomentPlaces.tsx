@@ -17,6 +17,7 @@ import { clientProblemKind } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MomentPlaceActionsMenu } from './MomentPlaceActionsMenu';
@@ -174,17 +175,13 @@ export function MomentPlaces({
         {t('photoPlaces.title')}
       </h2>
       {canManage && !denied && !query.isPending ? (
-        <button
+        <AddActionButton
+          label={t('photoPlaces.add')}
           ref={addTrigger}
-          type="button"
-          className="secondary moment-place-add"
           aria-haspopup="dialog"
           disabled={offline || query.isPending}
           onClick={() => setAdding(true)}
-        >
-          <EimirIcon name="orte" />
-          <span>{t('photoPlaces.add')}</span>
-        </button>
+        />
       ) : null}
       <ShortTaskSheet
         open={adding && canManage && !denied}

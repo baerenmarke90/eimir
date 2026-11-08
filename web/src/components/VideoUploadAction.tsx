@@ -5,6 +5,7 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
@@ -75,19 +76,19 @@ function EnabledVideoUploadAction({
               event.currentTarget.value = '';
             }}
           />
-          <label className="file-picker" htmlFor={`${id}-video`}>
-            <span aria-hidden="true">▶</span> {t('video.add')}
+          <label className="file-picker add-action" htmlFor={`${id}-video`}>
+            <AddActionContent label={t('video.add')} />
           </label>
           <small>{t('video.formats')}</small>
         </>
       ) : (
         <button
           type="button"
-          className="tertiary"
+          className="add-action"
           disabled={disabled}
           onClick={() => setProOpen(true)}
         >
-          {t('video.add')} <ProMark label="Pro" />
+          <AddActionContent label={t('video.add')} /> <ProMark label="Pro" />
         </button>
       )}
       <ShortTaskSheet

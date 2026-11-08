@@ -21,9 +21,10 @@ import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MomentPlaceActionsMenu } from './MomentPlaceActionsMenu';
+import { MomentMapLink } from './MomentMapLink';
 import { MomentPlacePicker } from './MomentPlacePicker';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet } from './ShortTaskSheet';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MomentPlaces.css';
 import './MomentMetadata.css';
 
@@ -63,6 +64,7 @@ export function MomentPlaces({
   const [removed, setRemoved] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedTrigger = useRef<HTMLButtonElement>(null);
+  const selectedSheet = useRef<ShortTaskSheetHandle>(null);
   const isPlaceholder = (name: string) =>
     name === t('photoPlaces.initialName') || name === 'Photo location';
   const readableName = (place: PlaceDetail) =>
@@ -238,18 +240,21 @@ export function MomentPlaces({
           const context = (
             <>
               {destination ? (
-                <a
+                <MomentMapLink
                   className="moment-place-address"
-                  href={destination}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  referrerPolicy="no-referrer"
-                  aria-label={t('photoPlaces.mapAddress', {
+                  to={destination}
+                  onNavigate={
+                    inline
+                      ? (proceed) =>
+                          selectedSheet.current?.closeForNavigation(proceed)
+                      : onNavigate
+                  }
+                  ariaLabel={t('photoPlaces.mapAddress', {
                     address: place.address || name,
                   })}
                 >
                   {place.address || t('photoPlaces.viewMap')}
-                </a>
+                </MomentMapLink>
               ) : place.address ? (
                 <span>{place.address}</span>
               ) : null}
@@ -281,6 +286,7 @@ export function MomentPlaces({
                 <span>{name}</span>
               </button>
               <ShortTaskSheet
+                ref={selectedId === place.id ? selectedSheet : undefined}
                 open={selectedId === place.id}
                 title={name}
                 onClose={() => setSelectedId(null)}

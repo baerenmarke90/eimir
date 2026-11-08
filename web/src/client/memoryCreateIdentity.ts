@@ -19,6 +19,7 @@ export { newIdempotencyKey };
 export const MEMORY_CREATE_RESULT_DELETED = 'MEMORY_CREATE_RESULT_DELETED';
 
 export interface MemoryCreateAttempt {
+  readonly atomicAttachments?: true;
   readonly idempotencyKey: string;
   /** The exact submitted snapshot; a replay must never differ from it. */
   readonly snapshot: MemoryCreate;
@@ -34,6 +35,7 @@ export function startMemoryCreateAttempt(
   now: number = Date.now(),
 ): MemoryCreateAttempt {
   return {
+    atomicAttachments: true,
     idempotencyKey: newIdempotencyKey(),
     snapshot,
     attachmentIds,

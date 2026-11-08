@@ -1,7 +1,3 @@
-import { MediaProcessingState } from './MediaProcessingState';
-import { MomentDate } from './MomentDate';
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
-import { NativeDateInput } from './NativeDateField';
 import {
   useIsMutating,
   useMutation,
@@ -27,6 +23,7 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { isGalleryAttachment } from '../client/galleryMedia';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
 import {
   isGeneratedMemoryTitle,
@@ -54,7 +51,6 @@ import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjec
 import { postSnackbar } from '../client/snackbar';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { TaskOriginLink } from './TodayDestinationLink';
 import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
@@ -66,22 +62,25 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { DraftMediaPreview } from './DraftMediaPreview';
-import { ExperienceAnswers } from './ExperienceAnswers';
-import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { ExpandableDescription } from './ExpandableDescription';
+import { ExperienceAnswers } from './ExperienceAnswers';
+import { MediaProcessingState } from './MediaProcessingState';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
-import { MemoryPlanningLinks } from './MemoryPlanningLinks';
 import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
+import { MemoryPlanningLinks } from './MemoryPlanningLinks';
 import { MemoryPreview } from './MemoryPreview';
 import {
   MEMORY_TAGS,
   type MemoryTag,
   MemoryTagChoices,
 } from './MemoryTagChoices';
+import { MomentDate } from './MomentDate';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
+import { NativeDateInput } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { ProblemState } from './ProblemState';
@@ -89,6 +88,8 @@ import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
+import { TaskOriginLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -230,8 +231,8 @@ export function MemoryProductPage({
     enabled: Boolean(memoryId),
     refetchInterval: (query) =>
       !query.state.error &&
-      (query.state.data?.value.attachments ?? []).some(
-        (item) => item.status === 'PROCESSING',
+      (query.state.data?.value.attachments ?? []).some((item) =>
+        ['PENDING', 'PROCESSING'].includes(item.status),
       )
         ? 2500
         : false,
@@ -261,7 +262,7 @@ export function MemoryProductPage({
   const keptBoundAttachmentCount = memoryQuery.data
     ? memoryQuery.data.value.attachments.filter(
         (attachment) =>
-          ['READY', 'PROCESSING', 'FAILED'].includes(attachment.status) &&
+          isGalleryAttachment(attachment) &&
           !removedAttachmentIds.has(attachment.id),
       ).length
     : 0;
@@ -304,8 +305,7 @@ export function MemoryProductPage({
     ...(memoryQuery.data?.value.attachments ?? [])
       .filter(
         (photo) =>
-          ['READY', 'PROCESSING', 'FAILED'].includes(photo.status) &&
-          !removedAttachmentIds.has(photo.id),
+          isGalleryAttachment(photo) && !removedAttachmentIds.has(photo.id),
       )
       .sort((a, b) => a.position - b.position)
       .map((photo) => ({ key: `saved:${photo.id}`, photo, draft: undefined })),
@@ -590,9 +590,7 @@ export function MemoryProductPage({
     tagDraft?.memoryId === memory.id ? tagDraft.tags : (memory.tags ?? []);
   const offline = result.source === 'cache' || Boolean(memoryQuery.error);
   const boundAttachments = [...memory.attachments]
-    .filter((attachment) =>
-      ['READY', 'PROCESSING', 'FAILED'].includes(attachment.status),
-    )
+    .filter(isGalleryAttachment)
     .sort((left, right) => left.position - right.position);
 
   if (mode === 'edit') {

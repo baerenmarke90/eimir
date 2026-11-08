@@ -10,6 +10,10 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import {
+  startBackgroundVideoTransfer,
+  cancelVideoTransfer,
+} from './backgroundVideoUploads';
 
 export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
 
@@ -37,6 +41,7 @@ export async function uploadMemoryDraftAttachment(
     signal?: AbortSignal;
     onProgress?: (progress: number) => void;
     preserveMetadata?: boolean;
+    accountId?: string;
   } = {},
 ): Promise<ReadyDraftAttachment> {
   if (selectedPhotoUnavailable(file))
@@ -84,6 +89,28 @@ export async function uploadMemoryDraftAttachment(
       id: upload.attachment.id,
       version: upload.attachment.version,
     };
+
+    if (video && options.accountId) {
+      await startBackgroundVideoTransfer({
+        apis,
+        apiBaseUrl,
+        accessToken,
+        accountId: options.accountId,
+        spaceId,
+        file: uploadFile,
+        descriptor: upload,
+        fetchApi,
+      });
+      if (options.signal?.aborted) {
+        cancelVideoTransfer(upload.attachment.id);
+        throwIfAborted(options.signal);
+      }
+      return {
+        attachmentId: upload.attachment.id,
+        processing: true,
+        hasThumbnail: false,
+      };
+    }
 
     await uploadAttachmentBytesWithProgress(
       apiBaseUrl,
@@ -247,6 +274,7 @@ export async function createMemoryWithReadyAttachments(
     memoryCreate,
     idempotencyKey: options.idempotencyKey,
   });
+  if (memoryCreate.attachments !== undefined) return { memory };
   const savedMemory = attachmentIds.length
     ? await completeMemoryAttachmentBinding(
         apis,

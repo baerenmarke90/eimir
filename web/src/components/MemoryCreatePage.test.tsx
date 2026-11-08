@@ -420,49 +420,46 @@ describe('Memory capture mutation ownership', () => {
     expect(requestOf(1).idempotencyKey).not.toBe(requestOf(0).idempotencyKey);
     expect(requestOf(1).memoryCreate.title).toBe('Our evening, corrected');
   });
-  it('resumes photo association against the reconciled Memory without a second create', async () => {
+  it('replays an atomic gallery create with the same identity and no separate bind request', async () => {
     fixture.readyIds = ['photo-1'];
-    const bound = { ...confirmed, version: 2 } as MemoryDetail;
+    const bound = {
+      ...confirmed,
+      attachments: [{ id: 'photo-1', position: 0 }],
+      version: 2,
+    } as MemoryDetail;
     fixture.create
       .mockRejectedValueOnce(new Error('Response lost'))
-      .mockResolvedValueOnce(confirmed);
-    fixture.get.mockResolvedValue(confirmed);
-    fixture.replace.mockResolvedValue(bound);
+      .mockResolvedValueOnce(bound);
     setup();
     enterTitle();
     submit();
     await screen.findByText(taskBoundary.uncertainTitle);
-    expect(fixture.replace).not.toHaveBeenCalled();
-
     fireEvent.click(verifyButton());
-    expect(await screen.findByText('Actual result destination')).toBeTruthy();
-
+    await screen.findByText('Actual result destination');
     expect(requestOf(1).idempotencyKey).toBe(requestOf(0).idempotencyKey);
-    expect(fixture.replace).toHaveBeenCalledTimes(1);
-    expect(fixture.replace.mock.calls[0][0]).toMatchObject({
-      memoryId: 'saved-memory',
-      ifMatch: '1',
-    });
+    expect(requestOf(1).memoryCreate).toBe(requestOf(0).memoryCreate);
+    expect(requestOf(0).memoryCreate.attachments).toEqual([
+      { attachmentId: 'photo-1', position: 0, isSensitive: false },
+    ]);
+    expect(fixture.replace).not.toHaveBeenCalled();
     expect(fixture.create).toHaveBeenCalledTimes(2);
   });
-  it('keeps the confirmed Memory when photo association fails after verification', async () => {
+  it('retains the draft after an atomic gallery failure and never claims a partial save', async () => {
     fixture.readyIds = ['photo-1'];
     fixture.create
       .mockRejectedValueOnce(new Error('Response lost'))
-      .mockResolvedValueOnce(confirmed);
-    fixture.get.mockResolvedValue(confirmed);
-    fixture.replace.mockRejectedValue({ status: 503 });
+      .mockRejectedValueOnce({ status: 503 });
     setup();
     enterTitle();
     submit();
     await screen.findByText(taskBoundary.uncertainTitle);
     fireEvent.click(verifyButton());
-
-    expect(await screen.findByText(taskBoundary.partialTitle)).toBeTruthy();
-    expect(screen.queryByText(taskBoundary.uncertainTitle)).toBeNull();
-    fireEvent.click(screen.getByText(taskBoundary.retryPhotos));
-    await waitFor(() => expect(fixture.replace).toHaveBeenCalledTimes(2));
-    expect(fixture.create).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(fixture.create).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(taskBoundary.partialTitle)).toBeNull();
+    expect(screen.queryByText('Actual result destination')).toBeNull();
+    expect(fixture.clear).not.toHaveBeenCalled();
+    expect(fixture.replace).not.toHaveBeenCalled();
+    expect(titleInput().value).toBe('Our evening');
   });
   it('ignores a late verification result after replacement by another account task', async () => {
     const response = deferred<MemoryDetail>();

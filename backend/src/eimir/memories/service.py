@@ -176,6 +176,8 @@ def create_memory(
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
+    attachments: list[tuple[UUID, int, bool | None]] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> Memory:
     from eimir.memories.periods import validate_period
 
@@ -221,6 +223,18 @@ def create_memory(
         experiences.reconcile(session, context)
     if selected_places:
         memory_places.replace(session, context, memory, selected_places)
+    if attachments is not None:
+        memory = replace_attachments(
+            session,
+            context,
+            memory.id,
+            expected_version=memory.version,
+            entries=[(identifier, position) for identifier, position, _ in attachments],
+            sensitivity={identifier: sensitive for identifier, _, sensitive in attachments},
+            selected_cover_attachment_id=selected_cover_attachment_id,
+            cover_selection_supplied=True,
+            record_update=False,
+        )
     _flush(session)
     _record(
         session, memory, context.account_id, EventType.MEMORY_CREATED, recipient_id=recipient_id
@@ -243,6 +257,8 @@ def create_memory_once(
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
+    attachments: list[tuple[UUID, int, bool | None]] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> MemoryCreateResult:
     """Create a Memory, or return the one an earlier request with this identity created.
 
@@ -262,6 +278,8 @@ def create_memory_once(
             place_id=place_id,
             place_ids=place_ids,
             happened_until=happened_until,
+            attachments=attachments,
+            selected_cover_attachment_id=selected_cover_attachment_id,
         )
         return MemoryCreateResult(memory, created=True)
 
@@ -276,6 +294,8 @@ def create_memory_once(
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,
+        attachments=attachments,
+        selected_cover_attachment_id=selected_cover_attachment_id,
     )
     receipt_id = create_receipts.claim(session, context, idempotency_key, request_fingerprint)
     if receipt_id is None:
@@ -294,6 +314,8 @@ def create_memory_once(
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,
+        attachments=attachments,
+        selected_cover_attachment_id=selected_cover_attachment_id,
     )
     create_receipts.attach(session, receipt_id, memory.id)
     return MemoryCreateResult(memory, created=True)
@@ -603,6 +625,7 @@ def replace_attachments(
     sensitivity: dict[UUID, bool | None] | None = None,
     selected_cover_attachment_id: UUID | None = None,
     cover_selection_supplied: bool = False,
+    record_update: bool = True,
 ) -> Memory:
     """Replace the complete attachment gallery of a memory.
 
@@ -728,6 +751,7 @@ def replace_attachments(
     for attachment in attachments:
         if attachment.id not in previous:
             binding.notify_video_failure(session, attachment)
-    _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
+    if record_update:
+        _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
     _flush(session)
     return memory

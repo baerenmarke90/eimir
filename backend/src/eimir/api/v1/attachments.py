@@ -43,6 +43,11 @@ attachment no longer exists at the domain level and is not returned at all.
 """
 
 
+def public_attachment_status(value: str) -> str:
+    """One lifecycle projection for attachment and parent-resource consumers."""
+    return _PUBLIC_STATUS.get(value, "PROCESSING")
+
+
 class AttachmentUploadCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -176,7 +181,7 @@ class ReadDescriptor(ApiModel):
 def _detail(attachment: Attachment) -> AttachmentDetail:
     return AttachmentDetail(
         id=attachment.id,
-        status=_PUBLIC_STATUS.get(attachment.status, "PROCESSING"),
+        status=public_attachment_status(attachment.status),
         failure_code=attachment.failure_code if attachment.status == "FAILED" else None,
         media_type=MediaType(attachment.media_type),
         mime_type=attachment.mime_type,

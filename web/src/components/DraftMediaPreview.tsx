@@ -6,6 +6,8 @@ import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import type { VideoCaptureContext } from './VideoUploadAction';
+import { MediaProcessingState } from './MediaProcessingState';
+import { useVideoTransfer } from '../client/backgroundVideoUploads';
 
 export function DraftMediaPreview({
   draft,
@@ -16,6 +18,7 @@ export function DraftMediaPreview({
 }) {
   const { t } = useTranslation();
   const video = draft.file.type.startsWith('video/');
+  const transfer = useVideoTransfer(draft.attachmentId);
   const poster = useObjectUrlResource(
     JSON.stringify([
       'video-draft',
@@ -58,6 +61,14 @@ export function DraftMediaPreview({
       </span>
     );
   if (draft.isSensitive) return <SensitiveMediaCover />;
+  if (video && transfer)
+    return (
+      <MediaProcessingState
+        status="PENDING"
+        attachmentId={draft.attachmentId}
+        compact
+      />
+    );
   if (!video)
     return (
       <img

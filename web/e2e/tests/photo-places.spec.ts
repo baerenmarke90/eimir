@@ -1,15 +1,16 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localeFixture from '../fixtures/locales/de';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -30,14 +31,7 @@ const PLACE_ID = '66666666-6666-4666-8666-666666666666';
 
 test('the saved Place discloses its address, opens the pinned map and retains the moment', async ({
   page,
-  context,
 }) => {
-  await context.route('https://www.google.com/maps/**', (route) =>
-    route.fulfill({
-      contentType: 'text/html',
-      body: '<title>Fixture map</title>',
-    }),
-  );
   const state = await installPhotoPlaces(page);
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
@@ -63,19 +57,29 @@ test('the saved Place discloses its address, opens the pinned map and retains th
     ),
   });
   await expect(address).toBeVisible();
-  const popupPromise = page.waitForEvent('popup');
   await address.click();
-  const popup = await popupPromise;
-  await expect(popup).toHaveURL(
-    'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
-  );
+  await expect(page).toHaveURL(/\/story\/map\?place=52.516667%3A13.4$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+  await expect(
+    page.getByRole('heading', {
+      name: localeFixture.photoPlaces.resolvedName,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect(place).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: localeFixture.photoPlaces.title,
+      exact: true,
+    }),
+  ).toBeVisible();
   expect(state.writes).toEqual([]);
   expect(state.unexpected).toEqual([]);
-  await popup.close();
-  await page.keyboard.press('Escape');
-  await expect(sheet).toBeHidden();
-  await expect(place).toBeFocused();
 });
 
 test('a pending photo location becomes a readable address without another upload', async ({
@@ -100,10 +104,7 @@ test('a pending photo location becomes a readable address without another upload
         photoPlaceCopy.locationFallback,
       ),
     }),
-  ).toHaveAttribute(
-    'href',
-    'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
-  );
+  ).toHaveAttribute('href', '/story/map?place=52.516667%3A13.4');
   state.resolvePlace();
   await expect(
     page.getByRole('dialog', { name: localeFixture.photoPlaces.resolvedName }),
@@ -271,6 +272,9 @@ async function installPhotoPlaces(page: Page, pending = false) {
     strict: true,
     withDetailComments: true,
   });
+  await page.route('https://tile.openstreetmap.org/**', (route) =>
+    route.fulfill({ contentType: 'image/jpeg', body: PHOTO }),
+  );
   let preference = { enabled: true, version: 0 };
   let linked = true;
   let place = {
@@ -294,10 +298,47 @@ async function installPhotoPlaces(page: Page, pending = false) {
   const writes: string[] = [];
   let memoryVersion = 1;
   await page.route('**/api/v1/**', async (route) => {
-    if (await fulfillDefaultProductContext(route)) return;
     const req = route.request(),
       pathname = new URL(req.url()).pathname,
       method = req.method();
+    if (pathname === `/api/v1/spaces/${SPACE_ID}/memory-map`) {
+      return route.fulfill({
+        json: {
+          items: [
+            {
+              memoryId: 'mem-canal',
+              title: localeFixture.photoPlaces.title,
+              happenedOn: '2026-10-26',
+              placeId: PLACE_ID,
+              placeName: place.name,
+              latitude: place.latitude,
+              longitude: place.longitude,
+            },
+          ],
+          nextCursor: null,
+        },
+      });
+    }
+    if (pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-canal/plans`) {
+      return route.fulfill({ json: { items: ['plan-canal'] } });
+    }
+    if (pathname === `/api/v1/spaces/${SPACE_ID}/plans/plan-canal`) {
+      return route.fulfill({
+        json: {
+          id: 'plan-canal',
+          spaceId: SPACE_ID,
+          title: localeFixture.photoPlaces.title,
+          description: '',
+          status: 'DONE',
+          createdBy: ACCOUNT_ID,
+          creator: ME,
+          version: 1,
+          createdAt: '2026-10-27T10:00:00Z',
+          updatedAt: '2026-10-27T10:00:00Z',
+          capabilities: CAPABILITIES,
+        },
+      });
+    }
     if (pathname === '/api/v1/account/photo-location-preference') {
       if (method === 'PUT') {
         writes.push('preference');
@@ -403,6 +444,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
       await route.fulfill({ status: 204 });
       return;
     }
+    if (await fulfillDefaultProductContext(route)) return;
     await route.fallback();
   });
   return {
@@ -457,6 +499,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page
         .getByRole('heading', { name: photoPlaceCopy.title, exact: true })
         .focus();
+      const destination = page.locator('.memory-planning-destination');
+      await expect(destination).toContainText(
+        memoryProduct.planning.linkedPlan,
+      );
+      await expect(destination).toContainText(localeFixture.photoPlaces.title);
+      await expect(destination).toHaveAttribute(
+        'href',
+        '/plan/plans/plan-canal',
+      );
       await captureScreenshot(
         page,
         testInfo,
@@ -491,10 +542,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const dialog = page.getByRole('dialog');
       await expect(
         dialog.getByRole('link', { name: photoPlaceCopy.maps }),
-      ).toHaveAttribute(
-        'href',
-        'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
-      );
+      ).toHaveAttribute('href', '/story/map?place=52.516667%3A13.4');
       if (width === 390)
         await captureScreenshot(
           page,
@@ -502,12 +550,34 @@ for (const colorScheme of ['light', 'dark'] as const) {
           `1478-actions-${colorScheme}.png`,
           { fullPage: true },
         );
-      await dialog.getByRole('button', { name: photoPlaceCopy.remove }).click();
-      await expect(
-        dialog.getByText(photoPlaceCopy.removeHint, { exact: true }),
-      ).toBeVisible();
+      await page.keyboard.press('Escape');
+      const remove = page.getByRole('button', {
+        name: experiences.removePlace.replace(
+          '{{name}}',
+          localeFixture.photoPlaces.resolvedName,
+        ),
+        exact: true,
+      });
+      await expect(remove.locator('svg')).toHaveCount(1);
+      const row = page
+        .locator('.ordered-moment-places li')
+        .filter({ hasText: localeFixture.photoPlaces.resolvedName });
+      const rowBounds = await row.boundingBox(),
+        removeBounds = await remove.boundingBox();
+      if (!rowBounds || !removeBounds)
+        throw new Error('Place and its trash action need measurable bounds');
+      expect(removeBounds.width).toBeGreaterThanOrEqual(48);
+      expect(removeBounds.height).toBeGreaterThanOrEqual(48);
+      expect(Math.abs(removeBounds.y - rowBounds.y)).toBeLessThanOrEqual(2);
+      if (width === 390)
+        await captureScreenshot(
+          page,
+          testInfo,
+          `place-trash-${colorScheme}.png`,
+          { fullPage: true },
+        );
       expect(state.writes).toEqual([]);
-      await dialog.getByRole('button', { name: photoPlaceCopy.remove }).click();
+      await remove.click();
       await expect(
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);

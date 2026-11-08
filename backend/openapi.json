@@ -4746,6 +4746,21 @@
       "MemoryCreate": {
         "additionalProperties": false,
         "properties": {
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AttachmentEntry"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments"
+          },
           "body": {
             "default": "",
             "title": "Body",
@@ -4824,6 +4839,18 @@
               }
             ],
             "title": "Placeids"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "tags": {
             "items": {

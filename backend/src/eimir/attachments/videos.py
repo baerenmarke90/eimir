@@ -222,6 +222,8 @@ def _metadata(info: dict[str, Any], *, clean: bool = False) -> tuple[int, int, i
         width, height = int(primary["width"]), int(primary["height"])
         if min(width, height) <= 0 or max(width, height) > 3840 or min(width, height) > 2160:
             raise VideoRejectedError("VIDEO_DIMENSIONS_EXCEEDED")
+        if clean and not _within_output_resolution(primary):
+            raise VideoRejectedError("VIDEO_DIMENSIONS_EXCEEDED")
         durations = [float(info["format"]["duration"])]
         durations.extend(float(s["duration"]) for s in [primary, *audio] if "duration" in s)
         if any(not math.isfinite(v) or v <= 0 or v > VIDEO_MAX_DURATION_SECONDS for v in durations):
@@ -250,7 +252,7 @@ def _normalization(info: dict[str, Any]) -> list[str]:
     options = ["-map", f"0:{int(primary['index'])}"]
     if audio:
         options.extend(["-map", f"0:{int(audio[0]['index'])}"])
-    if _compatible_video(primary):
+    if _compatible_video(primary) and _within_output_resolution(primary):
         options.extend(["-c:v", "copy"])
     else:
         # Scale before linear floating-point HDR work; preserve portrait/aspect
@@ -316,6 +318,12 @@ def _normalization(info: dict[str, Any]) -> list[str]:
         if audio[0].get("codec_name") != "aac":
             options.extend(["-b:a", "128000"])
     return options
+
+
+def _within_output_resolution(primary: dict[str, Any]) -> bool:
+    """The same orientation-independent 1080p limit for remux and transcoding."""
+    width, height = int(primary.get("width", 0)), int(primary.get("height", 0))
+    return 0 < min(width, height) <= 1080 and max(width, height) <= 1920
 
 
 def process(source: Path, directory: Path) -> ProcessedVideo:

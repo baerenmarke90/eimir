@@ -11,13 +11,22 @@ export default {
   play: 'Video abspielen',
   unavailable: 'Das Video kann gerade nicht abgespielt werden.',
   retry: 'Erneut laden',
-  formats: 'MP4 oder MOV · bis 3 Minuten und 250 MiB',
+  formats:
+    'MP4 oder MOV · bis 3 Minuten und 250 MiB · gespeichert mit maximal 1080p',
+  uploading: 'Video wird hochgeladen …',
+  uploadInterrupted: 'Upload unterbrochen',
+  uploadFailed:
+    'Der Video-Upload wurde unterbrochen. Du kannst ihn fortsetzen.',
+  retryUpload: 'Upload fortsetzen',
+  retryUnavailable:
+    'Der Upload konnte gerade nicht gestartet werden. Öffne die App mit Internetverbindung und versuche es erneut.',
   unsupported:
     'Dieses Videoformat wird noch nicht unterstützt. Bitte wähle ein MP4- oder MOV-Video mit H.264.',
   tooLarge: 'Das Video ist zu groß. Möglich sind bis zu 250 MiB.',
   empty: 'Dieses Video ist leer. Bitte wähle ein anderes aus.',
   tooLong: 'Das Video ist zu lang. Möglich sind bis zu 3 Minuten.',
-  dimensions: 'Das Video hat eine zu hohe Auflösung. Möglich ist bis zu 4K.',
+  dimensions:
+    'Dieses Video kann nicht vorbereitet werden. Wähle eine Aufnahme mit höchstens 4K; gespeichert wird sie mit maximal 1080p.',
   failed:
     'Das Video konnte nicht verarbeitet werden. Deine Auswahl bleibt erhalten.',
   proTitle: 'Eure Augenblicke in Bewegung',
@@ -37,7 +46,7 @@ export default {
   showAll: 'Alle {{count}} Aufnahmen anzeigen',
   missing: 'Bitte entferne dieses Video und wähle es erneut aus.',
   failedNotSaved:
-    'Dieses Video wird erst nach erfolgreichem Upload gespeichert.',
+    'Dein Moment kann schon gespeichert werden. Das Video erscheint dort, sobald der Upload abgeschlossen ist.',
   volatile:
-    'Lass die App für den Upload geöffnet. Danach verarbeitet der Server das Video.',
+    'Du kannst deinen Moment schon speichern. In der Android-App lädt dein Video im Hintergrund weiter; im Browser bleibt der Tab dafür geöffnet.',
 };

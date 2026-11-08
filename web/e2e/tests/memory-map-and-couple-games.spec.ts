@@ -1056,3 +1056,108 @@ test('dated plan hands off an RFC calendar file without changing the plan', asyn
     fullPage: true,
   });
 });
+
+for (const [width, colorScheme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`place selection zooms and filters the existing map, then restores all places ${width} ${colorScheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const unknown = await installMocks(page, { strict: true });
+    await page.route('https://tile.openstreetmap.org/**', (route) =>
+      route.fulfill({ contentType: 'image/png', body: TINY_PNG }),
+    );
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              memoryId: 'mem-canal',
+              title: 'At the lake',
+              happenedOn: '2026-10-30',
+              placeId: 'lake',
+              placeName: 'Lake',
+              latitude: 49.45,
+              longitude: 7.16,
+            },
+            {
+              memoryId: 'mem-zoo',
+              title: 'At the zoo',
+              happenedOn: '2026-10-29',
+              placeId: 'zoo',
+              placeName: 'Zoo',
+              latitude: 51.5,
+              longitude: 8.5,
+            },
+          ],
+          nextCursor: null,
+        },
+      }),
+    );
+    await signIn(page);
+    await page.goto('/story/map');
+    await expect(page.locator('.memory-map-marker')).toHaveCount(2);
+    await page
+      .getByRole('list', { name: mapCopy.places })
+      .getByRole('button', { name: /^Lake/ })
+      .click();
+    await expect(page).toHaveURL(/place=49.45%3A7.16/);
+    await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    await expect(page.locator('.memory-map-selection h2')).toHaveText('Lake');
+    await expect
+      .poll(async () =>
+        page
+          .locator('img.leaflet-tile')
+          .evaluateAll(
+            (images) =>
+              images.length > 0 &&
+              images.every(
+                (image) =>
+                  Number(
+                    new URL((image as HTMLImageElement).src).pathname.split(
+                      '/',
+                    )[1],
+                  ) === 15,
+              ),
+          ),
+      )
+      .toBe(true);
+    const filter = page.getByRole('button', {
+      name: mapCopy.filter,
+      exact: true,
+    });
+    await expect(filter.locator('svg')).toHaveCount(1);
+    await expect(filter).toHaveClass(/is-active/);
+    await page.screenshot({
+      path: info.outputPath(`place-focused-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    await filter.click();
+    const choices = page.getByRole('dialog', { name: mapCopy.filter });
+    await expect(
+      choices.getByRole('radio', { name: 'Lake', exact: true }),
+    ).toBeChecked();
+    await page.screenshot({
+      path: info.outputPath(`place-filter-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    await choices.getByRole('radio', { name: 'Zoo', exact: true }).click();
+    await expect(choices).toHaveCount(0);
+    await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    await expect(page.locator('.memory-map-selection h2')).toHaveText('Zoo');
+    await filter.click();
+    await choices
+      .getByRole('radio', { name: mapCopy.allPlaces, exact: true })
+      .click();
+    await expect(page).toHaveURL('/story/map');
+    await expect(page.locator('.memory-map-marker')).toHaveCount(2);
+    await expect(filter).not.toHaveClass(/is-active/);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    expect(unknown).toEqual([]);
+  });
+}

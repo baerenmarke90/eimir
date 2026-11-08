@@ -37,57 +37,54 @@ export function OrderedMomentPlacesField({
               ) : null}
             </div>
             <div className="ordered-moment-place-controls">
-              {value.length > 1 ? (
-                <>
-                  <button
-                    type="button"
-                    className="tertiary"
-                    disabled={props.disabled || index === 0}
-                    aria-label={t('experiences.placeEarlier', {
-                      name: place.name,
-                    })}
-                    onClick={() => move(index, -1)}
-                  >
-                    {t('experiences.earlier')}
-                  </button>
-                  <button
-                    type="button"
-                    className="tertiary"
-                    disabled={props.disabled || index === value.length - 1}
-                    aria-label={t('experiences.placeLater', {
-                      name: place.name,
-                    })}
-                    onClick={() => move(index, 1)}
-                  >
-                    {t('experiences.later')}
-                  </button>
-                </>
-              ) : null}
               {onNavigate ? (
                 <MomentPlaceActionsMenu
                   place={place}
                   disabled={props.disabled}
                   onNavigate={onNavigate}
-                  onRemove={() =>
-                    onChange(value.filter((item) => item.id !== place.id))
-                  }
                 />
-              ) : (
+              ) : null}
+              <button
+                type="button"
+                className="tertiary moment-place-remove"
+                disabled={props.disabled}
+                aria-label={t('experiences.removePlace', {
+                  name: place.name,
+                })}
+                title={t('experiences.removePlace', { name: place.name })}
+                onClick={() =>
+                  onChange(value.filter((item) => item.id !== place.id))
+                }
+              >
+                <EimirIcon name="trash" />
+              </button>
+            </div>
+            {value.length > 1 ? (
+              <div className="ordered-moment-place-reorder">
                 <button
                   type="button"
                   className="tertiary"
-                  disabled={props.disabled}
-                  aria-label={t('experiences.removePlace', {
+                  disabled={props.disabled || index === 0}
+                  aria-label={t('experiences.placeEarlier', {
                     name: place.name,
                   })}
-                  onClick={() =>
-                    onChange(value.filter((item) => item.id !== place.id))
-                  }
+                  onClick={() => move(index, -1)}
                 >
-                  {t('memory.photoRemove')}
+                  {t('experiences.earlier')}
                 </button>
-              )}
-            </div>
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={props.disabled || index === value.length - 1}
+                  aria-label={t('experiences.placeLater', {
+                    name: place.name,
+                  })}
+                  onClick={() => move(index, 1)}
+                >
+                  {t('experiences.later')}
+                </button>
+              </div>
+            ) : null}
           </li>
         ))}
       </ol>

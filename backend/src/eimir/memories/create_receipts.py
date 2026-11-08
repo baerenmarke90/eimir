@@ -57,6 +57,8 @@ def fingerprint(
     experience_reply_to: UUID | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
+    attachments: list[tuple[UUID, int, bool | None]] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> str:
     """Hash the normalized create request without retaining any of its content."""
     content = {
@@ -82,6 +84,14 @@ def fingerprint(
         content["placeIds"] = [str(identifier) for identifier in place_ids]
     if experience_reply_to is not None:
         content["experienceReplyTo"] = str(experience_reply_to)
+    if attachments is not None:
+        content["attachments"] = [
+            [str(identifier), position, sensitive]
+            for identifier, position, sensitive in attachments
+        ]
+        content["selectedCoverAttachmentId"] = (
+            str(selected_cover_attachment_id) if selected_cover_attachment_id else None
+        )
     canonical = json.dumps(
         content,
         sort_keys=True,

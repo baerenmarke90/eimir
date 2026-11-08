@@ -6,6 +6,7 @@ import type { PhotoReaction } from '../api/generated/models/PhotoReaction';
 import type { PhotoReactionSummary } from '../api/generated/models/PhotoReactionSummary';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
+import { isGalleryAttachment } from '../client/galleryMedia';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { normalizeClientError } from '../client/problemDetails';
 import { saveProductReadCacheEntry } from '../client/productReadCache';
@@ -163,7 +164,7 @@ export function MemoryPhotoGallery({
     projectionMemoryId ?? memory.id,
   );
   const photos = [...memory.attachments]
-    .filter((item) => ['READY', 'PROCESSING', 'FAILED'].includes(item.status))
+    .filter(isGalleryAttachment)
     .sort((a, b) => a.position - b.position);
   const mutation = useMutation({
     retry: false,

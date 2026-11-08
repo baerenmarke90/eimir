@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttachmentEntry } from './AttachmentEntry';
+import {
+    AttachmentEntryFromJSON,
+    AttachmentEntryFromJSONTyped,
+    AttachmentEntryToJSON,
+    AttachmentEntryToJSONTyped,
+} from './AttachmentEntry';
 import type { ExperienceKind } from './ExperienceKind';
 import {
     ExperienceKindFromJSON,
@@ -27,6 +34,12 @@ import {
  * @interface MemoryCreate
  */
 export interface MemoryCreate {
+    /**
+     * 
+     * @type {Array<AttachmentEntry>}
+     * @memberof MemoryCreate
+     */
+    attachments?: Array<AttachmentEntry> | null;
     /**
      * 
      * @type {string}
@@ -71,6 +84,12 @@ export interface MemoryCreate {
     placeIds?: Array<string> | null;
     /**
      * 
+     * @type {string}
+     * @memberof MemoryCreate
+     */
+    selectedCoverAttachmentId?: string | null;
+    /**
+     * 
      * @type {Array<string>}
      * @memberof MemoryCreate
      */
@@ -103,6 +122,7 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
+        'attachments': json['attachments'] === undefined ? undefined : json['attachments'] === null ? null : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
         'body': json['body'] == null ? undefined : json['body'],
         'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
         'experienceReplyTo': json['experienceReplyTo'] === undefined ? undefined : json['experienceReplyTo'] === null ? null : json['experienceReplyTo'],
@@ -110,6 +130,7 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
         'placeIds': json['placeIds'] === undefined ? undefined : json['placeIds'] === null ? null : json['placeIds'],
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
@@ -126,6 +147,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
 
     return {
         
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
         'body': value['body'],
         'experienceKind': ExperienceKindToJSON(value['experienceKind']),
         'experienceReplyTo': value['experienceReplyTo'],
@@ -133,6 +155,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
         'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'placeId': value['placeId'],
         'placeIds': value['placeIds'],
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'tags': value['tags'],
         'title': value['title'],
     };

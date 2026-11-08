@@ -134,6 +134,9 @@ OS may limit visibility to its active-task UI. Intermediate upload percentages
 are persisted/notified at most once per second; the first positive percentage,
 final percentage and phase changes bypass coalescing. This avoids repeated
 Keystore/file/notification work throttling the byte stream on slower devices.
+Job admission/progress share JobService's ordered notification queue, so a late
+admission notification cannot overwrite newer progress. Interrupted running-job
+notifications are removed; confirmed terminal status can remain detached.
 Jobs start only from a visible
 user action. They stream the existing authenticated, same-instance API route,
 including with object storage, without persisting a signed URL or refresh token.

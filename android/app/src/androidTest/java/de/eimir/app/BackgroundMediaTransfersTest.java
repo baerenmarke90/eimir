@@ -3,6 +3,7 @@ package de.eimir.app;
 import static org.junit.Assert.*;
 
 import android.Manifest;
+import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.job.JobInfo;
@@ -140,6 +141,9 @@ public class BackgroundMediaTransfersTest {
             assertTrue("Real native PUT must begin", server.started.await(25, TimeUnit.SECONDS));
             owner.close();
             UiDevice device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+            device.wakeUp();
+            device.executeShellCommand("wm dismiss-keyguard");
+            await(() -> !context.getSystemService(KeyguardManager.class).isKeyguardLocked(), 5000);
             assertTrue(device.pressHome());
             await(() -> !MainActivity.isForeground(), 10_000);
             NotificationManager notifications = context.getSystemService(NotificationManager.class);

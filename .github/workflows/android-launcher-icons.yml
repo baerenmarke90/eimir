@@ -380,6 +380,7 @@ jobs:
             android/instrumentation.log
             android/background-media-transfers.log
             android/native-media-upload-background.png
+            android/native-media-upload-background.xml
             android/photo-file-chooser.log
             android/runtime-recovery.log
             android/renderer-background-return.png

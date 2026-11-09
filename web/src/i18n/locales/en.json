@@ -3894,7 +3894,11 @@
     "loadMore": "Load more memory places",
     "allPlaces": "View all places",
     "untitled": "Memory",
-    "filter": "Filter places"
+    "filter": "Filter places",
+    "previousMemory": "Previous memory",
+    "nextMemory": "Next memory",
+    "position": "{{position}} / {{count}}",
+    "memoriesAtPlace": "Memories at {{name}}"
   },
   "gentlePrompts": {
     "label": "Small prompts",

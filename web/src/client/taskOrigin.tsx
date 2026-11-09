@@ -39,6 +39,13 @@ export interface TaskOriginMetadata {
   planningPlanStatus?: 'OPEN' | 'COMPLETED';
   planningPlanSearch?: string;
   planningWishSearch?: string;
+  /** Bounded, account/Space-scoped map return context; never persisted or logged. */
+  memoryMap?: {
+    placeId: string | null;
+    memoryId?: string;
+    viewport?: { latitude: number; longitude: number; zoom: number };
+    fullscreen: boolean;
+  };
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -246,6 +253,7 @@ export function TaskOriginProvider({
         planningPlanStatus: snapshot.planningPlanStatus,
         planningPlanSearch: snapshot.planningPlanSearch,
         planningWishSearch: snapshot.planningWishSearch,
+        memoryMap: snapshot.memoryMap,
         taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx

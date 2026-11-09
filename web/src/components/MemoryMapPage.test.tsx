@@ -3,9 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { ClientProblemError } from '../client/problemDetails';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import copy from '../i18n/locales/memoryMap';
+import { MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryMapPage } from './MemoryMapPage';
 
 vi.mock('./PlaceMapCanvas', () => ({
@@ -68,6 +70,46 @@ function setup(
   );
 }
 describe('Pro memory map', () => {
+  it('bounds stacks to three distinct sources, prefers photos and retains the selected text source', () => {
+    const entries = Array.from({ length: 40 }, (_, index) => ({
+      ...item,
+      memoryId: `source-${index}`,
+      title: `Visit ${index}`,
+      previewAttachmentId: index % 2 ? `photo-${index}` : undefined,
+    }));
+    const preview = vi.fn((entry: MemoryMapEntry) => (
+      <span>{entry.title}</span>
+    ));
+    const view = render(
+      <MemoryMapPhotoStack
+        entries={entries}
+        expanded={false}
+        preview={preview}
+      />,
+    );
+    expect(
+      view.container.querySelectorAll('.memory-map-stack-photo'),
+    ).toHaveLength(3);
+    expect(view.container.querySelector('[data-slot="0"]')?.textContent).toBe(
+      'Visit 1',
+    );
+    expect(preview).toHaveBeenCalledTimes(3);
+    view.rerender(
+      <MemoryMapPhotoStack
+        entries={entries}
+        expanded
+        activeMemoryId="source-38"
+        preview={preview}
+      />,
+    );
+    expect(view.container.querySelector('[data-slot="0"]')?.textContent).toBe(
+      'Visit 38',
+    );
+    expect(
+      view.container.querySelectorAll('.memory-map-stack-photo'),
+    ).toHaveLength(3);
+    expect(preview).toHaveBeenCalledTimes(6);
+  });
   it('focuses a selected place, hides other markers and resets through the standard filter', async () => {
     setup(
       vi.fn().mockResolvedValue({
@@ -134,7 +176,7 @@ describe('Pro memory map', () => {
       'Zoo · 2 Erinnerungen',
     ]);
   });
-  it('commits a fullscreen location only after closing its owned history entry', async () => {
+  it('browses a fullscreen location without closing the map, then retains its selected scope on close', async () => {
     setup(vi.fn().mockResolvedValue({ items: [item], nextCursor: null }));
     fireEvent.click(
       await screen.findByRole('button', { name: copy.fullscreen }),
@@ -147,7 +189,14 @@ describe('Pro memory map', () => {
         'href',
       ),
     ).toBe('/story/memories/m1');
-    expect(screen.queryByRole('dialog', { name: copy.title })).toBeNull();
+    expect(screen.getByRole('dialog', { name: copy.title })).toBe(dialog);
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: copy.closeFullscreen }),
+    );
+    await vi.waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: copy.title })).toBeNull(),
+    );
+    expect(screen.getByRole('link', { name: /By the lake/ })).toBeTruthy();
   });
   it('opens the map immediately, groups co-located sources and opens canonical memories', async () => {
     setup(

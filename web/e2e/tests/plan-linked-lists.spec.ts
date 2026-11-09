@@ -132,8 +132,8 @@ async function fixture(page: Page, withStory = false) {
       value: {
         ...sourceBase,
         id: 'memory-linked',
-        title: 'Unser Picknick am See',
-        body: 'Unser gemeinsamer Rückblick.',
+        title: fixtures.planLinkedLists.memoryTitle,
+        body: fixtures.planLinkedLists.memoryBody,
       },
     },
     {
@@ -142,7 +142,7 @@ async function fixture(page: Page, withStory = false) {
       value: {
         ...sourceBase,
         id: 'heart-linked',
-        text: 'Mit dir war dieser Tag besonders.',
+        text: fixtures.planLinkedLists.heartText,
         emotion: 'LOVED',
         visibility: 'SHARED',
         attachment: null,
@@ -155,8 +155,8 @@ async function fixture(page: Page, withStory = false) {
       value: {
         ...sourceBase,
         id: 'milestone-linked',
-        title: 'Unser erster gemeinsamer Ausflug',
-        body: 'Ein wichtiger Tag für uns.',
+        title: fixtures.planLinkedLists.milestoneTitle,
+        body: fixtures.planLinkedLists.milestoneBody,
       },
     },
   ];
@@ -655,7 +655,9 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await expect(page.getByLabel(de.memory.bodyLabel)).toHaveValue(
     state.plan.description,
   );
-  await page.getByLabel(de.memory.bodyLabel).fill('Unser eigener Rückblick.');
+  await page
+    .getByLabel(de.memory.bodyLabel)
+    .fill(fixtures.planLinkedLists.savedMemoryBody);
   await captureScreenshot(page, testInfo, 'memory-source-place.png', {
     fullPage: true,
   });
@@ -663,7 +665,7 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await expect(page).toHaveURL(/\/story\/memories\/memory-new$/);
   expect(state.calls.memory?.placeIds).toEqual([placeId]);
   await expect(
-    page.getByText('Unser eigener Rückblick.', { exact: true }),
+    page.getByText(fixtures.planLinkedLists.savedMemoryBody, { exact: true }),
   ).toBeVisible();
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
@@ -671,7 +673,7 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
   await expect(
     page.getByRole('link', {
-      name: /Ein Tag am See.*Erinnerung|Erinnerung.*Ein Tag am See/,
+      name: new RegExp(`${state.plan.title}.*${copy.relations.kind.MEMORY}`),
     }),
   ).toBeVisible();
   expect(state.unexpected).toEqual([]);
@@ -806,7 +808,7 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
     .click();
   await page
     .getByLabel(storyCopy.heartMomentProduct.textLabel, { exact: true })
-    .fill('Dieser Tag bleibt bei uns.');
+    .fill(fixtures.planLinkedLists.savedHeartText);
   await page
     .getByRole('button', {
       name: storyCopy.heartMomentProduct.save,
@@ -818,7 +820,7 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
     name: copy.planStory.plansHeading,
   });
   await expect(
-    page.getByText('Dieser Tag bleibt bei uns.', { exact: true }),
+    page.getByText(fixtures.planLinkedLists.savedHeartText, { exact: true }),
   ).toBeVisible();
   await expect(
     reverse.getByRole('button', { name: de.common.retry, exact: true }),
@@ -836,7 +838,9 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
   await expect(
     page
       .getByRole('region', { name: copy.planStory.linksHeading })
-      .getByRole('link', { name: /Dieser Tag bleibt bei uns/ }),
+      .getByRole('link', {
+        name: new RegExp(fixtures.planLinkedLists.savedHeartText),
+      }),
   ).toBeVisible();
   expect(state.unexpected).toEqual([]);
 });
@@ -850,7 +854,7 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
     .click();
   await page
     .getByLabel(storyCopy.milestoneProduct.titleLabel, { exact: true })
-    .fill('Unser erster Tag am See');
+    .fill(fixtures.planLinkedLists.savedMilestoneTitle);
   await page
     .getByRole('button', { name: storyCopy.milestoneProduct.save, exact: true })
     .click();
@@ -865,7 +869,9 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
   await reverse.getByRole('link').click();
   await page
     .getByRole('region', { name: copy.planStory.linksHeading })
-    .getByRole('link', { name: /Unser erster Tag am See/ })
+    .getByRole('link', {
+      name: new RegExp(fixtures.planLinkedLists.savedMilestoneTitle),
+    })
     .click();
   await page
     .getByRole('link', { name: storyCopy.milestoneProduct.edit, exact: true })
@@ -877,7 +883,7 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
     .click();
   await expect(
     page
-      .getByRole('region', { name: memoryCopy.planning.heading })
+      .getByRole('region', { name: copy.planStory.plansHeading })
       .getByText(state.plan.title, { exact: true }),
   ).toHaveCount(0);
   await page
@@ -908,7 +914,7 @@ test('Plan field drafts survive attempted list and new-list navigation', async (
   await page.reload();
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   const description = page.getByLabel(copy.common.description, { exact: true });
-  await description.fill('Unser noch nicht gespeicherter Plantext.');
+  await description.fill(fixtures.planLinkedLists.unsavedPlanDescription);
   await page
     .locator('#plan-edit-section')
     .getByRole('link', { name: /Alles fürs Picknick/ })
@@ -919,7 +925,7 @@ test('Plan field drafts survive attempted list and new-list navigation', async (
   await expect(discard).toBeVisible();
   await discard.getByRole('button', { name: copy.common.keepEditing }).click();
   await expect(description).toHaveValue(
-    'Unser noch nicht gespeicherter Plantext.',
+    fixtures.planLinkedLists.unsavedPlanDescription,
   );
   await page
     .getByRole('button', { name: copy.collection.create, exact: true })
@@ -932,7 +938,7 @@ test('Plan field drafts survive attempted list and new-list navigation', async (
   await discard.getByRole('button', { name: copy.common.keepEditing }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
   await expect(description).toHaveValue(
-    'Unser noch nicht gespeicherter Plantext.',
+    fixtures.planLinkedLists.unsavedPlanDescription,
   );
   expect(state.unexpected).toEqual([]);
 });

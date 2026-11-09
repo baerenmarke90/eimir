@@ -1,5 +1,6 @@
 import { MediaProcessingState } from './MediaProcessingState';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { loadVideoSource } from '../client/video';
 import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAttachmentSummary';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
@@ -67,7 +68,9 @@ export function PlanPhotosEditor({
   photoSourceContext,
   parentType = 'PLAN',
   canManageExisting = true,
+  additionalActions,
 }: {
+  additionalActions?: ReactNode;
   controller: PlanPhotoDraftController;
   spaceId: string;
   parentType?: 'PLAN' | 'HEART_MOMENT';
@@ -86,6 +89,7 @@ export function PlanPhotosEditor({
   return (
     <div className="plan-photos-editor">
       <AttachmentDraftPicker
+        additionalActions={additionalActions}
         id="plan-photos"
         sourceContext={
           photoSourceContext
@@ -110,6 +114,136 @@ export function PlanPhotosEditor({
               }
             : undefined
         }
+        gallery={
+          <PhotoDraftGallery
+            key={JSON.stringify([
+              photoSourceContext?.apiBaseUrl,
+              photoSourceContext?.accountId,
+              spaceId,
+              parentType,
+              planId,
+            ])}
+            resourceScopeKey={JSON.stringify([
+              'editor',
+              photoSourceContext?.apiBaseUrl,
+              photoSourceContext?.accountId,
+              spaceId,
+              parentType,
+              planId,
+            ])}
+            disabled={disabled}
+            items={controller.items.map((item, index) => ({
+              key: item.key,
+              name:
+                item.draft?.file.name ??
+                t('m5s3.planImage.photoNumber', { number: index + 1 }),
+              isSensitive: item.isSensitive,
+              draft: item.draft,
+              loadMedia:
+                item.existing && planId
+                  ? (signal) =>
+                      loadAuthorizedStoryImageResource(
+                        controller.apis,
+                        spaceId,
+                        parentType,
+                        planId,
+                        item.existing!.id,
+                        { signal },
+                      )
+                  : undefined,
+              loadPoster:
+                item.existing && planId
+                  ? (signal) =>
+                      loadAuthorizedStoryImageResource(
+                        controller.apis,
+                        spaceId,
+                        parentType,
+                        planId,
+                        item.existing!.id,
+                        { signal, variant: 'thumbnail' },
+                      )
+                  : undefined,
+              loadPlayback:
+                item.existing && planId && parentType === 'HEART_MOMENT'
+                  ? (signal) =>
+                      loadVideoSource(
+                        controller.apis,
+                        spaceId,
+                        'HEART_MOMENT',
+                        planId,
+                        item.existing!.id,
+                        signal,
+                      )
+                  : undefined,
+              mediaType: item.existing?.mediaType,
+              status: item.existing?.status,
+              canRemove: !item.existing || canManageExisting,
+              canEditSensitivity:
+                !item.existing ||
+                (item.existing.canEditSensitivity ?? canManageExisting),
+              preview:
+                item.existing && item.existing.status !== 'READY' ? (
+                  <MediaProcessingState status={item.existing.status} compact />
+                ) : item.isSensitive ? (
+                  <SensitiveMediaCover />
+                ) : item.existing && planId ? (
+                  <SavedPhoto
+                    photo={item.existing}
+                    controller={controller}
+                    spaceId={spaceId}
+                    planId={planId}
+                    parentType={parentType}
+                  />
+                ) : item.draft ? (
+                  <DraftMediaPreview
+                    draft={item.draft}
+                    context={
+                      photoSourceContext
+                        ? {
+                            apis: controller.apis,
+                            spaceId,
+                            accountId: photoSourceContext.accountId,
+                          }
+                        : undefined
+                    }
+                  />
+                ) : null,
+            }))}
+            selectedCoverKey={controller.selectedCoverKey}
+            onSelectCover={(key) => {
+              controller.selectCover(key);
+              onChange();
+            }}
+            onOrderChange={(keys) => {
+              controller.reorder(keys);
+              onChange();
+            }}
+            onSensitive={(key, value) => {
+              const item = controller.items.find((item) => item.key === key);
+              if (
+                item &&
+                (!item.existing ||
+                  (item.existing.canEditSensitivity ?? canManageExisting))
+              ) {
+                controller.setSensitive(item, value);
+                onChange();
+              }
+            }}
+            onRemove={(key) => {
+              const item = controller.items.find((item) => item.key === key);
+              if (item) {
+                controller.remove(item);
+                onChange();
+              }
+            }}
+            onRetry={(key) => {
+              const draft = controller.items.find(
+                (item) => item.key === key,
+              )?.draft;
+              if (draft) controller.uploads.retry(draft);
+            }}
+          />
+        }
         showItems={false}
         videoContext={
           parentType === 'HEART_MOMENT' && photoSourceContext
@@ -127,90 +261,6 @@ export function PlanPhotosEditor({
             controller.uploads.addFiles(files);
             onChange();
           },
-        }}
-      />
-      <PhotoDraftGallery
-        key={JSON.stringify([
-          photoSourceContext?.apiBaseUrl,
-          photoSourceContext?.accountId,
-          spaceId,
-          parentType,
-          planId,
-        ])}
-        disabled={disabled}
-        items={controller.items.map((item, index) => ({
-          key: item.key,
-          name:
-            item.draft?.file.name ??
-            t('m5s3.planImage.photoNumber', { number: index + 1 }),
-          isSensitive: item.isSensitive,
-          draft: item.draft,
-          mediaType: item.existing?.mediaType,
-          status: item.existing?.status,
-          canRemove: !item.existing || canManageExisting,
-          canEditSensitivity:
-            !item.existing ||
-            (item.existing.canEditSensitivity ?? canManageExisting),
-          preview:
-            item.existing && item.existing.status !== 'READY' ? (
-              <MediaProcessingState status={item.existing.status} compact />
-            ) : item.isSensitive ? (
-              <SensitiveMediaCover />
-            ) : item.existing && planId ? (
-              <SavedPhoto
-                photo={item.existing}
-                controller={controller}
-                spaceId={spaceId}
-                planId={planId}
-                parentType={parentType}
-              />
-            ) : item.draft ? (
-              <DraftMediaPreview
-                draft={item.draft}
-                context={
-                  photoSourceContext
-                    ? {
-                        apis: controller.apis,
-                        spaceId,
-                        accountId: photoSourceContext.accountId,
-                      }
-                    : undefined
-                }
-              />
-            ) : null,
-        }))}
-        selectedCoverKey={controller.selectedCoverKey}
-        onSelectCover={(key) => {
-          controller.selectCover(key);
-          onChange();
-        }}
-        onOrderChange={(keys) => {
-          controller.reorder(keys);
-          onChange();
-        }}
-        onSensitive={(key, value) => {
-          const item = controller.items.find((item) => item.key === key);
-          if (
-            item &&
-            (!item.existing ||
-              (item.existing.canEditSensitivity ?? canManageExisting))
-          ) {
-            controller.setSensitive(item, value);
-            onChange();
-          }
-        }}
-        onRemove={(key) => {
-          const item = controller.items.find((item) => item.key === key);
-          if (item) {
-            controller.remove(item);
-            onChange();
-          }
-        }}
-        onRetry={(key) => {
-          const draft = controller.items.find(
-            (item) => item.key === key,
-          )?.draft;
-          if (draft) controller.uploads.retry(draft);
         }}
       />
     </div>

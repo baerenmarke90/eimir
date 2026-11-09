@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.60
+
+- Include merged #1712, #1714 and #1716 from current main.
+- Complete the approved mobile composers: title and text before media, compact feelings, recognizable tag chips, and Plan notes before shared Lists.
+- Preserve photo swiping, fullscreen pinch/double-tap zoom, direct touch sorting, sensitive-media controls and independent cover selection across capture and editing.
+- Slow map camera/photo transitions, retain map thumbnails in the existing image cache, complete profile-derived occasions and allow shared Lists to be created while adding a Plan.
+- Remove completed upload progress notifications and open their confirmed Memory or HeartMoment when tapped.
+- Prepare videos on the device at up to 1080p; the matching server/media worker validates and sanitizes without recompressing video or audio. Compatible files can remain unchanged. Unsupported preparation fails visibly instead of uploading an incompatible original.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.59; increasing versionCode 60. Install over the existing app. Physical-device installation, session/data continuity and the recording's actual appearance remain separate acceptance. Video behavior requires the matching updated backend/media worker; historical quality loss requires original reupload.

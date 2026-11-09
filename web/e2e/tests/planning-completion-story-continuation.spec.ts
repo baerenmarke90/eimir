@@ -509,7 +509,19 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
     .getByRole('button', { name: taskBoundary.discard, exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
-  await expect(page.getByText(m5s3.plan.completedBody)).toBeVisible();
+  await expect(page.locator('.planen-detail-status')).toHaveText(
+    m5s3.plan.completedTitle,
+  );
+  await expect(page.locator('.planen-detail-subfacts')).toContainText(
+    '11.09.2026',
+  );
+  await expect(
+    page.getByRole('heading', { name: m5s3.planStory.readHeading }),
+  ).toBeVisible();
+  await expect(page.getByText(m5s3.plan.completedBody)).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: m5s3.planStory.memoryAction }),
   ).toBeVisible();
@@ -902,7 +914,16 @@ test('a completion conflict is recovered from a fresh read without celebration o
   const readsBeforeConflict = state.planReads;
 
   state.releaseCompletion();
-  await expect(page.getByText(m5s3.plan.completedBody)).toBeVisible();
+  await expect(page.locator('.planen-detail-status')).toHaveText(
+    m5s3.plan.completedTitle,
+  );
+  await expect(page.locator('.planen-detail-subfacts')).toContainText(
+    '11.09.2026',
+  );
+  await expect(
+    page.getByRole('heading', { name: m5s3.planStory.readHeading }),
+  ).toBeVisible();
+  await expect(page.getByText(m5s3.plan.completedBody)).toHaveCount(0);
   await expect(pendingStatus(page)).toHaveCount(0);
   await expect(
     page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),

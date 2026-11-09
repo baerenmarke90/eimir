@@ -43,6 +43,8 @@
   --radius-sheet-top: 1.5rem;
   --border-surface-width: 0px;
   --border-control-width: 0px;
+  --border-authored-width: 1px;
+  --composer-max: 680px;
   --touch-target-web: 44px;
   --touch-target-comfortable: 48px;
   --icon-size-standard: 24px;
@@ -59,6 +61,8 @@
   --control-pressed-brightness: 0.96;
   --duration-transition: 180ms;
   --duration-context: 280ms;
+  --duration-map-camera: 900ms;
+  --duration-map-stack: 600ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -112,6 +116,8 @@
     --duration-feedback: 0ms;
     --duration-transition: 0ms;
     --duration-context: 0ms;
+    --duration-map-camera: 0ms;
+    --duration-map-stack: 0ms;
   }
 }
 

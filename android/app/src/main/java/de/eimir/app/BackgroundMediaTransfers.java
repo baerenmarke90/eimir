@@ -13,8 +13,10 @@ import android.content.res.AssetFileDescriptor;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
+import android.os.CancellationSignal;
 import android.os.PersistableBundle;
 import android.os.SystemClock;
+import android.net.Uri;
 import android.util.AtomicFile;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSArray;
@@ -39,6 +41,7 @@ import org.json.JSONObject;
 /** Native ownership of explicitly initiated, bounded Attachment transfers. */
 final class BackgroundMediaTransfers {
     static final String CHANNEL = "eimir-media-transfers-v1";
+    private static final String OPEN_TRANSFER = "de.eimir.app.OPEN_MEDIA_TRANSFER";
     static final int FOREGROUND_NOTIFICATION = 42001;
     static final long MAX_FILE = 250L * 1024 * 1024;
     static final long MAX_TOTAL = 500L * 1024 * 1024;
@@ -81,6 +84,9 @@ final class BackgroundMediaTransfers {
     static File source(Context context, String id) throws IOException {
         requireId(id); return new File(root(context), id + ".media");
     }
+    static File preparationOutput(Context context, String id) throws IOException {
+        requireId(id); return new File(root(context), id + ".preparing.mp4");
+    }
     private static AtomicFile file(Context context, String id) throws IOException {
         requireId(id); return new AtomicFile(new File(root(context), id + ".job"));
     }
@@ -100,10 +106,10 @@ final class BackgroundMediaTransfers {
     }
     static synchronized List<Record> records(Context context) throws Exception {
         List<Record> result = new ArrayList<>();
-        File[] orphans = root(context).listFiles((dir, name) -> name.endsWith(".media"));
+        File[] orphans = root(context).listFiles((dir, name) -> name.endsWith(".media") || name.endsWith(".preparing.mp4"));
         if (orphans != null) for (File orphan : orphans) {
             if (System.currentTimeMillis() - orphan.lastModified() >= RETENTION
-                    && !new File(root(context), orphan.getName().replace(".media", ".job")).exists()) orphan.delete();
+                    && !new File(root(context), orphan.getName().replace(".media", ".job").replace(".preparing.mp4", ".job")).exists()) orphan.delete();
         }
         File[] files = root(context).listFiles((dir, name) -> name.endsWith(".job"));
         if (files == null) throw new IOException("Private transfer storage unavailable");
@@ -115,25 +121,39 @@ final class BackgroundMediaTransfers {
                 else result.add(record);
             } catch (Exception invalid) { cancel(context, id); }
         }
+        // Older builds detached their final progress notice after deleting staging.
+        // Reconcile only this channel; ordinary push notifications keep their owner.
+        NotificationManager notifications = context.getSystemService(NotificationManager.class);
+        for (android.service.notification.StatusBarNotification notice : notifications.getActiveNotifications()) {
+            if (CHANNEL.equals(notice.getNotification().getChannelId())
+                    && !(notice.getId() == FOREGROUND_NOTIFICATION && !result.isEmpty())
+                    && !containsJob(result, notice.getId())) notifications.cancel(notice.getTag(), notice.getId());
+        }
         return result;
     }
     static Record stage(Context context, String instance, String account, String space,
             String id, String sourceName, long size, String type) throws Exception {
+        return stage(context, instance, account, space, id, sourceName, size, type, null);
+    }
+    static Record stage(Context context, String instance, String account, String space,
+            String id, String sourceName, long size, String type, CancellationSignal cancellation) throws Exception {
         requireId(id); session(context, instance, account, space);
         if (size <= 0 || size > MAX_FILE || !("video/mp4".equals(type) || "video/quicktime".equals(type)))
             throw new IOException("Invalid selected video");
         Record record;
         synchronized (BackgroundMediaTransfers.class) {
+            if (cancellation != null) cancellation.throwIfCanceled();
             List<Record> existing = records(context);
-            long reserved = size;
-            for (Record entry : existing) reserved += entry.value.optLong("size");
+            long reserved = size + (cancellation == null ? 0 : MAX_FILE);
+            for (Record entry : existing) reserved += entry.value.optLong("reservedSize", entry.value.optLong("size"));
             if (existing.size() >= 20 || reserved > MAX_TOTAL || file(context, id).getBaseFile().exists())
                 throw new IOException("Transfer staging budget exceeded");
             int jobId = 0x52000000 | (id.hashCode() & 0x00ffffff);
             while (containsJob(existing, jobId)) jobId++;
             record = new Record(new JSONObject().put("attachmentId", id).put("instance", instance)
                 .put("accountId", account).put("spaceId", space).put("size", size).put("mimeType", type)
-                .put("createdAt", System.currentTimeMillis()).put("phase", "uploading").put("progress", 0).put("jobId", jobId));
+                .put("createdAt", System.currentTimeMillis()).put("phase", cancellation == null ? "uploading" : "preparing")
+                .put("reservedSize", size + (cancellation == null ? 0 : MAX_FILE)).put("progress", 0).put("jobId", jobId));
             save(context, record);
         }
         try (AssetFileDescriptor descriptor = SelectedMediaProvider.openForTransfer(context, sourceName, type);
@@ -143,6 +163,7 @@ final class BackgroundMediaTransfers {
             long copied = 0;
             int count;
             while ((count = input.read(buffer)) != -1) {
+                if (cancellation != null) cancellation.throwIfCanceled();
                 requireActive(context, id);
                 copied += count;
                 if (copied > size) throw new IOException("Selected video size changed");
@@ -154,6 +175,41 @@ final class BackgroundMediaTransfers {
         try { session(context, instance, account, space); requireActive(context, id); }
         catch (Exception failure) { cancel(context, id); throw failure; }
         return record;
+    }
+    static synchronized Record prepared(Context context, String id, File output) throws Exception {
+        requireActive(context, id);
+        Record record = read(context, id);
+        session(context, record.instance(), record.account(), record.space());
+        long size = output.length();
+        if (size <= 0 || size > MAX_FILE) throw new IOException("Prepared video exceeds bounds");
+        boolean original = output.equals(source(context, id));
+        if (!original && !output.renameTo(source(context, id)))
+            throw new IOException("Prepared video could not be retained");
+        record.value.put("size", size).put("reservedSize", size).put("mimeType", original ? record.value.getString("mimeType") : "video/mp4")
+            .put("phase", "prepared").put("progress", 100);
+        save(context, record);
+        return record;
+    }
+    static synchronized Record adoptPrepared(Context context, String instance, String account, String space,
+            String preparationId, String id, long size) throws Exception {
+        requireId(id); requireActive(context, preparationId);
+        session(context, instance, account, space);
+        Record prepared = read(context, preparationId);
+        if (!instance.equals(prepared.instance()) || !account.equals(prepared.account()) || !space.equals(prepared.space())
+                || !"prepared".equals(prepared.phase()) || prepared.expired() || prepared.value.getLong("size") != size
+                || source(context, preparationId).length() != size || file(context, id).getBaseFile().exists())
+            throw new IOException("Prepared video unavailable");
+        int jobId = 0x52000000 | (id.hashCode() & 0x00ffffff);
+        List<Record> existing = records(context);
+        while (containsJob(existing, jobId)) jobId++;
+        Record adopted = new Record(new JSONObject(prepared.value.toString()).put("attachmentId", id)
+            .put("phase", "uploading").put("progress", 0).put("jobId", jobId));
+        save(context, adopted);
+        if (!source(context, preparationId).renameTo(source(context, id))) {
+            file(context, id).delete(); throw new IOException("Prepared video handoff failed");
+        }
+        file(context, preparationId).delete();
+        return adopted;
     }
     private static boolean containsJob(List<Record> records, int id) {
         for (Record entry : records) if (entry.jobId() == id) return true;
@@ -199,6 +255,7 @@ final class BackgroundMediaTransfers {
         try { record = read(context, id); } catch (Exception unavailable) { /* A corrupt record still loses its bytes. */ }
         file(context, id).delete();
         source(context, id).delete();
+        preparationOutput(context, id).delete();
         if (record != null) {
             context.getSystemService(JobScheduler.class).cancel(record.jobId());
             context.getSystemService(NotificationManager.class).cancel(record.jobId());
@@ -210,9 +267,56 @@ final class BackgroundMediaTransfers {
     static JSArray list(Context context, String instance, String account, String space) throws Exception {
         session(context, instance, account, space);
         JSArray items = new JSArray();
-        for (Record record : records(context)) if (instance.equals(record.instance()) && account.equals(record.account()) && space.equals(record.space()))
+        for (Record record : records(context)) if (!"prepared".equals(record.phase()) && !"preparing".equals(record.phase())
+                && instance.equals(record.instance()) && account.equals(record.account()) && space.equals(record.space()))
             items.put(new JSObject().put("attachmentId", record.id()).put("phase", record.phase()).put("progress", record.progress()));
         return items;
+    }
+    static synchronized void bindTarget(Context context, String instance, String account, String space,
+            String id, String targetType, String targetId) throws Exception {
+        session(context, instance, account, space); requireId(id); requireTarget(targetType, targetId);
+        // Completion can win the race with a successful parent save. It has no notice left to bind.
+        if (!file(context, id).getBaseFile().exists()) return;
+        Record record = read(context, id);
+        if (!instance.equals(record.instance()) || !account.equals(record.account()) || !space.equals(record.space()))
+            throw new IOException("Transfer ownership changed");
+        record.value.put("targetType", targetType).put("targetId", targetId);
+        save(context, record);
+        // Update the existing admission PendingIntent without posting a stale progress frame.
+        contentIntent(context, record);
+    }
+    private static void requireTarget(String type, String id) {
+        requireId(id);
+        if (!"MEMORY".equals(type) && !"HEART_MOMENT".equals(type)) throw new IllegalArgumentException();
+    }
+    static Intent notificationIntent(Context context, String id) {
+        requireId(id);
+        return new Intent(context, LauncherActivity.class).setAction(OPEN_TRANSFER)
+            .setData(Uri.parse("de.eimir.app://media-transfers/" + id))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    }
+    static synchronized Intent notificationIntent(Context context, Record progress) {
+        Record record = progress;
+        // A queued progress frame may predate the confirmed parent binding.
+        try { record = read(context, progress.id()); } catch (Exception completed) { /* Use the final owned snapshot. */ }
+        return notificationIntent(context, record.id())
+            .putExtra("instance", record.instance()).putExtra("accountId", record.account()).putExtra("spaceId", record.space())
+            .putExtra("targetType", record.value.optString("targetType")).putExtra("targetId", record.value.optString("targetId"));
+    }
+    static PendingIntent contentIntent(Context context, Record record) {
+        return PendingIntent.getActivity(context, record.jobId(), notificationIntent(context, record), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+    static JSObject openTarget(Context context, Intent intent) throws Exception {
+        if (intent == null || !OPEN_TRANSFER.equals(intent.getAction()) || intent.getData() == null) return null;
+        String id = intent.getData().getLastPathSegment();
+        requireId(id);
+        if (!notificationIntent(context, id).getData().equals(intent.getData())) return null;
+        String instance = intent.getStringExtra("instance"), account = intent.getStringExtra("accountId"), space = intent.getStringExtra("spaceId");
+        session(context, instance, account, space);
+        String type = intent.getStringExtra("targetType"), target = intent.getStringExtra("targetId");
+        requireTarget(type, target);
+        return new JSObject().put("instance", instance).put("accountId", account).put("spaceId", space)
+            .put("attachmentId", id).put("targetType", type).put("targetId", target);
     }
     private static HttpURLConnection open(Context context, Record record, String suffix, String method) throws Exception {
         requireActive(context, record.id());
@@ -294,16 +398,18 @@ final class BackgroundMediaTransfers {
             JSONObject account = session(context, record.instance(), record.account(), record.space()).getJSONObject("account");
             localized = RecipientLanguage.context(context, account.optString("languagePreference", account.optString("locale", "de")));
         } catch (Exception unavailable) { /* Generic system-language fallback contains no content. */ }
-        return notification(localized, record.jobId(), record.phase(), record.progress());
+        return notification(localized, record.phase(), record.progress(), contentIntent(context, record));
     }
-    static Notification initialNotification(Context context, int jobId) {
-        return notification(context, jobId, "uploading", 0);
+    static Notification initialNotification(Context context, int jobId, String id) {
+        // Binding may precede JobScheduler admission; never erase its updated extras.
+        Intent launch = notificationIntent(context, id);
+        PendingIntent tap = PendingIntent.getActivity(context, jobId, launch, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+        if (tap == null) tap = PendingIntent.getActivity(context, jobId, launch, PendingIntent.FLAG_IMMUTABLE);
+        return notification(context, "uploading", 0, tap);
     }
-    private static Notification notification(Context localized, int jobId, String phase, int progress) {
+    private static Notification notification(Context localized, String phase, int progress, PendingIntent tap) {
         NotificationManager manager = localized.getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel(CHANNEL, localized.getString(R.string.media_transfer_channel), NotificationManager.IMPORTANCE_LOW));
-        Intent launch = new Intent(localized, LauncherActivity.class).setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent tap = PendingIntent.getActivity(localized, jobId, launch, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(localized, CHANNEL).setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle(localized.getString(R.string.media_transfer_title))
             .setContentText(localized.getString("failed".equals(phase) ? R.string.media_transfer_failed : "processing".equals(phase) ? R.string.media_transfer_processing : R.string.media_transfer_progress, progress))

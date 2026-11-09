@@ -1,3 +1,7 @@
+import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
@@ -82,6 +86,7 @@ async function setup(page: Page, failNextWish = false) {
     planSaveMatch: '',
     mediaWrites: 0,
     bound: [] as string[],
+    cover: null as string | null,
     failNextWish,
   };
   let memory = {
@@ -231,6 +236,7 @@ async function setup(page: Page, failNextWish = false) {
     }
     if (p === `${root}/memories/mem-canal/attachments` && method === 'PUT') {
       const entries = request.postDataJSON().attachments;
+      state.cover = request.postDataJSON().selectedCoverAttachmentId;
       state.bound = entries.map(
         (entry: { attachmentId: string }) => entry.attachmentId,
       );
@@ -464,4 +470,180 @@ test('real local codec worker reduces transfer bytes without dropping the audio 
     expect(result.size).toBeLessThan(result.originalSize * 0.9);
     expect(result.progress.length).toBeGreaterThan(0);
   } else expect(result.size).toBe(result.originalSize);
+});
+
+test.describe('free composer media preservation', () => {
+  test.use({ hasTouch: true });
+  for (const scenario of [
+    { width: 390, theme: 'dark', touch: true },
+    { width: 1280, theme: 'light', touch: false },
+  ] as const) {
+    test(`draft gallery keeps zoom, sorting, privacy and cover through save at ${scenario.width}`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width: scenario.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: scenario.theme,
+        reducedMotion: 'reduce',
+      });
+      const { state } = await setup(page);
+      await signIn(page);
+      await page.goto('/story/memories/mem-canal/edit');
+      const prose = page.getByLabel(de.memory.bodyLabel);
+      await expect(prose).toBeVisible();
+      await prose.fill(copy.description);
+      await page.locator('#memory-edit-images').setInputFiles([
+        { name: 'first-photo.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+        { name: 'second-photo.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+      ]);
+      await expect.poll(() => state.mediaWrites).toBe(2);
+      const tiles = page.locator('.photo-draft-grid .photo-draft-tile');
+      await expect(tiles).toHaveCount(2);
+      await expect(tiles.first()).toHaveAccessibleName(
+        new RegExp(de.memory.photoReady),
+      );
+      await tiles.nth(1).click();
+      const selected = page.locator('.photo-draft-frame').filter({
+        has: page.locator('.photo-draft-tile[aria-pressed="true"]'),
+      });
+      const chosenKey = await tiles.nth(1).getAttribute('data-media-key');
+      if (!chosenKey)
+        throw new Error('The selected draft identity is unavailable.');
+      await selected
+        .getByRole('button', { name: experiences.chooseCover })
+        .click();
+      const privacy = page.locator('.photo-draft-stage-sensitive');
+      const privacyGeometry = () =>
+        privacy.evaluate((element) => {
+          const container = element.closest('.media-gallery-carousel-viewport');
+          if (!container)
+            throw new Error('The preview container is unavailable.');
+          const frame = container.getBoundingClientRect();
+          const rect = element.getBoundingClientRect();
+          return {
+            x: rect.x - frame.x,
+            y: rect.y - frame.y,
+            width: rect.width,
+            height: rect.height,
+          };
+        });
+      const before = await privacyGeometry();
+      await privacy.locator('input').check();
+      await expect(selected.getByRole('checkbox')).toBeChecked();
+      expect(await privacyGeometry()).toEqual(before);
+      await privacy.locator('input').uncheck();
+      await page.locator('.photo-draft-gallery .media-gallery-expand').click();
+      const dialog = page.getByRole('dialog', {
+        name: storyProducts.gallery.dialogAria,
+      });
+      const photo = dialog.locator('.media-lightbox-photo img');
+      await expect(photo).toBeVisible();
+      const frame = await dialog.locator('.media-lightbox-photo').boundingBox();
+      if (!frame) throw new Error('The draft photo frame is unavailable.');
+      const x = frame.x + frame.width / 2,
+        y = frame.y + frame.height / 2;
+      await page.touchscreen.tap(x, y);
+      await page.touchscreen.tap(x, y);
+      const scale = () =>
+        photo.evaluate(
+          (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).a,
+        );
+      await expect.poll(scale).toBeGreaterThan(2);
+      await page.touchscreen.tap(x, y);
+      await page.touchscreen.tap(x, y);
+      await expect.poll(scale).toBe(1);
+      await swipeCarousel(page, 'next', 'lightbox');
+      await expect(dialog.locator('.media-lightbox-counter')).toHaveText(
+        storyProducts.gallery.counter
+          .replace('{{index}}', '1')
+          .replace('{{count}}', '2'),
+      );
+      await dialog
+        .getByRole('button', { name: storyProducts.gallery.close })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      await tiles.nth(1).scrollIntoViewIfNeeded();
+      const from = await tiles.nth(1).boundingBox(),
+        to = await tiles.first().boundingBox();
+      if (!from || !to)
+        throw new Error('The draft sorting targets are unavailable.');
+      const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
+      const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
+      if (scenario.touch) {
+        const client = await page.context().newCDPSession(page);
+        try {
+          await client.send('Input.dispatchTouchEvent', {
+            type: 'touchStart',
+            touchPoints: [start],
+          });
+          await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
+          await client.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [end],
+          });
+          await nextFrame(page);
+          await client.send('Input.dispatchTouchEvent', {
+            type: 'touchEnd',
+            touchPoints: [],
+          });
+        } finally {
+          await client.detach();
+        }
+      } else {
+        await page.mouse.move(start.x, start.y);
+        await page.mouse.down();
+        await page.mouse.move(end.x, end.y, { steps: 8 });
+        await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
+        await page.mouse.up();
+      }
+      await expect(tiles.first()).toHaveAttribute('data-media-key', chosenKey);
+      await page
+        .getByRole('button', { name: experiences.arrange, exact: true })
+        .click();
+      const arrange = page.getByRole('dialog', { name: experiences.arrange });
+      await arrange
+        .getByRole('button', { name: experiences.last, exact: true })
+        .click();
+      await arrange
+        .getByRole('button', { name: experiences.finish, exact: true })
+        .click();
+      await expect(arrange).toHaveCount(0);
+      await expect(tiles.nth(1)).toHaveAttribute('data-media-key', chosenKey);
+      await expect(prose).toHaveValue(copy.description);
+      await expect
+        .poll(() =>
+          page.locator('.media-gallery-carousel-track').evaluate((track) => {
+            const active = track.querySelector<HTMLElement>('.is-active');
+            if (!active) throw new Error('The active preview is unavailable.');
+            return Math.abs(active.offsetLeft - track.scrollLeft);
+          }),
+        )
+        .toBeLessThan(1);
+      const privacyCopy = await privacy.locator('span').evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          height: element.getBoundingClientRect().height,
+          lineHeight: parseFloat(style.lineHeight),
+        };
+      });
+      expect(privacyCopy.height).toBeLessThanOrEqual(
+        privacyCopy.lineHeight + 1,
+      );
+      const axe = await new AxeBuilder({ page })
+        .include('.free-composer')
+        .analyze();
+      expect(axe.violations).toEqual([]);
+      await captureScreenshot(
+        page.locator('.photo-draft-gallery'),
+        info,
+        `shell-composer-media-${scenario.width}-${scenario.theme}.png`,
+      );
+      await page
+        .getByRole('button', { name: memoryProduct.save, exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+      expect(state.bound).toHaveLength(2);
+      expect(state.cover).toBe(state.bound[1]);
+    });
+  }
 });

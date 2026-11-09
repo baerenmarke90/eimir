@@ -3,6 +3,59 @@
   gap: var(--space-3);
   min-inline-size: 0;
 }
+.photo-draft-gallery .media-gallery-carousel-viewport {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-large);
+}
+.photo-draft-stage-sensitive {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: max-content;
+  min-block-size: var(--touch-target-web);
+  max-inline-size: calc(100% - var(--space-12) - var(--space-6));
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+  cursor: pointer;
+}
+.photo-draft-stage-sensitive > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.photo-draft-stage-sensitive > span {
+  min-inline-size: 0;
+  overflow-wrap: break-word;
+}
+.photo-draft-stage-sensitive input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0;
+  margin: 0;
+  cursor: inherit;
+}
+.photo-draft-stage-sensitive:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.photo-draft-stage-sensitive:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+}
+.photo-draft-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.photo-draft-toolbar:empty {
+  display: none;
+}
 .photo-draft-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr));

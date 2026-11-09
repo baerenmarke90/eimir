@@ -25,6 +25,7 @@ export function PlanStoryContinuation({
   plan,
   focusOnMount = false,
   sharedAchievementEnabled = false,
+  justCompleted = true,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
@@ -33,6 +34,7 @@ export function PlanStoryContinuation({
   plan: PlanDetail;
   focusOnMount?: boolean;
   sharedAchievementEnabled?: boolean;
+  justCompleted?: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -83,7 +85,7 @@ export function PlanStoryContinuation({
 
   return (
     <section
-      className="plan-completed-celebration plan-story-continuation"
+      className={`${justCompleted ? 'plan-completed-celebration' : 'plan-story-saved'} plan-story-continuation`}
       aria-labelledby="plan-completed-heading"
     >
       {sharedAchievementEnabled ? (
@@ -100,11 +102,19 @@ export function PlanStoryContinuation({
           ref={headingRef}
           tabIndex={focusOnMount ? -1 : undefined}
         >
-          {t('m5s3.plan.completedTitle')}
+          {t(
+            justCompleted
+              ? 'm5s3.plan.completedTitle'
+              : 'm5s3.planStory.readHeading',
+          )}
         </h2>
       )}
-      <p>{t('m5s3.plan.completedBody')}</p>
-      <p className="plan-completed-intro">{t('m5s3.planStory.intro')}</p>
+      {justCompleted ? (
+        <>
+          <p>{t('m5s3.plan.completedBody')}</p>
+          <p className="plan-completed-intro">{t('m5s3.planStory.intro')}</p>
+        </>
+      ) : null}
       <div className="plan-story-actions">
         <button
           type="button"

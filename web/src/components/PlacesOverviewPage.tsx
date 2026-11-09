@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
@@ -333,7 +334,7 @@ export function PlacesOverviewPage({
             <form
               ref={createFormRef}
               onSubmit={submitPlace}
-              className="form-grid planning-create-form"
+              className="form-grid planning-create-form free-composer"
               onChange={(event) =>
                 setCreateDirty(
                   Array.from(new FormData(event.currentTarget).values()).some(

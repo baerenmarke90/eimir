@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import {
   useInfiniteQuery,
   useMutation,
@@ -280,7 +281,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.notes.createTitle')}
         description={t('privateArea.notes.intro')}
       />
-      <section className="form-card private-area-editor">
+      <section className="form-card private-area-editor free-composer">
         <form
           className="form-grid"
           onSubmit={submit}
@@ -510,7 +511,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
         title={t('privateArea.notes.editTitle')}
         description={t('privateArea.notes.intro')}
       />
-      <section className="form-card private-area-editor">
+      <section className="form-card private-area-editor free-composer">
         <form
           className="form-grid"
           onSubmit={submit}

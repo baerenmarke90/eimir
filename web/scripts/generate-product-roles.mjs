@@ -106,6 +106,8 @@ declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
 declare('border-surface-width', value('border.surfaceFrame'));
 declare('border-control-width', value('border.controlFrame'));
+declare('border-authored-width', value('border.authoredFrame'));
+declare('composer-max', value('layout.composerMax'));
 declare('touch-target-web', value('size.touchTarget.webMinimum'));
 declare('touch-target-comfortable', value('size.control.comfortable'));
 declare('icon-size-standard', value('size.icon.standard'));
@@ -128,6 +130,8 @@ declare(
 );
 declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
+declare('duration-map-camera', value('motion.duration.mapCamera'));
+declare('duration-map-stack', value('motion.duration.mapStack'));
 for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
@@ -208,6 +212,8 @@ ${declarations.join('\n')}
     --duration-feedback: ${value('motion.duration.instant')};
     --duration-transition: ${value('motion.duration.instant')};
     --duration-context: ${value('motion.duration.instant')};
+    --duration-map-camera: ${value('motion.duration.instant')};
+    --duration-map-stack: ${value('motion.duration.instant')};
   }
 }
 

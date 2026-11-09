@@ -40,11 +40,19 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | ordinary state transition | `motion.duration.standard` | 180 ms | `--duration-transition` |
 | spatial/contextual enter | `motion.duration.emphasized` | 280 ms | `--duration-context` |
 | normal upper guardrail | `motion.duration.maximum` | 320 ms | no default alias; not a routine duration |
+| explicit map camera journey | `motion.duration.mapCamera` | 900 ms | `--duration-map-camera` |
+| map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |
 | exit / dismissal | `motion.easing.exit` | 0.4, 0, 1, 1 | `--easing-exit` |
 
 The 320 ms token is a guardrail, not a fourth default speed. Continuous loading indicators may have a longer visual cycle when the cycle itself does not delay interaction or state and is removed for reduced motion.
+
+The PO's 2026-11-09 map correction deliberately uses longer, map-specific
+durations: camera travel and the existing photo stack need time to convey their
+spatial relationship. These are interruptible presentation durations, never a
+delay before filtering, navigation or publication. Reduced motion remains
+immediate. Do not apply these roles to ordinary controls, sheets or routes.
 
 Do not add component-local duration scales or `cubic-bezier(...)` curves. If the three easing roles cannot truthfully express a repeated interaction, extend the token contract first and migrate equivalent consumers deliberately.
 

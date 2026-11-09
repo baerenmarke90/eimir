@@ -6,7 +6,7 @@ import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
-import { PlacesApi } from '../api/generated/apis/PlacesApi';
+import { PlacesApi } from './mediaApis';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';

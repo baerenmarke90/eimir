@@ -423,6 +423,7 @@ for (const width of [390, 320] as const) {
 
       const title = page.getByLabel(de.memory.titleLabelOptional);
       const media = page.locator('.immersive-create-media');
+      const mediaGroup = media.locator('.media-action-group');
       const picker = media.getByRole('button', {
         name: photoSources.addMedia,
         exact: true,
@@ -474,9 +475,9 @@ for (const width of [390, 320] as const) {
         throw new Error('Memory Create form children not found.');
       }
       expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
-      // #1547 makes the optional title the first Memory capture field.
-      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.dateFieldIndex);
-      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.narrativeIndex);
+      // #1715 keeps compact date context above framed writing and media.
+      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.titleFieldIndex);
+      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.narrativeIndex);
       expect(domOrder.narrativeIndex).toBeLessThan(domOrder.mediaIndex);
       expect(domOrder.mediaIndex).toBeLessThan(domOrder.placesIndex);
       expect(domOrder.placesIndex).toBeLessThan(domOrder.actionsIndex);
@@ -491,6 +492,7 @@ for (const width of [390, 320] as const) {
         actionsBox,
         saveBox,
         mediaBorder,
+        mediaGroupBorder,
         pickerBorder,
       ] = await Promise.all([
         places.boundingBox(),
@@ -502,6 +504,9 @@ for (const width of [390, 320] as const) {
         actions.boundingBox(),
         saveButton.boundingBox(),
         media.evaluate((element) => getComputedStyle(element).borderTopStyle),
+        mediaGroup.evaluate(
+          (element) => getComputedStyle(element).borderTopStyle,
+        ),
         picker.evaluate((element) => getComputedStyle(element).borderTopStyle),
       ]);
       if (
@@ -546,8 +551,9 @@ for (const width of [390, 320] as const) {
       if (!addPlaceBox) throw new Error('Add Place did not render.');
       expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
-      // 5. Media stays bounded; its entry uses the shared filled pill.
-      expect(mediaBorder).toBe('solid');
+      // 5. One shared media boundary stays compact around the filled Add pill.
+      expect(mediaBorder).toBe('none');
+      expect(mediaGroupBorder).toBe('solid');
       expect(pickerBorder).toBe('none');
       expect(mediaBox.height).toBeLessThan(125);
       expect(pickerBox.height).toBeLessThan(80);

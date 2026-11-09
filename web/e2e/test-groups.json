@@ -473,7 +473,7 @@
     "media-planning-corrections.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 9,
-      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop and the real local video codec worker; broad theme/reflow variants do not expand the always-run core."
+      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
     },
     "planning-search-private-profile.spec.ts": {
       "disposition": "FULL_REGRESSION",

@@ -10,6 +10,9 @@ on:
       - "web/src/components/Video*.tsx"
       - "web/src/components/MediaGallery*"
       - "web/src/client/video*"
+      - "web/src/client/compressVideo.ts"
+      - "web/src/client/backgroundVideoUploads.ts"
+      - "web/src/client/memoryAttachmentDraft.ts"
       - ".github/workflows/media-video.yml"
   push:
     branches: [main]
@@ -62,7 +65,10 @@ jobs:
       - name: Build the pinned restricted codec
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends nasm autoconf automake libtool pkg-config
+          # The system encoder generates synthetic test input only. Acceptance
+          # still uses the separately built, pinned and patched restricted codec.
+          sudo apt-get install -y --no-install-recommends nasm autoconf automake libtool pkg-config ffmpeg
+          python3 tools/media/generate-video-quality-fixtures.py backend/tests/fixtures/media
           bash tools/media/build-video-dependencies.sh /tmp/eimir-codec-dependencies /tmp/eimir-codecs
           curl --fail --location --proto '=https' --tlsv1.2 \
             https://github.com/FFmpeg/FFmpeg/archive/946fcce07b6dcd0331c8cc609192aeff5e1924f8.tar.gz \

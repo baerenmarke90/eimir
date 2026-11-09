@@ -387,9 +387,16 @@ public class PhotoFileChooserTest {
                 && event.getPackageName() != null
                 && (isSystemPhotoPicker(event.getPackageName())
                     || event.getPackageName().toString().contains("permissioncontroller")), 15000);
-        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
-        if (root != null && root.getPackageName() != null
-                && root.getPackageName().toString().contains("permissioncontroller")) {
+        // A window-state event can arrive before Android publishes its new
+        // accessibility root. Wait for the actual consent or picker control;
+        // inspecting the previous WebView root would skip the real decision.
+        AccessibilityNodeInfo entry = findDocument("Allow all", "Include location", token);
+        assertNotNull("Android publishes its consent or picker surface", entry);
+        CharSequence entryPackage = entry.getPackageName();
+        assertTrue("The entry belongs to Android's consent or photo picker",
+            isSystemPhotoPicker(entryPackage) || (entryPackage != null
+                && entryPackage.toString().contains("permissioncontroller")));
+        if (entryPackage.toString().contains("permissioncontroller")) {
             captureNativeDiagnostics("native-photo-permission");
             AccessibilityNodeInfo allow = findDocument("Allow all");
             assertNotNull("Android exposes the optional metadata permission decision", allow);
@@ -701,7 +708,9 @@ public class PhotoFileChooserTest {
         BySelector selector = By.pkg(document.getPackageName().toString());
         CharSequence text = document.getText();
         CharSequence description = document.getContentDescription();
-        if (text != null) selector.text(text.toString());
+        String resource = document.getViewIdResourceName();
+        if (resource != null) selector.res(resource);
+        else if (text != null) selector.textStartsWith(text.toString());
         else {
             assertNotNull("The identified system control has a label", description);
             selector.desc(description.toString());
@@ -713,7 +722,9 @@ public class PhotoFileChooserTest {
         // Observe the active window with fresh roots, then reacquire the control.
         assertFalse("The system control's hierarchy and pixels become stable",
             UiDeviceExt.waitForStableInActiveWindow(device, 3000, 500, 50, true).isTimeout());
-        control = device.findObject(selector);
+        // Stability screenshots can replace accessibility nodes. Reacquire before
+        // resolving the system control's actual action owner.
+        control = device.wait(Until.findObject(selector), 10000);
         assertNotNull("The stable system control remains attached", control);
         assertTrue("The stable system control is enabled", control.isEnabled());
         Rect bounds = control.getVisibleBounds();

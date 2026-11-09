@@ -139,7 +139,9 @@ describe('PlanProductPage', () => {
     );
 
     expect(html).toContain(i18n.t('m5s3.plan.completedTitle'));
-    expect(html).toContain(i18n.t('m5s3.plan.completedBody'));
+    expect(html).not.toContain(i18n.t('m5s3.plan.completedBody'));
+    expect(html).toContain('14.09.2026');
+    expect(html).toContain('plan-story-saved');
     expect(html).not.toContain(i18n.t('m5s3.plan.sharedAchievementTitle'));
     expect(html).toContain(i18n.t('m5s3.planStory.memoryAction'));
     expect(html).toContain(i18n.t('m5s3.planStory.milestoneAction'));

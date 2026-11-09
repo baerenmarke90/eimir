@@ -3,7 +3,9 @@ import de from '../../src/i18n/locales/de';
 
 /** Select one media identity without opening a second task or saving the draft. */
 export async function selectDraftMedia(page: Page, index = 0) {
-  await page.locator('.photo-draft-tile').nth(index).click();
+  const tile = page.locator('.photo-draft-tile').nth(index);
+  await tile.click();
+  await expect(tile).toHaveAttribute('aria-pressed', 'true');
   await expectInlineDraftActions(page);
   return page.getByRole('group', {
     name: de.memory.photoSelected,

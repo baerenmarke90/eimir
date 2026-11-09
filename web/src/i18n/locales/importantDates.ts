@@ -1,5 +1,6 @@
 const importantDates = {
-  heading: 'Besondere Tage',
+  heading: 'Anlässe',
+  relationshipAnniversary: 'Euer Jahrestag',
   intro:
     'Geburtstage, Jahrestage und andere besondere Tage könnt ihr hier gemeinsam oder nur für euch festhalten.',
   createTitle: 'Besonderer Tag',

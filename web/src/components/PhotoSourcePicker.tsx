@@ -22,6 +22,7 @@ import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { AutoLoadTrigger } from './AutoLoadMore';
 import './PhotoSourcePicker.css';
+import { AddActionContent } from './AddAction';
 
 interface SelectionTask {
   api: PhotoSourcesApi;
@@ -372,14 +373,15 @@ export function PhotoSourcePicker({
           <button
             ref={trigger}
             type="button"
-            className="secondary photo-source-trigger"
+            className="add-action photo-source-trigger"
             disabled={disabled || remaining <= 0}
             onClick={() => {
               setMessage('');
               setOpen(true);
             }}
           >
-            {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
+            <AddActionContent label={t('photoSources.more')} />{' '}
+            <ProMark label={t('photoSources.pro')} />
           </button>
         ) : null}
       </div>

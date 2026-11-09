@@ -1427,7 +1427,8 @@ for (const [width, colorScheme] of [
     await expect(title).toBeVisible();
     expect(
       await title.evaluate(
-        (node) => node.closest('fieldset')?.querySelector('input') === node,
+        (node) =>
+          node.closest('fieldset')?.querySelector('input')?.id === 'happenedOn',
       ),
     ).toBe(true);
     const text =

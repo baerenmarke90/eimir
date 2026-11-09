@@ -323,8 +323,16 @@ export function MilestoneProductPage({
             />
           ) : null}
           <form onSubmit={submitCreate} className="immersive-create-form">
+            <NativeDateField
+              id="milestone-date"
+              name="happenedOn"
+              label={t('milestoneProduct.happenedOnLabel')}
+              required
+              defaultValue={localDateInputValue()}
+              openPickerOnClick
+            />
             <div className="immersive-create-hero">
-              <label htmlFor="milestone-title" className="sr-only">
+              <label htmlFor="milestone-title">
                 {t('milestoneProduct.titleLabel')}
               </label>
               <input
@@ -337,31 +345,17 @@ export function MilestoneProductPage({
               />
             </div>
 
-            <NativeDateField
-              id="milestone-date"
-              name="happenedOn"
-              label={t('milestoneProduct.happenedOnLabel')}
-              required
-              defaultValue={localDateInputValue()}
-              openPickerOnClick
-            />
-
-            <details className="immersive-create-details">
-              <summary>{t('milestoneProduct.addMoreDetails')}</summary>
-              <div className="immersive-create-details-content">
-                <div className="field-group">
-                  <label htmlFor="milestone-body">
-                    {t('milestoneProduct.bodyLabel')}
-                  </label>
-                  <textarea
-                    id="milestone-body"
-                    name="body"
-                    rows={4}
-                    placeholder={t('milestoneProduct.bodyPlaceholder')}
-                  />
-                </div>
-              </div>
-            </details>
+            <div className="field-group">
+              <label htmlFor="milestone-body">
+                {t('milestoneProduct.bodyLabel')}
+              </label>
+              <textarea
+                id="milestone-body"
+                name="body"
+                rows={4}
+                placeholder={t('milestoneProduct.bodyPlaceholder')}
+              />
+            </div>
 
             <div className="form-actions">
               <button

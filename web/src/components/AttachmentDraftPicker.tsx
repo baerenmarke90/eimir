@@ -7,6 +7,8 @@ import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { AttachmentMediaDropZone } from './MediaDropZone';
 import type { VideoCaptureContext } from './VideoUploadAction';
+import type { ReactNode } from 'react';
+import { MediaActionGroup } from './MediaActionGroup';
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
@@ -31,7 +33,11 @@ export function AttachmentDraftPicker({
   sourceContext,
   selectedCoverKey,
   onSelectCover,
+  additionalActions,
+  gallery,
 }: {
+  additionalActions?: ReactNode;
+  gallery?: ReactNode;
   id: string;
   selectedCoverKey?: string | null;
   onSelectCover?: (key: string | null) => void;
@@ -77,60 +83,76 @@ export function AttachmentDraftPicker({
       }}
     >
       <div className="field-group attachment-draft-picker">
-        {sourceContext ? (
-          <PhotoSourcePicker
-            {...sourceContext}
-            beginSelection={() => {
-              const ticket = sourceContext.beginSelection();
-              return {
-                ...ticket,
-                commit: (files) => {
-                  if (ticket.signal.aborted || !files.length) return false;
-                  if (!multiple)
-                    for (const item of attachments.items)
-                      attachments.remove(item.id);
-                  return ticket.commit(files);
-                },
-              };
-            }}
-            disabled={disabled}
-            devicePicker={devicePicker}
-          />
-        ) : (
-          devicePicker(() => {})
-        )}
+        <MediaActionGroup>
+          {gallery}
+          {showItems && attachments.items.length > 0 ? (
+            <PhotoDraftGallery
+              key={JSON.stringify([
+                id,
+                sourceContext?.apiBaseUrl,
+                sourceContext?.accountId,
+                sourceContext?.spaceId,
+                videoContext?.accountId,
+                videoContext?.spaceId,
+              ])}
+              resourceScopeKey={JSON.stringify([
+                id,
+                sourceContext?.apiBaseUrl,
+                sourceContext?.accountId,
+                sourceContext?.spaceId,
+                videoContext?.accountId,
+                videoContext?.spaceId,
+              ])}
+              disabled={disabled}
+              items={attachments.items.map((attachment) => ({
+                key: attachment.id,
+                name: attachment.file.name,
+                draft: attachment,
+                isSensitive: attachment.isSensitive === true,
+                preview: (
+                  <DraftMediaPreview
+                    draft={attachment}
+                    context={videoContext}
+                  />
+                ),
+              }))}
+              onOrderChange={multiple ? attachments.reorder : undefined}
+              selectedCoverKey={selectedCoverKey}
+              onSelectCover={onSelectCover}
+              onSensitive={attachments.setSensitive}
+              onRemove={attachments.remove}
+              onRetry={(key) => {
+                const draft = attachments.items.find((item) => item.id === key);
+                if (draft) attachments.retry(draft);
+              }}
+            />
+          ) : null}
 
-        {showItems && attachments.items.length > 0 ? (
-          <PhotoDraftGallery
-            key={JSON.stringify([
-              id,
-              sourceContext?.apiBaseUrl,
-              sourceContext?.accountId,
-              sourceContext?.spaceId,
-              videoContext?.accountId,
-              videoContext?.spaceId,
-            ])}
-            disabled={disabled}
-            items={attachments.items.map((attachment) => ({
-              key: attachment.id,
-              name: attachment.file.name,
-              draft: attachment,
-              isSensitive: attachment.isSensitive === true,
-              preview: (
-                <DraftMediaPreview draft={attachment} context={videoContext} />
-              ),
-            }))}
-            onOrderChange={multiple ? attachments.reorder : undefined}
-            selectedCoverKey={selectedCoverKey}
-            onSelectCover={onSelectCover}
-            onSensitive={attachments.setSensitive}
-            onRemove={attachments.remove}
-            onRetry={(key) => {
-              const draft = attachments.items.find((item) => item.id === key);
-              if (draft) attachments.retry(draft);
-            }}
-          />
-        ) : null}
+          {sourceContext ? (
+            <PhotoSourcePicker
+              {...sourceContext}
+              beginSelection={() => {
+                const ticket = sourceContext.beginSelection();
+                return {
+                  ...ticket,
+                  commit: (files) => {
+                    if (ticket.signal.aborted || !files.length) return false;
+                    if (!multiple)
+                      for (const item of attachments.items)
+                        attachments.remove(item.id);
+                    return ticket.commit(files);
+                  },
+                };
+              }}
+              disabled={disabled}
+              devicePicker={devicePicker}
+            />
+          ) : (
+            devicePicker(() => {})
+          )}
+          {additionalActions}
+        </MediaActionGroup>
+
         {attachments.hasPending ? (
           <p className="field-help" role="status" aria-live="polite">
             {t(

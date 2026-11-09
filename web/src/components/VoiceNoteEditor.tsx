@@ -12,6 +12,7 @@ import { SavedVoiceNote } from './SavedVoiceNote';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { VoiceNotePlayer, VoiceWaveform } from './VoiceNotePlayer';
 import './VoiceNotes.css';
+import { AddActionButton } from './AddAction';
 
 export function VoiceNoteEditor({
   voice,
@@ -140,18 +141,12 @@ export function VoiceNoteEditor({
           />
         </>
       ) : (
-        <button
-          type="button"
-          className="secondary voice-add"
+        <AddActionButton
+          label={t('voiceNotes.title')}
+          className="voice-add"
           disabled={disabled}
           onClick={() => setSheet('source')}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="9" y="3" width="6" height="12" rx="3" />
-            <path d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8" />
-          </svg>
-          {t('voiceNotes.title')}
-        </button>
+        />
       )}
       {error ? <p role="alert">{t(`voiceNotes.${error}`)}</p> : null}
       <input

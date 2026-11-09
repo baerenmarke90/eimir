@@ -244,15 +244,29 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
 | mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
 
-Mediabunny is used unmodified in a lazy, same-origin Web Worker for optional
-on-device MP4/MOV optimization (#1647). It supplies container handling around
+Mediabunny is used unmodified in a lazy, same-origin Web Worker for active
+on-device SDR MP4/MOV preparation (#1713, replacing #1647's optional optimization). It supplies container handling around
 native WebCodecs; no software codec, WASM runtime, remote converter or provider
 is added. Its two transitive dependencies are Web API type declarations, recorded
 with integrity hashes in the npm lock. The MPL notice and source location ship
 in `web/public/licenses/mediabunny-NOTICE.txt`; the complete license ships beside
 it. Cloud and Self-Hosted use the same bundled code without provider fees or
-additional user setup. Unsupported, failed, oversized or uneconomical local
-conversion retains the original and existing server-side validation.
+additional user setup. Only an explicitly verified compatible original may bypass
+encoding; unsupported, failed or oversized conversion preserves the selection
+and fails visibly, without sending an unprepared original to server compression.
+
+AndroidX Media3 `media3-transformer` and `media3-effect` **1.11.1** (including
+same-version common, container, decoder, datasource, extractor, muxer and
+ExoPlayer internals) come from [Google Maven](https://maven.google.com/web/index.html#androidx.media3)
+and [the official source](https://github.com/androidx/media), Apache-2.0.
+They reuse local Android MediaCodec/OpenGL/MediaMuxer facilities; no separate
+FFmpeg/native codec binary, network source, Google account, Play Services,
+provider fee or hoster configuration is added. The artifact checksums belong in
+Android's existing strict Gradle verification metadata. Native preparation uses
+explicit HDR-to-SDR tone mapping, disables platform editing metrics and retains
+the existing private/no-backup/session-owned staging lifecycle. Cloud/Self-Hosted
+behavior is identical. Unsupported device/browser preparation fails visibly;
+server-side lossy encoding is not a fallback. See [operations](operations/on-device-video-preparation.md).
 
 ## Web — M2-S8 Development
 

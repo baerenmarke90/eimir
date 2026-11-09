@@ -460,7 +460,7 @@
     "device-review.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
-      "reason": "Device-review typed links, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded."
+      "reason": "Existing device-review typed links with draft-safe static destinations in Edit and verified canonical links after returning to read mode, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded; no new always-run cases."
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",

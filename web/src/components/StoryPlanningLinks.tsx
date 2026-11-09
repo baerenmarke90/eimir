@@ -237,7 +237,10 @@ function ScopedStoryPlanningLinks({
     onMutate: () => {
       const ownsTask = captureTask();
       const ownsRead = captureAuthorizedQuery(client, queryKey);
-      return { current: () => ownsTask() && ownsRead() };
+      return {
+        current: () => ownsTask() && ownsRead(),
+        mayReconcile: ownsRead,
+      };
     },
     mutationFn: async ({
       kind: selected,
@@ -262,8 +265,9 @@ function ScopedStoryPlanningLinks({
       }
     },
     onSuccess: async (_value, request, context) => {
-      if (!context?.current()) return;
+      if (!context?.mayReconcile()) return;
       if (
+        context.current() &&
         request.kind === 'plans' &&
         request.id === initialPlanId &&
         !request.remove

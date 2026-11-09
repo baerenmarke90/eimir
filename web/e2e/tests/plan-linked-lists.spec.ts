@@ -845,6 +845,59 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
   expect(state.unexpected).toEqual([]);
 });
 
+test('a confirmed source link refreshes the Plan after returning during the pending write', async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  let release!: () => void;
+  let admitted = false;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    `**/heart-moments/heart-new/plans/${planId}`,
+    async (route) => {
+      if (route.request().method() === 'PUT') {
+        admitted = true;
+        await pending;
+      }
+      return route.fallback();
+    },
+  );
+  await page
+    .getByRole('button', {
+      name: copy.planStory.heartMomentAction,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByLabel(storyCopy.heartMomentProduct.textLabel, { exact: true })
+    .fill(fixtures.planLinkedLists.savedHeartText);
+  await page
+    .getByRole('button', {
+      name: storyCopy.heartMomentProduct.save,
+      exact: true,
+    })
+    .click();
+  await expect.poll(() => admitted).toBe(true);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+  const related = page.getByRole('region', {
+    name: copy.planStory.linksHeading,
+  });
+  await expect(related).toHaveCount(0);
+  release();
+  await expect(
+    related.getByRole('link', {
+      name: new RegExp(fixtures.planLinkedLists.savedHeartText),
+    }),
+  ).toBeVisible();
+  expect(state.calls.sourceLinks).toEqual(['heart-moments/heart-new']);
+  expect(state.unexpected).toEqual([]);
+});
+
 test('Milestone capture retains its Plan and existing Milestones can unlink and relink in Edit', async ({
   page,
 }) => {

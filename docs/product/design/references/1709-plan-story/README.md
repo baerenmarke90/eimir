@@ -127,3 +127,26 @@ pass. Production build, full Web lint/format, Ruff/format, mypy, OpenAPI and
 all 864 same-version generated client files match. The browser planner passes
 38 cases; actual collection is 1186 cases in 104 specs. Complete PR workflow
 evidence belongs to PR #1709 and must be observed on its final head.
+
+A final concurrency review reproduced a delayed relation confirmation after the
+person had already returned to the Plan. The new browser regression fails
+against the earlier implementation and passes with read-ownership reconciliation
+independent of mounted task feedback. Navigation/handoff feedback still belongs
+to the original active task; a confirmed authorized write may invalidate its
+existing read cache after leaving. Removed or newly denied queries cannot be
+recreated. All 18 Plan journeys pass, including this return-before-confirmation
+case. German example values live in the dedicated locale fixture module; the
+engineering-language gate remains intact.
+
+Final confirmation after that concurrency correction: all 63 cases across the
+six affected browser specs pass (1.5 minutes), as do all 2796 Web tests (2 existing
+skips) and the production build. Actual browser collection is now 1187 cases in
+104 specs; the added pending-return case remains feature-owned.
+
+The broad hosted browser run exposed four older device-review expectations for
+clickable destinations inside Edit. The existing five-case suite is retained
+and now also proves every canonical destination in read mode and removal in
+both modes, while Edit keeps static titles. All five cases pass locally (9.5s).
+Its ownership map names MemoryProductPage and StoryPlanningLinks explicitly;
+no case was added to or removed from the always-run group. All 38 browser
+planning regressions pass after this mapping review.

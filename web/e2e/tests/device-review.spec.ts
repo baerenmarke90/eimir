@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
 import AxeBuilder from '@axe-core/playwright';
 import memory from '../../src/i18n/locales/memoryProduct';
 import tags from '../../src/i18n/locales/contextTags';
@@ -124,10 +125,11 @@ for (const [width, theme] of [
         .click();
       await expect(dialog).toHaveCount(0);
       await expect(
-        linked.getByRole('link', {
-          name: kind === 'plans' ? plan.title : wish.title,
+        linked.getByText(kind === 'plans' ? plan.title : wish.title, {
+          exact: true,
         }),
-      ).toHaveAttribute('href', new RegExp(`/${kind}/linked-`));
+      ).toBeVisible();
+      await expect(linked.getByRole('link')).toHaveCount(0);
     }
     await linked.scrollIntoViewIfNeeded();
     await captureScreenshot(page, info, `device-links-${width}-${theme}.png`);
@@ -138,13 +140,31 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
+    await page
+      .getByRole('link', { name: de.common.cancel, exact: true })
+      .click();
+    for (const kind of ['plans', 'wishes'] as const) {
+      await expect(
+        linked.getByRole('link', {
+          name: kind === 'plans' ? plan.title : wish.title,
+        }),
+      ).toHaveAttribute('href', new RegExp(`/${kind}/linked-`));
+    }
+    await page.getByRole('link', { name: memory.edit, exact: true }).click();
     await linked
       .getByRole('button', {
         name: memory.planning.remove.replace('{{title}}', plan.title),
       })
       .click();
+    await expect(linked.getByText(plan.title, { exact: true })).toHaveCount(0);
+    await expect(linked.getByText(wish.title, { exact: true })).toBeVisible();
+    await page
+      .getByRole('link', { name: de.common.cancel, exact: true })
+      .click();
     await expect(linked.getByRole('link', { name: plan.title })).toHaveCount(0);
-    await expect(linked.getByRole('link', { name: wish.title })).toBeVisible();
+    await expect(
+      linked.getByRole('link', { name: wish.title }),
+    ).toHaveAttribute('href', /\/wishes\/linked-/);
     expect(writes).toEqual(['PUT:plans', 'PUT:wishes', 'DELETE:plans']);
     expect(unexpected).toEqual([]);
   });

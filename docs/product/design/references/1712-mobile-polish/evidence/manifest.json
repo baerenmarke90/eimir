@@ -7,6 +7,14 @@
       "sha256": "0cf9d454879ede36e9e61b602cf108d397896cffb377f23d6ddf38a0d81116f6"
     },
     {
+      "file": "memory-intake-390-dark.png",
+      "sha256": "9d5d27cc3567544d569dcd512c097c59955c8752cc7f04230716d49fa291af94"
+    },
+    {
+      "file": "memory-intake-390-light.png",
+      "sha256": "870b3ce822f7ca23dc39b4cfe67c48c236f422d2b0d87fb9c2b94db185321f0f"
+    },
+    {
       "file": "plan-create-list-390-light.png",
       "sha256": "b9fc43c62e577012532c2bee5582cd25c9bc46ea5f73a7066cfe4b467d32422e"
     },

@@ -116,6 +116,10 @@
   .immersive-create-card[aria-labelledby="memory-form-heading"]
   .immersive-create-media {
   min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .create-page

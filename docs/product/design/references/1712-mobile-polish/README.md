@@ -111,6 +111,17 @@ verifies both account birthdays and the shared anniversary. Evidence includes
 Compact/Expanded, Light/Dark, reduced motion and existing large-text/reflow and
 axe checks. Only synthetic fixtures are captured.
 
+The first hosted changed-spec run exposed four assertions across two existing
+specs. Memory Create still inherited its old dashed outer frame underneath the
+new shared media boundary; the obsolete frame is now reset explicitly and the
+test requires exactly one solid shared boundary while retaining compact geometry
+and touch targets. Historical Plan return/conflict checks now require the quiet
+completed status, localized experienced date and optional capture heading, plus
+the absence of replayed celebration. The complete two-spec selection passes
+34 browser journeys; all seven Plan reader unit cases also pass. Light/Dark
+Memory intake captures are included in the manifest. Existing ownership and
+browser selection remain unchanged.
+
 Android debug APK, instrumentation APK, Lint and JVM tests pass locally using
 JDK 21 and the existing SDK/cache with offline strict dependency verification.
 This supersedes the first execution's missing-SDK limitation. Installed native

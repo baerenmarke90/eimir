@@ -1778,7 +1778,7 @@ describe('CollectionProductPage', () => {
       true,
       (queryClient) => {
         queryClient.setQueryData(
-          authorSummaryQueryKeys.collections('space-1'),
+          authorSummaryQueryKeys.collectionOverview('space-1', 'OPEN'),
           {
             pages: [
               {

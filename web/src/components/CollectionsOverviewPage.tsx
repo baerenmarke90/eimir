@@ -1,6 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
+import type { CollectionScope } from '../api/generated/models/CollectionScope';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
@@ -26,6 +32,7 @@ import { ProblemState } from './ProblemState';
 import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
 import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
+import { StatusScope } from './StatusScope';
 import './SharedPlanningPages.css';
 import './SharedContentPages.css';
 
@@ -57,10 +64,17 @@ export function CollectionsOverviewPage({
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scope: CollectionScope =
+    searchParams.get('scope') === 'COMPLETED'
+      ? 'COMPLETED'
+      : searchParams.get('scope') === 'ALL'
+        ? 'ALL'
+        : 'OPEN';
   const createInFlightRef = useRef(false);
   const openingCreatedRef = useRef(false);
   const [createOpen, setCreateOpen] = useState(initialCreate);
-  const { requestReturn } = useTaskOrigin();
+  const { requestReturn, captureOrigin } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const [createDirty, setCreateDirty] = useState(false);
@@ -72,11 +86,12 @@ export function CollectionsOverviewPage({
   const restoredDeleteFocusRef = useRef(false);
 
   const collections = useWarmInfiniteQuery({
-    queryKey: ['m5-s3', 'collections', spaceId],
+    queryKey: authorSummaryQueryKeys.collectionOverview(spaceId, scope),
     queryFn: ({ pageParam }) =>
       apiCall(() =>
         apis.collections.listCollections({
           spaceId,
+          scope,
           cursor: pageParam,
           limit: PAGE_SIZE,
         }),
@@ -130,7 +145,7 @@ export function CollectionsOverviewPage({
     const data = new FormData(form);
     const isCurrentQuery = captureQueryIdentity(
       queryClient,
-      authorSummaryQueryKeys.collections(spaceId),
+      authorSummaryQueryKeys.collectionOverview(spaceId, scope),
     );
     createInFlightRef.current = true;
     createCollection.mutate(String(data.get('title')).trim(), {
@@ -140,7 +155,7 @@ export function CollectionsOverviewPage({
           ['unauthorized', 'permission', 'notFound'].includes(
             clientProblemKind(
               queryClient.getQueryState(
-                authorSummaryQueryKeys.collections(spaceId),
+                authorSummaryQueryKeys.collectionOverview(spaceId, scope),
               )?.error,
             ),
           )
@@ -181,6 +196,26 @@ export function CollectionsOverviewPage({
         }
       />
 
+      <StatusScope<CollectionScope>
+        label={t('m5s3.collection.scopeLabel')}
+        value={scope}
+        options={(['OPEN', 'COMPLETED', 'ALL'] as const).map((value) => ({
+          value,
+          label: t(`m5s3.collection.scope.${value}`),
+        }))}
+        onChange={(next) =>
+          setSearchParams(
+            (previous) => {
+              const params = new URLSearchParams(previous);
+              if (next === 'OPEN') params.delete('scope');
+              else params.set('scope', next);
+              return params;
+            },
+            { replace: true },
+          )
+        }
+      />
+
       <section className="planning-subsection">
         {collections.isLoading ? (
           <UiState kind="loading" title={t('states.loading.title')} />
@@ -195,7 +230,7 @@ export function CollectionsOverviewPage({
         {collectionItems.length === 0 &&
         !collections.isLoading &&
         !collections.error ? (
-          <p className="planning-empty">{t('m5s3.collection.emptyOverview')}</p>
+          <p className="planning-empty">{t('m5s3.collection.emptyScope')}</p>
         ) : (
           <ul className="content-overview-list content-overview-lists">
             {collectionItems.map((collection) => (
@@ -208,6 +243,24 @@ export function CollectionsOverviewPage({
                   }}
                   className="content-overview-row"
                   to={collectionDetailPath(collection.id)}
+                  onClick={(event) => {
+                    if (
+                      event.button ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.altKey ||
+                      event.shiftKey
+                    )
+                      return;
+                    event.preventDefault();
+                    void navigate(collectionDetailPath(collection.id), {
+                      state: {
+                        taskOriginKey: captureOrigin({
+                          selectedKey: collection.id,
+                        }),
+                      },
+                    });
+                  }}
                 >
                   <span className="content-overview-icon">
                     <DestinationIcon icon="collections" />

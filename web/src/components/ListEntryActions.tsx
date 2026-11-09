@@ -376,7 +376,7 @@ type IconButtonProps = Omit<
   'aria-label' | 'title' | 'children'
 > & {
   label: string;
-  icon: 'save' | 'delete' | 'reorder' | 'edit' | 'more';
+  icon: 'save' | 'delete' | 'reorder' | 'edit' | 'more' | 'unlink';
 };
 
 export const ListEntryIconButton = forwardRef<
@@ -425,6 +425,18 @@ export function EditPencilIcon({ className }: { className?: string }) {
 function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
   if (kind === 'edit') {
     return <EditPencilIcon className="list-entry-icon" />;
+  }
+  if (kind === 'unlink') {
+    return (
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 24 24"
+        className="list-entry-icon"
+      >
+        <path d="m6 6 12 12M18 6 6 18" />
+      </svg>
+    );
   }
 
   return (

@@ -515,6 +515,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,
       "reason": "Feature-owned parent-private location capture, map selection without shared Place writes, save/edit/reload, subscribed feature marks and shared capture-tag reflow. No always-run expansion."
+    },
+    "plan-linked-lists.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Feature-owned canonical Plan-list linking, independent progress, scoped list return, source Place capture and private HeartMoment protection with responsive accessibility evidence."
     }
   }
 }

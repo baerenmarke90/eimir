@@ -218,6 +218,26 @@ def collection_detail(
     )
 
 
+def collection_details(session: DbSession, collections: list[Collection]) -> list[CollectionDetail]:
+    """Resolve items and authors in batches for any canonical list presentation."""
+    items_by_collection = service.list_items_for_collections(
+        session, [collection.id for collection in collections]
+    )
+    account_ids = {collection.owner_id for collection in collections}
+    for items in items_by_collection.values():
+        account_ids.update(item.created_by for item in items)
+    authors = resolve_author_summaries(session, account_ids)
+    return [
+        collection_detail(
+            session,
+            collection,
+            items=items_by_collection.get(collection.id, []),
+            authors=authors,
+        )
+        for collection in collections
+    ]
+
+
 @router.post(
     "/spaces/{spaceId}/collections",
     response_model=CollectionDetail,
@@ -251,27 +271,11 @@ def list_collections(
     session: DbSession,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    scope: Annotated[service.CollectionScope, Query()] = service.CollectionScope.ALL,
 ) -> CollectionPage:
-    page = service.list_collections(session, authorization, cursor=cursor, limit=limit)
-    collection_ids = [collection.id for collection in page.items]
-    items_by_collection = service.list_items_for_collections(session, collection_ids)
-
-    account_ids: set[UUID] = {collection.owner_id for collection in page.items}
-    for items in items_by_collection.values():
-        account_ids.update(item.created_by for item in items)
-
-    authors = resolve_author_summaries(session, account_ids)
-
+    page = service.list_collections(session, authorization, cursor=cursor, limit=limit, scope=scope)
     return CollectionPage(
-        items=[
-            collection_detail(
-                session,
-                collection,
-                items=items_by_collection.get(collection.id, []),
-                authors=authors,
-            )
-            for collection in page.items
-        ],
+        items=collection_details(session, page.items),
         next_cursor=page.next_cursor,
         has_more=page.has_more,
     )

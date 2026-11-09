@@ -42,6 +42,7 @@ export * from './CollectionItemDetail';
 export * from './CollectionItemUpdate';
 export * from './CollectionOrder';
 export * from './CollectionPage';
+export * from './CollectionScope';
 export * from './CollectionUpdate';
 export * from './CommentCreate';
 export * from './CommentDetail';

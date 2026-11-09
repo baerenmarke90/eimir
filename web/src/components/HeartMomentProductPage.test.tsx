@@ -4,6 +4,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PlacesApi } from '../api/generated/apis/PlacesApi';
+import { PlansApi } from '../api/generated/apis/PlansApi';
+import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
@@ -134,14 +138,18 @@ function renderDetail(
   );
 }
 
-function renderCreate() {
+function renderCreate(entryState?: object) {
   const createHeartMoment = vi.fn().mockResolvedValue({ id: 'heart-new' });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/story/heart-moments/new']}>
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/story/heart-moments/new', state: entryState },
+        ]}
+      >
         <Routes>
           <Route
             path="/story/heart-moments/new"
@@ -674,4 +682,65 @@ describe('Heart Moment view receipt', () => {
     // MUST NOT EMIT
     expect(recordStoryViewMock).not.toHaveBeenCalled();
   });
+});
+
+describe('Completed Plan handoff to HeartMoment', () => {
+  it.each(['PRIVATE', 'SHARED'] as const)(
+    'retains the source Place with %s privacy',
+    async (visibility) => {
+      const place = {
+        id: 'place-1',
+        name: 'Bostalsee',
+        address: 'Am See',
+        latitude: 49.56,
+        longitude: 7.07,
+      } as PlaceDetail;
+      vi.spyOn(PlansApi.prototype, 'getPlan').mockResolvedValue({
+        id: 'plan-1',
+        spaceId: 'space-1',
+        status: 'COMPLETED',
+        title: 'Our day',
+        description: 'Quiet by the water',
+        experiencedOn: new Date('2026-11-08T00:00:00Z'),
+        placeId: place.id,
+        capabilities: { canEdit: true },
+      } as PlanDetail);
+      vi.spyOn(PlacesApi.prototype, 'getPlace').mockResolvedValue(place);
+      const create = renderCreate({
+        sourcePlan: {
+          id: 'plan-1',
+          spaceId: 'space-1',
+          accountId: 'account-1',
+          instance: 'https://example.test',
+        },
+      });
+      const user = userEvent.setup();
+      await screen.findByRole('button', { name: place.name });
+      if (visibility === 'PRIVATE')
+        await user.click(
+          screen.getByRole('radio', {
+            name: storyProducts.heartMomentProduct.visibilityPrivate,
+          }),
+        );
+      await user.click(
+        screen.getByRole('button', {
+          name: storyProducts.heartMomentProduct.save,
+        }),
+      );
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      const payload = create.mock.calls[0][0].heartMomentCreate;
+      expect(payload.visibility).toBe(visibility);
+      expect(payload.text).toBe('Quiet by the water');
+      expect(payload.happenedOn).toEqual(new Date('2026-11-08T00:00:00Z'));
+      if (visibility === 'PRIVATE') {
+        expect(payload.location).toEqual({
+          name: place.name,
+          address: place.address,
+          latitude: place.latitude,
+          longitude: place.longitude,
+        });
+        expect(payload.placeId).toBeUndefined();
+      } else expect(payload.placeId).toBe(place.id);
+    },
+  );
 });

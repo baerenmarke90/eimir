@@ -1,5 +1,8 @@
 .plan-story-continuation {
   align-content: start;
+  min-inline-size: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
 }
 
 .plan-story-actions {
@@ -10,6 +13,9 @@
 
 .plan-story-actions > button {
   width: 100%;
+  min-inline-size: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   min-height: 48px;
 }
 

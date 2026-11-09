@@ -9,6 +9,9 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { PlacesApi } from '../api/generated/apis/PlacesApi';
+import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import { i18n } from '../i18n';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
@@ -597,5 +600,77 @@ describe('Confirmed Plan handoff to Memory capture', () => {
     ).toBe('My own words');
     expect(titleInput().value).toBe('');
     expect(fixture.create).not.toHaveBeenCalled();
+  });
+  it('carries the canonical Place and never restores a deliberately removed selection', async () => {
+    const place = {
+      id: 'place-1',
+      name: 'Bostalsee',
+      address: 'Am See',
+      latitude: 49.56,
+      longitude: 7.07,
+    } as PlaceDetail;
+    vi.spyOn(PlansApi.prototype, 'getPlan').mockResolvedValue({
+      ...source,
+      placeId: place.id,
+    });
+    const read = vi
+      .spyOn(PlacesApi.prototype, 'getPlace')
+      .mockResolvedValue(place);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <Harness client={client} entryState={entryState} onSaved={vi.fn()} />,
+    );
+    await screen.findByText(place.name);
+    expect(screen.getByText(place.address!)).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('experiences.removePlace', { name: place.name }),
+      }),
+    );
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['plan-capture-place'] });
+    });
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(place.name)).toBeNull();
+  });
+  it('saves the source Place through the normal Memory create command', async () => {
+    const place = {
+      id: 'place-1',
+      name: 'Bostalsee',
+      address: 'Am See',
+      latitude: 49.56,
+      longitude: 7.07,
+    } as PlaceDetail;
+    vi.spyOn(PlansApi.prototype, 'getPlan').mockResolvedValue({
+      ...source,
+      placeId: place.id,
+    });
+    vi.spyOn(PlacesApi.prototype, 'getPlace').mockResolvedValue(place);
+    fixture.create.mockResolvedValue(confirmed);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <Harness
+        client={client}
+        entryState={entryState}
+        onSaved={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+    await screen.findByText(place.name);
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', { name: de.memory.save })
+          .hasAttribute('disabled'),
+      ).toBe(false),
+    );
+    submit();
+    await waitFor(() => expect(fixture.create).toHaveBeenCalled());
+    expect(fixture.create.mock.calls[0][0].memoryCreate.placeIds).toEqual([
+      place.id,
+    ]);
   });
 });

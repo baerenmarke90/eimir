@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
@@ -9,10 +9,8 @@ import {
   useState,
 } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { PlansApi } from '../api/generated/apis/PlansApi';
 import type { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
-import { Configuration } from '../client/apiConfiguration';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
@@ -48,6 +46,7 @@ import {
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
@@ -181,55 +180,19 @@ export function MemoryCreatePage({
     () => createReferenceApis(apiBaseUrl, accessToken),
     [apiBaseUrl, accessToken],
   );
-  const sourceCandidate = (
-    location.state as {
-      sourcePlan?: {
-        id?: unknown;
-        spaceId?: unknown;
-        accountId?: unknown;
-        instance?: unknown;
-      };
-    } | null
-  )?.sourcePlan;
-  const sourcePlanId =
-    sourceCandidate?.spaceId === spaceId &&
-    sourceCandidate.accountId === accountId &&
-    sourceCandidate.instance === apiBaseUrl &&
-    typeof sourceCandidate.id === 'string'
-      ? sourceCandidate.id
-      : null;
-  const plansApi = useMemo(
-    () =>
-      new PlansApi(
-        new Configuration({
-          basePath: apiBaseUrl,
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }),
-      ),
-    [apiBaseUrl, accessToken],
-  );
-  const sourcePlan = useQuery({
-    queryKey: [
-      'memory-source-plan',
-      apiBaseUrl,
-      accountId,
-      spaceId,
-      sourcePlanId,
-    ],
-    enabled: Boolean(sourcePlanId),
-    retry: false,
-    queryFn: async ({ signal }) => {
-      if (!sourcePlanId) throw new Error('No source Plan selected.');
-      try {
-        return await plansApi.getPlan(
-          { spaceId, planId: sourcePlanId },
-          { signal },
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
+  const {
+    sourcePlanId,
+    sourcePlan,
+    sourcePlace,
+    loading: sourceLoading,
+  } = usePlanCaptureSource({
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId,
   });
+  const sourcePlaceApplied = useRef(false);
+  const placeManuallyChanged = useRef(false);
   const sourceApplied = useRef(false);
   const attachments = useAttachmentDrafts({
     apis,
@@ -452,6 +415,21 @@ export function MemoryCreatePage({
     requestTaskClose();
   }
 
+  useEffect(() => {
+    if (
+      !sourcePlace.data ||
+      sourcePlaceApplied.current ||
+      placeManuallyChanged.current ||
+      diaryDraft.status === 'loading' ||
+      diaryDraft.recovery ||
+      recoveredDraft.current ||
+      pending
+    )
+      return;
+    sourcePlaceApplied.current = true;
+    setPlaces([sourcePlace.data]);
+  }, [sourcePlace.data, diaryDraft.status, diaryDraft.recovery, pending]);
+
   async function openResult(memory: MemoryDetail, photosUnconfirmed = false) {
     if (!owner.current.active || exitAction.current) return;
     owner.current.pending = true;
@@ -573,6 +551,7 @@ export function MemoryCreatePage({
   }
 
   async function save() {
+    if (sourceLoading) return;
     if (
       !hasUserContent ||
       diaryDraft.recovery ||
@@ -806,6 +785,7 @@ export function MemoryCreatePage({
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (sourceLoading) return;
     void save();
   }
   const narrativeField = (
@@ -870,6 +850,15 @@ export function MemoryCreatePage({
         <h2 id="memory-form-heading" className="sr-only">
           {t('memory.formAria')}
         </h2>
+        {sourceLoading ? (
+          <p role="status">{t('m5s3.planStory.loadingSource')}</p>
+        ) : null}
+        {sourcePlace.error ? (
+          <ProblemState
+            error={sourcePlace.error}
+            onRetry={() => void sourcePlace.refetch()}
+          />
+        ) : null}
         {sourcePlanId && sourcePlan.error ? (
           <ProblemState
             error={sourcePlan.error}
@@ -1032,7 +1021,10 @@ export function MemoryCreatePage({
               accountId={accountId}
               spaceId={spaceId}
               value={places}
-              onChange={setPlaces}
+              onChange={(next) => {
+                placeManuallyChanged.current = true;
+                setPlaces(next);
+              }}
               disabled={
                 pending ||
                 uncertain ||
@@ -1098,6 +1090,7 @@ export function MemoryCreatePage({
                 diaryDraft.status === 'conflict' ||
                 pending ||
                 uncertain ||
+                sourceLoading ||
                 placePending ||
                 attachments.hasPending ||
                 hasBlockingPhotoFailure

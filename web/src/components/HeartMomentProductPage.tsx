@@ -7,6 +7,7 @@ import {
 import {
   type FormEvent,
   type Ref,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -66,6 +67,7 @@ import { useHeartVoiceDraft } from '../client/useHeartVoiceDraft';
 import { useOrderedPhotoDrafts } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -202,6 +204,22 @@ export function HeartMomentProductPage({
   ] as const;
   const [createContentError, setCreateContentError] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
+  const [createText, setCreateText] = useState('');
+  const [createDate, setCreateDate] = useState(localDateInputValue);
+  const sourceContentApplied = useRef(false);
+  const sourcePlaceApplied = useRef(false);
+  const placeManuallyChanged = useRef(false);
+  const {
+    sourcePlan,
+    sourcePlace,
+    loading: sourceLoading,
+  } = usePlanCaptureSource({
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId: currentAccountId,
+    enabled: mode === 'create',
+  });
   const [createPlace, setCreatePlace] = useState<MomentPlaceSelection>();
   const [placePending, setPlacePending] = useState(false);
   const [createLocation, setCreateLocation] =
@@ -214,6 +232,34 @@ export function HeartMomentProductPage({
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
+  useEffect(() => {
+    const source = sourcePlan.data;
+    if (
+      mode !== 'create' ||
+      !source ||
+      source.status !== 'COMPLETED' ||
+      !source.capabilities.canEdit ||
+      source.spaceId !== spaceId ||
+      sourceContentApplied.current ||
+      formDirty
+    )
+      return;
+    sourceContentApplied.current = true;
+    setCreateText(source.description || source.title);
+    if (source.experiencedOn)
+      setCreateDate(dateInputValue(source.experiencedOn));
+  }, [mode, sourcePlan.data, spaceId, formDirty]);
+  useEffect(() => {
+    if (
+      mode !== 'create' ||
+      !sourcePlace.data ||
+      sourcePlaceApplied.current ||
+      placeManuallyChanged.current
+    )
+      return;
+    sourcePlaceApplied.current = true;
+    setCreatePlace(sourcePlace.data);
+  }, [mode, sourcePlace.data]);
   const createAttemptRef =
     useRef<CreateRequestAttempt<HeartMomentCreateSnapshot> | null>(null);
   const voice = useHeartVoiceDraft({
@@ -620,6 +666,7 @@ export function HeartMomentProductPage({
         attachments.hasPending ||
         attachments.items.some((item) => item.status === 'failed') ||
         placePending ||
+        sourceLoading ||
         createMutation.isPending
       )
         return;
@@ -694,6 +741,21 @@ export function HeartMomentProductPage({
             onKeep={editorLifecycle.keepEditing}
             onDiscard={() => editorLifecycle.closeConfirmed()}
           />
+          {sourceLoading ? (
+            <p role="status">{t('m5s3.planStory.loadingSource')}</p>
+          ) : null}
+          {sourcePlan.error ? (
+            <ProblemState
+              error={sourcePlan.error}
+              onRetry={() => void sourcePlan.refetch()}
+            />
+          ) : null}
+          {sourcePlace.error ? (
+            <ProblemState
+              error={sourcePlace.error}
+              onRetry={() => void sourcePlace.refetch()}
+            />
+          ) : null}
           <form
             onChange={() => setFormDirty(true)}
             onSubmit={submitCreate}
@@ -704,7 +766,8 @@ export function HeartMomentProductPage({
               name="happenedOn"
               label={t('heartMomentProduct.happenedOnLabel')}
               required
-              defaultValue={localDateInputValue()}
+              value={createDate}
+              onChange={(event) => setCreateDate(event.target.value)}
               openPickerOnClick
               fieldClassName="heart-moment-create-field heart-moment-create-date"
             />
@@ -738,6 +801,8 @@ export function HeartMomentProductPage({
               <textarea
                 id="heart-moment-text"
                 name="text"
+                value={createText}
+                onChange={(event) => setCreateText(event.target.value)}
                 rows={4}
                 maxLength={4000}
                 placeholder={t('heartMomentProduct.textPlaceholder')}
@@ -755,6 +820,7 @@ export function HeartMomentProductPage({
                 value={createLocation ?? createPlace}
                 privateAudience={createVisibility === ContentVisibility.PRIVATE}
                 onChange={(next) => {
+                  placeManuallyChanged.current = true;
                   setCreateLocation(next);
                   setCreatePlace(undefined);
                   setFormDirty(true);
@@ -769,7 +835,11 @@ export function HeartMomentProductPage({
                 accountId={currentAccountId}
                 spaceId={spaceId}
                 value={createPlace}
-                onChange={setCreatePlace}
+                onChange={(next) => {
+                  placeManuallyChanged.current = true;
+                  setCreatePlace(next);
+                  setFormDirty(true);
+                }}
                 disabled={createMutation.isPending}
                 onPendingChange={setPlacePending}
               />
@@ -835,6 +905,7 @@ export function HeartMomentProductPage({
                 type="submit"
                 disabled={
                   createMutation.isPending ||
+                  sourceLoading ||
                   placePending ||
                   voice.hasPending ||
                   voice.hasFailed ||

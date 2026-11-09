@@ -14,6 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, ContentVisibility
+from eimir.collections import service as collection_service
+from eimir.collections.models import Collection
 from eimir.core.clock import now
 from eimir.heart_moments import service as heart_moment_service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
@@ -23,9 +25,13 @@ from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
 from eimir.places import service as place_service
 from eimir.places.models import Place
+from eimir.plans import service as plan_service
+from eimir.plans.models import Plan
 from eimir.private_notes import service as private_note_service
 from eimir.profiles import service as profile_service
 from eimir.profiles.models import PartnerProfile
+from eimir.relations import service as relation_service
+from eimir.relations.models import PlanCollection
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders.runtime_models import RulePreference
@@ -309,6 +315,19 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
         longitude=None,
     )
 
+    plan = plan_service.create_plan(
+        session, source_authorization, title="Portable trip", description=None, place_id=place.id
+    )
+    collection = collection_service.create_collection(
+        session, source_authorization, title="Portable packing"
+    )
+    collection_service.create_item(
+        session, source_authorization, collection.id, title="Camera", completed=True
+    )
+    relation_service.link(
+        session, source_authorization, plan.id, collection.id, relation_service.PLAN_COLLECTIONS
+    )
+
     with service.build_export_archive(
         session, source_authorization, TransferScope.SHARED
     ) as bundle:
@@ -354,6 +373,20 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     assert imported_place.payload.name == "Portable place"
     assert imported_memory.payload.tags == ["home", "Our first summer"]
     assert imported_heart.payload.tags == ["everyday", "Our tradition"]
+
+    imported_plan = session.scalars(select(Plan).where(Plan.space_id == target_space.id)).one()
+    imported_collection = session.scalars(
+        select(Collection).where(Collection.space_id == target_space.id)
+    ).one()
+    imported_link = session.scalars(
+        select(PlanCollection).where(PlanCollection.space_id == target_space.id)
+    ).one()
+    assert imported_plan.place_id == imported_place.id
+    assert imported_plan.id != plan.id
+    assert imported_collection.id != collection.id
+    assert imported_link.plan_id == imported_plan.id
+    assert imported_link.collection_id == imported_collection.id
+    assert collection_service.list_items(session, imported_collection)[0].completed is True
 
 
 def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session) -> None:

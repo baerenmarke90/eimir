@@ -679,7 +679,9 @@
       "chapterCreating": "Creating chapter …",
       "chapterCreateAndLink": "Create chapter and add",
       "chapterRetryLink": "Try linking again",
-      "chapterSkip": "Finish without a chapter"
+      "chapterSkip": "Finish without a chapter",
+      "heartMomentAction": "Capture a heart moment",
+      "loadingSource": "Loading the Plan and its place …"
     },
     "map": {
       "open": "Choose a place on the map",
@@ -861,7 +863,21 @@
       "reorderItem": "Move “{{title}}”. Drag or use the arrow keys to reorder.",
       "deleteItem": "Delete “{{title}}”",
       "reordering": "Saving order …",
-      "deleteConsequence": "The list and its own entries will be deleted. Other eimir. content will not be deleted."
+      "deleteConsequence": "The list and its own entries will be deleted. Other eimir. content will not be deleted.",
+      "scopeLabel": "Filter lists",
+      "scope": {
+        "OPEN": "Open",
+        "COMPLETED": "Completed",
+        "ALL": "All"
+      },
+      "emptyScope": "No lists in this selection.",
+      "planHeading": "Shared lists",
+      "planEmpty": "Link a list that belongs with this Plan.",
+      "choose": "Link lists",
+      "link": "Link selection",
+      "unlink": "Remove the link to “{{title}}”",
+      "noChoices": "All existing lists are already linked.",
+      "createNew": "Create a new list"
     }
   },
   "m5s5": {

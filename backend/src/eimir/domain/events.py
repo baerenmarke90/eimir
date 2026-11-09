@@ -104,6 +104,8 @@ class EventType(StrEnum):
     PRIVATE_COLLECTION_REORDERED = "PRIVATE_COLLECTION_REORDERED"
     PLAN_CREATED = "PLAN_CREATED"
     PLAN_UPDATED = "PLAN_UPDATED"
+    PLAN_COLLECTION_LINKED = "PLAN_COLLECTION_LINKED"
+    PLAN_COLLECTION_UNLINKED = "PLAN_COLLECTION_UNLINKED"
     PLAN_DELETED = "PLAN_DELETED"
     PLAN_COMPLETED = "PLAN_COMPLETED"
     WISH_COMPLETED = "WISH_COMPLETED"
@@ -132,7 +134,9 @@ class PublicEventPayload(BaseModel):
     visibility: ContentVisibility | None = None
     experience_kind: ExperienceKind | None = None
 
-    target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH"] | None = None
+    target_type: (
+        Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH", "COLLECTION"] | None
+    ) = None
     target_id: UUID | None = None
     recipient_id: UUID | None = None
     occurrence_id: UUID | None = None

@@ -38,6 +38,7 @@ from eimir.authorization import (
     require_writable_locked,
 )
 from eimir.chapters.models import Chapter
+from eimir.collections.models import Collection
 from eimir.core.errors import DomainError, NotFoundError
 from eimir.db.base import Base
 from eimir.db.locks import lock_subject
@@ -57,6 +58,7 @@ from eimir.relations.models import (
     PlaceHeartMoment,
     PlaceMemory,
     PlaceMilestone,
+    PlanCollection,
 )
 from eimir.wishes.models import Wish
 
@@ -99,13 +101,27 @@ class RelationKind:
     relation: type[Base]
     parent: type[PrivateResourceMixin]
     parent_column: str
-    subject_type: Literal["place_relation", "chapter_relation", "memory_relation"]
+    subject_type: Literal["place_relation", "chapter_relation", "memory_relation", "plan_relation"]
     target: type[PrivateResourceMixin]
     target_column: str
-    event_target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH"]
+    event_target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH", "COLLECTION"]
     linked_event: EventType
     unlinked_event: EventType
     shared_target_only: bool = False
+
+
+PLAN_COLLECTIONS = RelationKind(
+    slug="collections",
+    relation=PlanCollection,
+    parent=Plan,
+    parent_column="plan_id",
+    subject_type="plan_relation",
+    target=Collection,
+    target_column="collection_id",
+    event_target_type="COLLECTION",
+    linked_event=EventType.PLAN_COLLECTION_LINKED,
+    unlinked_event=EventType.PLAN_COLLECTION_UNLINKED,
+)
 
 
 MEMORY_PLANS = RelationKind(

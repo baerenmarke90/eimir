@@ -63,6 +63,7 @@ import { PlanPhotoGallery } from './PlanPhotoGallery';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
+import { PlanCollectionLinks } from './PlanCollectionLinks';
 import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
@@ -793,6 +794,13 @@ export function PlanProductPage({
 
         {!isEditing ? (
           <div className="planen-detail-context">
+            <PlanCollectionLinks
+              key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+              apis={apis}
+              spaceId={spaceId}
+              plan={plan}
+              disabled={writesPending || !online}
+            />
             <PlanWishLink
               key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
               apis={apis}

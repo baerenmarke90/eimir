@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
@@ -39,6 +40,12 @@ COLLECTION_ITEM_TITLE_REQUIRED = "COLLECTION_ITEM_TITLE_REQUIRED"
 COLLECTION_ITEM_NOT_FOUND = "COLLECTION_ITEM_NOT_FOUND"
 COLLECTION_ORDER_INVALID = "COLLECTION_ORDER_INVALID"
 COLLECTION_ORDER_CONFLICT = "COLLECTION_ORDER_CONFLICT"
+
+
+class CollectionScope(StrEnum):
+    OPEN = "OPEN"
+    COMPLETED = "COMPLETED"
+    ALL = "ALL"
 
 
 @dataclass(frozen=True)
@@ -221,8 +228,11 @@ def delete_collection(
     _flush(session)
 
 
-def _cursor_binding(context: AuthorizationContext) -> dict[str, Any]:
-    return {"collection": "collections", "spaceId": str(context.space_id)}
+def _cursor_binding(context: AuthorizationContext, scope: CollectionScope) -> dict[str, Any]:
+    binding = {"collection": "collections", "spaceId": str(context.space_id)}
+    if scope != CollectionScope.ALL:
+        binding["scope"] = scope.value
+    return binding
 
 
 def _encode_cursor(
@@ -230,9 +240,10 @@ def _encode_cursor(
     context: AuthorizationContext,
     created_at: datetime,
     collection_id: UUID,
+    scope: CollectionScope,
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context),
+        binding=_cursor_binding(context, scope),
         position={
             "createdAt": created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(collection_id),
@@ -240,8 +251,10 @@ def _encode_cursor(
     )
 
 
-def _decode_cursor(token: str, *, context: AuthorizationContext) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(context))
+def _decode_cursor(
+    token: str, *, context: AuthorizationContext, scope: CollectionScope
+) -> tuple[datetime, UUID]:
+    position = cursor_codec.decode(token, binding=_cursor_binding(context, scope))
     created_raw = position.get("createdAt")
     collection_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(collection_raw, str):
@@ -262,10 +275,25 @@ def list_collections(
     *,
     cursor: str | None,
     limit: int,
+    scope: CollectionScope = CollectionScope.ALL,
 ) -> CollectionPageResult:
     statement = readable(Collection, context)
+    if scope != CollectionScope.ALL:
+        has_items = (
+            select(CollectionItem.id).where(CollectionItem.collection_id == Collection.id).exists()
+        )
+        has_unchecked = (
+            select(CollectionItem.id)
+            .where(
+                CollectionItem.collection_id == Collection.id,
+                CollectionItem.completed.is_(False),
+            )
+            .exists()
+        )
+        completed = and_(has_items, ~has_unchecked)
+        statement = statement.where(completed if scope == CollectionScope.COMPLETED else ~completed)
     if cursor is not None:
-        created_at, collection_id = _decode_cursor(cursor, context=context)
+        created_at, collection_id = _decode_cursor(cursor, context=context, scope=scope)
         statement = statement.where(
             or_(
                 Collection.created_at < created_at,
@@ -286,6 +314,7 @@ def list_collections(
             context=context,
             created_at=last.created_at,
             collection_id=last.id,
+            scope=scope,
         )
     return CollectionPageResult(items=items, next_cursor=next_cursor, has_more=has_more)
 

@@ -1,10 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import {
+  authorSummaryQueryKeys,
+  invalidateCollectionConsumers,
+} from '../client/authorSummaryConsumers';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
@@ -18,10 +22,7 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
-import {
-  captureAuthorizedQuery,
-  captureQueryIdentity,
-} from '../client/queryIdentity';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
 import {
   planningIfMatch,
@@ -78,6 +79,16 @@ function CollectionProductDetail({
   const { t } = useTranslation();
   const { collectionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { resolveOrigin, requestReturn } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const origin = resolveOrigin(originKey);
+  const rawScope = origin
+    ? new URL(origin.to, 'https://eimir.invalid').searchParams.get('scope')
+    : null;
+  const overviewScope =
+    rawScope === 'COMPLETED' || rawScope === 'ALL' ? rawScope : 'OPEN';
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -152,10 +163,7 @@ function CollectionProductDetail({
   const commitCollection = async (collection: CollectionDetail) => {
     queryClient.setQueryData(key, collection);
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-        refetchType: isClientOnline() ? 'active' : 'none',
-      }),
+      invalidateCollectionConsumers(queryClient, spaceId),
       queryClient.invalidateQueries({
         queryKey: key,
         refetchType: isClientOnline() ? 'active' : 'none',
@@ -209,9 +217,7 @@ function CollectionProductDetail({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-      });
+      await invalidateCollectionConsumers(queryClient, spaceId);
     },
   });
 
@@ -251,14 +257,20 @@ function CollectionProductDetail({
         { title, completed },
       ),
     onError: (_error, _variables, context) => context?.rollback(),
-    onSuccess: async (updatedItem, _variables, context) => {
+    onSuccess: async (updatedItem, variables, context) => {
       if (!context?.isCurrentQuery()) return;
       context.confirm(updatedItem);
-      await queryClient.invalidateQueries({
-        queryKey: context.key,
-        exact: true,
-        refetchType: isClientOnline() ? 'active' : 'none',
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: context.key,
+          exact: true,
+          refetchType: isClientOnline() ? 'active' : 'none',
+        }),
+        invalidateCollectionConsumers(
+          queryClient,
+          variables.collection.spaceId,
+        ),
+      ]);
     },
     onSettled: () => {
       itemUpdateInFlightRef.current = false;
@@ -323,9 +335,7 @@ function CollectionProductDetail({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-      });
+      await invalidateCollectionConsumers(queryClient, spaceId);
     },
   });
 
@@ -348,15 +358,13 @@ function CollectionProductDetail({
         collection.spaceId,
         collection.id,
       );
-      const listKey = authorSummaryQueryKeys.collections(collection.spaceId);
-      const isCurrentList = captureQueryIdentity(queryClient, listKey);
       const order = await captureCollectionOrder<CollectionDetail>(
         queryClient,
         key,
         collection.version,
         itemIds,
       );
-      return { ...order, listKey, isCurrentList };
+      return order;
     },
     onError: async (error, _variables, context) => {
       if (!context?.isCurrentQuery()) return;
@@ -378,13 +386,7 @@ function CollectionProductDetail({
           exact: true,
           refetchType: isClientOnline() ? 'active' : 'none',
         }),
-        context.isCurrentList()
-          ? queryClient.invalidateQueries({
-              queryKey: context.listKey,
-              exact: true,
-              refetchType: isClientOnline() ? 'active' : 'none',
-            })
-          : Promise.resolve(),
+        invalidateCollectionConsumers(queryClient, spaceId),
       ]);
     },
     onSettled: (_data, _error, variables) => {
@@ -450,7 +452,7 @@ function CollectionProductDetail({
     onMutate: (collection) => ({
       focusTarget: deleteFocusTargetFromInfiniteData(
         queryClient.getQueryData<InfiniteItemsData<CollectionDetail>>(
-          authorSummaryQueryKeys.collections(spaceId),
+          authorSummaryQueryKeys.collectionOverview(spaceId, overviewScope),
         ),
         collection.id,
       ),
@@ -458,17 +460,20 @@ function CollectionProductDetail({
     onSuccess: async (_result, _collection, context) => {
       queryClient.removeQueries({ queryKey: key });
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['m5-s3', 'collections', spaceId],
-        }),
+        invalidateCollectionConsumers(queryClient, spaceId),
         queryClient.invalidateQueries({
           queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
         }),
       ]);
-      navigate(MORE_COLLECTIONS_ROUTE, {
+      if (origin && !origin.to.startsWith(MORE_COLLECTIONS_ROUTE)) {
+        requestReturn(originKey, MORE_COLLECTIONS_ROUTE);
+        return;
+      }
+      navigate(origin?.to ?? MORE_COLLECTIONS_ROUTE, {
         replace: true,
         state: {
           [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
+          taskReturnKey: originKey,
         },
       });
     },

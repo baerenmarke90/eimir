@@ -1051,6 +1051,21 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="GIFT_IDEA_NOT_FOUND",
         placeholders=("giftIdeaId",),
     ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/plans"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/plans", body=PLAN),
     Endpoint(

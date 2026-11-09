@@ -49,6 +49,11 @@ import {
     CollectionPageToJSON,
 } from '../models/CollectionPage';
 import {
+    type CollectionScope,
+    CollectionScopeFromJSON,
+    CollectionScopeToJSON,
+} from '../models/CollectionScope';
+import {
     type CollectionUpdate,
     CollectionUpdateFromJSON,
     CollectionUpdateToJSON,
@@ -92,6 +97,7 @@ export interface ListCollectionsRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+    scope?: CollectionScope;
 }
 
 export interface ReorderCollectionItemsRequest {
@@ -445,6 +451,10 @@ export class CollectionsApi extends runtime.BaseAPI {
 
         if (requestParameters['limit'] != null) {
             queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['scope'] != null) {
+            queryParameters['scope'] = requestParameters['scope'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

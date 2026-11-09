@@ -932,6 +932,18 @@
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/PlanningCreatePage.tsx"
       ]
+    },
+    "plan-linked-lists.spec.ts": {
+      "roots": [
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/PlanCollectionLinks.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx",
+        "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/PlanStoryContinuation.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx"
+      ]
     }
   }
 }

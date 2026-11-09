@@ -70,7 +70,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "milestones.json": ("milestones",),
     "comments.json": ("comments",),
     "wishes.json": ("wishes",),
-    "plans.json": ("plans", "plan_attachments"),
+    "plans.json": ("plans", "plan_attachments", "plan_collections"),
     "places.json": (
         "places",
         "place_memories",
@@ -108,6 +108,7 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
     "recap_sources": ("edition_id", "recap_editions"),
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
+    "plan_collections": (("plan_id", "plans"), ("collection_id", "collections")),
     "memory_plans": (("memory_id", "memories"), ("plan_id", "plans")),
     "memory_wishes": (("memory_id", "memories"), ("wish_id", "wishes")),
     "place_memories": (("place_id", "places"), ("memory_id", "memories")),
@@ -152,6 +153,7 @@ INSERT_ORDER = (
     "recap_reflections",
     "memory_plans",
     "memory_wishes",
+    "plan_collections",
     "place_memories",
     "place_milestones",
     "place_heart_moments",

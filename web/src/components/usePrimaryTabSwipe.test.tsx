@@ -129,6 +129,7 @@ describe('primary tab swipe ownership', () => {
       <Harness pathname="/story" routeKey="first" onNavigate={navigate} />,
     );
     const surface = screen.getByTestId('surface');
+    surface.style.setProperty('--duration-transition', '.18s');
     Object.defineProperty(surface, 'animate', {
       configurable: true,
       value: animate,

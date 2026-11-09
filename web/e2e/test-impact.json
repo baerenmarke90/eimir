@@ -944,6 +944,14 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx"
       ]
+    },
+    "map-place-stacks.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/MemoryMapMemories.tsx",
+        "web/src/components/PlaceMapCanvas.tsx",
+        "web/src/components/MemoryProductPage.tsx"
+      ]
     }
   }
 }

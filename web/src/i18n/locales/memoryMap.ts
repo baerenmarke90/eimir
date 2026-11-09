@@ -21,4 +21,8 @@ export default {
   allPlaces: 'Alle Orte ansehen',
   filter: 'Orte filtern',
   untitled: 'Erinnerung',
+  previousMemory: 'Vorherige Erinnerung',
+  nextMemory: 'Nächste Erinnerung',
+  position: '{{position}} / {{count}}',
+  memoriesAtPlace: 'Erinnerungen an {{name}}',
 };

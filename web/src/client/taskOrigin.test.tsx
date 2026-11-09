@@ -58,6 +58,26 @@ afterEach(() => {
 });
 
 describe('task origin privacy and lifetime', () => {
+  it('retains map source/camera context only inside the scoped in-memory origin', async () => {
+    const view = render(<Harness />);
+    await act(async () => navigate('/story/map?place=49%3A7'));
+    const context = {
+      placeId: '49:7',
+      memoryId: 'map-source',
+      viewport: { latitude: 49.1, longitude: 7.2, zoom: 16 },
+      fullscreen: true,
+    };
+    const key = origin.captureOrigin({ memoryMap: context });
+    expect(origin.resolveOrigin(key)).toMatchObject({
+      to: '/story/map?place=49%3A7',
+      memoryMap: context,
+    });
+    expect(JSON.stringify(window.history.state)).not.toMatch(
+      /map-source|latitude|longitude|fullscreen/,
+    );
+    view.rerender(<Harness account="account-b" />);
+    expect(origin.resolveOrigin(key)).toBeNull();
+  });
   it('restores the upstream context after a nested task replaces itself with its result', async () => {
     window.history.replaceState(
       { idx: 0, key: 'planning', usr: null },

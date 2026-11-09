@@ -20,6 +20,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
@@ -207,6 +208,11 @@ function setup(mode: 'edit' | 'create' = 'edit') {
 }
 
 beforeEach(() => {
+  // Keep unrelated linked-Plan reads deterministic and off the network.
+  vi.spyOn(
+    StoryPlanningRelationsApi.prototype,
+    'listHeartMomentPlans',
+  ).mockResolvedValue({ items: [] });
   revoke.mockReset().mockResolvedValue(undefined);
   onlineManager.setOnline(true);
 });
@@ -409,10 +415,10 @@ describe('HeartMoment delete response ownership', () => {
     const button = await h.confirm();
     onlineManager.setOnline(false);
     fireEvent.click(button);
-    await waitFor(() =>
-      expect(screen.getByText(de.states.offline.title)).toBeTruthy(),
-    );
-    expect(h.client.isMutating()).toBe(0);
+    await waitFor(() => {
+      expect(h.client.isMutating()).toBe(0);
+      expect(screen.getByText(de.states.offline.title)).toBeTruthy();
+    });
     await act(async () => onlineManager.setOnline(true));
     expect(h.deleteHeartMoment).not.toHaveBeenCalled();
     await userEvent

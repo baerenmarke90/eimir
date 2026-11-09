@@ -6,8 +6,10 @@ import android.Manifest;
 import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.NotificationChannel;
 import android.app.job.JobInfo;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -22,6 +24,7 @@ import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.Until;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.Plugin;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,15 +35,19 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import org.json.JSONObject;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 /** Actual selected-file staging, revoked ownership and OS background transport. */
@@ -52,6 +59,11 @@ public class BackgroundMediaTransfersTest {
     private String instance = "https://media-fixture.eimir.invalid";
     private File selected;
     private SelectedMediaProvider.Owner owner;
+
+    @Before public void grantNotifications() {
+        if (Build.VERSION.SDK_INT >= 33) InstrumentationRegistry.getInstrumentation().getUiAutomation()
+            .grantRuntimePermission(context.getPackageName(), Manifest.permission.POST_NOTIFICATIONS);
+    }
 
     private void session(String accountId) throws Exception {
         JSONObject snapshot = new JSONObject().put("account", new JSONObject().put("id", accountId).put("locale", "en"))
@@ -146,10 +158,6 @@ public class BackgroundMediaTransfersTest {
         catch (java.io.FileNotFoundException expected) { /* No credential or record remains. */ }
     }
     @Test public void nativeUploadContinuesWithProgressWhileActivityIsInBackground() throws Exception {
-        if (Build.VERSION.SDK_INT >= 33) {
-            InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(
-                context.getPackageName(), Manifest.permission.POST_NOTIFICATIONS);
-        }
         try (TransferServer server = new TransferServer(); ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(LauncherActivity.class)) {
             instance = "http://127.0.0.1:" + server.socket.getLocalPort();
             session(account);
@@ -188,11 +196,113 @@ public class BackgroundMediaTransfersTest {
                 + ", lastMethod=" + server.lastMethod + ", state=" + transferState(), finished);
             if (server.error.get() != null) throw new AssertionError(server.error.get());
             await(() -> { try { return !BackgroundMediaTransfers.source(context, id).exists(); } catch (Exception failure) { return false; } }, 10_000);
+            await(() -> Arrays.stream(notifications.getActiveNotifications()).noneMatch(item ->
+                BackgroundMediaTransfers.CHANNEL.equals(item.getNotification().getChannelId())), 10_000);
             assertArrayEquals(expectedDigest, server.digest);
             assertEquals(1, server.finalizes);
             assertFalse(MainActivity.isForeground());
             device.pressBack();
         }
+    }
+    @Test public void bindingUpdatesTheOriginalAdmissionIntentAndKeepsTransfersDistinct() throws Exception {
+        session(account);
+        String name = selection(128 * 1024);
+        BackgroundMediaTransfers.Record record = stage(name);
+        Notification original = BackgroundMediaTransfers.initialNotification(context, record.jobId(), id);
+        String target = UUID.randomUUID().toString();
+        BackgroundMediaTransfers.bindTarget(context, instance, account, space, id, "MEMORY", target);
+        assertEquals(target, BackgroundMediaTransfers.read(context, id).value.getString("targetId"));
+        // A stale progress snapshot and late scheduler admission must keep the confirmed target.
+        assertEquals(original.contentIntent, BackgroundMediaTransfers.notification(context, record).contentIntent);
+        assertEquals(original.contentIntent, BackgroundMediaTransfers.initialNotification(context, record.jobId(), id).contentIntent);
+        assertEquals(target, BackgroundMediaTransfers.openTarget(context, BackgroundMediaTransfers.notificationIntent(context, record)).getString("targetId"));
+        String secondId = UUID.randomUUID().toString();
+        try {
+            BackgroundMediaTransfers.Record second = BackgroundMediaTransfers.stage(context, instance, account, space, secondId, name, selected.length(), "video/mp4");
+            BackgroundMediaTransfers.bindTarget(context, instance, account, space, secondId, "HEART_MOMENT", UUID.randomUUID().toString());
+            assertNotEquals(original.contentIntent, BackgroundMediaTransfers.notification(context, second).contentIntent);
+            assertEquals("MEMORY", BackgroundMediaTransfers.openTarget(context, BackgroundMediaTransfers.notificationIntent(context, record)).getString("targetType"));
+        } finally { BackgroundMediaTransfers.cancel(context, secondId); }
+    }
+    @Test public void coldAndWarmTapsRetainTheConfirmedTargetWithoutReplayingOnRecreation() throws Exception {
+        session(account);
+        BackgroundMediaTransfers.Record record = stage(selection(128 * 1024));
+        Notification admission = BackgroundMediaTransfers.initialNotification(context, record.jobId(), id);
+        String target = UUID.randomUUID().toString();
+        BackgroundMediaTransfers.bindTarget(context, instance, account, space, id, "MEMORY", target);
+        Intent launch = BackgroundMediaTransfers.notificationIntent(context, record)
+            .putExtra(RecordingLauncherActivity.RECORD_DISPATCH, true);
+        try (ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(launch)) {
+            AtomicReference<BackgroundMediaUploadsPlugin> plugin = new AtomicReference<>();
+            scenario.onActivity(activity -> plugin.set((BackgroundMediaUploadsPlugin) activity.getBridge().getPlugin("BackgroundMediaUploads").getInstance()));
+            assertEquals(target, retainedTarget(plugin.get()).getString("targetId"));
+            assertEquals(account, retainedTarget(plugin.get()).getString("accountId"));
+            clearRetainedTargets(plugin.get());
+            BackgroundMediaTransfers.bindTarget(context, instance, account, space, id, "HEART_MOMENT", target);
+            BackgroundMediaTransfers.initialNotification(context, record.jobId(), id);
+            admission.contentIntent.send();
+            await(() -> {
+                try { return retainedTarget(plugin.get()) != null; } catch (Exception failure) { return false; }
+            }, 5000);
+            assertEquals("HEART_MOMENT", retainedTarget(plugin.get()).getString("targetType"));
+            clearRetainedTargets(plugin.get());
+            scenario.recreate();
+            scenario.onActivity(activity -> plugin.set((BackgroundMediaUploadsPlugin) activity.getBridge().getPlugin("BackgroundMediaUploads").getInstance()));
+            assertNull(retainedTarget(plugin.get()));
+        }
+    }
+    @Test public void staleOwnershipAndNonCanonicalTargetsCannotOpen() throws Exception {
+        session(account);
+        BackgroundMediaTransfers.Record record = stage(selection(128 * 1024));
+        BackgroundMediaTransfers.bindTarget(context, instance, account, space, id, "MEMORY", UUID.randomUUID().toString());
+        Intent valid = BackgroundMediaTransfers.notificationIntent(context, record);
+        assertNotNull(BackgroundMediaTransfers.openTarget(context, valid));
+        for (Intent invalid : new Intent[] {
+            new Intent(valid).setData(Uri.parse(valid.getDataString() + "?target=/today")),
+            new Intent(valid).setAction(Intent.ACTION_MAIN),
+            new Intent(valid).putExtra("targetType", "PLAN"),
+            new Intent(valid).putExtra("targetId", "https://example.invalid/private"),
+            new Intent(valid).putExtra("spaceId", UUID.randomUUID().toString())
+        }) {
+            try { assertNull(BackgroundMediaTransfers.openTarget(context, invalid)); }
+            catch (IllegalArgumentException | java.io.IOException expected) { /* Invalid references fail closed. */ }
+        }
+        session(UUID.randomUUID().toString());
+        try { BackgroundMediaTransfers.openTarget(context, valid); fail("A stale account cannot navigate"); }
+        catch (java.io.IOException expected) { /* Current native ownership is authoritative. */ }
+    }
+    @Test public void observationRemovesAnOlderDetachedNoticeWithoutRemovingOtherChannels() throws Exception {
+        session(account);
+        BackgroundMediaTransfers.Record record = stage(selection(128 * 1024));
+        Notification stale = BackgroundMediaTransfers.notification(context, record);
+        BackgroundMediaTransfers.cancel(context, id);
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        manager.createNotificationChannel(new NotificationChannel("transfer-test-other", "Fixture", NotificationManager.IMPORTANCE_LOW));
+        manager.notify(73, new Notification.Builder(context, "transfer-test-other").setSmallIcon(R.drawable.ic_launcher_monochrome).build());
+        manager.notify(record.jobId(), stale);
+        await(() -> manager.getActiveNotifications().length == 2, 5000);
+        BackgroundMediaTransfers.records(context);
+        await(() -> manager.getActiveNotifications().length == 1, 5000);
+        assertEquals(73, manager.getActiveNotifications()[0].getId());
+    }
+    @SuppressWarnings("unchecked")
+    private Map<String, List<JSObject>> retained(Plugin plugin) throws Exception {
+        Field field = Plugin.class.getDeclaredField("retainedEventArguments");
+        field.setAccessible(true);
+        return (Map<String, List<JSObject>>) field.get(plugin);
+    }
+    private JSObject retainedTarget(Plugin plugin) throws Exception {
+        AtomicReference<JSObject> result = new AtomicReference<>();
+        Map<String, List<JSObject>> events = retained(plugin);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            List<JSObject> targets = events.get("transferOpen");
+            if (targets != null && !targets.isEmpty()) result.set(targets.get(targets.size() - 1));
+        });
+        return result.get();
+    }
+    private void clearRetainedTargets(Plugin plugin) throws Exception {
+        Map<String, List<JSObject>> events = retained(plugin);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(events::clear);
     }
     private String transferState() {
         try {

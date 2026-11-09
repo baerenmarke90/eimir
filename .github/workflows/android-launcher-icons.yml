@@ -256,7 +256,7 @@ jobs:
             -e class de.eimir.app.BackgroundMediaTransfersTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee background-media-transfers.log
-          grep -Eq '^OK \(4 tests\)' background-media-transfers.log
+          grep -Eq '^OK \(8 tests\)' background-media-transfers.log
           adb -e exec-out run-as de.eimir.app.debug cat files/native-media-upload-background.png > native-media-upload-background.png
           test -s native-media-upload-background.png
           # Voice handoff owns a separate volatile Activity/provider contract.

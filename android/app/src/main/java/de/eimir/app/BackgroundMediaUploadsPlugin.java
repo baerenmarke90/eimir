@@ -2,6 +2,7 @@ package de.eimir.app;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import com.getcapacitor.JSObject;
@@ -19,6 +20,34 @@ import java.util.concurrent.Executors;
 })
 public class BackgroundMediaUploadsPlugin extends Plugin {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+
+    @Override public void load() {
+        io.execute(() -> {
+            try { BackgroundMediaTransfers.records(getContext()); }
+            catch (Exception unavailable) { /* Existing cleanup remains retryable on observation. */ }
+        });
+        openTransfer(getActivity().getIntent());
+    }
+    @Override protected void handleOnNewIntent(Intent intent) { openTransfer(intent); }
+    private void openTransfer(Intent intent) {
+        try {
+            JSObject target = BackgroundMediaTransfers.openTarget(getContext(), intent);
+            if (target == null) return;
+            // Activity recreation must not replay a consumed tap.
+            intent.removeExtra("targetId");
+            notifyListeners("transferOpen", target, true);
+        } catch (Exception stale) { /* Unsaved, malformed and foreign-session targets stay silent. */ }
+    }
+
+    @PluginMethod public void bindTarget(PluginCall call) {
+        io.execute(() -> {
+            try {
+                BackgroundMediaTransfers.bindTarget(getContext(), call.getString("instance"), call.getString("accountId"),
+                    call.getString("spaceId"), call.getString("attachmentId"), call.getString("targetType"), call.getString("targetId"));
+                call.resolve();
+            } catch (Exception unavailable) { call.reject("Video target unavailable", "VIDEO_TRANSFER_UNAVAILABLE"); }
+        });
+    }
 
     @PluginMethod public void enqueue(PluginCall call) {
         if (Build.VERSION.SDK_INT >= 33

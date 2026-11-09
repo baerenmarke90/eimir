@@ -15,6 +15,7 @@ import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.PersistableBundle;
 import android.os.SystemClock;
+import android.net.Uri;
 import android.util.AtomicFile;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSArray;
@@ -39,6 +40,7 @@ import org.json.JSONObject;
 /** Native ownership of explicitly initiated, bounded Attachment transfers. */
 final class BackgroundMediaTransfers {
     static final String CHANNEL = "eimir-media-transfers-v1";
+    private static final String OPEN_TRANSFER = "de.eimir.app.OPEN_MEDIA_TRANSFER";
     static final int FOREGROUND_NOTIFICATION = 42001;
     static final long MAX_FILE = 250L * 1024 * 1024;
     static final long MAX_TOTAL = 500L * 1024 * 1024;
@@ -114,6 +116,14 @@ final class BackgroundMediaTransfers {
                 if (record.expired()) cancel(context, id);
                 else result.add(record);
             } catch (Exception invalid) { cancel(context, id); }
+        }
+        // Older builds detached their final progress notice after deleting staging.
+        // Reconcile only this channel; ordinary push notifications keep their owner.
+        NotificationManager notifications = context.getSystemService(NotificationManager.class);
+        for (android.service.notification.StatusBarNotification notice : notifications.getActiveNotifications()) {
+            if (CHANNEL.equals(notice.getNotification().getChannelId())
+                    && !(notice.getId() == FOREGROUND_NOTIFICATION && !result.isEmpty())
+                    && !containsJob(result, notice.getId())) notifications.cancel(notice.getTag(), notice.getId());
         }
         return result;
     }
@@ -214,6 +224,52 @@ final class BackgroundMediaTransfers {
             items.put(new JSObject().put("attachmentId", record.id()).put("phase", record.phase()).put("progress", record.progress()));
         return items;
     }
+    static synchronized void bindTarget(Context context, String instance, String account, String space,
+            String id, String targetType, String targetId) throws Exception {
+        session(context, instance, account, space); requireId(id); requireTarget(targetType, targetId);
+        // Completion can win the race with a successful parent save. It has no notice left to bind.
+        if (!file(context, id).getBaseFile().exists()) return;
+        Record record = read(context, id);
+        if (!instance.equals(record.instance()) || !account.equals(record.account()) || !space.equals(record.space()))
+            throw new IOException("Transfer ownership changed");
+        record.value.put("targetType", targetType).put("targetId", targetId);
+        save(context, record);
+        // Update the existing admission PendingIntent without posting a stale progress frame.
+        contentIntent(context, record);
+    }
+    private static void requireTarget(String type, String id) {
+        requireId(id);
+        if (!"MEMORY".equals(type) && !"HEART_MOMENT".equals(type)) throw new IllegalArgumentException();
+    }
+    static Intent notificationIntent(Context context, String id) {
+        requireId(id);
+        return new Intent(context, LauncherActivity.class).setAction(OPEN_TRANSFER)
+            .setData(Uri.parse("de.eimir.app://media-transfers/" + id))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    }
+    static synchronized Intent notificationIntent(Context context, Record progress) {
+        Record record = progress;
+        // A queued progress frame may predate the confirmed parent binding.
+        try { record = read(context, progress.id()); } catch (Exception completed) { /* Use the final owned snapshot. */ }
+        return notificationIntent(context, record.id())
+            .putExtra("instance", record.instance()).putExtra("accountId", record.account()).putExtra("spaceId", record.space())
+            .putExtra("targetType", record.value.optString("targetType")).putExtra("targetId", record.value.optString("targetId"));
+    }
+    static PendingIntent contentIntent(Context context, Record record) {
+        return PendingIntent.getActivity(context, record.jobId(), notificationIntent(context, record), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+    static JSObject openTarget(Context context, Intent intent) throws Exception {
+        if (intent == null || !OPEN_TRANSFER.equals(intent.getAction()) || intent.getData() == null) return null;
+        String id = intent.getData().getLastPathSegment();
+        requireId(id);
+        if (!notificationIntent(context, id).getData().equals(intent.getData())) return null;
+        String instance = intent.getStringExtra("instance"), account = intent.getStringExtra("accountId"), space = intent.getStringExtra("spaceId");
+        session(context, instance, account, space);
+        String type = intent.getStringExtra("targetType"), target = intent.getStringExtra("targetId");
+        requireTarget(type, target);
+        return new JSObject().put("instance", instance).put("accountId", account).put("spaceId", space)
+            .put("attachmentId", id).put("targetType", type).put("targetId", target);
+    }
     private static HttpURLConnection open(Context context, Record record, String suffix, String method) throws Exception {
         requireActive(context, record.id());
         JSONObject snapshot = session(context, record.instance(), record.account(), record.space());
@@ -294,16 +350,18 @@ final class BackgroundMediaTransfers {
             JSONObject account = session(context, record.instance(), record.account(), record.space()).getJSONObject("account");
             localized = RecipientLanguage.context(context, account.optString("languagePreference", account.optString("locale", "de")));
         } catch (Exception unavailable) { /* Generic system-language fallback contains no content. */ }
-        return notification(localized, record.jobId(), record.phase(), record.progress());
+        return notification(localized, record.phase(), record.progress(), contentIntent(context, record));
     }
-    static Notification initialNotification(Context context, int jobId) {
-        return notification(context, jobId, "uploading", 0);
+    static Notification initialNotification(Context context, int jobId, String id) {
+        // Binding may precede JobScheduler admission; never erase its updated extras.
+        Intent launch = notificationIntent(context, id);
+        PendingIntent tap = PendingIntent.getActivity(context, jobId, launch, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+        if (tap == null) tap = PendingIntent.getActivity(context, jobId, launch, PendingIntent.FLAG_IMMUTABLE);
+        return notification(context, "uploading", 0, tap);
     }
-    private static Notification notification(Context localized, int jobId, String phase, int progress) {
+    private static Notification notification(Context localized, String phase, int progress, PendingIntent tap) {
         NotificationManager manager = localized.getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel(CHANNEL, localized.getString(R.string.media_transfer_channel), NotificationManager.IMPORTANCE_LOW));
-        Intent launch = new Intent(localized, LauncherActivity.class).setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent tap = PendingIntent.getActivity(localized, jobId, launch, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(localized, CHANNEL).setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle(localized.getString(R.string.media_transfer_title))
             .setContentText(localized.getString("failed".equals(phase) ? R.string.media_transfer_failed : "processing".equals(phase) ? R.string.media_transfer_processing : R.string.media_transfer_progress, progress))

@@ -1,4 +1,8 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import {
+  Capacitor,
+  type PluginListenerHandle,
+  registerPlugin,
+} from '@capacitor/core';
 import { useSyncExternalStore } from 'react';
 import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor';
 import { isAndroidApp } from './config';
@@ -10,7 +14,22 @@ export interface VideoTransfer {
   phase: 'uploading' | 'processing' | 'failed';
   progress: number;
 }
+export type VideoTransferTarget = {
+  targetType: 'MEMORY' | 'HEART_MOMENT';
+  targetId: string;
+};
+export type VideoTransferOpen = VideoTransferTarget & {
+  instance: string;
+  accountId: string;
+  spaceId: string;
+  attachmentId: string;
+};
 interface NativeTransfers {
+  bindTarget(options: VideoTransferOpen): Promise<void>;
+  addListener(
+    event: 'transferOpen',
+    callback: (target: VideoTransferOpen) => void,
+  ): Promise<PluginListenerHandle>;
   enqueue(options: {
     instance: string;
     accountId: string;
@@ -38,12 +57,19 @@ interface NativeTransfers {
     attachmentId: string;
   }): Promise<void>;
 }
-const native = registerPlugin<NativeTransfers>('BackgroundMediaUploads');
+export const nativeVideoTransfers = registerPlugin<NativeTransfers>(
+  'BackgroundMediaUploads',
+);
+const native = nativeVideoTransfers;
 export const hasNativeVideoTransfers = () =>
   isAndroidApp() && Capacitor.isPluginAvailable('BackgroundMediaUploads');
-type Owner = { instance: string; accountId: string; spaceId: string };
+export type VideoTransferOwner = {
+  instance: string;
+  accountId: string;
+  spaceId: string;
+};
 type Transfer = VideoTransfer & {
-  owner: Owner;
+  owner: VideoTransferOwner;
   native: boolean;
   controller?: AbortController;
   run?: (signal: AbortSignal) => Promise<void>;
@@ -54,7 +80,7 @@ const listeners = new Set<() => void>();
 let revision = 0;
 let running = 0;
 let poll: ReturnType<typeof setInterval> | undefined;
-let nativeOwner: Owner | undefined;
+let nativeOwner: VideoTransferOwner | undefined;
 let polling = false;
 
 function changed() {
@@ -125,12 +151,31 @@ export function useVideoTransfer(id?: string) {
 }
 
 /** Set the authorized observation scope after login/resume; no upload is started. */
-export function observeNativeVideoTransfers(owner: Owner) {
+export function observeNativeVideoTransfers(owner: VideoTransferOwner) {
   if (!hasNativeVideoTransfers()) return;
   if (nativeOwner && JSON.stringify(nativeOwner) !== JSON.stringify(owner))
     clearBackgroundVideoTransfers();
   nativeOwner = owner;
   void readNative();
+}
+
+/** Only confirmed parent writes may update an active native notification target. */
+export async function bindVideoTransferTargets(
+  spaceId: string,
+  target: VideoTransferTarget,
+  attachmentIds: readonly string[],
+) {
+  await Promise.all(
+    attachmentIds.map(async (attachmentId) => {
+      const item = transfers.get(attachmentId);
+      if (!item?.native || item.owner.spaceId !== spaceId) return;
+      try {
+        await native.bindTarget({ ...item.owner, ...target, attachmentId });
+      } catch {
+        // Revocation/completion can race binding; a confirmed save stays successful.
+      }
+    }),
+  );
 }
 
 function pump() {

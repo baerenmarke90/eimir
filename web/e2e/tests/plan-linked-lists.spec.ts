@@ -323,6 +323,9 @@ for (const view of [
       .click();
     await expect(dialog).not.toBeVisible();
     await expect(
+      page.getByRole('button', { name: copy.collection.create, exact: true }),
+    ).toBeFocused();
+    await expect(
       page.getByRole('link', { name: /Alles fürs Picknick/ }),
     ).toBeVisible();
     await expect(

@@ -49,7 +49,9 @@ independent of capture success.
 The shared icon-action primitive now has an explicitly named unlink role. At
 narrow widths/large text, decorative list icons and chevrons recede to preserve
 readable names and progress. The completion continuation also constrains its
-Grid minimum and wraps labels at 320 px / 200% text.
+Grid minimum and wraps labels at 320 px / 200% text. Narrow continuation
+insets and the section-heading role keep complete action words readable. The
+browser journey also asserts focus returns to the add action after linking.
 
 ### Real-build evidence
 
@@ -71,7 +73,8 @@ The existing Planning completion/reference/create/search suites also passed.
 Local validation: 2,786 Web tests passed (two existing skips), 1,358 backend unit
 tests passed (21 explicitly skipped database-dependent probes), type/lint/format,
 production build, 38 browser-planner regressions, and generated API/schema checks.
-The complete five-spec Planning browser run passed 56 cases; the final eight-case
-feature run also passed after the large-text list composition correction.
+The complete five-spec Planning browser run passed 56 cases. The focused
+completion/feature run passed 28 cases; the final eight-case feature run also
+passed after refining narrow continuation typography and action insets.
 PostgreSQL HTTP/tenant, migration and transfer-roundtrip evidence is supplied by
 hosted CI; no local PostgreSQL execution is claimed.

@@ -24,3 +24,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 24rem) {
+  .plan-story-continuation {
+    padding-inline: var(--space-3);
+  }
+
+  .plan-story-actions > button {
+    padding-inline: var(--space-2);
+  }
+
+  .plan-story-continuation.plan-completed-celebration h2 {
+    font: var(--font-section-heading);
+  }
+}

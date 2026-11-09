@@ -69,6 +69,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type StoryPage,
+    StoryPageFromJSON,
+    StoryPageToJSON,
+} from '../models/StoryPage';
+import {
     type WishToPlan,
     WishToPlanFromJSON,
     WishToPlanToJSON,
@@ -126,6 +131,13 @@ export interface LinkWishToPlanRequest {
 export interface ListPlanCollectionsRequest {
     planId: string;
     spaceId: string;
+}
+
+export interface ListPlanStoryRequest {
+    planId: string;
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
 }
 
 export interface ListPlansRequest {
@@ -680,6 +692,67 @@ export class PlansApi extends runtime.BaseAPI {
      */
     async listPlanCollections(requestParameters: ListPlanCollectionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CollectionDetail>> {
         const response = await this.listPlanCollectionsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listPlanStory without sending the request
+     */
+    async listPlanStoryRequestOpts(requestParameters: ListPlanStoryRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling listPlanStory().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listPlanStory().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/story`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Plan Story
+     */
+    async listPlanStoryRaw(requestParameters: ListPlanStoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<StoryPage>> {
+        const requestOptions = await this.listPlanStoryRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => StoryPageFromJSON(jsonValue));
+    }
+
+    /**
+     * List Plan Story
+     */
+    async listPlanStory(requestParameters: ListPlanStoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StoryPage> {
+        const response = await this.listPlanStoryRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

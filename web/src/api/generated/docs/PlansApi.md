@@ -12,6 +12,7 @@ All URIs are relative to *http://localhost*
 | [**linkPlanCollection**](PlansApi.md#linkplancollection) | **PUT** /api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId} | Link Plan Collection |
 | [**linkWishToPlan**](PlansApi.md#linkwishtoplan) | **POST** /api/v1/spaces/{spaceId}/plans/{planId}/wish | Link Wish To Plan |
 | [**listPlanCollections**](PlansApi.md#listplancollections) | **GET** /api/v1/spaces/{spaceId}/plans/{planId}/collections | List Plan Collections |
+| [**listPlanStory**](PlansApi.md#listplanstory) | **GET** /api/v1/spaces/{spaceId}/plans/{planId}/story | List Plan Story |
 | [**listPlans**](PlansApi.md#listplans) | **GET** /api/v1/spaces/{spaceId}/plans | List Plans |
 | [**returnPlanToWish**](PlansApi.md#returnplantowish) | **POST** /api/v1/spaces/{spaceId}/plans/{planId}/return-to-wish | Return Plan To Wish |
 | [**schedulePlan**](PlansApi.md#scheduleplan) | **POST** /api/v1/spaces/{spaceId}/plans/{planId}/schedule | Schedule Plan |
@@ -616,6 +617,84 @@ No authorization required
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listPlanStory
+
+> StoryPage listPlanStory(planId, spaceId, cursor, limit)
+
+List Plan Story
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlansApi,
+} from '';
+import type { ListPlanStoryRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlansApi();
+
+  const body = {
+    // string
+    planId: planId_example,
+    // string
+    spaceId: spaceId_example,
+    // string (optional)
+    cursor: cursor_example,
+    // number (optional)
+    limit: 56,
+  } satisfies ListPlanStoryRequest;
+
+  try {
+    const data = await api.listPlanStory(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **planId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` |  | [Optional] [Defaults to `50`] |
+
+### Return type
+
+[**StoryPage**](StoryPage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

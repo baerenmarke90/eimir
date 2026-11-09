@@ -1,6 +1,7 @@
 import * as L from 'leaflet';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { cssDurationMilliseconds } from '../client/cssDuration';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from '../i18n';
 import './PlaceMapPicker.css';
@@ -8,6 +9,10 @@ import './PlaceMapPicker.css';
 export interface MapPoint {
   latitude: number;
   longitude: number;
+}
+
+export interface MapViewport extends MapPoint {
+  zoom: number;
 }
 
 export interface MapLocation extends MapPoint {
@@ -23,12 +28,16 @@ export default function PlaceMapCanvas({
   onSelect,
   locations,
   onLocationSelect,
+  initialViewport,
+  onViewportChange,
 }: {
   value?: MapPoint;
   focus?: MapPoint;
   onSelect?: (point: MapPoint) => void;
   locations?: readonly MapLocation[];
   onLocationSelect?: (id: string) => void;
+  initialViewport?: MapViewport;
+  onViewportChange?: (viewport: MapViewport) => void;
 }) {
   const { t } = useTranslation();
   const container = useRef<HTMLDivElement>(null);
@@ -39,8 +48,12 @@ export default function PlaceMapCanvas({
   const locationSelectRef = useRef(onLocationSelect);
   locationSelectRef.current = onLocationSelect;
   const [tileError, setTileError] = useState(false);
+  const [moving, setMoving] = useState(false);
   const tileLayer = useRef<L.TileLayer | null>(null);
   const initialPoint = useRef(value);
+  const restoredViewport = useRef(initialViewport);
+  const viewportChangeRef = useRef(onViewportChange);
+  viewportChangeRef.current = onViewportChange;
   const focusRef = useRef(focus);
   const lastFocus = useRef(focus);
   focusRef.current = focus;
@@ -51,13 +64,23 @@ export default function PlaceMapCanvas({
   const bounds = useRef<L.LatLngBounds | null>(null);
   const autoFrame = useRef(true);
   const updateFrame = useRef<(() => void) | null>(null);
+  const cameraMoving = useRef(false);
+  const finishCamera = useRef<(() => void) | null>(null);
+  const markers = useRef(
+    new Map<
+      string,
+      { marker: L.Marker; host: HTMLElement; count: HTMLElement }
+    >(),
+  );
 
   useEffect(() => {
     if (!container.current) return;
     fittedGeometry.current = '';
-    autoFrame.current = true;
-    const point = initialPoint.current;
-    const map = L.map(container.current, {
+    autoFrame.current = !restoredViewport.current;
+    const element = container.current;
+    const point =
+      restoredViewport.current ?? initialPoint.current ?? focusRef.current;
+    const map = L.map(element, {
       zoomControl: false,
       scrollWheelZoom: false,
       zoomAnimation: false,
@@ -65,7 +88,7 @@ export default function PlaceMapCanvas({
       markerZoomAnimation: false,
     }).setView(
       point ? [point.latitude, point.longitude] : [51.16, 10.45],
-      point ? 15 : 5,
+      restoredViewport.current?.zoom ?? (point ? 15 : 5),
     );
     mapRef.current = map;
     L.control
@@ -92,6 +115,7 @@ export default function PlaceMapCanvas({
       }),
     );
     let framing = false;
+    let restorePending = Boolean(restoredViewport.current);
     const frame = () => {
       // Dialog children can mount before showModal/layout. Fit only after a
       // real size exists, and refit layout changes until the user moves the map.
@@ -100,6 +124,21 @@ export default function PlaceMapCanvas({
       framing = true;
       try {
         map.invalidateSize({ animate: false, pan: false });
+        if (restorePending && restoredViewport.current) {
+          const restored = restoredViewport.current;
+          restorePending = false;
+          map.setView([restored.latitude, restored.longitude], restored.zoom, {
+            animate: false,
+          });
+          return;
+        }
+        // A selection owns its one camera transition. Presentation/resize work
+        // must not snap to the target before that transition can start or finish.
+        if (
+          cameraMoving.current ||
+          !samePoint(lastFocus.current, focusRef.current)
+        )
+          return;
         if (focusRef.current && autoFrame.current)
           map.setView(
             [focusRef.current.latitude, focusRef.current.longitude],
@@ -120,11 +159,44 @@ export default function PlaceMapCanvas({
     map.on('movestart zoomstart', () => {
       if (!framing) autoFrame.current = false;
     });
+    map.on('moveend', () => {
+      cameraMoving.current = false;
+      finishCamera.current = null;
+      setMoving(false);
+      const center = map.getCenter();
+      viewportChangeRef.current?.({
+        latitude: center.lat,
+        longitude: center.lng,
+        zoom: map.getZoom(),
+      });
+    });
+    const interrupt = () => {
+      if (!cameraMoving.current) return;
+      finishCamera.current = null;
+      map.stop();
+      cameraMoving.current = false;
+      autoFrame.current = false;
+      setMoving(false);
+    };
+    // Leaflet owns pan/pinch; direct input supersedes a pending place flight.
+    for (const event of ['pointerdown', 'wheel', 'keydown'])
+      element.addEventListener(event, interrupt, { passive: true });
+    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const motionChanged = () => {
+      if (motion?.matches) finishCamera.current?.();
+    };
+    motion?.addEventListener('change', motionChanged);
     const resize = new ResizeObserver(frame);
     resize.observe(container.current);
     return () => {
       resize.disconnect();
+      for (const event of ['pointerdown', 'wheel', 'keydown'])
+        element.removeEventListener(event, interrupt);
+      motion?.removeEventListener('change', motionChanged);
       map.remove();
+      markers.current.clear();
+      cameraMoving.current = false;
+      finishCamera.current = null;
       mapRef.current = null;
       markerRef.current = null;
       updateFrame.current = null;
@@ -150,49 +222,74 @@ export default function PlaceMapCanvas({
   // biome-ignore lint/correctness/useExhaustiveDependencies: Locale changes recreate the map and must restore its location layer.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !locations?.length) return;
-    const layer = L.layerGroup().addTo(map);
+    if (!map) return;
+    const liveIds = new Set(locations?.map(({ id }) => id));
+    for (const [id, entry] of markers.current) {
+      if (liveIds.has(id)) continue;
+      entry.marker.remove();
+      markers.current.delete(id);
+    }
     const hosts = [];
-    for (const location of locations) {
-      const content = document.createElement('span');
-      content.className = 'memory-map-marker-content';
-      const host = document.createElement('span');
-      host.className = 'memory-map-marker-photo';
-      content.append(host);
-      hosts.push({ id: location.id, host, preview: location.preview });
-      const label = document.createElement('span');
-      label.className = 'memory-map-marker-count';
-      label.textContent = String(location.count);
-      content.append(label);
-      const marker = L.marker([location.latitude, location.longitude], {
-        title: location.label,
-        alt: location.label,
-        icon: L.divIcon({
-          html: content,
-          className: 'memory-map-marker',
-          iconSize: [56, 56],
-          iconAnchor: [28, 28],
-        }),
-      })
-        .on('click', () => locationSelectRef.current?.(location.id))
-        .addTo(layer);
-      marker.getElement()?.setAttribute('aria-label', location.label);
+    for (const location of locations ?? []) {
+      let entry = markers.current.get(location.id);
+      if (!entry) {
+        const content = document.createElement('span');
+        content.className = 'memory-map-marker-content';
+        const host = document.createElement('span');
+        host.className = 'memory-map-marker-photo';
+        content.append(host);
+        const count = document.createElement('span');
+        count.className = 'memory-map-marker-count';
+        content.append(count);
+        const marker = L.marker([location.latitude, location.longitude], {
+          title: location.label,
+          alt: location.label,
+          icon: L.divIcon({
+            html: content,
+            className: 'memory-map-marker',
+            iconSize: [56, 56],
+            iconAnchor: [28, 28],
+          }),
+        })
+          .on('click', () => locationSelectRef.current?.(location.id))
+          .addTo(map);
+        entry = { marker, host, count };
+        markers.current.set(location.id, entry);
+      }
+      entry.count.textContent = String(location.count);
+      const element = entry.marker.getElement();
+      element?.setAttribute('aria-label', location.label);
+      element?.setAttribute('title', location.label);
+      hosts.push({
+        id: location.id,
+        host: entry.host,
+        preview: location.preview,
+      });
     }
     setMarkerHosts(hosts);
     const geometry = JSON.stringify(
-      locations.map(({ id, latitude, longitude }) => [id, latitude, longitude]),
+      locations?.map(({ id, latitude, longitude }) => [
+        id,
+        latitude,
+        longitude,
+      ]),
     );
     if (fittedGeometry.current !== geometry) {
-      bounds.current = L.latLngBounds(
-        locations.map((point) => [point.latitude, point.longitude]),
-      );
-      autoFrame.current = true;
-      updateFrame.current?.();
+      bounds.current = locations?.length
+        ? L.latLngBounds(
+            locations.map((point) => [point.latitude, point.longitude]),
+          )
+        : null;
+      if (
+        !focusRef.current &&
+        !lastFocus.current &&
+        !restoredViewport.current
+      ) {
+        autoFrame.current = true;
+        updateFrame.current?.();
+      }
     }
     fittedGeometry.current = geometry;
-    return () => {
-      layer.remove();
-    };
   }, [locations, t]);
 
   // An explicit Place selection owns the frame. User panning and later layout
@@ -203,17 +300,45 @@ export default function PlaceMapCanvas({
     if (!map) return;
     const wasFocused = lastFocus.current;
     lastFocus.current = focus;
-    if (focus) {
-      autoFrame.current = false;
-      map.setView([focus.latitude, focus.longitude], 15, { animate: false });
-    } else if (wasFocused && !value) {
-      autoFrame.current = true;
-      updateFrame.current?.();
+    if (samePoint(wasFocused, focus)) return;
+    if (!focus && (!wasFocused || value || !bounds.current)) return;
+    map.stop();
+    autoFrame.current = !focus;
+    const overview = bounds.current;
+    const options = { padding: [64, 64] as L.PointTuple, maxZoom: 12 };
+    const snap = () => {
+      finishCamera.current = null;
+      map.stop();
+      cameraMoving.current = false;
+      setMoving(false);
+      if (focus)
+        map.setView([focus.latitude, focus.longitude], 15, { animate: false });
+      else if (overview)
+        map.fitBounds(overview, { ...options, animate: false });
+    };
+    const duration = container.current
+      ? cssDurationMilliseconds(
+          getComputedStyle(container.current).getPropertyValue(
+            '--duration-context',
+          ),
+        ) / 1000
+      : 0;
+    const reduced = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    if (reduced || !duration || !container.current?.clientWidth) {
+      snap();
+      return;
     }
+    finishCamera.current = snap;
+    cameraMoving.current = true;
+    setMoving(true);
+    if (focus) map.flyTo([focus.latitude, focus.longitude], 15, { duration });
+    else if (overview) map.flyToBounds(overview, { ...options, duration });
   }, [focus, value, t]);
 
   return (
-    <div className="place-map-canvas">
+    <div className="place-map-canvas" data-map-moving={moving}>
       {markerHosts.map(({ id, host, preview }) =>
         createPortal(preview, host, id),
       )}
@@ -254,5 +379,11 @@ export default function PlaceMapCanvas({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function samePoint(left?: MapPoint, right?: MapPoint) {
+  return (
+    left?.latitude === right?.latitude && left?.longitude === right?.longitude
   );
 }

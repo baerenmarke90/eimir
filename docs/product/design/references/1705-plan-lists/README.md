@@ -24,13 +24,49 @@ stock imagery, gradients, automatic photo copying or altered privacy choices.
 All standalone insertion controls retain the shared blue plus-and-label pill.
 The final implementation must include behavioral and real-build visual evidence.
 
+## Product Owner correction: list actions belong in Edit
+
+Reviewed current `main` `7aca73a05d27bcbf4ac0073d2b369503d431d641`
+and the supplied Compact screenshot on 2026-11-09. The screenshot exposes an
+empty shared-lists section and its add action while reading a Plan. This violates
+the requested Edit boundary and Product Reference v1's read-first contract.
+
+Acceptance for this bounded correction:
+
+- Normal Plan detail shows existing linked lists and their live progress as
+  canonical open/return links, without add or unlink actions.
+- A confirmed empty list section is omitted from normal detail.
+- The existing Plan Edit action reveals list management inside the editor,
+  alongside the existing optional relations. Reuse the blue labeled add action,
+  alphabetical multi-picker and named unlink controls.
+- Linking/unlinking keeps its existing explicit, immediate relation operation;
+  pending writes block conflicting Plan saves and editor exit. Failed selection
+  remains retryable. Plan-field drafts are independent of picker selection.
+- Saving or cancelling the Plan editor returns to the read-only list view.
+  Permissions and offline guards remain effective.
+
+The existing generated reference and Mobile Interaction Contract above still
+govern the feature; this correction restores the approved reading/editing pattern
+without a new visual system, domain capability or material screen redesign.
+Compact and Expanded retain their existing composition, tokens, sheet motion,
+focus restoration and reduced-motion fallback. Confirm empty/read/edit states,
+link/unlink, failure/retry and list-result return in the existing feature suite.
+
+Reuse review: existing Plan editor and relation/sheet/query primitives; no new
+dependency, infrastructure or provider. **No business/freemium impact:** Plan
+lifecycle and shared Collections remain Free/Core in Cloud and Self-Hosted, with
+unchanged entitlements, quotas, costs and data rights. Cross-cutting review:
+preserve authorization, localized labels, query isolation, truthful progress,
+error/offline handling, keyboard focus, narrow/large-text layout and independent
+Plan/list lifecycles. No API, persistence, telemetry or native-wrapper changes.
+
 ## Implemented result and acceptance
 
 Plans reference canonical shared Collections through the existing typed relation
 lifecycle. The same list can support multiple Plans; unlinking keeps the list and
 its items. List progress refreshes after confirmed item/title/structure changes.
 The alphabetical multi-picker includes completed lists and uses the canonical
-blue labeled add action and existing shared-list creation destination. List
+blue labeled add action inside Plan Edit and the existing shared-list creation destination. List
 creation remains its own canonical task; linking is an explicit choice.
 
 Shared list browsing reuses `StatusScope`: Open / Completed / All. Empty lists
@@ -78,3 +114,39 @@ completion/feature run passed 28 cases; the final eight-case feature run also
 passed after refining narrow continuation typography and action insets.
 PostgreSQL HTTP/tenant, migration and transfer-roundtrip evidence is supplied by
 hosted CI; no local PostgreSQL execution is claimed.
+
+### Edit-boundary correction validation (2026-11-09)
+
+The existing eight-case feature suite now enters the actual Plan editor before
+linking/unlinking. It asserts that normal detail has no add/unlink controls,
+confirmed empty sections disappear, both Cancel and Save return to read mode,
+the list still opens and returns with refreshed progress, and linking restores
+focus to the enabled add action. It retains the completed-list and canonical
+Memory/private-HeartMoment capture journeys.
+
+All **8 browser cases passed** across 360/390/430/1280 px and 320 px at 200%
+text, with Light/Dark, reduced motion, no horizontal overflow and axe checks.
+The newly exercised editor required a shrinkable field track, wrapping action
+row and heading, plus closing the picker after the shared write guard releases
+its focus target. No test assertion, timeout or retry was weakened.
+
+**44 focused component tests passed**, including Plan-field serialization,
+conflict/draft recovery, list selection/partial failure and Wish-link behavior.
+The two new read-mode regressions first failed against the unchanged runtime.
+Production build/typecheck, token/localization/PWA checks, lint, changed-file
+formatting, browser inventory and diff checks passed. Existing lint and bundler
+warnings remain non-blocking. Local dependencies were synchronized with the
+committed lockfile; no dependency change is part of the correction.
+
+Actual synthetic-fixture captures, with checksums in
+[`edit-boundary-evidence/manifest.json`](edit-boundary-evidence/manifest.json):
+
+| State | Compact | Expanded |
+| --- | --- | --- |
+| No linked lists, normal detail | [360 Light](edit-boundary-evidence/plan-without-lists-360-light.png) | [1280 Dark](edit-boundary-evidence/plan-without-lists-1280-dark.png) |
+| Linked lists, normal detail | [390 Dark](edit-boundary-evidence/plan-lists-390-dark.png), [320 / 200%](edit-boundary-evidence/plan-lists-320-light.png) | [1280 Dark](edit-boundary-evidence/plan-lists-1280-dark.png) |
+| List actions inside Edit | [390 Dark](edit-boundary-evidence/plan-lists-edit-390-dark.png), [320 / 200%](edit-boundary-evidence/plan-lists-edit-320-light.png) | [1280 Dark](edit-boundary-evidence/plan-lists-edit-1280-dark.png) |
+
+This is canonical Web behavior, also packaged by Capacitor. No native-wrapper
+change, installed-device acceptance, merge or publication is claimed. Hosted
+validation is recorded in the correction PR against its actual source revision.

@@ -464,7 +464,7 @@
     "device-review.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
-      "reason": "Device-review typed links, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded."
+      "reason": "Existing device-review typed links with draft-safe static destinations in Edit and verified canonical links after returning to read mode, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded; no new always-run cases."
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -483,7 +483,7 @@
     "mobile-diary-planning-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 11,
-      "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, touch photo viewing and session-owned draft restoration."
+      "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, image-local pinch/pan/double-tap/fit with native photo swipes and no shell-navigation takeover, and session-owned draft restoration."
     },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -523,7 +523,12 @@
     "plan-linked-lists.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
-      "reason": "Feature-owned canonical Plan-list linking, independent progress, scoped list return, source Place capture and private HeartMoment protection with responsive accessibility evidence."
+      "reason": "Feature-owned Plan-list disclosure and safe navigation, bidirectional persisted Plan/Story context, source capture, private HeartMoment isolation, scopes and responsive accessibility evidence."
+    },
+    "map-place-stacks.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Feature-owned map photo stacks, real camera motion, finite touch/button browsing, protected/text previews and fullscreen/detail scope return. No always-run expansion."
     }
   }
 }

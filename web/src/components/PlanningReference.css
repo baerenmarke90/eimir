@@ -841,6 +841,7 @@
   margin: 0;
   min-inline-size: 0;
   padding: 0;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .planen-complete-form input {

@@ -1,4 +1,5 @@
 import { type RefObject, useLayoutEffect, useRef } from 'react';
+import { cssDurationMilliseconds } from '../client/cssDuration';
 import { PRIMARY_APP_ROUTES } from '../client/routes';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import './PrimaryTabSwipe.css';
@@ -163,7 +164,9 @@ export function usePrimaryTabSwipe({
         ],
         {
           duration:
-            parseFloat(style.getPropertyValue('--duration-transition')) || 180,
+            cssDurationMilliseconds(
+              style.getPropertyValue('--duration-transition'),
+            ) || 180,
           easing: style.getPropertyValue('--easing-enter').trim() || 'ease-out',
         },
       );
@@ -326,8 +329,9 @@ export function usePrimaryTabSwipe({
             ],
             {
               duration:
-                parseFloat(style.getPropertyValue('--duration-transition')) ||
-                180,
+                cssDurationMilliseconds(
+                  style.getPropertyValue('--duration-transition'),
+                ) || 180,
               easing:
                 style.getPropertyValue('--easing-standard').trim() ||
                 'ease-out',

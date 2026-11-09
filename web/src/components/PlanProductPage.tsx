@@ -64,6 +64,7 @@ import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
+import { PlanStoryLinks } from './PlanStoryLinks';
 import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
@@ -544,11 +545,7 @@ export function PlanProductPage({
 
       <div className="planning-detail-grid">
         {isEditing ? (
-          <section
-            id="plan-edit-section"
-            className="planning-subsection"
-            onChange={() => setEditDirty(true)}
-          >
+          <section id="plan-edit-section" className="planning-subsection">
             <h2>{t('m5s3.common.edit')}</h2>
             {editorLifecycle.showDiscardConfirm ? (
               <PlanningDiscardConfirmation
@@ -604,9 +601,25 @@ export function PlanProductPage({
                 await commitPlan(updated);
               }}
             />
+            <PlanCollectionLinks
+              key={JSON.stringify([
+                'lists',
+                apiBaseUrl,
+                accountId,
+                spaceId,
+                plan.id,
+              ])}
+              apis={apis}
+              spaceId={spaceId}
+              plan={plan}
+              editing
+              disabled={writesPending || !online}
+              onNavigate={editorLifecycle.requestClose}
+            />
             <fieldset
               className="form-grid planning-editor-fields"
               disabled={writesPending}
+              onChange={() => setEditDirty(true)}
             >
               <label htmlFor="plan-edit-description">
                 {t('m5s3.common.description')}
@@ -683,7 +696,13 @@ export function PlanProductPage({
                   />
                 </>
               ) : null}
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 'var(--space-2)',
+                }}
+              >
                 <button
                   form="plan-edit-form"
                   type="submit"
@@ -795,7 +814,13 @@ export function PlanProductPage({
         {!isEditing ? (
           <div className="planen-detail-context">
             <PlanCollectionLinks
-              key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+              key={JSON.stringify([
+                'lists',
+                apiBaseUrl,
+                accountId,
+                spaceId,
+                plan.id,
+              ])}
               apis={apis}
               spaceId={spaceId}
               plan={plan}
@@ -809,9 +834,22 @@ export function PlanProductPage({
               disabled={writesPending}
               onLinked={commitPlan}
             />
+            {plan.status === 'COMPLETED' ? (
+              <PlanStoryLinks
+                key={JSON.stringify([
+                  'story',
+                  apiBaseUrl,
+                  accountId,
+                  spaceId,
+                  plan.id,
+                ])}
+                apis={apis}
+                spaceId={spaceId}
+                planId={plan.id}
+              />
+            ) : null}
           </div>
         ) : null}
-
         <div hidden={isEditing} className="plan-discussion">
           <CommentsPanel
             key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}

@@ -33,6 +33,9 @@ import {
   milestoneEditPath,
 } from '../client/routes';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
+import { useApiRuntime } from '../client/apiRuntimeContext';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
+import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -100,6 +103,19 @@ export function MilestoneProductPage({
     ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
+  const runtime = useApiRuntime();
+  const {
+    eligibleSourcePlanId,
+    loading: sourceLoading,
+    sourcePlan,
+  } = usePlanCaptureSource({
+    apiBaseUrl: runtime?.apiBaseUrl ?? '',
+    accessToken: runtime?.accessToken ?? '',
+    spaceId,
+    accountId: currentAccountId,
+    enabled: mode === 'create',
+    loadPlace: false,
+  });
   const milestoneId = params.milestoneId;
   const queryKey = authorSummaryQueryKeys.milestone(spaceId, milestoneId);
   const deleteKey = [
@@ -170,7 +186,21 @@ export function MilestoneProductPage({
       ]);
       navigate(milestoneDetailPath(milestone.id), {
         replace: true,
-        state: { saved: true, taskOriginKey: originKey },
+        state: {
+          saved: true,
+          taskOriginKey: originKey,
+          sourcePlanToLink:
+            eligibleSourcePlanId && runtime
+              ? {
+                  id: eligibleSourcePlanId,
+                  contentKind: 'MILESTONE',
+                  contentId: milestone.id,
+                  accountId: currentAccountId,
+                  spaceId,
+                  instance: runtime.apiBaseUrl,
+                }
+              : undefined,
+        },
       });
     },
   });
@@ -256,6 +286,7 @@ export function MilestoneProductPage({
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
+      if (sourceLoading || createMutation.isPending) return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
@@ -282,6 +313,15 @@ export function MilestoneProductPage({
           <h2 id="milestone-form-heading" className="sr-only">
             {t('milestoneProduct.createHeading')}
           </h2>
+          {sourceLoading ? (
+            <p role="status">{t('m5s3.planStory.loadingSource')}</p>
+          ) : null}
+          {sourcePlan.error ? (
+            <ProblemState
+              error={sourcePlan.error}
+              onRetry={() => void sourcePlan.refetch()}
+            />
+          ) : null}
           <form onSubmit={submitCreate} className="immersive-create-form">
             <div className="immersive-create-hero">
               <label htmlFor="milestone-title" className="sr-only">
@@ -331,7 +371,10 @@ export function MilestoneProductPage({
               >
                 {t('common.cancel')}
               </button>
-              <button type="submit" disabled={createMutation.isPending}>
+              <button
+                type="submit"
+                disabled={createMutation.isPending || sourceLoading}
+              >
                 {createMutation.isPending
                   ? t('milestoneProduct.saving')
                   : t('milestoneProduct.save')}
@@ -456,6 +499,19 @@ export function MilestoneProductPage({
               </button>
             </div>
           </form>
+          {runtime ? (
+            <StoryPlanningLinks
+              apiBaseUrl={runtime.apiBaseUrl}
+              accessToken={runtime.accessToken}
+              accountId={currentAccountId}
+              spaceId={spaceId}
+              contentId={milestone.id}
+              sourceKind="MILESTONE"
+              canManage={milestone.capabilities.canEdit && !updating}
+              editing
+              offline={offline}
+            />
+          ) : null}
           {updateMutation.error ? (
             <ProblemState error={updateMutation.error} />
           ) : null}
@@ -539,6 +595,18 @@ export function MilestoneProductPage({
         className="memory-detail-body"
       />
 
+      {runtime ? (
+        <StoryPlanningLinks
+          apiBaseUrl={runtime.apiBaseUrl}
+          accessToken={runtime.accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          contentId={milestone.id}
+          sourceKind="MILESTONE"
+          canManage={milestone.capabilities.canEdit}
+          offline={offline}
+        />
+      ) : null}
       <CommentsPanel
         commentsApi={apis.comments}
         spaceId={spaceId}

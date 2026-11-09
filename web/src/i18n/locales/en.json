@@ -681,7 +681,11 @@
       "chapterRetryLink": "Try linking again",
       "chapterSkip": "Finish without a chapter",
       "heartMomentAction": "Capture a heart moment",
-      "loadingSource": "Loading the Plan and its place …"
+      "loadingSource": "Loading the Plan and its place …",
+      "linksHeading": "Moments for this Plan",
+      "plansHeading": "Linked Plans",
+      "addPlan": "Link a Plan",
+      "noPlans": "There are no matching Plans yet."
     },
     "map": {
       "open": "Choose a place on the map",
@@ -3894,7 +3898,11 @@
     "loadMore": "Load more memory places",
     "allPlaces": "View all places",
     "untitled": "Memory",
-    "filter": "Filter places"
+    "filter": "Filter places",
+    "previousMemory": "Previous memory",
+    "nextMemory": "Next memory",
+    "position": "{{position}} / {{count}}",
+    "memoriesAtPlace": "Memories at {{name}}"
   },
   "gentlePrompts": {
     "label": "Small prompts",
@@ -4023,7 +4031,12 @@
     "close": "Close",
     "done": "Done",
     "previous": "Previous media",
-    "next": "Next media"
+    "next": "Next media",
+    "zoomControls": "Photo controls",
+    "keyboardHelp": "Use plus and minus to zoom, arrow keys to move the enlarged photo, and 0 to show the whole photo.",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Show whole photo"
   },
   "calendarPlan": {
     "add": "Add to calendar",

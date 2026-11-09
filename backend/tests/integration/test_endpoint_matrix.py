@@ -449,6 +449,24 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/heart-moments"),
+    *(
+        Endpoint(
+            "GET",
+            f"/api/v1/spaces/{{spaceId}}/{source}/{{{parameter}}}/plans",
+            resource_absence="RESOURCE_NOT_FOUND",
+        )
+        for source, parameter in (("heart-moments", "heartMomentId"), ("milestones", "milestoneId"))
+    ),
+    *(
+        Endpoint(
+            method,
+            f"/api/v1/spaces/{{spaceId}}/{source}/{{{parameter}}}/plans/{{targetId}}",
+            resource_absence="RESOURCE_NOT_FOUND",
+            fixture_aliases={"targetId": "planId"},
+        )
+        for source, parameter in (("heart-moments", "heartMomentId"), ("milestones", "milestoneId"))
+        for method in ("PUT", "DELETE")
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",
@@ -1064,6 +1082,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/story",
         resource_absence="PLAN_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/plans"),

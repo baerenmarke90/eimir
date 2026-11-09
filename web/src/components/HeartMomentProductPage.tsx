@@ -90,6 +90,7 @@ import { MomentPlaces } from './MomentPlaces';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
+import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { ProblemState } from './ProblemState';
 import { SavedVoiceNote } from './SavedVoiceNote';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -210,6 +211,7 @@ export function HeartMomentProductPage({
   const sourcePlaceApplied = useRef(false);
   const placeManuallyChanged = useRef(false);
   const {
+    eligibleSourcePlanId,
     sourcePlan,
     sourcePlace,
     loading: sourceLoading,
@@ -428,7 +430,21 @@ export function HeartMomentProductPage({
       editorLifecycle.closeConfirmed(() =>
         navigate(heartMomentDetailPath(heartMoment.id), {
           replace: true,
-          state: { saved: true, taskOriginKey: originKey },
+          state: {
+            saved: true,
+            taskOriginKey: originKey,
+            sourcePlanToLink:
+              heartMoment.visibility === 'SHARED' && eligibleSourcePlanId
+                ? {
+                    id: eligibleSourcePlanId,
+                    contentKind: 'HEART_MOMENT',
+                    contentId: heartMoment.id,
+                    accountId: currentAccountId,
+                    spaceId,
+                    instance: apiBaseUrl,
+                  }
+                : undefined,
+          },
         }),
       );
     },
@@ -1174,6 +1190,21 @@ export function HeartMomentProductPage({
           {updateMutation.error ? (
             <ProblemState error={updateMutation.error} />
           ) : null}
+          {heartMoment.visibility === 'SHARED' ? (
+            <StoryPlanningLinks
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={currentAccountId}
+              spaceId={spaceId}
+              contentId={heartMoment.id}
+              sourceKind="HEART_MOMENT"
+              canManage={
+                heartMoment.capabilities.canEdit && !updateMutation.isPending
+              }
+              editing
+              offline={offline}
+            />
+          ) : null}
           {editContentError ? (
             <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
           ) : null}
@@ -1376,6 +1407,18 @@ export function HeartMomentProductPage({
         </section>
       ) : null}
 
+      {shared && !changingVisibility ? (
+        <StoryPlanningLinks
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          contentId={heartMoment.id}
+          sourceKind="HEART_MOMENT"
+          canManage={heartMoment.capabilities.canEdit}
+          offline={offline}
+        />
+      ) : null}
       {visibilityMutation.error ? (
         <ProblemState error={visibilityMutation.error} />
       ) : null}

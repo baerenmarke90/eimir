@@ -49,9 +49,20 @@ export async function fulfillDefaultProductContext(
   }
   if (
     request.method() === 'GET' &&
-    /^\/api\/v1\/spaces\/[^/]+\/memories\/[^/]+\/(plans|wishes)$/.test(pathname)
+    /^\/api\/v1\/spaces\/[^/]+\/(memories\/[^/]+\/(plans|wishes)|(heart-moments|milestones)\/[^/]+\/plans)$/.test(
+      pathname,
+    )
   ) {
     await route.fulfill({ json: { items: [] } });
+    return true;
+  }
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/plans\/[^/]+\/story$/.test(pathname)
+  ) {
+    await route.fulfill({
+      json: { items: [], nextCursor: null, hasMore: false },
+    });
     return true;
   }
   return false;

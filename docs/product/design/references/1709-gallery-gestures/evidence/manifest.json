@@ -1,0 +1,25 @@
+{
+  "source": "62 passing browser journeys, including five real CDP pinch/pan/double-tap/swipe cases and one single-photo wheel/drag/Back case; synthetic fixtures.",
+  "files": [
+    {
+      "file": "photo-zoom-360-light.png",
+      "sha256": "aaa02fc395e43d8cb2a486aa0960f4ac750a276eb2398bf8b359d6e4651c6f08"
+    },
+    {
+      "file": "photo-zoom-390-dark.png",
+      "sha256": "9ee73abdc19365c892d1861a24db3de2d99c5a93c4dac9d11431f798ad7c9f4a"
+    },
+    {
+      "file": "photo-zoom-430-light.png",
+      "sha256": "583e2c65fb485961e055333482b0ca65ebfa0243eb7115654f4bff169947f35e"
+    },
+    {
+      "file": "photo-zoom-320-light.png",
+      "sha256": "a4cce86e03048ffd1459af19a2039c710dec92b4b2d777c5ca6375608aea9624"
+    },
+    {
+      "file": "photo-zoom-1280-dark.png",
+      "sha256": "cf07702f8b87ba544f1fd208aaa6727ac06a934e6d5158b6743828d1b0446fb1"
+    }
+  ]
+}

@@ -25,6 +25,7 @@ import {
 } from './SensitiveMedia';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import { VideoPlayer, type VideoSourceLoader } from './VideoPlayer';
+import { ZoomablePhoto } from './ZoomablePhoto';
 import './MediaGallery.css';
 
 export function GalleryExpandAction({
@@ -366,6 +367,7 @@ export function MediaGallery({
     if (!lightboxOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       if (event.key === 'Escape') {
         closeLightbox();
       }
@@ -621,7 +623,15 @@ export function MediaGallery({
           {item.isSensitive === true ? <img src={url} alt="" /> : null}
         </SensitiveMediaCover>
       );
-    return <img className={className} src={url} alt={t('gallery.imageAlt')} />;
+    return activeVideo ? (
+      <ZoomablePhoto
+        key={`${resourceScopeKey}:${item.id}`}
+        src={url}
+        alt={t('gallery.imageAlt')}
+      />
+    ) : (
+      <img className={className} src={url} alt={t('gallery.imageAlt')} />
+    );
   }
 
   function renderCarouselMedia(item: GalleryMediaItem) {

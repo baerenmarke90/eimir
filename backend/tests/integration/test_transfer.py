@@ -23,6 +23,8 @@ from eimir.identity.models import AccountEmail
 from eimir.media import get_media_store
 from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
+from eimir.milestones import service as milestone_service
+from eimir.milestones.models import Milestone
 from eimir.places import service as place_service
 from eimir.places.models import Place
 from eimir.plans import service as plan_service
@@ -31,7 +33,7 @@ from eimir.private_notes import service as private_note_service
 from eimir.profiles import service as profile_service
 from eimir.profiles.models import PartnerProfile
 from eimir.relations import service as relation_service
-from eimir.relations.models import PlanCollection
+from eimir.relations.models import HeartMomentPlan, MilestonePlan, PlanCollection
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders.runtime_models import RulePreference
@@ -274,7 +276,7 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     )
     assert len(target_profile_ids) == 2
 
-    memory_service.create_memory(
+    memory = memory_service.create_memory(
         session,
         source_authorization,
         title="Portable day",
@@ -282,7 +284,7 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
         happened_on=date(2026, 9, 1),
         tags=["home", "Our first summer"],
     )
-    heart_moment_service.create_heart_moment(
+    heart = heart_moment_service.create_heart_moment(
         session,
         source_authorization,
         text="",
@@ -318,6 +320,19 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     plan = plan_service.create_plan(
         session, source_authorization, title="Portable trip", description=None, place_id=place.id
     )
+    milestone = milestone_service.create_milestone(
+        session,
+        source_authorization,
+        title="Portable milestone",
+        body=None,
+        happened_on=date(2026, 9, 1),
+    )
+    for source, kind in (
+        (memory, relation_service.MEMORY_PLANS),
+        (heart, relation_service.HEART_MOMENT_PLANS),
+        (milestone, relation_service.MILESTONE_PLANS),
+    ):
+        relation_service.link(session, source_authorization, source.id, plan.id, kind)
     collection = collection_service.create_collection(
         session, source_authorization, title="Portable packing"
     )
@@ -387,6 +402,29 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     assert imported_link.plan_id == imported_plan.id
     assert imported_link.collection_id == imported_collection.id
     assert collection_service.list_items(session, imported_collection)[0].completed is True
+    imported_milestone = session.scalars(
+        select(Milestone).where(Milestone.space_id == target_space.id)
+    ).one()
+    for source, kind in (
+        (imported_memory, relation_service.MEMORY_PLANS),
+        (imported_heart, relation_service.HEART_MOMENT_PLANS),
+        (imported_milestone, relation_service.MILESTONE_PLANS),
+    ):
+        assert relation_service.list_targets(session, target_authorization, source.id, kind) == [
+            imported_plan.id
+        ]
+    assert (
+        session.scalars(select(HeartMomentPlan).where(HeartMomentPlan.space_id == target_space.id))
+        .one()
+        .source_privacy_class
+        == "SPACE_SHARED"
+    )
+    assert (
+        session.scalars(select(MilestonePlan).where(MilestonePlan.space_id == target_space.id))
+        .one()
+        .plan_id
+        == imported_plan.id
+    )
 
 
 def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session) -> None:

@@ -62,7 +62,11 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
     return saved;
   });
   const apis = {
-    plans: { getPlan: vi.fn(async () => saved), updatePlan: update },
+    plans: {
+      getPlan: vi.fn(async () => saved),
+      listPlanCollections: vi.fn(async () => []),
+      updatePlan: update,
+    },
     places: {
       listPlaces: vi.fn(async () => ({ items: [], nextCursor: null })),
     },

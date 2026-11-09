@@ -322,6 +322,13 @@ for (const [width, theme] of [
     await expect(page).toHaveURL(/\/story\/map/);
     await expand.click();
     await fullscreen.locator('.memory-map-marker').click();
+    await expect(fullscreen).toBeVisible();
+    await expect(
+      fullscreen.getByRole('link', { name: /Afternoon by the canal/ }),
+    ).toBeVisible();
+    await fullscreen
+      .getByRole('button', { name: mapCopy.closeFullscreen, exact: true })
+      .click();
     await expect(fullscreen).toBeHidden();
     const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
     await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');

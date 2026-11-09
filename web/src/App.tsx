@@ -124,6 +124,7 @@ import { useAccountLanguage } from './client/useAccountLanguage';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
+import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
 import { VideoProcessingContext } from './client/video';
 import { AudioProcessingContext } from './client/voiceNotes';
 import { WirDesignProvider } from './client/wirDesign';
@@ -299,6 +300,11 @@ function AuthenticatedApp({
   );
   useGentleUse({ account, spaceId, api: m4Apis.notifications });
   useSystemTimeZone(apiBaseUrl, tokens.accessToken, account.id, spaceId);
+  useVideoTransferNavigation({
+    instance: apiBaseUrl,
+    accountId: account.id,
+    spaceId,
+  });
   const enableOnboardingPrompts = useCallback(
     () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
     [queryClient, m4Apis.notifications, account.id],

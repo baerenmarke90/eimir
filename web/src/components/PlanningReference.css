@@ -233,6 +233,17 @@
   gap: var(--space-2);
 }
 
+.planen-detail.planning-page {
+  gap: var(--space-5);
+}
+
+.planen-detail > .page-heading h1 {
+  font: var(--font-personal-heading);
+  letter-spacing: var(--tracking-personal-heading);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
 .planen-detail-pills {
   display: flex;
   flex-wrap: wrap;
@@ -368,8 +379,7 @@
 .planen-detail-schedule {
   margin: 0;
   color: var(--color-brand-text);
-  font-size: clamp(1.15rem, 4vw, 1.45rem);
-  font-weight: 700;
+  font: var(--font-action-label);
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
 }

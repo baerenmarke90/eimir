@@ -84,6 +84,22 @@ export function PlanningOccasions({
     },
     retry: false,
   });
+  const ownProfile = useQuery({
+    queryKey: authorSummaryQueryKeys.profileIdentity(spaceId, accountId),
+    enabled: Boolean(accountId && profilesApi),
+    queryFn: async () => {
+      if (!profilesApi || !accountId)
+        throw new Error('Account profile unavailable');
+      try {
+        return await profilesApi.getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet(
+          { spaceId, accountId },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    retry: false,
+  });
   return (
     <>
       {people.isLoading ? (
@@ -107,10 +123,42 @@ export function PlanningOccasions({
           onRetry={() => void profile.refetch()}
         />
       ) : null}
+      {ownProfile.error ? (
+        <ProblemState
+          error={ownProfile.error}
+          onRetry={() => void ownProfile.refetch()}
+        />
+      ) : null}
+      {space.isLoading || profile.isLoading || ownProfile.isLoading ? (
+        <UiState kind="loading" title={t('importantDates.loading')} />
+      ) : null}
       <ImportantDatesPanel
         peopleApi={peopleApi}
         spaceId={spaceId}
         people={people.data ?? []}
+        sourcesUnavailable={Boolean(
+          people.error || space.error || profile.error || ownProfile.error,
+        )}
+        sourcesPending={
+          people.isLoading ||
+          space.isLoading ||
+          profile.isLoading ||
+          ownProfile.isLoading
+        }
+        ownBirthday={
+          accountId && ownProfile.data?.birthday
+            ? {
+                accountId,
+                displayName: ownProfile.data.displayName,
+                birthday: ownProfile.data.birthday,
+              }
+            : null
+        }
+        relationshipStartedOn={
+          space.data?.relationshipStartedOn
+            ? new Date(`${space.data.relationshipStartedOn}T00:00:00Z`)
+            : null
+        }
         partnerBirthday={
           partner && profile.data?.birthday
             ? {

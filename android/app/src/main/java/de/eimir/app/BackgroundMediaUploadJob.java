@@ -16,7 +16,7 @@ public class BackgroundMediaUploadJob extends JobService {
         if (Build.VERSION.SDK_INT < 34) return false;
         String id = parameters.getExtras().getString("attachmentId");
         // Admission notification must not wait behind another transfer's I/O.
-        setNotification(parameters, parameters.getJobId(), BackgroundMediaTransfers.initialNotification(this, parameters.getJobId()), JOB_END_NOTIFICATION_POLICY_REMOVE);
+        setNotification(parameters, parameters.getJobId(), BackgroundMediaTransfers.initialNotification(this, parameters.getJobId(), id), JOB_END_NOTIFICATION_POLICY_REMOVE);
         JobRun run = new JobRun(parameters, id);
         tasks.put(parameters.getJobId(), run);
         io.execute(run.task);
@@ -44,7 +44,7 @@ public class BackgroundMediaUploadJob extends JobService {
             // JobService queues these in order. Direct NotificationManager updates
             // can race its asynchronous admission notification and regress to 0%.
             setNotification(parameters, value.jobId(), BackgroundMediaTransfers.notification(this, value),
-                "uploading".equals(value.phase()) ? JOB_END_NOTIFICATION_POLICY_REMOVE : JOB_END_NOTIFICATION_POLICY_DETACH);
+                "failed".equals(value.phase()) ? JOB_END_NOTIFICATION_POLICY_DETACH : JOB_END_NOTIFICATION_POLICY_REMOVE);
         }
     }
     @Override public boolean onStopJob(JobParameters parameters) {

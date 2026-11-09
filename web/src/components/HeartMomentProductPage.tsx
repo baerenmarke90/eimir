@@ -21,17 +21,13 @@ import {
   HeartMomentDetailFromJSON,
   HeartMomentDetailToJSON,
 } from '../api/generated/models/HeartMomentDetail';
-import type { HeartMomentUpdate } from '../api/generated/models/HeartMomentUpdate';
 import type { HeartMomentLocation } from '../api/generated/models/HeartMomentLocation';
-import {
-  HeartMomentLocationField,
-  HeartMomentLocationSummary,
-  locationFromPlace,
-} from './HeartMomentLocation';
+import type { HeartMomentUpdate } from '../api/generated/models/HeartMomentUpdate';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
+import { bindVideoTransferTargets } from '../client/backgroundVideoUploads';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
   type CreateRequestAttempt,
@@ -65,9 +61,9 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { formatAttachmentDraftContextKey } from '../client/useAttachmentDrafts';
 import { useHeartVoiceDraft } from '../client/useHeartVoiceDraft';
 import { useOrderedPhotoDrafts } from '../client/useOrderedPhotoDrafts';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
-import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -76,6 +72,11 @@ import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { ExpandableDescription } from './ExpandableDescription';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
+import {
+  HeartMomentLocationField,
+  HeartMomentLocationSummary,
+  locationFromPlace,
+} from './HeartMomentLocation';
 import {
   HEART_MOMENT_TAGS,
   HeartMomentTagChoices,
@@ -90,7 +91,6 @@ import { MomentPlaces } from './MomentPlaces';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
-import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { ProblemState } from './ProblemState';
 import { SavedVoiceNote } from './SavedVoiceNote';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -99,6 +99,7 @@ import {
   StoryCreatePageShell,
   StoryEditorPageShell,
 } from './StoryFormPageShell';
+import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { storyAuthorLabel } from './storyPresentation';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
@@ -415,6 +416,13 @@ export function HeartMomentProductPage({
         saved.spaceId,
         saved.attachment ? [saved.attachment] : [],
       );
+      await bindVideoTransferTargets(
+        spaceId,
+        { targetType: 'HEART_MOMENT', targetId: saved.id },
+        (saved.attachments ?? (saved.attachment ? [saved.attachment] : [])).map(
+          (item) => item.id,
+        ),
+      );
       return saved;
     },
     onSuccess: async (heartMoment, request) => {
@@ -478,6 +486,13 @@ export function HeartMomentProductPage({
           queryClient,
           saved.spaceId,
           saved.attachments ?? (saved.attachment ? [saved.attachment] : []),
+        );
+        await bindVideoTransferTargets(
+          spaceId,
+          { targetType: 'HEART_MOMENT', targetId: saved.id },
+          (
+            saved.attachments ?? (saved.attachment ? [saved.attachment] : [])
+          ).map((item) => item.id),
         );
         return saved;
       } catch (error) {
@@ -789,6 +804,15 @@ export function HeartMomentProductPage({
             />
             <div className="heart-moment-create-media">
               <PlanPhotosEditor
+                additionalActions={
+                  <VoiceNoteEditor
+                    voice={voice}
+                    apis={apis}
+                    spaceId={spaceId}
+                    disabled={createMutation.isPending}
+                    onChange={() => setFormDirty(true)}
+                  />
+                }
                 controller={photos}
                 spaceId={spaceId}
                 parentType="HEART_MOMENT"
@@ -803,13 +827,6 @@ export function HeartMomentProductPage({
               />
             </div>
 
-            <VoiceNoteEditor
-              voice={voice}
-              apis={apis}
-              spaceId={spaceId}
-              disabled={createMutation.isPending}
-              onChange={() => setFormDirty(true)}
-            />
             <div className="field-group heart-moment-create-field heart-moment-create-note">
               <label htmlFor="heart-moment-text">
                 {t('heartMomentProduct.textLabel')}
@@ -1086,15 +1103,6 @@ export function HeartMomentProductPage({
             onChange={() => setFormDirty(true)}
             onSubmit={submitEdit}
           >
-            <VoiceNoteEditor
-              voice={voice}
-              apis={apis}
-              spaceId={spaceId}
-              momentId={heartMomentId}
-              canManageExisting={heartMoment.capabilities.canDelete}
-              disabled={updateMutation.isPending}
-              onChange={() => setFormDirty(true)}
-            />
             <HeartMomentFields
               heartMoment={heartMoment}
               editorRef={tagEditorRef}
@@ -1142,6 +1150,17 @@ export function HeartMomentProductPage({
               />
             ) : null}
             <PlanPhotosEditor
+              additionalActions={
+                <VoiceNoteEditor
+                  voice={voice}
+                  apis={apis}
+                  spaceId={spaceId}
+                  momentId={heartMomentId}
+                  canManageExisting={heartMoment.capabilities.canDelete}
+                  disabled={updateMutation.isPending}
+                  onChange={() => setFormDirty(true)}
+                />
+              }
               controller={photos}
               spaceId={spaceId}
               planId={heartMoment.id}

@@ -128,6 +128,8 @@ declare(
 );
 declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
+declare('duration-map-camera', value('motion.duration.mapCamera'));
+declare('duration-map-stack', value('motion.duration.mapStack'));
 for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
@@ -208,6 +210,8 @@ ${declarations.join('\n')}
     --duration-feedback: ${value('motion.duration.instant')};
     --duration-transition: ${value('motion.duration.instant')};
     --duration-context: ${value('motion.duration.instant')};
+    --duration-map-camera: ${value('motion.duration.instant')};
+    --duration-map-stack: ${value('motion.duration.instant')};
   }
 }
 

@@ -1,0 +1,15 @@
+.media-action-group {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-panel-tint);
+  box-shadow: var(--shadow-raised);
+}
+
+.media-action-group > *,
+.media-action-group .photo-source-actions {
+  min-inline-size: 0;
+}

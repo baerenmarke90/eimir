@@ -7,6 +7,8 @@ import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { AttachmentMediaDropZone } from './MediaDropZone';
 import type { VideoCaptureContext } from './VideoUploadAction';
+import type { ReactNode } from 'react';
+import { MediaActionGroup } from './MediaActionGroup';
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
@@ -31,7 +33,9 @@ export function AttachmentDraftPicker({
   sourceContext,
   selectedCoverKey,
   onSelectCover,
+  additionalActions,
 }: {
+  additionalActions?: ReactNode;
   id: string;
   selectedCoverKey?: string | null;
   onSelectCover?: (key: string | null) => void;
@@ -77,28 +81,31 @@ export function AttachmentDraftPicker({
       }}
     >
       <div className="field-group attachment-draft-picker">
-        {sourceContext ? (
-          <PhotoSourcePicker
-            {...sourceContext}
-            beginSelection={() => {
-              const ticket = sourceContext.beginSelection();
-              return {
-                ...ticket,
-                commit: (files) => {
-                  if (ticket.signal.aborted || !files.length) return false;
-                  if (!multiple)
-                    for (const item of attachments.items)
-                      attachments.remove(item.id);
-                  return ticket.commit(files);
-                },
-              };
-            }}
-            disabled={disabled}
-            devicePicker={devicePicker}
-          />
-        ) : (
-          devicePicker(() => {})
-        )}
+        <MediaActionGroup>
+          {sourceContext ? (
+            <PhotoSourcePicker
+              {...sourceContext}
+              beginSelection={() => {
+                const ticket = sourceContext.beginSelection();
+                return {
+                  ...ticket,
+                  commit: (files) => {
+                    if (ticket.signal.aborted || !files.length) return false;
+                    if (!multiple)
+                      for (const item of attachments.items)
+                        attachments.remove(item.id);
+                    return ticket.commit(files);
+                  },
+                };
+              }}
+              disabled={disabled}
+              devicePicker={devicePicker}
+            />
+          ) : (
+            devicePicker(() => {})
+          )}
+          {additionalActions}
+        </MediaActionGroup>
 
         {showItems && attachments.items.length > 0 ? (
           <PhotoDraftGallery

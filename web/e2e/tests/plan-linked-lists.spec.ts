@@ -111,6 +111,7 @@ async function fixture(page: Page, withStory = false) {
     failLinks: false,
     failSourceLinks: false,
     sourceLinks: [] as string[],
+    creates: [] as Record<string, unknown>[],
   };
   const sourceBase = {
     spaceId: SPACE_ID,
@@ -254,6 +255,12 @@ async function fixture(page: Page, withStory = false) {
       else throw new Error(`Unexpected relation method: ${method}`);
       return route.fulfill({ status: 204 });
     }
+    if (path === `${base}/plans` && method === 'POST') {
+      const values = request.postDataJSON();
+      calls.creates.push(values);
+      Object.assign(plan, values, { status: 'IDEA', experiencedOn: null });
+      return route.fulfill({ status: 201, json: plan });
+    }
     if (path === `${base}/plans`)
       return route.fulfill({
         json: { items: [plan], nextCursor: null, hasMore: false },
@@ -265,6 +272,11 @@ async function fixture(page: Page, withStory = false) {
         json: { items: [place], nextCursor: null, hasMore: false },
       });
     if (path === `${base}/collections`) {
+      if (method === 'POST') {
+        const created = list('list-new', request.postDataJSON().title, null);
+        lists.push(created);
+        return route.fulfill({ status: 201, json: created });
+      }
       const scope = url.searchParams.get('scope') ?? 'ALL';
       return route.fulfill({
         json: {
@@ -959,7 +971,7 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
   expect(state.unexpected).toEqual([]);
 });
 
-test('Plan field drafts survive attempted list and new-list navigation', async ({
+test('Plan field drafts survive list navigation and in-context list creation', async ({
   page,
 }) => {
   const state = await fixture(page);
@@ -987,8 +999,13 @@ test('Plan field drafts survive attempted list and new-list navigation', async (
     .getByRole('dialog', { name: copy.collection.choose })
     .getByRole('button', { name: copy.collection.createNew })
     .click();
-  await expect(discard).toBeVisible();
-  await discard.getByRole('button', { name: copy.common.keepEditing }).click();
+  const picker = page.getByRole('dialog', { name: copy.collection.choose });
+  await expect(
+    picker.getByLabel(copy.common.title, { exact: true }),
+  ).toBeVisible();
+  await expect(discard).not.toBeVisible();
+  await page.goBack();
+  await expect(picker).not.toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
   await expect(description).toHaveValue(
     fixtures.planLinkedLists.unsavedPlanDescription,
@@ -1016,5 +1033,66 @@ test('related Story continues past an empty page with a valid next cursor', asyn
       .getByRole('link'),
   ).toHaveCount(3);
   expect(cursors).toEqual([null, 'after-empty']);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('Plan creation keeps its draft while creating a list and retries a partial link without another Plan', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await fixture(page);
+  await page.goto('/plan/plans/new');
+  await page
+    .getByLabel(copy.plan.intentionLabel)
+    .fill(fixtures.planLinkedLists.newPlanTitle);
+  await page
+    .getByRole('button', { name: copy.collection.create, exact: true })
+    .click();
+  const dialog = page.getByRole('dialog', { name: copy.collection.choose });
+  await dialog
+    .getByRole('button', { name: copy.collection.createNew, exact: true })
+    .click();
+  await dialog
+    .getByLabel(copy.common.title, { exact: true })
+    .fill(fixtures.planLinkedLists.newListTitle);
+  await dialog
+    .getByRole('button', { name: copy.collection.createNew, exact: true })
+    .click();
+  await expect(
+    dialog.getByRole('checkbox', {
+      name: new RegExp(fixtures.planLinkedLists.newListTitle),
+    }),
+  ).toBeChecked();
+  await dialog
+    .getByRole('button', { name: copy.collection.link, exact: true })
+    .click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByLabel(copy.plan.intentionLabel)).toHaveValue(
+    fixtures.planLinkedLists.newPlanTitle,
+  );
+  await noOverflow(page);
+  await captureScreenshot(page, testInfo, 'plan-create-list-390-light.png', {
+    fullPage: true,
+  });
+  state.calls.failLinks = true;
+  await page
+    .getByRole('button', { name: copy.common.save, exact: true })
+    .click();
+  await expect(
+    page.getByText(copy.collection.planSavedLinkFailed),
+  ).toBeVisible();
+  expect(state.calls.creates).toHaveLength(1);
+  state.calls.failLinks = false;
+  await page
+    .getByRole('button', { name: de.common.retry, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+  await expect(
+    page.getByRole('link', {
+      name: new RegExp(fixtures.planLinkedLists.newListTitle),
+    }),
+  ).toBeVisible();
+  expect(state.calls.creates).toHaveLength(1);
+  expect(state.calls.links).toEqual(['list-new']);
   expect(state.unexpected).toEqual([]);
 });

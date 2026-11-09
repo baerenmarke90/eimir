@@ -13,6 +13,7 @@ import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
@@ -35,6 +36,8 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
+import { useTaskActivation } from '../client/useTaskActivation';
+import { CollectionChoicePicker } from './CollectionChoicePicker';
 import { AddActionContent } from './AddAction';
 import { PageHeader } from './PageHeader';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
@@ -121,6 +124,14 @@ export function PlanningCreatePage({
   const [offlineAttempt, setOfflineAttempt] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [pending, setPending] = useState(false);
+  const [lists, setLists] = useState<CollectionDetail[]>([]);
+  const [collectionPending, setCollectionPending] = useState(false);
+  const confirmedParent = useRef<PlanDetail | WishDetail | null>(null);
+  const [parentSaved, setParentSaved] = useState(false);
+  const capture = useTaskActivation(
+    true,
+    JSON.stringify([apiBaseUrl, accountId, spaceId, kind]),
+  );
   const createAttemptRef =
     useRef<CreateRequestAttempt<PlanningCreateSnapshot> | null>(null);
 
@@ -142,8 +153,17 @@ export function PlanningCreatePage({
   );
   const onClose = useCallback(() => {
     clearPhotos();
+    if (confirmedParent.current) {
+      navigate(
+        kind === 'plan'
+          ? planDetailPath(confirmedParent.current.id)
+          : wishDetailPath(confirmedParent.current.id),
+        { replace: true, state: { taskOriginKey: originKey } },
+      );
+      return;
+    }
     requestReturn(originKey, '/plan');
-  }, [originKey, requestReturn, clearPhotos]);
+  }, [originKey, requestReturn, clearPhotos, kind, navigate]);
   const {
     showDiscardConfirm: showDiscard,
     keepEditing,
@@ -151,7 +171,7 @@ export function PlanningCreatePage({
     requestClose,
   } = useTaskEditorLifecycle({
     isDirty: dirty,
-    isCloseBlocked: pending || placePending,
+    isCloseBlocked: pending || placePending || collectionPending,
     onClose,
   });
 
@@ -161,7 +181,15 @@ export function PlanningCreatePage({
 
   const createMutation = useMutation({
     networkMode: 'always',
-    mutationFn: async (values: PlanningCreateValues) => {
+    mutationFn: async ({
+      values,
+      collectionIds,
+      owns,
+    }: {
+      values: PlanningCreateValues;
+      collectionIds: string[];
+      owns: () => boolean;
+    }) => {
       assertOnlineWrite();
       let requestValues: PlanningCreateValues =
         kind === 'wish' ? { title: values.title, tags: values.tags } : values;
@@ -178,30 +206,55 @@ export function PlanningCreatePage({
         spaceId,
         values: requestValues,
       };
-      return submitCreateRequest<
-        PlanningCreateSnapshot,
-        PlanDetail | WishDetail
-      >({
-        previousAttempt: createAttemptRef.current,
-        snapshot,
-        rememberAttempt: (attempt) => {
-          createAttemptRef.current = attempt;
-        },
-        request: (idempotencyKey) =>
-          kind === 'wish'
-            ? apis.wishes.createWish({
-                spaceId,
-                wishCreate: { title: values.title, tags: values.tags },
-                idempotencyKey,
-              })
-            : apis.plans.createPlan({
-                spaceId,
-                planCreate: requestValues,
-                idempotencyKey,
-              }),
-      });
+      const created =
+        confirmedParent.current ??
+        (await submitCreateRequest<
+          PlanningCreateSnapshot,
+          PlanDetail | WishDetail
+        >({
+          previousAttempt: createAttemptRef.current,
+          snapshot,
+          rememberAttempt: (attempt) => {
+            createAttemptRef.current = attempt;
+          },
+          request: (idempotencyKey) =>
+            kind === 'wish'
+              ? apis.wishes.createWish({
+                  spaceId,
+                  wishCreate: { title: values.title, tags: values.tags },
+                  idempotencyKey,
+                })
+              : apis.plans.createPlan({
+                  spaceId,
+                  planCreate: requestValues,
+                  idempotencyKey,
+                }),
+        }));
+      if (!owns()) throw new Error('Planning task ownership changed');
+      confirmedParent.current = created;
+      setParentSaved(true);
+      queryClient.setQueryData(
+        kind === 'plan'
+          ? authorSummaryQueryKeys.planDetail(spaceId, created.id)
+          : authorSummaryQueryKeys.wishDetail(spaceId, created.id),
+        created,
+      );
+      if (kind === 'plan')
+        for (const collectionId of collectionIds) {
+          if (!owns()) throw new Error('Planning task ownership changed');
+          assertOnlineWrite();
+          await apiCall(() =>
+            apis.plans.linkPlanCollection({
+              spaceId,
+              planId: created.id,
+              collectionId,
+            }),
+          );
+        }
+      return created;
     },
-    onSuccess: async (created) => {
+    onSuccess: async (created, intent) => {
+      if (!intent.owns()) return;
       await queryClient.invalidateQueries({
         queryKey: ['context-tags', spaceId],
       });
@@ -216,6 +269,7 @@ export function PlanningCreatePage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      if (!intent.owns()) return;
       closeTask(() => {
         navigate(
           kind === 'plan'
@@ -228,7 +282,8 @@ export function PlanningCreatePage({
         );
       });
     },
-    onError: (error) => {
+    onError: (error, intent) => {
+      if (!intent.owns()) return;
       setPending(false);
       setProblem(error as ClientProblemError);
     },
@@ -239,6 +294,7 @@ export function PlanningCreatePage({
     if (
       pending ||
       placePending ||
+      collectionPending ||
       !title.trim() ||
       photos.hasPending ||
       photos.hasFailed ||
@@ -263,12 +319,18 @@ export function PlanningCreatePage({
     setProblem(null);
     setPending(true);
     createMutation.mutate({
-      title: title.trim(),
-      tags: committedTags,
-      description:
-        kind === 'plan' && description.trim() ? description.trim() : undefined,
-      placeId: kind === 'plan' && placeId ? placeId : undefined,
-      schedule,
+      values: {
+        title: title.trim(),
+        tags: committedTags,
+        description:
+          kind === 'plan' && description.trim()
+            ? description.trim()
+            : undefined,
+        placeId: kind === 'plan' && placeId ? placeId : undefined,
+        schedule,
+      },
+      collectionIds: lists.map((list) => list.id),
+      owns: capture(),
     });
   }
 
@@ -294,7 +356,7 @@ export function PlanningCreatePage({
 
       <form className="planning-intention-form" onSubmit={submit}>
         <fieldset
-          disabled={pending}
+          disabled={pending || parentSaved}
           onChange={(event) => {
             if (
               !(
@@ -383,6 +445,31 @@ export function PlanningCreatePage({
             onDraftChange={() => setEnrichmentDirty(true)}
           />
           {isPlan ? (
+            <section
+              className="plan-collection-links"
+              aria-label={t('m5s3.collection.planHeading')}
+            >
+              {lists.length ? (
+                <ul className="plan-collection-draft">
+                  {lists.map((list) => (
+                    <li key={list.id}>{list.title}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <CollectionChoicePicker
+                apis={apis}
+                spaceId={spaceId}
+                value={lists}
+                disabled={pending || parentSaved}
+                onChoose={(selected) => {
+                  setLists(selected);
+                  setEnrichmentDirty(true);
+                }}
+                onPendingChange={setCollectionPending}
+              />
+            </section>
+          ) : null}
+          {isPlan ? (
             <details className="planning-optional-details">
               <summary>{t('m5s3.plan.addDetails')}</summary>
               <div className="planning-optional-fields eimir-motion-disclosure">
@@ -409,10 +496,18 @@ export function PlanningCreatePage({
           <button
             type="submit"
             disabled={
-              pending || !title.trim() || photos.hasPending || photos.hasFailed
+              pending ||
+              collectionPending ||
+              !title.trim() ||
+              photos.hasPending ||
+              photos.hasFailed
             }
           >
-            {pending ? t('m5s3.common.saving') : t('m5s3.common.save')}
+            {pending
+              ? t('m5s3.common.saving')
+              : parentSaved
+                ? t('common.retry')
+                : t('m5s3.common.save')}
           </button>
         </div>
       </form>
@@ -428,6 +523,9 @@ export function PlanningCreatePage({
         </p>
       ) : null}
       {problem ? <ProblemState error={problem} /> : null}
+      {parentSaved && problem ? (
+        <p role="status">{t('m5s3.collection.planSavedLinkFailed')}</p>
+      ) : null}
 
       <ShortTaskSheet
         ref={placeSheet}

@@ -447,7 +447,7 @@
   background: var(--color-surface-subtle);
   box-shadow: var(--shadow-card);
   transform-origin: 50% 80%;
-  transition: transform var(--duration-context) var(--easing-enter);
+  transition: transform var(--duration-map-stack) var(--easing-enter);
 }
 .memory-map-stack-photo[data-slot="0"] {
   z-index: 3;

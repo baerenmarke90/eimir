@@ -22,6 +22,7 @@ import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
+import { bindVideoTransferTargets } from '../client/backgroundVideoUploads';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { isGalleryAttachment } from '../client/galleryMedia';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
@@ -405,6 +406,11 @@ export function MemoryProductPage({
           queryClient,
           updated.spaceId,
           updated.attachments,
+        );
+        await bindVideoTransferTargets(
+          spaceId,
+          { targetType: 'MEMORY', targetId: updated.id },
+          updated.attachments.map((item) => item.id),
         );
         return updated;
       } catch (error) {

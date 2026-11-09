@@ -685,7 +685,8 @@
       "linksHeading": "Moments for this Plan",
       "plansHeading": "Linked Plans",
       "addPlan": "Link a Plan",
-      "noPlans": "There are no matching Plans yet."
+      "noPlans": "There are no matching Plans yet.",
+      "readHeading": "Keep this day"
     },
     "map": {
       "open": "Choose a place on the map",
@@ -881,7 +882,8 @@
       "link": "Link selection",
       "unlink": "Remove the link to “{{title}}”",
       "noChoices": "All existing lists are already linked.",
-      "createNew": "Create a new list"
+      "createNew": "Create a new list",
+      "planSavedLinkFailed": "Your plan is saved. The lists could not be linked yet. Please try again."
     }
   },
   "m5s5": {
@@ -1657,7 +1659,7 @@
     "notePlaceholder": "What would you like to remember?"
   },
   "importantDates": {
-    "heading": "Special days",
+    "heading": "Occasions",
     "intro": "Capture birthdays, anniversaries and other special days together or just for yourself.",
     "createTitle": "Special date",
     "editTitle": "Change special day",
@@ -1713,7 +1715,8 @@
     "visibility": {
       "SHARED": "For both of us",
       "PRIVATE": "Only for me"
-    }
+    },
+    "relationshipAnniversary": "Your anniversary"
   },
   "privateArea": {
     "eyebrow": "For me",

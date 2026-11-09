@@ -112,6 +112,10 @@ bounded decoder rejects. Native fixture preparation now encodes real Main 10 /
 level 3.1 variants using CRF 0 with explicit VBV constraints. The lossless backend
 references remain unchanged. All three native variants retain actual HLG/PQ and
 BT.2020 metadata; generation checks those fields and the declared profile/level.
+FFprobe 8 also emits an empty `side_data_list` for an explicitly mastered stream
+even when only stream fields are requested. The generator compares every required
+field explicitly, preserving the same six exact requirements across FFprobe
+versions while permitting unrelated probe output.
 Across all 12 frames, all 96 luminance sample centers per fixture are identical
 to the original reference; the largest difference anywhere is 2/1023. The native
 test additionally verifies the input's actual HDR transfer before retaining all

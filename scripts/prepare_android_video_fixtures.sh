@@ -32,9 +32,11 @@ for name, transfer in (('hlg-highlight-steps.mp4', 'arib-std-b67'),
         'stream=profile,level,pix_fmt,color_transfer,color_primaries,color_space',
         '-of', 'json', str(Path(sys.argv[1]) / name),
     ]))['streams'][0]
-    if probe != dict(profile='Main 10', level=93, pix_fmt='yuv420p10le',
-                     color_transfer=transfer, color_primaries='bt2020', color_space='bt2020nc'):
-        raise SystemExit('Native HDR fixtures must retain HDR in a conformant Main 10 stream.')
+    expected = dict(profile='Main 10', level=93, pix_fmt='yuv420p10le',
+                    color_transfer=transfer, color_primaries='bt2020', color_space='bt2020nc')
+    actual = {key: probe.get(key) for key in expected}
+    if actual != expected:
+        raise SystemExit(f'{name}: native HDR requires a conformant Main 10 stream; got {actual!r}.')
 PY
 ffmpeg -hide_banner -loglevel error -nostdin -y -filter_threads 1 \
   -f lavfi -i 'testsrc2=size=2560x1440:rate=30:duration=1' \

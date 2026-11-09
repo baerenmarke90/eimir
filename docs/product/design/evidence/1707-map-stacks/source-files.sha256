@@ -1,6 +1,6 @@
 ace7dcba0977655507fbb954f9841e3d9e762425364c44ea003ec45ddd1e9ea5  web/e2e/test-groups.json
 82fc31041264b63238e9194c98fa021ecf94b6e6748f0639a9429944f22ad1b0  web/e2e/test-impact.json
-9c6eeee0ddfa38c18e39d461e25a5bea012709888190458785d461a7e68315eb  web/e2e/tests/map-place-stacks.spec.ts
+f8076e021f425e6a7b0ec57e6452fdd5439b7f06c70e47776677a409f1512b85  web/e2e/tests/map-place-stacks.spec.ts
 346174f611f71111852974625dc8aa955ceff02f83e6a4b9e3a5aa72b1afc68b  web/e2e/tests/memory-map-and-couple-games.spec.ts
 946fcec3f46d13193ed6ad0df528a616eb930c4b317c16bb2cafd554416e8748  web/src/client/cssDuration.ts
 aec599bbdcc9656c6daa3016d93b2e4b38f421aa16f444495e6c6bbdfeefcbdc  web/src/client/taskOrigin.test.tsx

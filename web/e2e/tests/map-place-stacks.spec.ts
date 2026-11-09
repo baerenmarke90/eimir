@@ -24,13 +24,13 @@ const visits = [
   {
     ...base,
     memoryId: 'visit-evening',
-    title: 'Ein Abend am See',
+    title: 'Evening by the lake',
     previewAttachmentId: 'att-map-evening',
   },
   {
     ...base,
     memoryId: 'visit-walk',
-    title: 'Unser Spaziergang',
+    title: 'Our walk',
     happenedOn: '2026-08-10',
     previewAttachmentId: 'att-map-walk',
   },
@@ -44,13 +44,13 @@ const visits = [
   {
     ...base,
     memoryId: 'visit-thought',
-    title: 'Ein Gedanke für uns',
+    title: 'A thought for us',
     happenedOn: '2026-04-08',
   },
   {
     ...base,
     memoryId: 'visit-sensitive',
-    title: 'Unser geschützter Moment',
+    title: 'Our private moment',
     previewAttachmentId: 'att-map-sensitive',
     previewIsSensitive: true,
   },
@@ -91,7 +91,7 @@ async function installMap(page: Page) {
           {
             ...base,
             memoryId: 'visit-city',
-            title: 'In der Stadt',
+            title: 'In the city',
             placeId: 'city',
             placeName: 'Trier',
             latitude: 49.756,
@@ -256,7 +256,7 @@ for (const [width, theme, motion] of [
     await expect(page.locator('.memory-map-strip > li')).toHaveCount(5);
     await expect(
       page.locator('.memory-map-strip [aria-current="true"]'),
-    ).toContainText('Ein Abend am See');
+    ).toContainText('Evening by the lake');
     await captureScreenshot(
       page,
       info,
@@ -310,7 +310,7 @@ for (const [width, theme, motion] of [
     if (width === 360 || width === 390) {
       await swipeNext(page, track);
       await expect(track.locator('[aria-current="true"]')).toContainText(
-        'Unser Spaziergang',
+        'Our walk',
       );
       await expect(fullscreen).toBeVisible();
       await expect(page).toHaveURL(
@@ -320,12 +320,12 @@ for (const [width, theme, motion] of [
         .getByRole('button', { name: mapCopy.previousMemory })
         .click();
       await expect(track.locator('[aria-current="true"]')).toContainText(
-        'Ein Abend am See',
+        'Evening by the lake',
       );
     }
     await fullscreen.getByRole('button', { name: mapCopy.nextMemory }).click();
     await expect(track.locator('[aria-current="true"]')).toContainText(
-      'Unser Spaziergang',
+      'Our walk',
     );
     await fullscreen.getByRole('button', { name: mapCopy.nextMemory }).click();
     await expect(track.locator('[aria-current="true"]')).toContainText(

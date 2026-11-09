@@ -41,7 +41,7 @@ button. Selecting a place inside fullscreen keeps that surface open.
 | Browser impact planner tests | 17 passed |
 | Browser inventory | 104 spec files; 1,171 tests collected by Playwright |
 | Web lint / formatting / types / build / token, legal, locale and PWA checks | Passed; lint reports existing repository warnings/information |
-| Product Design review body and diff whitespace checks | Passed |
+| English engineering-language audit, Product Design review body and diff whitespace checks | Passed |
 
 The retained screenshots and recording come from the final five-case run.
 [Source hashes](source-files.sha256) identify the tested implementation and test
@@ -67,3 +67,9 @@ weakened assertion was added for either automation behavior.
 Real-device Product Owner acceptance and live map-provider availability remain
 separate from this browser/visual evidence. This Web change adds no native
 Android UI, APK, deployment, provider, dependency or entitlement change.
+
+The first CI attempt identified German authored-content fixtures in the new
+browser spec. Those synthetic titles now use English as required for engineering
+fixtures; localized product labels remain in the locale registry. The five-case
+browser matrix and captures were regenerated after that correction. No CI job
+was rerun to conceal a deterministic failure.

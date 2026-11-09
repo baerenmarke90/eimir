@@ -6,60 +6,52 @@ not depend on a live processor or a current Pro grant.
 
 ## Runtime contract
 
-Accept MP4/MOV with one H.264 or HEVC video stream, 8/10-bit 4:2:0,
-4:2:2 or 4:4:4, SDR or HLG/PQ HDR, and optional AAC, MP3 or common MOV PCM
-audio. The input bounds remain 180 seconds, 250 MiB and 3840×2160 (either
-orientation). Non-media metadata tracks and attached cover images are excluded
-from the selected media; multiple primary videos/audio tracks remain unsupported.
+The app owns video preparation before upload admission (#1713). Selected MP4/MOV
+inputs remain bounded to 180 seconds, 250 MiB and 3840×2160 in either orientation.
+Android uses AndroidX Media3 and platform codecs to prepare H.264/AAC SDR MP4,
+without upscaling, cropping or losing orientation/sound. The 1080p target is
+10 Mbit/s VBR (proportional at lower resolution, floor 1.5 Mbit/s), at most
+30 fps when encoding. Compatible lower-bitrate videos remain untouched locally.
+HDR is explicitly tone-mapped with Media3's OpenGL HDR-to-SDR path, supported
+from API 29. Platform media-editing diagnostics are disabled.
 
-The single shared Memory/HeartMoment processor keeps compatible SDR 8-bit
-4:2:0 H.264 and AAC streams **only within 1920×1080 (either orientation)**
-without lossy re-encoding. Larger compatible streams and other accepted video
-streams are normalized with the pinned OpenH264 encoder to even-dimension,
-aspect/orientation-preserving H.264, at most 1920×1080 (either orientation),
-30 fps and quality-oriented variable bitrate: 8 Mbit/s target, 10 Mbit/s encoder
-peak setting, a 16 Mbit buffer, QP 18–32 and frame skipping disabled. Lanczos
-resizing uses accurate rounding. Existing output byte/gallery limits remain
-authoritative. MP3/PCM audio is converted to AAC; existing AAC is preserved.
+The Web worker reuses Mediabunny/WebCodecs for supported SDR conversion and
+verifies its output's duration, codecs, dimensions and audio presence. HDR is
+rejected visibly in the browser rather than using device-dependent canvas
+relabeling. Unavailable codecs, unsupported HDR devices, conversion errors,
+timeouts and cancellation never upload an incompatible original. Selection stays
+available for retry/reselection. No software codec, remote converter or new
+user configuration is introduced.
 
-HLG/PQ is linearized, gamut-converted and tone-mapped using zimg and FFmpeg,
-then encoded as dithered SDR BT.709. Resolve MaxCLL/mastering luminance from
-the selected stream and its first decoded frame before changing the transfer;
-missing or unusable metadata uses the source-specific 10,000-nit PQ or
-1,000-nit HLG reference. After conversion to linear BT.709 RGB, `setparams`
-supplies the BT.709 luminance matrix to `tonemap`. The pinned FFmpeg otherwise
-uses RGB's unweighted (1,1,1) coefficients for highlight desaturation, which
-brightens even neutral highlights and clips their detail. Reinhard tone mapping
-with parameter 0.5 keeps highlight headroom without Hable's excessive midtone
-darkening on the known-color fixture. The matrix assignment supplies luminance
-weights after actual gamut conversion; it does not relabel encoded HDR as SDR.
-The HDR base layer is supported; this is not a promise to retain proprietary
-dynamic-HDR enhancement metadata.
+Only after preparation does the client reserve the **actual** prepared MIME and
+byte count. Android hands its opaque private prepared file to the existing
+background transfer without serializing video bytes through JavaScript/Base64.
+The shared server worker accepts prepared 8-bit 4:2:0 H.264 SDR and optional AAC,
+at most 1920×1080 in either orientation. It **never encodes video or audio**.
+It rejects unprepared HEVC, HDR, high-bit-depth, non-AAC or oversized-resolution
+input instead of silently starting server compression.
 
-The [#1710 quality evidence](video-quality-1710.md) records decoded-pixel and
-moving-detail regressions. Rebuild the optional media image with the backend
-revision: it now enables FFmpeg's existing `setparams` filter. No operator
-setting or client-side encoding is required. These corrections apply to new
-processing; sanitized historical outputs cannot recover discarded highlights
-or detail without a fresh upload of the original.
+Server work is limited to lossless selected-stream remux, metadata/chapter/SEI
+removal, fast-start MP4, strict output validation and complete decoding. Decoded
+video pixels and AAC packets must remain unchanged. A rewritten JPEG poster is
+generated when possible; poster failure does not invalidate a verified video.
+Existing isolation, memory/deadline/byte/gallery fences, authorization and cleanup
+remain. Clients are untrusted; no raw upload ever becomes a playback fallback.
+Plans, avatars and related-person photos remain image-only.
 
-Both paths remove container/stream metadata, chapters and H.264 SEI, produce
-fast-start MP4, revalidate the strict H.264/AAC SDR output contract and duration,
-and decode the entire sanitized output. Conversion drops frame side data. A
-rewritten JPEG poster is generated when possible; a missing poster does not
-invalidate an independently validated video. Originals are never retained as an
-unvalidated playback fallback. DRM, additional containers/codecs, adaptive
-streaming and external media URLs remain unsupported. Plans, avatars and
-related-person photos retain image-only intake.
-
-The input format boundary from #1649 remains authoritative. #1701 applies the
-1080p output ceiling to both processing paths. Browser codec support is not
-required. No extra provider or couple-facing infrastructure setting is introduced.
+Deploy updated clients with the backend/media worker. Old clients can still send
+already compatible videos, but incompatible originals now fail validation rather
+than being compressed on the server. No schema/migration/configuration change is
+introduced. Historical lossy outputs cannot regain detail without original
+reupload. The dated [#1710 server-quality measurements](video-quality-1710.md)
+remain historical evidence for that superseded server encoding policy.
+See [device preparation and validation](on-device-video-preparation.md).
 
 ### Upload and background completion (#1655, #1701)
 
-Capture transfers selected originals directly; it does not invoke optional local
-compression. Images still wait for READY. An admitted VIDEO reservation is
+Capture prepares videos locally before admission; compatible originals may stay
+lossless. The editor shows its existing preparing state during that bounded work.
+Once admission is complete, the existing early-save/background contract applies. Images still wait for READY. An admitted VIDEO reservation is
 bindable while PENDING/UPLOADING, so Memory and HeartMoment can save and show
 an ordered placeholder before any video byte arrives. Only server-validated
 READY output receives read/playback access. Canonical parent reads refresh
@@ -103,8 +95,9 @@ API, general worker and optional media worker must deploy the same revision,
 including migration 0111. The existing bounded processor remains optional for
 Self-Hosted and uses the same resource limits in Cloud.
 
-The old local compression utility remains exercised by its diagnostic fixture;
-normal capture does not invoke it or rely on browser encoding support.
+The shared Memory/HeartMoment draft uploader now invokes local preparation.
+A verified compatible browser original does not require an encoder; conversion
+does. No failed optimization silently falls back to unprepared original bytes.
 
 The production CSP permits compiled same-origin workers; remote/blob workers,
 inline scripts and eval remain disallowed. This does not enable a new service
@@ -137,8 +130,11 @@ Activity/renderer disposal closes every lease, fences in-flight adoption and
 invalidates opaque provider URIs. No selected source URI or descriptor is
 persisted or logged; process death naturally removes all leases.
 
-After video upload admission, Android stages the selected descriptor into private
-no-backup app storage before the editor releases its selection. Files are capped
+Before video upload admission, Android stages the selected descriptor into private
+no-backup app storage before the editor releases its selection. It uses the same
+encrypted record and opaque file lifecycle for preparation, atomically adopts
+that file into the confirmed Attachment transfer, and reserves one output-file
+budget while encoding. An extra prepared file is never copied through the bridge. Files are capped
 at 250 MiB, twenty active files and 500 MiB total; encrypted job records contain
 only opaque ownership/Attachment identity, instance and progress, not parent
 content, filenames or credentials. Completion, explicit removal and logout purge

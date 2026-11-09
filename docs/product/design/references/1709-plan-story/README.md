@@ -93,3 +93,29 @@ policy. Keep existing localized copy, semantic link targets and focus return.
 Tests must prove cross-Space/private denial, reverse reads, cursor isolation,
 partial failure, privacy cleanup and transfer roundtrip as well as the complete
 browser read/Edit/capture/result/return journey. No native wrapper changes.
+
+## Implementation and validation evidence
+
+The feature-owned final Plan suite passes all 17 cases. The combined final
+Plan/gallery/video/browser run passes 62 cases across six complete specs
+(1.4 minutes, two local Chromium workers). A preceding four-spec planning
+regression run also passed 62 cases, including completion, comments, canonical
+references and return context. These are separate measured selections, not a
+new always-run core.
+
+[Actual screenshots and hashes](evidence/manifest.json) cover completed Plan
+context and shared HeartMoment backlinks at 360/390/430/1280/320px in Light/Dark.
+The section heading remains outside the existing linked-entry surfaces; no
+additional outer card is introduced. Existing list Edit/read/empty and 200%
+text evidence remains under `../1705-plan-lists/edit-boundary-evidence/`.
+
+Browser assertions cover all three source types, retry after a failed saved
+HeartMoment association, Milestone association/removal, existing Memory links,
+private capture exclusion, cursor continuation past an empty projection page,
+no horizontal overflow, axe, focus return and dirty Plan navigation protection.
+An offline component regression confirms an honest paused read without an API
+call. PostgreSQL tests cover same-Space authorization, cursor isolation,
+idempotency, private transition/no restoration, independent Plan/source deletion
+and remapped transfer. Migration 0119 upgraded the isolated PostgreSQL 18 test
+instance and Alembic reported no model/schema drift. Full version-bound CI is
+recorded on PR #1709; local Python is supported CPython 3.13.7.

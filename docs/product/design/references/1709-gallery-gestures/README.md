@@ -67,3 +67,24 @@ index stay stable during zoom/pan. Include one/multiple images, sensitive
 conceal/reveal, videos, mouse/keyboard, cleanup, themes, reduced motion, reflow
 and accessibility. Add feature-owned browser coverage and mapping without
 expanding global always-run coverage or weakening existing assertions.
+
+## Actual result and verification
+
+[Runtime screenshots and SHA-256 manifest](evidence/manifest.json) show photo-local
+pinch/pan at 360/390/430/1280/320px in Light/Dark. All five real Chromium CDP
+multi-touch cases pass: two-finger enlargement, one-finger pan, unchanged route,
+document scale/scroll and carousel index, double tap, Fit, native photo swipe,
+keyboard pan, close and focus return. The separate single-photo case verifies
+mouse wheel/drag, zoom-out and keyboard alternatives, Back and reset on reopen.
+The complete six-spec affected-product run passes 62 cases in 1.4 minutes,
+including prior large-text views, sensitive image conceal/reveal, native video
+controls and authorized-media return. Tests did not increase retries/timeouts.
+
+The touch tests caught a real conflict: containing overscroll while at fit size
+blocked native photo browsing. Containment now applies only while enlarged.
+Explicit ESM package import also preserves the same runtime API in browser and
+Node tests; its exact declaration reuses the package's published API types.
+The focusable image canvas follows the existing interactive-map pattern and
+provides localized keyboard help; a scoped lint rationale preserves that
+keyboard access rather than removing the focus target. No native device/APK
+run or publication is claimed by this browser evidence.

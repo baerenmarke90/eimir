@@ -859,6 +859,7 @@
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/SharedPhotosPage.tsx",
         "web/src/components/MediaGallery.tsx",
+        "web/src/components/ZoomablePhoto.tsx",
         "web/src/components/DeviceMediaPicker.tsx",
         "web/src/components/PhotoDraftGallery.tsx",
         "web/src/App.tsx",
@@ -942,7 +943,10 @@
         "web/src/components/PlanStoryContinuation.tsx",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/MemoryProductPage.tsx",
-        "web/src/components/HeartMomentProductPage.tsx"
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanStoryLinks.tsx",
+        "web/src/components/StoryPlanningLinks.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
       ]
     },
     "map-place-stacks.spec.ts": {

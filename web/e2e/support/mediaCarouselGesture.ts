@@ -12,13 +12,18 @@ export async function nextFrame(page: Page): Promise<void> {
 export async function swipeCarousel(
   page: Page,
   direction: 'previous' | 'next',
+  surface: 'inline' | 'lightbox' = 'inline',
 ): Promise<{
   startScrollLeft: number;
   midScrollLeft: number;
   viewportWidth: number;
   visibleSlides: number;
 }> {
-  const track = page.locator('.media-gallery-carousel-track');
+  const track = page.locator(
+    surface === 'inline'
+      ? '.media-gallery-carousel-track'
+      : '.media-lightbox-track',
+  );
   const box = await track.boundingBox();
   if (!box) throw new Error('Carousel track did not render.');
 
@@ -45,7 +50,9 @@ export async function swipeCarousel(
     const midState = await track.evaluate((element) => {
       const viewport = element.getBoundingClientRect();
       const visibleSlides = Array.from(
-        element.querySelectorAll<HTMLElement>('.media-gallery-carousel-slide'),
+        element.querySelectorAll<HTMLElement>(
+          '[data-carousel-index], [data-lightbox-index]',
+        ),
       ).filter((slide) => {
         const rect = slide.getBoundingClientRect();
         return rect.right > viewport.left + 1 && rect.left < viewport.right - 1;

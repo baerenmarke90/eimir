@@ -13,12 +13,14 @@ export function usePlanCaptureSource({
   spaceId,
   accountId,
   enabled = true,
+  loadPlace = true,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
   accountId: string;
   enabled?: boolean;
+  loadPlace?: boolean;
 }) {
   const location = useLocation();
   const candidate = (
@@ -75,7 +77,7 @@ export function usePlanCaptureSource({
     sourcePlan.data?.spaceId === spaceId &&
     sourcePlan.data.status === 'COMPLETED' &&
     sourcePlan.data.capabilities.canEdit;
-  const placeId = eligible ? sourcePlan.data?.placeId : null;
+  const placeId = eligible && loadPlace ? sourcePlan.data?.placeId : null;
   const sourcePlace = useQuery({
     queryKey: [
       'plan-capture-place',
@@ -98,6 +100,7 @@ export function usePlanCaptureSource({
   });
   return {
     sourcePlanId,
+    eligibleSourcePlanId: eligible ? sourcePlanId : null,
     sourcePlan,
     sourcePlace,
     loading: Boolean(

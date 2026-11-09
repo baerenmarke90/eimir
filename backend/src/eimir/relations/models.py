@@ -91,6 +91,49 @@ class MemoryWish(_RelationAuditColumns, Base):
     )
 
 
+class HeartMomentPlan(_RelationAuditColumns, Base):
+    """Only shared HeartMoments can contribute to a shared Plan's context."""
+
+    __tablename__ = "heart_moment_plans"
+    heart_moment_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    source_privacy_class: Mapped[str] = mapped_column(
+        privacy_class_type(), nullable=False, default=PrivacyClass.SPACE_SHARED.value
+    )
+    __table_args__ = (
+        CheckConstraint("source_privacy_class = 'SPACE_SHARED'", name="relation_source_is_shared"),
+        ForeignKeyConstraint(
+            ["heart_moment_id", "space_id", "source_privacy_class"],
+            ["heart_moments.id", "heart_moments.space_id", "heart_moments.privacy_class"],
+            ondelete="CASCADE",
+            onupdate="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_heart_moment_plans_plan_id", "plan_id"),
+        Index("ix_heart_moment_plans_space_id", "space_id"),
+    )
+
+
+class MilestonePlan(_RelationAuditColumns, Base):
+    __tablename__ = "milestone_plans"
+    milestone_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["milestone_id", "space_id"],
+            ["milestones.id", "milestones.space_id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_milestone_plans_plan_id", "plan_id"),
+        Index("ix_milestone_plans_space_id", "space_id"),
+    )
+
+
 class PlanCollection(_RelationAuditColumns, Base):
     """Independent shared lists referenced by one or more Plans."""
 

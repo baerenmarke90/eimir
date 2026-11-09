@@ -44,12 +44,14 @@ export function PlanCollectionLinks({
   plan,
   disabled,
   editing = false,
+  onNavigate,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
   disabled: boolean;
   editing?: boolean;
+  onNavigate?: (destination: () => void) => void;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -185,6 +187,19 @@ export function PlanCollectionLinks({
     });
   }
   const pending = disabled || mutation.isPending;
+  function openDestination(path: string) {
+    const follow = () =>
+      void navigate(path, {
+        state: {
+          taskOriginKey: captureOrigin({
+            selectedKey: plan.id,
+            planningSegment: 'plans',
+          }),
+        },
+      });
+    if (onNavigate) onNavigate(follow);
+    else follow();
+  }
   if (!canManage && !linked.isPending && !linked.error && !lists.length)
     return null;
   return (
@@ -221,14 +236,7 @@ export function PlanCollectionLinks({
                 )
                   return;
                 event.preventDefault();
-                void navigate(collectionDetailPath(list.id), {
-                  state: {
-                    taskOriginKey: captureOrigin({
-                      selectedKey: plan.id,
-                      planningSegment: 'plans',
-                    }),
-                  },
-                });
+                openDestination(collectionDetailPath(list.id));
               }}
             >
               <span className="content-overview-icon">
@@ -351,14 +359,8 @@ export function PlanCollectionLinks({
             label={t('m5s3.collection.createNew')}
             disabled={mutation.isPending}
             onClick={() => {
-              const taskOriginKey = captureOrigin({
-                selectedKey: plan.id,
-                planningSegment: 'plans',
-              });
               sheet.current?.closeForNavigation(() =>
-                navigate(`${MORE_COLLECTIONS_ROUTE}/new`, {
-                  state: { taskOriginKey },
-                }),
+                openDestination(`${MORE_COLLECTIONS_ROUTE}/new`),
               );
             }}
           />

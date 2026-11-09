@@ -64,6 +64,7 @@ import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
+import { PlanStoryLinks } from './PlanStoryLinks';
 import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
@@ -613,6 +614,7 @@ export function PlanProductPage({
               plan={plan}
               editing
               disabled={writesPending || !online}
+              onNavigate={editorLifecycle.requestClose}
             />
             <fieldset
               className="form-grid planning-editor-fields"
@@ -832,9 +834,22 @@ export function PlanProductPage({
               disabled={writesPending}
               onLinked={commitPlan}
             />
+            {plan.status === 'COMPLETED' ? (
+              <PlanStoryLinks
+                key={JSON.stringify([
+                  'story',
+                  apiBaseUrl,
+                  accountId,
+                  spaceId,
+                  plan.id,
+                ])}
+                apis={apis}
+                spaceId={spaceId}
+                planId={plan.id}
+              />
+            ) : null}
           </div>
         ) : null}
-
         <div hidden={isEditing} className="plan-discussion">
           <CommentsPanel
             key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}

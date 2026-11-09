@@ -211,4 +211,83 @@ describe('ComposerDateContext', () => {
     act(() => form.reset());
     expect(new FormData(form).get('happenedOn')).toBe('2026-11-09');
   });
+
+  it('refreshes untouched defaults like an uncontrolled native date input', () => {
+    const { rerender } = render(
+      <form id="refresh-date">
+        <ComposerDateContext
+          idPrefix="refresh-input"
+          label="Date"
+          defaultValue="2026-11-09"
+          defaultEndValue="2026-11-10"
+          allowRange
+        />
+      </form>,
+    );
+    rerender(
+      <form id="refresh-date">
+        <ComposerDateContext
+          idPrefix="refresh-input"
+          label="Date"
+          defaultValue="2026-11-10"
+          defaultEndValue="2026-11-11"
+          allowRange
+        />
+      </form>,
+    );
+    const data = new FormData(
+      document.getElementById('refresh-date') as HTMLFormElement,
+    );
+    expect(data.get('happenedOn')).toBe('2026-11-10');
+    expect(data.get('happenedUntil')).toBe('2026-11-11');
+  });
+
+  it('preserves unsaved dates across remote default refreshes and resets deliberately to the latest defaults', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <form id="refresh-dirty-date">
+        <ComposerDateContext
+          idPrefix="refresh-dirty-input"
+          label="Date"
+          defaultValue="2026-11-09"
+          defaultEndValue="2026-11-10"
+          allowRange
+        />
+      </form>,
+    );
+    const form = document.getElementById(
+      'refresh-dirty-date',
+    ) as HTMLFormElement;
+    await user.click(screen.getByRole('button', { name: /^Date:/ }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(
+      within(dialog).getByLabelText('Date', { selector: 'input' }),
+      { target: { value: '2026-11-12' } },
+    );
+    fireEvent.change(within(dialog).getByLabelText(experiences.through), {
+      target: { value: '2026-11-14' },
+    });
+    await user.click(
+      within(dialog).getByRole('button', { name: experiences.finish }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    rerender(
+      <form id="refresh-dirty-date">
+        <ComposerDateContext
+          idPrefix="refresh-dirty-input"
+          label="Date"
+          defaultValue="2026-11-10"
+          defaultEndValue="2026-11-11"
+          allowRange
+        />
+      </form>,
+    );
+    expect(new FormData(form).get('happenedOn')).toBe('2026-11-12');
+    expect(new FormData(form).get('happenedUntil')).toBe('2026-11-14');
+
+    act(() => form.reset());
+    expect(new FormData(form).get('happenedOn')).toBe('2026-11-10');
+    expect(new FormData(form).get('happenedUntil')).toBe('2026-11-11');
+  });
 });

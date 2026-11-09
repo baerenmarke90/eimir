@@ -8,12 +8,12 @@ deployed-product acceptance is claimed.
 ## Revision and reproducibility
 
 The production source was frozen after local commit
-`4cdd925c4f66c5bd1df215d91ffd737a096979b7`; subsequent changes only migrate browser
-tests and add this evidence. The independent browser worktrees have identical
+`6707f11a7`; its final behavior-only correction preserves dirty local dates
+when refreshed defaults arrive. Subsequent changes only add evidence. The independent browser worktrees have identical
 tracked runtime source. SHA256 over sorted tracked `web/src` paths, excluding
 `.test.` and `.spec.`, with each UTF-8 path + NUL + file bytes + NUL:
 
-`45c71278590844efa9c68f3a6fce50966f7fca6f3f0ddfa16cbb6fc0f7c4fc61` (1,465 files).
+`069dc60e7038a44ead8e4c6b96447afdf97774d1469f65767b27312bdde62ba5` (1,465 files).
 
 Chromium ran against production builds with the repository Playwright fixtures.
 The local runner supplies the managed Chromium executable and isolated server
@@ -47,18 +47,25 @@ not the foreground photograph.
 
 ## Validation
 
-- Full Web unit suite: **2,851 passed**, zero failures, two existing skips.
+- Full Web unit suite: **2,853 passed**, zero failures, two existing skips.
   Focused coverage includes native external-submit association, date/range
   backing fields, invalid-field reveal/focus, schedule/reset/end-time
   persistence, pending exit guards, tag drafts and six-feeling/reset behavior.
-- Final-source browser runs: **103 functional cases**, **17 layout/disclosure
-  cases**, **19 supplementary R1 capture cases**, and the dedicated **all-six
-  feeling contract** passed. Six existing Heart reading/photo/privacy cases
-  also passed. These are targeted runs, not a claim that the complete hosted
-  browser inventory was run locally.
+  Two additional regressions preserve dirty dates across refreshed defaults
+  while untouched values and explicit native reset adopt the latest defaults.
+- Final-source browser runs: **17 layout/disclosure cases**, **19 supplementary
+  R1 capture cases**, the dedicated **all-six feeling contract** and six existing
+  Heart reading/photo/privacy cases passed. The preceding source also passed
+  **103 functional cases**; the only subsequent behavior change is the dirty-date
+  guard protected by two additional component regressions. These are targeted
+  runs, not a claim that the complete hosted browser inventory was run locally.
 - TypeScript, production build, semantic-token generation, legal/static locale
   and PWA checks, Capacitor foundation, lint/format and diff checks passed.
-  Existing lint warnings remain.
+  Existing lint warnings remain. One local full-suite attempt under simultaneous
+  browser/build load hit the unchanged pagination test’s 5-second budget; its
+  isolated owner suite passed 16/16 (the target took 1,068ms), then the full
+  suite was checked without concurrent browser/build load. No timeout or
+  assertion was changed.
 - Product-design classifier/review regressions: **33**; living-status checks:
   **12**; browser-planning regressions: **38** passed. The inventory remains
   **104 owned specs**; no protection, selection or assertion gate was weakened.

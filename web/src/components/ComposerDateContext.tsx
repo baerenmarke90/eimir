@@ -66,6 +66,8 @@ export function ComposerDateContext({
   const errorId = useId();
   const [localValue, setLocalValue] = useState(defaultValue);
   const [localEnd, setLocalEnd] = useState(defaultEndValue);
+  const localDateDirty = useRef(false);
+  const localEndDirty = useRef(false);
   const date = value ?? localValue;
   const through = allowRange ? (endValue ?? localEnd) : '';
   const [open, setOpen] = useState(false);
@@ -79,18 +81,22 @@ export function ComposerDateContext({
   const endBacking = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (value === undefined) setLocalValue(defaultValue);
+    if (value === undefined && !localDateDirty.current)
+      setLocalValue(defaultValue);
   }, [defaultValue, value]);
   useEffect(() => {
-    if (endValue === undefined) setLocalEnd(defaultEndValue);
+    if (endValue === undefined && !localEndDirty.current)
+      setLocalEnd(defaultEndValue);
   }, [defaultEndValue, endValue]);
 
   function changeDate(next: string) {
+    if (value === undefined) localDateDirty.current = true;
     setLocalValue(next);
     setLocalError('');
     onChange?.(next);
   }
   function changeEnd(next: string) {
+    if (endValue === undefined) localEndDirty.current = true;
     setLocalEnd(next);
     setLocalError('');
     onEndChange?.(next);
@@ -135,6 +141,8 @@ export function ComposerDateContext({
     const form = startBacking.current?.form;
     if (!form) return;
     const reset = () => {
+      localDateDirty.current = false;
+      localEndDirty.current = false;
       if (value === undefined) setLocalValue(defaultValue);
       if (endValue === undefined) setLocalEnd(defaultEndValue);
       setLocalError('');

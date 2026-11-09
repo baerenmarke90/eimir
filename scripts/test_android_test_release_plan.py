@@ -63,10 +63,10 @@ class PublicFixture:
 
     def sync_assets(self):
         self.release["assets"] = [
-            {"name": name, "size": len(content),
+            {"id": asset_id, "name": name, "size": len(content),
              "digest": "sha256:" + hashlib.sha256(content).hexdigest(),
              "browser_download_url": f"{DOWNLOAD}/{self.plan.tag}/{name}"}
-            for name, content in self.content.items()
+            for asset_id, (name, content) in enumerate(self.content.items(), 1)
         ]
 
     def read(self, url, limit):
@@ -75,50 +75,49 @@ class PublicFixture:
             return json.dumps([self.release]).encode()
         if url == API + "/tags/" + self.plan.tag:
             return json.dumps(self.release).encode()
-        prefix = f"{DOWNLOAD}/{self.plan.tag}/"
-        if not url.startswith(prefix):
+        asset_names = {f"{API}/assets/{asset['id']}": asset["name"] for asset in self.release["assets"]}
+        if url not in asset_names:
             raise AssertionError("Unexpected public request")
-        content = self.content[url[len(prefix):]]
+        content = self.content[asset_names[url]]
         assert len(content) <= limit
         return content
 
 
 class ReleasePlanTests(unittest.TestCase):
-    def test_public_asset_gateway_failure_uses_the_same_asset_download_variant(self):
-        url = f"{DOWNLOAD}/android-test-v0.2.0-test.57/SHA256SUMS"
-        for code in (502, 503, 504):
-            with self.subTest(code=code), patch("android_test_release_plan.urllib.request.urlopen") as open_url:
-                open_url.side_effect = [urllib.error.HTTPError(url, code, "Gateway failure", {}, None),
-                                        io.BytesIO(b"verified")]
-                self.assertEqual(fetch(url, 8), b"verified")
-                self.assertEqual([call.args[0].full_url for call in open_url.call_args_list],
-                                 [url, url + "?download=1"])
-                self.assertTrue(all(call.kwargs == {"timeout": 30} for call in open_url.call_args_list))
-
-    def test_gateway_download_variant_retains_size_and_attempt_bounds(self):
-        url = f"{DOWNLOAD}/android-test-v0.2.0-test.57/SHA256SUMS"
+    def test_public_asset_api_requests_bounded_binary_content_without_credentials(self):
+        url = f"{API}/assets/123"
         with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
-            open_url.side_effect = [urllib.error.HTTPError(url, 504, "Gateway failure", {}, None),
-                                    io.BytesIO(b"oversized")]
+            open_url.return_value = io.BytesIO(b"verified")
+            self.assertEqual(fetch(url, 8), b"verified")
+            request = open_url.call_args.args[0]
+            self.assertEqual(request.full_url, url)
+            self.assertEqual(request.headers["Accept"], "application/octet-stream")
+            self.assertEqual(request.headers["X-github-api-version"], "2022-11-28")
+            self.assertNotIn("Authorization", request.headers)
+            self.assertEqual(open_url.call_args.kwargs, {"timeout": 30})
+        with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+            open_url.return_value = io.BytesIO(b"oversized")
             with self.assertRaisesRegex(ValueError, "size bound"):
                 fetch(url, 3)
-            self.assertEqual(open_url.call_count, 2)
-        with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
-            open_url.side_effect = urllib.error.HTTPError(url, 504, "Gateway failure", {}, None)
-            with self.assertRaises(urllib.error.HTTPError):
-                fetch(url, 3)
-            self.assertEqual(open_url.call_count, 2)
 
-    def test_download_variant_does_not_retry_api_other_origins_or_denied_assets(self):
-        asset = f"{DOWNLOAD}/android-test-v0.2.0-test.57/SHA256SUMS"
-        for url, code in ((API + "?per_page=30", 504),
-                          ("https://elsewhere.invalid/SHA256SUMS", 504),
-                          (asset + "?download=1", 504), (asset, 403), (asset, 404)):
-            with self.subTest(url=url, code=code), patch("android_test_release_plan.urllib.request.urlopen") as open_url:
-                open_url.side_effect = urllib.error.HTTPError(url, code, "Unavailable", {}, None)
+    def test_catalog_requests_remain_json_and_transport_errors_are_not_hidden(self):
+        with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+            open_url.return_value = io.BytesIO(b"[]")
+            self.assertEqual(fetch(API + "?per_page=30", 8), b"[]")
+            self.assertNotIn("Accept", open_url.call_args.args[0].headers)
+        for code in (403, 404, 504):
+            with self.subTest(code=code), patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+                open_url.side_effect = urllib.error.HTTPError(API, code, "Unavailable", {}, None)
                 with self.assertRaises(urllib.error.HTTPError):
-                    fetch(url, 3)
+                    fetch(API, 8)
                 self.assertEqual(open_url.call_count, 1)
+
+    def test_public_asset_ids_must_be_positive_integers_from_the_release(self):
+        for asset_id in (None, True, 0, -1, "123", 1.5):
+            fixture = PublicFixture()
+            fixture.release["assets"][0]["id"] = asset_id
+            with self.subTest(asset_id=asset_id), self.assertRaisesRegex(ValueError, "asset ID"):
+                verify_once(fixture.plan, fixture.read)
 
     def test_valid_plan_produces_only_bounded_known_workflow_values(self):
         plan = validate_plan(plan_data())
@@ -172,7 +171,7 @@ class ReleasePlanTests(unittest.TestCase):
         self.assertFalse(admit(fixture.plan, fixture.read))
         self.assertEqual(set(fixture.calls), {
             API + "?per_page=30", API + "/tags/" + fixture.plan.tag,
-            *[f"{DOWNLOAD}/{fixture.plan.tag}/{name}" for name in fixture.content],
+            *[f"{API}/assets/{asset['id']}" for asset in fixture.release["assets"]],
         })
 
     def test_only_a_missing_tag_admits_new_signing(self):

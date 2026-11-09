@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.CancellationSignal;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -13,12 +14,60 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentHashMap;
 
 @CapacitorPlugin(name = "BackgroundMediaUploads", permissions = {
     @Permission(alias = "notifications", strings = {Manifest.permission.POST_NOTIFICATIONS})
 })
 public class BackgroundMediaUploadsPlugin extends Plugin {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private final ExecutorService preparation = Executors.newSingleThreadExecutor();
+    private final ConcurrentHashMap<String, CancellationSignal> preparations = new ConcurrentHashMap<>();
+    private static String preparationKey(PluginCall call) {
+        return call.getString("instance") + "|" + call.getString("accountId") + "|" + call.getString("spaceId") + "|" + call.getString("attachmentId");
+    }
+
+    @PluginMethod public void prepare(PluginCall call) {
+        String id = call.getString("attachmentId");
+        String key = preparationKey(call);
+        CancellationSignal cancellation = new CancellationSignal();
+        try {
+            BackgroundMediaTransfers.requireId(id);
+            BackgroundMediaTransfers.session(getContext(), call.getString("instance"), call.getString("accountId"), call.getString("spaceId"));
+            if (preparations.putIfAbsent(key, cancellation) != null) throw new IllegalArgumentException();
+        } catch (Exception invalid) { call.reject("Video preparation unavailable", "VIDEO_PREPARATION_UNAVAILABLE"); return; }
+        preparation.execute(() -> {
+            try {
+                BackgroundMediaTransfers.Record staged = BackgroundMediaTransfers.stage(getContext(), call.getString("instance"),
+                    call.getString("accountId"), call.getString("spaceId"), id, call.getString("sourceName"),
+                    call.getInt("size", 0), call.getString("mimeType"), cancellation);
+                BackgroundMediaTransfers.Record ready = NativeVideoPreparation.prepare(getContext(), staged, cancellation);
+                cancellation.throwIfCanceled();
+                String type = ready.value.getString("mimeType");
+                call.resolve(new JSObject().put("preparationId", id).put("size", ready.value.optLong("size"))
+                    .put("type", type).put("name", "video/quicktime".equals(type) ? "video.mov" : "video.mp4"));
+            } catch (Exception failure) {
+                try { BackgroundMediaTransfers.cancel(getContext(), id); } catch (Exception ignored) { /* Expiry remains bounded. */ }
+                call.reject("Video could not be prepared on this device", "VIDEO_PREPARATION_UNAVAILABLE");
+            } finally { preparations.remove(key, cancellation); }
+        });
+    }
+    @PluginMethod public void cancelPreparation(PluginCall call) {
+        io.execute(() -> {
+            try {
+                String id = call.getString("attachmentId");
+                BackgroundMediaTransfers.requireId(id);
+                CancellationSignal cancellation = preparations.get(preparationKey(call));
+                if (cancellation != null) cancellation.cancel();
+                // A revoked snapshot must not keep a queued, scoped preparation alive.
+                BackgroundMediaTransfers.session(getContext(), call.getString("instance"), call.getString("accountId"), call.getString("spaceId"));
+                // A request can still be queued, before its staging record exists.
+                try { BackgroundMediaTransfers.Record record = owned(call); BackgroundMediaTransfers.cancel(getContext(), record.id()); }
+                catch (java.io.FileNotFoundException absent) { /* The cancelled queued request cannot stage. */ }
+                call.resolve();
+            } catch (Exception failure) { call.reject("Video preparation could not be cancelled", "VIDEO_PREPARATION_UNAVAILABLE"); }
+        });
+    }
 
     @PluginMethod public void enqueue(PluginCall call) {
         if (Build.VERSION.SDK_INT >= 33
@@ -30,6 +79,10 @@ public class BackgroundMediaUploadsPlugin extends Plugin {
     }
     @PermissionCallback private void notificationResult(PluginCall call) { stage(call); }
     static BackgroundMediaTransfers.Record stageSelection(Context context, PluginCall call) throws Exception {
+        String preparationId = call.getString("preparationId");
+        if (preparationId != null)
+            return BackgroundMediaTransfers.adoptPrepared(context, call.getString("instance"), call.getString("accountId"),
+                call.getString("spaceId"), preparationId, call.getString("attachmentId"), call.getInt("size", 0));
         // Supported files fit in Integer; Capacitor getLong rejects JSON integers.
         return BackgroundMediaTransfers.stage(context, call.getString("instance"),
             call.getString("accountId"), call.getString("spaceId"), call.getString("attachmentId"),
@@ -85,5 +138,8 @@ public class BackgroundMediaUploadsPlugin extends Plugin {
             catch (Exception unavailable) { call.reject("Video transfer could not be removed", "VIDEO_TRANSFER_UNAVAILABLE"); }
         });
     }
-    @Override protected void handleOnDestroy() { io.shutdown(); super.handleOnDestroy(); }
+    @Override protected void handleOnDestroy() {
+        for (CancellationSignal cancellation : preparations.values()) cancellation.cancel();
+        preparation.shutdown(); io.shutdown(); super.handleOnDestroy();
+    }
 }

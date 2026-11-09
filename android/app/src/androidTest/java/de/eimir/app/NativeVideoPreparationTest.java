@@ -1,0 +1,127 @@
+package de.eimir.app;
+
+import static org.junit.Assert.*;
+
+import android.content.Context;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.os.Build;
+import android.os.CancellationSignal;
+import android.provider.OpenableColumns;
+import android.util.AtomicFile;
+import androidx.core.content.FileProvider;
+import androidx.test.platform.app.InstrumentationRegistry;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.util.UUID;
+import org.json.JSONObject;
+import org.junit.After;
+import org.junit.Test;
+
+/** Actual platform encoding and private staged-file handoff, without a network mock codec. */
+public class NativeVideoPreparationTest {
+    private final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+    private final String instance = "https://video-preparation.eimir.invalid";
+    private final String account = UUID.randomUUID().toString();
+    private final String space = UUID.randomUUID().toString();
+    private final String id = UUID.randomUUID().toString();
+    private final String attachment = UUID.randomUUID().toString();
+    private SelectedMediaProvider.Owner selection;
+    private File original;
+
+    private BackgroundMediaTransfers.Record stage(String fixture) throws Exception {
+        JSONObject snapshot = new JSONObject().put("account", new JSONObject().put("id", account)).put("spaceId", space)
+            .put("tokens", new JSONObject().put("accessToken", "synthetic").put("accessExpiresAt", Instant.now().plusSeconds(600).toString()));
+        AtomicFile target = NativeSessionStoragePlugin.file(context, instance);
+        FileOutputStream session = target.startWrite();
+        session.write(NativeSessionCipher.encrypt(NativeSessionStoragePlugin.key(), instance, snapshot.toString())); target.finishWrite(session);
+        original = new File(context.getCacheDir(), "synthetic-video-preparation.mp4");
+        try (InputStream input = InstrumentationRegistry.getInstrumentation().getContext().getAssets().open("video-preparation/" + fixture);
+                FileOutputStream output = new FileOutputStream(original)) {
+            byte[] buffer = new byte[64 * 1024]; int count;
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+        }
+        selection = new SelectedMediaProvider.Owner();
+        Uri uri = selection.adopt(context, FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", original));
+        String name;
+        try (Cursor cursor = context.getContentResolver().query(uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            assertNotNull(cursor); assertTrue(cursor.moveToFirst()); name = cursor.getString(0);
+        }
+        return BackgroundMediaTransfers.stage(context, instance, account, space, id, name, original.length(), "video/mp4", new CancellationSignal());
+    }
+    @After public void cleanup() throws Exception {
+        BackgroundMediaTransfers.cancel(context, id); BackgroundMediaTransfers.cancel(context, attachment);
+        NativeSessionStoragePlugin.clearSnapshot(context, instance);
+        if (selection != null) selection.close();
+        if (original != null) original.delete();
+    }
+    @Test public void compatibleRecordingRemainsLosslessAndHandsOffExactPreparedSize() throws Exception {
+        BackgroundMediaTransfers.Record record = stage("video-with-metadata.mp4");
+        byte[] bytes = Files.readAllBytes(original.toPath());
+        BackgroundMediaTransfers.Record prepared = NativeVideoPreparation.prepare(context, record, new CancellationSignal());
+        assertEquals("prepared", prepared.phase()); assertEquals(bytes.length, prepared.value.getLong("size"));
+        assertArrayEquals(bytes, Files.readAllBytes(BackgroundMediaTransfers.source(context, id).toPath()));
+        try { BackgroundMediaTransfers.adoptPrepared(context, instance, account, space, id, attachment, bytes.length + 1); fail("Incorrect reservation size must fail"); }
+        catch (java.io.IOException expected) { assertTrue(BackgroundMediaTransfers.source(context, id).exists()); }
+        BackgroundMediaTransfers.Record adopted = BackgroundMediaTransfers.adoptPrepared(context, instance, account, space, id, attachment, bytes.length);
+        assertEquals("uploading", adopted.phase()); assertEquals("video/mp4", adopted.value.getString("mimeType"));
+        assertFalse(BackgroundMediaTransfers.source(context, id).exists());
+        assertArrayEquals(bytes, Files.readAllBytes(BackgroundMediaTransfers.source(context, attachment).toPath()));
+    }
+    @Test public void highResolutionVideoIsEncodedLocallyWithoutChangingAspectOrSound() throws Exception {
+        BackgroundMediaTransfers.Record record = stage("high-resolution-avc.mp4");
+        BackgroundMediaTransfers.Record prepared = NativeVideoPreparation.prepare(context, record, new CancellationSignal());
+        NativeVideoPreparation.Metadata info = NativeVideoPreparation.inspect(BackgroundMediaTransfers.source(context, id));
+        assertTrue(info.compatible()); assertEquals(1920, info.width); assertEquals(1080, info.height);
+        assertEquals(1_000_000, info.durationUs, 100_000);
+        assertNotNull(info.audio);
+        assertEquals(BackgroundMediaTransfers.source(context, id).length(), prepared.value.getLong("size"));
+        assertFalse(BackgroundMediaTransfers.preparationOutput(context, id).exists());
+    }
+    @Test public void hdrIsToneMappedOnDeviceAndCannotBecomeAnUnprocessedFallback() throws Exception {
+        toneMapAndCheck("hlg-highlight-steps.mp4");
+        cleanup();
+        toneMapAndCheck("pq-highlight-steps.mp4");
+    }
+    private void toneMapAndCheck(String fixture) throws Exception {
+        BackgroundMediaTransfers.Record record = stage(fixture);
+        assertFalse(NativeVideoPreparation.inspect(original).compatible());
+        if (Build.VERSION.SDK_INT < 29) {
+            try { NativeVideoPreparation.prepare(context, record, new CancellationSignal()); fail("OpenGL HDR requires API 29"); }
+            catch (java.io.IOException expected) { assertEquals("preparing", BackgroundMediaTransfers.read(context, id).phase()); }
+            return;
+        }
+        NativeVideoPreparation.prepare(context, record, new CancellationSignal());
+        File output = BackgroundMediaTransfers.source(context, id);
+        assertTrue(NativeVideoPreparation.inspect(output).compatible());
+        try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
+            retriever.setDataSource(output.getAbsolutePath());
+            Bitmap frame = retriever.getFrameAtTime(500_000, MediaMetadataRetriever.OPTION_CLOSEST);
+            assertNotNull(frame);
+            try {
+                int[] levels = new int[8];
+                for (int i = 0; i < 8; i++) {
+                    int pixel = frame.getPixel((2 * i + 1) * frame.getWidth() / 16, frame.getHeight() / 2);
+                    int red = (pixel >> 16) & 255, green = (pixel >> 8) & 255, blue = pixel & 255;
+                    assertTrue(Math.abs(red - green) <= 5 && Math.abs(red - blue) <= 5); levels[i] = red;
+                }
+                assertTrue(levels[0] <= 5); assertTrue(levels[2] >= 70 && levels[2] <= 170);
+                for (int i = 1; i < 8; i++) assertTrue("Neutral highlight steps must remain distinct", levels[i] > levels[i - 1]);
+                assertTrue(levels[7] - levels[5] >= 7);
+            } finally { frame.recycle(); }
+        }
+    }
+    @Test public void cancelledPreparationNeverMarksAnOriginalAsPrepared() throws Exception {
+        BackgroundMediaTransfers.Record record = stage("video-with-metadata.mp4");
+        CancellationSignal cancellation = new CancellationSignal(); cancellation.cancel();
+        try { NativeVideoPreparation.prepare(context, record, cancellation); fail("Cancellation must win"); }
+        catch (android.os.OperationCanceledException expected) { assertEquals("preparing", BackgroundMediaTransfers.read(context, id).phase()); }
+        BackgroundMediaTransfers.cancel(context, id);
+        assertFalse(BackgroundMediaTransfers.source(context, id).exists());
+    }
+}

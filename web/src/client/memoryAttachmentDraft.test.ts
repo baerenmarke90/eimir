@@ -27,6 +27,9 @@ function uploadingAttachment() {
   };
 }
 
+const prepareVideo = vi.hoisted(() => vi.fn(async (file: File) => file));
+vi.mock('./videoCompression', () => ({ compressVideoForUpload: prepareVideo }));
+
 describe('uploadMemoryDraftAttachment', () => {
   it.each(['de', 'en'])(
     'reports rejected video admission with localized video recovery in %s',
@@ -71,6 +74,74 @@ describe('uploadMemoryDraftAttachment', () => {
       }
     },
   );
+
+  it('prepares before admission and reserves/transfers only the actual prepared bytes', async () => {
+    const original = new File(['original recording'], 'recording.mov', {
+      type: 'video/quicktime',
+    });
+    const compressed = new File(['encoded'], 'recording.mp4', {
+      type: 'video/mp4',
+    });
+    prepareVideo.mockResolvedValueOnce(compressed);
+    const descriptor = { attachment: { id: 'video', version: 1 } };
+    const create = vi.fn().mockResolvedValue(descriptor);
+    const admission = vi
+      .spyOn(backgroundVideoUploads, 'startBackgroundVideoTransfer')
+      .mockResolvedValueOnce();
+    const phases = vi.fn();
+    try {
+      await uploadMemoryDraftAttachment(
+        {
+          attachments: { createAttachmentUpload: create },
+        } as unknown as ReferenceApis,
+        'https://api.example.invalid',
+        'synthetic',
+        'space',
+        original,
+        phases,
+        vi.fn(),
+        { accountId: 'owner' },
+      );
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachmentUploadCreate: expect.objectContaining({
+            expectedSize: compressed.size,
+            expectedMimeType: 'video/mp4',
+            originalName: compressed.name,
+          }),
+        }),
+      );
+      expect(admission).toHaveBeenCalledWith(
+        expect.objectContaining({ file: compressed }),
+      );
+      expect(phases.mock.calls.map(([phase]) => phase)).toEqual([
+        'preparing',
+        'uploading',
+      ]);
+    } finally {
+      admission.mockRestore();
+    }
+  });
+
+  it('retains the selection without reserving or uploading after preparation failure', async () => {
+    prepareVideo.mockRejectedValueOnce(new Error('Codec unavailable'));
+    const create = vi.fn();
+    await expect(
+      uploadMemoryDraftAttachment(
+        {
+          attachments: { createAttachmentUpload: create },
+        } as unknown as ReferenceApis,
+        'https://api.example.invalid',
+        'synthetic',
+        'space',
+        new File(['video'], 'recording.mp4', { type: 'video/mp4' }),
+        undefined,
+        vi.fn(),
+        { accountId: 'owner' },
+      ),
+    ).rejects.toThrow(i18n.t('video.preparationFailed'));
+    expect(create).not.toHaveBeenCalled();
+  });
 
   it('cancels a pending validation read without leaving polling timers behind', async () => {
     vi.useFakeTimers();
@@ -681,7 +752,7 @@ it('does not report a completed bind when its classification differs after a los
   expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
 });
 
-it('uploads the selected video directly and returns after finalize without readiness polling', async () => {
+it('uploads the prepared video and returns after finalize without readiness polling', async () => {
   vi.stubGlobal('XMLHttpRequest', undefined);
   try {
     const attachment = { ...uploadingAttachment(), mediaType: 'VIDEO' };
@@ -721,7 +792,7 @@ it('uploads the selected video directly and returns after finalize without readi
       processing: true,
       hasThumbnail: false,
     });
-    expect(phases).toEqual(['uploading', 'validating']);
+    expect(phases).toEqual(['preparing', 'uploading', 'validating']);
     expect(getAttachment).not.toHaveBeenCalled();
     expect(createAttachmentUpload).toHaveBeenCalledWith({
       spaceId: 'space',

@@ -3,6 +3,8 @@ export default {
   label: 'Fotos & Videos',
   preview: 'Video-Vorschau',
   preparing: 'Video wird auf deinem Gerät vorbereitet …',
+  preparationFailed:
+    'Dieses Video kann auf deinem Gerät gerade nicht vorbereitet werden. Deine Auswahl bleibt erhalten. Versuche es erneut oder wähle ein anderes Video.',
   processing: 'Video wird verarbeitet …',
   processingShort: 'Wird vorbereitet',
   savedFailedShort: 'Nicht verfügbar',

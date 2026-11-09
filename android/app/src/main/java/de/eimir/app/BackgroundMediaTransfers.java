@@ -13,6 +13,7 @@ import android.content.res.AssetFileDescriptor;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
+import android.os.CancellationSignal;
 import android.os.PersistableBundle;
 import android.os.SystemClock;
 import android.util.AtomicFile;
@@ -81,6 +82,9 @@ final class BackgroundMediaTransfers {
     static File source(Context context, String id) throws IOException {
         requireId(id); return new File(root(context), id + ".media");
     }
+    static File preparationOutput(Context context, String id) throws IOException {
+        requireId(id); return new File(root(context), id + ".preparing.mp4");
+    }
     private static AtomicFile file(Context context, String id) throws IOException {
         requireId(id); return new AtomicFile(new File(root(context), id + ".job"));
     }
@@ -100,10 +104,10 @@ final class BackgroundMediaTransfers {
     }
     static synchronized List<Record> records(Context context) throws Exception {
         List<Record> result = new ArrayList<>();
-        File[] orphans = root(context).listFiles((dir, name) -> name.endsWith(".media"));
+        File[] orphans = root(context).listFiles((dir, name) -> name.endsWith(".media") || name.endsWith(".preparing.mp4"));
         if (orphans != null) for (File orphan : orphans) {
             if (System.currentTimeMillis() - orphan.lastModified() >= RETENTION
-                    && !new File(root(context), orphan.getName().replace(".media", ".job")).exists()) orphan.delete();
+                    && !new File(root(context), orphan.getName().replace(".media", ".job").replace(".preparing.mp4", ".job")).exists()) orphan.delete();
         }
         File[] files = root(context).listFiles((dir, name) -> name.endsWith(".job"));
         if (files == null) throw new IOException("Private transfer storage unavailable");
@@ -119,21 +123,27 @@ final class BackgroundMediaTransfers {
     }
     static Record stage(Context context, String instance, String account, String space,
             String id, String sourceName, long size, String type) throws Exception {
+        return stage(context, instance, account, space, id, sourceName, size, type, null);
+    }
+    static Record stage(Context context, String instance, String account, String space,
+            String id, String sourceName, long size, String type, CancellationSignal cancellation) throws Exception {
         requireId(id); session(context, instance, account, space);
         if (size <= 0 || size > MAX_FILE || !("video/mp4".equals(type) || "video/quicktime".equals(type)))
             throw new IOException("Invalid selected video");
         Record record;
         synchronized (BackgroundMediaTransfers.class) {
+            if (cancellation != null) cancellation.throwIfCanceled();
             List<Record> existing = records(context);
-            long reserved = size;
-            for (Record entry : existing) reserved += entry.value.optLong("size");
+            long reserved = size + (cancellation == null ? 0 : MAX_FILE);
+            for (Record entry : existing) reserved += entry.value.optLong("reservedSize", entry.value.optLong("size"));
             if (existing.size() >= 20 || reserved > MAX_TOTAL || file(context, id).getBaseFile().exists())
                 throw new IOException("Transfer staging budget exceeded");
             int jobId = 0x52000000 | (id.hashCode() & 0x00ffffff);
             while (containsJob(existing, jobId)) jobId++;
             record = new Record(new JSONObject().put("attachmentId", id).put("instance", instance)
                 .put("accountId", account).put("spaceId", space).put("size", size).put("mimeType", type)
-                .put("createdAt", System.currentTimeMillis()).put("phase", "uploading").put("progress", 0).put("jobId", jobId));
+                .put("createdAt", System.currentTimeMillis()).put("phase", cancellation == null ? "uploading" : "preparing")
+                .put("reservedSize", size + (cancellation == null ? 0 : MAX_FILE)).put("progress", 0).put("jobId", jobId));
             save(context, record);
         }
         try (AssetFileDescriptor descriptor = SelectedMediaProvider.openForTransfer(context, sourceName, type);
@@ -143,6 +153,7 @@ final class BackgroundMediaTransfers {
             long copied = 0;
             int count;
             while ((count = input.read(buffer)) != -1) {
+                if (cancellation != null) cancellation.throwIfCanceled();
                 requireActive(context, id);
                 copied += count;
                 if (copied > size) throw new IOException("Selected video size changed");
@@ -154,6 +165,41 @@ final class BackgroundMediaTransfers {
         try { session(context, instance, account, space); requireActive(context, id); }
         catch (Exception failure) { cancel(context, id); throw failure; }
         return record;
+    }
+    static synchronized Record prepared(Context context, String id, File output) throws Exception {
+        requireActive(context, id);
+        Record record = read(context, id);
+        session(context, record.instance(), record.account(), record.space());
+        long size = output.length();
+        if (size <= 0 || size > MAX_FILE) throw new IOException("Prepared video exceeds bounds");
+        boolean original = output.equals(source(context, id));
+        if (!original && !output.renameTo(source(context, id)))
+            throw new IOException("Prepared video could not be retained");
+        record.value.put("size", size).put("reservedSize", size).put("mimeType", original ? record.value.getString("mimeType") : "video/mp4")
+            .put("phase", "prepared").put("progress", 100);
+        save(context, record);
+        return record;
+    }
+    static synchronized Record adoptPrepared(Context context, String instance, String account, String space,
+            String preparationId, String id, long size) throws Exception {
+        requireId(id); requireActive(context, preparationId);
+        session(context, instance, account, space);
+        Record prepared = read(context, preparationId);
+        if (!instance.equals(prepared.instance()) || !account.equals(prepared.account()) || !space.equals(prepared.space())
+                || !"prepared".equals(prepared.phase()) || prepared.expired() || prepared.value.getLong("size") != size
+                || source(context, preparationId).length() != size || file(context, id).getBaseFile().exists())
+            throw new IOException("Prepared video unavailable");
+        int jobId = 0x52000000 | (id.hashCode() & 0x00ffffff);
+        List<Record> existing = records(context);
+        while (containsJob(existing, jobId)) jobId++;
+        Record adopted = new Record(new JSONObject(prepared.value.toString()).put("attachmentId", id)
+            .put("phase", "uploading").put("progress", 0).put("jobId", jobId));
+        save(context, adopted);
+        if (!source(context, preparationId).renameTo(source(context, id))) {
+            file(context, id).delete(); throw new IOException("Prepared video handoff failed");
+        }
+        file(context, preparationId).delete();
+        return adopted;
     }
     private static boolean containsJob(List<Record> records, int id) {
         for (Record entry : records) if (entry.jobId() == id) return true;
@@ -199,6 +245,7 @@ final class BackgroundMediaTransfers {
         try { record = read(context, id); } catch (Exception unavailable) { /* A corrupt record still loses its bytes. */ }
         file(context, id).delete();
         source(context, id).delete();
+        preparationOutput(context, id).delete();
         if (record != null) {
             context.getSystemService(JobScheduler.class).cancel(record.jobId());
             context.getSystemService(NotificationManager.class).cancel(record.jobId());
@@ -210,7 +257,8 @@ final class BackgroundMediaTransfers {
     static JSArray list(Context context, String instance, String account, String space) throws Exception {
         session(context, instance, account, space);
         JSArray items = new JSArray();
-        for (Record record : records(context)) if (instance.equals(record.instance()) && account.equals(record.account()) && space.equals(record.space()))
+        for (Record record : records(context)) if (!"prepared".equals(record.phase()) && !"preparing".equals(record.phase())
+                && instance.equals(record.instance()) && account.equals(record.account()) && space.equals(record.space()))
             items.put(new JSObject().put("attachmentId", record.id()).put("phase", record.phase()).put("progress", record.progress()));
         return items;
     }

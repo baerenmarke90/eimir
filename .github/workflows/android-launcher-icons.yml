@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/android-launcher-icons.yml'
       - 'android/**'
+      - 'scripts/prepare_android_video_fixtures.sh'
+      - 'backend/tests/fixtures/media/**'
       - 'web/src/client/selectedPhotoLocation.e2e.test.ts'
       - 'scripts/test_android_photo_pipeline.sh'
       - 'web/src/client/nativeAppIcon.ts'
@@ -126,6 +128,9 @@ jobs:
         working-directory: android
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          bash ../scripts/prepare_android_video_fixtures.sh
           ./gradlew --no-daemon --dependency-verification strict \
             :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug :app:testDebugUnitTest
       - name: Boot the emulator and verify every launcher choice
@@ -257,6 +262,11 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee background-media-transfers.log
           grep -Eq '^OK \(4 tests\)' background-media-transfers.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NativeVideoPreparationTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee native-video-preparation.log
+          grep -Eq '^OK \(4 tests\)' native-video-preparation.log
           adb -e exec-out run-as de.eimir.app.debug cat files/native-media-upload-background.png > native-media-upload-background.png
           test -s native-media-upload-background.png
           # Voice handoff owns a separate volatile Activity/provider contract.

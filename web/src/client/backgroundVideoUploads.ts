@@ -11,6 +11,16 @@ export interface VideoTransfer {
   progress: number;
 }
 interface NativeTransfers {
+  prepare(options: {
+    instance: string;
+    accountId: string;
+    spaceId: string;
+    attachmentId: string;
+    sourceName: string;
+    size: number;
+    mimeType: string;
+  }): Promise<NativePreparedVideo>;
+  cancelPreparation(options: Owner & { attachmentId: string }): Promise<void>;
   enqueue(options: {
     instance: string;
     accountId: string;
@@ -19,6 +29,7 @@ interface NativeTransfers {
     sourceName: string;
     size: number;
     mimeType: string;
+    preparationId?: string;
   }): Promise<void>;
   list(options: {
     instance: string;
@@ -42,6 +53,71 @@ const native = registerPlugin<NativeTransfers>('BackgroundMediaUploads');
 export const hasNativeVideoTransfers = () =>
   isAndroidApp() && Capacitor.isPluginAvailable('BackgroundMediaUploads');
 type Owner = { instance: string; accountId: string; spaceId: string };
+export interface NativePreparedVideo {
+  preparationId: string;
+  name: string;
+  type: 'video/mp4' | 'video/quicktime';
+  size: number;
+}
+
+/** Prepare before reservation so byte/gallery limits use the real output size. */
+export async function prepareNativeVideoForUpload(
+  owner: Owner,
+  file: File,
+  signal?: AbortSignal,
+): Promise<NativePreparedVideo | undefined> {
+  if (!hasNativeVideoTransfers()) return undefined;
+  if (signal?.aborted) throw new DOMException('Upload aborted.', 'AbortError');
+  const generation = revision;
+  const attachmentId = crypto.randomUUID();
+  const cancel = () => {
+    void native
+      .cancelPreparation({ ...owner, attachmentId })
+      .catch(() => undefined);
+  };
+  signal?.addEventListener('abort', cancel, { once: true });
+  preparations.add(cancel);
+  try {
+    const prepared = await native.prepare({
+      ...owner,
+      attachmentId,
+      sourceName: file.name,
+      size: file.size,
+      mimeType: file.type,
+    });
+    if (signal?.aborted || generation !== revision) {
+      cancel();
+      throw new DOMException('Upload aborted.', 'AbortError');
+    }
+    if (
+      prepared.preparationId !== attachmentId ||
+      !['video/mp4', 'video/quicktime'].includes(prepared.type) ||
+      !Number.isSafeInteger(prepared.size) ||
+      prepared.size <= 0 ||
+      prepared.size > 250 * 1024 * 1024
+    ) {
+      cancel();
+      throw new Error('Invalid prepared video.');
+    }
+    return prepared;
+  } catch (error) {
+    cancel();
+    if (signal?.aborted || generation !== revision)
+      throw new DOMException('Upload aborted.', 'AbortError');
+    throw error;
+  } finally {
+    signal?.removeEventListener('abort', cancel);
+    preparations.delete(cancel);
+  }
+}
+export async function releasePreparedVideo(
+  owner: Owner,
+  prepared: NativePreparedVideo,
+) {
+  await native
+    .cancelPreparation({ ...owner, attachmentId: prepared.preparationId })
+    .catch(() => undefined);
+}
 type Transfer = VideoTransfer & {
   owner: Owner;
   native: boolean;
@@ -50,6 +126,7 @@ type Transfer = VideoTransfer & {
   size: number;
 };
 const transfers = new Map<string, Transfer>();
+const preparations = new Set<() => void>();
 const listeners = new Set<() => void>();
 let revision = 0;
 let running = 0;
@@ -180,6 +257,7 @@ export async function startBackgroundVideoTransfer({
   accountId,
   spaceId,
   file,
+  prepared,
   descriptor,
   fetchApi = fetch,
 }: {
@@ -189,6 +267,7 @@ export async function startBackgroundVideoTransfer({
   accountId: string;
   spaceId: string;
   file: File;
+  prepared?: NativePreparedVideo;
   descriptor: UploadDescriptor;
   fetchApi?: typeof fetch;
 }): Promise<void> {
@@ -196,10 +275,13 @@ export async function startBackgroundVideoTransfer({
   const attachmentId = descriptor.attachment.id;
   const generation = revision;
   const nativeTransfer = hasNativeVideoTransfers();
+  if (prepared && !nativeTransfer)
+    throw new Error('Prepared video transport unavailable.');
+  const selected = prepared ?? file;
   const active = [...transfers.values()].filter((item) => item.run);
   if (
     active.length >= 20 ||
-    active.reduce((bytes, item) => bytes + item.size, file.size) >
+    active.reduce((bytes, item) => bytes + item.size, selected.size) >
       500 * 1024 * 1024
   )
     throw new Error('The device transfer staging budget is full.');
@@ -207,9 +289,10 @@ export async function startBackgroundVideoTransfer({
     await native.enqueue({
       ...owner,
       attachmentId,
-      sourceName: file.name,
-      size: file.size,
-      mimeType: file.type,
+      sourceName: selected.name,
+      size: selected.size,
+      mimeType: selected.type,
+      ...(prepared ? { preparationId: prepared.preparationId } : {}),
     });
   if (generation !== revision) {
     if (nativeTransfer)
@@ -222,7 +305,7 @@ export async function startBackgroundVideoTransfer({
     native: nativeTransfer,
     phase: 'uploading',
     progress: 0,
-    size: file.size,
+    size: selected.size,
   };
   if (!nativeTransfer)
     entry.run = async (signal) => {
@@ -277,6 +360,8 @@ export function cancelVideoTransfer(attachmentId: string) {
 }
 export function clearBackgroundVideoTransfers() {
   revision++;
+  for (const cancel of preparations) cancel();
+  preparations.clear();
   for (const item of transfers.values()) item.controller?.abort();
   transfers.clear();
   running = 0;

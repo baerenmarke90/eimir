@@ -29,6 +29,20 @@ not a second project-status source.
 
 ## Product Owner decisions
 
+### Scoped follow-up: quiet mobile composition (#1717)
+
+The Product Owner subsequently approved the
+[quiet-composer refinement](../quiet-composer/README.md) on 2026-11-09 against
+main `3008a6c3c240615ebf8ca3bc9dad734823376c55`. Within Diary/Memory, HeartMoment
+and the shared Plan/Wish editors, one authored surface now groups title/prose,
+the native Save action moves into the compact task header, dates/schedules use
+the existing short-task lifecycle and only empty tag entry is disclosed. Native
+labels, form ownership, constraints, recovery and all media/tag functions below
+remain binding. HeartMoment writing/reading cards use the full selected feeling
+surface. Other capture types retain this document's existing presentation.
+
+### Original #1715 decisions
+
 - Use the current eimir. palette, self-hosted typography, material depth, glyphs
   and labeled canonical-blue AddAction controls. Warmth comes from composition
   and personal content; do not create a replacement identity.

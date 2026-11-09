@@ -246,6 +246,7 @@ describe('web layout tokens', () => {
       readSource('./demo.css'),
       readSource('./product-reflow.css'),
       readSource('./components/FreeComposer.css'),
+      readSource('./components/HeartEmotionVisual.css'),
       readSource('./components/CommentsPanel.css'),
       readSource('./components/LoginExperience.css'),
       readSource('./components/M4ProductPages.css'),

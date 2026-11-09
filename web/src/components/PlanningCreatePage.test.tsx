@@ -177,9 +177,15 @@ describe('PlanningCreatePage', () => {
     fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
       target: { value: 'Day trip' },
     });
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
+    );
     fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
       target: { value: '2026-10-03' },
     });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
     fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
@@ -187,6 +193,35 @@ describe('PlanningCreatePage', () => {
     expect(request.planCreate.schedule).toEqual({
       plannedOn: new Date('2026-10-03T00:00:00Z'),
     });
+  });
+
+  it('keeps the chosen end time when compact scheduling is closed before Save', async () => {
+    const { createPlan } = renderCreate('plan');
+    fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
+      target: { value: 'Evening walk' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
+    );
+    fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
+      target: { value: '2026-10-03' },
+    });
+    fireEvent.change(screen.getByLabelText(m5s3.plan.plannedStartTime), {
+      target: { value: '18:00' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: m5s3.plan.addEndTime }));
+    fireEvent.change(screen.getByLabelText(m5s3.plan.endTime), {
+      target: { value: '19:30' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await waitFor(() => expect(createPlan).toHaveBeenCalledOnce());
+    const schedule = createPlan.mock.calls[0][0].planCreate.schedule;
+    expect(schedule.plannedStart.getHours()).toBe(18);
+    expect(schedule.plannedEnd.getHours()).toBe(19);
+    expect(schedule.plannedEnd.getMinutes()).toBe(30);
   });
 
   it('selects a searchable saved Place without creating another one', async () => {
@@ -236,7 +271,7 @@ describe('PlanningCreatePage', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
     expect((title as HTMLInputElement).value).toBe('See the northern lights');
 
-    fireEvent.click(screen.getByRole('button', { name: de.common.cancel }));
+    fireEvent.click(screen.getByRole('button', { name: taskBoundary.close }));
     expect(
       screen.getByRole('alertdialog', {
         name: taskBoundary.discardTitle,

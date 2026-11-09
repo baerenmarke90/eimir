@@ -17,6 +17,7 @@ export function MemoryTagChoices({
   selected,
   onChange,
   disabled = false,
+  discloseEmpty = false,
   onDraftChange,
   draftValue,
   onDraftValueChange,
@@ -27,6 +28,7 @@ export function MemoryTagChoices({
   selected: readonly string[];
   onChange: (tags: string[]) => void;
   disabled?: boolean;
+  discloseEmpty?: boolean;
   onDraftChange?: (dirty: boolean) => void;
   draftValue?: string;
   onDraftValueChange?: (value: string) => void;
@@ -43,6 +45,7 @@ export function MemoryTagChoices({
       selected={selected}
       onChange={onChange}
       disabled={disabled}
+      discloseEmpty={discloseEmpty}
       onDraftChange={onDraftChange}
       draftValue={draftValue}
       onDraftValueChange={onDraftValueChange}

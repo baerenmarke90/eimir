@@ -96,6 +96,30 @@ it('retains modified-click link semantics and replaces the default with the owni
   expect(link.closest('.subpage-back-slot')).not.toBeNull();
 });
 
+it('keeps one inline task Back in its header while retaining shell ownership', () => {
+  const close = vi.fn();
+  const { container } = render(
+    <MemoryRouter initialEntries={['/story/memories/new']}>
+      <SubpageNavigation>
+        <header data-testid="composer">
+          <TaskBackButton inline onClick={close}>
+            Close composer
+          </TaskBackButton>
+          <h1>Memory</h1>
+        </header>
+      </SubpageNavigation>
+    </MemoryRouter>,
+  );
+  const back = screen.getByRole('button', { name: 'Close composer' });
+  expect(screen.getAllByRole('button')).toHaveLength(1);
+  expect(screen.getByTestId('composer').contains(back)).toBe(true);
+  expect(container.querySelector('.subpage-back-slot')?.childElementCount).toBe(
+    0,
+  );
+  fireEvent.click(back);
+  expect(close).toHaveBeenCalledOnce();
+});
+
 it.each([
   ['/plan/chapters/chapter', '/story/chapters'],
   ['/plan/places/place', '/more/places'],

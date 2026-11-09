@@ -54,6 +54,8 @@ import { EimirIcon } from './EimirIcon';
 import { ExpandableDescription } from './ExpandableDescription';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
+import { ComposerHeader } from './StoryFormPageShell';
+import { ComposerDateContext } from './ComposerDateContext';
 import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
 import { PlanCalendarAction } from './PlanCalendarAction';
 import {
@@ -62,7 +64,10 @@ import {
 } from './PlanningEditorLifecycle';
 import { PlanPhotoGallery } from './PlanPhotoGallery';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
-import { PlanScheduleFields } from './PlanScheduleFields';
+import {
+  PlanScheduleFields,
+  type PlanScheduleFieldsHandle,
+} from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
 import { PlanStoryLinks } from './PlanStoryLinks';
@@ -150,6 +155,7 @@ export function PlanProductPage({
   const [anticipation, setAnticipation] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState('');
   const editTitle = useRef<HTMLInputElement>(null);
+  const scheduleFields = useRef<PlanScheduleFieldsHandle>(null);
   const editTrigger = useRef<HTMLButtonElement>(null);
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
   const planWriteKey = ['plan-write', spaceId, planId] as const;
@@ -362,6 +368,7 @@ export function PlanProductPage({
       photos.entries.length !== photos.items.length
     )
       return;
+    if (scheduleFields.current?.reportValidity() === false) return;
     const tags = tagEditor.current?.commitDraft();
     if (!tags) return;
     const data = new FormData(event.currentTarget);
@@ -423,7 +430,9 @@ export function PlanProductPage({
     !completion.isConfirmed;
 
   return (
-    <div className="page planning-page planen-detail">
+    <div
+      className={`page planning-page planen-detail${isEditing ? ' free-composer quiet-composer' : ''}`}
+    >
       {isEditing ? (
         <form
           id="plan-edit-form"
@@ -433,13 +442,40 @@ export function PlanProductPage({
           }}
         />
       ) : null}
-      <TaskBackButton
-        onClick={() =>
-          isEditing
-            ? editorLifecycle.requestClose()
-            : requestReturn(originKey, `${appRoutePath('plan')}#plans`)
-        }
-      />
+      {isEditing ? (
+        <ComposerHeader
+          before={
+            <TaskBackButton inline onClick={editorLifecycle.requestClose}>
+              {t('taskBoundary.close')}
+            </TaskBackButton>
+          }
+          title={t('m5s3.common.edit')}
+          action={
+            <button
+              form="plan-edit-form"
+              type="submit"
+              aria-label={
+                updateMutation.isPending
+                  ? t('m5s3.common.saving')
+                  : t('m5s3.common.saveChanges')
+              }
+              disabled={writesPending || photos.hasPending || photos.hasFailed}
+            >
+              {updateMutation.isPending
+                ? t('m5s3.common.saving')
+                : t('m5s3.common.save')}
+            </button>
+          }
+        />
+      ) : (
+        <TaskBackButton
+          onClick={() =>
+            isEditing
+              ? editorLifecycle.requestClose()
+              : requestReturn(originKey, `${appRoutePath('plan')}#plans`)
+          }
+        />
+      )}
 
       {!isEditing ? (
         <PlanPhotoGallery
@@ -449,101 +485,92 @@ export function PlanProductPage({
           accessToken={accessToken}
         />
       ) : null}
-      <PageHeader
-        title={plan.title}
-        titleEditor={
-          isEditing ? (
-            <input
-              ref={editTitle}
-              className="composer-authored-title"
-              disabled={writesPending}
-              form="plan-edit-form"
-              name="title"
-              onChange={() => setEditDirty(true)}
-              required
-              maxLength={200}
-              defaultValue={plan.title}
-              aria-label={t('m5s3.common.title')}
-            />
-          ) : undefined
-        }
-        titleAction={
-          plan.capabilities.canEdit && !isEditing ? (
-            <ListEntryIconButton
-              type="button"
-              ref={editTrigger}
-              label={t('common.edit')}
-              icon="edit"
-              disabled={writesPending}
-              onClick={() => {
-                if (!isPlanWritePending()) {
-                  setEditingPlan(plan);
-                  setEditTags(plan.tags ?? []);
-                  setIsEditing(true);
-                  setEditDirty(false);
-                  photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
-                  setPhotosChanged(false);
-                  setAnticipation(plan.anticipationEnabled ?? false);
-                  setSelectedPlaceId(plan.placeId ?? '');
-                }
-              }}
-            />
-          ) : undefined
-        }
-      />
+      {!isEditing ? (
+        <PageHeader
+          title={plan.title}
+          titleAction={
+            plan.capabilities.canEdit && !isEditing ? (
+              <ListEntryIconButton
+                type="button"
+                ref={editTrigger}
+                label={t('common.edit')}
+                icon="edit"
+                disabled={writesPending}
+                onClick={() => {
+                  if (!isPlanWritePending()) {
+                    setEditingPlan(plan);
+                    setEditTags(plan.tags ?? []);
+                    setIsEditing(true);
+                    setEditDirty(false);
+                    photos.load(
+                      planPhotos(plan),
+                      plan.selectedCoverAttachmentId,
+                    );
+                    setPhotosChanged(false);
+                    setAnticipation(plan.anticipationEnabled ?? false);
+                    setSelectedPlaceId(plan.placeId ?? '');
+                  }
+                }}
+              />
+            ) : undefined
+          }
+        />
+      ) : null}
 
       {!isEditing ? <ContextTagList tags={plan.tags} /> : null}
-      <section
-        className="planning-facts planen-detail-summary"
-        aria-label={t('m5s3.plan.scheduleFacts')}
-      >
-        <div className="planen-detail-when-where">
-          <p className="planen-detail-schedule">
-            {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
-          </p>
-          {!isEditing && placeName && plan.placeId ? (
-            <Link
-              className="planen-schedule-place"
-              to={placeDetailPath(plan.placeId)}
-            >
-              <EimirIcon name="orte" />
-              <span className="planen-place-copy">
-                <strong>{placeName}</strong>
-                {place?.address ? <span>{place.address}</span> : null}
-              </span>
-            </Link>
-          ) : null}
-        </div>
-        {!isEditing && linkedPlaceQuery.error && !place ? (
-          <ProblemState
-            error={linkedPlaceQuery.error}
-            onRetry={() => void linkedPlaceQuery.refetch()}
-          />
-        ) : null}
-        {!isEditing && plan.status !== 'COMPLETED' ? (
-          <PlanCalendarAction plan={plan} location={placeName ?? undefined} />
-        ) : null}
-        {plan.status === 'COMPLETED' ? (
-          <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
-        ) : null}
-        {completion.pendingDay && !completionOpen ? (
-          <p className="planen-detail-pending" role="status">
-            {t('m5s3.plan.completePending', {
-              date: formatCalendarDate(completion.pendingDay),
-            })}
-          </p>
-        ) : null}
-        {hasSubfacts ? (
-          <div className="planen-detail-subfacts">
-            {plan.experiencedOn ? (
-              <p>
-                <strong>{t('m5s3.plan.experiencedOn')}:</strong>{' '}
-                {formatCalendarDate(plan.experiencedOn)}
-              </p>
+      {!isEditing ? (
+        <section
+          className="planning-facts planen-detail-summary"
+          aria-label={t('m5s3.plan.scheduleFacts')}
+        >
+          <div className="planen-detail-when-where">
+            <p className="planen-detail-schedule">
+              {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
+            </p>
+            {!isEditing && placeName && plan.placeId ? (
+              <Link
+                className="planen-schedule-place"
+                to={placeDetailPath(plan.placeId)}
+              >
+                <EimirIcon name="orte" />
+                <span className="planen-place-copy">
+                  <strong>{placeName}</strong>
+                  {place?.address ? <span>{place.address}</span> : null}
+                </span>
+              </Link>
             ) : null}
           </div>
-        ) : null}
-      </section>
+          {!isEditing && linkedPlaceQuery.error && !place ? (
+            <ProblemState
+              error={linkedPlaceQuery.error}
+              onRetry={() => void linkedPlaceQuery.refetch()}
+            />
+          ) : null}
+          {!isEditing && plan.status !== 'COMPLETED' ? (
+            <PlanCalendarAction plan={plan} location={placeName ?? undefined} />
+          ) : null}
+          {plan.status === 'COMPLETED' ? (
+            <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
+          ) : null}
+          {completion.pendingDay && !completionOpen ? (
+            <p className="planen-detail-pending" role="status">
+              {t('m5s3.plan.completePending', {
+                date: formatCalendarDate(completion.pendingDay),
+              })}
+            </p>
+          ) : null}
+          {hasSubfacts ? (
+            <div className="planen-detail-subfacts">
+              {plan.experiencedOn ? (
+                <p>
+                  <strong>{t('m5s3.plan.experiencedOn')}:</strong>{' '}
+                  {formatCalendarDate(plan.experiencedOn)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <div className="planning-detail-grid">
         {isEditing ? (
@@ -551,7 +578,7 @@ export function PlanProductPage({
             id="plan-edit-section"
             className="planning-subsection free-composer"
           >
-            <h2>{t('m5s3.common.edit')}</h2>
+            <h2 className="sr-only">{t('m5s3.common.edit')}</h2>
             {editorLifecycle.showDiscardConfirm ? (
               <PlanningDiscardConfirmation
                 onKeepEditing={editorLifecycle.keepEditing}
@@ -563,29 +590,60 @@ export function PlanProductPage({
               disabled={writesPending}
               onChange={() => setEditDirty(true)}
             >
-              <label htmlFor="plan-edit-description">
-                {t('m5s3.common.description')}
-              </label>
-              <textarea
-                form="plan-edit-form"
-                id="plan-edit-description"
-                name="description"
-                rows={4}
-                defaultValue={plan.description ?? ''}
-              />
+              {plan.status !== 'COMPLETED' ? (
+                <PlanScheduleFields
+                  ref={scheduleFields}
+                  compact
+                  disabled={writesPending}
+                  formId="plan-edit-form"
+                  idPrefix="plan-schedule"
+                  defaultDate={planScheduleDateInput(editingPlan ?? plan)}
+                  defaultTime={planScheduleTimeInput(editingPlan ?? plan)}
+                  defaultEnd={localDateTimeInput(
+                    (editingPlan ?? plan).plannedEnd,
+                  )}
+                  includeEnd
+                />
+              ) : (
+                <ComposerDateContext
+                  formId="plan-edit-form"
+                  idPrefix="plan-edit-experienced"
+                  name="experiencedOn"
+                  label={t('m5s3.plan.experiencedOn')}
+                  defaultValue={dateOnlyInput(plan.experiencedOn)}
+                  disabled={writesPending}
+                  onChange={() => setEditDirty(true)}
+                />
+              )}
+              <div className="composer-writing-surface">
+                <label htmlFor="plan-edit-title">
+                  {t('m5s3.common.title')}
+                </label>
+                <input
+                  id="plan-edit-title"
+                  ref={editTitle}
+                  disabled={writesPending}
+                  form="plan-edit-form"
+                  name="title"
+                  onChange={() => setEditDirty(true)}
+                  required
+                  maxLength={200}
+                  defaultValue={plan.title}
+                  aria-label={t('m5s3.common.title')}
+                />
+                <label htmlFor="plan-edit-description">
+                  {t('m5s3.common.description')}
+                </label>
+                <textarea
+                  form="plan-edit-form"
+                  id="plan-edit-description"
+                  name="description"
+                  rows={4}
+                  defaultValue={plan.description ?? ''}
+                  placeholder={t('m5s3.common.description')}
+                />
+              </div>
             </fieldset>
-            <MemoryTagChoices
-              parentType="PLAN"
-              parentId={plan.id}
-              selected={editTags}
-              onChange={(tags) => {
-                setEditTags(tags);
-                setEditDirty(true);
-              }}
-              editorRef={tagEditor}
-              onDraftChange={() => setEditDirty(true)}
-              disabled={writesPending}
-            />
             <PlanPhotosEditor
               controller={photos}
               spaceId={spaceId}
@@ -637,6 +695,19 @@ export function PlanProductPage({
               disabled={writesPending || !online}
               onNavigate={editorLifecycle.requestClose}
             />
+            <MemoryTagChoices
+              discloseEmpty
+              parentType="PLAN"
+              parentId={plan.id}
+              selected={editTags}
+              onChange={(tags) => {
+                setEditTags(tags);
+                setEditDirty(true);
+              }}
+              editorRef={tagEditor}
+              onDraftChange={() => setEditDirty(true)}
+              disabled={writesPending}
+            />
             <fieldset
               className="form-grid planning-editor-fields"
               disabled={writesPending}
@@ -668,16 +739,6 @@ export function PlanProductPage({
               ) : null}
               {plan.status !== 'COMPLETED' ? (
                 <>
-                  <PlanScheduleFields
-                    formId="plan-edit-form"
-                    idPrefix="plan-schedule"
-                    defaultDate={planScheduleDateInput(editingPlan ?? plan)}
-                    defaultTime={planScheduleTimeInput(editingPlan ?? plan)}
-                    defaultEnd={localDateTimeInput(
-                      (editingPlan ?? plan).plannedEnd,
-                    )}
-                    includeEnd
-                  />
                   <PreferenceSwitch
                     label={t('relationshipReflections.anticipation.show')}
                     description={t('relationshipReflections.anticipation.help')}
@@ -694,19 +755,6 @@ export function PlanProductPage({
                 <summary>{t('m5s3.plan.sharedTitle')}</summary>
                 <p>{t('m5s3.plan.sharedBody')}</p>
               </details>
-              {plan.status === 'COMPLETED' ? (
-                <>
-                  <label htmlFor="plan-edit-experienced">
-                    {t('m5s3.plan.experiencedOn')}
-                  </label>
-                  <NativeDateInput
-                    form="plan-edit-form"
-                    id="plan-edit-experienced"
-                    name="experiencedOn"
-                    defaultValue={dateOnlyInput(plan.experiencedOn)}
-                  />
-                </>
-              ) : null}
               <div
                 style={{
                   display: 'flex',
@@ -714,17 +762,6 @@ export function PlanProductPage({
                   gap: 'var(--space-2)',
                 }}
               >
-                <button
-                  form="plan-edit-form"
-                  type="submit"
-                  disabled={
-                    writesPending || photos.hasPending || photos.hasFailed
-                  }
-                >
-                  {updateMutation.isPending
-                    ? t('m5s3.common.saving')
-                    : t('m5s3.common.saveChanges')}
-                </button>
                 <button
                   type="button"
                   className="tertiary"

@@ -27,11 +27,17 @@ function BackGlyph({ children }: { children: ReactNode }) {
   );
 }
 
-function PlaceBackControl({ children }: { children: ReactNode }) {
+function PlaceBackControl({
+  children,
+  inline = false,
+}: {
+  children: ReactNode;
+  inline?: boolean;
+}) {
   const placement = useContext(TaskBackSlotContext);
   const register = placement?.register;
   useLayoutEffect(() => register?.(), [register]);
-  if (!placement) return children;
+  if (!placement || inline) return children;
   return placement.slot ? createPortal(children, placement.slot) : null;
 }
 
@@ -39,8 +45,9 @@ export function TaskBackButton({
   children,
   className = '',
   shellDefault = false,
+  inline = false,
   ...props
-}: ComponentProps<'button'> & { shellDefault?: boolean }) {
+}: ComponentProps<'button'> & { shellDefault?: boolean; inline?: boolean }) {
   const { t } = useTranslation();
   const label = children ?? t('taskBoundary.back');
   const button = (
@@ -55,19 +62,24 @@ export function TaskBackButton({
       <BackGlyph>{label}</BackGlyph>
     </button>
   );
-  return shellDefault ? button : <PlaceBackControl>{button}</PlaceBackControl>;
+  return shellDefault ? (
+    button
+  ) : (
+    <PlaceBackControl inline={inline}>{button}</PlaceBackControl>
+  );
 }
 
 /** Preserve link semantics, modified clicks and existing editor guards. */
 export function TaskBackLink({
   children,
   className = '',
+  inline = false,
   ...props
-}: ComponentProps<typeof Link>) {
+}: ComponentProps<typeof Link> & { inline?: boolean }) {
   const { t } = useTranslation();
   const label = children ?? t('taskBoundary.back');
   return (
-    <PlaceBackControl>
+    <PlaceBackControl inline={inline}>
       <Link
         title={typeof label === 'string' ? label : t('taskBoundary.back')}
         className={`back-link task-back-control ${className}`}

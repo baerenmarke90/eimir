@@ -39,13 +39,16 @@ import { useTranslation } from '../i18n';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { CollectionChoicePicker } from './CollectionChoicePicker';
 import { AddActionContent } from './AddAction';
-import { PageHeader } from './PageHeader';
+import { ComposerHeader } from './StoryFormPageShell';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { EimirIcon } from './EimirIcon';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
-import { PlanScheduleFields } from './PlanScheduleFields';
+import {
+  PlanScheduleFields,
+  type PlanScheduleFieldsHandle,
+} from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PlanningCreatePage.css';
@@ -121,6 +124,7 @@ export function PlanningCreatePage({
   const placeSheet = useRef<ShortTaskSheetHandle>(null);
   const [tags, setTags] = useState<string[]>([]);
   const tagEditor = useRef<ContextTagEditorHandle>(null);
+  const scheduleFields = useRef<PlanScheduleFieldsHandle>(null);
   const [enrichmentDirty, setEnrichmentDirty] = useState(false);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
@@ -308,12 +312,14 @@ export function PlanningCreatePage({
     }
     const committedTags = tagEditor.current?.commitDraft();
     if (!committedTags) return;
+    if (scheduleFields.current?.reportValidity() === false) return;
     const data = new FormData(event.currentTarget);
     const schedule =
       kind === 'plan'
         ? planScheduleFromInputs(
             String(data.get('plannedDate') ?? ''),
             String(data.get('plannedTime') ?? ''),
+            String(data.get('plannedEnd') ?? ''),
           )
         : undefined;
     setOfflineAttempt(false);
@@ -337,10 +343,11 @@ export function PlanningCreatePage({
 
   const isPlan = kind === 'plan';
   return (
-    <div className="page planning-create-task free-composer">
-      <PageHeader
+    <div className="page planning-create-task free-composer quiet-composer">
+      <ComposerHeader
         before={
           <TaskBackButton
+            inline
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
@@ -352,10 +359,33 @@ export function PlanningCreatePage({
         title={t(
           isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading',
         )}
+        action={
+          <button
+            type="submit"
+            form="planning-create-form"
+            disabled={
+              pending ||
+              collectionPending ||
+              !title.trim() ||
+              photos.hasPending ||
+              photos.hasFailed
+            }
+          >
+            {pending
+              ? t('m5s3.common.saving')
+              : parentSaved
+                ? t('common.retry')
+                : t('m5s3.common.save')}
+          </button>
+        }
       />
       <div ref={headingRef} tabIndex={-1} className="planning-task-focus" />
 
-      <form className="planning-intention-form" onSubmit={submit}>
+      <form
+        id="planning-create-form"
+        className="planning-intention-form"
+        onSubmit={submit}
+      >
         <fieldset
           disabled={pending || parentSaved}
           onChange={(event) => {
@@ -374,48 +404,51 @@ export function PlanningCreatePage({
           {isPlan ? (
             <div className="composer-context composer-schedule">
               <PlanScheduleFields
+                ref={scheduleFields}
+                compact
+                formId="planning-create-form"
+                disabled={pending || parentSaved}
                 idPrefix="planning-create-schedule"
                 includeEnd
               />
             </div>
           ) : null}
-          <div className="field-group planning-intention-field">
-            <label htmlFor="planning-create-title">
-              {t(
-                isPlan
-                  ? 'm5s3.plan.intentionLabel'
-                  : 'm5s3.wish.intentionLabel',
-              )}
-            </label>
-            <input
-              id="planning-create-title"
-              name="title"
-              required
-              maxLength={200}
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder={t(
-                isPlan
-                  ? 'm5s3.plan.intentionPlaceholder'
-                  : 'm5s3.wish.intentionPlaceholder',
-              )}
-            />
-          </div>
-
-          {isPlan ? (
-            <div className="field-group">
-              <label htmlFor="planning-create-description">
-                {t('m5s3.common.description')}
+          <div className="composer-writing-surface">
+            <div className="field-group planning-intention-field">
+              <label htmlFor="planning-create-title">
+                {t(
+                  isPlan
+                    ? 'm5s3.plan.intentionLabel'
+                    : 'm5s3.wish.intentionLabel',
+                )}
               </label>
-              <textarea
-                id="planning-create-description"
-                name="description"
-                rows={4}
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
+              <input
+                id="planning-create-title"
+                name="title"
+                required
+                maxLength={200}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder={t('m5s3.common.title')}
               />
             </div>
-          ) : null}
+
+            {isPlan ? (
+              <div className="field-group">
+                <label htmlFor="planning-create-description">
+                  {t('m5s3.common.description')}
+                </label>
+                <textarea
+                  id="planning-create-description"
+                  name="description"
+                  rows={4}
+                  placeholder={t('m5s3.common.description')}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </div>
+            ) : null}
+          </div>
           {isPlan ? (
             <PlanPhotosEditor
               controller={photos}
@@ -430,91 +463,72 @@ export function PlanningCreatePage({
               onChange={() => setEnrichmentDirty(true)}
             />
           ) : null}
-          {isPlan ? (
-            <div className="planning-place-choice">
-              <button
-                type="button"
-                className={placeId ? 'secondary' : 'add-action'}
-                aria-label={placeId ? undefined : t('photoPlaces.add')}
-                title={placeId ? undefined : t('photoPlaces.add')}
-                onClick={() => setPlaceOpen(true)}
-              >
-                {placeId ? (
-                  <>
-                    <EimirIcon name="orte" />
-                    {placesQuery.data?.find((place) => place.id === placeId)
-                      ?.name ?? t('m5s3.common.place')}
-                  </>
-                ) : (
-                  <AddActionContent label={t('photoPlaces.add')} />
-                )}
-              </button>
-              {placeId ? (
+          <div className="composer-enrichment">
+            {isPlan ? (
+              <div className="planning-place-choice">
                 <button
                   type="button"
-                  className="tertiary"
-                  onClick={() => setPlaceId('')}
+                  className={placeId ? 'secondary' : 'add-action'}
+                  aria-label={placeId ? undefined : t('photoPlaces.add')}
+                  title={placeId ? undefined : t('photoPlaces.add')}
+                  onClick={() => setPlaceOpen(true)}
                 >
-                  {t('m5s3.common.noPlace')}
+                  {placeId ? (
+                    <>
+                      <EimirIcon name="orte" />
+                      {placesQuery.data?.find((place) => place.id === placeId)
+                        ?.name ?? t('m5s3.common.place')}
+                    </>
+                  ) : (
+                    <AddActionContent label={t('photoPlaces.add')} />
+                  )}
                 </button>
-              ) : null}
-            </div>
-          ) : null}
-          {isPlan ? (
-            <section
-              className="plan-collection-links"
-              aria-label={t('m5s3.collection.planHeading')}
-            >
-              {lists.length ? (
-                <ul className="plan-collection-draft">
-                  {lists.map((list) => (
-                    <li key={list.id}>{list.title}</li>
-                  ))}
-                </ul>
-              ) : null}
-              <CollectionChoicePicker
-                apis={apis}
-                spaceId={spaceId}
-                value={lists}
-                disabled={pending || parentSaved}
-                onChoose={(selected) => {
-                  setLists(selected);
-                  setEnrichmentDirty(true);
-                }}
-                onPendingChange={setCollectionPending}
-              />
-            </section>
-          ) : null}
-          <MemoryTagChoices
-            parentType={isPlan ? 'PLAN' : 'WISH'}
-            selected={tags}
-            onChange={setTags}
-            editorRef={tagEditor}
-            onDraftChange={() => setEnrichmentDirty(true)}
-          />
+                {placeId ? (
+                  <button
+                    type="button"
+                    className="tertiary"
+                    onClick={() => setPlaceId('')}
+                  >
+                    {t('m5s3.common.noPlace')}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+            {isPlan ? (
+              <section
+                className="plan-collection-links"
+                aria-label={t('m5s3.collection.planHeading')}
+              >
+                {lists.length ? (
+                  <ul className="plan-collection-draft">
+                    {lists.map((list) => (
+                      <li key={list.id}>{list.title}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <CollectionChoicePicker
+                  apis={apis}
+                  spaceId={spaceId}
+                  value={lists}
+                  disabled={pending || parentSaved}
+                  onChoose={(selected) => {
+                    setLists(selected);
+                    setEnrichmentDirty(true);
+                  }}
+                  onPendingChange={setCollectionPending}
+                />
+              </section>
+            ) : null}
+            <MemoryTagChoices
+              discloseEmpty
+              parentType={isPlan ? 'PLAN' : 'WISH'}
+              selected={tags}
+              onChange={setTags}
+              editorRef={tagEditor}
+              onDraftChange={() => setEnrichmentDirty(true)}
+            />
+          </div>
         </fieldset>
-
-        <div className="form-actions planning-task-actions">
-          <button type="button" className="secondary" onClick={requestClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={
-              pending ||
-              collectionPending ||
-              !title.trim() ||
-              photos.hasPending ||
-              photos.hasFailed
-            }
-          >
-            {pending
-              ? t('m5s3.common.saving')
-              : parentSaved
-                ? t('common.retry')
-                : t('m5s3.common.save')}
-          </button>
-        </div>
       </form>
 
       {pending ? (

@@ -17,11 +17,31 @@ The single shared Memory/HeartMoment processor keeps compatible SDR 8-bit
 without lossy re-encoding. Larger compatible streams and other accepted video
 streams are normalized with the pinned OpenH264 encoder to even-dimension,
 aspect/orientation-preserving H.264, at most 1920×1080 (either orientation),
-30 fps and a 4 Mbit/s target. MP3/PCM audio is converted to AAC; existing AAC
-is preserved. HLG/PQ is linearized, gamut-converted and tone-mapped using zimg
-and FFmpeg, then encoded as SDR BT.709. Merely changing HDR color tags is not
-conversion. The HDR base layer is supported; this is not a promise to retain
-proprietary dynamic-HDR enhancement metadata.
+30 fps and quality-oriented variable bitrate: 8 Mbit/s target, 10 Mbit/s encoder
+peak setting, a 16 Mbit buffer, QP 18–32 and frame skipping disabled. Lanczos
+resizing uses accurate rounding. Existing output byte/gallery limits remain
+authoritative. MP3/PCM audio is converted to AAC; existing AAC is preserved.
+
+HLG/PQ is linearized, gamut-converted and tone-mapped using zimg and FFmpeg,
+then encoded as dithered SDR BT.709. Resolve MaxCLL/mastering luminance from
+the selected stream and its first decoded frame before changing the transfer;
+missing or unusable metadata uses the source-specific 10,000-nit PQ or
+1,000-nit HLG reference. After conversion to linear BT.709 RGB, `setparams`
+supplies the BT.709 luminance matrix to `tonemap`. The pinned FFmpeg otherwise
+uses RGB's unweighted (1,1,1) coefficients for highlight desaturation, which
+brightens even neutral highlights and clips their detail. Reinhard tone mapping
+with parameter 0.5 keeps highlight headroom without Hable's excessive midtone
+darkening on the known-color fixture. The matrix assignment supplies luminance
+weights after actual gamut conversion; it does not relabel encoded HDR as SDR.
+The HDR base layer is supported; this is not a promise to retain proprietary
+dynamic-HDR enhancement metadata.
+
+The [#1710 quality evidence](video-quality-1710.md) records decoded-pixel and
+moving-detail regressions. Rebuild the optional media image with the backend
+revision: it now enables FFmpeg's existing `setparams` filter. No operator
+setting or client-side encoding is required. These corrections apply to new
+processing; sanitized historical outputs cannot recover discarded highlights
+or detail without a fresh upload of the original.
 
 Both paths remove container/stream metadata, chapters and H.264 SEI, produce
 fast-start MP4, revalidate the strict H.264/AAC SDR output contract and duration,

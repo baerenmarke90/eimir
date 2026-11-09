@@ -54,7 +54,16 @@ imagery, personal data or audio recording. The additional #1649 fixtures use
 FFmpeg-generated test colors and a 440 Hz tone, reproduced by
 `tools/media/generate-video-fixtures.sh`; they cover HEVC SDR/Main10/HLG/PQ,
 rotation, silence, H.264 High10/PCM and H.264/MP3. Their deliberately synthetic metadata
-is only a stripping-test input. See [operations and security review](operations/video-uploads.md)
+is only a stripping-test input. The #1710 quality fixtures are generated from
+explicit linear-light neutral steps and seeded FFmpeg `testsrc2`/noise by
+`tools/media/generate-video-quality-fixtures.py` (also called by the shell
+generator). They contain no third-party footage, private recording or audio.
+They cover PQ highlights, first-frame MaxCLL, HLG, and moving 1080p detail;
+generation uses system FFmpeg 6.1.1 and test-only x264/x265 encoders, neither of
+which is shipped in the media role. Their visual evidence has the same synthetic
+provenance. The media role additionally enables the existing LGPL `setparams`
+filter; source pins, patches and license obligations are unchanged.
+See [operations and security review](operations/video-uploads.md)
 and `tools/media/advisory-review.json`; unresolved evidence is not a blanket waiver.
 
 ## Reproducibility and verification

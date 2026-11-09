@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import os
 import subprocess
 import sys
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageChops, ImageStat
 
 from eimir.attachments import videos
 from eimir.config import get_settings
@@ -20,7 +22,7 @@ from tests.support.video import processor as processor
 SAMPLE = Path(__file__).parents[1] / "fixtures/media/video-with-metadata.mp4"
 
 
-def audio_packet_hashes(path: Path) -> list[str]:
+def packet_hashes(path: Path, stream: str) -> list[str]:
     content = videos._run(
         [
             get_settings().ffprobe_path,
@@ -28,7 +30,7 @@ def audio_packet_hashes(path: Path) -> list[str]:
             "error",
             *videos._input(path),
             "-select_streams",
-            "a:0",
+            stream,
             "-show_packets",
             "-show_data_hash",
             "sha256",
@@ -40,6 +42,31 @@ def audio_packet_hashes(path: Path) -> list[str]:
         probe=True,
     )
     return [packet["data_hash"] for packet in json.loads(content)["packets"]]
+
+
+def decoded_frame(path: Path, target: Path) -> Image.Image:
+    videos._run(
+        [
+            get_settings().ffmpeg_path,
+            "-nostdin",
+            "-v",
+            "error",
+            "-y",
+            *videos._input(path),
+            "-ss",
+            "0.5",
+            "-frames:v",
+            "1",
+            "-an",
+            "-q:v",
+            "2",
+            "-f",
+            "image2",
+            str(target),
+        ]
+    )
+    with Image.open(target) as image:
+        return image.convert("RGB")
 
 
 def test_standalone_worker_can_prepare_attachment_persistence_without_api_bootstrap() -> None:
@@ -74,6 +101,14 @@ def test_real_video_is_sanitized_fully_decoded_and_has_clean_poster(
         assert private not in content
         assert private not in result.thumbnail
     assert videos._metadata(videos._probe(result.path), clean=True) == (96, 64, 1)
+    # SEI is deliberately stripped; decoded pixels must still remain identical.
+    assert (
+        ImageChops.difference(
+            decoded_frame(SAMPLE, tmp_path / "original.jpg"),
+            decoded_frame(result.path, tmp_path / "retained.jpg"),
+        ).getbbox()
+        is None
+    )
 
 
 def test_truncated_video_never_produces_ready_content(processor, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
@@ -198,6 +233,110 @@ def test_compatible_1080p_and_smaller_recordings_keep_the_lossless_path(
 
 
 @pytest.mark.parametrize(
+    ("transfer", "side_data", "expected"),
+    [
+        ("smpte2084", [], 100),
+        ("arib-std-b67", [], 10),
+        (
+            "smpte2084",
+            [{"side_data_type": "Content light level metadata", "max_content": 1200}],
+            12,
+        ),
+        (
+            "smpte2084",
+            [{"side_data_type": "Mastering display metadata", "max_luminance": "10000000/10000"}],
+            10,
+        ),
+        (
+            "smpte2084",
+            [
+                {"side_data_type": "Mastering display metadata", "max_luminance": "4000/1"},
+                {"side_data_type": "Content light level metadata", "max_content": 600},
+            ],
+            6,
+        ),
+    ],
+)
+def test_hdr_peak_is_resolved_from_source_before_transfer_becomes_linear(
+    transfer: str, side_data: list[dict[str, Any]], expected: float
+) -> None:
+    assert videos._hdr_peak({"color_transfer": transfer, "side_data_list": side_data}) == expected
+
+
+@pytest.mark.parametrize("value", [0, -1, 100, 10_001, "nan", "inf", "1/0", None])
+def test_unusable_hdr_metadata_cannot_destroy_the_transfer_specific_fallback(value: Any) -> None:
+    assert (
+        videos._hdr_peak(
+            {
+                "color_transfer": "smpte2084",
+                "side_data_list": [
+                    {"side_data_type": "Content light level metadata", "max_content": value}
+                ],
+            }
+        )
+        == 100
+    )
+
+
+def test_hdr_frame_probe_uses_the_selected_primary_stream(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    commands = []
+
+    def probe(command: list[str], **options: Any) -> bytes:
+        commands.append(command)
+        return b'{"frames": []}'
+
+    monkeypatch.setattr(videos, "_run", probe)
+    videos._probe(tmp_path / "source.mov", hdr_stream_index=5)
+    command = commands[0]
+    assert command[command.index("-select_streams") + 1] == "5"
+    assert command[command.index("-read_intervals") + 1] == "%+#1"
+
+
+@pytest.mark.parametrize(
+    "filename", ["pq-highlight-steps.mp4", "pq-mastered-steps.mp4", "hlg-highlight-steps.mp4"]
+)
+def test_real_hdr_keeps_neutral_shadows_midtones_and_distinct_highlights(
+    processor, tmp_path: Path, filename: str
+) -> None:  # type: ignore[no-untyped-def]
+    result = videos.process(SAMPLE.parent / filename, tmp_path)
+    if filename == "pq-mastered-steps.mp4":
+        frames = videos._probe(SAMPLE.parent / filename, hdr_stream_index=0)["frames"]
+        assert videos._hdr_peak({**frames[0], "color_transfer": "smpte2084"}) == 10
+    assert result.thumbnail
+    with Image.open(io.BytesIO(result.thumbnail)) as poster:
+        rgb = poster.convert("RGB")
+        patches = [rgb.getpixel((40 + i * 80, 80)) for i in range(8)]
+    assert all(max(pixel) - min(pixel) <= 3 for pixel in patches)
+    levels = [pixel[0] for pixel in patches]
+    assert levels[0] <= 3  # No lifted blacks or implicit HDR relabelling.
+    assert 100 <= levels[2] <= 135  # The known 18-nit midtone remains visible.
+    assert 250 <= levels[-1] <= 255
+    assert all(left < right for left, right in pairwise(levels))
+    # The old post-linear PQ fallback collapsed all three patches to white.
+    assert levels[-3] <= 248
+    assert levels[-1] - levels[-3] >= 7
+    primary, _ = videos._streams(videos._probe(result.path))
+    assert primary["color_transfer"] == primary["color_primaries"] == "bt709"
+    assert primary["color_range"] == "tv"
+    assert not primary.get("side_data_list")
+
+
+def test_real_conversion_retains_moving_1080p_detail(processor, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    source = SAMPLE.parent / "detail-motion-1080p.mp4"
+    result = videos.process(source, tmp_path)
+    assert (result.width, result.height) == (1920, 1080)
+    frames = []
+    for index, path in enumerate([source, result.path]):
+        frames.append(decoded_frame(path, tmp_path / f"detail-{index}.jpg"))
+    difference = ImageStat.Stat(ImageChops.difference(*frames))
+    mse = sum(difference.sum2) / (1920 * 1080 * 3)
+    psnr = 10 * math.log10(255**2 / mse) if mse else math.inf
+    assert psnr >= 40, f"Moving detail PSNR fell to {psnr:.2f} dB"
+
+
+@pytest.mark.parametrize(
     ("filename", "dimensions", "has_audio"),
     [
         ("hevc-sdr.mp4", (96, 64), True),
@@ -230,8 +369,8 @@ def test_common_smartphone_recordings_produce_clean_playable_media(
     assert b"synthetic-private" not in result.thumbnail
     if filename in {"hevc-sdr.mp4", "hevc-hlg.mp4", "hevc-pq.mp4"}:
         # The existing AAC recording survives normalization byte for byte.
-        original_audio = audio_packet_hashes(source)
-        assert original_audio and audio_packet_hashes(result.path) == original_audio
+        original_audio = packet_hashes(source, "a:0")
+        assert original_audio and packet_hashes(result.path, "a:0") == original_audio
     if filename in {"hevc-hlg.mp4", "hevc-pq.mp4"}:
         assert primary["color_transfer"] == primary["color_primaries"] == "bt709"
         assert primary["color_space"] == "bt709"

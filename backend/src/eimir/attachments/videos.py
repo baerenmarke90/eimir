@@ -10,6 +10,7 @@ import signal
 import subprocess
 import time
 from dataclasses import dataclass
+from fractions import Fraction
 from functools import partial
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -152,18 +153,35 @@ def _input(path: Path) -> list[str]:
     ]
 
 
-def _probe(path: Path, deadline: float | None = None) -> dict[str, Any]:
+def _probe(
+    path: Path, deadline: float | None = None, *, hdr_stream_index: int | None = None
+) -> dict[str, Any]:
+    selection = (
+        [
+            "-select_streams",
+            str(hdr_stream_index),
+            "-read_intervals",
+            "%+#1",
+            "-show_entries",
+            "frame_side_data=side_data_type,max_content,max_luminance",
+        ]
+        if hdr_stream_index is not None
+        else [
+            "-show_entries",
+            "format=duration:format_tags:"
+            "stream=index,codec_name,codec_type,width,height,duration,pix_fmt,color_transfer,"
+            "color_primaries,color_space,color_range:"
+            "stream_tags:stream_disposition=attached_pic:"
+            "stream_side_data=side_data_type,rotation,max_content,max_luminance",
+        ]
+    )
     raw = _run(
         [
             get_settings().ffprobe_path,
             "-v",
             "error",
             *_input(path),
-            "-show_entries",
-            "format=duration:format_tags:"
-            "stream=index,codec_name,codec_type,width,height,duration,pix_fmt,color_transfer,"
-            "color_primaries,color_space,color_range:"
-            "stream_tags:stream_disposition=attached_pic:stream_side_data=side_data_type,rotation",
+            *selection,
             "-of",
             "json",
         ],
@@ -246,6 +264,27 @@ def _metadata(info: dict[str, Any], *, clean: bool = False) -> tuple[int, int, i
         raise VideoRejectedError() from None
 
 
+def _hdr_peak(primary: dict[str, Any]) -> float:
+    """Resolve source luminance before linearization loses the HDR transfer tag."""
+    side_data = primary.get("side_data_list", [])
+    for kind, key in (
+        ("Content light level metadata", "max_content"),
+        ("Mastering display metadata", "max_luminance"),
+    ):
+        for item in side_data:
+            if item.get("side_data_type") != kind:
+                continue
+            try:
+                luminance = float(Fraction(str(item.get(key, ""))))
+            except (ValueError, ZeroDivisionError, OverflowError):
+                continue
+            if 100 < luminance <= 10_000:
+                return luminance / 100
+    # PQ is absolute up to 10,000 nits; HLG uses a 1,000-nit reference display.
+    # FFmpeg otherwise sees the already-linear frame and assumes HLG for both.
+    return 100 if primary.get("color_transfer") == "smpte2084" else 10
+
+
 def _normalization(info: dict[str, Any]) -> list[str]:
     """Map verified media only; keep compatible streams without lossy encoding."""
     primary, audio = _streams(info)
@@ -261,7 +300,8 @@ def _normalization(info: dict[str, Any]) -> list[str]:
             "fps=fps='if(gt(source_fps,0),min(source_fps,30),30)'",
             "scale=w='min(iw,if(gte(iw,ih),1920,1080))':"
             "h='min(ih,if(gte(iw,ih),1080,1920))':"
-            "force_original_aspect_ratio=decrease:force_divisible_by=2",
+            "force_original_aspect_ratio=decrease:force_divisible_by=2:"
+            "flags=lanczos+accurate_rnd",
         ]
         transfer = _HDR_TRANSFERS.get(primary.get("color_transfer", ""))
         if transfer is not None:
@@ -278,8 +318,11 @@ def _normalization(info: dict[str, Any]) -> list[str]:
                     f"rangein={color_range}:transfer=linear:npl=100",
                     "format=gbrpf32le",
                     "zscale=primaries=bt709",
-                    "tonemap=tonemap=mobius:desat=2",
-                    "zscale=transfer=bt709:matrix=bt709:range=limited",
+                    # tonemap uses this matrix for luminance, even on RGB.
+                    # RGB's (1,1,1) coefficients would brighten neutral highlights.
+                    "setparams=colorspace=bt709",
+                    f"tonemap=tonemap=reinhard:param=0.5:desat=2:peak={_hdr_peak(primary):g}",
+                    "zscale=transfer=bt709:matrix=bt709:range=limited:dither=error_diffusion",
                 ]
             )
             options.extend(
@@ -301,12 +344,20 @@ def _normalization(info: dict[str, Any]) -> list[str]:
                 ",".join(filters),
                 "-c:v",
                 "libopenh264",
+                "-rc_mode",
+                "quality",
                 "-b:v",
-                "4000000",
-                "-maxrate",
-                "6000000",
-                "-bufsize",
                 "8000000",
+                "-maxrate",
+                "10000000",
+                "-bufsize",
+                "16000000",
+                "-qmin",
+                "18",
+                "-qmax",
+                "32",
+                "-allow_skip_frames",
+                "0",
                 "-profile:v",
                 "high",
                 "-g",
@@ -337,6 +388,16 @@ def process(source: Path, directory: Path) -> ProcessedVideo:
     deadline = time.monotonic() + PROCESS_TIMEOUT_SECONDS
     info = _probe(source, deadline)
     _metadata(info)
+    primary, _ = _streams(info)
+    if primary.get("color_transfer") in _HDR_TRANSFERS:
+        # HEVC commonly carries luminance metadata on the first decoded frame,
+        # not on its stream. Probe only that frame under the same resource fence.
+        frames = _probe(source, deadline, hdr_stream_index=int(primary["index"])).get("frames", [])
+        if frames:
+            primary["side_data_list"] = [
+                *primary.get("side_data_list", []),
+                *frames[0].get("side_data_list", []),
+            ]
     output = directory / "sanitized.mp4"
     ffmpeg = get_settings().ffmpeg_path
     run = partial(_run, deadline=deadline)

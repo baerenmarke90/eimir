@@ -90,7 +90,7 @@ adopted Attachment keeps its canonical parent through progress updates.
   and encrypted-container rejection remain covered. Backend source is unchanged
   from the earlier 369-file mypy pass; hosted Media Video validates the shipped
   restricted/static image and the database lifecycle.
-- Native: debug APK, instrumentation APK, Lint, all **13 JVM tests**, unsigned
+- Native: debug APK, instrumentation APK, Lint, all **17 JVM tests**, unsigned
   release APK and AAB builds pass with **offline strict dependency verification**.
   The missing Guava parent-POM fingerprint matches both Maven Central's original
   artifact and the existing local cached artifact; no broad trust exception is
@@ -99,6 +99,42 @@ adopted Attachment keeps its canonical parent through progress updates.
 - CI fixture generation explicitly installs the system FFmpeg encoder for
   synthetic input only. Codec acceptance still runs the separately built,
   pinned and patched restricted processor. Generated test media is not shipped.
+
+The first integrated native execution exposed two separate compatibility issues.
+Android reports Constrained Baseline AVC as profile 65536, so comparing the
+profile identifier numerically with High (8) rejected valid prepared recordings.
+The native compatibility contract now explicitly includes the supported eight-bit
+profiles, including Constrained Baseline/High, while rejecting High 10/4:2:2/4:4:4
+and invalid identifiers. One JVM regression covers this distinction.
+
+The unrestricted lossless HDR references signal HEVC level 255, which Android's
+bounded decoder rejects. Native fixture preparation now encodes real Main 10 /
+level 3.1 variants using CRF 0 with explicit VBV constraints. The lossless backend
+references remain unchanged. All three native variants retain actual HLG/PQ and
+BT.2020 metadata; generation checks those fields and the declared profile/level.
+Across all 12 frames, all 96 luminance sample centers per fixture are identical
+to the original reference; the largest difference anywhere is 2/1023. The native
+test additionally verifies the input's actual HDR transfer before retaining all
+existing highlight, audio, duration, size and cancellation assertions.
+
+Media3 1.11.1's bundled OpenGL PQ shader fixes maximum mastering luminance at
+1,000 nits. Unknown PQ mastering and mastering/content-light peaks above that
+limit now fail visibly before export; the original selection remains available.
+This prevents a successful upload with silently clipped highlights. HLG and
+declared PQ up to 1,000 nits use the existing platform tone mapper. There is no
+server encoding fallback. Native acceptance checks actual HLG plus an explicitly
+mastered 1,000-nit PQ fixture, then requires the unbounded PQ case to fail safely.
+Mastering is read from the platform's CTA-861.3 field, or from bounded HEVC
+codec-data SEI when MP4 extractors omit that optional field. The latter reuses
+Media3's NAL boundary and emulation-prevention primitives; it does not decode a
+frame or create a second metadata/codec pipeline. JVM cases cover escaped SEI,
+unknown/unsupported peaks, truncated data and preserving the codec buffer.
+Its 18-nit gray oracle is derived from the mapper's 500-nit SDR reference white
+with gamma 2.2 (15 code-value tolerance); unchanged HDR electrical values fail
+this check. All eight supported highlight steps must remain distinct.
+
+Primary contracts: [Android codec profile identifiers](https://developer.android.com/reference/android/media/MediaCodecInfo.CodecProfileLevel)
+and [x265 level/rate-control constraints](https://x265.readthedocs.io/en/latest/cli.html#cmdoption-level-idc).
 
 Hosted exact-head checks must pass before merge. Physical-device acceptance of
 appearance, tone mapping and phone performance remains separate from synthetic

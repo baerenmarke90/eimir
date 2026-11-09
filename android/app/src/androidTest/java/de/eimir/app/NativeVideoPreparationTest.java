@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaFormat;
 import android.net.Uri;
 import android.os.Build;
 import android.os.CancellationSignal;
@@ -96,15 +97,33 @@ public class NativeVideoPreparationTest {
     @Test public void hdrIsToneMappedOnDeviceAndCannotBecomeAnUnprocessedFallback() throws Exception {
         toneMapAndCheck("hlg-highlight-steps.mp4");
         cleanup();
-        toneMapAndCheck("pq-highlight-steps.mp4");
+        toneMapAndCheck("pq-mastered-steps.mp4");
+        cleanup();
+        BackgroundMediaTransfers.Record unbounded = stage("pq-highlight-steps.mp4");
+        try {
+            NativeVideoPreparation.prepare(context, unbounded, new CancellationSignal());
+            fail("Unknown or 10,000-nit PQ must not silently clip at Media3's 1,000-nit limit");
+        } catch (java.io.IOException expected) {
+            assertEquals("preparing", BackgroundMediaTransfers.read(context, id).phase());
+            assertTrue(BackgroundMediaTransfers.source(context, id).exists());
+        }
     }
     private void toneMapAndCheck(String fixture) throws Exception {
         BackgroundMediaTransfers.Record record = stage(fixture);
-        assertFalse(NativeVideoPreparation.inspect(original).compatible());
+        NativeVideoPreparation.Metadata input = NativeVideoPreparation.inspect(original);
+        assertFalse(input.compatible());
+        assertEquals("The fixture must contain actual HDR, not relabelled SDR",
+            fixture.startsWith("hlg") ? MediaFormat.COLOR_TRANSFER_HLG : MediaFormat.COLOR_TRANSFER_ST2084,
+            input.video.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
         if (Build.VERSION.SDK_INT < 29) {
             try { NativeVideoPreparation.prepare(context, record, new CancellationSignal()); fail("OpenGL HDR requires API 29"); }
             catch (java.io.IOException expected) { assertEquals("preparing", BackgroundMediaTransfers.read(context, id).phase()); }
             return;
+        }
+        if (fixture.startsWith("pq")) {
+            assertTrue("The native PQ fixture declares supported 1,000-nit mastering",
+                VideoPreparationSettings.supportsPqMastering(
+                    input.video.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO), input.video.getByteBuffer("csd-0")));
         }
         NativeVideoPreparation.prepare(context, record, new CancellationSignal());
         File output = BackgroundMediaTransfers.source(context, id);
@@ -120,7 +139,11 @@ public class NativeVideoPreparationTest {
                     int red = (pixel >> 16) & 255, green = (pixel >> 8) & 255, blue = pixel & 255;
                     assertTrue(Math.abs(red - green) <= 5 && Math.abs(red - blue) <= 5); levels[i] = red;
                 }
-                assertTrue(levels[0] <= 5); assertTrue(levels[2] >= 70 && levels[2] <= 170);
+                assertTrue(levels[0] <= 5);
+                // The source gray is 18 nits; Media3's SDR reference white is
+                // 500 nits. This also rejects unconverted HDR electrical values.
+                int gray = (int) Math.round(255 * Math.pow(18.0 / 500, 1.0 / 2.2));
+                assertTrue("18-nit gray retains the SDR reference exposure", Math.abs(levels[2] - gray) <= 15);
                 for (int i = 1; i < 8; i++) assertTrue("Neutral highlight steps must remain distinct", levels[i] > levels[i - 1]);
                 assertTrue(levels[7] - levels[5] >= 7);
             } finally { frame.recycle(); }

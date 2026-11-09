@@ -49,7 +49,7 @@ final class NativeVideoPreparation {
             int transfer = integer(video, MediaFormat.KEY_COLOR_TRANSFER, 3);
             int profile = integer(video, MediaFormat.KEY_PROFILE, 0);
             return MimeTypes.VIDEO_H264.equals(video.getString(MediaFormat.KEY_MIME))
-                && transfer != 6 && transfer != 7 && profile <= 8
+                && transfer != 6 && transfer != 7 && VideoPreparationSettings.supportsAvcProfile(profile)
                 && Math.max(width, height) <= 1920 && Math.min(width, height) <= 1080
                 && (audio == null || MimeTypes.AUDIO_AAC.equals(audio.getString(MediaFormat.KEY_MIME)));
         }
@@ -100,6 +100,10 @@ final class NativeVideoPreparation {
         Metadata original = inspect(source);
         VideoPreparationSettings settings = new VideoPreparationSettings(original.width, original.height);
         cancellation.throwIfCanceled();
+        if (integer(original.video, MediaFormat.KEY_COLOR_TRANSFER, 3) == MediaFormat.COLOR_TRANSFER_ST2084
+                && !VideoPreparationSettings.supportsPqMastering(
+                    original.video.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO), original.video.getByteBuffer("csd-0")))
+            throw new IOException("HDR preparation is unavailable for this recording");
         if (original.compatible() && source.length() * 8.0 * 1_000_000 / original.durationUs <= settings.bitrate)
             return BackgroundMediaTransfers.prepared(context, record.id(), source);
         File output = BackgroundMediaTransfers.preparationOutput(context, record.id());

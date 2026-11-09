@@ -159,7 +159,7 @@ describe('Memory capture mutation ownership', () => {
     expect(titleInput().closest('details')).toBeNull();
     expect(titleInput().required).toBe(false);
     expect(titleInput().closest('fieldset')?.querySelector('input')).toBe(
-      titleInput(),
+      screen.getByLabelText(de.memory.dateLabel),
     );
     const save = screen.getByRole('button', {
       name: de.memory.save,

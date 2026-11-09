@@ -4069,7 +4069,8 @@
     "show": "Show image",
     "hide": "Hide again",
     "reveal": "Show",
-    "conceal": "Hide"
+    "conceal": "Hide",
+    "shortLabel": "Sensitive"
   },
   "heartEmotion": {
     "LOVED": "Loved",

@@ -475,9 +475,9 @@ for (const width of [390, 320] as const) {
         throw new Error('Memory Create form children not found.');
       }
       expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
-      // #1547 makes the optional title the first Memory capture field.
-      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.dateFieldIndex);
-      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.narrativeIndex);
+      // #1715 keeps compact date context above framed writing and media.
+      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.titleFieldIndex);
+      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.narrativeIndex);
       expect(domOrder.narrativeIndex).toBeLessThan(domOrder.mediaIndex);
       expect(domOrder.mediaIndex).toBeLessThan(domOrder.placesIndex);
       expect(domOrder.placesIndex).toBeLessThan(domOrder.actionsIndex);

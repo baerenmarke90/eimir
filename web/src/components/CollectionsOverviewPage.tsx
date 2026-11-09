@@ -322,7 +322,7 @@ export function CollectionsOverviewPage({
           {(requestClose) => (
             <form
               onSubmit={submitCollection}
-              className="form-grid planning-create-form"
+              className="form-grid planning-create-form free-composer"
               onChange={(event) =>
                 setCreateDirty(
                   Array.from(new FormData(event.currentTarget).values()).some(

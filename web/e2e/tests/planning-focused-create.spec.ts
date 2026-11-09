@@ -365,7 +365,6 @@ test('an undated Plan is valid while optional context remains available', async 
   await page.goto('/plan/plans/new');
 
   await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend in Berlin');
-  await page.getByText(m5s3.plan.addDetails).click();
   await page.getByLabel(m5s3.common.description).fill('Time just for us');
   const addPlace = page.getByRole('button', {
     name: photoPlaces.add,

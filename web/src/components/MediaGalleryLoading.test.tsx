@@ -60,6 +60,45 @@ it('loads only the visible carousel image and neighbours, moving and wrapping th
   ).toBe('blob:5');
 });
 
+it('discards a previous scroll completion when an editor selects another photo', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+  const settled = vi.fn();
+  const load = vi.fn(() => new Promise<string>(() => {}));
+  const props = {
+    items: images,
+    loadMedia: load,
+    onSettledMediaChange: settled,
+  };
+  const view = render(<MediaGallery {...props} initialMediaId="0" />);
+  const track = view.container.querySelector<HTMLDivElement>(
+    '.media-gallery-carousel-track',
+  );
+  try {
+    if (!track) throw new Error('The carousel track must be rendered.');
+    for (const [index, slide] of Array.from(track.children).entries())
+      Object.defineProperty(slide, 'offsetLeft', { value: index * 100 });
+    track.scrollLeft = 100;
+    fireEvent.scroll(track);
+    view.rerender(<MediaGallery {...props} initialMediaId="1" />);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).not.toHaveBeenCalled();
+    expect(
+      view.container
+        .querySelector('.is-active')
+        ?.getAttribute('data-carousel-index'),
+    ).toBe('1');
+
+    track.scrollLeft = 300;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).toHaveBeenCalledExactlyOnceWith('2');
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});
+
 it('follows fullscreen navigation and restores the carousel window after close', async () => {
   const revoke = vi.fn();
   vi.stubGlobal('URL', { revokeObjectURL: revoke });

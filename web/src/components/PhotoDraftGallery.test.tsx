@@ -92,7 +92,11 @@ it('keeps image selection independent from direct cover and sensitivity controls
     ).checked,
   ).toBe(true);
   expect(screen.queryByText(i18n.t('memory.photoReady'))).toBeNull();
-  expect(screen.queryByText(i18n.t('experiences.chooseCover'))).toBeNull();
+  expect(
+    within(
+      view.container.querySelector('.photo-draft-toolbar') as HTMLElement,
+    ).getByRole('button', { name: i18n.t('experiences.chooseCover') }),
+  ).toBeTruthy();
   expect(screen.queryByText(i18n.t('memory.photoRemove'))).toBeNull();
   expect(view.container.querySelector('button button')).toBeNull();
 });

@@ -109,6 +109,16 @@ filled tonal surfaces and persistent labels identify inputs. Keep visible
 keyboard focus, validation, native affordances and system forced-colors
 boundaries. Do not reintroduce a frame through a component override or shadow.
 
+The later PO decision [#1715](https://github.com/baerenmarke90/eimir/issues/1715)
+introduces an explicit authored-field exception: title, description and authored
+text in capture/edit tasks use `border.authoredFrame` and the shared
+`FreeComposer` presentation. The shared media-editor boundary uses the same
+role. Ordinary utility inputs, choices, cards and sheets retain the zero-frame
+role. Keep the canonical palette, typography, filled Add actions, native field
+semantics and visible focus. The approved [composition and preservation
+contract](references/free-composer/README.md) governs these tasks.
+
+
 Reuse the existing radius vocabulary by purpose: `none` for flush content; `small` for small details; `medium` for compact controls; `large` for media, inputs and buttons; `card` for an independent content unit; `sheet` for sheet top corners; `hero` only for a justified large focal surface; `pill` for appropriate filters/tabs and identity shapes. No screen needs to demonstrate every radius.
 
 - Separators aid scanning where adjacency is ambiguous; they are not required between every piece of content.

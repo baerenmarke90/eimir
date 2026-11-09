@@ -1,8 +1,12 @@
 import { type ReactNode, useState } from 'react';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
+import type { VideoSource } from '../client/video';
 import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { GalleryExpandAction, MediaGallery } from './MediaGallery';
+import { PhotoArrangeTask } from './PhotoArrangeTask';
 import { VideoTransferFeedback } from './VideoTransferFeedback';
 import './PhotoDraftGallery.css';
 import {
@@ -21,6 +25,9 @@ export interface PhotoDraftGalleryItem {
   status?: string;
   canRemove?: boolean;
   canEditSensitivity?: boolean;
+  loadMedia?: (signal?: AbortSignal) => Promise<ObjectUrlSource>;
+  loadPoster?: (signal?: AbortSignal) => Promise<ObjectUrlSource>;
+  loadPlayback?: (signal: AbortSignal) => Promise<VideoSource>;
 }
 
 /** Bounded media selection with contextual inline actions. */
@@ -31,6 +38,7 @@ export function PhotoDraftGallery({
   onRemove,
   onRetry,
   removeLabel,
+  resourceScopeKey = 'draft-gallery',
   onOrderChange,
   selectedCoverKey,
   onSelectCover,
@@ -44,12 +52,14 @@ export function PhotoDraftGallery({
   onRemove: (key: string) => void;
   onRetry?: (key: string) => void;
   removeLabel?: (key: string) => string;
+  resourceScopeKey?: string;
 }) {
   const { t } = useTranslation();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
+  const [arranging, setArranging] = useState(false);
   const selected = items.find((item) => item.key === selectedKey) ?? items[0];
   if (!selected) return null;
   const failed = items.filter((item) => item.draft?.status === 'failed');
@@ -98,8 +108,136 @@ export function PhotoDraftGallery({
       draft?.status === 'failed' ||
       selected.status === 'PROCESSING' ||
       selected.status === 'FAILED');
+  const hasPreview = items.some(
+    (item) => item.loadMedia || item.draft?.previewUrl,
+  );
   return (
     <div className="photo-draft-gallery">
+      {hasPreview ? (
+        <MediaGallery
+          resourceScopeKey={JSON.stringify([
+            resourceScopeKey,
+            items
+              .flatMap((item) =>
+                item.draft ? [[item.key, item.draft.previewUrl]] : [],
+              )
+              .sort(([a], [b]) => a.localeCompare(b)),
+          ])}
+          onSettledMediaChange={setSelectedKey}
+          initialMediaId={selected.key}
+          items={items.map((item) => ({
+            id: item.key,
+            mediaType: isVideo(item) ? 'VIDEO' : 'IMAGE',
+            status: item.status,
+            isSensitive: item.isSensitive,
+            hasThumbnail: Boolean(item.loadPoster),
+          }))}
+          loadMedia={(id, signal) => {
+            const item = items.find((entry) => entry.key === id);
+            if (item?.loadMedia) return item.loadMedia(signal);
+            if (item?.draft && !selectedPhotoUnavailable(item.draft.file)) {
+              // The gallery owns its bounded view URL; draft previews keep their owner.
+              return Promise.resolve(item.draft.file);
+            }
+            return Promise.reject(new Error('Selected photo is unavailable.'));
+          }}
+          loadPoster={(id, signal) => {
+            const item = items.find((entry) => entry.key === id);
+            return (
+              item?.loadPoster?.(signal) ??
+              Promise.reject(new Error('Selected poster is unavailable.'))
+            );
+          }}
+          loadPlayback={async (id, signal) => {
+            const item = items.find((entry) => entry.key === id);
+            if (item?.loadPlayback) return item.loadPlayback(signal);
+            if (
+              item?.draft?.previewUrl &&
+              !selectedPhotoUnavailable(item.draft.file)
+            ) {
+              return {
+                url: item.draft.previewUrl,
+                expiresAt: new Date(8640000000000000),
+              };
+            }
+            throw new Error('Selected video is unavailable.');
+          }}
+          renderPhotoActions={(media, open, revealed) => {
+            const item = items.find((entry) => entry.key === media.id);
+            if (!item) return null;
+            return (
+              <>
+                {revealed ? <GalleryExpandAction onOpen={open} /> : null}
+                {onSensitive ? (
+                  <label className="photo-draft-stage-sensitive media-overlay">
+                    <input
+                      type="checkbox"
+                      checked={item.isSensitive}
+                      disabled={disabled || item.canEditSensitivity === false}
+                      aria-label={`${t('sensitiveMedia.mark')}: ${item.name}`}
+                      onChange={(event) =>
+                        onSensitive(item.key, event.currentTarget.checked)
+                      }
+                    />
+                    <EimirIcon
+                      name={item.isSensitive ? 'privatsphaere' : 'lock-open'}
+                    />
+                    <span>{t('sensitiveMedia.shortLabel')}</span>
+                  </label>
+                ) : null}
+              </>
+            );
+          }}
+        />
+      ) : null}
+      <div className="photo-draft-toolbar">
+        {onSelectCover ? (
+          <button
+            type="button"
+            className="tertiary"
+            disabled={disabled}
+            aria-pressed={selected.key === coverKey}
+            onClick={() => onSelectCover(selected.key)}
+          >
+            {t(
+              selected.key === coverKey
+                ? 'experiences.cover'
+                : 'experiences.chooseCover',
+            )}
+          </button>
+        ) : null}
+
+        {onOrderChange && items.length > 1 ? (
+          <button
+            type="button"
+            className="tertiary"
+            disabled={disabled}
+            onClick={() => setArranging(true)}
+          >
+            {t('experiences.arrange')}
+          </button>
+        ) : null}
+        {onSelectCover && selectedCoverKey ? (
+          <button
+            type="button"
+            className="tertiary"
+            disabled={disabled}
+            onClick={() => onSelectCover(null)}
+          >
+            {t('experiences.automaticCover')}
+          </button>
+        ) : null}
+      </div>
+      {arranging && onOrderChange ? (
+        <PhotoArrangeTask
+          items={items}
+          onClose={() => setArranging(false)}
+          onFinish={(keys) => {
+            if (!disabled) onOrderChange(keys);
+            setArranging(false);
+          }}
+        />
+      ) : null}
       <PhotoDraftSorting
         onAnnounce={setAnnouncement}
         onMove={(key, target) => {

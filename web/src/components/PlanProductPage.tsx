@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { NativeDateInput } from './NativeDateField';
 import {
   onlineManager,
@@ -454,6 +455,7 @@ export function PlanProductPage({
           isEditing ? (
             <input
               ref={editTitle}
+              className="composer-authored-title"
               disabled={writesPending}
               form="plan-edit-form"
               name="title"
@@ -545,7 +547,10 @@ export function PlanProductPage({
 
       <div className="planning-detail-grid">
         {isEditing ? (
-          <section id="plan-edit-section" className="planning-subsection">
+          <section
+            id="plan-edit-section"
+            className="planning-subsection free-composer"
+          >
             <h2>{t('m5s3.common.edit')}</h2>
             {editorLifecycle.showDiscardConfirm ? (
               <PlanningDiscardConfirmation
@@ -553,6 +558,22 @@ export function PlanProductPage({
                 onDiscard={editorLifecycle.discard}
               />
             ) : null}
+            <fieldset
+              className="form-grid planning-editor-fields"
+              disabled={writesPending}
+              onChange={() => setEditDirty(true)}
+            >
+              <label htmlFor="plan-edit-description">
+                {t('m5s3.common.description')}
+              </label>
+              <textarea
+                form="plan-edit-form"
+                id="plan-edit-description"
+                name="description"
+                rows={4}
+                defaultValue={plan.description ?? ''}
+              />
+            </fieldset>
             <MemoryTagChoices
               parentType="PLAN"
               parentId={plan.id}
@@ -621,16 +642,6 @@ export function PlanProductPage({
               disabled={writesPending}
               onChange={() => setEditDirty(true)}
             >
-              <label htmlFor="plan-edit-description">
-                {t('m5s3.common.description')}
-              </label>
-              <textarea
-                form="plan-edit-form"
-                id="plan-edit-description"
-                name="description"
-                rows={4}
-                defaultValue={plan.description ?? ''}
-              />
               <label htmlFor="plan-edit-place">{t('m5s3.common.place')}</label>
               <select
                 form="plan-edit-form"

@@ -1,3 +1,4 @@
+import './StoryReading.css';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
@@ -43,7 +44,7 @@ export function StoryDetailPageShell({
   const { t } = useTranslation();
 
   return (
-    <div className={`page ${pageClassName}`.trim()}>
+    <div className={`page story-reading ${pageClassName}`.trim()}>
       {beforeHeader}
       {offline ? (
         <div className="inline-message" role="status">

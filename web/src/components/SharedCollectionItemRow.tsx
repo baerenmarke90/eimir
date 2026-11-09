@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { type ButtonHTMLAttributes, useEffect, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { useTranslation } from '../i18n';
@@ -114,7 +115,7 @@ export function SharedCollectionItemRow({
           <>
             {mode === 'edit' ? (
               <form
-                className="form-grid"
+                className="form-grid free-composer"
                 onSubmit={async (event) => {
                   event.preventDefault();
                   if (!draft.trim() || pending) return;

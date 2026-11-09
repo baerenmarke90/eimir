@@ -1,11 +1,13 @@
 .legal-document {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
   gap: var(--space-4);
   max-width: var(--reading-max);
   color: var(--color-text);
   font: var(--font-reading-body);
   hyphens: auto;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .legal-document > * {

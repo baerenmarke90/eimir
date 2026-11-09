@@ -443,6 +443,29 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
   });
 });
 
+async function expectMemoryAuthoredContentBeforeMedia(page: Page) {
+  const title = page.getByLabel(de.memory.titleLabelOptional);
+  const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+  const media = page.locator('.immersive-create-media');
+  await expect(title).toBeVisible();
+  await expect(title).toBeInViewport();
+  await expect(title).toBeEnabled();
+  await expect(title).not.toBeFocused();
+  await expect(media).toBeVisible();
+
+  // #1715 keeps compact date context above the authored title and prose.
+  // Protect their visible order before media, not the first input's type.
+  const [titleBox, bodyBox, mediaBox] = await Promise.all([
+    title.boundingBox(),
+    body.boundingBox(),
+    media.boundingBox(),
+  ]);
+  if (!titleBox || !bodyBox || !mediaBox)
+    throw new Error('The Memory authored fields and media must be rendered.');
+  expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(bodyBox.y);
+  expect(bodyBox.y + bodyBox.height).toBeLessThanOrEqual(mediaBox.y);
+}
+
 test.describe('Quick Create -> dedicated /new routes: land at the correct start position', () => {
   const dedicatedDestinations = [
     {
@@ -504,15 +527,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       await assertNothingUnexpectedlyFocused(page);
 
       if (destination.primaryFieldSelector === '#body') {
-        const title = page.getByLabel(de.memory.titleLabelOptional);
-        await expect(title).toBeVisible();
-        expect(
-          await title.evaluate(
-            (node) => node.closest('fieldset')?.querySelector('input') === node,
-          ),
-        ).toBe(true);
-        await expect(title).toBeVisible();
-        await expect(title).toBeEnabled();
+        await expectMemoryAuthoredContentBeforeMedia(page);
       }
     });
   }
@@ -656,15 +671,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await expect(body).toBeEnabled();
     await expect(body).not.toBeFocused();
     await assertNothingUnexpectedlyFocused(page);
-    const title = page.getByLabel(de.memory.titleLabelOptional);
-    await expect(title).toBeVisible();
-    expect(
-      await title.evaluate(
-        (node) => node.closest('fieldset')?.querySelector('input') === node,
-      ),
-    ).toBe(true);
-    await expect(title).toBeVisible();
-    await expect(title).toBeEnabled();
+    await expectMemoryAuthoredContentBeforeMedia(page);
     await page.screenshot({
       path: info.outputPath('memory-title-first-390-light.png'),
       fullPage: true,

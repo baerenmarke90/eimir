@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import './HeartEmotionVisual.css';
 
 export type HeartEmotionValue =
@@ -150,7 +152,9 @@ export function HeartEmotionPicker({
   legend,
   idPrefix = 'heart-emotion',
   className = '',
+  compact = false,
 }: {
+  compact?: boolean;
   name?: string;
   defaultValue?: HeartEmotionValue;
   legend: string;
@@ -158,9 +162,19 @@ export function HeartEmotionPicker({
   className?: string;
 }) {
   const { t } = useTranslation();
-
-  return (
-    <fieldset className={`heart-emotion-picker ${className}`.trim()}>
+  const [selected, setSelected] = useState(defaultValue);
+  const fieldset = useRef<HTMLFieldSetElement>(null);
+  useEffect(() => {
+    const form = fieldset.current?.closest('form');
+    const reset = () => setSelected(defaultValue);
+    form?.addEventListener('reset', reset);
+    return () => form?.removeEventListener('reset', reset);
+  }, [defaultValue]);
+  const choices = (
+    <fieldset
+      ref={fieldset}
+      className={`heart-emotion-picker ${className}`.trim()}
+    >
       <legend>{legend}</legend>
       <div className="heart-emotion-picker-grid">
         {HEART_EMOTIONS.map((emotion) => {
@@ -179,6 +193,7 @@ export function HeartEmotionPicker({
                 name={name}
                 value={emotion}
                 defaultChecked={emotion === defaultValue}
+                onChange={() => setSelected(emotion)}
               />
               <span className="heart-emotion-choice-visual">
                 <span className="heart-emotion-icon" aria-hidden="true">
@@ -196,5 +211,17 @@ export function HeartEmotionPicker({
         })}
       </div>
     </fieldset>
+  );
+  return compact ? (
+    <details className="heart-emotion-disclosure">
+      <summary>
+        <span aria-hidden="true">{legend}</span>
+        <HeartEmotionBadge emotion={selected} />
+        <EimirIcon name="chevron-right" />
+      </summary>
+      {choices}
+    </details>
+  ) : (
+    choices
   );
 }

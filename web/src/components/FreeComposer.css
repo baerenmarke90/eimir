@@ -1,0 +1,245 @@
+/* Approved authored-field role, #1715. Domain controllers retain form ownership. */
+.free-composer {
+  max-inline-size: var(--composer-max);
+  margin-inline: auto;
+  min-inline-size: 0;
+}
+
+.free-composer .page-heading {
+  margin-block-end: var(--space-4);
+  padding-block-end: 0;
+}
+
+.free-composer .page-heading h1 {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  font: var(--font-section-heading);
+  overflow-wrap: anywhere;
+}
+.free-composer .page-heading-title-container {
+  min-inline-size: 0;
+}
+
+.free-composer
+  :is(.immersive-create-card, .form-card.product-sheet, .private-area-editor) {
+  inline-size: 100%;
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.free-composer
+  :is(
+    .immersive-create-form,
+    .memory-task-fields,
+    .planning-intention-form,
+    .planning-intention-form > fieldset
+  ) {
+  display: grid;
+  gap: var(--space-5);
+  min-inline-size: 0;
+}
+
+.composer-authored-field,
+.free-composer :is(input:not([type]), input[type="text"], textarea),
+.free-composer .immersive-create-title-input,
+.free-composer .immersive-create-narrative textarea {
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  border: var(--border-authored-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: none;
+  font: var(--font-reading-body);
+}
+
+.free-composer input[name="title"],
+.free-composer .immersive-create-title-input {
+  min-block-size: var(--touch-target-comfortable);
+  font: var(--font-memory-detail-heading);
+}
+
+.composer-authored-title {
+  inline-size: 100%;
+  max-inline-size: var(--composer-max);
+  min-inline-size: 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-authored-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: var(--font-memory-detail-heading);
+}
+
+.free-composer textarea,
+.free-composer .immersive-create-narrative textarea {
+  min-block-size: 9rem;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.free-composer :is(input, textarea):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.free-composer :is(input, textarea)::placeholder {
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-style: normal;
+  opacity: 1;
+}
+
+.free-composer :is(.field-group > label, .form-grid > label) {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.composer-context {
+  display: flex;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  min-inline-size: 0;
+}
+
+.composer-context > .field-group {
+  flex: 1 1 10rem;
+  min-inline-size: 0;
+}
+
+.composer-context :is(input[type="date"], input[type="time"]) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.composer-schedule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+.composer-schedule
+  :is(
+    .planning-schedule-help,
+    .planning-schedule-end-fields,
+    .planning-schedule-summary
+  ) {
+  grid-column: 1 / -1;
+}
+
+.free-composer :is(.immersive-create-media, .heart-moment-create-field) {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.free-composer .attachment-draft-picker,
+.free-composer .plan-photos-editor {
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.free-composer .media-action-group {
+  border: var(--border-authored-width) solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.free-composer .immersive-create-details {
+  padding: var(--space-2) 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.free-composer .form-actions {
+  margin-block-start: var(--space-2);
+  padding-block-start: var(--space-3);
+}
+
+.heart-emotion-disclosure > summary {
+  display: flex;
+  min-block-size: var(--touch-target-comfortable);
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.heart-emotion-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.heart-emotion-disclosure[open] > summary {
+  margin-block-end: var(--space-3);
+}
+
+.heart-emotion-disclosure .heart-emotion-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.heart-emotion-disclosure .heart-emotion-choice-visual {
+  border-radius: var(--radius-pill);
+  min-block-size: var(--touch-target-comfortable);
+  padding-inline: var(--space-3);
+}
+
+.heart-emotion-disclosure .heart-emotion-choice-check {
+  position: static;
+}
+
+@media (max-width: 359px) {
+  .free-composer :is(input:not([type]), input[type="text"], textarea) {
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (forced-colors: active) {
+  .free-composer :is(input:not([type]), input[type="text"], textarea) {
+    border-color: CanvasText;
+  }
+}
+
+.private-area-editor.free-composer {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.heart-emotion-disclosure > summary > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  transform: rotate(90deg);
+}
+.heart-emotion-disclosure[open] > summary > .eimir-icon {
+  transform: rotate(-90deg);
+}
+
+.free-composer .form-actions > :is(button, .button-link) {
+  min-block-size: var(--touch-target-comfortable);
+}
+.heart-emotion-disclosure .heart-emotion-choice-visual {
+  display: flex;
+  gap: var(--space-2);
+}
+.heart-emotion-disclosure .heart-emotion-choice-check {
+  flex: none;
+  margin-inline-start: auto;
+}

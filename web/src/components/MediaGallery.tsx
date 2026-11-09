@@ -71,6 +71,7 @@ export function MediaGallery({
   onPhotoLongPress,
   renderPhotoActions,
   renderPhotoReactions,
+  onSettledMediaChange,
 }: {
   items: GalleryMediaItem[];
   initialMediaId?: string;
@@ -99,6 +100,8 @@ export function MediaGallery({
     revealed: boolean,
   ) => ReactNode;
   renderPhotoReactions?: (item: GalleryMediaItem) => ReactNode;
+  /** Editor thumbnails follow completed native swipes without taking gesture ownership. */
+  onSettledMediaChange?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const itemIdentity = JSON.stringify(
@@ -198,6 +201,16 @@ export function MediaGallery({
   const activeIndexRef = useRef<number | null>(null);
   const carouselItemsIdentityRef = useRef<string | null>(null);
   const activeItemIdRef = useRef<string | null>(null);
+  const cancelCarouselFeedback = useCallback(() => {
+    if (carouselScrollFrame.current !== null) {
+      window.cancelAnimationFrame(carouselScrollFrame.current);
+      carouselScrollFrame.current = null;
+    }
+    if (carouselScrollEndTimer.current !== null) {
+      window.clearTimeout(carouselScrollEndTimer.current);
+      carouselScrollEndTimer.current = null;
+    }
+  }, []);
   const dismiss = useCallback(() => {
     if (lightboxScrollFrame.current !== null) {
       window.cancelAnimationFrame(lightboxScrollFrame.current);
@@ -246,13 +259,22 @@ export function MediaGallery({
     const identity = JSON.stringify([itemIdentity, initialMediaId]);
     if (carouselItemsIdentityRef.current === identity) return;
     carouselItemsIdentityRef.current = identity;
+    // A new explicit selection owns subsequent feedback and resize alignment.
+    cancelCarouselFeedback();
+    carouselIndexRef.current = startingIndex;
     setCarouselIndex(startingIndex);
 
     const track = carouselTrack.current;
     const firstSlide = carouselSlides.current[startingIndex];
     if (!track || !firstSlide || items.length < 2) return;
     track.scrollLeft = firstSlide.offsetLeft;
-  }, [itemIdentity, items.length, initialMediaId, startingIndex]);
+  }, [
+    itemIdentity,
+    items.length,
+    initialMediaId,
+    startingIndex,
+    cancelCarouselFeedback,
+  ]);
 
   useLayoutEffect(() => {
     const track = carouselTrack.current;
@@ -268,12 +290,7 @@ export function MediaGallery({
 
   useEffect(
     () => () => {
-      if (carouselScrollFrame.current !== null) {
-        window.cancelAnimationFrame(carouselScrollFrame.current);
-      }
-      if (carouselScrollEndTimer.current !== null) {
-        window.clearTimeout(carouselScrollEndTimer.current);
-      }
+      cancelCarouselFeedback();
       if (lightboxScrollFrame.current !== null) {
         window.cancelAnimationFrame(lightboxScrollFrame.current);
       }
@@ -281,7 +298,7 @@ export function MediaGallery({
         window.clearTimeout(lightboxScrollEndTimer.current);
       }
     },
-    [],
+    [cancelCarouselFeedback],
   );
 
   const lightboxOpen = activeIndex !== null;
@@ -409,6 +426,7 @@ export function MediaGallery({
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
     setCarouselIndex(index);
+    if (items[index]) onSettledMediaChange?.(items[index].id);
 
     if (nearest.dataset.carouselClone) {
       const realSlide = carouselSlides.current[index];
@@ -449,6 +467,7 @@ export function MediaGallery({
     const track = carouselTrack.current;
     if (!track) {
       setCarouselIndex(nextIndex);
+      if (items[nextIndex]) onSettledMediaChange?.(items[nextIndex].id);
       return;
     }
 
@@ -463,6 +482,7 @@ export function MediaGallery({
         track.scrollLeft = realSlide.offsetLeft;
       }
       setCarouselIndex(nextIndex);
+      if (items[nextIndex]) onSettledMediaChange?.(items[nextIndex].id);
       return;
     }
 
@@ -504,6 +524,7 @@ export function MediaGallery({
     activeIndexRef.current = index;
     activeItemIdRef.current = items[index]?.id ?? null;
     setActiveIndex(index);
+    if (items[index]) onSettledMediaChange?.(items[index].id);
 
     if (nearest.dataset.lightboxClone) {
       const realSlide = lightboxSlides.current[index];

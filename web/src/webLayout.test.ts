@@ -31,7 +31,7 @@ function ruleBlock(css: string, selector: string): string {
 const layoutCss = readSource('./layout.css');
 const shellCss = readSource('./shell.css');
 const stylesCss = readSource('./styles.css');
-const memoryPolishCss = readSource('./memory-create-polish.css');
+const composerCss = readSource('./components/FreeComposer.css');
 const commentsCss = readSource('./components/CommentsPanel.css');
 const timelineProgressiveCss = readSource(
   './components/StoryTimelineProgressive.css',
@@ -168,8 +168,8 @@ describe('module boundary rhythm', () => {
         'border-bottom',
       ],
       [
-        './components/HeartMomentCreateReference.css',
-        '.heart-moment-create-actions.form-actions',
+        './components/FreeComposer.css',
+        '.free-composer .form-actions',
         'border-top',
       ],
       [
@@ -245,7 +245,7 @@ describe('web layout tokens', () => {
       readSource('./attachment-drafts.css'),
       readSource('./demo.css'),
       readSource('./product-reflow.css'),
-      readSource('./memory-create-polish.css'),
+      readSource('./components/FreeComposer.css'),
       readSource('./components/CommentsPanel.css'),
       readSource('./components/LoginExperience.css'),
       readSource('./components/M4ProductPages.css'),
@@ -349,25 +349,13 @@ describe('shared form controls', () => {
   });
 });
 
-describe('Memory Create R1 composition regressions (#964)', () => {
-  it('removes the retired generic optional-details disclosure surface', () => {
-    // #964 moves narrative and date out of a generic "more details" disclosure;
-    // the disclosure and its chevron/summary polish are retired, not reused.
-    expect(memoryPolishCss).not.toMatch(/\.immersive-create-details\b/s);
-    expect(memoryPolishCss).not.toMatch(/\.summary-chevron\b/s);
-  });
-
-  it('scopes date-summary hover feedback to fine-pointer and hover-capable devices to prevent sticky hover on touch', () => {
-    const withoutHoverMedia = memoryPolishCss.replace(
-      /@media\s*\(\s*hover:\s*hover\s*\)\s*and\s*\(\s*pointer:\s*fine\s*\)\s*\{[\s\S]*?\n\}/g,
-      '',
+describe('Approved authored-field role (#1715)', () => {
+  it('keeps the explicit authored frame separate from ordinary control frames', () => {
+    expect(productRolesCss).toContain('--border-authored-width: 1px');
+    expect(productRolesCss).toContain('--border-control-width: 0px');
+    expect(composerCss).toContain(
+      'border: var(--border-authored-width) solid var(--color-border)',
     );
-    expect(withoutHoverMedia).not.toMatch(
-      /\.immersive-create-date-summary:hover/s,
-    );
-
-    expect(memoryPolishCss).toMatch(
-      /@media\s*\(\s*hover:\s*hover\s*\)\s*and\s*\(\s*pointer:\s*fine\s*\)\s*\{[\s\S]*?\.immersive-create-date-summary:hover\s*\{[\s\S]*?background:\s*var\(--color-surface\);/s,
-    );
+    expect(composerCss).toContain('outline: 2px solid var(--color-focus)');
   });
 });

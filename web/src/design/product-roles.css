@@ -43,6 +43,8 @@
   --radius-sheet-top: 1.5rem;
   --border-surface-width: 0px;
   --border-control-width: 0px;
+  --border-authored-width: 1px;
+  --composer-max: 680px;
   --touch-target-web: 44px;
   --touch-target-comfortable: 48px;
   --icon-size-standard: 24px;

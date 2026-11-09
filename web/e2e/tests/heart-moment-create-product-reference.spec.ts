@@ -701,7 +701,7 @@ for (const theme of ['light', 'dark'] as const) {
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Heart Moment Create matches the #862 Compact composition (${colorScheme})`, async ({
+  test(`Heart Moment Create matches the approved #1715 Compact composition (${colorScheme})`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -738,7 +738,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(visibility).toBeVisible();
       await expect(actions).toBeVisible();
 
-      // The photo is intentionally prominent in #862 but remains optional.
+      // Authored words precede optional media in the approved free composer.
       const mediaTrigger = media.getByRole('button', {
         name: photoSources.addMedia,
         exact: true,
@@ -793,6 +793,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
       );
 
       const emotion = page.locator('.heart-moment-create-emotion-picker');
+      const feelingSummary = emotion.locator('summary');
+      await expect(
+        feelingSummary.getByText('Geliebt', { exact: true }),
+      ).toBeVisible();
+      await feelingSummary.click();
       const label = emotion
         .getByRole('group', {
           name: storyProducts.heartMomentProduct.emotionLabel,
@@ -857,8 +862,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
         };
       });
       expect(domOrder.media).toBeGreaterThanOrEqual(0);
-      expect(domOrder.media).toBeLessThan(domOrder.note);
-      expect(domOrder.note).toBeLessThan(domOrder.visibility);
+      expect(domOrder.note).toBeLessThan(domOrder.media);
+      expect(domOrder.media).toBeLessThan(domOrder.visibility);
       expect(domOrder.visibility).toBeLessThan(domOrder.actions);
 
       const [saveBox, formBox] = await Promise.all([

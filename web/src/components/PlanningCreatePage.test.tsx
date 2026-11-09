@@ -172,12 +172,11 @@ describe('PlanningCreatePage', () => {
     );
   });
 
-  it('preserves date-only schedule semantics inside optional enrichment', async () => {
+  it('preserves date-only schedule semantics in compact context', async () => {
     const { createPlan } = renderCreate('plan');
     fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
       target: { value: 'Day trip' },
     });
-    fireEvent.click(screen.getByText(m5s3.plan.addDetails));
     fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
       target: { value: '2026-10-03' },
     });

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 export function PageHeader({
   eyebrow,
   title,
+  titleId,
   titleAction,
   titleEditor,
   titleContext,
@@ -15,6 +16,7 @@ export function PageHeader({
 }: {
   eyebrow?: string;
   title: ReactNode;
+  titleId?: string;
   titleAction?: ReactNode;
   titleEditor?: ReactNode;
   titleContext?: ReactNode;
@@ -39,7 +41,7 @@ export function PageHeader({
             titleEditor
           ) : (
             <div className="page-heading-title-container">
-              <h1>{title}</h1>
+              <h1 id={titleId}>{title}</h1>
               {titleContext}
               {titleAction}
             </div>

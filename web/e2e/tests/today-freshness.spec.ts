@@ -5,6 +5,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -468,12 +469,14 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
   // Reschedule to an earlier timed date using the #838 date + optional-time contract.
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await showPlanSchedule(page);
   const dateInput = page.locator('#plan-schedule-date');
   const timeInput = page.locator('#plan-schedule-time');
   await expect(dateInput).toBeVisible();
   await expect(timeInput).toBeVisible();
   await dateInput.fill('2026-09-05');
   await timeInput.fill('10:00');
+  await closePlanSchedule(page);
 
   // One unified editor Save must still invalidate the derived overview.
   const rescheduleButton = page.getByRole('button', {

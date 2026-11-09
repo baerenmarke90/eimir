@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/storyProducts';
 import voice from '../../src/i18n/locales/voiceNotes';
+import { showHeartAudience } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -328,6 +329,7 @@ test('failed Save retains voice, labels and audience for the deliberate retry', 
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
+  await showHeartAudience(page);
   await page
     .getByRole('radio', {
       name: new RegExp(copy.heartMomentProduct.visibilityPrivate),
@@ -345,6 +347,7 @@ test('failed Save retains voice, labels and audience for the deliberate retry', 
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
+  await showHeartAudience(page);
   await expect(
     page.getByRole('radio', {
       name: new RegExp(copy.heartMomentProduct.visibilityPrivate),

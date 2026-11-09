@@ -1,7 +1,7 @@
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import photoSources from '../../src/i18n/locales/photoSources';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { showMemoryDetails } from '../support/memoryDiary';
+import { showComposerDate, showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -368,7 +368,7 @@ test.describe('R1 Memory Create evidence', () => {
       await page.screenshot({
         path: path.join(EVIDENCE_DIR, `r1-mixed-390-${colorScheme}.png`),
       });
-      const date = page.getByLabel(de.memory.dateLabel, { exact: true });
+      const date = await showComposerDate(page);
       await expect(date).toHaveAttribute('type', 'date');
       await date.fill('2026-08-15');
       await expect(date).toHaveValue('2026-08-15');

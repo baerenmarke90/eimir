@@ -102,6 +102,11 @@ month positioning, distinct shared answers and authorized media reuse after rest
 local Moments capture entry and the one-time-message entry in partner-avatar
 actions, including generated references and return/gesture ownership acceptance.
 
+[Quiet mobile composers (#1717)](references/quiet-composer/README.md) records the
+approved compact native-submit header, grouped writing surface, date/schedule
+tasks, empty-tag disclosure and full HeartMoment feeling surfaces. It refines
+the affected #1715 story/planning composition while retaining its domain owners.
+
 [People profiles and occasions (#1683)](references/people-profiles/README.md)
 records the approved profile-first workflow, whole-avatar viewing, shared-only
 people and the dedicated occasions mode in Planning. This explicit PO decision

@@ -8,7 +8,17 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expectLabeledAddAction } from '../support/addAction';
+import {
+  expectLabeledAddAction,
+  expectReadableActionLabel,
+} from '../support/addAction';
+import {
+  closeComposerDate,
+  expectReadableComposerHeader,
+  showComposerDate,
+  showContextTags,
+  showHeartAudience,
+} from '../support/memoryDiary';
 import {
   fulfillEmptyMomentPlaces,
   fulfillUnconfiguredPhotoSources,
@@ -701,7 +711,7 @@ for (const theme of ['light', 'dark'] as const) {
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Heart Moment Create matches the approved #1715 Compact composition (${colorScheme})`, async ({
+  test(`Heart Moment Create matches the approved #1717 Compact composition (${colorScheme})`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -715,12 +725,18 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     try {
       await openHeartMomentCreate(page, true);
+      await captureScreenshot(
+        page,
+        testInfo,
+        `quiet-heart-initial-390-${colorScheme}.png`,
+        { fullPage: true },
+      );
 
       const form = page.locator('.heart-moment-create-form');
       const media = page.locator('.heart-moment-create-media');
       const note = page.locator('.heart-moment-create-note');
-      const visibility = page.locator('.heart-moment-create-visibility');
-      const actions = page.locator('.heart-moment-create-actions');
+      const visibility = page.locator('.composer-audience');
+      const actions = page.locator('.composer-header .page-heading-action');
       const photoInput = page.getByLabel(de.memory.photoLabel, { exact: true });
       const sharedRadio = page.locator(
         '#heart-moment-create-visibility-shared',
@@ -814,19 +830,27 @@ for (const colorScheme of ['light', 'dark'] as const) {
         surfaceBox.y + surfaceBox.height,
       );
 
+      await showHeartAudience(page);
       await privateRadio.check();
       await expect(privateRadio).toBeChecked();
       await expect(sharedRadio).not.toBeChecked();
+      await showHeartAudience(page);
       await privateRadio.focus();
       await privateRadio.press('ArrowRight');
       await expect(sharedRadio).toBeChecked();
 
-      const dateInput = page.getByLabel(
+      const dateInput = await showComposerDate(
+        page,
         storyProducts.heartMomentProduct.happenedOnLabel,
-        { exact: true },
       );
       await expect(dateInput).toHaveValue(localToday());
-      const dateBox = await dateInput.boundingBox();
+      await closeComposerDate(
+        page,
+        storyProducts.heartMomentProduct.happenedOnLabel,
+      );
+      const dateBox = await page
+        .locator('.composer-date-trigger')
+        .boundingBox();
       const textBox = await page.locator('#heart-moment-text').boundingBox();
       if (!dateBox || !textBox)
         throw new Error('Date or prose field is missing.');
@@ -844,27 +868,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
       expect(choices[1].x).toBeGreaterThan(choices[0].x);
       expect(choices[2].y).toBeGreaterThan(choices[0].y);
 
-      const domOrder = await form.evaluate((element) => {
-        const children = Array.from(element.children);
-        return {
-          media: children.findIndex((child) =>
-            child.classList.contains('heart-moment-create-media'),
-          ),
-          note: children.findIndex((child) =>
-            child.classList.contains('heart-moment-create-note'),
-          ),
-          visibility: children.findIndex((child) =>
-            child.classList.contains('heart-moment-create-visibility'),
-          ),
-          actions: children.findIndex((child) =>
-            child.classList.contains('heart-moment-create-actions'),
-          ),
-        };
-      });
-      expect(domOrder.media).toBeGreaterThanOrEqual(0);
-      expect(domOrder.note).toBeLessThan(domOrder.media);
-      expect(domOrder.media).toBeLessThan(domOrder.visibility);
-      expect(domOrder.visibility).toBeLessThan(domOrder.actions);
+      const [noteBox, mediaBox, audienceBox] = await Promise.all([
+        note.boundingBox(),
+        media.boundingBox(),
+        visibility.boundingBox(),
+      ]);
+      if (!noteBox || !mediaBox || !audienceBox)
+        throw new Error(
+          'Heart content or compact audience context is missing.',
+        );
+      expect(audienceBox.y + audienceBox.height).toBeLessThanOrEqual(noteBox.y);
+      expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(mediaBox.y);
 
       const [saveBox, formBox] = await Promise.all([
         saveButton.boundingBox(),
@@ -872,7 +886,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ]);
       if (!saveBox || !formBox) throw new Error('Create form did not render.');
       expect(saveBox.height).toBeGreaterThanOrEqual(48);
-      expect(saveBox.width).toBeGreaterThan(formBox.width * 0.9);
+      expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(dateBox.y);
+      await expect(saveButton).toHaveCount(1);
+      await expect(saveButton).toBeInViewport();
+      await expect(saveButton).toHaveAttribute('type', 'submit');
+      expect(
+        await saveButton.evaluate(
+          (button: HTMLButtonElement) => button.form?.id,
+        ),
+      ).toBe(await form.getAttribute('id'));
 
       await expectNoHorizontalOverflow(page);
 
@@ -899,9 +921,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await emotion.screenshot({
         path: testInfo.outputPath(`heart-emotion-field-390-${colorScheme}.png`),
       });
-      await visibility.evaluate((element) =>
-        element.scrollIntoView({ block: 'center', behavior: 'instant' }),
-      );
       await visibility.screenshot({
         path: testInfo.outputPath(`heart-audience-390-${colorScheme}.png`),
       });
@@ -925,6 +944,7 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
   try {
     await openHeartMomentCreate(page);
     await expectNoHorizontalOverflow(page);
+    await showHeartAudience(page);
 
     const privateCard = page
       .locator('.heart-moment-create-visibility-option')
@@ -939,8 +959,10 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
     if (!privateBox || !sharedBox) {
       throw new Error('Visibility cards did not render at 320px.');
     }
-    expect(sharedBox.y).toBe(privateBox.y);
-    expect(sharedBox.x).toBeGreaterThanOrEqual(privateBox.x + privateBox.width);
+    expect(
+      sharedBox.y >= privateBox.y + privateBox.height ||
+        sharedBox.x >= privateBox.x + privateBox.width,
+    ).toBe(true);
     expect(sharedBox.height).toBeGreaterThanOrEqual(44);
     expect(privateBox.height).toBeGreaterThanOrEqual(44);
 
@@ -954,6 +976,10 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
       document.documentElement.style.fontSize = '32px';
     });
     await expectNoHorizontalOverflow(page);
+    await expectReadableComposerHeader(page);
+    await expectReadableActionLabel(
+      page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+    );
 
     const [largeTextPrivateBox, largeTextSharedBox] = await Promise.all([
       privateCard.boundingBox(),
@@ -962,10 +988,12 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
     if (!largeTextPrivateBox || !largeTextSharedBox) {
       throw new Error('Visibility cards did not render with large text.');
     }
-    expect(largeTextSharedBox.y).toBe(largeTextPrivateBox.y);
-    expect(largeTextSharedBox.x).toBeGreaterThanOrEqual(
-      largeTextPrivateBox.x + largeTextPrivateBox.width,
-    );
+    expect(
+      largeTextSharedBox.y >=
+        largeTextPrivateBox.y + largeTextPrivateBox.height ||
+        largeTextSharedBox.x >=
+          largeTextPrivateBox.x + largeTextPrivateBox.width,
+    ).toBe(true);
 
     await page.screenshot({
       path: testInfo.outputPath(
@@ -1041,6 +1069,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await openHeartMomentCreate(page);
+  await showContextTags(page);
   await page.getByLabel(contextTags.newLabel).fill('Ostsee');
   await page.getByLabel(contextTags.newLabel).press('Enter');
   await expect(page.locator('#heart-moment-text')).toHaveValue('');
@@ -1213,7 +1242,9 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
       page.getByRole('button', { name: taskBoundary.back, exact: true }),
     ).toBeVisible();
     await expect(page.locator('#heart-moment-text')).not.toBeFocused();
-    await page.getByRole('button', { name: de.common.cancel }).click();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
     await expect(page).toHaveURL(/\/today$/);
     await page
       .getByRole('button', { name: navigation.newContent, exact: true })
@@ -1230,6 +1261,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
       fullPage: true,
     });
 
+    await showContextTags(page);
     await page.getByText(contextTags.suggestions, { exact: true }).click();
     await page
       .getByRole('checkbox', {
@@ -1302,6 +1334,7 @@ for (const visibility of ['SHARED', 'PRIVATE'] as const) {
       .getByLabel(storyProducts.heartMomentProduct.textLabel, { exact: true })
       .fill('A lovely moment.');
     if (visibility === 'PRIVATE') {
+      await showHeartAudience(page);
       await page
         .getByRole('radio', {
           name: storyProducts.heartMomentProduct.visibilityPrivate,

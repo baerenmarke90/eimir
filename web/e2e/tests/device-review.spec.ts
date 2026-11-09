@@ -4,6 +4,12 @@ import AxeBuilder from '@axe-core/playwright';
 import memory from '../../src/i18n/locales/memoryProduct';
 import tags from '../../src/i18n/locales/contextTags';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  closeComposerDate,
+  showComposerDate,
+  showContextTags,
+} from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   SPACE_ID,
@@ -141,7 +147,7 @@ for (const [width, theme] of [
       ).violations,
     ).toEqual([]);
     await page
-      .getByRole('link', { name: de.common.cancel, exact: true })
+      .getByRole('link', { name: taskBoundary.back, exact: true })
       .click();
     for (const kind of ['plans', 'wishes'] as const) {
       await expect(
@@ -159,7 +165,7 @@ for (const [width, theme] of [
     await expect(linked.getByText(plan.title, { exact: true })).toHaveCount(0);
     await expect(linked.getByText(wish.title, { exact: true })).toBeVisible();
     await page
-      .getByRole('link', { name: de.common.cancel, exact: true })
+      .getByRole('link', { name: taskBoundary.back, exact: true })
       .click();
     await expect(linked.getByRole('link', { name: plan.title })).toHaveCount(0);
     await expect(
@@ -184,6 +190,7 @@ test('device review: shared learned labels and AI proposals remain explicit in t
   );
   await signIn(page);
   await page.goto('/story/heart-moments/new');
+  await showContextTags(page);
   const editor = page.getByRole('group', { name: tags.label });
   await editor.locator('summary').click();
   await expect(
@@ -217,21 +224,21 @@ test('device review: shared learned labels and AI proposals remain explicit in t
     );
   });
   expect(order).toBe(true);
-  await expect(
-    page.getByLabel(storyProducts.heartMomentProduct.happenedOnLabel, {
-      exact: true,
-    }),
-  ).toHaveAttribute('type', 'date');
-  const dateLabelWeight = await page
-    .getByLabel(storyProducts.heartMomentProduct.happenedOnLabel, {
-      exact: true,
-    })
-    .evaluate((input) => {
-      const label = (input as HTMLInputElement).labels?.[0];
-      if (!label) throw new Error('Date label missing');
-      return getComputedStyle(label).fontWeight;
-    });
+  const date = await showComposerDate(
+    page,
+    storyProducts.heartMomentProduct.happenedOnLabel,
+  );
+  await expect(date).toHaveAttribute('type', 'date');
+  const dateLabelWeight = await date.evaluate((input) => {
+    const label = (input as HTMLInputElement).labels?.[0];
+    if (!label) throw new Error('Date label missing');
+    return getComputedStyle(label).fontWeight;
+  });
   expect(dateLabelWeight).toBe('400');
+  await closeComposerDate(
+    page,
+    storyProducts.heartMomentProduct.happenedOnLabel,
+  );
   await captureScreenshot(page, info, 'device-tags-heart-390.png', {
     fullPage: true,
   });

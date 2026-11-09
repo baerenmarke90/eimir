@@ -15,6 +15,7 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
+import contextTags from '../i18n/locales/contextTags';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
@@ -181,6 +182,17 @@ function renderCreate(entryState?: object) {
   return createHeartMoment;
 }
 
+async function selectSuggestedContext(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+) {
+  await user.click(screen.getByRole('button', { name: contextTags.add }));
+  await user.click(
+    screen.getByText(contextTags.suggestions, { selector: 'summary' }),
+  );
+  await user.click(screen.getByRole('checkbox', { name: label }));
+}
+
 describe('Heart Moment create request identity', () => {
   it('sends an idempotency key with the submitted snapshot', async () => {
     const createHeartMoment = renderCreate();
@@ -213,10 +225,9 @@ describe('Heart Moment create request identity', () => {
   it('saves a chosen context without opening the keyboard or requiring prose', async () => {
     const createHeartMoment = renderCreate();
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole('checkbox', {
-        name: storyProducts.heartMomentProduct.tagLabels.everyday,
-      }),
+    await selectSuggestedContext(
+      user,
+      storyProducts.heartMomentProduct.tagLabels.everyday,
     );
     await user.click(
       screen.getByRole('button', {
@@ -243,6 +254,95 @@ describe('Heart Moment create request identity', () => {
     expect(createHeartMoment).not.toHaveBeenCalled();
     expect(screen.getByRole('alert').textContent).toBe(
       storyProducts.heartMomentProduct.contentRequired,
+    );
+  });
+
+  it('keeps header completion bound to its form and blocks duplicate pending saves', async () => {
+    const createHeartMoment = renderCreate();
+    let resolveCreate!: (value: { id: string }) => void;
+    createHeartMoment.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreate = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      'A thought worth keeping',
+    );
+    const save = screen.getByRole('button', {
+      name: storyProducts.heartMomentProduct.save,
+    }) as HTMLButtonElement;
+    expect(save.closest('form')).toBeNull();
+    expect(save.form?.id).toBe('heart-moment-create-form');
+    await user.click(save);
+    await waitFor(() => expect(createHeartMoment).toHaveBeenCalledOnce());
+    expect(save.disabled).toBe(true);
+    expect(save.getAttribute('aria-label')).toBe(
+      storyProducts.heartMomentProduct.saving,
+    );
+    await user.click(save);
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+    resolveCreate({ id: 'heart-new' });
+    expect(await screen.findByText('Heart Moment result')).toBeTruthy();
+  });
+
+  it('commits an unfinished disclosed tag when header Save receives focus', async () => {
+    const createHeartMoment = renderCreate();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: contextTags.add }));
+    await user.type(screen.getByLabelText(contextTags.newLabel), 'Quiet time');
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    expect(createHeartMoment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heartMomentCreate: expect.objectContaining({
+          text: '',
+          tags: ['Quiet time'],
+        }),
+      }),
+    );
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the chosen audience in native form data and restores its disclosure focus', async () => {
+    const createHeartMoment = renderCreate();
+    const user = userEvent.setup();
+    const audience = screen.getByText(
+      storyProducts.heartMomentProduct.visibilityShared,
+      { selector: 'summary span' },
+    );
+    await user.click(audience);
+    const privateChoice = screen.getByRole('radio', {
+      name: storyProducts.heartMomentProduct.visibilityPrivate,
+    });
+    const disclosure = privateChoice.closest('details');
+    await user.click(privateChoice);
+    expect(disclosure?.open).toBe(false);
+    expect(document.activeElement).toBe(disclosure?.querySelector('summary'));
+    expect(disclosure?.querySelector('summary')?.textContent).toContain(
+      storyProducts.heartMomentProduct.visibilityPrivate,
+    );
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      'Only for me',
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    expect(createHeartMoment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heartMomentCreate: expect.objectContaining({
+          text: 'Only for me',
+          visibility: ContentVisibility.PRIVATE,
+          emotion: HeartEmotion.LOVED,
+        }),
+      }),
     );
   });
 });
@@ -321,10 +421,9 @@ describe('Quick Create Heart Moment continuity (#509)', () => {
     expect(document.activeElement).not.toBe(
       screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
     );
-    await user.click(
-      screen.getByRole('checkbox', {
-        name: storyProducts.heartMomentProduct.tagLabels.everyday,
-      }),
+    await selectSuggestedContext(
+      user,
+      storyProducts.heartMomentProduct.tagLabels.everyday,
     );
     await user.click(
       screen.getByRole('button', {
@@ -716,12 +815,18 @@ describe('Completed Plan handoff to HeartMoment', () => {
       });
       const user = userEvent.setup();
       await screen.findByRole('button', { name: place.name });
-      if (visibility === 'PRIVATE')
+      if (visibility === 'PRIVATE') {
+        await user.click(
+          screen.getByText(storyProducts.heartMomentProduct.visibilityShared, {
+            selector: 'summary span',
+          }),
+        );
         await user.click(
           screen.getByRole('radio', {
             name: storyProducts.heartMomentProduct.visibilityPrivate,
           }),
         );
+      }
       await user.click(
         screen.getByRole('button', {
           name: storyProducts.heartMomentProduct.save,

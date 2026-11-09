@@ -108,6 +108,13 @@
   min-width: 0;
   min-height: 44px;
 }
+.context-tag-disclosure .context-tag-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.context-tag-disclosure .context-tag-entry > .add-action {
+  justify-self: start;
+}
 .context-tag-suggestions {
   margin-top: var(--space-2);
 }

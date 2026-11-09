@@ -65,6 +65,10 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
+import {
+  ComposerDateContext,
+  type ComposerDateContextHandle,
+} from './ComposerDateContext';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { DraftMediaPreview } from './DraftMediaPreview';
@@ -243,6 +247,7 @@ export function MemoryProductPage({
   });
   const editForm = useRef<HTMLFormElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
+  const dateContextRef = useRef<ComposerDateContextHandle>(null);
   const [formDirty, setFormDirty] = useState(false);
   const [placePending, setPlacePending] = useState(false);
   const [tagDraft, setTagDraft] = useState<{
@@ -653,6 +658,8 @@ export function MemoryProductPage({
         queryClient.isMutating({ mutationKey: updateKey })
       )
         return;
+      if (!memory.experienceKind && !dateContextRef.current?.reportValidity())
+        return;
       const data = new FormData(event.currentTarget);
       const tags = tagEditorRef.current?.commitDraft();
       if (!tags) return;
@@ -679,8 +686,10 @@ export function MemoryProductPage({
 
     return (
       <StoryEditorPageShell
+        quiet={!memory.experienceKind}
         before={
           <TaskBackLink
+            inline={!memory.experienceKind}
             to={memoryDetailPath(memory.id)}
             onClick={(event) => {
               event.preventDefault();
@@ -697,6 +706,32 @@ export function MemoryProductPage({
             : t('memoryProduct.editHeading')
         }
         headerClassName="create-heading"
+        headerAction={
+          !memory.experienceKind ? (
+            <button
+              type="submit"
+              form="memory-edit-form"
+              className="composer-save-action"
+              aria-label={
+                updateMutation.isPending
+                  ? t('memoryProduct.saving')
+                  : t('memoryProduct.save')
+              }
+              disabled={
+                updateMutation.isPending ||
+                placePending ||
+                planningPending ||
+                attachments.hasPending ||
+                attachments.items.some((item) => item.status === 'failed') ||
+                deleteMutation.isBlocked
+              }
+            >
+              {updateMutation.isPending
+                ? t('memoryProduct.saving')
+                : t('m5s3.common.save')}
+            </button>
+          ) : undefined
+        }
         sectionLabelledBy="memory-edit-heading"
         sectionHeading={t('memoryProduct.formAria')}
       >
@@ -707,6 +742,7 @@ export function MemoryProductPage({
             onDiscard={() => editorLifecycle.closeConfirmed()}
           />
           <form
+            id="memory-edit-form"
             onChange={() => setFormDirty(true)}
             ref={editForm}
             key={memory.version}
@@ -714,61 +750,87 @@ export function MemoryProductPage({
             className="form-grid memory-form"
           >
             <div className="composer-context">
-              <div
-                className="field-group"
-                hidden={Boolean(memory.experienceKind)}
-              >
-                <label htmlFor="memory-edit-date">
-                  {t('memory.dateLabel')}
-                </label>
-                <NativeDateInput
-                  id="memory-edit-date"
-                  name="happenedOn"
+              {!memory.experienceKind ? (
+                <ComposerDateContext
+                  ref={dateContextRef}
+                  idPrefix="memory-edit-date"
+                  label={t('memory.dateLabel')}
                   defaultValue={memoryDateInputValue(memory.happenedOn)}
-                />
-              </div>
-
-              <div
-                className="field-group"
-                hidden={Boolean(memory.experienceKind)}
-              >
-                <label htmlFor="memory-edit-through">
-                  {t('experiences.through')}
-                </label>
-                <NativeDateInput
-                  id="memory-edit-through"
-                  name="happenedUntil"
-                  defaultValue={memoryDateInputValue(
+                  defaultEndValue={memoryDateInputValue(
                     memory.happenedUntil ?? null,
                   )}
+                  allowRange
+                  disabled={updateMutation.isPending}
+                  onChange={() => setFormDirty(true)}
+                  onEndChange={() => setFormDirty(true)}
                 />
-              </div>
+              ) : (
+                <>
+                  <div
+                    className="field-group"
+                    hidden={Boolean(memory.experienceKind)}
+                  >
+                    <label htmlFor="memory-edit-date">
+                      {t('memory.dateLabel')}
+                    </label>
+                    <NativeDateInput
+                      id="memory-edit-date"
+                      name="happenedOn"
+                      defaultValue={memoryDateInputValue(memory.happenedOn)}
+                    />
+                  </div>
+
+                  <div
+                    className="field-group"
+                    hidden={Boolean(memory.experienceKind)}
+                  >
+                    <label htmlFor="memory-edit-through">
+                      {t('experiences.through')}
+                    </label>
+                    <NativeDateInput
+                      id="memory-edit-through"
+                      name="happenedUntil"
+                      defaultValue={memoryDateInputValue(
+                        memory.happenedUntil ?? null,
+                      )}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div
-              className="field-group"
-              hidden={Boolean(memory.experienceKind)}
+              className={
+                !memory.experienceKind ? 'composer-writing-surface' : undefined
+              }
             >
-              <label htmlFor="memory-edit-title">
-                {t('memory.titleLabel')}
-              </label>
-              <input
-                id="memory-edit-title"
-                name="title"
-                required
-                maxLength={200}
-                defaultValue={memory.title}
-              />
-            </div>
-            <div className="field-group">
-              <label htmlFor="memory-edit-body">{t('memory.bodyLabel')}</label>
-              <textarea
-                id="memory-edit-body"
-                name="body"
-                rows={6}
-                required={Boolean(memory.experienceKind)}
-                maxLength={memory.experienceKind ? 2000 : undefined}
-                defaultValue={memory.body}
-              />
+              <div
+                className="field-group"
+                hidden={Boolean(memory.experienceKind)}
+              >
+                <label htmlFor="memory-edit-title">
+                  {t('memory.titleLabel')}
+                </label>
+                <input
+                  id="memory-edit-title"
+                  name="title"
+                  required
+                  maxLength={200}
+                  defaultValue={memory.title}
+                />
+              </div>
+              <div className="field-group">
+                <label htmlFor="memory-edit-body">
+                  {t('memory.bodyLabel')}
+                </label>
+                <textarea
+                  id="memory-edit-body"
+                  name="body"
+                  rows={6}
+                  required={Boolean(memory.experienceKind)}
+                  maxLength={memory.experienceKind ? 2000 : undefined}
+                  defaultValue={memory.body}
+                />
+              </div>
             </div>
             <AttachmentDraftPicker
               sourceContext={{
@@ -938,6 +1000,7 @@ export function MemoryProductPage({
               }}
             />
             <MemoryTagChoices
+              discloseEmpty={!memory.experienceKind}
               parentId={memory.id}
               editorRef={tagEditorRef}
               selected={selectedTags}
@@ -977,35 +1040,39 @@ export function MemoryProductPage({
                 offline={offline}
               />
             ) : null}
-            <div className="form-actions">
-              <Link
-                className="button-link secondary-link"
-                to={memoryDetailPath(memory.id)}
-                state={{ taskOriginKey: originKey }}
-                onClick={(event) => {
-                  event.preventDefault();
-                  setConfirmDelete(false);
-                  editorLifecycle.requestClose();
-                }}
-              >
-                {t('common.cancel')}
-              </Link>
-              <button
-                type="submit"
-                disabled={
-                  updateMutation.isPending ||
-                  placePending ||
-                  planningPending ||
-                  attachments.hasPending ||
-                  attachments.items.some((item) => item.status === 'failed') ||
-                  deleteMutation.isBlocked
-                }
-              >
-                {updateMutation.isPending
-                  ? t('memoryProduct.saving')
-                  : t('memoryProduct.save')}
-              </button>
-            </div>
+            {memory.experienceKind ? (
+              <div className="form-actions">
+                <Link
+                  className="button-link secondary-link"
+                  to={memoryDetailPath(memory.id)}
+                  state={{ taskOriginKey: originKey }}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setConfirmDelete(false);
+                    editorLifecycle.requestClose();
+                  }}
+                >
+                  {t('common.cancel')}
+                </Link>
+                <button
+                  type="submit"
+                  disabled={
+                    updateMutation.isPending ||
+                    placePending ||
+                    planningPending ||
+                    attachments.hasPending ||
+                    attachments.items.some(
+                      (item) => item.status === 'failed',
+                    ) ||
+                    deleteMutation.isBlocked
+                  }
+                >
+                  {updateMutation.isPending
+                    ? t('memoryProduct.saving')
+                    : t('memoryProduct.save')}
+                </button>
+              </div>
+            ) : null}
           </form>
           {updateMutation.error ? (
             <ProblemState

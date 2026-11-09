@@ -1,4 +1,11 @@
-import { type Ref, useId, useImperativeHandle, useRef, useState } from 'react';
+import {
+  type Ref,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import type { ContextTagSuggestionsView } from '../api/generated/models/ContextTagSuggestionsView';
 import { useApiRuntime } from '../client/apiRuntimeContext';
 import { useContextTagSuggestions } from '../client/useContextTagSuggestions';
@@ -22,6 +29,7 @@ type ContextTagEditorProps = {
   suggestions: readonly string[];
   labelForTag: (tag: string) => string;
   disabled?: boolean;
+  discloseEmpty?: boolean;
   onDraftChange?: (dirty: boolean) => void;
   draftValue?: string;
   onDraftValueChange?: (value: string) => void;
@@ -50,6 +58,7 @@ function ContextTagEditorContent({
   suggestions,
   labelForTag,
   disabled = false,
+  discloseEmpty = false,
   onDraftChange,
   draftValue,
   onDraftValueChange,
@@ -68,8 +77,23 @@ function ContextTagEditorContent({
     onDraftValueChange?.(value);
   }
   const [error, setError] = useState('');
+  const [entryExpanded, setEntryExpanded] = useState(false);
+  const entryVisible =
+    !discloseEmpty ||
+    entryExpanded ||
+    selected.length > 0 ||
+    Boolean(draft) ||
+    Boolean(error);
+  const entryId = `${id}-entry`;
+  const focusOnExpand = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (entryVisible && focusOnExpand.current) {
+      focusOnExpand.current = false;
+      inputRef.current?.focus();
+    }
+  }, [entryVisible]);
   function commit(allowEmpty = false): string[] | null {
     const value = normalize(draft);
     const message = !value
@@ -104,8 +128,13 @@ function ContextTagEditorContent({
     },
   }));
   return (
-    <fieldset className="memory-tag-choices" disabled={disabled}>
-      <legend>{t('contextTags.label')}</legend>
+    <fieldset
+      className={`memory-tag-choices${discloseEmpty ? ' context-tag-disclosure' : ''}`}
+      disabled={disabled}
+    >
+      <legend className={entryVisible ? undefined : 'sr-only'}>
+        {t('contextTags.label')}
+      </legend>
       {selected.length ? (
         <ul className="context-tag-selected memory-tag-list">
           {selected.map((tag) => (
@@ -116,6 +145,7 @@ function ContextTagEditorContent({
                 className="context-tag-remove"
                 aria-label={t('contextTags.remove', { tag: labelForTag(tag) })}
                 onClick={() => {
+                  setEntryExpanded(true);
                   onChange(selected.filter((entry) => entry !== tag));
                   setError('');
                   inputRef.current?.setCustomValidity('');
@@ -129,107 +159,120 @@ function ContextTagEditorContent({
           ))}
         </ul>
       ) : null}
-      <label className="sr-only" htmlFor={id}>
-        {t('contextTags.newLabel')}
-      </label>
-      <div className="context-tag-entry">
-        <input
-          ref={inputRef}
-          id={id}
-          value={draft}
-          placeholder={t('contextTags.placeholder')}
-          autoComplete="off"
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${id}-error` : undefined}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            setError('');
-            event.target.setCustomValidity('');
-            onDraftChange?.(Boolean(event.target.value));
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-              event.preventDefault();
-              commit();
-            }
-          }}
-          onBlur={(event) => {
-            const next = event.relatedTarget;
-            if (
-              ref &&
-              (next instanceof HTMLButtonElement ||
-                next instanceof HTMLInputElement) &&
-              next.type === 'submit' &&
-              next.form === event.currentTarget.form
-            )
-              return;
-            if (event.relatedTarget !== addRef.current && draft.trim())
-              commit(true);
-          }}
-        />
+      {!entryVisible ? (
         <AddActionButton
-          ref={addRef}
           label={t('contextTags.add')}
-          onClick={() => commit()}
+          aria-expanded={false}
+          aria-controls={entryId}
+          onClick={() => {
+            focusOnExpand.current = true;
+            setEntryExpanded(true);
+          }}
         />
-      </div>
-      {error ? (
-        <p className="field-error" id={`${id}-error`} role="alert">
-          {error}
-        </p>
       ) : null}
-      <details className="context-tag-suggestions">
-        <summary>{t('contextTags.suggestions')}</summary>
-        <div className="memory-tag-list">
-          {offered.map((tag) => (
-            <label className="memory-tag-choice" key={tag}>
-              <input
-                type="checkbox"
-                checked={selected.includes(tag)}
-                disabled={
-                  !selected.includes(tag) && selected.length >= MAX_TAGS
-                }
-                onChange={(event) =>
-                  onChange(
-                    event.target.checked
-                      ? [...selected, tag]
-                      : selected.filter((entry) => entry !== tag),
-                  )
-                }
-              />
-              <span>{labelForTag(tag)}</span>
-            </label>
-          ))}
+      <div id={entryId} hidden={!entryVisible}>
+        <label className="sr-only" htmlFor={id}>
+          {t('contextTags.newLabel')}
+        </label>
+        <div className="context-tag-entry">
+          <input
+            ref={inputRef}
+            id={id}
+            value={draft}
+            placeholder={t('contextTags.placeholder')}
+            autoComplete="off"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? `${id}-error` : undefined}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setError('');
+              event.target.setCustomValidity('');
+              onDraftChange?.(Boolean(event.target.value));
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                commit();
+              }
+            }}
+            onBlur={(event) => {
+              const next = event.relatedTarget;
+              if (
+                ref &&
+                (next instanceof HTMLButtonElement ||
+                  next instanceof HTMLInputElement) &&
+                next.type === 'submit' &&
+                next.form === event.currentTarget.form
+              )
+                return;
+              if (event.relatedTarget !== addRef.current && draft.trim())
+                commit(true);
+            }}
+          />
+          <AddActionButton
+            ref={addRef}
+            label={t('contextTags.add')}
+            onClick={() => commit()}
+          />
         </div>
-        {learned?.proposed.length ? (
-          <>
-            <p className="field-help">{t('contextTags.proposed')}</p>
-            <div className="memory-tag-list">
-              {learned.proposed
-                .filter((tag) => !offered.includes(tag))
-                .map((tag) => (
-                  <label className="memory-tag-choice" key={tag}>
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(tag)}
-                      disabled={
-                        !selected.includes(tag) && selected.length >= MAX_TAGS
-                      }
-                      onChange={(event) =>
-                        onChange(
-                          event.target.checked
-                            ? [...selected, tag]
-                            : selected.filter((value) => value !== tag),
-                        )
-                      }
-                    />
-                    <span>{tag}</span>
-                  </label>
-                ))}
-            </div>
-          </>
+        {error ? (
+          <p className="field-error" id={`${id}-error`} role="alert">
+            {error}
+          </p>
         ) : null}
-      </details>
+        <details className="context-tag-suggestions">
+          <summary>{t('contextTags.suggestions')}</summary>
+          <div className="memory-tag-list">
+            {offered.map((tag) => (
+              <label className="memory-tag-choice" key={tag}>
+                <input
+                  type="checkbox"
+                  checked={selected.includes(tag)}
+                  disabled={
+                    !selected.includes(tag) && selected.length >= MAX_TAGS
+                  }
+                  onChange={(event) =>
+                    onChange(
+                      event.target.checked
+                        ? [...selected, tag]
+                        : selected.filter((entry) => entry !== tag),
+                    )
+                  }
+                />
+                <span>{labelForTag(tag)}</span>
+              </label>
+            ))}
+          </div>
+          {learned?.proposed.length ? (
+            <>
+              <p className="field-help">{t('contextTags.proposed')}</p>
+              <div className="memory-tag-list">
+                {learned.proposed
+                  .filter((tag) => !offered.includes(tag))
+                  .map((tag) => (
+                    <label className="memory-tag-choice" key={tag}>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(tag)}
+                        disabled={
+                          !selected.includes(tag) && selected.length >= MAX_TAGS
+                        }
+                        onChange={(event) =>
+                          onChange(
+                            event.target.checked
+                              ? [...selected, tag]
+                              : selected.filter((value) => value !== tag),
+                          )
+                        }
+                      />
+                      <span>{tag}</span>
+                    </label>
+                  ))}
+              </div>
+            </>
+          ) : null}
+        </details>
+      </div>
     </fieldset>
   );
 }

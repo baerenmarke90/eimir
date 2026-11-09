@@ -47,37 +47,49 @@
 }
 
 [data-emotion="LOVED"],
-[data-heart-emotion="LOVED"] {
+[data-heart-emotion="LOVED"],
+.heart-emotion-compose:has(.heart-emotion-choice-input[value="LOVED"]:checked) {
   --heart-emotion-accent: var(--emotion-loved-accent);
   --heart-emotion-surface: var(--emotion-loved-surface);
 }
 
 [data-emotion="SEEN"],
-[data-heart-emotion="SEEN"] {
+[data-heart-emotion="SEEN"],
+.heart-emotion-compose:has(.heart-emotion-choice-input[value="SEEN"]:checked) {
   --heart-emotion-accent: var(--emotion-seen-accent);
   --heart-emotion-surface: var(--emotion-seen-surface);
 }
 
 [data-emotion="APPRECIATED"],
-[data-heart-emotion="APPRECIATED"] {
+[data-heart-emotion="APPRECIATED"],
+.heart-emotion-compose:has(
+  .heart-emotion-choice-input[value="APPRECIATED"]:checked
+) {
   --heart-emotion-accent: var(--emotion-appreciated-accent);
   --heart-emotion-surface: var(--emotion-appreciated-surface);
 }
 
 [data-emotion="SUPPORTED"],
-[data-heart-emotion="SUPPORTED"] {
+[data-heart-emotion="SUPPORTED"],
+.heart-emotion-compose:has(
+  .heart-emotion-choice-input[value="SUPPORTED"]:checked
+) {
   --heart-emotion-accent: var(--emotion-supported-accent);
   --heart-emotion-surface: var(--emotion-supported-surface);
 }
 
 [data-emotion="GRATEFUL"],
-[data-heart-emotion="GRATEFUL"] {
+[data-heart-emotion="GRATEFUL"],
+.heart-emotion-compose:has(
+  .heart-emotion-choice-input[value="GRATEFUL"]:checked
+) {
   --heart-emotion-accent: var(--emotion-grateful-accent);
   --heart-emotion-surface: var(--emotion-grateful-surface);
 }
 
 [data-emotion="HAPPY"],
-[data-heart-emotion="HAPPY"] {
+[data-heart-emotion="HAPPY"],
+.heart-emotion-compose:has(.heart-emotion-choice-input[value="HAPPY"]:checked) {
   --heart-emotion-accent: var(--emotion-happy-accent);
   --heart-emotion-surface: var(--emotion-happy-surface);
 }
@@ -151,15 +163,34 @@
   text-align: left;
 }
 
-/* Timeline cards keep their accepted hierarchy; the emotion is atmosphere, not taxonomy chrome. */
-.story-card-link .story-card-heart-moment[data-heart-emotion] {
-  background:
-    radial-gradient(
-      circle at 88% 12%,
-      color-mix(in srgb, var(--heart-emotion-surface) 88%, transparent) 0,
-      transparent 45%
-    ),
-    var(--color-surface);
+/* Native checked radios and saved values share one complete feeling surface. */
+.quiet-composer .heart-emotion-compose .composer-writing-surface,
+.story-card-link .story-card-heart-moment[data-heart-emotion],
+.heart-moment-detail-container[data-heart-emotion] .product-detail-card {
+  background: var(--heart-emotion-surface);
+  border-color: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 35%,
+    var(--heart-emotion-surface)
+  );
+  color: var(--color-text);
+}
+
+.quiet-composer .heart-emotion-compose .composer-writing-surface {
+  transition:
+    background-color var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
+}
+
+.quiet-composer .heart-emotion-compose .composer-writing-surface:focus-within {
+  border-color: var(--heart-emotion-accent);
+}
+
+.quiet-composer
+  .heart-emotion-compose
+  .composer-writing-surface
+  :is(input, textarea) {
+  background: transparent;
 }
 
 .story-card-heart-moment .heart-emotion-badge {
@@ -290,23 +321,9 @@
 }
 
 .heart-moment-detail-container[data-heart-emotion] .product-detail-card {
-  position: relative;
-  isolation: isolate;
+  padding: var(--space-5);
+  border-radius: var(--radius-content);
   overflow: hidden;
-}
-
-.heart-moment-detail-container[data-heart-emotion]
-  .product-detail-card::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at 88% 0%,
-    color-mix(in srgb, var(--heart-emotion-surface) 70%, transparent) 0,
-    transparent 42%
-  );
-  content: "";
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {
@@ -328,7 +345,8 @@
 @media (prefers-reduced-motion: reduce) {
   .heart-emotion-choice-visual,
   .heart-emotion-choice-check,
-  .heart-emotion-badge--detail .heart-emotion-icon {
+  .heart-emotion-badge--detail .heart-emotion-icon,
+  .quiet-composer .heart-emotion-compose .composer-writing-surface {
     animation: none;
     transition: none;
   }

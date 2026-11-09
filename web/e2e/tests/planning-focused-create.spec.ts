@@ -401,7 +401,9 @@ test('failed save preserves the focused task and dirty cancellation requires con
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(intention).toHaveValue('Our next adventure');
 
-  await page.getByRole('button', { name: de.common.cancel }).click();
+  await page
+    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .click();
   await expect(
     page.getByRole('alertdialog', { name: taskBoundary.discardTitle }),
   ).toBeVisible();

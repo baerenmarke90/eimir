@@ -17,10 +17,12 @@ export function HeartMomentTagChoices({
   selected = [],
   editorRef,
   parentId,
+  discloseEmpty = false,
 }: {
   selected?: readonly string[];
   editorRef?: Ref<ContextTagEditorHandle>;
   parentId?: string;
+  discloseEmpty?: boolean;
 }) {
   const { t } = useTranslation();
   const [tags, setTags] = useState<string[]>([...selected]);
@@ -30,6 +32,7 @@ export function HeartMomentTagChoices({
   }, [identity]);
   return (
     <ContextTagEditor
+      discloseEmpty={discloseEmpty}
       parentId={parentId}
       parentType="HEART_MOMENT"
       ref={editorRef}

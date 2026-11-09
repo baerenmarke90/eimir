@@ -1,0 +1,11 @@
+eimir. Android 0.2.0-test.61
+
+- Include merged #1718: quiet mobile composers for Diary/Memory, HeartMoment and Plans.
+- Keep one native Save action in the compact header, title and text together before media, and date/schedule selection in the existing short task.
+- Color the complete HeartMoment writing and reading card with the selected feeling, in Light and Dark.
+- Disclose empty tag entry while retaining selected chips, suggestions and pending tag drafts.
+- Preserve gallery swipe, pinch/double-tap zoom, media sorting, sensitivity, cover choice, voice intake and draft recovery.
+- Keep headings, feeling choices and media actions readable at narrow widths and enlarged text.
+- Protect unsaved date/range changes when refreshed defaults arrive in the background.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.60; increasing versionCode 61. Install over the existing app. Physical-device installation, session/data continuity, OS App Links and accessibility remain separate acceptance.

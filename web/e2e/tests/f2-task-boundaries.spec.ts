@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
 import photoSources from '../../src/i18n/locales/photoSources';
@@ -10,7 +11,13 @@ import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
-import { showMemoryDetails } from '../support/memoryDiary';
+import {
+  closeComposerDate,
+  expectReadableComposerHeader,
+  showComposerDate,
+  showMemoryDetails,
+} from '../support/memoryDiary';
+import { expectReadableActionLabel } from '../support/addAction';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
@@ -390,9 +397,7 @@ async function fillMemory(page: Page, withPhoto = false) {
 }
 
 async function expectDateField(page: Page) {
-  await expect(
-    page.getByLabel(de.memory.dateLabel, { exact: true }),
-  ).toBeVisible();
+  return showComposerDate(page);
 }
 
 async function expectNoOverflow(page: Page) {
@@ -643,12 +648,10 @@ test('a pending submission retains its draft and cannot create twice or exit', a
     await expect(
       page.getByRole('button', { name: de.memory.saving, exact: true }),
     ).toBeDisabled();
-    await page
-      .getByRole('button', { name: taskBoundary.close, exact: true })
-      .click({ force: true });
-    await page
-      .getByRole('button', { name: de.common.cancel, exact: true })
-      .click({ force: true });
+    await expect(
+      page.getByRole('button', { name: taskBoundary.close, exact: true }),
+    ).toBeDisabled();
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await page.goBack();
     await expect(page).toHaveURL(/\/story\/memories\/new/);
@@ -1271,20 +1274,17 @@ test('an unsupported date stays editable and never starts a network save', async
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
-  await expectDateField(page);
+  const date = await expectDateField(page);
+  await date.fill('10000-01-01');
   await page
-    .getByLabel(de.memory.dateLabel, { exact: true })
-    .fill('10000-01-01');
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+    .getByRole('dialog', { name: de.memory.dateLabel, exact: true })
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   await expect(
     page.getByRole('alert').filter({ hasText: taskBoundary.invalidDate }),
   ).toBeVisible();
-  await expect(
-    page.getByLabel(de.memory.dateLabel, { exact: true }),
-  ).toHaveAttribute('aria-invalid', 'true');
-  await expect(
-    page.getByLabel(de.memory.dateLabel, { exact: true }),
-  ).toBeFocused();
+  await expect(date).toHaveAttribute('aria-invalid', 'true');
+  await expect(date).toBeFocused();
   await expect(
     page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toBeEditable();
@@ -1292,15 +1292,14 @@ test('an unsupported date stays editable and never starts a network save', async
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toHaveValue(BODY);
   expect(api.createRequests).toBe(0);
-  await page
-    .getByLabel(de.memory.dateLabel, { exact: true })
-    .fill('2025-09-16');
+  await date.fill('2025-09-16');
+  await closeComposerDate(page);
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   expect(api.createRequests).toBe(1);
 });
 
-test('edit Cancel and explicit Back keep the selected Memory origin', async ({
+test('edit header Back and Browser Back keep the selected Memory origin', async ({
   page,
 }) => {
   const api = await installProductApi(page);
@@ -1312,7 +1311,7 @@ test('edit Cancel and explicit Back keep the selected Memory origin', async ({
   await expect(
     page.getByRole('heading', { name: firstPage[0].title, exact: true }),
   ).toBeVisible();
-  for (const exitLabel of [de.common.cancel, memoryProduct.backToMemory]) {
+  for (const exit of ['header', 'browser']) {
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
@@ -1323,7 +1322,11 @@ test('edit Cancel and explicit Back keep the selected Memory origin', async ({
         level: 1,
       }),
     ).toBeVisible();
-    await page.getByRole('link', { name: exitLabel, exact: true }).click();
+    if (exit === 'header')
+      await page
+        .getByRole('link', { name: taskBoundary.back, exact: true })
+        .click();
+    else await page.goBack();
     await expect(
       page.getByRole('heading', { name: firstPage[0].title, exact: true }),
     ).toBeVisible();
@@ -1391,6 +1394,10 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await sheet
     .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
     .click();
+  await expectReadableComposerHeader(page);
+  await expectReadableActionLabel(
+    page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+  );
   await fillMemory(page);
   await expectNoOverflow(page);
   const readableLabels = await page
@@ -1411,35 +1418,34 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
       }),
     );
   expect(readableLabels.filter((label) => label.lines > 1)).toEqual([]);
-  await expectDateField(page);
-  const dateSpace = await page
-    .getByLabel(de.memory.dateLabel, { exact: true })
-    .evaluate((element) => {
-      const style = getComputedStyle(element);
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Cannot measure native date text.');
-      context.font = style.font;
-      const date = new Date(`${(element as HTMLInputElement).value}T00:00:00Z`);
-      const visibleDate = new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        timeZone: 'UTC',
-      }).format(date);
-      return {
-        available:
-          element.clientWidth -
-          Number.parseFloat(style.paddingLeft) -
-          Number.parseFloat(style.paddingRight),
-        text: context.measureText(visibleDate).width,
-        picker: Number.parseFloat(style.fontSize),
-      };
-    });
+  const date = await expectDateField(page);
+  const dateSpace = await date.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Cannot measure native date text.');
+    context.font = style.font;
+    const date = new Date(`${(element as HTMLInputElement).value}T00:00:00Z`);
+    const visibleDate = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'UTC',
+    }).format(date);
+    return {
+      available:
+        element.clientWidth -
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight),
+      text: context.measureText(visibleDate).width,
+      picker: Number.parseFloat(style.fontSize),
+    };
+  });
   expect(dateSpace.available).toBeGreaterThanOrEqual(
     dateSpace.text + dateSpace.picker,
   );
   // Leave the date field before reviewing resting text/controls.
+  await closeComposerDate(page);
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {

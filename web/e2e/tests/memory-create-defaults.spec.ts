@@ -19,7 +19,12 @@ import {
   expectInlineDraftActions,
   selectDraftMedia,
 } from '../support/mediaDraft';
-import { showMemoryDetails } from '../support/memoryDiary';
+import {
+  expectComposerDate,
+  setComposerDate,
+  showHeartAudience,
+  showMemoryDetails,
+} from '../support/memoryDiary';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -1132,9 +1137,11 @@ for (const [width, colorScheme] of [
 }
 
 async function expectDateField(page: Page): Promise<void> {
-  await expect(
-    page.getByLabel(de.memory.dateLabel, { exact: true }),
-  ).toBeVisible();
+  await expect(page.locator('.composer-date-trigger')).toBeVisible();
+  await expect(page.locator('.composer-date-trigger')).toHaveAttribute(
+    'aria-haspopup',
+    'dialog',
+  );
 }
 
 async function submitAndReadCreateRequest(
@@ -1159,9 +1166,7 @@ test('Memory Create opens with browser-local today and an optional title', async
   await signInAndOpenMemoryCreate(page);
   await expectDateField(page);
 
-  await expect(page.getByLabel(de.memory.dateLabel)).toHaveValue(
-    await browserLocalToday(page),
-  );
+  await expectComposerDate(page, await browserLocalToday(page));
   await expect(
     page.getByLabel(de.memory.titleLabelOptional),
   ).not.toHaveAttribute('required', '');
@@ -1307,7 +1312,7 @@ test('a selected date wins and is also used by a text-only fallback title', asyn
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
   await expectDateField(page);
-  await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
+  await setComposerDate(page, '2025-12-24');
 
   const requestBody = await submitAndReadCreateRequest(page);
 
@@ -1326,7 +1331,7 @@ test('text-only with a cleared date and whitespace title falls back using local 
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill('   ');
   await expectDateField(page);
-  await page.getByLabel(de.memory.dateLabel).fill('');
+  await setComposerDate(page, '');
   const expectedDate = await browserLocalToday(page);
 
   const requestBody = await submitAndReadCreateRequest(page);
@@ -1344,7 +1349,7 @@ test('an authored title is kept while the selected happenedOn date is submitted'
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
   await expectDateField(page);
-  await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
+  await setComposerDate(page, '2025-12-24');
 
   const requestBody = await submitAndReadCreateRequest(page);
 
@@ -1359,9 +1364,7 @@ test('Memory Create defaults render without overflow and capture product visual 
   await page.setViewportSize({ width: 390, height: 844 });
   await signInAndOpenMemoryCreate(page);
   await expectDateField(page);
-  await expect(page.getByLabel(de.memory.dateLabel)).toHaveValue(
-    await browserLocalToday(page),
-  );
+  await expectComposerDate(page, await browserLocalToday(page));
   // Leave the date field before capturing visual
   // evidence, so the screenshots reflect what the page actually renders
   // by default rather than the transient date-editing state.
@@ -1425,17 +1428,21 @@ for (const [width, colorScheme] of [
     ).toBeVisible();
     const title = page.getByLabel(de.memory.titleLabelOptional);
     await expect(title).toBeVisible();
-    expect(
-      await title.evaluate(
-        (node) =>
-          node.closest('fieldset')?.querySelector('input')?.id === 'happenedOn',
-      ),
-    ).toBe(true);
+    await expect(page.locator('input:focus, textarea:focus')).toHaveCount(0);
+    const [titleBox, bodyBox, mediaBox] = await Promise.all([
+      title.boundingBox(),
+      page.getByLabel(de.memory.bodyLabel, { exact: true }).boundingBox(),
+      page.locator('.immersive-create-media').boundingBox(),
+    ]);
+    if (!titleBox || !bodyBox || !mediaBox)
+      throw new Error('The authored capture composition did not render.');
+    expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(bodyBox.y);
+    expect(bodyBox.y + bodyBox.height).toBeLessThanOrEqual(mediaBox.y);
     const text =
       'A quiet afternoon together.\n\nWe want to remember the little details.';
     await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(text);
     await expectDateField(page);
-    await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
+    await setComposerDate(page, '2025-12-24');
     await showMemoryDetails(page);
     await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
     await page
@@ -2630,13 +2637,15 @@ for (const kind of ['plan', 'heart'] as const) {
         ? storyProducts.heartMomentProduct.textLabel
         : m5s3.plan.intentionLabel;
     await page.getByLabel(text, { exact: true }).fill(AUTHORED_BODY);
-    if (kind === 'heart')
+    if (kind === 'heart') {
+      await showHeartAudience(page);
       await page
         .getByLabel(storyProducts.heartMomentProduct.visibilityPrivate, {
           exact: true,
         })
         .check();
-    else await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
+    } else
+      await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
     await page.getByRole('button', { name: photoSources.more }).click();
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await expect(

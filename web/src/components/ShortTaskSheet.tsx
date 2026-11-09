@@ -18,6 +18,7 @@ import './ShortTaskSheet.css';
 
 export interface ShortTaskSheetHandle {
   closeForNavigation: (navigate: () => void) => void;
+  requestClose: () => boolean;
 }
 
 const COMPACT_DRAG_DISMISS_MIN_PX = 120;
@@ -418,6 +419,7 @@ export function ShortTaskSheet({
   };
 
   useImperativeHandle(ref, () => ({
+    requestClose,
     closeForNavigation(navigate) {
       closeConfirmed(() => {
         // Auth/Space teardown may have ended this task during history removal.

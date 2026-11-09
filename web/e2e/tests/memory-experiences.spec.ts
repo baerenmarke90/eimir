@@ -14,6 +14,7 @@ import {
   dragDraftMedia,
   expectInlineDraftActions,
 } from '../support/mediaDraft';
+import { closeComposerDate, showComposerDate } from '../support/memoryDiary';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 /** #1618: strict mocked API journeys and actual browser/visual evidence.
@@ -361,10 +362,12 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(deFixtures.memoryExperiences.body);
+    const date = await showComposerDate(page);
     await page.getByRole('button', { name: experiences.addPeriod }).click();
     await page.getByLabel(experiences.through).fill('2027-01-03');
     // The native date editor keeps calendar dates rather than timezone instants.
-    await page.locator('#happenedOn').fill('2026-12-31');
+    await date.fill('2026-12-31');
+    await closeComposerDate(page);
     await page.getByRole('button', { name: photoSources.addMedia }).click();
     const input = page.locator('#memory-create-images');
     await expect(input).toBeAttached();

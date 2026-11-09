@@ -1,0 +1,23 @@
+.composer-date-context {
+  position: relative;
+  min-inline-size: 0;
+}
+.composer-date-context > input.composer-date-backing[type="date"] {
+  inline-size: 1px;
+  block-size: 1px;
+  max-inline-size: 1px;
+  max-block-size: 1px;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.composer-date-sheet .short-task-sheet-body {
+  display: grid;
+  gap: var(--space-4);
+}
+.composer-date-sheet .short-task-sheet-footer > button {
+  inline-size: 100%;
+}

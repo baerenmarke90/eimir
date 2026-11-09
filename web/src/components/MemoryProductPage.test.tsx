@@ -138,17 +138,16 @@ function setup(canEdit: boolean) {
 
 describe('Memory editor return context', () => {
   it.each([
-    { canEdit: true, exit: 'cancel' },
     { canEdit: true, exit: 'back' },
     { canEdit: false, exit: 'back' },
   ])(
     'preserves scoped Timeline origin for edit=$canEdit via $exit',
-    async ({ canEdit, exit }) => {
+    async ({ canEdit }) => {
       setup(canEdit);
       fireEvent.click(screen.getByText('Edit selected Memory'));
       fireEvent.click(
         screen.getByRole('link', {
-          name: exit === 'cancel' ? de.common.cancel : taskBoundary.back,
+          name: taskBoundary.back,
         }),
       );
       fireEvent.click(

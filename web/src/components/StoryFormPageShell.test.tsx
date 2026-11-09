@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import type { FormEvent } from 'react';
 import { describe, expect, it } from 'vitest';
 import {
   StoryCreatePageShell,
   StoryEditorPageShell,
+  ComposerHeader,
 } from './StoryFormPageShell';
 
 describe('StoryEditorPageShell', () => {
@@ -67,4 +69,41 @@ describe('StoryCreatePageShell', () => {
       ),
     ).not.toBeNull();
   });
+});
+
+it('submits the owning native form from the compact header', () => {
+  const submit = vi.fn((event: FormEvent<HTMLFormElement>) =>
+    event.preventDefault(),
+  );
+  render(
+    <>
+      <ComposerHeader
+        before={<button type="button">Back</button>}
+        title="Memory"
+        titleId="memory-title"
+        action={
+          <button type="submit" form="memory-form">
+            Save
+          </button>
+        }
+      />
+      <form id="memory-form" onSubmit={submit}>
+        <input
+          name="title"
+          aria-label="Title"
+          required
+          defaultValue="Our day"
+        />
+      </form>
+    </>,
+  );
+  const save = screen.getByRole('button', {
+    name: 'Save',
+  }) as HTMLButtonElement;
+  expect(save.form?.id).toBe('memory-form');
+  expect(screen.getByRole('heading', { name: 'Memory' }).id).toBe(
+    'memory-title',
+  );
+  fireEvent.click(save);
+  expect(submit).toHaveBeenCalledOnce();
 });

@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
@@ -68,9 +68,14 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import {
+  ComposerDateContext,
+  type ComposerDateContextHandle,
+} from './ComposerDateContext';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { ExpandableDescription } from './ExpandableDescription';
+import { EimirIcon } from './EimirIcon';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
   HeartMomentLocationField,
@@ -88,7 +93,6 @@ import {
   type MomentPlaceSelection,
 } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
-import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { ProblemState } from './ProblemState';
@@ -96,6 +100,7 @@ import { SavedVoiceNote } from './SavedVoiceNote';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import {
+  ComposerHeader,
   StoryCreatePageShell,
   StoryEditorPageShell,
 } from './StoryFormPageShell';
@@ -208,6 +213,7 @@ export function HeartMomentProductPage({
   const [formDirty, setFormDirty] = useState(false);
   const [createText, setCreateText] = useState('');
   const [createDate, setCreateDate] = useState(localDateInputValue);
+  const dateContextRef = useRef<ComposerDateContextHandle>(null);
   const sourceContentApplied = useRef(false);
   const sourcePlaceApplied = useRef(false);
   const placeManuallyChanged = useRef(false);
@@ -689,6 +695,18 @@ export function HeartMomentProductPage({
     },
   });
   if (mode === 'create') {
+    function chooseVisibility(
+      visibility: ContentVisibilityValue,
+      control: HTMLInputElement,
+    ) {
+      setCreateVisibility(visibility);
+      const disclosure = control.closest('details');
+      if (disclosure) {
+        disclosure.open = false;
+        disclosure.querySelector('summary')?.focus();
+      }
+    }
+
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (
@@ -701,6 +719,7 @@ export function HeartMomentProductPage({
         createMutation.isPending
       )
         return;
+      if (!dateContextRef.current?.reportValidity()) return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
@@ -742,18 +761,44 @@ export function HeartMomentProductPage({
     return (
       <StoryCreatePageShell
         header={
-          <PageHeader
+          <ComposerHeader
             before={
               <TaskBackButton
+                inline
                 className="heart-moment-create-back"
                 onClick={editorLifecycle.requestClose}
               />
             }
             title={t('heartMomentProduct.createHeading')}
             titleId="heart-moment-create-heading"
+            action={
+              <button
+                type="submit"
+                form="heart-moment-create-form"
+                className="composer-submit"
+                aria-label={
+                  createMutation.isPending
+                    ? t('heartMomentProduct.saving')
+                    : t('heartMomentProduct.save')
+                }
+                disabled={
+                  createMutation.isPending ||
+                  sourceLoading ||
+                  placePending ||
+                  voice.hasPending ||
+                  voice.hasFailed ||
+                  attachments.hasPending ||
+                  attachments.items.some((item) => item.status === 'failed')
+                }
+              >
+                {createMutation.isPending
+                  ? t('heartMomentProduct.saving')
+                  : t('m5s3.common.save')}
+              </button>
+            }
           />
         }
-        pageClassName="heart-moment-create-page"
+        pageClassName="heart-moment-create-page quiet-composer"
         cardClassName="heart-moment-create-card"
         labelledBy="heart-moment-create-heading"
       >
@@ -779,21 +824,116 @@ export function HeartMomentProductPage({
             />
           ) : null}
           <form
+            id="heart-moment-create-form"
             onChange={() => setFormDirty(true)}
             onSubmit={submitCreate}
-            className="immersive-create-form heart-moment-create-form"
+            className="immersive-create-form heart-moment-create-form heart-emotion-compose"
           >
-            <NativeDateField
-              id="heart-moment-date"
-              name="happenedOn"
-              label={t('heartMomentProduct.happenedOnLabel')}
-              required
-              value={createDate}
-              onChange={(event) => setCreateDate(event.target.value)}
-              openPickerOnClick
-              fieldClassName="composer-context heart-moment-create-date"
-            />
-            <div className="field-group heart-moment-create-field heart-moment-create-note">
+            <div className="composer-context-row">
+              <ComposerDateContext
+                ref={dateContextRef}
+                idPrefix="heart-moment-create-date"
+                name="happenedOn"
+                formId="heart-moment-create-form"
+                label={t('heartMomentProduct.happenedOnLabel')}
+                required
+                value={createDate}
+                onChange={(value) => {
+                  setCreateDate(value);
+                  setFormDirty(true);
+                }}
+              />
+              <details
+                className="composer-audience"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.currentTarget.open = false;
+                    event.currentTarget.querySelector('summary')?.focus();
+                  }
+                }}
+                onBlur={(event) => {
+                  if (
+                    !event.currentTarget.contains(
+                      event.relatedTarget as Node | null,
+                    )
+                  )
+                    event.currentTarget.open = false;
+                }}
+              >
+                <summary
+                  aria-label={`${t('heartMomentProduct.visibilityLabel')}: ${t(
+                    createVisibility === ContentVisibility.PRIVATE
+                      ? 'heartMomentProduct.visibilityPrivate'
+                      : 'heartMomentProduct.visibilityShared',
+                  )}`}
+                >
+                  <VisibilityGlyph visibility={createVisibility} />
+                  <span>
+                    {t(
+                      createVisibility === ContentVisibility.PRIVATE
+                        ? 'heartMomentProduct.visibilityPrivate'
+                        : 'heartMomentProduct.visibilityShared',
+                    )}
+                  </span>
+                  <EimirIcon name="chevron-right" />
+                </summary>
+                <fieldset className="heart-moment-create-visibility">
+                  <legend>{t('heartMomentProduct.visibilityLabel')}</legend>
+                  <div className="heart-moment-create-visibility-options">
+                    <label
+                      className="heart-moment-create-visibility-option"
+                      htmlFor="heart-moment-create-visibility-private"
+                    >
+                      <input
+                        id="heart-moment-create-visibility-private"
+                        name="visibility"
+                        type="radio"
+                        value={ContentVisibility.PRIVATE}
+                        checked={createVisibility === ContentVisibility.PRIVATE}
+                        onChange={(event) =>
+                          chooseVisibility(
+                            ContentVisibility.PRIVATE,
+                            event.currentTarget,
+                          )
+                        }
+                      />
+                      <VisibilityGlyph visibility="OWNER_ONLY" />
+                      <span>
+                        <strong>
+                          {t('heartMomentProduct.visibilityPrivate')}
+                        </strong>
+                      </span>
+                    </label>
+                    <label
+                      className="heart-moment-create-visibility-option"
+                      htmlFor="heart-moment-create-visibility-shared"
+                    >
+                      <input
+                        id="heart-moment-create-visibility-shared"
+                        name="visibility"
+                        type="radio"
+                        value={ContentVisibility.SHARED}
+                        checked={createVisibility === ContentVisibility.SHARED}
+                        onChange={(event) =>
+                          chooseVisibility(
+                            ContentVisibility.SHARED,
+                            event.currentTarget,
+                          )
+                        }
+                      />
+                      <VisibilityGlyph visibility="SPACE_SHARED" />
+                      <span>
+                        <strong>
+                          {t('heartMomentProduct.visibilityShared')}
+                        </strong>
+                      </span>
+                    </label>
+                  </div>
+                </fieldset>
+              </details>
+            </div>
+            <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface">
               <label htmlFor="heart-moment-text">
                 {t('heartMomentProduct.textLabel')}
               </label>
@@ -844,111 +984,45 @@ export function HeartMomentProductPage({
               />
             </div>
 
-            {createVisibility === ContentVisibility.PRIVATE ||
-            createLocation ? (
-              <HeartMomentLocationField
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                accountId={currentAccountId}
-                spaceId={spaceId}
-                value={createLocation ?? createPlace}
-                privateAudience={createVisibility === ContentVisibility.PRIVATE}
-                onChange={(next) => {
-                  placeManuallyChanged.current = true;
-                  setCreateLocation(next);
-                  setCreatePlace(undefined);
-                  setFormDirty(true);
-                }}
-                disabled={createMutation.isPending}
-                onPendingChange={setPlacePending}
-              />
-            ) : (
-              <MomentPlaceField
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                accountId={currentAccountId}
-                spaceId={spaceId}
-                value={createPlace}
-                onChange={(next) => {
-                  placeManuallyChanged.current = true;
-                  setCreatePlace(next);
-                  setFormDirty(true);
-                }}
-                disabled={createMutation.isPending}
-                onPendingChange={setPlacePending}
-              />
-            )}
+            <div className="composer-enrichment">
+              {createVisibility === ContentVisibility.PRIVATE ||
+              createLocation ? (
+                <HeartMomentLocationField
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={accessToken}
+                  accountId={currentAccountId}
+                  spaceId={spaceId}
+                  value={createLocation ?? createPlace}
+                  privateAudience={
+                    createVisibility === ContentVisibility.PRIVATE
+                  }
+                  onChange={(next) => {
+                    placeManuallyChanged.current = true;
+                    setCreateLocation(next);
+                    setCreatePlace(undefined);
+                    setFormDirty(true);
+                  }}
+                  disabled={createMutation.isPending}
+                  onPendingChange={setPlacePending}
+                />
+              ) : (
+                <MomentPlaceField
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={accessToken}
+                  accountId={currentAccountId}
+                  spaceId={spaceId}
+                  value={createPlace}
+                  onChange={(next) => {
+                    placeManuallyChanged.current = true;
+                    setCreatePlace(next);
+                    setFormDirty(true);
+                  }}
+                  disabled={createMutation.isPending}
+                  onPendingChange={setPlacePending}
+                />
+              )}
 
-            <HeartMomentTagChoices editorRef={tagEditorRef} />
-
-            <fieldset className="heart-moment-create-visibility">
-              <legend>{t('heartMomentProduct.visibilityLabel')}</legend>
-              <div className="heart-moment-create-visibility-options">
-                <label
-                  className="heart-moment-create-visibility-option"
-                  htmlFor="heart-moment-create-visibility-private"
-                >
-                  <input
-                    id="heart-moment-create-visibility-private"
-                    name="visibility"
-                    type="radio"
-                    value={ContentVisibility.PRIVATE}
-                    checked={createVisibility === ContentVisibility.PRIVATE}
-                    onChange={() =>
-                      setCreateVisibility(ContentVisibility.PRIVATE)
-                    }
-                  />
-                  <VisibilityGlyph visibility="OWNER_ONLY" />
-                  <span>
-                    <strong>{t('heartMomentProduct.visibilityPrivate')}</strong>
-                  </span>
-                </label>
-                <label
-                  className="heart-moment-create-visibility-option"
-                  htmlFor="heart-moment-create-visibility-shared"
-                >
-                  <input
-                    id="heart-moment-create-visibility-shared"
-                    name="visibility"
-                    type="radio"
-                    value={ContentVisibility.SHARED}
-                    checked={createVisibility === ContentVisibility.SHARED}
-                    onChange={() =>
-                      setCreateVisibility(ContentVisibility.SHARED)
-                    }
-                  />
-                  <VisibilityGlyph visibility="SPACE_SHARED" />
-                  <span>
-                    <strong>{t('heartMomentProduct.visibilityShared')}</strong>
-                  </span>
-                </label>
-              </div>
-            </fieldset>
-
-            <div className="form-actions heart-moment-create-actions">
-              <button
-                type="submit"
-                disabled={
-                  createMutation.isPending ||
-                  sourceLoading ||
-                  placePending ||
-                  voice.hasPending ||
-                  voice.hasFailed ||
-                  attachments.hasPending ||
-                  attachments.items.some((item) => item.status === 'failed')
-                }
-              >
-                {createMutation.isPending
-                  ? t('heartMomentProduct.saving')
-                  : t('heartMomentProduct.save')}
-              </button>
-              <button
-                type="button"
-                className="button-link secondary-link"
-                onClick={editorLifecycle.requestClose}
-              >
-                {t('common.cancel')}
-              </button>
+              <HeartMomentTagChoices discloseEmpty editorRef={tagEditorRef} />
             </div>
             {createContentError ? (
               <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
@@ -1035,6 +1109,7 @@ export function HeartMomentProductPage({
         })
       )
         return;
+      if (!dateContextRef.current?.reportValidity()) return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       const text = String(data.get('text') || '').trim();
@@ -1067,8 +1142,10 @@ export function HeartMomentProductPage({
 
     return (
       <StoryEditorPageShell
+        quiet
         before={
           <TaskBackLink
+            inline
             to={heartMomentDetailPath(heartMoment.id)}
             onClick={(event) => {
               event.preventDefault();
@@ -1081,6 +1158,31 @@ export function HeartMomentProductPage({
         }
         title={t('heartMomentProduct.editHeading')}
         description={t('heartMomentProduct.editIntro')}
+        headerAction={
+          <button
+            type="submit"
+            form="heart-moment-edit-form"
+            className="composer-submit"
+            aria-label={
+              updateMutation.isPending
+                ? t('heartMomentProduct.saving')
+                : t('heartMomentProduct.save')
+            }
+            disabled={
+              updateMutation.isPending ||
+              placePending ||
+              voice.hasPending ||
+              voice.hasFailed ||
+              attachments.hasPending ||
+              attachments.items.some((item) => item.status === 'failed') ||
+              deleteMutation.isBlocked
+            }
+          >
+            {updateMutation.isPending
+              ? t('heartMomentProduct.saving')
+              : t('m5s3.common.save')}
+          </button>
+        }
         sectionLabelledBy="heart-moment-edit-heading"
         sectionHeading={t('heartMomentProduct.formAria')}
       >
@@ -1091,11 +1193,16 @@ export function HeartMomentProductPage({
             onDiscard={() => editorLifecycle.closeConfirmed()}
           />
           <form
-            className="form-grid"
+            id="heart-moment-edit-form"
+            className="form-grid heart-emotion-compose"
             onChange={() => setFormDirty(true)}
             onSubmit={submitEdit}
           >
-            <HeartMomentFields heartMoment={heartMoment} />
+            <HeartMomentFields
+              heartMoment={heartMoment}
+              dateContextRef={dateContextRef}
+              onDateChange={() => setFormDirty(true)}
+            />
             <PlanPhotosEditor
               additionalActions={
                 <VoiceNoteEditor
@@ -1165,40 +1272,11 @@ export function HeartMomentProductPage({
               />
             ) : null}
             <HeartMomentTagChoices
+              discloseEmpty
               parentId={heartMoment.id}
               selected={heartMoment.tags}
               editorRef={tagEditorRef}
             />
-            <div className="form-actions">
-              <Link
-                className="button-link secondary-link"
-                to={heartMomentDetailPath(heartMoment.id)}
-                state={{ taskOriginKey: originKey }}
-                onClick={(event) => {
-                  event.preventDefault();
-                  setConfirmDelete(false);
-                  editorLifecycle.requestClose();
-                }}
-              >
-                {t('common.cancel')}
-              </Link>
-              <button
-                type="submit"
-                disabled={
-                  updateMutation.isPending ||
-                  placePending ||
-                  voice.hasPending ||
-                  voice.hasFailed ||
-                  attachments.hasPending ||
-                  attachments.items.some((item) => item.status === 'failed') ||
-                  deleteMutation.isBlocked
-                }
-              >
-                {updateMutation.isPending
-                  ? t('heartMomentProduct.saving')
-                  : t('heartMomentProduct.save')}
-              </button>
-            </div>
           </form>
           {updateMutation.error ? (
             <ProblemState error={updateMutation.error} />
@@ -1529,22 +1607,29 @@ export function HeartMomentProductPage({
 
 function HeartMomentFields({
   heartMoment,
+  dateContextRef,
+  onDateChange,
 }: {
   heartMoment?: HeartMomentDetail;
+  dateContextRef: Ref<ComposerDateContextHandle>;
+  onDateChange: () => void;
 }) {
   const { t } = useTranslation();
   return (
     <>
-      <NativeDateField
-        id="heart-moment-date"
+      <ComposerDateContext
+        ref={dateContextRef}
+        idPrefix="heart-moment-edit-date"
         name="happenedOn"
+        formId="heart-moment-edit-form"
         label={t('heartMomentProduct.happenedOnLabel')}
         required
         defaultValue={
           heartMoment ? dateInputValue(heartMoment.happenedOn) : undefined
         }
+        onChange={onDateChange}
       />
-      <div className="field-group">
+      <div className="field-group composer-writing-surface">
         <label htmlFor="heart-moment-text">
           {t('heartMomentProduct.textLabel')}
         </label>

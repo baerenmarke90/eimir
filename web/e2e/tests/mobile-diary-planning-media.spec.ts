@@ -11,6 +11,7 @@ import storyCopy from '../../src/i18n/locales/storyProducts';
 import fixtures from '../fixtures/locales/de';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { showContextTags } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -235,6 +236,7 @@ for (const view of [
     await page
       .getByLabel(copy.wish.intentionLabel)
       .fill(fixtures.planningFollowup.wishNew);
+    await showContextTags(page);
     await page.getByLabel(tagCopy.newLabel).fill(fixtures.planningFollowup.tag);
     await page
       .getByRole('button', { name: copy.common.save, exact: true })
@@ -248,6 +250,7 @@ for (const view of [
     await page
       .getByLabel(copy.plan.intentionLabel)
       .fill(fixtures.planningFollowup.planNew);
+    await showContextTags(page);
     await page.getByText(tagCopy.suggestions, { exact: true }).click();
     await page
       .getByRole('checkbox', {

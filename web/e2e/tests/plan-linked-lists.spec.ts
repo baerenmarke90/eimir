@@ -7,6 +7,7 @@ import de from '../../src/i18n/locales/de';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { showHeartAudience } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -704,6 +705,7 @@ test('private HeartMoment continuation saves a protected location snapshot', asy
   await expect(
     page.getByRole('button', { name: state.place.name, exact: true }),
   ).toBeVisible();
+  await showHeartAudience(page);
   await page
     .getByRole('radio', {
       name: storyCopy.heartMomentProduct.visibilityPrivate,

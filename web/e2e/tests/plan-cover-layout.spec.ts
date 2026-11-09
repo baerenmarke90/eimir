@@ -546,7 +546,10 @@ for (const view of [
       exact: true,
     });
     await expect(drafts).toHaveCount(3);
-    const save = page.locator('form button[type=submit]');
+    const save = page.locator('.composer-header button[type=submit]');
+    expect(
+      await save.evaluate((button: HTMLButtonElement) => button.form?.id),
+    ).toBe(await page.locator('.planning-intention-form').getAttribute('id'));
     await expect(save).toBeDisabled();
     expect(state.counts().creates).toBe(0);
     await page

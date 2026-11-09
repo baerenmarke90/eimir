@@ -55,3 +55,60 @@ export async function expectInlineAddLayout(input: Locator, action: Locator) {
     expect(control.y).toBeGreaterThanOrEqual(field.y + field.height);
   }
 }
+
+/** Short capture labels may reflow, but must never turn into vertical letters. */
+export async function expectReadableActionLabel(action: Locator) {
+  const label = action.locator('.add-action-label');
+  await expectNaturalTextReflow(label, 2);
+}
+
+/** Measure rendered text fragments instead of assuming font line-height equals line boxes. */
+export async function expectNaturalTextReflow(
+  label: Locator,
+  maxLines: number,
+) {
+  await expect(label).toBeVisible();
+  const geometry = await label.evaluate((element) => {
+    const splitWords: string[] = [];
+    const lineTops = new Set<number>();
+    const text = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    while (text.nextNode()) {
+      const node = text.currentNode;
+      for (const match of (node.textContent ?? '').matchAll(/\S+/g)) {
+        const range = document.createRange();
+        range.setStart(node, match.index);
+        range.setEnd(node, match.index + match[0].length);
+        const fragments = [...range.getClientRects()];
+        for (const fragment of fragments)
+          lineTops.add(Math.round(fragment.top));
+        if (fragments.length > 1) splitWords.push(match[0]);
+      }
+    }
+    const containers = [];
+    for (
+      let ancestor: Element | null = element;
+      ancestor && containers.length < 8;
+      ancestor = ancestor.parentElement
+    ) {
+      const style = getComputedStyle(ancestor);
+      containers.push({
+        className: ancestor.className.toString(),
+        width: ancestor.getBoundingClientRect().width,
+        font: style.font,
+        padding: style.padding,
+        gap: style.gap,
+        flex: style.flex,
+      });
+    }
+    return {
+      lines: lineTops.size,
+      splitWords,
+      containers,
+    };
+  });
+  expect(geometry.lines).toBeGreaterThan(0);
+  expect(geometry.lines, JSON.stringify(geometry)).toBeLessThanOrEqual(
+    maxLines,
+  );
+  expect(geometry.splitWords).toEqual([]);
+}

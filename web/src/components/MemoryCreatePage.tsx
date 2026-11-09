@@ -49,17 +49,20 @@ import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
 import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { AddActionButton } from './AddAction';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
+import {
+  ComposerDateContext,
+  type ComposerDateContextHandle,
+} from './ComposerDateContext';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import type { MomentPlaceSelection } from './MomentPlaceField';
-import { NativeDateField, NativeDateInput } from './NativeDateField';
+import { NativeDateField } from './NativeDateField';
 import { OrderedMomentPlacesField } from './OrderedMomentPlacesField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { StoryCreatePageShell } from './StoryFormPageShell';
+import { ComposerHeader, StoryCreatePageShell } from './StoryFormPageShell';
 import { TaskBackButton } from './TaskBackButton';
 import './MemoryCreatePage.css';
 
@@ -116,7 +119,8 @@ export function MemoryCreatePage({
   const [invalidDate, setInvalidDate] = useState(false);
   const bodyInputRef = useRef<HTMLTextAreaElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<ComposerDateContextHandle>(null);
+  const experienceDateRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
@@ -609,7 +613,8 @@ export function MemoryCreatePage({
     } catch {
       // No request has started: retain an editable draft, never an uncertain save.
       setInvalidDate(true);
-      dateInputRef.current?.focus();
+      if (experienceKind) experienceDateRef.current?.focus();
+      else dateInputRef.current?.focus();
       return;
     }
     setInvalidDate(false);
@@ -618,6 +623,7 @@ export function MemoryCreatePage({
     // unknown outcome of this exact snapshot.
     if (happenedUntil && happenedUntil < date) {
       setInvalidDate(true);
+      dateInputRef.current?.focus('end');
       return;
     }
     const attempt = {
@@ -811,33 +817,83 @@ export function MemoryCreatePage({
       />
     </div>
   );
+  const saveLabel = pending
+    ? t('memory.saving')
+    : partial
+      ? t('taskBoundary.retryPhotos')
+      : experienceKind
+        ? t('coupleExperiences.share', {
+            name: partnerName ?? t('coupleExperiences.partner'),
+          })
+        : t('memory.save');
+  const saveAction = (
+    <button
+      type="submit"
+      form="memory-create-form"
+      className={!experienceKind ? 'composer-save-action' : undefined}
+      aria-label={saveLabel}
+      disabled={
+        !hasUserContent ||
+        Boolean(diaryDraft.recovery) ||
+        diaryDraft.status === 'conflict' ||
+        pending ||
+        uncertain ||
+        sourceLoading ||
+        placePending ||
+        attachments.hasPending ||
+        hasBlockingPhotoFailure
+      }
+    >
+      {!experienceKind && !pending && !partial
+        ? t('m5s3.common.save')
+        : saveLabel}
+    </button>
+  );
   return (
     <StoryCreatePageShell
       header={
         <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
-          <PageHeader
-            before={
-              <TaskBackButton
-                type="button"
-                onClick={requestClose}
-                aria-disabled={pending}
-              >
-                {t('taskBoundary.close')}
-              </TaskBackButton>
-            }
-            title={t(
-              experienceKind
-                ? `coupleExperiences.entries.${experienceName}.title`
-                : 'memory.heading',
-            )}
-            className="create-heading"
-          />
+          {experienceKind ? (
+            <PageHeader
+              before={
+                <TaskBackButton
+                  type="button"
+                  onClick={requestClose}
+                  aria-disabled={pending}
+                >
+                  {t('taskBoundary.close')}
+                </TaskBackButton>
+              }
+              title={t(
+                experienceKind
+                  ? `coupleExperiences.entries.${experienceName}.title`
+                  : 'memory.heading',
+              )}
+              className="create-heading"
+            />
+          ) : (
+            <ComposerHeader
+              before={
+                <TaskBackButton
+                  inline
+                  type="button"
+                  onClick={requestClose}
+                  aria-disabled={pending}
+                >
+                  {t('taskBoundary.close')}
+                </TaskBackButton>
+              }
+              title={t('memory.heading')}
+              action={saveAction}
+              className="create-heading"
+            />
+          )}
         </div>
       }
       pageClassName={
         experienceKind
           ? 'memory-task-page couple-experience-compose'
-          : 'memory-task-page'
+          : 'memory-task-page quiet-composer'
       }
       labelledBy="memory-form-heading"
     >
@@ -889,7 +945,11 @@ export function MemoryCreatePage({
             </div>
           </section>
         ) : null}
-        <form onSubmit={submit} className="immersive-create-form">
+        <form
+          id="memory-create-form"
+          onSubmit={submit}
+          className="immersive-create-form"
+        >
           <fieldset
             className="memory-task-fields"
             disabled={
@@ -902,9 +962,43 @@ export function MemoryCreatePage({
             <legend className="sr-only">{t('memory.formAria')}</legend>
 
             <div className="composer-context">
-              {experienceKind !== 'HAPPINESS' && !experienceReply ? (
-                <NativeDateField
+              {!experienceKind ? (
+                <ComposerDateContext
                   ref={dateInputRef}
+                  idPrefix="happenedOn"
+                  label={t('memory.dateLabel')}
+                  value={happenedOn}
+                  onChange={(value) => {
+                    setHappenedOn(value);
+                    setInvalidDate(false);
+                  }}
+                  allowRange
+                  endValue={happenedUntil}
+                  onEndChange={(value) => {
+                    setHappenedUntil(value);
+                    setInvalidDate(false);
+                  }}
+                  disabled={
+                    pending ||
+                    Boolean(partial) ||
+                    uncertain ||
+                    Boolean(diaryDraft.recovery)
+                  }
+                  error={
+                    invalidDate &&
+                    !(happenedUntil && happenedUntil < happenedOn)
+                      ? t('taskBoundary.invalidDate')
+                      : undefined
+                  }
+                  endError={
+                    invalidDate && happenedUntil && happenedUntil < happenedOn
+                      ? t('experiences.invalidPeriod')
+                      : undefined
+                  }
+                />
+              ) : experienceKind !== 'HAPPINESS' && !experienceReply ? (
+                <NativeDateField
+                  ref={experienceDateRef}
                   id="happenedOn"
                   name="happenedOn"
                   label={t('memory.dateLabel')}
@@ -919,46 +1013,6 @@ export function MemoryCreatePage({
                   }}
                 />
               ) : null}
-
-              {!experienceKind ? (
-                <div className="field-group">
-                  {happenedUntil ? (
-                    <>
-                      <label htmlFor="memory-create-through">
-                        {t('experiences.through')}
-                      </label>
-                      <NativeDateInput
-                        id="memory-create-through"
-                        min={happenedOn}
-                        value={happenedUntil}
-                        onChange={(event) => {
-                          setHappenedUntil(event.target.value);
-                          setInvalidDate(false);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="tertiary"
-                        onClick={() => setHappenedUntil('')}
-                      >
-                        {t('experiences.removePeriod')}
-                      </button>
-                    </>
-                  ) : (
-                    <AddActionButton
-                      label={t('experiences.addPeriod')}
-                      onClick={() =>
-                        setHappenedUntil(happenedOn || initialDate)
-                      }
-                    />
-                  )}
-                  {invalidDate &&
-                  happenedUntil &&
-                  happenedUntil < happenedOn ? (
-                    <p role="alert">{t('experiences.invalidPeriod')}</p>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
             {experienceKind && title ? (
               <section
@@ -971,21 +1025,24 @@ export function MemoryCreatePage({
             ) : null}
             {experienceKind ? narrativeField : null}
             {!experienceKind ? (
-              <div className="field-group immersive-create-title-field">
-                <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
-                <input
-                  id="title"
-                  name="title"
-                  maxLength={200}
-                  placeholder={t('memory.titlePlaceholder')}
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  className="immersive-create-title-input"
-                />
+              <div className="composer-writing-surface">
+                <div className="field-group immersive-create-title-field">
+                  <label htmlFor="title">
+                    {t('memory.titleLabelOptional')}
+                  </label>
+                  <input
+                    id="title"
+                    name="title"
+                    maxLength={200}
+                    placeholder={t('memory.titleLabelOptional')}
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    className="immersive-create-title-input"
+                  />
+                </div>
+                {narrativeField}
               </div>
             ) : null}
-
-            {!experienceKind ? narrativeField : null}
 
             {!experienceKind ? (
               <div className="immersive-create-media">
@@ -1018,35 +1075,40 @@ export function MemoryCreatePage({
               </div>
             ) : null}
 
-            <OrderedMomentPlacesField
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              accountId={accountId}
-              spaceId={spaceId}
-              value={places}
-              onChange={(next) => {
-                placeManuallyChanged.current = true;
-                setPlaces(next);
-              }}
-              disabled={
-                pending ||
-                uncertain ||
-                Boolean(partial) ||
-                Boolean(diaryDraft.recovery)
-              }
-              onPendingChange={setPlacePending}
-            />
-
-            {!experienceKind ? (
-              <MemoryTagChoices
-                editorRef={tagEditorRef}
-                selected={tags}
-                onChange={setTags}
-                onDraftChange={setTagDraftDirty}
-                draftValue={tagDraftText}
-                onDraftValueChange={setTagDraftText}
+            <div
+              className={!experienceKind ? 'composer-enrichment' : undefined}
+            >
+              <OrderedMomentPlacesField
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={accountId}
+                spaceId={spaceId}
+                value={places}
+                onChange={(next) => {
+                  placeManuallyChanged.current = true;
+                  setPlaces(next);
+                }}
+                disabled={
+                  pending ||
+                  uncertain ||
+                  Boolean(partial) ||
+                  Boolean(diaryDraft.recovery)
+                }
+                onPendingChange={setPlacePending}
               />
-            ) : null}
+
+              {!experienceKind ? (
+                <MemoryTagChoices
+                  editorRef={tagEditorRef}
+                  selected={tags}
+                  onChange={setTags}
+                  onDraftChange={setTagDraftDirty}
+                  draftValue={tagDraftText}
+                  onDraftValueChange={setTagDraftText}
+                  discloseEmpty
+                />
+              ) : null}
+            </div>
           </fieldset>
           {dirty &&
           !diaryDraft.recovery &&
@@ -1069,40 +1131,19 @@ export function MemoryCreatePage({
               )}
             </p>
           ) : null}
-          <div className="form-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={requestClose}
-              aria-disabled={pending}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={
-                !hasUserContent ||
-                Boolean(diaryDraft.recovery) ||
-                diaryDraft.status === 'conflict' ||
-                pending ||
-                uncertain ||
-                sourceLoading ||
-                placePending ||
-                attachments.hasPending ||
-                hasBlockingPhotoFailure
-              }
-            >
-              {pending
-                ? t('memory.saving')
-                : partial
-                  ? t('taskBoundary.retryPhotos')
-                  : experienceKind
-                    ? t('coupleExperiences.share', {
-                        name: partnerName ?? t('coupleExperiences.partner'),
-                      })
-                    : t('memory.save')}
-            </button>
-          </div>
+          {experienceKind ? (
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={requestClose}
+                aria-disabled={pending}
+              >
+                {t('common.cancel')}
+              </button>
+              {saveAction}
+            </div>
+          ) : null}
         </form>
         {pending ? (
           <p className="status" role="status" aria-live="polite">

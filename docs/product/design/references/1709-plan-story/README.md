@@ -1,0 +1,95 @@
+# Bidirectional completed-Plan story context
+
+## Product Owner addendum and baseline
+
+On 2026-11-09 the Product Owner extended correction PR #1709: a completed Plan
+must show its linked Memories, HeartMoments and Milestones; the original Plan
+must also remain reachable from those entries. Preserve the list-management
+boundary requested in the same conversation.
+
+Reviewed current main `7aca73a05d27bcbf4ac0073d2b369503d431d641` and the
+validated list correction `48532ea35a04f86364c11efe6c4c8c19b16b6d0f` before
+runtime implementation. Actual destinations: PlanProductPage and its completed
+continuation, MemoryPlanningLinks/Memory capture/result, HeartMoment and
+Milestone create/edit/detail, shared relation APIs, Story projection, task
+origin, protected visibility transitions and portable transfer.
+
+![Generated Compact composition and reverse source context](compact-reference.png)
+
+Generated with the built-in imagegen tool before this extension's runtime code.
+The generation brief was: adapt the actual synthetic completed Plan composition,
+retain description, shared lists, comments, completion continuations and mobile
+navigation; add one quiet three-type content-link section and demonstrate a
+shared HeartMoment's Plan backlink. Use existing eimir colors, controls and
+read/Edit boundaries, without a dashboard, extra management controls, private
+content or new capabilities. Source screenshot: the validated 360px Light empty
+Plan from the preceding correction. No private user screenshot was supplied.
+
+The image guides composition, not exact pixels or additional domain semantics.
+Keep actual canonical linked-list rows rather than the generated checkboxes;
+use the existing shared-visibility text and the active Momente destination on
+Story detail. Generated labels/icons do not override localization, tokens,
+privacy or established navigation. Expanded preserves the same reading width
+and hierarchy; no separate layout is necessary.
+
+## Mobile Interaction Contract and acceptance
+
+Product Reference v1 R3/R2, reading before editing, Detail/Create/Edit templates.
+Focal point: the couple's actual authored experience. The Plan's content leads;
+existing shared lists and a supporting 'Moments for this Plan' section precede
+comments. Each row opens the original canonical entry, showing its real type,
+meaningful title/text and localized date. Use existing content preview/icon,
+link and task-return primitives; no copied content, nested cards or new counts.
+
+- All three linked types appear on a completed Plan, including pre-existing
+  Memory associations. The reverse content detail opens the original Plan.
+- Extend the existing explicit content-to-Plan relation lifecycle to shared
+  HeartMoments and Milestones. Keep manual association/removal in their editor.
+  A new capture from a Plan retains scoped source identity and uses the same
+  visible, retryable association handoff already established for Memory capture.
+- PRIVATE HeartMoments never enter shared Plan relations, previews or counts,
+  including for their owner. Changing a shared HeartMoment to private removes
+  its shared associations atomically; later sharing does not recreate them.
+- No heuristic backfill from matching names, dates or Places: a historical
+  capture without a stored association can be linked explicitly in Edit.
+- Linking/unlinking changes only the relation. Plan/content completion, original
+  content, authorship and existing Place behavior remain independent.
+- Paginate and authorize related Story content before projection; include Plan,
+  viewer and Space identity in cursor binding. Batch existing Story projection
+  rather than fetching every item individually or scanning the full timeline.
+- Normal detail contains no add/unlink controls or empty promotional section.
+  Loading, real failure/retry and available cached content retain honest state.
+- Relation failures retain a retryable saved result; no false completion rollback
+  or offline-write promise. Account/Space/instance changes cannot reuse handoffs.
+- Opening a list or its creation task from Plan Edit uses the existing dirty-exit
+  guard so unsaved Plan fields cannot disappear during navigation.
+
+Compact uses direct links and short native-checkbox pickers with no early
+keyboard. Existing sheet/focus/history/feedback and reduced-motion roles apply.
+Names and actions wrap at 320px/200% text; verify ~360/~390/~430 and Expanded,
+Light/Dark, empty/dense, failure/retry, source return and actual capture handoff.
+No decorative delight or additional relationship copy is needed for reference
+navigation. Linked content remains the personal value.
+
+## Reuse, commercial model and cross-cutting review
+
+Reuse the typed relation service, composite same-Space foreign keys, protected
+shared-only relation constraint, existing Story union/keyset cursor/projection,
+content-to-planning editor and canonical capture/result/task-origin machinery.
+Considered a duplicated Plan-owned content copy, a client-side full-Story scan,
+and a separate relation UI; all would duplicate identity, authorization or task
+lifecycle. No new dependency, provider, infrastructure or external data flow.
+
+**No business/freemium impact:** Plan lifecycle, ordinary shared Memories,
+HeartMoments, Milestones and content links remain Free/Core in both operating
+models. No paid map capability, entitlement, quota, retention/downgrade change or
+new provider cost. Two additive relation tables participate in normal shared
+transfer with identity remapping; essential portability remains non-paywallable.
+
+Review authorization on both ends, author edit rights, same-Space database
+constraints, parent/target lock order, idempotent relation creation, private
+transition cleanup, parent deletion, IDs-only events and quiet notification
+policy. Keep existing localized copy, semantic link targets and focus return.
+Tests must prove cross-Space/private denial, reverse reads, cursor isolation,
+partial failure, privacy cleanup and transfer roundtrip as well as the complete
+browser read/Edit/capture/result/return journey. No native wrapper changes.

@@ -1,10 +1,5 @@
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -15,17 +10,16 @@ import {
 } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { collectionDetailPath, MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import { collectionDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { AddActionButton } from './AddAction';
+import { CollectionChoicePicker } from './CollectionChoicePicker';
 import { DestinationIcon } from './DestinationIcon';
 import { ListEntryIconButton } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
 import { ContentChevron } from './SharedContentSheet';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PlanCollectionLinks.css';
 import './SharedContentPages.css';
 
@@ -57,10 +51,6 @@ export function PlanCollectionLinks({
   const client = useQueryClient();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const sheet = useRef<ShortTaskSheetHandle>(null);
   const inFlight = useRef(false);
   const canManage = editing && plan.capabilities.canEdit;
   const capture = useTaskActivation(canManage);
@@ -77,49 +67,11 @@ export function PlanCollectionLinks({
         ),
       ),
   });
-  const choices = useInfiniteQuery({
-    queryKey: ['m5-s3', 'collections', spaceId, 'plan-choice', plan.id],
-    enabled: open && canManage,
-    retry: false,
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) =>
-      apiCall(() =>
-        apis.collections.listCollections(
-          { spaceId, scope: 'ALL', cursor: pageParam, limit: 100 },
-          { signal },
-        ),
-      ),
-    getNextPageParam: (page, _pages, last, cursors) => {
-      const next = page.nextCursor;
-      return next && next !== last && !cursors.includes(next)
-        ? next
-        : undefined;
-    },
-  });
-  useEffect(() => {
-    if (open && choices.hasNextPage && !choices.isFetching && !choices.error)
-      void choices.fetchNextPage();
-  }, [
-    open,
-    choices.hasNextPage,
-    choices.isFetching,
-    choices.error,
-    choices.fetchNextPage,
-  ]);
   const lists = sortByProductLabel(
     linked.data ?? [],
     (list) => list.title,
     resolvedLocale(),
   );
-  const items = sortByProductLabel(
-    (choices.data?.pages.flatMap((page) => page.items) ?? []).filter(
-      (item) => !lists.some((list) => list.id === item.id),
-    ),
-    (list) => list.title,
-    resolvedLocale(),
-  );
-  const assembling =
-    choices.isPending || choices.isFetching || choices.hasNextPage;
   const mutation = useMutation({
     mutationKey,
     networkMode: 'always',
@@ -152,18 +104,7 @@ export function PlanCollectionLinks({
       if (intent.owns()) void client.invalidateQueries({ queryKey: key });
     },
   });
-  const linkedSuccessfully =
-    mutation.isSuccess &&
-    !mutation.variables.unlink &&
-    mutation.variables.owns() &&
-    !disabled;
-  useEffect(() => {
-    if (!linkedSuccessfully) return;
-    // Restore focus only after the shared Plan write guard enables the trigger.
-    setSelected([]);
-    setOpen(false);
-  }, [linkedSuccessfully]);
-  function mutate(ids: string[], unlink: boolean) {
+  async function mutate(ids: string[], unlink: boolean) {
     if (
       !ids.length ||
       disabled ||
@@ -180,7 +121,7 @@ export function PlanCollectionLinks({
     );
     const ownsLists = captureAuthorizedQuery(client, key);
     inFlight.current = true;
-    mutation.mutate({
+    await mutation.mutateAsync({
       ids,
       unlink,
       owns: () => ownsTask() && ownsPlan() && ownsLists(),
@@ -260,112 +201,27 @@ export function PlanCollectionLinks({
                 className="tertiary"
                 label={t('m5s3.collection.unlink', { title: list.title })}
                 disabled={pending || Boolean(linked.error)}
-                onClick={() => mutate([list.id], true)}
+                onClick={() => void mutate([list.id], true).catch(() => {})}
               />
             ) : null}
           </li>
         ))}
       </ul>
       {canManage ? (
-        <AddActionButton
-          ref={trigger}
-          label={t('m5s3.collection.create')}
+        <CollectionChoicePicker
+          apis={apis}
+          spaceId={spaceId}
+          excludedIds={lists.map((list) => list.id)}
           disabled={pending || linked.isPending || Boolean(linked.error)}
-          onClick={() => {
-            mutation.reset();
-            setSelected([]);
-            setOpen(true);
-          }}
+          onChoose={(items) =>
+            mutate(
+              items.map((item) => item.id),
+              false,
+            )
+          }
         />
       ) : null}
       {mutation.error ? <ProblemState error={mutation.error} /> : null}
-      <ShortTaskSheet
-        ref={sheet}
-        open={open && canManage}
-        title={t('m5s3.collection.choose')}
-        restoreFocusRef={trigger}
-        isDirty={selected.length > 0}
-        isCloseBlocked={mutation.isPending}
-        onClose={() => {
-          setOpen(false);
-          setSelected([]);
-        }}
-      >
-        <div className="plan-collection-picker">
-          {assembling ? <p role="status">{t('states.loading.title')}</p> : null}
-          {choices.error ? (
-            <ProblemState
-              error={choices.error}
-              onRetry={() => void choices.refetch()}
-            />
-          ) : null}
-          {!assembling && !choices.error ? (
-            <>
-              {!items.length ? <p>{t('m5s3.collection.noChoices')}</p> : null}
-              <ul className="plan-collection-choices">
-                {items.map((list) => (
-                  <li key={list.id}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(list.id)}
-                        disabled={mutation.isPending}
-                        onChange={(event) =>
-                          setSelected((previous) =>
-                            event.target.checked
-                              ? [...previous, list.id]
-                              : previous.filter((id) => id !== list.id),
-                          )
-                        }
-                      />
-                      <span>
-                        <strong>{list.title}</strong>
-                        <span className="muted">
-                          {t('m5s3.collection.progress', {
-                            count: list.items.length,
-                            completed: list.items.filter(
-                              (item) => item.completed,
-                            ).length,
-                          })}
-                        </span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {mutation.error ? <ProblemState error={mutation.error} /> : null}
-          <button
-            type="button"
-            disabled={
-              pending ||
-              Boolean(assembling) ||
-              Boolean(choices.error) ||
-              !selected.some((id) => items.some((item) => item.id === id))
-            }
-            onClick={() =>
-              mutate(
-                selected.filter((id) => items.some((item) => item.id === id)),
-                false,
-              )
-            }
-          >
-            {mutation.isPending
-              ? t('m5s3.common.saving')
-              : t('m5s3.collection.link')}
-          </button>
-          <AddActionButton
-            label={t('m5s3.collection.createNew')}
-            disabled={mutation.isPending}
-            onClick={() => {
-              sheet.current?.closeForNavigation(() =>
-                openDestination(`${MORE_COLLECTIONS_ROUTE}/new`),
-              );
-            }}
-          />
-        </div>
-      </ShortTaskSheet>
     </section>
   );
 }

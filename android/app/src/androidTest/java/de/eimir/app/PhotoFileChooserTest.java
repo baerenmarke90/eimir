@@ -681,7 +681,9 @@ public class PhotoFileChooserTest {
         BySelector selector = By.pkg(document.getPackageName().toString());
         CharSequence text = document.getText();
         CharSequence description = document.getContentDescription();
-        if (text != null) selector.text(text.toString());
+        String resource = document.getViewIdResourceName();
+        if (resource != null) selector.res(resource);
+        else if (text != null) selector.textStartsWith(text.toString());
         else {
             assertNotNull("The identified system control has a label", description);
             selector.desc(description.toString());
@@ -693,7 +695,7 @@ public class PhotoFileChooserTest {
             UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
         // Stability screenshots can replace accessibility nodes. Reacquire before
         // resolving the system control's actual action owner.
-        control = device.findObject(selector);
+        control = device.wait(Until.findObject(selector), 10000);
         assertNotNull("The stable system control remains attached", control);
         assertTrue("The stable system control is enabled", control.isEnabled());
         Rect bounds = control.getVisibleBounds();

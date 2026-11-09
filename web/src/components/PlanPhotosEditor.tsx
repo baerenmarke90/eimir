@@ -1,5 +1,5 @@
 import { MediaProcessingState } from './MediaProcessingState';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAttachmentSummary';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
@@ -67,7 +67,9 @@ export function PlanPhotosEditor({
   photoSourceContext,
   parentType = 'PLAN',
   canManageExisting = true,
+  additionalActions,
 }: {
+  additionalActions?: ReactNode;
   controller: PlanPhotoDraftController;
   spaceId: string;
   parentType?: 'PLAN' | 'HEART_MOMENT';
@@ -86,6 +88,7 @@ export function PlanPhotosEditor({
   return (
     <div className="plan-photos-editor">
       <AttachmentDraftPicker
+        additionalActions={additionalActions}
         id="plan-photos"
         sourceContext={
           photoSourceContext

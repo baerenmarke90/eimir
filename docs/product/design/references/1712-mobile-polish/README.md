@@ -68,5 +68,54 @@ partial-failure tests. Review complete affected browser specs and ownership,
 Compact/Expanded visual evidence, themes, reflow, native pickers, navigation and
 real save/return. Collect useful existing CI failures before one correction batch;
 prepare the PR for review once all additions and applicable checks pass. The PO's
-2026-11-09 continuation authorizes leaving draft status; it does not authorize a
-merge, publication or restarting unrelated successful work.
+latest 2026-11-09 request explicitly authorizes merging #1712 followed by #1714
+after their applicable gates pass. It does not request publication or unrelated
+workflow retries.
+
+## Implemented result and validation
+
+- The existing generated-API adapter boundary now gives fresh authorized map
+  results the same exact-thumbnail proofs as Story/Dashboard. The existing
+  durable store, revocation epochs, account/Space identity and eviction remain.
+- Plan reading uses the shared personal-heading role and compact context. Dates
+  are localized. Returning to an already completed Plan keeps its readable
+  status and optional capture actions without replaying a large success panel.
+- Occasions read both account profiles and the shared relationship start date.
+  Derived dates keep annual/leap-day semantics; authored records and independent
+  private dates remain. Source failures do not become a false empty state.
+- `MediaActionGroup` owns the former Memory intake boundary for all shared
+  attachment controllers and the People source choice. HeartMoment voice intake
+  belongs inside that group. Add actions keep their canonical blue presentation.
+- `CollectionChoicePicker` owns paginated alphabetical selection and explicit
+  in-context creation for both Plan creation and Edit. A confirmed parent ID
+  survives partial link failure; retry uses idempotent relation endpoints and
+  never submits a second Plan. An explicitly created shared list is independent.
+- Android picker verification uses stable resource identity where available and
+  re-queries after screenshot stability instead of retaining a replaced node.
+  It preserves real consent, foreign ownership, original-byte/GPS assertions,
+  all cases and deadlines. The prior API 37.1 provider/FUSE failure is recorded
+  in hosted diagnostics; no provider or permission bypass is introduced.
+
+Local validation on the delivered source: 2,822 Web tests passed, with two
+existing skips. Focused checks after scoped finishing changes pass (39 flow/
+cache tests, 27 create/People tests and 19 date-source tests). Typecheck,
+production/Capacitor build, generated locale/legal/token/PWA checks, source lint
+and formatting, both English audits and diff checks pass. The browser planner's
+38 regressions pass and the inventory remains 104 complete specs. The one new
+Plan-create case stays in its existing feature owner; no always-run case is added.
+
+The complete affected browser selections pass: 59 map/mobile/Planning/People/
+list journeys, then 33 list/People/voice journeys. Selections intentionally
+intersect; their counts are not added. The profile-source journey additionally
+verifies both account birthdays and the shared anniversary. Evidence includes
+Compact/Expanded, Light/Dark, reduced motion and existing large-text/reflow and
+axe checks. Only synthetic fixtures are captured.
+
+Android debug APK, instrumentation APK, Lint and JVM tests pass locally using
+JDK 21 and the existing SDK/cache with offline strict dependency verification.
+This supersedes the first execution's missing-SDK limitation. Installed native
+API 28/36/37.1 checks remain hosted requirements; physical-device acceptance and
+publication are not inferred from browser mocks or compilation.
+
+See [the screenshot manifest](evidence/manifest.json) for SHA-256 fingerprints.
+Hosted exact-head results are recorded in the owning PR before merge.

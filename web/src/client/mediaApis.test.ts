@@ -6,6 +6,7 @@ import {
   ProfilesApi,
   StoryApi,
   DashboardApi,
+  PlacesApi,
 } from './mediaApis';
 import {
   captureMediaCacheLease,
@@ -69,6 +70,79 @@ const json = (value: unknown, status = 200) =>
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+
+it('fresh map projections authorize only their exact thumbnails and reject late revoked responses', async () => {
+  let finish!: (value: Response) => void;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+    ),
+  );
+  const places = new PlacesApi(configuration());
+  const media = new AttachmentsApi(configuration());
+  const payload = {
+    items: [
+      {
+        memoryId: 'parent',
+        placeId: 'place',
+        placeName: 'Lake',
+        latitude: 1,
+        longitude: 2,
+        previewAttachmentId: 'photo',
+        previewHasThumbnail: true,
+        happenedOn: '2026-11-05',
+      },
+      {
+        memoryId: 'other',
+        placeId: 'place',
+        placeName: 'Lake',
+        latitude: 1,
+        longitude: 2,
+        previewAttachmentId: 'original-only',
+        previewHasThumbnail: false,
+        happenedOn: '2026-11-05',
+      },
+    ],
+    nextCursor: null,
+    hasMore: false,
+  };
+  const request = places.listMemoryMap({ spaceId: 'space' });
+  await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+  finish(json(payload));
+  await request;
+  expect(
+    consumeAuthorizedMediaPreview(
+      captureMediaCacheLease(media, 'space'),
+      preview,
+    ),
+  ).toBe(true);
+  expect(
+    consumeAuthorizedMediaPreview(captureMediaCacheLease(media, 'space'), [
+      'attachment',
+      'MEMORY',
+      'other',
+      'original-only',
+      'thumbnail',
+    ]),
+  ).toBe(false);
+  const previousFinish = finish;
+  const late = places.listMemoryMap({ spaceId: 'space' });
+  await vi.waitFor(() => expect(finish).not.toBe(previousFinish));
+  const parent = ['attachment', 'MEMORY', 'parent'];
+  evictAuthorizedMedia(captureMediaCacheLease(media, 'space', parent), parent);
+  finish(json(payload));
+  await late;
+  expect(
+    consumeAuthorizedMediaPreview(
+      captureMediaCacheLease(media, 'space'),
+      preview,
+    ),
+  ).toBe(false);
+});
 
 it('a completed Story response authorizes exactly its ready thumbnails on the shared media scope', async () => {
   vi.stubGlobal(

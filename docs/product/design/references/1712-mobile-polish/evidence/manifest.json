@@ -1,0 +1,38 @@
+{
+  "baseline": "719cbd267e02e1c135fa2cdd63f8702eeb417cac",
+  "fixturePrivacy": "Synthetic fixtures only; no private PO screenshots or media.",
+  "artifacts": [
+    {
+      "file": "heart-source-place-private.png",
+      "sha256": "0cf9d454879ede36e9e61b602cf108d397896cffb377f23d6ddf38a0d81116f6"
+    },
+    {
+      "file": "plan-create-list-390-light.png",
+      "sha256": "b9fc43c62e577012532c2bee5582cd25c9bc46ea5f73a7066cfe4b467d32422e"
+    },
+    {
+      "file": "plan-without-lists-1280-dark.png",
+      "sha256": "34e10671f37ec5317fbc4cd238a9867e472cd7b51fd7a6725530a9f882b4e938"
+    },
+    {
+      "file": "plan-without-lists-360-light.png",
+      "sha256": "865b15545134654b27f57263fa3f7cc83a221c549e975a8041b7a96eef39e031"
+    },
+    {
+      "file": "plan-without-lists-390-dark.png",
+      "sha256": "3e1dad8d48552f73f4f43c57e5d944ff57545063b6a558d012664d86e4f5d50c"
+    },
+    {
+      "file": "shell-831-occasions-390-light.png",
+      "sha256": "8e2febc6aa563bad033fa84dc675cf4c0cbab79cf419b5c4bc8180012f948ea9"
+    },
+    {
+      "file": "voice-review-1280-dark.png",
+      "sha256": "bd91b17fe3470820f264180378ddcb358ed4ac3b9ed524735f93be467d3000b0"
+    },
+    {
+      "file": "voice-review-390-dark.png",
+      "sha256": "2588aa1f462b798342617fabd94216e0cc873e1a74b63a9bf27ab71d378ba1b3"
+    }
+  ]
+}

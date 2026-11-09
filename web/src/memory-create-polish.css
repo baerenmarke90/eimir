@@ -111,19 +111,11 @@
   display: none;
 }
 
-/*
- * One quiet media surface is enough. The generic picker remains fully
- * functional, but the nested dashed drop-zone treatment is removed here.
- */
+/* MediaActionGroup owns the common intake boundary on every composer. */
 .create-page
   .immersive-create-card[aria-labelledby="memory-form-heading"]
   .immersive-create-media {
   min-width: 0;
-  padding: var(--space-3) var(--space-4);
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  background: var(--color-surface-panel-tint);
-  box-shadow: var(--shadow-raised);
 }
 
 .create-page
@@ -407,23 +399,11 @@
     .immersive-create-form {
     gap: var(--space-4);
   }
-
-  .create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-media {
-    padding: var(--space-3);
-  }
 }
 
 @media (max-width: 360px) {
   .create-page .immersive-create-card[aria-labelledby="memory-form-heading"] {
     padding: var(--space-4);
-  }
-
-  .create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-media {
-    padding: var(--space-2) var(--space-3);
   }
 
   .create-page
@@ -445,11 +425,5 @@
     .immersive-create-card[aria-labelledby="memory-form-heading"]
     .immersive-create-form {
     gap: var(--space-3);
-  }
-
-  .create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-media {
-    padding-block: var(--space-2);
   }
 }

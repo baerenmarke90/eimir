@@ -804,6 +804,15 @@ export function HeartMomentProductPage({
             />
             <div className="heart-moment-create-media">
               <PlanPhotosEditor
+                additionalActions={
+                  <VoiceNoteEditor
+                    voice={voice}
+                    apis={apis}
+                    spaceId={spaceId}
+                    disabled={createMutation.isPending}
+                    onChange={() => setFormDirty(true)}
+                  />
+                }
                 controller={photos}
                 spaceId={spaceId}
                 parentType="HEART_MOMENT"
@@ -818,13 +827,6 @@ export function HeartMomentProductPage({
               />
             </div>
 
-            <VoiceNoteEditor
-              voice={voice}
-              apis={apis}
-              spaceId={spaceId}
-              disabled={createMutation.isPending}
-              onChange={() => setFormDirty(true)}
-            />
             <div className="field-group heart-moment-create-field heart-moment-create-note">
               <label htmlFor="heart-moment-text">
                 {t('heartMomentProduct.textLabel')}
@@ -1101,15 +1103,6 @@ export function HeartMomentProductPage({
             onChange={() => setFormDirty(true)}
             onSubmit={submitEdit}
           >
-            <VoiceNoteEditor
-              voice={voice}
-              apis={apis}
-              spaceId={spaceId}
-              momentId={heartMomentId}
-              canManageExisting={heartMoment.capabilities.canDelete}
-              disabled={updateMutation.isPending}
-              onChange={() => setFormDirty(true)}
-            />
             <HeartMomentFields
               heartMoment={heartMoment}
               editorRef={tagEditorRef}
@@ -1157,6 +1150,17 @@ export function HeartMomentProductPage({
               />
             ) : null}
             <PlanPhotosEditor
+              additionalActions={
+                <VoiceNoteEditor
+                  voice={voice}
+                  apis={apis}
+                  spaceId={spaceId}
+                  momentId={heartMomentId}
+                  canManageExisting={heartMoment.capabilities.canDelete}
+                  disabled={updateMutation.isPending}
+                  onChange={() => setFormDirty(true)}
+                />
+              }
               controller={photos}
               spaceId={spaceId}
               planId={heartMoment.id}

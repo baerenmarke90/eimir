@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
@@ -79,6 +85,55 @@ function renderCreate(
 }
 
 describe('PlanningCreatePage', () => {
+  it('keeps the confirmed Plan after list-link failure and retries without creating a second Plan', async () => {
+    const link = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValue(undefined);
+    const collection = { id: 'list-a', title: 'Lake picnic', items: [] };
+    const createPlan = vi.fn().mockResolvedValue({ id: 'saved-plan' });
+    renderCreate('plan', {
+      plans: {
+        createPlan,
+        linkPlanCollection: link,
+      } as unknown as SharedPlanningApis['plans'],
+      collections: {
+        listCollections: vi
+          .fn()
+          .mockResolvedValue({ items: [collection], nextCursor: null }),
+      } as unknown as SharedPlanningApis['collections'],
+    });
+    fireEvent.change(
+      screen.getByRole('textbox', { name: m5s3.plan.intentionLabel }),
+      { target: { value: 'A picnic together' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: m5s3.collection.create }),
+    );
+    fireEvent.click(
+      await within(await screen.findByRole('dialog')).findByRole('checkbox'),
+    );
+    fireEvent.click(screen.getByRole('button', { name: m5s3.collection.link }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('button', {
+            name: m5s3.common.save,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
+    await screen.findByText(m5s3.collection.planSavedLinkFailed);
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    );
+    await screen.findByText('Plan result');
+    expect(link).toHaveBeenCalledTimes(2);
+    expect(createPlan).toHaveBeenCalledTimes(1);
+  });
   it('omits redundant fixed-audience banners from Plan and Wish creation', () => {
     const { unmount } = renderCreate('wish');
 

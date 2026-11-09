@@ -29,6 +29,8 @@ import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
 import { MediaDropZone } from './MediaDropZone';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
+import { MediaActionGroup } from './MediaActionGroup';
+import { AddActionButton } from './AddAction';
 import { ProblemState } from './ProblemState';
 
 const RELATIONSHIPS: PersonRelationship[] = [
@@ -406,54 +408,50 @@ export function RelatedPersonEditorSheet({
                     selectAvatar(event.currentTarget.files?.[0])
                   }
                 />
-                {apiBaseUrl && accessToken && accountId ? (
-                  <PhotoSourcePicker
-                    apiBaseUrl={apiBaseUrl}
-                    accessToken={accessToken}
-                    spaceId={spaceId}
-                    accountId={accountId}
-                    remaining={1}
-                    disabled={pending || Boolean(uploadPhase)}
-                    beginSelection={() => {
-                      const ticket = avatarDrafts.beginSelection();
-                      return {
-                        ...ticket,
-                        commit: (files) => {
-                          if (ticket.signal.aborted || !files.length)
-                            return false;
-                          if (!files[0].type.startsWith('image/')) {
-                            setSelectionError(t('flow.imageOnly'));
-                            return false;
-                          }
-                          setSelectionError(null);
-                          for (const draft of avatarDrafts.items)
-                            avatarDrafts.remove(draft.id);
-                          return ticket.commit(files.slice(0, 1));
-                        },
-                      };
-                    }}
-                    devicePicker={(close) => (
-                      <button
-                        type="button"
-                        className="secondary compact-action"
-                        onClick={() => {
-                          fileInputRef.current?.click();
-                          close();
-                        }}
-                      >
-                        {t('people.avatarUpload')}
-                      </button>
-                    )}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="secondary compact-action"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {t('people.avatarUpload')}
-                  </button>
-                )}
+                <MediaActionGroup>
+                  {apiBaseUrl && accessToken && accountId ? (
+                    <PhotoSourcePicker
+                      apiBaseUrl={apiBaseUrl}
+                      accessToken={accessToken}
+                      spaceId={spaceId}
+                      accountId={accountId}
+                      remaining={1}
+                      disabled={pending || Boolean(uploadPhase)}
+                      beginSelection={() => {
+                        const ticket = avatarDrafts.beginSelection();
+                        return {
+                          ...ticket,
+                          commit: (files) => {
+                            if (ticket.signal.aborted || !files.length)
+                              return false;
+                            if (!files[0].type.startsWith('image/')) {
+                              setSelectionError(t('flow.imageOnly'));
+                              return false;
+                            }
+                            setSelectionError(null);
+                            for (const draft of avatarDrafts.items)
+                              avatarDrafts.remove(draft.id);
+                            return ticket.commit(files.slice(0, 1));
+                          },
+                        };
+                      }}
+                      devicePicker={(close) => (
+                        <AddActionButton
+                          label={t('people.avatarUpload')}
+                          onClick={() => {
+                            fileInputRef.current?.click();
+                            close();
+                          }}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <AddActionButton
+                      label={t('people.avatarUpload')}
+                      onClick={() => fileInputRef.current?.click()}
+                    />
+                  )}
+                </MediaActionGroup>
                 {displayedAvatarUrl ? (
                   <button
                     type="button"

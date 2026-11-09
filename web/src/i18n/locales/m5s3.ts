@@ -186,6 +186,7 @@ const m5s3 = {
     },
   },
   planStory: {
+    readHeading: 'Diesen Tag festhalten',
     linksHeading: 'Momente zu diesem Plan',
     plansHeading: 'Verknüpfte Pläne',
     addPlan: 'Plan verknüpfen',
@@ -395,6 +396,8 @@ const m5s3 = {
     emptyScope: 'Keine Listen in dieser Auswahl.',
     planHeading: 'Gemeinsame Listen',
     planEmpty: 'Verknüpft eine Liste, die zu diesem Plan gehört.',
+    planSavedLinkFailed:
+      'Dein Plan ist gespeichert. Die Listen konnten noch nicht verknüpft werden. Versuche es erneut.',
     choose: 'Listen verknüpfen',
     link: 'Auswahl verknüpfen',
     unlink: 'Verknüpfung zu „{{title}}“ entfernen',

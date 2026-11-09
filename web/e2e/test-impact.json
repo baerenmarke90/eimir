@@ -938,6 +938,8 @@
     },
     "plan-linked-lists.spec.ts": {
       "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/CollectionChoicePicker.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/PlanCollectionLinks.tsx",
         "web/src/components/CollectionsOverviewPage.tsx",

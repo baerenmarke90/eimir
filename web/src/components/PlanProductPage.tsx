@@ -536,7 +536,7 @@ export function PlanProductPage({
             {plan.experiencedOn ? (
               <p>
                 <strong>{t('m5s3.plan.experiencedOn')}:</strong>{' '}
-                {dateOnlyInput(plan.experiencedOn)}
+                {formatCalendarDate(plan.experiencedOn)}
               </p>
             ) : null}
           </div>
@@ -874,6 +874,7 @@ export function PlanProductPage({
             spaceId={spaceId}
             plan={plan}
             focusOnMount={completion.isConfirmed && !completionSheetPresent}
+            justCompleted={completion.isConfirmed}
             sharedAchievementEnabled={completion.hasSharedAchievement}
           />
         ) : null}

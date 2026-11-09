@@ -229,6 +229,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       await fulfillJson({
         id: SPACE_ID,
         createdAt: '2023-06-17T00:00:00Z',
+        relationshipStartedOn: '2023-06-17',
         partners: [
           { id: ACCOUNT_ID, displayName: 'Lea Summer' },
           { id: PARTNER_ID, displayName: 'Alex Winter' },
@@ -289,6 +290,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
         accountId: ACCOUNT_ID,
         createdAt: TEST_NOW,
         displayName: 'Lea Summer',
+        birthday: '1991-04-13',
         id: PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
@@ -306,6 +308,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
         accountId: PARTNER_ID,
         createdAt: TEST_NOW,
         displayName: 'Alex Winter',
+        birthday: '1990-05-14',
         id: PARTNER_PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
@@ -731,6 +734,20 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
   await capture(page, info, 'occasions-390-light');
+  for (const name of ['Lea Summer', 'Alex Winter']) {
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(
+          importantDates.partnerBirthdayLabel.replace('{{name}}', name),
+        ),
+      }),
+    ).toBeVisible();
+  }
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(importantDates.relationshipAnniversary),
+    }),
+  ).toBeVisible();
   expect(unknown).toEqual([]);
 });
 

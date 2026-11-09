@@ -142,6 +142,12 @@ export function taskOriginPath(
       ? `${pathname}?scope=${scope}`
       : pathname;
   }
+  if (pathname === MORE_COLLECTIONS_ROUTE) {
+    const scope = new URLSearchParams(search).get('scope');
+    return scope === 'COMPLETED' || scope === 'ALL'
+      ? `${pathname}?scope=${scope}`
+      : pathname;
+  }
   if (pathname === ACTIVITY_ROUTE) {
     return new URLSearchParams(search).get('scope') === 'own'
       ? `${pathname}?scope=own`

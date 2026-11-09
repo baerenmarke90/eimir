@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type CollectionDetail,
+    CollectionDetailFromJSON,
+    CollectionDetailToJSON,
+} from '../models/CollectionDetail';
+import {
     type PlanComplete,
     PlanCompleteFromJSON,
     PlanCompleteToJSON,
@@ -105,11 +110,22 @@ export interface GetPlanRequest {
     spaceId: string;
 }
 
+export interface LinkPlanCollectionRequest {
+    planId: string;
+    collectionId: string;
+    spaceId: string;
+}
+
 export interface LinkWishToPlanRequest {
     planId: string;
     spaceId: string;
     ifMatch: string;
     planWishLink: PlanWishLink;
+}
+
+export interface ListPlanCollectionsRequest {
+    planId: string;
+    spaceId: string;
 }
 
 export interface ListPlansRequest {
@@ -131,6 +147,12 @@ export interface SchedulePlanRequest {
     spaceId: string;
     ifMatch: string;
     planSchedule: PlanSchedule;
+}
+
+export interface UnlinkPlanCollectionRequest {
+    planId: string;
+    collectionId: string;
+    spaceId: string;
 }
 
 export interface UnschedulePlanRequest {
@@ -475,6 +497,66 @@ export class PlansApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for linkPlanCollection without sending the request
+     */
+    async linkPlanCollectionRequestOpts(requestParameters: LinkPlanCollectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling linkPlanCollection().'
+            );
+        }
+
+        if (requestParameters['collectionId'] == null) {
+            throw new runtime.RequiredError(
+                'collectionId',
+                'Required parameter "collectionId" was null or undefined when calling linkPlanCollection().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling linkPlanCollection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{collectionId}', encodeURIComponent(String(requestParameters['collectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Link Plan Collection
+     */
+    async linkPlanCollectionRaw(requestParameters: LinkPlanCollectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.linkPlanCollectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Link Plan Collection
+     */
+    async linkPlanCollection(requestParameters: LinkPlanCollectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.linkPlanCollectionRaw(requestParameters, initOverrides);
+    }
+
+    /**
      * Creates request options for linkWishToPlan without sending the request
      */
     async linkWishToPlanRequestOpts(requestParameters: LinkWishToPlanRequest): Promise<runtime.RequestOpts> {
@@ -545,6 +627,59 @@ export class PlansApi extends runtime.BaseAPI {
      */
     async linkWishToPlan(requestParameters: LinkWishToPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishToPlanResponse> {
         const response = await this.linkWishToPlanRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listPlanCollections without sending the request
+     */
+    async listPlanCollectionsRequestOpts(requestParameters: ListPlanCollectionsRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling listPlanCollections().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listPlanCollections().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/collections`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Plan Collections
+     */
+    async listPlanCollectionsRaw(requestParameters: ListPlanCollectionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CollectionDetail>>> {
+        const requestOptions = await this.listPlanCollectionsRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(CollectionDetailFromJSON));
+    }
+
+    /**
+     * List Plan Collections
+     */
+    async listPlanCollections(requestParameters: ListPlanCollectionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CollectionDetail>> {
+        const response = await this.listPlanCollectionsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -745,6 +880,66 @@ export class PlansApi extends runtime.BaseAPI {
     async schedulePlan(requestParameters: SchedulePlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlanDetail> {
         const response = await this.schedulePlanRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for unlinkPlanCollection without sending the request
+     */
+    async unlinkPlanCollectionRequestOpts(requestParameters: UnlinkPlanCollectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling unlinkPlanCollection().'
+            );
+        }
+
+        if (requestParameters['collectionId'] == null) {
+            throw new runtime.RequiredError(
+                'collectionId',
+                'Required parameter "collectionId" was null or undefined when calling unlinkPlanCollection().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling unlinkPlanCollection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{collectionId}', encodeURIComponent(String(requestParameters['collectionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Unlink Plan Collection
+     */
+    async unlinkPlanCollectionRaw(requestParameters: UnlinkPlanCollectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.unlinkPlanCollectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Unlink Plan Collection
+     */
+    async unlinkPlanCollection(requestParameters: UnlinkPlanCollectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.unlinkPlanCollectionRaw(requestParameters, initOverrides);
     }
 
     /**

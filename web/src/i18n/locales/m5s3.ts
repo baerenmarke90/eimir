@@ -186,6 +186,8 @@ const m5s3 = {
     },
   },
   planStory: {
+    heartMomentAction: 'Herzmoment festhalten',
+    loadingSource: 'Plan und Ort werden übernommen …',
     intro:
       'Möchtet ihr diesen Moment in eurer gemeinsamen Geschichte festhalten?',
     memoryAction: 'Erinnerung festhalten',
@@ -384,6 +386,16 @@ const m5s3 = {
     },
   },
   collection: {
+    scopeLabel: 'Listen filtern',
+    scope: { OPEN: 'Offen', COMPLETED: 'Erledigt', ALL: 'Alle' },
+    emptyScope: 'Keine Listen in dieser Auswahl.',
+    planHeading: 'Gemeinsame Listen',
+    planEmpty: 'Verknüpft eine Liste, die zu diesem Plan gehört.',
+    choose: 'Listen verknüpfen',
+    link: 'Auswahl verknüpfen',
+    unlink: 'Verknüpfung zu „{{title}}“ entfernen',
+    noChoices: 'Alle vorhandenen Listen sind bereits verknüpft.',
+    createNew: 'Neue Liste erstellen',
     overviewHeading: 'Listen',
     progress: '{{count}} Einträge · {{completed}} erledigt',
     progress_one: '{{count}} Eintrag · {{completed}} erledigt',

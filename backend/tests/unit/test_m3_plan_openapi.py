@@ -53,6 +53,15 @@ def test_plan_routes_have_frozen_operation_ids() -> None:
     assert paths[CONVERT]["post"]["operationId"] == "convertWishToPlan"
     assert paths[f"{DETAIL}/wish"]["post"]["operationId"] == "linkWishToPlan"
     assert paths[WISH_COMPLETE]["post"]["operationId"] == "completeWish"
+    assert paths[f"{DETAIL}/collections"]["get"]["operationId"] == "listPlanCollections"
+    assert (
+        paths[f"{DETAIL}/collections/{{collectionId}}"]["put"]["operationId"]
+        == "linkPlanCollection"
+    )
+    assert (
+        paths[f"{DETAIL}/collections/{{collectionId}}"]["delete"]["operationId"]
+        == "unlinkPlanCollection"
+    )
 
 
 def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
@@ -68,6 +77,8 @@ def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
         COLLECTION,
         DETAIL,
         *LIFECYCLE,
+        f"{DETAIL}/collections",
+        f"{DETAIL}/collections/{{collectionId}}",
         f"{DETAIL}/comments",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}",

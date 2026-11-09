@@ -679,7 +679,9 @@
       "chapterCreating": "Creating chapter …",
       "chapterCreateAndLink": "Create chapter and add",
       "chapterRetryLink": "Try linking again",
-      "chapterSkip": "Finish without a chapter"
+      "chapterSkip": "Finish without a chapter",
+      "heartMomentAction": "Capture a heart moment",
+      "loadingSource": "Loading the Plan and its place …"
     },
     "map": {
       "open": "Choose a place on the map",
@@ -861,7 +863,21 @@
       "reorderItem": "Move “{{title}}”. Drag or use the arrow keys to reorder.",
       "deleteItem": "Delete “{{title}}”",
       "reordering": "Saving order …",
-      "deleteConsequence": "The list and its own entries will be deleted. Other eimir. content will not be deleted."
+      "deleteConsequence": "The list and its own entries will be deleted. Other eimir. content will not be deleted.",
+      "scopeLabel": "Filter lists",
+      "scope": {
+        "OPEN": "Open",
+        "COMPLETED": "Completed",
+        "ALL": "All"
+      },
+      "emptyScope": "No lists in this selection.",
+      "planHeading": "Shared lists",
+      "planEmpty": "Link a list that belongs with this Plan.",
+      "choose": "Link lists",
+      "link": "Link selection",
+      "unlink": "Remove the link to “{{title}}”",
+      "noChoices": "All existing lists are already linked.",
+      "createNew": "Create a new list"
     }
   },
   "m5s5": {
@@ -2237,9 +2253,10 @@
     "showLess": "Show fewer recordings",
     "showAll": "Show all {{count}} recordings",
     "missing": "Please remove this video and choose it again.",
-    "failedNotSaved": "You can save your moment now. The video will appear when its upload is complete.",
-    "volatile": "You can save your moment now. In the Android app your video continues uploading in the background; in a browser keep the tab open.",
+    "failedNotSaved": "Your selection is kept. Retry the upload or remove the video to save your moment without it.",
+    "volatile": "The video is being prepared for upload. Then you can save your moment. In the Android app it continues uploading in the background; in a browser keep the tab open.",
     "uploading": "Uploading video …",
+    "startFailed": "The video upload could not start.",
     "uploadFailed": "The video upload was interrupted. You can resume it.",
     "uploadInterrupted": "Upload interrupted",
     "retryUpload": "Resume upload",
@@ -3282,7 +3299,7 @@
     "close": "Close",
     "invalidDate": "Please check the date and choose a valid day, month and year.",
     "pending": "Saving. Please stay here briefly until your moment is confirmed.",
-    "failedPhotos": "A photo is not ready yet. Retry or remove it before saving.",
+    "failedPhotos": "A selected photo or video is not ready yet. Retry its upload or remove it before saving.",
     "offline": "Not saved yet. Your entries stay here. Try again when you are online.",
     "uncertainTitle": "Confirmation is missing",
     "uncertainBody": "Your moment may already be saved. Your entries stay here. We can check whether it was saved without creating a second moment.",

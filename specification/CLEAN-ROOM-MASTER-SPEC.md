@@ -1261,6 +1261,15 @@ Model and test transitions explicitly.
 
 ---
 
+PO extension #1705 (2026-11-09): a Plan may reference several existing shared
+Collections, and the same Collection may support several Plans. Typed
+`plan_collections` foreign keys enforce one Space. Removing a reference or
+parent never deletes the other content; list progress and Plan completion stay
+independent. Completed Plan continuations reuse canonical Memory/HeartMoment
+capture, prefilling the existing Place without replacing manual edits or
+recovered drafts. PRIVATE HeartMoments keep only the protected location
+snapshot, with no shared Place relation or source backlink.
+
 # 25. Places
 
 Place:
@@ -1399,6 +1408,11 @@ Functions:
 - bulk select
 - bulk delete
 - reorder
+
+PO extension #1705: shared list browsing supports Open / Completed / All.
+Completion is derived from current items: a non-empty list with every item
+checked is completed; an empty list is open. Apply the scope before pagination
+and bind cursors to it. A Plan keeps its linked completed lists visible.
 
 The Shopping List is a separate later Domain and is NOT simply a Collection.
 

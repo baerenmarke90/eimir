@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { useState } from 'react';
+
 import {
   cleanup,
   fireEvent,
@@ -7,6 +7,7 @@ import {
   screen,
   within,
 } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { i18n } from '../i18n';
@@ -95,6 +96,63 @@ it('keeps image selection independent from direct cover and sensitivity controls
   expect(screen.queryByText(i18n.t('memory.photoRemove'))).toBeNull();
   expect(view.container.querySelector('button button')).toBeNull();
 });
+
+it.each(['de', 'en'])(
+  'offers honest recovery for an unadmitted video in %s',
+  async (locale) => {
+    const language = i18n.language;
+    const retry = vi.fn();
+    const file = new File(['selected video'], 'selected.mp4', {
+      type: 'video/mp4',
+    });
+    try {
+      await i18n.changeLanguage(locale);
+      render(
+        <PhotoDraftGallery
+          items={[
+            {
+              key: 'video',
+              name: file.name,
+              preview: <span>Video preview</span>,
+              isSensitive: false,
+              draft: {
+                id: 'video',
+                file,
+                previewUrl: '',
+                status: 'failed',
+                attempt: 1,
+                progress: 0,
+                error: i18n.t('video.startFailed'),
+              },
+            },
+          ]}
+          onRemove={vi.fn()}
+          onRetry={retry}
+        />,
+      );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('memory.photoReviewFailure'),
+        }),
+      );
+      expect(screen.getByText(i18n.t('video.startFailed'))).toBeTruthy();
+      expect(screen.getByText(i18n.t('video.failedNotSaved'))).toBeTruthy();
+      expect(screen.queryByText(i18n.t('flow.uploadFailed'))).toBeNull();
+      expect(
+        screen.queryByText(
+          /You can save your moment now|kann schon gespeichert/,
+        ),
+      ).toBeNull();
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('common.retry') }),
+      );
+      expect(retry).toHaveBeenCalledExactlyOnceWith('video');
+    } finally {
+      cleanup();
+      await i18n.changeLanguage(language);
+    }
+  },
+);
 
 it('removes the clicked identity and restores the first cover without changing another selection', () => {
   const view = render(<Harness />);

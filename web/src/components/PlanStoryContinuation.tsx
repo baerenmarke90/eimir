@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import { MEMORY_CREATE_ROUTE, MILESTONE_CREATE_ROUTE } from '../client/routes';
+import {
+  HEART_MOMENT_CREATE_ROUTE,
+  MEMORY_CREATE_ROUTE,
+  MILESTONE_CREATE_ROUTE,
+} from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
@@ -50,7 +54,9 @@ export function PlanStoryContinuation({
     void navigate(to, {
       state: {
         taskOriginKey,
-        ...(to === MEMORY_CREATE_ROUTE && accountId && apiBaseUrl
+        ...((to === MEMORY_CREATE_ROUTE || to === HEART_MOMENT_CREATE_ROUTE) &&
+        accountId &&
+        apiBaseUrl
           ? {
               sourcePlan: {
                 id: plan.id,
@@ -107,6 +113,13 @@ export function PlanStoryContinuation({
           onClick={() => openCanonicalCapture(MEMORY_CREATE_ROUTE)}
         >
           {t('m5s3.planStory.memoryAction')}
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => openCanonicalCapture(HEART_MOMENT_CREATE_ROUTE)}
+        >
+          {t('m5s3.planStory.heartMomentAction')}
         </button>
         <button
           type="button"

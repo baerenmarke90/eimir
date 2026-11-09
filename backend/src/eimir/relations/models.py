@@ -91,6 +91,26 @@ class MemoryWish(_RelationAuditColumns, Base):
     )
 
 
+class PlanCollection(_RelationAuditColumns, Base):
+    """Independent shared lists referenced by one or more Plans."""
+
+    __tablename__ = "plan_collections"
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    collection_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["collection_id", "space_id"],
+            ["collections.id", "collections.space_id"],
+            ondelete="CASCADE",
+        ),
+        Index("ix_plan_collections_collection_id", "collection_id"),
+        Index("ix_plan_collections_space_id", "space_id"),
+    )
+
+
 class PlaceMemory(_PlaceRelationColumns, Base):
     """A memory that took place at a location."""
 

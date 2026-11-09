@@ -1,0 +1,138 @@
+// @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { i18n } from '../i18n';
+import { PlanCollectionLinks } from './PlanCollectionLinks';
+
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+const plan = { id: 'plan-1', capabilities: { canEdit: true } } as PlanDetail;
+const list = (id: string, title: string) =>
+  ({ id, title, items: [] }) as unknown as CollectionDetail;
+
+function setup(failSecond = false) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  client.setQueryData(
+    authorSummaryQueryKeys.planDetail('space-1', plan.id),
+    plan,
+  );
+  let linked: CollectionDetail[] = [];
+  const all = [list('z', 'Zelten'), list('a', 'Ausflüge')];
+  const link = vi.fn(async ({ collectionId }: { collectionId: string }) => {
+    if (failSecond && collectionId === 'z')
+      throw new Error('Network unavailable');
+    linked = [...linked, all.find((item) => item.id === collectionId)!];
+  });
+  const unlink = vi.fn(async ({ collectionId }: { collectionId: string }) => {
+    linked = linked.filter((item) => item.id !== collectionId);
+  });
+  const listCollections = vi.fn(async ({ cursor }: { cursor?: string }) => ({
+    items: cursor ? [all[1]] : [all[0]],
+    nextCursor: cursor ? null : 'second',
+  }));
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <PlanCollectionLinks
+          spaceId="space-1"
+          plan={plan}
+          disabled={false}
+          apis={
+            {
+              plans: {
+                listPlanCollections: async () => [...linked],
+                linkPlanCollection: link,
+                unlinkPlanCollection: unlink,
+              },
+              collections: { listCollections },
+            } as unknown as SharedPlanningApis
+          }
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  return { link, unlink, listCollections };
+}
+
+describe('Plan-linked canonical lists', () => {
+  it('assembles alphabetical choices across pages and links multiple existing lists', async () => {
+    const api = setup();
+    const trigger = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.create'),
+    });
+    await waitFor(() => expect(trigger.hasAttribute('disabled')).toBe(false));
+    fireEvent.click(trigger);
+    const checks = await screen.findAllByRole('checkbox');
+    expect(checks.map((input) => input.closest('label')?.textContent)).toEqual([
+      expect.stringContaining('Ausflüge'),
+      expect.stringContaining('Zelten'),
+    ]);
+    checks.forEach((input) => {
+      fireEvent.click(input);
+    });
+    const save = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.link'),
+    });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    await waitFor(() => expect(api.link).toHaveBeenCalledTimes(2));
+    await screen.findByRole('link', { name: /Ausflüge/ });
+    expect(api.listCollections).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: 'ALL', cursor: 'second' }),
+      expect.anything(),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.unlink', { title: 'Ausflüge' }),
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: /Ausflüge/ })).toBeNull(),
+    );
+    expect(api.unlink).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      planId: plan.id,
+      collectionId: 'a',
+    });
+    expect(screen.getByRole('link', { name: /Zelten/ })).toBeTruthy();
+  });
+
+  it('retains the picker after a partial failure and reconciles confirmed links', async () => {
+    const api = setup(true);
+    const trigger = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.create'),
+    });
+    await waitFor(() => expect(trigger.hasAttribute('disabled')).toBe(false));
+    fireEvent.click(trigger);
+    (await screen.findAllByRole('checkbox')).forEach((input) => {
+      fireEvent.click(input);
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.collection.link') }),
+    );
+    await waitFor(() => expect(api.link).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getAllByRole('checkbox')).toHaveLength(1),
+    );
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(
+      screen.getByRole('checkbox').closest('label')?.textContent,
+    ).toContain('Zelten');
+    expect(api.unlink).not.toHaveBeenCalled();
+  });
+});

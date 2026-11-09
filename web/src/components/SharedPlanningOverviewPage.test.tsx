@@ -140,33 +140,36 @@ describe('SharedPlanningOverviewPage', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    queryClient.setQueryData(['m5-s3', 'collections', 'space-1'], {
-      pages: [
-        {
-          items: [
-            {
-              capabilities: {
-                canComment: false,
-                canDelete: true,
-                canEdit: true,
+    queryClient.setQueryData(
+      authorSummaryQueryKeys.collectionOverview('space-1', 'OPEN'),
+      {
+        pages: [
+          {
+            items: [
+              {
+                capabilities: {
+                  canComment: false,
+                  canDelete: true,
+                  canEdit: true,
+                },
+                createdAt: new Date('2026-08-01T10:00:00Z'),
+                createdBy: 'account-1',
+                creator: { id: 'account-1', displayName: 'Lea' },
+                id: 'collection-1',
+                items: [],
+                spaceId: 'space-1',
+                title: 'Packing list',
+                updatedAt: new Date('2026-08-01T10:00:00Z'),
+                version: 1,
               },
-              createdAt: new Date('2026-08-01T10:00:00Z'),
-              createdBy: 'account-1',
-              creator: { id: 'account-1', displayName: 'Lea' },
-              id: 'collection-1',
-              items: [],
-              spaceId: 'space-1',
-              title: 'Packing list',
-              updatedAt: new Date('2026-08-01T10:00:00Z'),
-              version: 1,
-            },
-          ],
-          hasMore: false,
-          nextCursor: null,
-        },
-      ],
-      pageParams: [null],
-    });
+            ],
+            hasMore: false,
+            nextCursor: null,
+          },
+        ],
+        pageParams: [null],
+      },
+    );
 
     const html = renderToStaticMarkup(
       <QueryClientProvider client={queryClient}>
@@ -249,7 +252,7 @@ describe('SharedPlanningOverviewPage', () => {
       defaultOptions: { queries: { retry: false } },
     });
     collectionsClient.setQueryData(
-      ['m5-s3', 'collections', 'space-1'],
+      authorSummaryQueryKeys.collectionOverview('space-1', 'OPEN'),
       emptyInfinitePage(),
     );
     const collectionsHtml = renderToStaticMarkup(
@@ -262,7 +265,7 @@ describe('SharedPlanningOverviewPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(collectionsHtml).toContain(i18n.t('m5s3.collection.emptyOverview'));
+    expect(collectionsHtml).toContain(i18n.t('m5s3.collection.emptyScope'));
 
     const placesClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },

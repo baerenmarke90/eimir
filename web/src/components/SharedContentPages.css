@@ -107,6 +107,17 @@
 .content-overview-lists .content-overview-icon {
   background: var(--color-brand-surface);
 }
+
+.content-overview-lists {
+  container-type: inline-size;
+}
+
+@container (max-width: 20rem) {
+  .content-overview-lists .content-overview-icon,
+  .content-overview-lists .content-chevron {
+    display: none;
+  }
+}
 .content-overview-copy {
   flex: 1;
   min-width: 0;

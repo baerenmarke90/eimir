@@ -3,6 +3,10 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  planLinkedLists: {
+    title: 'Ein Tag am See',
+    description: 'Zeit am Wasser und ein Picknick.',
+  },
   planningFollowup: {
     plan: 'Österreich entdecken',
     street: 'Eine kleine Straße am See',

@@ -8,7 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import {
   type PlanUpdate,
@@ -19,6 +19,15 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
 import { ClientProblemError } from '../client/problemDetails';
 import { PlanProductPage } from './PlanProductPage';
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 
 function renderEditor(status: PlanDetail['status']) {
   const plan: PlanDetail = {
@@ -167,9 +176,22 @@ describe('PlanProductPage editor request serialization', () => {
   it('keeps an explicitly edited completion date for a completed Plan', async () => {
     const { requestBodies } = renderEditor('COMPLETED');
     await editDescription();
-    fireEvent.change(screen.getByLabelText(i18n.t('m5s3.plan.experiencedOn')), {
-      target: { value: '2026-10-18' },
-    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(i18n.t('m5s3.plan.experiencedOn')),
+      }),
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n.t('m5s3.plan.experiencedOn'), {
+        selector: 'input',
+      }),
+      {
+        target: { value: '2026-10-18' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
     await saveEdit();
 
     expect(requestBodies).toEqual([
@@ -191,9 +213,17 @@ it('keeps the initiating version during background reads and rebases only on del
     new ClientProblemError('conflict', 409, 'CONFLICT'),
   );
   await editDescription();
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: new RegExp(i18n.t('m5s3.plan.schedule')),
+    }),
+  );
   fireEvent.change(screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')), {
     target: { value: '2026-12-12' },
   });
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+  );
   const latest = { ...h.plan, title: 'Partner correction', version: 4 };
   h.setServer(latest);
   act(() =>
@@ -215,10 +245,18 @@ it('keeps the initiating version during background reads and rebases only on del
       )?.fetchStatus,
     ).toBe('idle'),
   );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: new RegExp(i18n.t('m5s3.plan.schedule')),
+    }),
+  );
   expect(
     (screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')) as HTMLInputElement)
       .value,
   ).toBe('2026-12-12');
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+  );
   expect(
     (
       screen.getByLabelText(

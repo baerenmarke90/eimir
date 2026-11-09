@@ -1,6 +1,12 @@
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { showMemoryDetails } from '../support/memoryDiary';
+import {
+  closeComposerDate,
+  expectComposerDate,
+  showComposerDate,
+  showContextTags,
+  showMemoryDetails,
+} from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -62,6 +68,35 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
+  if (dimensions.scrollWidth > dimensions.clientWidth) {
+    const elements = await page.evaluate(() =>
+      [...document.querySelectorAll('body *')]
+        .map((element) => {
+          const box = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            tag: element.tagName,
+            className: element.className.toString(),
+            id: element.id,
+            left: box.left,
+            right: box.right,
+            width: box.width,
+            position: style.position,
+            inlineSize: style.inlineSize,
+            minInlineSize: style.minInlineSize,
+            overflow: style.overflow,
+          };
+        })
+        .filter(
+          (element) => element.right > innerWidth + 1 && element.width > 0,
+        )
+        .slice(0, 30),
+    );
+    await test.info().attach('horizontal-overflow-geometry', {
+      body: JSON.stringify({ dimensions, elements }, null, 2),
+      contentType: 'application/json',
+    });
+  }
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
@@ -338,6 +373,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await showMemoryDetails(page);
+    await showContextTags(page);
     await page.getByText(contextTags.suggestions, { exact: true }).click();
     const homeTag = page.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
@@ -432,82 +468,37 @@ for (const width of [390, 320] as const) {
       await expect(media.locator('input[type="file"]')).toHaveCount(1);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
-      const dateField = page.locator('.immersive-create-date-field');
+      const dateTrigger = page.locator('.composer-date-trigger');
       const places = page.locator('.ordered-moment-places');
-      const actions = page.locator('.form-actions');
       const saveButton = page.getByRole('button', { name: de.memory.save });
+      const form = page.locator('.immersive-create-form');
       const quickCreateTrigger = page.locator(
         '.mobile-quick-create .quick-create-trigger',
       );
-
-      const domOrder = await page.evaluate(() => {
-        const form = document.querySelector('.immersive-create-form');
-        if (!form) return null;
-        // F2's disabled fieldset is a semantic wrapper with display:contents.
-        // Assert content order independently of that task ownership boundary.
-        const children = Array.from(
-          form.querySelectorAll(
-            '.immersive-create-media, .immersive-create-narrative, .immersive-create-title-field, .immersive-create-date-field, .ordered-moment-places, .form-actions',
-          ),
-        );
-        return {
-          mediaIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-media'),
-          ),
-          narrativeIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-narrative'),
-          ),
-          titleFieldIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-title-field'),
-          ),
-          dateFieldIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-date-field'),
-          ),
-          placesIndex: children.findIndex((el) =>
-            el.classList.contains('ordered-moment-places'),
-          ),
-          actionsIndex: children.findIndex((el) =>
-            el.classList.contains('form-actions'),
-          ),
-        };
-      });
-      if (!domOrder) {
-        throw new Error('Memory Create form children not found.');
-      }
-      expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
-      // #1715 keeps compact date context above framed writing and media.
-      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.titleFieldIndex);
-      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.narrativeIndex);
-      expect(domOrder.narrativeIndex).toBeLessThan(domOrder.mediaIndex);
-      expect(domOrder.mediaIndex).toBeLessThan(domOrder.placesIndex);
-      expect(domOrder.placesIndex).toBeLessThan(domOrder.actionsIndex);
-
+      await expect(saveButton).toHaveCount(1);
+      await expect(saveButton).toHaveAttribute('type', 'submit');
+      expect(
+        await saveButton.evaluate(
+          (button: HTMLButtonElement) => button.form?.id,
+        ),
+      ).toBe(await form.getAttribute('id'));
+      await expect(saveButton).toBeInViewport();
       const [
         placesBox,
         mediaBox,
         pickerBox,
         narrativeBox,
         titleFieldBox,
-        dateFieldBox,
-        actionsBox,
+        dateBox,
         saveBox,
-        mediaBorder,
-        mediaGroupBorder,
-        pickerBorder,
       ] = await Promise.all([
         places.boundingBox(),
         media.boundingBox(),
         picker.boundingBox(),
         narrative.boundingBox(),
         titleField.boundingBox(),
-        dateField.boundingBox(),
-        actions.boundingBox(),
+        dateTrigger.boundingBox(),
         saveButton.boundingBox(),
-        media.evaluate((element) => getComputedStyle(element).borderTopStyle),
-        mediaGroup.evaluate(
-          (element) => getComputedStyle(element).borderTopStyle,
-        ),
-        picker.evaluate((element) => getComputedStyle(element).borderTopStyle),
       ]);
       if (
         !placesBox ||
@@ -515,62 +506,50 @@ for (const width of [390, 320] as const) {
         !pickerBox ||
         !narrativeBox ||
         !titleFieldBox ||
-        !dateFieldBox ||
-        !actionsBox ||
+        !dateBox ||
         !saveBox
-      ) {
-        throw new Error('Memory Create composition did not render.');
-      }
+      )
+        throw new Error('The compact capture composition did not render.');
 
-      // 1. Authored content precedes optional ordered Places.
-      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(placesBox.y);
-      expect(narrativeBox.y + narrativeBox.height).toBeLessThanOrEqual(
-        placesBox.y,
-      );
+      // #1717 keeps native completion in the header and one writing surface.
+      expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(dateBox.y);
+      expect(dateBox.y + dateBox.height).toBeLessThanOrEqual(titleFieldBox.y);
       expect(titleFieldBox.y + titleFieldBox.height).toBeLessThanOrEqual(
-        placesBox.y,
+        narrativeBox.y,
       );
-      expect(dateFieldBox.y + dateFieldBox.height).toBeLessThanOrEqual(
-        placesBox.y,
+      expect(narrativeBox.y + narrativeBox.height).toBeLessThanOrEqual(
+        mediaBox.y,
       );
-
-      // 2. Place enrichment precedes the primary form action area and Save button.
-      expect(placesBox.y + placesBox.height).toBeLessThanOrEqual(actionsBox.y);
-      expect(placesBox.y + placesBox.height).toBeLessThanOrEqual(saveBox.y);
-
-      // 3. Optional enrichment and completion retain deliberate separation.
-      const spacingAbove = placesBox.y - (mediaBox.y + mediaBox.height);
-      const spacingBelow = actionsBox.y - (placesBox.y + placesBox.height);
-      expect(spacingAbove).toBeGreaterThanOrEqual(10);
-      expect(spacingBelow).toBeGreaterThanOrEqual(10);
-
-      // 4. Empty Places remain compact and keep a reachable add control.
-      await expect(places.getByRole('listitem')).toHaveCount(0);
+      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(placesBox.y);
+      expect(saveBox.height).toBeGreaterThanOrEqual(48);
+      expect(dateBox.height).toBeGreaterThanOrEqual(44);
+      expect(titleFieldBox.x).toBeGreaterThanOrEqual(0);
       expect(placesBox.height).toBeLessThan(125);
+      await expect(places.getByRole('listitem')).toHaveCount(0);
       const addPlaceBox = await places.getByRole('button').boundingBox();
       if (!addPlaceBox) throw new Error('Add Place did not render.');
       expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
-      // 5. One shared media boundary stays compact around the filled Add pill.
-      expect(mediaBorder).toBe('none');
-      expect(mediaGroupBorder).toBe('solid');
-      expect(pickerBorder).toBe('none');
+      // This Free fixture has no configured external source; retain that gate.
+      await expect(mediaGroup).toHaveCSS('border-top-style', 'solid');
+      await expect(media.locator('.media-gallery')).toHaveCount(0);
+      await expect(
+        media.getByRole('button', { name: new RegExp(photoSources.more) }),
+      ).toHaveCount(0);
       expect(mediaBox.height).toBeLessThan(125);
       expect(pickerBox.height).toBeLessThan(80);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
-
-      // 6. One visible, labelled native date field; no second action.
-      const dateInput = dateField.locator('#happenedOn');
-      await expect(dateInput).toBeVisible();
+      await expect(dateTrigger).toHaveAttribute('aria-haspopup', 'dialog');
+      const dateInput = await showComposerDate(page);
       await expect(dateInput).toHaveAttribute('type', 'date');
-      await expect(dateField.getByRole('button')).toHaveCount(0);
-      const dateBox = await dateInput.boundingBox();
-      if (!dateBox) throw new Error('Date field did not render');
-      expect(dateBox.height + 0.001).toBeGreaterThanOrEqual(44);
-      expect(dateBox.width).toBeGreaterThanOrEqual(44);
+      const nativeBox = await dateInput.boundingBox();
+      if (!nativeBox) throw new Error('The native date task did not render.');
+      expect(nativeBox.height + 0.001).toBeGreaterThanOrEqual(44);
+      expect(nativeBox.width).toBeGreaterThanOrEqual(44);
       await dateInput.fill('2025-12-24');
+      await closeComposerDate(page);
       await title.tap();
-      await expect(dateInput).toHaveValue('2025-12-24');
+      await expectComposerDate(page, '2025-12-24');
 
       // 7. Floating global Quick Create does not collide with optional Places.
       if (await quickCreateTrigger.isVisible()) {
@@ -614,17 +593,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto('/today');
       await signIn(page);
       await page.goto('/story/memories/new');
-      const date = page.locator('#happenedOn');
+      const date = await showComposerDate(page);
       await expect(date).toHaveValue(localToday());
       await expect(date).toHaveAttribute('type', 'date');
-      await expect(
-        page.locator('.immersive-create-date-field').getByRole('button'),
-      ).toHaveCount(0);
+      await expect(page.locator('.composer-date-trigger')).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
       const before = await date.evaluate(
         (el) => getComputedStyle(el).backgroundColor,
       );
       await date.fill('2025-12-24');
+      await closeComposerDate(page);
       await page.getByLabel(de.memory.bodyLabel, { exact: true }).tap();
+      await showComposerDate(page);
       await expect(date).toHaveValue('2025-12-24');
       expect(
         await date.evaluate((el) => getComputedStyle(el).backgroundColor),
@@ -660,7 +642,7 @@ test('Memory Create native date supports 320px large text, reduced motion and fo
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
-    const date = page.locator('#happenedOn');
+    const date = await showComposerDate(page);
     await date.fill('2025-12-24');
     await expect(date).toHaveValue('2025-12-24');
     await expectNoHorizontalOverflow(page);
@@ -688,7 +670,7 @@ test('Memory Create native date keeps desktop keyboard focus and calendar semant
   await page.goto('/today');
   await signIn(page);
   await page.goto('/story/memories/new');
-  const date = page.locator('#happenedOn');
+  const date = await showComposerDate(page);
   await date.focus();
   await expect(date).toBeFocused();
   await date.fill('2025-12-24');
@@ -705,14 +687,17 @@ test('HeartMoment Create defaults the date to local today and stays typeable', a
   await signIn(page);
 
   await page.goto('/story/heart-moments/new');
-  const dateInput = page.getByLabel(
+  const dateInput = await showComposerDate(
+    page,
     storyProducts.heartMomentProduct.happenedOnLabel,
-    { exact: true },
   );
   await expect(dateInput).toHaveValue(localToday());
-
   await dateInput.fill('2025-12-24');
   await expect(dateInput).toHaveValue('2025-12-24');
+  await closeComposerDate(
+    page,
+    storyProducts.heartMomentProduct.happenedOnLabel,
+  );
 });
 
 test('Milestone Create defaults the date to local today and stays typeable', async ({
@@ -794,6 +779,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('link', { name: memoryProduct.edit }).click();
+    await showContextTags(page);
     await page.getByText(contextTags.suggestions, { exact: true }).click();
     await expect(
       page.getByRole('checkbox', { name: de.memory.tagLabels.home }),

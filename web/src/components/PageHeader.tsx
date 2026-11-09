@@ -25,16 +25,22 @@ export function PageHeader({
   action?: ReactNode;
   before?: ReactNode;
   className?: string;
-  variant?: 'default' | 'root';
+  variant?: 'default' | 'root' | 'composer';
 }) {
-  const variantClassName = variant === 'root' ? 'page-heading-root' : '';
+  const variantClassName =
+    variant === 'root'
+      ? 'page-heading-root'
+      : variant === 'composer'
+        ? 'composer-header'
+        : '';
 
   return (
     <>
-      {before}
+      {variant !== 'composer' ? before : null}
       <header
         className={`page-heading ${titleAction ? 'page-heading-has-title-action' : ''} ${variantClassName} ${className}`.trim()}
       >
+        {variant === 'composer' ? before : null}
         <div>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
           {titleEditor ? (

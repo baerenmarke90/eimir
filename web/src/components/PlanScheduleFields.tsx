@@ -1,7 +1,23 @@
 import { NativeDateInput } from './NativeDateField';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  type Ref,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
+import { planScheduleLabel } from '../client/planningPresentation';
+import { planScheduleFromInputs } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { AddActionContent } from './AddAction';
+import { EimirIcon } from './EimirIcon';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+
+export interface PlanScheduleFieldsHandle {
+  reportValidity: () => boolean;
+}
 
 /**
  * Product-level Plan scheduling controls shared by create, Wish conversion and
@@ -16,6 +32,9 @@ export function PlanScheduleFields({
   defaultTime = '',
   defaultEnd = '',
   includeEnd = false,
+  compact = false,
+  disabled = false,
+  ref,
 }: {
   idPrefix: string;
   formId?: string;
@@ -23,13 +42,24 @@ export function PlanScheduleFields({
   defaultTime?: string;
   defaultEnd?: string;
   includeEnd?: boolean;
+  compact?: boolean;
+  disabled?: boolean;
+  ref?: Ref<PlanScheduleFieldsHandle>;
 }) {
   const { t } = useTranslation();
   const hintId = useId();
   const endPanelId = useId();
   const endErrorId = useId();
+  const sheetId = useId();
   const dateRef = useRef<HTMLInputElement>(null);
+  const backingDateRef = useRef<HTMLInputElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
   const endTimeRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<ShortTaskSheetHandle>(null);
+  const invalidFocusRef = useRef<'end-time' | 'end-date' | null>(null);
+  const [open, setOpen] = useState(false);
   const [date, setDate] = useState(defaultDate);
   const [time, setTime] = useState(defaultDate ? defaultTime : '');
   const initialEnd = defaultDate && defaultTime ? defaultEnd : '';
@@ -42,7 +72,7 @@ export function PlanScheduleFields({
 
   const selectedEndDate = crossDay ? endDate : date;
   const endValue =
-    showEnd && endTime && selectedEndDate
+    includeEnd && showEnd && endTime && selectedEndDate
       ? `${selectedEndDate}T${endTime}`
       : '';
   const startValue = date && time ? `${date}T${time}` : '';
@@ -50,6 +80,9 @@ export function PlanScheduleFields({
     startValue && endValue && endValue <= startValue,
   );
   const endError = endRangeInvalid ? t('m5s3.plan.endMustFollowStart') : '';
+  const missingEndDate = Boolean(
+    includeEnd && showEnd && endTime && crossDay && !endDate,
+  );
 
   const restoreDefaults = useCallback(() => {
     const nextEnd = defaultDate && defaultTime ? defaultEnd : '';
@@ -73,26 +106,65 @@ export function PlanScheduleFields({
   }, [restoreDefaults]);
 
   useEffect(() => {
+    if (compact && !open) return;
     endTimeRef.current?.setCustomValidity(endError);
-  }, [endError]);
+  }, [compact, endError, open]);
 
   useEffect(() => {
-    const form = dateRef.current?.form;
+    const form = (compact ? backingDateRef : dateRef).current?.form;
     if (!form) return;
     const reset = () => restoreDefaults();
     form.addEventListener('reset', reset);
     return () => form.removeEventListener('reset', reset);
-  }, [restoreDefaults]);
+  }, [compact, restoreDefaults]);
 
-  return (
+  const reportValidity = useCallback(() => {
+    if (disabled) return true;
+    if (compact && (endRangeInvalid || missingEndDate)) {
+      invalidFocusRef.current = missingEndDate ? 'end-date' : 'end-time';
+      setOpen(true);
+      if (open) {
+        const target = missingEndDate ? endDateRef.current : endTimeRef.current;
+        target?.focus({ preventScroll: true });
+        target?.reportValidity();
+        invalidFocusRef.current = null;
+      }
+      return false;
+    }
+    return [
+      dateRef.current,
+      timeRef.current,
+      endTimeRef.current,
+      endDateRef.current,
+    ]
+      .filter((input): input is HTMLInputElement => Boolean(input))
+      .every((input) => input.reportValidity());
+  }, [compact, disabled, endRangeInvalid, missingEndDate, open]);
+
+  useImperativeHandle(ref, () => ({ reportValidity }), [reportValidity]);
+
+  useEffect(() => {
+    if (!compact || !open || !invalidFocusRef.current) return;
+    const target =
+      invalidFocusRef.current === 'end-date'
+        ? endDateRef.current
+        : endTimeRef.current;
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    target.reportValidity();
+    invalidFocusRef.current = null;
+  }, [compact, open]);
+
+  const fields = (
     <>
       <label htmlFor={`${idPrefix}-date`}>{t('m5s3.plan.plannedDate')}</label>
       <NativeDateInput
         form={formId}
         ref={dateRef}
         id={`${idPrefix}-date`}
-        name="plannedDate"
+        name={compact ? undefined : 'plannedDate'}
         value={date}
+        disabled={disabled}
         onChange={(event) => {
           const nextDate = event.target.value;
           setDate(nextDate);
@@ -109,12 +181,13 @@ export function PlanScheduleFields({
           : t('m5s3.plan.plannedTime')}
       </label>
       <input
+        ref={timeRef}
         form={formId}
         id={`${idPrefix}-time`}
-        name="plannedTime"
+        name={compact ? undefined : 'plannedTime'}
         type="time"
         value={time}
-        disabled={!date}
+        disabled={disabled || !date}
         aria-describedby={hintId}
         onChange={(event) => {
           const nextTime = event.target.value;
@@ -135,6 +208,7 @@ export function PlanScheduleFields({
             }
             aria-expanded={showEnd}
             aria-controls={endPanelId}
+            disabled={disabled}
             onClick={() => {
               if (showEnd) {
                 clearEnd();
@@ -164,7 +238,7 @@ export function PlanScheduleFields({
               id={`${idPrefix}-end-time`}
               type="time"
               value={endTime}
-              disabled={!showEnd}
+              disabled={disabled || !showEnd}
               aria-invalid={endRangeInvalid || undefined}
               aria-describedby={endRangeInvalid ? endErrorId : undefined}
               onChange={(event) => setEndTime(event.target.value)}
@@ -175,7 +249,7 @@ export function PlanScheduleFields({
                 form={formId}
                 type="checkbox"
                 checked={crossDay}
-                disabled={!showEnd}
+                disabled={disabled || !showEnd}
                 onChange={(event) => {
                   const nextCrossDay = event.target.checked;
                   setCrossDay(nextCrossDay);
@@ -191,11 +265,12 @@ export function PlanScheduleFields({
                   {t('m5s3.plan.endDate')}
                 </label>
                 <NativeDateInput
+                  ref={endDateRef}
                   form={formId}
                   id={`${idPrefix}-end-date`}
                   min={date}
                   value={endDate}
-                  disabled={!showEnd}
+                  disabled={disabled || !showEnd}
                   required={Boolean(endTime)}
                   onChange={(event) => setEndDate(event.target.value)}
                 />
@@ -209,14 +284,103 @@ export function PlanScheduleFields({
             ) : null}
           </div>
 
-          <input
-            form={formId}
-            type="hidden"
-            name="plannedEnd"
-            value={endValue}
-          />
+          {!compact ? (
+            <input
+              form={formId}
+              type="hidden"
+              name="plannedEnd"
+              value={endValue}
+            />
+          ) : null}
         </>
       ) : null}
     </>
+  );
+
+  if (!compact) return fields;
+
+  const schedule = planScheduleFromInputs(date, time, endValue);
+  const summary =
+    planScheduleLabel({
+      plannedOn: schedule?.plannedOn ?? null,
+      plannedStart: schedule?.plannedStart ?? null,
+      plannedEnd: schedule?.plannedEnd ?? null,
+    }) ?? t('m5s3.overview.undatedHeading');
+  return (
+    <div className="composer-schedule-context">
+      <input
+        ref={backingDateRef}
+        form={formId}
+        type="hidden"
+        name="plannedDate"
+        value={date}
+        disabled={disabled}
+      />
+      <input
+        form={formId}
+        type="hidden"
+        name="plannedTime"
+        value={time}
+        disabled={disabled}
+      />
+      <input
+        form={formId}
+        type="hidden"
+        name="plannedEnd"
+        value={endValue}
+        disabled={disabled}
+      />
+      <button
+        ref={triggerRef}
+        type="button"
+        className="composer-context-trigger composer-schedule-trigger tertiary"
+        disabled={disabled}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={sheetId}
+        aria-invalid={endRangeInvalid || missingEndDate || undefined}
+        onClick={() => setOpen(true)}
+      >
+        <EimirIcon name="kalender" />
+        <span>
+          <span className="sr-only">{t('m5s3.plan.schedule')}: </span>
+          {summary}
+        </span>
+        <EimirIcon name="chevron-right" />
+      </button>
+      {!open && endError ? (
+        <p className="field-error" role="alert">
+          {endError}
+        </p>
+      ) : null}
+      <ShortTaskSheet
+        ref={sheetRef}
+        id={sheetId}
+        open={open}
+        title={t('m5s3.plan.schedule')}
+        restoreFocusRef={triggerRef}
+        isCloseBlocked={disabled}
+        onClose={() => setOpen(false)}
+        footer={
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              if (reportValidity()) sheetRef.current?.requestClose();
+            }}
+          >
+            {t('experiences.finish')}
+          </button>
+        }
+      >
+        <fieldset
+          className="form-grid composer-schedule-fields"
+          disabled={disabled}
+        >
+          <legend className="sr-only">{t('m5s3.plan.schedule')}</legend>
+          {fields}
+        </fieldset>
+      </ShortTaskSheet>
+    </div>
   );
 }

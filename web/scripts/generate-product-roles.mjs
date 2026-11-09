@@ -158,6 +158,14 @@ declare(
   value('color.scheme.light.onAccent').toLowerCase(),
 );
 declare(
+  'color-action-emphasis',
+  value('color.scheme.light.actionEmphasis').toLowerCase(),
+);
+declare(
+  'color-on-action-emphasis',
+  value('color.scheme.light.onActionEmphasis').toLowerCase(),
+);
+declare(
   'memory-detail-background',
   value('color.scheme.light.memoryDetailBackground').toLowerCase(),
 );
@@ -174,6 +182,8 @@ ${declarations.join('\n')}
   --color-link-text: ${darkLink};
   --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
   --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
+  --color-action-emphasis: ${value('color.scheme.dark.actionEmphasis').toLowerCase()};
+  --color-on-action-emphasis: ${value('color.scheme.dark.onActionEmphasis').toLowerCase()};
   --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
 }
 
@@ -182,6 +192,8 @@ ${declarations.join('\n')}
     --color-link-text: ${darkLink};
     --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
     --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
+    --color-action-emphasis: ${value('color.scheme.dark.actionEmphasis').toLowerCase()};
+    --color-on-action-emphasis: ${value('color.scheme.dark.onActionEmphasis').toLowerCase()};
     --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
   }
 }

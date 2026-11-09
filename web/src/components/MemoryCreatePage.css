@@ -104,10 +104,10 @@
     gap: var(--space-4);
   }
 
-  .memory-task-page.create-page
+  .memory-task-page.create-page:not(.quiet-composer)
     .immersive-create-card[aria-labelledby="memory-form-heading"]
     .immersive-create-media,
-  .memory-task-page.create-page
+  .memory-task-page.create-page:not(.quiet-composer)
     .immersive-create-card[aria-labelledby="memory-form-heading"]
     .immersive-create-media
     .file-picker {

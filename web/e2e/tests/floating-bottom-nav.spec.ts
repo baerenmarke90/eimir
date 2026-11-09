@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import navigation from '../../src/i18n/locales/navigation';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -848,7 +849,10 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(floatingShell).toHaveCount(0);
 
     const saveButton = page.getByRole('button', { name: de.memory.save });
-    const cancelButton = page.getByRole('button', { name: de.common.cancel });
+    const cancelButton = page.getByRole('button', {
+      name: taskBoundary.close,
+      exact: true,
+    });
     await expect(saveButton).toBeVisible();
     await expect(cancelButton).toBeVisible();
 
@@ -1004,7 +1008,10 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    const cancelButton = page.getByRole('button', { name: de.common.cancel });
+    const cancelButton = page.getByRole('button', {
+      name: taskBoundary.close,
+      exact: true,
+    });
     const zoomShell = page.locator('.mobile-bottom-shell');
     await expect(cancelButton).toBeVisible();
     await expect(zoomShell).toHaveCount(0);

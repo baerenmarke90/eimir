@@ -362,9 +362,13 @@ it('admits one editor save and locks inputs and completion until it finishes', a
   fireEvent.click(
     screen.getByRole('button', { name: de.common.edit, hidden: true }),
   );
+  fireEvent.click(
+    screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
+  );
   fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
     target: { value: DAY },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Fertig' }));
   const form = document.getElementById('plan-edit-form') as HTMLFormElement;
   act(() => {
     fireEvent.submit(form);
@@ -375,10 +379,13 @@ it('admits one editor save and locks inputs and completion until it finishes', a
   expect(screen.queryByRole('button', { name: m5s3.plan.complete })).toBeNull();
   expect(
     (
-      screen
-        .getByLabelText(m5s3.plan.plannedDate)
-        .closest('fieldset') as HTMLFieldSetElement
+      screen.getByRole('button', {
+        name: new RegExp(m5s3.plan.schedule),
+      }) as HTMLButtonElement
     ).disabled,
+  ).toBe(true);
+  expect(
+    (form.elements.namedItem('plannedDate') as HTMLInputElement).disabled,
   ).toBe(true);
   expect(
     (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).disabled,

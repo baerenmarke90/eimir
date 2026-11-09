@@ -9,6 +9,8 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
+import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
+import experiences from '../../src/i18n/locales/experiences';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -430,7 +432,7 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
-
+  const scheduleTask = await showPlanSchedule(page);
   const disclosure = page.getByRole('button', { name: m5s3.plan.addEndTime });
   await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByLabel(m5s3.plan.endTime)).toBeHidden();
@@ -440,10 +442,13 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await expect(endTime).toBeVisible();
   await endTime.fill('13:30');
   await expect(page.getByText(m5s3.plan.endMustFollowStart)).toBeVisible();
-  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
+  await scheduleTask
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   expect(scheduleBody).toBeNull();
 
   await endTime.fill('16:30');
+  await closePlanSchedule(page);
   await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect.poll(() => scheduleBody).not.toBeNull();
   expect(scheduleBody).toMatchObject({
@@ -512,7 +517,9 @@ test('cross-day Plan range reflows at 320px and keeps the same hierarchy when ex
   await capture(page, testInfo, '320-cross-day-light');
 
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await showPlanSchedule(page);
   await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
+  await closePlanSchedule(page);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.getByText(crossDayRange)).toBeVisible();

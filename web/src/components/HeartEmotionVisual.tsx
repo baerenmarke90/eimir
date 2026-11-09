@@ -216,8 +216,10 @@ export function HeartEmotionPicker({
     <details className="heart-emotion-disclosure">
       <summary>
         <span aria-hidden="true">{legend}</span>
-        <HeartEmotionBadge emotion={selected} />
-        <EimirIcon name="chevron-right" />
+        <span className="heart-emotion-summary-value">
+          <HeartEmotionBadge emotion={selected} />
+          <EimirIcon name="chevron-right" />
+        </span>
       </summary>
       {choices}
     </details>

@@ -137,9 +137,18 @@ function submit() {
   if (!form) throw new Error('Memory form is missing');
   fireEvent.submit(form);
 }
+function showTags() {
+  fireEvent.click(screen.getByRole('button', { name: contextTags.add }));
+}
 beforeEach(() => {
   vi.clearAllMocks();
   fixture.readyIds = [];
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   Object.defineProperty(navigator, 'onLine', {
     configurable: true,
     value: true,
@@ -158,12 +167,16 @@ describe('Memory capture mutation ownership', () => {
     setup();
     expect(titleInput().closest('details')).toBeNull();
     expect(titleInput().required).toBe(false);
-    expect(titleInput().closest('fieldset')?.querySelector('input')).toBe(
-      screen.getByLabelText(de.memory.dateLabel),
-    );
+    const dateTrigger = screen.getByRole('button', { name: /^Datum:/ });
+    expect(dateTrigger.getAttribute('aria-haspopup')).toBe('dialog');
+    const backing = titleInput().form?.elements.namedItem('happenedOn');
+    expect(backing).toBeInstanceOf(HTMLInputElement);
+    expect((backing as HTMLInputElement).type).toBe('date');
     const save = screen.getByRole('button', {
       name: de.memory.save,
     }) as HTMLButtonElement;
+    expect(save.form?.id).toBe('memory-create-form');
+    expect(save.closest('form')).toBeNull();
     expect(save.disabled).toBe(true);
     submit();
     expect(fixture.create).not.toHaveBeenCalled();
@@ -175,6 +188,8 @@ describe('Memory capture mutation ownership', () => {
       .mockRejectedValueOnce(new Error('Response lost'))
       .mockResolvedValueOnce(confirmed);
     setup();
+    showTags();
+    fireEvent.click(screen.getByText(contextTags.suggestions));
     const tag = screen.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
     }) as HTMLInputElement;
@@ -198,6 +213,7 @@ describe('Memory capture mutation ownership', () => {
   });
   it('protects a pending custom tag draft when leaving a clean capture', () => {
     setup();
+    showTags();
     fireEvent.change(screen.getByLabelText(contextTags.newLabel), {
       target: { value: 'An unfinished label' },
     });
@@ -232,12 +248,15 @@ describe('Memory capture mutation ownership', () => {
     fixture.create.mockResolvedValue(confirmed);
     setup();
     enterTitle();
-    const date = screen.getByLabelText(de.memory.dateLabel) as HTMLInputElement;
+    fireEvent.click(screen.getByRole('button', { name: /^Datum:/ }));
+    const date = screen.getByLabelText(de.memory.dateLabel, {
+      selector: 'input',
+    }) as HTMLInputElement;
     fireEvent.change(date, { target: { value: '10000-01-01' } });
     submit();
     expect(screen.getByText(taskBoundary.invalidDate)).toBeTruthy();
     expect(date.getAttribute('aria-invalid')).toBe('true');
-    expect(date.closest('fieldset')?.disabled).toBe(false);
+    expect(date.disabled).toBe(false);
     expect(document.activeElement).toBe(date);
     expect(fixture.create).not.toHaveBeenCalled();
     expect(screen.queryByText(taskBoundary.uncertainTitle)).toBeNull();

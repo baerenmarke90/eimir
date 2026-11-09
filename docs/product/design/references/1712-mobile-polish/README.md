@@ -128,5 +128,15 @@ This supersedes the first execution's missing-SDK limitation. Installed native
 API 28/36/37.1 checks remain hosted requirements; physical-device acceptance and
 publication are not inferred from browser mocks or compilation.
 
+The next API 36 run exposed an independent window-handoff race: its recorded
+picker screenshot still showed the old WebView, while its accessibility dump
+already showed the genuine permission dialog. A window-state event does not
+guarantee that Android has published the new root. The fixture now awaits an
+actual consent/picker control with the existing bounded lookup before deciding
+which native surface owns the interaction. Consent, foreign ownership, original
+bytes/GPS and all cases remain required; no shell grant, fixed delay or replay is
+added. API 28 and 37.1 passed on that revision. Fresh native execution remains
+required for the correction.
+
 See [the screenshot manifest](evidence/manifest.json) for SHA-256 fingerprints.
 Hosted exact-head results are recorded in the owning PR before merge.

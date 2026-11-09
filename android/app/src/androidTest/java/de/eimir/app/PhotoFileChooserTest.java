@@ -376,9 +376,16 @@ public class PhotoFileChooserTest {
                 && event.getPackageName() != null
                 && (isSystemPhotoPicker(event.getPackageName())
                     || event.getPackageName().toString().contains("permissioncontroller")), 15000);
-        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
-        if (root != null && root.getPackageName() != null
-                && root.getPackageName().toString().contains("permissioncontroller")) {
+        // A window-state event can arrive before Android publishes its new
+        // accessibility root. Wait for the actual consent or picker control;
+        // inspecting the previous WebView root would skip the real decision.
+        AccessibilityNodeInfo entry = findDocument("Allow all", "Include location", token);
+        assertNotNull("Android publishes its consent or picker surface", entry);
+        CharSequence entryPackage = entry.getPackageName();
+        assertTrue("The entry belongs to Android's consent or photo picker",
+            isSystemPhotoPicker(entryPackage) || (entryPackage != null
+                && entryPackage.toString().contains("permissioncontroller")));
+        if (entryPackage.toString().contains("permissioncontroller")) {
             captureNativeDiagnostics("native-photo-permission");
             AccessibilityNodeInfo allow = findDocument("Allow all");
             assertNotNull("Android exposes the optional metadata permission decision", allow);

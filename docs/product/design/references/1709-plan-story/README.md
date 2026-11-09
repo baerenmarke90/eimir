@@ -119,3 +119,11 @@ idempotency, private transition/no restoration, independent Plan/source deletion
 and remapped transfer. Migration 0119 upgraded the isolated PostgreSQL 18 test
 instance and Alembic reported no model/schema drift. Full version-bound CI is
 recorded on PR #1709; local Python is supported CPython 3.13.7.
+
+Final local validation is bound to runtime revision
+`178090f2241c7301f4409d231595aefe84138ef3`: 2796 Web tests pass (2 existing
+skips), 54 PostgreSQL Plan/transfer/Story tests and 43 endpoint-matrix checks
+pass. Production build, full Web lint/format, Ruff/format, mypy, OpenAPI and
+all 864 same-version generated client files match. The browser planner passes
+38 cases; actual collection is 1186 cases in 104 specs. Complete PR workflow
+evidence belongs to PR #1709 and must be observed on its final head.

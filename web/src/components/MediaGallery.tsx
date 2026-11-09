@@ -201,6 +201,16 @@ export function MediaGallery({
   const activeIndexRef = useRef<number | null>(null);
   const carouselItemsIdentityRef = useRef<string | null>(null);
   const activeItemIdRef = useRef<string | null>(null);
+  const cancelCarouselFeedback = useCallback(() => {
+    if (carouselScrollFrame.current !== null) {
+      window.cancelAnimationFrame(carouselScrollFrame.current);
+      carouselScrollFrame.current = null;
+    }
+    if (carouselScrollEndTimer.current !== null) {
+      window.clearTimeout(carouselScrollEndTimer.current);
+      carouselScrollEndTimer.current = null;
+    }
+  }, []);
   const dismiss = useCallback(() => {
     if (lightboxScrollFrame.current !== null) {
       window.cancelAnimationFrame(lightboxScrollFrame.current);
@@ -249,13 +259,22 @@ export function MediaGallery({
     const identity = JSON.stringify([itemIdentity, initialMediaId]);
     if (carouselItemsIdentityRef.current === identity) return;
     carouselItemsIdentityRef.current = identity;
+    // A new explicit selection owns subsequent feedback and resize alignment.
+    cancelCarouselFeedback();
+    carouselIndexRef.current = startingIndex;
     setCarouselIndex(startingIndex);
 
     const track = carouselTrack.current;
     const firstSlide = carouselSlides.current[startingIndex];
     if (!track || !firstSlide || items.length < 2) return;
     track.scrollLeft = firstSlide.offsetLeft;
-  }, [itemIdentity, items.length, initialMediaId, startingIndex]);
+  }, [
+    itemIdentity,
+    items.length,
+    initialMediaId,
+    startingIndex,
+    cancelCarouselFeedback,
+  ]);
 
   useLayoutEffect(() => {
     const track = carouselTrack.current;
@@ -271,12 +290,7 @@ export function MediaGallery({
 
   useEffect(
     () => () => {
-      if (carouselScrollFrame.current !== null) {
-        window.cancelAnimationFrame(carouselScrollFrame.current);
-      }
-      if (carouselScrollEndTimer.current !== null) {
-        window.clearTimeout(carouselScrollEndTimer.current);
-      }
+      cancelCarouselFeedback();
       if (lightboxScrollFrame.current !== null) {
         window.cancelAnimationFrame(lightboxScrollFrame.current);
       }
@@ -284,7 +298,7 @@ export function MediaGallery({
         window.clearTimeout(lightboxScrollEndTimer.current);
       }
     },
-    [],
+    [cancelCarouselFeedback],
   );
 
   const lightboxOpen = activeIndex !== null;

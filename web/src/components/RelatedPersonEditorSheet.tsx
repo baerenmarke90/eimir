@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 import { AvatarPhoto } from './AvatarPhoto';
 import { PageHeader } from './PageHeader';
@@ -338,7 +339,7 @@ export function RelatedPersonEditorSheet({
 
   return (
     <section
-      className="page page-reading person-editor-page"
+      className="page page-reading person-editor-page free-composer"
       aria-label={t('people.formRailAria')}
       onKeyDown={handleDialogKeyDown}
     >
@@ -380,6 +381,19 @@ export function RelatedPersonEditorSheet({
             </div>
           </div>
         ) : null}
+        <label className="field-group" htmlFor="related-person-name">
+          {t('people.nameLabel')}
+          <input
+            ref={nameInputRef}
+            id="related-person-name"
+            name="displayName"
+            required
+            maxLength={120}
+            value={displayName}
+            autoComplete="off"
+            onChange={(event) => setDisplayName(event.currentTarget.value)}
+          />
+        </label>
         <MediaDropZone
           multiple={false}
           disabled={pending || Boolean(uploadPhase)}
@@ -488,19 +502,6 @@ export function RelatedPersonEditorSheet({
             ) : null}
           </div>
         ) : null}
-        <label className="field-group" htmlFor="related-person-name">
-          {t('people.nameLabel')}
-          <input
-            ref={nameInputRef}
-            id="related-person-name"
-            name="displayName"
-            required
-            maxLength={120}
-            value={displayName}
-            autoComplete="off"
-            onChange={(event) => setDisplayName(event.currentTarget.value)}
-          />
-        </label>
         <label className="field-group" htmlFor="related-person-relationship">
           {t('people.relationshipLabel')}
           <select

@@ -5,6 +5,9 @@ import { i18n } from '../i18n';
 import {
   bindVideoTransferTargets,
   cancelVideoTransfer,
+  type NativePreparedVideo,
+  prepareNativeVideoForUpload,
+  releasePreparedVideo,
   startBackgroundVideoTransfer,
 } from './backgroundVideoUploads';
 import { ClientProblemError } from './problemDetails';
@@ -15,6 +18,7 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import { compressVideoForUpload } from './videoCompression';
 
 export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
 
@@ -67,21 +71,49 @@ export async function uploadMemoryDraftAttachment(
     );
 
   let createdAttachment: { id: string; version: number } | null = null;
+  let prepared: NativePreparedVideo | undefined;
+  const owner = {
+    instance: apiBaseUrl,
+    accountId: options.accountId ?? '',
+    spaceId,
+  };
   try {
     throwIfAborted(options.signal);
-    const uploadFile = file;
+    let uploadFile = file;
+    if (video) {
+      onPhase?.('preparing');
+      try {
+        if (options.accountId)
+          prepared = await prepareNativeVideoForUpload(
+            owner,
+            file,
+            options.signal,
+          );
+        if (!prepared)
+          uploadFile = await compressVideoForUpload(
+            file,
+            options.signal,
+            options.onProgress,
+          );
+      } catch {
+        throwIfAborted(options.signal);
+        throw new ReferenceFlowError(i18n.t('video.preparationFailed'));
+      }
+      throwIfAborted(options.signal);
+    }
+    const selected = prepared ?? uploadFile;
     onPhase?.('uploading');
     const upload = await apis.attachments.createAttachmentUpload({
       spaceId,
       attachmentUploadCreate: {
-        expectedMimeType: uploadFile.type,
-        expectedSize: uploadFile.size,
+        expectedMimeType: selected.type,
+        expectedSize: selected.size,
         mediaType: audio
           ? MediaType.AUDIO
           : video
             ? MediaType.VIDEO
             : MediaType.IMAGE,
-        originalName: uploadFile.name,
+        originalName: selected.name,
         preserveMetadata:
           video || audio ? false : (options.preserveMetadata ?? false),
       },
@@ -99,6 +131,7 @@ export async function uploadMemoryDraftAttachment(
         accountId: options.accountId,
         spaceId,
         file: uploadFile,
+        ...(prepared ? { prepared } : {}),
         descriptor: upload,
         fetchApi,
       });
@@ -165,6 +198,8 @@ export async function uploadMemoryDraftAttachment(
     throw new ReferenceFlowError(
       i18n.t(video ? 'video.startFailed' : 'flow.uploadFailed'),
     );
+  } finally {
+    if (prepared) await releasePreparedVideo(owner, prepared);
   }
 }
 

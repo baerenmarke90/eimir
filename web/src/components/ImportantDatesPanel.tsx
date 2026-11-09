@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ChangeEvent,
@@ -185,7 +186,7 @@ function ImportantDateEditorSheet({
     >
       <section
         ref={dialogRef}
-        className="focused-editor-sheet important-date-editor"
+        className="focused-editor-sheet important-date-editor free-composer"
         role="dialog"
         aria-modal="true"
         aria-labelledby="important-date-editor-title"

@@ -39,7 +39,8 @@ import './components/StoryDetailContentFirst.css';
 import './components/StoryMomentMetadata.css';
 import './components/SharedPlanningSanctuary.css';
 import './product-reflow.css';
-import './memory-create-polish.css';
+import './components/FreeComposer.css';
+import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/identity-components.css';
 

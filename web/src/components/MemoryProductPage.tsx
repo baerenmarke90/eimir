@@ -1,3 +1,5 @@
+import { loadVideoSource } from '../client/video';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   useIsMutating,
   useMutation,
@@ -711,6 +713,37 @@ export function MemoryProductPage({
             onSubmit={submit}
             className="form-grid memory-form"
           >
+            <div className="composer-context">
+              <div
+                className="field-group"
+                hidden={Boolean(memory.experienceKind)}
+              >
+                <label htmlFor="memory-edit-date">
+                  {t('memory.dateLabel')}
+                </label>
+                <NativeDateInput
+                  id="memory-edit-date"
+                  name="happenedOn"
+                  defaultValue={memoryDateInputValue(memory.happenedOn)}
+                />
+              </div>
+
+              <div
+                className="field-group"
+                hidden={Boolean(memory.experienceKind)}
+              >
+                <label htmlFor="memory-edit-through">
+                  {t('experiences.through')}
+                </label>
+                <NativeDateInput
+                  id="memory-edit-through"
+                  name="happenedUntil"
+                  defaultValue={memoryDateInputValue(
+                    memory.happenedUntil ?? null,
+                  )}
+                />
+              </div>
+            </div>
             <div
               className="field-group"
               hidden={Boolean(memory.experienceKind)}
@@ -737,33 +770,148 @@ export function MemoryProductPage({
                 defaultValue={memory.body}
               />
             </div>
-            <div
-              className="field-group"
-              hidden={Boolean(memory.experienceKind)}
-            >
-              <label htmlFor="memory-edit-date">{t('memory.dateLabel')}</label>
-              <NativeDateInput
-                id="memory-edit-date"
-                name="happenedOn"
-                defaultValue={memoryDateInputValue(memory.happenedOn)}
-              />
-            </div>
+            <AttachmentDraftPicker
+              sourceContext={{
+                apiBaseUrl,
+                accessToken,
+                accountId: currentAccountId,
+                spaceId,
+                remaining: Math.max(
+                  0,
+                  MAX_MEMORY_ATTACHMENTS -
+                    keptBoundAttachmentCount -
+                    attachments.items.length,
+                ),
+                beginSelection: attachments.beginSelection,
+              }}
+              id="memory-edit-images"
+              videoContext={{ apis, accountId: currentAccountId, spaceId }}
+              disabled={updateMutation.isPending}
+              attachments={attachments}
+              gallery={
+                <PhotoDraftGallery
+                  key={photoOrderScope}
+                  resourceScopeKey={photoOrderScope}
+                  selectedCoverKey={selectedCoverKey}
+                  onSelectCover={(key) =>
+                    setCoverDraft({ scope: photoOrderScope, key })
+                  }
+                  onOrderChange={(keys) =>
+                    setPhotoOrder({ scope: photoOrderScope, keys })
+                  }
+                  disabled={updateMutation.isPending}
+                  items={photoItems.map((item, index) => ({
+                    key: item.key,
+                    name:
+                      item.draft?.file.name ??
+                      t('m5s3.planImage.photoNumber', { number: index + 1 }),
+                    draft: item.draft,
+                    loadMedia: item.photo
+                      ? (signal) =>
+                          loadMemoryImage(memory.id, item.photo!.id, signal)
+                      : undefined,
+                    loadPoster: item.photo
+                      ? (signal) =>
+                          loadAuthorizedStoryImageResource(
+                            apis,
+                            spaceId,
+                            'MEMORY',
+                            memory.id,
+                            item.photo!.id,
+                            { signal, variant: 'thumbnail' },
+                          )
+                      : undefined,
+                    loadPlayback: item.photo
+                      ? (signal) =>
+                          loadVideoSource(
+                            apis,
+                            spaceId,
+                            'MEMORY',
+                            memory.id,
+                            item.photo!.id,
+                            signal,
+                          )
+                      : undefined,
+                    mediaType: item.photo?.mediaType,
+                    status: item.photo?.status,
+                    canRemove: !item.photo || memory.capabilities.canDelete,
+                    canEditSensitivity:
+                      !item.photo ||
+                      (item.photo.canEditSensitivity ??
+                        memory.capabilities.canDelete),
+                    isSensitive: item.photo
+                      ? (sensitiveValues[item.photo.id] ??
+                        item.photo.isSensitive ??
+                        true)
+                      : item.draft?.isSensitive === true,
+                    preview:
+                      item.photo && item.photo.status !== 'READY' ? (
+                        <MediaProcessingState
+                          status={item.photo.status}
+                          compact
+                        />
+                      ) : item.photo ? (
+                        <MemoryPreview
+                          memoryId={memory.id}
+                          attachmentId={item.photo.id}
+                          isSensitive={
+                            sensitiveValues[item.photo.id] ??
+                            item.photo.isSensitive
+                          }
+                          loadImage={loadMemoryImage}
+                        />
+                      ) : item.draft ? (
+                        <DraftMediaPreview
+                          draft={item.draft}
+                          context={{
+                            apis,
+                            accountId: currentAccountId,
+                            spaceId,
+                          }}
+                        />
+                      ) : null,
+                  }))}
+                  onSensitive={(key, value) => {
+                    const item = photoItems.find((item) => item.key === key);
+                    if (
+                      item?.photo &&
+                      (item.photo.canEditSensitivity ??
+                        memory.capabilities.canDelete)
+                    )
+                      setSensitiveDraft((current) => ({
+                        key: sensitiveDraftKey,
+                        values: {
+                          ...(current.key === sensitiveDraftKey
+                            ? current.values
+                            : {}),
+                          [item.photo.id]: value,
+                        },
+                      }));
+                    else if (item?.draft)
+                      attachments.setSensitive(item.draft.id, value);
+                  }}
+                  removeLabel={(key) =>
+                    photoItems.find((item) => item.key === key)?.photo
+                      ? t('memoryProduct.markPhotoForRemoval')
+                      : t('memory.photoRemove')
+                  }
+                  onRemove={(key) => {
+                    const item = photoItems.find((item) => item.key === key);
+                    if (item?.photo) toggleAttachmentRemoval(item.photo.id);
+                    else if (item?.draft) attachments.remove(item.draft.id);
+                  }}
+                  onRetry={(key) => {
+                    const draft = photoItems.find(
+                      (item) => item.key === key,
+                    )?.draft;
+                    if (draft) attachments.retry(draft);
+                  }}
+                />
+              }
+              showItems={false}
+              multiple
+            />
 
-            <div
-              className="field-group"
-              hidden={Boolean(memory.experienceKind)}
-            >
-              <label htmlFor="memory-edit-through">
-                {t('experiences.through')}
-              </label>
-              <NativeDateInput
-                id="memory-edit-through"
-                name="happenedUntil"
-                defaultValue={memoryDateInputValue(
-                  memory.happenedUntil ?? null,
-                )}
-              />
-            </div>
             <MemoryPlacesDraftField
               memoryId={memory.id}
               order={memory.placeIds ?? []}
@@ -797,110 +945,6 @@ export function MemoryProductPage({
               disabled={updateMutation.isPending}
             />
 
-            <AttachmentDraftPicker
-              sourceContext={{
-                apiBaseUrl,
-                accessToken,
-                accountId: currentAccountId,
-                spaceId,
-                remaining: Math.max(
-                  0,
-                  MAX_MEMORY_ATTACHMENTS -
-                    keptBoundAttachmentCount -
-                    attachments.items.length,
-                ),
-                beginSelection: attachments.beginSelection,
-              }}
-              id="memory-edit-images"
-              videoContext={{ apis, accountId: currentAccountId, spaceId }}
-              disabled={updateMutation.isPending}
-              attachments={attachments}
-              showItems={false}
-              multiple
-            />
-            <PhotoDraftGallery
-              key={photoOrderScope}
-              selectedCoverKey={selectedCoverKey}
-              onSelectCover={(key) =>
-                setCoverDraft({ scope: photoOrderScope, key })
-              }
-              onOrderChange={(keys) =>
-                setPhotoOrder({ scope: photoOrderScope, keys })
-              }
-              disabled={updateMutation.isPending}
-              items={photoItems.map((item, index) => ({
-                key: item.key,
-                name:
-                  item.draft?.file.name ??
-                  t('m5s3.planImage.photoNumber', { number: index + 1 }),
-                draft: item.draft,
-                mediaType: item.photo?.mediaType,
-                status: item.photo?.status,
-                canRemove: !item.photo || memory.capabilities.canDelete,
-                canEditSensitivity:
-                  !item.photo ||
-                  (item.photo.canEditSensitivity ??
-                    memory.capabilities.canDelete),
-                isSensitive: item.photo
-                  ? (sensitiveValues[item.photo.id] ??
-                    item.photo.isSensitive ??
-                    true)
-                  : item.draft?.isSensitive === true,
-                preview:
-                  item.photo && item.photo.status !== 'READY' ? (
-                    <MediaProcessingState status={item.photo.status} compact />
-                  ) : item.photo ? (
-                    <MemoryPreview
-                      memoryId={memory.id}
-                      attachmentId={item.photo.id}
-                      isSensitive={
-                        sensitiveValues[item.photo.id] ?? item.photo.isSensitive
-                      }
-                      loadImage={loadMemoryImage}
-                    />
-                  ) : item.draft ? (
-                    <DraftMediaPreview
-                      draft={item.draft}
-                      context={{ apis, accountId: currentAccountId, spaceId }}
-                    />
-                  ) : null,
-              }))}
-              onSensitive={(key, value) => {
-                const item = photoItems.find((item) => item.key === key);
-                if (
-                  item?.photo &&
-                  (item.photo.canEditSensitivity ??
-                    memory.capabilities.canDelete)
-                )
-                  setSensitiveDraft((current) => ({
-                    key: sensitiveDraftKey,
-                    values: {
-                      ...(current.key === sensitiveDraftKey
-                        ? current.values
-                        : {}),
-                      [item.photo.id]: value,
-                    },
-                  }));
-                else if (item?.draft)
-                  attachments.setSensitive(item.draft.id, value);
-              }}
-              removeLabel={(key) =>
-                photoItems.find((item) => item.key === key)?.photo
-                  ? t('memoryProduct.markPhotoForRemoval')
-                  : t('memory.photoRemove')
-              }
-              onRemove={(key) => {
-                const item = photoItems.find((item) => item.key === key);
-                if (item?.photo) toggleAttachmentRemoval(item.photo.id);
-                else if (item?.draft) attachments.remove(item.draft.id);
-              }}
-              onRetry={(key) => {
-                const draft = photoItems.find(
-                  (item) => item.key === key,
-                )?.draft;
-                if (draft) attachments.retry(draft);
-              }}
-            />
             {boundAttachments
               .filter((photo) => removedAttachmentIds.has(photo.id))
               .map((photo) => (

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import {
@@ -37,6 +37,29 @@ describe('HeartEmotionVisual', () => {
       (screen.getByRole('radio', { name: 'Geliebt' }) as HTMLInputElement)
         .checked,
     ).toBe(false);
+  });
+
+  it('preserves the selected feeling in FormData after collapsing the compact choice', () => {
+    const view = render(
+      <form>
+        <HeartEmotionPicker compact legend="Gefühl" />
+      </form>,
+    );
+    const disclosure = view.container.querySelector(
+      'details',
+    ) as HTMLDetailsElement;
+    disclosure.open = true;
+    fireEvent.click(screen.getByRole('radio', { name: 'Unterstützt' }));
+    disclosure.open = false;
+    const form = view.container.querySelector('form');
+    if (!form) throw new Error('The owning form is unavailable.');
+    expect(new FormData(form).get('emotion')).toBe(HeartEmotion.SUPPORTED);
+    expect(disclosure.querySelector('summary')?.textContent).toContain(
+      'Unterstützt',
+    );
+    expect(disclosure.querySelectorAll('input[name="emotion"]')).toHaveLength(
+      6,
+    );
   });
 
   it.each(HEART_EMOTIONS)(

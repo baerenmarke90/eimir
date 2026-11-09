@@ -114,7 +114,6 @@ export function MemoryCreatePage({
   const [tagDraftText, setTagDraftText] = useState('');
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const bodyInputRef = useRef<HTMLTextAreaElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -302,7 +301,6 @@ export function MemoryCreatePage({
     setBody(source.description ?? '');
     if (source.experiencedOn)
       setHappenedOn(source.experiencedOn.toISOString().slice(0, 10));
-    setDetailsOpen(true);
   }, [
     sourcePlanId,
     sourcePlan.data,
@@ -359,9 +357,6 @@ export function MemoryCreatePage({
       setTagDraftText(draft.tagDraft ?? '');
       setTagDraftDirty(Boolean(draft.tagDraft));
       setHappenedOn(draft.happenedOn);
-      setDetailsOpen(
-        Boolean(draft.title || draft.tags.length || draft.tagDraft),
-      );
       const restoredKeys = attachments.restore(files);
       setSelectedCoverKey(
         draft.selectedCoverPosition != null
@@ -803,7 +798,7 @@ export function MemoryCreatePage({
         name="body"
         value={body}
         onChange={(event) => setBody(event.target.value)}
-        rows={6}
+        rows={experienceKind ? 6 : 4}
         maxLength={experienceKind ? 2000 : undefined}
         placeholder={t(
           experienceKind
@@ -906,6 +901,65 @@ export function MemoryCreatePage({
           >
             <legend className="sr-only">{t('memory.formAria')}</legend>
 
+            <div className="composer-context">
+              {experienceKind !== 'HAPPINESS' && !experienceReply ? (
+                <NativeDateField
+                  ref={dateInputRef}
+                  id="happenedOn"
+                  name="happenedOn"
+                  label={t('memory.dateLabel')}
+                  value={happenedOn}
+                  error={
+                    invalidDate ? t('taskBoundary.invalidDate') : undefined
+                  }
+                  fieldClassName="immersive-create-date-field"
+                  onChange={(event) => {
+                    setHappenedOn(event.target.value);
+                    setInvalidDate(false);
+                  }}
+                />
+              ) : null}
+
+              {!experienceKind ? (
+                <div className="field-group">
+                  {happenedUntil ? (
+                    <>
+                      <label htmlFor="memory-create-through">
+                        {t('experiences.through')}
+                      </label>
+                      <NativeDateInput
+                        id="memory-create-through"
+                        min={happenedOn}
+                        value={happenedUntil}
+                        onChange={(event) => {
+                          setHappenedUntil(event.target.value);
+                          setInvalidDate(false);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="tertiary"
+                        onClick={() => setHappenedUntil('')}
+                      >
+                        {t('experiences.removePeriod')}
+                      </button>
+                    </>
+                  ) : (
+                    <AddActionButton
+                      label={t('experiences.addPeriod')}
+                      onClick={() =>
+                        setHappenedUntil(happenedOn || initialDate)
+                      }
+                    />
+                  )}
+                  {invalidDate &&
+                  happenedUntil &&
+                  happenedUntil < happenedOn ? (
+                    <p role="alert">{t('experiences.invalidPeriod')}</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
             {experienceKind && title ? (
               <section
                 className="experience-selected-question"
@@ -931,57 +985,6 @@ export function MemoryCreatePage({
               </div>
             ) : null}
 
-            {experienceKind !== 'HAPPINESS' && !experienceReply ? (
-              <NativeDateField
-                ref={dateInputRef}
-                id="happenedOn"
-                name="happenedOn"
-                label={t('memory.dateLabel')}
-                value={happenedOn}
-                error={invalidDate ? t('taskBoundary.invalidDate') : undefined}
-                fieldClassName="immersive-create-date-field"
-                onChange={(event) => {
-                  setHappenedOn(event.target.value);
-                  setInvalidDate(false);
-                }}
-              />
-            ) : null}
-
-            {!experienceKind ? (
-              <div className="field-group">
-                {happenedUntil ? (
-                  <>
-                    <label htmlFor="memory-create-through">
-                      {t('experiences.through')}
-                    </label>
-                    <NativeDateInput
-                      id="memory-create-through"
-                      min={happenedOn}
-                      value={happenedUntil}
-                      onChange={(event) => {
-                        setHappenedUntil(event.target.value);
-                        setInvalidDate(false);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="tertiary"
-                      onClick={() => setHappenedUntil('')}
-                    >
-                      {t('experiences.removePeriod')}
-                    </button>
-                  </>
-                ) : (
-                  <AddActionButton
-                    label={t('experiences.addPeriod')}
-                    onClick={() => setHappenedUntil(happenedOn || initialDate)}
-                  />
-                )}
-                {invalidDate && happenedUntil && happenedUntil < happenedOn ? (
-                  <p role="alert">{t('experiences.invalidPeriod')}</p>
-                ) : null}
-              </div>
-            ) : null}
             {!experienceKind ? narrativeField : null}
 
             {!experienceKind ? (
@@ -1035,21 +1038,14 @@ export function MemoryCreatePage({
             />
 
             {!experienceKind ? (
-              <details
-                className="memory-diary-details"
-                open={detailsOpen}
-                onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
-              >
-                <summary>{t('memory.diary.optionalDetails')}</summary>
-                <MemoryTagChoices
-                  editorRef={tagEditorRef}
-                  selected={tags}
-                  onChange={setTags}
-                  onDraftChange={setTagDraftDirty}
-                  draftValue={tagDraftText}
-                  onDraftValueChange={setTagDraftText}
-                />
-              </details>
+              <MemoryTagChoices
+                editorRef={tagEditorRef}
+                selected={tags}
+                onChange={setTags}
+                onDraftChange={setTagDraftDirty}
+                draftValue={tagDraftText}
+                onDraftValueChange={setTagDraftText}
+              />
             ) : null}
           </fieldset>
           {dirty &&

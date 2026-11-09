@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { PageHeader } from './PageHeader';
+import './FreeComposer.css';
 
 export function StoryEditorPageShell({
   before,
@@ -21,7 +22,7 @@ export function StoryEditorPageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="page page-reading create-page product-editor-page">
+    <div className="page page-reading create-page product-editor-page free-composer">
       <PageHeader
         before={before}
         eyebrow={eyebrow}
@@ -57,7 +58,7 @@ export function StoryCreatePageShell({
 }) {
   return (
     <div
-      className={`page page-reading create-page ${pageClassName ?? ''}`.trim()}
+      className={`page page-reading create-page free-composer ${pageClassName ?? ''}`.trim()}
     >
       {header}
       <section

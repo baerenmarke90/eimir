@@ -106,6 +106,8 @@ declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
 declare('border-surface-width', value('border.surfaceFrame'));
 declare('border-control-width', value('border.controlFrame'));
+declare('border-authored-width', value('border.authoredFrame'));
+declare('composer-max', value('layout.composerMax'));
 declare('touch-target-web', value('size.touchTarget.webMinimum'));
 declare('touch-target-comfortable', value('size.control.comfortable'));
 declare('icon-size-standard', value('size.icon.standard'));

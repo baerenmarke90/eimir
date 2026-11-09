@@ -770,7 +770,10 @@
         "web/src/client/galleryMedia.ts",
         "web/src/components/MemoryPhotoGallery.tsx",
         "web/src/components/MediaProcessingState.tsx",
-        "web/src/components/VideoTransferFeedback.tsx"
+        "web/src/components/VideoTransferFeedback.tsx",
+        "web/src/client/compressVideo.ts",
+        "web/src/client/videoCompression.ts",
+        "web/src/client/videoCompression.worker.ts"
       ]
     },
     "wir-design-selection.spec.ts": {
@@ -833,6 +836,11 @@
         "web/src/components/WishProductPage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoDraftSorting.tsx",
+        "web/src/components/PhotoArrangeTask.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/components/ZoomablePhoto.tsx",
         "web/src/components/MediaDropZone.tsx",
         "web/src/components/AutoLoadMore.tsx",
         "web/src/client/videoCompression.ts",

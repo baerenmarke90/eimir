@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-import io
 import json
-import math
 import os
 import subprocess
 import sys
-from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
 import pytest
-from PIL import Image, ImageChops, ImageStat
+from PIL import Image, ImageChops
 
 from eimir.attachments import videos
 from eimir.config import get_settings
@@ -194,7 +191,7 @@ def test_normalizable_input_does_not_relax_retained_playback_contract(
 
 
 @pytest.mark.parametrize("dimensions", [(3840, 2160), (2160, 3840), (1920, 1440)])
-def test_compatible_high_resolution_input_must_not_bypass_1080p_normalization(
+def test_unprepared_high_resolution_video_is_rejected_without_server_encoding(
     dimensions: tuple[int, int],
 ) -> None:
     stream = {
@@ -207,9 +204,8 @@ def test_compatible_high_resolution_input_must_not_bypass_1080p_normalization(
     }
     info = {"streams": [stream], "format": {"duration": "1"}}
     assert videos._metadata(info)[:2] == dimensions
-    options = videos._normalization(info)
-    assert options[options.index("-c:v") + 1] == "libopenh264"
-    assert "1080" in options[options.index("-vf") + 1]
+    with pytest.raises(videos.VideoRejectedError, match="VIDEO_DIMENSIONS_EXCEEDED"):
+        videos._normalization(info)
     with pytest.raises(videos.VideoRejectedError, match="VIDEO_DIMENSIONS_EXCEEDED"):
         videos._metadata(info, clean=True)
 
@@ -233,160 +229,49 @@ def test_compatible_1080p_and_smaller_recordings_keep_the_lossless_path(
 
 
 @pytest.mark.parametrize(
-    ("transfer", "side_data", "expected"),
+    "filename",
     [
-        ("smpte2084", [], 100),
-        ("arib-std-b67", [], 10),
-        (
-            "smpte2084",
-            [{"side_data_type": "Content light level metadata", "max_content": 1200}],
-            12,
-        ),
-        (
-            "smpte2084",
-            [{"side_data_type": "Mastering display metadata", "max_luminance": "10000000/10000"}],
-            10,
-        ),
-        (
-            "smpte2084",
-            [
-                {"side_data_type": "Mastering display metadata", "max_luminance": "4000/1"},
-                {"side_data_type": "Content light level metadata", "max_content": 600},
-            ],
-            6,
-        ),
+        "hevc-sdr.mp4",
+        "hevc-hlg.mp4",
+        "hevc-pq.mp4",
+        "hevc-main10.mov",
+        "hevc-rotated.mov",
+        "h264-high10-pcm.mov",
+        "h264-mp3.mp4",
+        "pq-highlight-steps.mp4",
+        "pq-mastered-steps.mp4",
+        "hlg-highlight-steps.mp4",
     ],
 )
-def test_hdr_peak_is_resolved_from_source_before_transfer_becomes_linear(
-    transfer: str, side_data: list[dict[str, Any]], expected: float
-) -> None:
-    assert videos._hdr_peak({"color_transfer": transfer, "side_data_list": side_data}) == expected
+def test_real_unprepared_recordings_are_never_reencoded_or_published(
+    processor, tmp_path: Path, filename: str
+) -> None:  # type: ignore[no-untyped-def]
+    with pytest.raises(videos.VideoRejectedError, match="VIDEO_CODEC_UNSUPPORTED"):
+        videos.process(SAMPLE.parent / filename, tmp_path)
+    assert not (tmp_path / "sanitized.mp4").exists()
 
 
-@pytest.mark.parametrize("value", [0, -1, 100, 10_001, "nan", "inf", "1/0", None])
-def test_unusable_hdr_metadata_cannot_destroy_the_transfer_specific_fallback(value: Any) -> None:
+def test_real_device_prepared_1080p_preserves_every_decoded_pixel(
+    processor, tmp_path: Path
+) -> None:  # type: ignore[no-untyped-def]
+    source = SAMPLE.parent / "detail-motion-1080p-avc.mp4"
+    result = videos.process(source, tmp_path)
+    assert (result.width, result.height) == (1920, 1080)
     assert (
-        videos._hdr_peak(
-            {
-                "color_transfer": "smpte2084",
-                "side_data_list": [
-                    {"side_data_type": "Content light level metadata", "max_content": value}
-                ],
-            }
-        )
-        == 100
+        ImageChops.difference(
+            decoded_frame(source, tmp_path / "source.jpg"),
+            decoded_frame(result.path, tmp_path / "retained.jpg"),
+        ).getbbox()
+        is None
     )
 
 
-def test_hdr_frame_probe_uses_the_selected_primary_stream(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    commands = []
-
-    def probe(command: list[str], **options: Any) -> bytes:
-        commands.append(command)
-        return b'{"frames": []}'
-
-    monkeypatch.setattr(videos, "_run", probe)
-    videos._probe(tmp_path / "source.mov", hdr_stream_index=5)
-    command = commands[0]
-    assert command[command.index("-select_streams") + 1] == "5"
-    assert command[command.index("-read_intervals") + 1] == "%+#1"
-
-
-@pytest.mark.parametrize(
-    "filename", ["pq-highlight-steps.mp4", "pq-mastered-steps.mp4", "hlg-highlight-steps.mp4"]
-)
-def test_real_hdr_keeps_neutral_shadows_midtones_and_distinct_highlights(
-    processor, tmp_path: Path, filename: str
+def test_real_prepared_audio_packets_survive_server_validation_unchanged(
+    processor, tmp_path: Path
 ) -> None:  # type: ignore[no-untyped-def]
-    result = videos.process(SAMPLE.parent / filename, tmp_path)
-    if filename == "pq-mastered-steps.mp4":
-        frames = videos._probe(SAMPLE.parent / filename, hdr_stream_index=0)["frames"]
-        assert videos._hdr_peak({**frames[0], "color_transfer": "smpte2084"}) == 10
-    assert result.thumbnail
-    with Image.open(io.BytesIO(result.thumbnail)) as poster:
-        rgb = poster.convert("RGB")
-        patches = [rgb.getpixel((40 + i * 80, 80)) for i in range(8)]
-    assert all(max(pixel) - min(pixel) <= 3 for pixel in patches)
-    levels = [pixel[0] for pixel in patches]
-    assert levels[0] <= 3  # No lifted blacks or implicit HDR relabelling.
-    assert 100 <= levels[2] <= 135  # The known 18-nit midtone remains visible.
-    assert 250 <= levels[-1] <= 255
-    assert all(left < right for left, right in pairwise(levels))
-    # The old post-linear PQ fallback collapsed all three patches to white.
-    assert levels[-3] <= 248
-    assert levels[-1] - levels[-3] >= 7
-    primary, _ = videos._streams(videos._probe(result.path))
-    assert primary["color_transfer"] == primary["color_primaries"] == "bt709"
-    assert primary["color_range"] == "tv"
-    assert not primary.get("side_data_list")
-
-
-def test_real_conversion_retains_moving_1080p_detail(processor, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
-    source = SAMPLE.parent / "detail-motion-1080p.mp4"
-    result = videos.process(source, tmp_path)
-    assert (result.width, result.height) == (1920, 1080)
-    frames = []
-    for index, path in enumerate([source, result.path]):
-        frames.append(decoded_frame(path, tmp_path / f"detail-{index}.jpg"))
-    difference = ImageStat.Stat(ImageChops.difference(*frames))
-    mse = sum(difference.sum2) / (1920 * 1080 * 3)
-    psnr = 10 * math.log10(255**2 / mse) if mse else math.inf
-    assert psnr >= 40, f"Moving detail PSNR fell to {psnr:.2f} dB"
-
-
-@pytest.mark.parametrize(
-    ("filename", "dimensions", "has_audio"),
-    [
-        ("hevc-sdr.mp4", (96, 64), True),
-        ("hevc-hlg.mp4", (96, 64), True),
-        ("hevc-pq.mp4", (96, 64), True),
-        ("hevc-main10.mov", (96, 64), False),
-        ("hevc-rotated.mov", (64, 96), False),
-        ("h264-high10-pcm.mov", (96, 64), True),
-        ("h264-mp3.mp4", (96, 64), True),
-    ],
-)
-def test_common_smartphone_recordings_produce_clean_playable_media(
-    processor, tmp_path: Path, filename: str, dimensions: tuple[int, int], has_audio: bool
-) -> None:  # type: ignore[no-untyped-def]
-    source = SAMPLE.parent / filename
-    result = videos.process(source, tmp_path)
-    assert (result.width, result.height) == dimensions
-    assert result.thumbnail
-    info = videos._probe(result.path)
-    primary, audio = videos._streams(info)
-    assert primary["codec_name"] == "h264"
-    assert primary["pix_fmt"] in {"yuv420p", "yuvj420p"}
-    assert len(audio) == int(has_audio)
-    assert all(s["codec_name"] == "aac" for s in audio)
-    assert abs(float(info["format"]["duration"]) - 1) < 0.1
-    assert all(s["codec_type"] in {"video", "audio"} for s in info["streams"])
-    if filename.startswith("hevc"):
-        assert not any("rotation" in side for side in primary.get("side_data_list", []))
-    assert b"synthetic-private" not in result.path.read_bytes()
-    assert b"synthetic-private" not in result.thumbnail
-    if filename in {"hevc-sdr.mp4", "hevc-hlg.mp4", "hevc-pq.mp4"}:
-        # The existing AAC recording survives normalization byte for byte.
-        original_audio = packet_hashes(source, "a:0")
-        assert original_audio and packet_hashes(result.path, "a:0") == original_audio
-    if filename in {"hevc-hlg.mp4", "hevc-pq.mp4"}:
-        assert primary["color_transfer"] == primary["color_primaries"] == "bt709"
-        assert primary["color_space"] == "bt709"
-        assert not primary.get("side_data_list")
-        # Known flat red/green/blue bars in the synthetic source must retain
-        # readable brightness and their dominant hue after actual tone mapping.
-        # Merely relabelling the HDR YUV samples does not satisfy these bounds.
-        with Image.open(io.BytesIO(result.thumbnail)) as poster:
-            rgb = poster.convert("RGB")
-            for channel, x in enumerate([50, 130, 360]):
-                pixel = rgb.getpixel((x, 400))
-                assert pixel[channel] > 160
-                assert all(
-                    value < pixel[channel] / 2 for c, value in enumerate(pixel) if c != channel
-                )
-    assert videos._metadata(info, clean=True)[:2] == dimensions
+    result = videos.process(SAMPLE, tmp_path)
+    packets = packet_hashes(SAMPLE, "a:0")
+    assert packets and packet_hashes(result.path, "a:0") == packets
 
 
 def test_non_media_tracks_and_attached_pictures_cannot_replace_the_recording() -> None:

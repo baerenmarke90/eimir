@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -636,7 +637,7 @@ function CollectionProductDetail({
         titleEditor={
           isEditing ? (
             <form
-              className="planning-collection-title-form"
+              className="planning-collection-title-form free-composer"
               onSubmit={(e) => {
                 e.preventDefault();
                 submitCollection(e);
@@ -793,6 +794,7 @@ function CollectionProductDetail({
               disabled={createItem.isPending || isReordering}
               ref={addInputRef}
               id="collection-new-item"
+              className="composer-authored-field"
               name="title"
               required
               maxLength={200}

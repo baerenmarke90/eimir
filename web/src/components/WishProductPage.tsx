@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { TaskBackButton } from './TaskBackButton';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import { ContextTagList } from './ContextTagList';
@@ -324,6 +325,7 @@ export function WishProductPage({
           isEditing ? (
             <input
               form="wish-edit-form"
+              className="composer-authored-title"
               name="title"
               required
               maxLength={200}
@@ -405,7 +407,7 @@ export function WishProductPage({
               editorRef={tagEditor}
               disabled={writesPending}
             />
-            <div className="form-grid">
+            <div className="form-grid free-composer">
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button
                   form="wish-edit-form"
@@ -522,7 +524,10 @@ export function WishProductPage({
             <section className="planning-subsection">
               <h2>{t('m5s3.wish.convertHeading')}</h2>
               <p>{t('m5s3.wish.convertIntro')}</p>
-              <form className="form-grid" onSubmit={submitConvert}>
+              <form
+                className="form-grid free-composer"
+                onSubmit={submitConvert}
+              >
                 <fieldset
                   className="planen-lifecycle-fieldset"
                   disabled={writesPending}

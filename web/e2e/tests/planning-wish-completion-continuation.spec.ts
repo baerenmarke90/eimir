@@ -374,7 +374,7 @@ async function captureEvidence(
 }
 
 for (const scenario of visualScenarios) {
-  test(`Wish continuation uses standard borderless filled controls: ${scenario.name}`, async ({
+  test(`Wish continuation frames authored fields and keeps utility controls tonal: ${scenario.name}`, async ({
     page,
   }, info) => {
     await page.setViewportSize(scenario.viewport);
@@ -411,7 +411,14 @@ for (const scenario of visualScenarios) {
       const border = await control.evaluate(
         (node) => getComputedStyle(node).borderTopWidth,
       );
-      expect(parseFloat(border)).toBe(0);
+      const authored =
+        selector === '#wish-plan-title' ||
+        selector === '#wish-plan-description';
+      const role = await control.evaluate(
+        (node, name) => getComputedStyle(node).getPropertyValue(name),
+        authored ? '--border-authored-width' : '--border-control-width',
+      );
+      expect(parseFloat(border)).toBe(parseFloat(role));
       expect(
         await control.evaluate(
           (node) => getComputedStyle(node).backgroundColor,
@@ -431,7 +438,7 @@ for (const scenario of visualScenarios) {
     await captureScreenshot(
       page,
       info,
-      `wish-borderless-controls-${scenario.name}.png`,
+      `wish-authored-controls-${scenario.name}.png`,
       { fullPage: true },
     );
     await assertNoWcagViolations(page);
@@ -441,8 +448,16 @@ for (const scenario of visualScenarios) {
         'border-top-width',
         '1px',
       );
+      await expect(page.locator('#wish-plan-place')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
       await page.emulateMedia({ forcedColors: 'none' });
       await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
+      await expect(page.locator('#wish-plan-place')).toHaveCSS(
         'border-top-width',
         '0px',
       );

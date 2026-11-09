@@ -49,6 +49,7 @@ import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PlanningCreatePage.css';
+import './FreeComposer.css';
 
 type PlanningCreateKind = 'plan' | 'wish';
 
@@ -336,7 +337,7 @@ export function PlanningCreatePage({
 
   const isPlan = kind === 'plan';
   return (
-    <div className="page planning-create-task">
+    <div className="page planning-create-task free-composer">
       <PageHeader
         before={
           <TaskBackButton
@@ -370,6 +371,14 @@ export function PlanningCreatePage({
           <legend className="sr-only">
             {t(isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading')}
           </legend>
+          {isPlan ? (
+            <div className="composer-context composer-schedule">
+              <PlanScheduleFields
+                idPrefix="planning-create-schedule"
+                includeEnd
+              />
+            </div>
+          ) : null}
           <div className="field-group planning-intention-field">
             <label htmlFor="planning-create-title">
               {t(
@@ -393,6 +402,20 @@ export function PlanningCreatePage({
             />
           </div>
 
+          {isPlan ? (
+            <div className="field-group">
+              <label htmlFor="planning-create-description">
+                {t('m5s3.common.description')}
+              </label>
+              <textarea
+                id="planning-create-description"
+                name="description"
+                rows={4}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </div>
+          ) : null}
           {isPlan ? (
             <PlanPhotosEditor
               controller={photos}
@@ -437,13 +460,6 @@ export function PlanningCreatePage({
               ) : null}
             </div>
           ) : null}
-          <MemoryTagChoices
-            parentType={isPlan ? 'PLAN' : 'WISH'}
-            selected={tags}
-            onChange={setTags}
-            editorRef={tagEditor}
-            onDraftChange={() => setEnrichmentDirty(true)}
-          />
           {isPlan ? (
             <section
               className="plan-collection-links"
@@ -469,24 +485,13 @@ export function PlanningCreatePage({
               />
             </section>
           ) : null}
-          {isPlan ? (
-            <details className="planning-optional-details">
-              <summary>{t('m5s3.plan.addDetails')}</summary>
-              <div className="planning-optional-fields eimir-motion-disclosure">
-                <label htmlFor="planning-create-description">
-                  {t('m5s3.common.description')}
-                </label>
-                <textarea
-                  id="planning-create-description"
-                  name="description"
-                  rows={4}
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                />
-                <PlanScheduleFields idPrefix="planning-create-schedule" />
-              </div>
-            </details>
-          ) : null}
+          <MemoryTagChoices
+            parentType={isPlan ? 'PLAN' : 'WISH'}
+            selected={tags}
+            onChange={setTags}
+            editorRef={tagEditor}
+            onDraftChange={() => setEnrichmentDirty(true)}
+          />
         </fieldset>
 
         <div className="form-actions planning-task-actions">

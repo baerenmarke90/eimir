@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -142,7 +143,7 @@ function ChapterEditor({
     setDraft({ ...draft, ...values });
 
   return (
-    <section className="planning-subsection">
+    <section className="planning-subsection free-composer">
       <h2>{t('m5s3.common.edit')}</h2>
       {lifecycle.showDiscardConfirm ? (
         <PlanningDiscardConfirmation
@@ -463,6 +464,7 @@ function ScopedChapterProductPage({
             <input
               ref={titleInputRef}
               form="chapter-edit-form"
+              className="composer-authored-title"
               name="title"
               required
               disabled={updateMutation.isPending || deleteMutation.isPending}

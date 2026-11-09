@@ -2267,7 +2267,8 @@
     "uploadFailed": "The video upload was interrupted. You can resume it.",
     "uploadInterrupted": "Upload interrupted",
     "retryUpload": "Resume upload",
-    "retryUnavailable": "The upload could not start. Open the app with an internet connection and try again."
+    "retryUnavailable": "The upload could not start. Open the app with an internet connection and try again.",
+    "preparationFailed": "This video could not be prepared on your device. Your selection is retained. Try again or choose another video."
   },
   "photoPlaces": {
     "removeSelection": "Remove place selection",
@@ -4068,7 +4069,8 @@
     "show": "Show image",
     "hide": "Hide again",
     "reveal": "Show",
-    "conceal": "Hide"
+    "conceal": "Hide",
+    "shortLabel": "Sensitive"
   },
   "heartEmotion": {
     "LOVED": "Loved",

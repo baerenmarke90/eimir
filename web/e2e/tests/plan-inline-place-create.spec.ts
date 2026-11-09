@@ -319,7 +319,7 @@ async function openPlanCreateForm(page: Page) {
   await page.goto('/plan/plans/new');
   const form = planCreateForm(page);
   await form.getByLabel(m5s3.plan.intentionLabel).fill(PLAN_DRAFT_TITLE);
-  await form.getByText(m5s3.plan.addDetails).click();
+  await expect(form.getByLabel(m5s3.common.description)).toBeVisible();
   return form;
 }
 

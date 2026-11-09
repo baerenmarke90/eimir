@@ -5,17 +5,40 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Pure release/installation policy; network and Android remain adapters. */
 public final class UpdatePolicy {
     public static final String REPOSITORY = "baerenmarke90/eimir";
-    public static final String CATALOG_URL =
-        "https://api.github.com/repos/" + REPOSITORY + "/releases?per_page=30";
+    public static final String RELEASES_API = "https://api.github.com/repos/" + REPOSITORY + "/releases";
+    public static final String CATALOG_URL = RELEASES_API + "?per_page=30";
     public static final String MARKER = "eimir-test-update.json";
     public static final long MAX_APK_BYTES = 256L * 1024 * 1024;
     public static final int MAX_VERSION_CODE = 2_100_000_000;
+    public static final long CHECK_TIMEOUT_MILLIS = 20_000L;
+    private static final Pattern TEST_TAG = Pattern.compile(
+        "android-test-v[0-9]+\\.[0-9]+\\.[0-9]+-test\\.([1-9][0-9]*)");
 
     private UpdatePolicy() {}
+
+    /** The protected publisher binds the test suffix to the monotonic Android code. */
+    public static int testVersionCode(String tag) {
+        Matcher match = TEST_TAG.matcher(tag);
+        require(match.matches());
+        try {
+            long code = Long.parseLong(match.group(1));
+            require(code <= MAX_VERSION_CODE);
+            return (int) code;
+        } catch (NumberFormatException invalid) {
+            throw new IllegalArgumentException("INVALID_RELEASE");
+        }
+    }
+
+    public static String assetUrl(long id) {
+        require(id > 0);
+        return RELEASES_API + "/assets/" + id;
+    }
 
     public static String releaseUrl(String tag, String asset) {
         require(tag.matches("android-test-v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?"));
@@ -42,6 +65,7 @@ public final class UpdatePolicy {
         require(tag.equals("android-test-v" + versionName));
         releaseUrl(tag, MARKER);
         require(versionCode > 0 && versionCode <= MAX_VERSION_CODE);
+        require(versionCode == testVersionCode(tag));
         require(size > 0 && size <= MAX_APK_BYTES);
         require(sha256.matches("[0-9a-f]{64}"));
         require(minSdk >= 26 && minSdk <= 100);

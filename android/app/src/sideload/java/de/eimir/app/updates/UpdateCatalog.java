@@ -2,6 +2,10 @@ package de.eimir.app.updates;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /** A release is eligible only when its final publication marker binds its APK. */
 final class UpdateCatalog {
@@ -10,7 +14,7 @@ final class UpdateCatalog {
         void ensureActive();
     }
     static final class Offer {
-        final String versionName, sourceRevision, releaseNotes, url, sha256;
+        final String versionName, sourceRevision, releaseNotes, url, downloadUrl, sha256;
         final int versionCode, minSdk;
         final long size;
 
@@ -35,6 +39,7 @@ final class UpdateCatalog {
             UpdatePolicy.require(name.equals(apk.getString("name")));
             UpdatePolicy.require(url.equals(apk.getString("browser_download_url")));
             UpdatePolicy.require(size == integer(apk, "size"));
+            downloadUrl = UpdatePolicy.assetUrl(integer(apk, "id"));
             UpdatePolicy.validateMetadata(manifest.getString("packageName"), expectedPackage,
                 versionName, tag, code, size, sha256, minSdk, sourceRevision);
             versionCode = (int) code;
@@ -47,10 +52,23 @@ final class UpdateCatalog {
         return ((Number) value).longValue();
     }
 
+    private static final class Candidate {
+        final String tag;
+        final int code;
+        final JSONObject marker, apk;
+        Candidate(String tag, int code, JSONObject marker, JSONObject apk) {
+            this.tag = tag;
+            this.code = code;
+            this.marker = marker;
+            this.apk = apk;
+        }
+    }
+
     static Offer discover(Reader transport, String expectedPackage, int sdk) throws Exception {
         JSONArray releases = new JSONArray(transport.readJson(UpdatePolicy.CATALOG_URL, 2 * 1024 * 1024));
         UpdatePolicy.require(releases.length() <= 30);
-        Offer best = null;
+        List<Candidate> candidates = new ArrayList<>();
+        Set<Integer> codes = new HashSet<>();
         for (int index = 0; index < releases.length(); index++) {
             transport.ensureActive();
             JSONObject release = releases.getJSONObject(index);
@@ -71,26 +89,26 @@ final class UpdateCatalog {
                 }
             }
             if (marker == null) continue;
+            int code = UpdatePolicy.testVersionCode(tag);
+            // This immutable package migration is also enforced by the publisher.
+            if ("de.eimir.app".equals(expectedPackage) && code <= 38) continue;
+            UpdatePolicy.require(codes.add(code));
+            candidates.add(new Candidate(tag, code, marker, apk));
+        }
+        candidates.sort((left, right) -> Integer.compare(right.code, left.code));
+        for (Candidate candidate : candidates) {
+            transport.ensureActive();
+            String tag = candidate.tag;
+            JSONObject marker = candidate.marker, apk = candidate.apk;
             UpdatePolicy.require(apk != null && integer(marker, "size") > 0 && integer(marker, "size") <= 32_768);
             String markerUrl = UpdatePolicy.releaseUrl(tag, UpdatePolicy.MARKER);
             UpdatePolicy.require(markerUrl.equals(marker.getString("browser_download_url")));
-            JSONObject manifest = new JSONObject(transport.readJson(markerUrl, 32_768));
-            String packageName = manifest.getString("packageName");
-            boolean historical = "de.eimir.app".equals(expectedPackage)
-                && "de.sidebyside.app".equals(packageName);
-            Offer offer = new Offer(manifest, tag, apk, historical ? packageName : expectedPackage);
-            if (historical) {
-                // Validate historical metadata fully before excluding the old sandbox.
-                UpdatePolicy.require(offer.versionCode <= 38
-                    && offer.versionName.equals("0.2.0-test." + offer.versionCode));
-                continue;
-            }
+            JSONObject manifest = new JSONObject(transport.readJson(
+                UpdatePolicy.assetUrl(integer(marker, "id")), 32_768));
+            Offer offer = new Offer(manifest, tag, apk, expectedPackage);
             if (offer.minSdk > sdk) continue;
-            if (best != null && best.versionCode == offer.versionCode) {
-                UpdatePolicy.require(best.sha256.equals(offer.sha256) && best.url.equals(offer.url));
-            }
-            if (best == null || offer.versionCode > best.versionCode) best = offer;
+            return offer;
         }
-        return best;
+        return null;
     }
 }

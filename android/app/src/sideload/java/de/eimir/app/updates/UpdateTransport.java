@@ -10,6 +10,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.HttpsURLConnection;
 
@@ -18,8 +22,32 @@ final class UpdateTransport implements UpdateCatalog.Reader {
     interface Progress { void changed(long bytes); }
     private final AtomicBoolean cancelled = new AtomicBoolean();
     private volatile HttpsURLConnection connection;
+    interface ConnectionFactory { HttpsURLConnection open(String url) throws Exception; }
+    private final ConnectionFactory connections;
+    private final LongSupplier elapsedTime;
+    private final long checkTimeoutMillis;
+    private final ScheduledThreadPoolExecutor deadlines;
+    private long checkDeadline;
 
-    void reset() { cancelled.set(false); }
+    UpdateTransport() {
+        this(url -> (HttpsURLConnection) new URL(url).openConnection(),
+            System::nanoTime, UpdatePolicy.CHECK_TIMEOUT_MILLIS);
+    }
+
+    UpdateTransport(ConnectionFactory connections, LongSupplier elapsedTime, long checkTimeoutMillis) {
+        this.connections = connections;
+        this.elapsedTime = elapsedTime;
+        this.checkTimeoutMillis = checkTimeoutMillis;
+        deadlines = new ScheduledThreadPoolExecutor(1, runnable -> {
+            Thread thread = new Thread(runnable, "eimir-update-deadline");
+            thread.setDaemon(true);
+            return thread;
+        });
+        deadlines.setRemoveOnCancelPolicy(true);
+    }
+
+    void reset() { cancelled.set(false); checkDeadline = 0; }
+    void close() { cancel(); deadlines.shutdownNow(); }
     boolean isCancelled() { return cancelled.get(); }
 
     void cancel() {
@@ -34,7 +62,10 @@ final class UpdateTransport implements UpdateCatalog.Reader {
 
     public String readJson(String url, int limit) throws Exception {
         ByteArrayOutputStream result = new ByteArrayOutputStream();
-        transfer(url, result, limit, -1, 60_000L, null, bytes -> {});
+        if (checkDeadline == 0) {
+            checkDeadline = elapsedTime.getAsLong() + TimeUnit.MILLISECONDS.toNanos(checkTimeoutMillis);
+        }
+        transfer(url, result, limit, -1, checkDeadline, null, bytes -> {});
         return result.toString(StandardCharsets.UTF_8.name());
     }
 
@@ -42,38 +73,52 @@ final class UpdateTransport implements UpdateCatalog.Reader {
         throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         try (FileOutputStream output = new FileOutputStream(destination)) {
-            transfer(url, output, expectedSize, expectedSize, 15 * 60_000L, digest, progress);
+            transfer(url, output, expectedSize, expectedSize,
+                elapsedTime.getAsLong() + TimeUnit.MINUTES.toNanos(15), digest, progress);
             output.getFD().sync();
         }
         if (!UpdatePolicy.validDigest(digest.digest(), sha256)) throw new IOException("INTEGRITY");
         ensureActive();
     }
 
+    private long remaining(long deadline) throws IOException {
+        ensureActive();
+        long remaining = deadline - elapsedTime.getAsLong();
+        if (remaining <= 0) throw new IOException("NETWORK");
+        return remaining;
+    }
+
+    private int socketTimeout(long deadline) throws IOException {
+        return (int) Math.min(15_000L, Math.max(1L,
+            TimeUnit.NANOSECONDS.toMillis(remaining(deadline))));
+    }
+
     private void transfer(String initialUrl, OutputStream output, long limit, long expectedSize,
-        long timeout, MessageDigest digest, Progress progress) throws Exception {
-        long deadline = System.nanoTime() + timeout * 1_000_000L;
+        long deadline, MessageDigest digest, Progress progress) throws Exception {
         String url = initialUrl;
-        try {
-            for (int redirects = 0; redirects <= 5; redirects++) {
-                ensureActive();
-                if (!UpdatePolicy.allowedTransportUrl(url)) throw new IOException("INVALID_RELEASE");
-                HttpsURLConnection current = (HttpsURLConnection) new URL(url).openConnection();
-                connection = current;
+        for (int redirects = 0; redirects <= 5; redirects++) {
+            remaining(deadline);
+            if (!UpdatePolicy.allowedTransportUrl(url)) throw new IOException("INVALID_RELEASE");
+            HttpsURLConnection current = connections.open(url);
+            connection = current;
+            ScheduledFuture<?> expiry = null;
+            try {
+                // Capture this connection so an old deadline cannot abort a newer request.
+                expiry = deadlines.schedule(current::disconnect, remaining(deadline), TimeUnit.NANOSECONDS);
                 current.setInstanceFollowRedirects(false);
-                current.setConnectTimeout(15_000);
-                current.setReadTimeout(15_000);
+                current.setConnectTimeout(socketTimeout(deadline));
+                current.setReadTimeout(socketTimeout(deadline));
                 current.setRequestProperty("User-Agent", "eimir-android-test-updates");
-                current.setRequestProperty("Accept", "application/json, application/octet-stream");
+                current.setRequestProperty("Accept", url.startsWith(UpdatePolicy.RELEASES_API + "/assets/")
+                    ? "application/octet-stream" : "application/json, application/octet-stream");
                 current.setRequestProperty("Accept-Encoding", "identity");
                 current.setUseCaches(false);
                 int status = current.getResponseCode();
-                ensureActive();
-                if (System.nanoTime() > deadline) throw new IOException("NETWORK");
+                remaining(deadline);
                 if (status == 301 || status == 302 || status == 303 || status == 307 || status == 308) {
                     String location = current.getHeaderField("Location");
                     if (location == null) throw new IOException("NETWORK");
                     url = new URL(new URL(url), location).toString();
-                    current.disconnect();
                     continue;
                 }
                 if (status != 200) throw new IOException("NETWORK");
@@ -86,29 +131,31 @@ final class UpdateTransport implements UpdateCatalog.Reader {
                 try (InputStream input = current.getInputStream()) {
                     byte[] buffer = new byte[64 * 1024];
                     int count;
-                    while ((count = input.read(buffer)) != -1) {
-                        ensureActive();
-                        if (System.nanoTime() > deadline) throw new IOException("NETWORK");
+                    while (true) {
+                        current.setReadTimeout(socketTimeout(deadline));
+                        count = input.read(buffer);
+                        remaining(deadline);
+                        if (count == -1) break;
                         total += count;
                         if (total > limit) throw new IOException("INTEGRITY");
                         output.write(buffer, 0, count);
                         if (digest != null) digest.update(buffer, 0, count);
-                        if (System.nanoTime() - lastProgress >= 200_000_000L) {
+                        if (elapsedTime.getAsLong() - lastProgress >= 200_000_000L) {
                             progress.changed(total);
-                            lastProgress = System.nanoTime();
+                            lastProgress = elapsedTime.getAsLong();
                         }
                     }
                 }
-                ensureActive();
+                remaining(deadline);
                 if (expectedSize >= 0 && total != expectedSize) throw new IOException("INTEGRITY");
                 progress.changed(total);
                 return;
+            } finally {
+                if (expiry != null) expiry.cancel(false);
+                current.disconnect();
+                if (connection == current) connection = null;
             }
-            throw new IOException("NETWORK");
-        } finally {
-            HttpsURLConnection current = connection;
-            connection = null;
-            if (current != null) current.disconnect();
         }
+        throw new IOException("NETWORK");
     }
 }

@@ -9,11 +9,19 @@ import org.junit.Test;
 
 public class UpdateCatalogTest {
     private static final String PACKAGE = "de.eimir.app";
-    private static final String NAME = "0.2.0-test.1";
+    private static final String NAME = "0.2.0-test.56";
     private static final String TAG = "android-test-v" + NAME;
 
+    private long assetId(String tag, String name) {
+        return Integer.toUnsignedLong((tag + "/" + name).hashCode()) + 1;
+    }
+
+    private String markerUrl(String name) {
+        return UpdatePolicy.assetUrl(assetId("android-test-v" + name, UpdatePolicy.MARKER));
+    }
+
     private JSONObject asset(String tag, String name, long size) throws Exception {
-        return new JSONObject().put("name", name).put("size", size)
+        return new JSONObject().put("id", assetId(tag, name)).put("name", name).put("size", size)
             .put("browser_download_url", UpdatePolicy.releaseUrl(tag, name));
     }
 
@@ -52,71 +60,95 @@ public class UpdateCatalogTest {
         assertEquals(1, reader.reads);
     }
 
-    @Test public void discoversAnExplicitPrereleaseWithoutRelyingOnStableLatest() throws Exception {
+    @Test public void discoversAnExplicitPrereleaseUsingTheExactPublicAssetIds() throws Exception {
         Reader reader = new Reader(new JSONArray().put(release(NAME, true)));
-        reader.responses.put(UpdatePolicy.releaseUrl(TAG, UpdatePolicy.MARKER), manifest(NAME, 1).toString());
+        reader.responses.put(markerUrl(NAME), manifest(NAME, 56).toString());
         UpdateCatalog.Offer offer = UpdateCatalog.discover(reader, PACKAGE, 36);
         assertEquals(NAME, offer.versionName);
         assertEquals(1024, offer.size);
+        assertEquals(UpdatePolicy.releaseUrl(TAG, "eimir-" + TAG + ".apk"), offer.url);
+        assertEquals(UpdatePolicy.assetUrl(assetId(TAG, "eimir-" + TAG + ".apk")), offer.downloadUrl);
         assertEquals(2, reader.reads);
     }
 
     @Test public void choosesTheHighestCompatibleCodeRatherThanReleaseArrayOrder() throws Exception {
-        String other = "0.2.0-test.2";
+        String other = "0.2.0-test.57";
         Reader reader = new Reader(new JSONArray().put(release(NAME, true)).put(release(other, true)));
-        reader.responses.put(UpdatePolicy.releaseUrl(TAG, UpdatePolicy.MARKER), manifest(NAME, 2).toString());
-        String otherUrl = UpdatePolicy.releaseUrl("android-test-v" + other, UpdatePolicy.MARKER);
-        reader.responses.put(otherUrl, manifest(other, 3).toString());
-        assertEquals(3, UpdateCatalog.discover(reader, PACKAGE, 36).versionCode);
-        reader.responses.put(otherUrl, manifest(other, 3).put("minSdk", 37).toString());
-        assertEquals(2, UpdateCatalog.discover(reader, PACKAGE, 36).versionCode);
+        reader.responses.put(markerUrl(NAME), manifest(NAME, 56).toString());
+        reader.responses.put(markerUrl(other), manifest(other, 57).toString());
+        assertEquals(57, UpdateCatalog.discover(reader, PACKAGE, 36).versionCode);
+        assertEquals(2, reader.reads);
+        reader.reads = 0;
+        reader.responses.put(markerUrl(other), manifest(other, 57).put("minSdk", 37).toString());
+        assertEquals(56, UpdateCatalog.discover(reader, PACKAGE, 36).versionCode);
+        assertEquals(3, reader.reads);
+    }
+
+    @Test public void aFullCatalogWithUnavailableOldMarkersNeedsOnlyTwoRequests() throws Exception {
+        JSONArray releases = new JSONArray();
+        for (int code = 28; code <= 57; code++) releases.put(release("0.2.0-test." + code, true));
+        Reader reader = new Reader(releases);
+        reader.responses.put(markerUrl("0.2.0-test.57"), manifest("0.2.0-test.57", 57).toString());
+        assertEquals(57, UpdateCatalog.discover(reader, PACKAGE, 36).versionCode);
+        assertEquals(2, reader.reads);
     }
 
     @Test public void rejectsMarkerMetadataAndManifestDisagreement() throws Exception {
         JSONObject release = release(NAME, true);
-        JSONObject badApk = release.getJSONArray("assets").getJSONObject(0);
-        badApk.put("browser_download_url", "https://evil.test/update.apk");
+        release.getJSONArray("assets").getJSONObject(0)
+            .put("browser_download_url", "https://evil.test/update.apk");
         Reader reader = new Reader(new JSONArray().put(release));
-        reader.responses.put(UpdatePolicy.releaseUrl(TAG, UpdatePolicy.MARKER), manifest(NAME, 1).toString());
+        reader.responses.put(markerUrl(NAME), manifest(NAME, 56).toString());
         assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
     }
 
-    @Test public void rejectsWrongPackageAndNonintegerCodesBeforeDownloadingTheApk() throws Exception {
+    @Test public void rejectsWrongPackageAndNonintegerOrMisorderedCodes() throws Exception {
         Reader reader = new Reader(new JSONArray().put(release(NAME, true)));
-        String marker = UpdatePolicy.releaseUrl(TAG, UpdatePolicy.MARKER);
-        reader.responses.put(marker, manifest(NAME, 1).put("packageName", "another.app").toString());
+        reader.responses.put(markerUrl(NAME), manifest(NAME, 56).put("packageName", "another.app").toString());
         assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
-        for (Object code : new Object[]{"1", 1.5, -1, 2_100_000_001L}) {
-            reader.responses.put(marker, manifest(NAME, 1).put("versionCode", code).toString());
+        for (Object code : new Object[]{"56", 56.5, -1, 57, 2_100_000_001L}) {
+            reader.responses.put(markerUrl(NAME), manifest(NAME, 56).put("versionCode", code).toString());
             assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
         }
     }
 
-    @Test public void canonicalCatalogValidatesAndSkipsOnlyTheHistoricalLegacyChannel() throws Exception {
-        String legacy = "0.2.0-test.38";
-        String current = "0.2.0-test.39";
+    @Test public void doesNotFetchHistoricalMarkersFromTheRetiredPackage() throws Exception {
+        String legacy = "0.2.0-test.38", current = "0.2.0-test.39";
         Reader reader = new Reader(new JSONArray().put(release(legacy, true)).put(release(current, true)));
-        String legacyUrl = UpdatePolicy.releaseUrl("android-test-v" + legacy, UpdatePolicy.MARKER);
-        JSONObject old = manifest(legacy, 38).put("packageName", "de.sidebyside.app");
-        reader.responses.put(legacyUrl, old.toString());
-        reader.responses.put(UpdatePolicy.releaseUrl("android-test-v" + current, UpdatePolicy.MARKER),
-            manifest(current, 39).toString());
+        reader.responses.put(markerUrl(current), manifest(current, 39).toString());
         assertEquals(39, UpdateCatalog.discover(reader, PACKAGE, 36).versionCode);
+        assertEquals(2, reader.reads);
         Reader historicalOnly = new Reader(new JSONArray().put(release(legacy, true)));
-        historicalOnly.responses.put(legacyUrl, old.toString());
         assertNull(UpdateCatalog.discover(historicalOnly, PACKAGE, 36));
-        old.getJSONObject("asset").put("sha256", "corrupt");
-        reader.responses.put(legacyUrl, old.toString());
-        assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
-        reader.responses.put(legacyUrl, manifest(legacy, 39).put("packageName", "de.sidebyside.app").toString());
+        assertEquals(1, historicalOnly.reads);
+        reader.responses.put(markerUrl(current), manifest(current, 39).put("packageName", "de.sidebyside.app").toString());
         assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
     }
 
     @Test public void rejectsAmbiguousCodesAcrossDifferentReleaseTags() throws Exception {
-        String other = "0.2.0-test.2";
-        Reader reader = new Reader(new JSONArray().put(release(NAME, true)).put(release(other, true)));
-        reader.responses.put(UpdatePolicy.releaseUrl(TAG, UpdatePolicy.MARKER), manifest(NAME, 2).toString());
-        reader.responses.put(UpdatePolicy.releaseUrl("android-test-v" + other, UpdatePolicy.MARKER), manifest(other, 2).toString());
+        Reader reader = new Reader(new JSONArray().put(release(NAME, true)).put(release("0.3.0-test.56", true)));
         assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
+        assertEquals(1, reader.reads);
+    }
+
+    @Test public void invalidSelectedMetadataCannotFallBackToAnOlderOffer() throws Exception {
+        String latest = "0.2.0-test.57";
+        Reader reader = new Reader(new JSONArray().put(release(NAME, true)).put(release(latest, true)));
+        reader.responses.put(markerUrl(latest), manifest(latest, 57)
+            .put("asset", new JSONObject().put("name", "untrusted.apk")).toString());
+        assertThrows(Exception.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
+        assertEquals(2, reader.reads);
+    }
+
+    @Test public void rejectsInvalidMarkerAndApkAssetIds() throws Exception {
+        for (int index = 0; index <= 1; index++) {
+            for (Object id : new Object[]{0, -1, "123", 1.5}) {
+                JSONObject release = release(NAME, true);
+                release.getJSONArray("assets").getJSONObject(index).put("id", id);
+                Reader reader = new Reader(new JSONArray().put(release));
+                reader.responses.put(markerUrl(NAME), manifest(NAME, 56).toString());
+                assertThrows(Exception.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
+            }
+        }
     }
 }

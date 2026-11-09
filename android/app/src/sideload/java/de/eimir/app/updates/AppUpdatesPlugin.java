@@ -96,7 +96,7 @@ public final class AppUpdatesPlugin extends Plugin {
             boolean completed = false;
             try {
                 ready.delete();
-                transport.download(selected.url, partial, selected.size, selected.sha256, bytes -> {
+                transport.download(selected.downloadUrl, partial, selected.size, selected.sha256, bytes -> {
                     synchronized (lock) { progress = (int) (bytes * 100 / selected.size); }
                     publish();
                 });
@@ -179,7 +179,7 @@ public final class AppUpdatesPlugin extends Plugin {
 
     @Override protected void handleOnDestroy() {
         destroyed.set(true);
-        transport.cancel();
+        transport.close();
         worker.shutdownNow();
         super.handleOnDestroy();
     }

@@ -24,7 +24,9 @@ reference. No new screen, settings or visual composition is introduced.
    dimensions are verified. Platform editing diagnostics are disabled.
 3. Web uses the existing serial same-origin Mediabunny/WebCodecs worker. It
    verifies compatible originals before bypassing encoding and verifies completed
-   SDR output before returning it. HDR browser preparation is explicitly
+   SDR output before returning it. Capability probes and conversion use the same
+   platform-selected acceleration, allowing available hardware or software codecs.
+   HDR browser preparation is explicitly
    unsupported: there is no canvas relabeling, remote converter or silent
    original fallback. Unsupported codecs, timeout and worker errors preserve the
    user's selection with localized recovery. Android's HDR path requires API 29.
@@ -64,34 +66,47 @@ device; managed input/output and storage safety limits remain authoritative.
 
 ## Validation and delivery boundaries
 
-- Web: all 2,801 tests passed, two existing skips; 39 focused preparation,
-  reservation, background transport, cancellation and revocation cases passed.
-  Production typecheck/build and touched-source formatting/lint were checked.
-- Backend: 75 focused real-codec/media/privacy cases passed. Prepared 1080p
-  decoded pixels and AAC packets remain unchanged; unprepared HEVC/HDR/high-bit
-  depth/non-AAC input never produces an output. Truncation, unknown metadata,
-  poster failure and encryption-initialization rejection remain covered.
-  Full mypy passes 369 source files. Local acceptance uses the pinned FFmpeg
-  source with all three repository hardening patches, built without the now
-  unused OpenH264/zimg encoding dependencies; hosted Media Video still verifies
-  the exact shipped restricted/static image. System FFmpeg alone does not satisfy
-  the encrypted-container rejection and is not recorded as a complete pass.
-- Native: debug APK and instrumentation APK builds, Android Lint and all 13
-  JVM tests pass locally. The final offline rebuild also passed strict dependency verification. Settings JVM tests and real platform instrumentation cover private
-  staging/adoption with exact sizes, compatible byte identity, high-resolution
-  encoding with audio, HLG/PQ neutral highlights and cancellation. They are wired
-  into the existing API 28/36/37.1 workflow; no runtime pass is inferred from
-  source inspection or a successful Web test. Native build/instrumentation and
-  hosted exact-source results must be checked before merge readiness.
-- Local browser provisioning was attempted: the pinned Playwright download
-  returned a non-ZIP payload, and a separately extracted official Chrome binary
-  failed to start in this execution environment. No local browser pass or new
-  screenshot evidence is claimed. Existing complete video journeys remain
-  selected, with ordinary hosted browser/axe validation.
+The combined source includes #1712's upload-notice binding and mobile intake.
+The shared bridge keeps one owner contract while retaining preparation,
+adoption, source binding and retained notification delivery. The Android
+workflow retains all eight background-transfer cases and all four real-codec
+preparation cases. The compatible-recording case also verifies that a prepared,
+adopted Attachment keeps its canonical parent through progress updates.
+
+- Web: **2,827 tests passed**, with two existing skips; **48 focused bridge,
+  preparation, cancellation, transfer and HeartMoment tests passed**. Typecheck,
+  production/Capacitor build and touched-source formatting/lint pass.
+- Browser: **33 complete video, media/planning and voice journeys pass** on the
+  combined source, including the existing real codec worker, AAC retention,
+  upload recovery, saved placeholders, privacy, navigation and large text.
+  The original hardware-preferred configuration reproduced an unsupported-codec
+  OperationError; matching the capability probe's platform choice fixes it.
+  Product/test assertions were not relaxed. Temporary local Chromium
+  153.0.8010.0 is recorded separately from the hosted pinned browser.
+- Backend: **72 real-codec video/audio/content/streaming cases pass** using the
+  pinned FFmpeg source with all three repository hardening patches. Prepared
+  1080p decoded pixels and AAC packets remain unchanged; unprepared HEVC/HDR/
+  high-bit-depth/non-AAC input fails closed. Truncation, metadata, poster failure
+  and encrypted-container rejection remain covered. Backend source is unchanged
+  from the earlier 369-file mypy pass; hosted Media Video validates the shipped
+  restricted/static image and the database lifecycle.
+- Native: debug APK, instrumentation APK, Lint, all **13 JVM tests**, unsigned
+  release APK and AAB builds pass with **offline strict dependency verification**.
+  The missing Guava parent-POM fingerprint matches both Maven Central's original
+  artifact and the existing local cached artifact; no broad trust exception is
+  added. Actual API 28/36/37.1 instrumentation remains a hosted requirement and is
+  never inferred from compilation or browser mocks.
+- CI fixture generation explicitly installs the system FFmpeg encoder for
+  synthetic input only. Codec acceptance still runs the separately built,
+  pinned and patched restricted processor. Generated test media is not shipped.
+
+Hosted exact-head checks must pass before merge. Physical-device acceptance of
+appearance, tone mapping and phone performance remains separate from synthetic
+codec acceptance.
 
 Deploy matching updated Web/Android/backend/media sources. Compatible old-client
 uploads still work; incompatible old-client originals now fail validation rather
 than silently invoking server compression. Historical lossy video requires a
-new upload from its original. No merge, deployment or release is authorized by
-this task. The supplied stadium recording's appearance and phone performance
-remain physical-device acceptance; no guarantee is inferred from synthetic media.
+new upload from its original. The latest Product Owner request authorizes merging
+#1712 followed by #1714 after their gates pass; deployment and publication remain
+separate delivery steps.

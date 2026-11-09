@@ -65,7 +65,9 @@ jobs:
       - name: Build the pinned restricted codec
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends nasm autoconf automake libtool pkg-config
+          # The system encoder generates synthetic test input only. Acceptance
+          # still uses the separately built, pinned and patched restricted codec.
+          sudo apt-get install -y --no-install-recommends nasm autoconf automake libtool pkg-config ffmpeg
           python3 tools/media/generate-video-quality-fixtures.py backend/tests/fixtures/media
           bash tools/media/build-video-dependencies.sh /tmp/eimir-codec-dependencies /tmp/eimir-codecs
           curl --fail --location --proto '=https' --tlsv1.2 \

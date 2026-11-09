@@ -72,6 +72,16 @@ public class NativeVideoPreparationTest {
         assertEquals("uploading", adopted.phase()); assertEquals("video/mp4", adopted.value.getString("mimeType"));
         assertFalse(BackgroundMediaTransfers.source(context, id).exists());
         assertArrayEquals(bytes, Files.readAllBytes(BackgroundMediaTransfers.source(context, attachment).toPath()));
+        String parent = UUID.randomUUID().toString();
+        BackgroundMediaTransfers.bindTarget(context, instance, account, space, attachment, "MEMORY", parent);
+        BackgroundMediaTransfers.update(context, attachment, "uploading", 50);
+        BackgroundMediaTransfers.Record progress = BackgroundMediaTransfers.read(context, attachment);
+        com.getcapacitor.JSObject opened = BackgroundMediaTransfers.openTarget(context,
+            BackgroundMediaTransfers.notificationIntent(context, progress));
+        assertEquals("The prepared transfer opens its confirmed parent", parent, opened.getString("targetId"));
+        assertEquals("MEMORY", opened.getString("targetType"));
+        assertEquals("The adopted Attachment owns the notice, not its staging identity", attachment,
+            opened.getString("attachmentId"));
     }
     @Test public void highResolutionVideoIsEncodedLocallyWithoutChangingAspectOrSound() throws Exception {
         BackgroundMediaTransfers.Record record = stage("high-resolution-avc.mp4");

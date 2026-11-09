@@ -102,7 +102,9 @@ export async function compressVideo(
         quality,
         frameRate: 30,
         forceTranscode: true,
-        hardwareAcceleration: 'prefer-hardware',
+        // Let the platform choose its available encoder, matching canEncodeVideo.
+        // A hardware preference can reject an otherwise supported software configuration.
+        hardwareAcceleration: 'no-preference',
         allowTransformationMetadata: false,
       },
       audio: { codec: 'aac' },

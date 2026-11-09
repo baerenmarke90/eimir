@@ -1,25 +1,25 @@
-import fixtures from '../fixtures/locales/de';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import tagCopy from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
-import tagCopy from '../../src/i18n/locales/contextTags';
-import photoCopy from '../../src/i18n/locales/photoSources';
 import placeCopy from '../../src/i18n/locales/photoPlaces';
+import photoCopy from '../../src/i18n/locales/photoSources';
 import storyCopy from '../../src/i18n/locales/storyProducts';
-import { fulfillDefaultProductContext } from '../support/productContext';
+import fixtures from '../fixtures/locales/de';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
-  ME,
   CAPABILITIES,
+  captureScreenshot,
   getTimelineItems,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
-  captureScreenshot,
 } from '../support/storyTimelineFixture';
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
@@ -545,6 +545,11 @@ test.describe('photo-local touch gestures', () => {
       await page.touchscreen.tap(x, y);
       await page.touchscreen.tap(x, y);
       await expect.poll(scale).toBeGreaterThan(2);
+      // Zoomed Panzoom admission suppresses native compatibility clicks. The
+      // reverse double tap must still fit the photo, without a control click.
+      await page.touchscreen.tap(x, y);
+      await page.touchscreen.tap(x, y);
+      await expect.poll(scale).toBe(1);
       await dialog
         .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
         .click();

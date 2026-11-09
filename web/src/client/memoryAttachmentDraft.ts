@@ -3,6 +3,7 @@ import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { i18n } from '../i18n';
 import {
+  bindVideoTransferTargets,
   cancelVideoTransfer,
   type NativePreparedVideo,
   prepareNativeVideoForUpload,
@@ -248,6 +249,11 @@ export async function completeMemoryAttachmentBinding(
                 attachment.isSensitive === attachmentSensitivity[index],
             ))
       ) {
+        await bindVideoTransferTargets(
+          spaceId,
+          { targetType: 'MEMORY', targetId: memory.id },
+          attachmentIds,
+        );
         return memory;
       }
       // Do not overwrite another edit while reconciling a lost bind response.
@@ -255,7 +261,7 @@ export async function completeMemoryAttachmentBinding(
         throw new ClientProblemError('conflict', 409);
       }
     }
-    return await apis.memories.replaceMemoryAttachments({
+    const saved = await apis.memories.replaceMemoryAttachments({
       spaceId,
       memoryId: memory.id,
       ifMatch: String(memory.version),
@@ -277,6 +283,12 @@ export async function completeMemoryAttachmentBinding(
         })),
       },
     });
+    await bindVideoTransferTargets(
+      spaceId,
+      { targetType: 'MEMORY', targetId: saved.id },
+      attachmentIds,
+    );
+    return saved;
   } catch (error) {
     throw new MemoryAttachmentBindingError(
       created,
@@ -311,7 +323,14 @@ export async function createMemoryWithReadyAttachments(
     memoryCreate,
     idempotencyKey: options.idempotencyKey,
   });
-  if (memoryCreate.attachments !== undefined) return { memory };
+  if (memoryCreate.attachments !== undefined) {
+    await bindVideoTransferTargets(
+      spaceId,
+      { targetType: 'MEMORY', targetId: memory.id },
+      (memoryCreate.attachments ?? []).map((item) => item.attachmentId),
+    );
+    return { memory };
+  }
   const savedMemory = attachmentIds.length
     ? await completeMemoryAttachmentBinding(
         apis,

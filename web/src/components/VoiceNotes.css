@@ -4,17 +4,7 @@
   min-width: 0;
 }
 .voice-add {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
   justify-self: start;
-}
-.voice-add svg {
-  width: var(--icon-size, 24px);
-  height: var(--icon-size, 24px);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.65;
 }
 .voice-player {
   padding: var(--space-5);

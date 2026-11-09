@@ -151,7 +151,7 @@ it('keeps a retained marker host and camera stable when only its photo changes',
   expect(state.fly).not.toHaveBeenCalled();
 });
 
-it.each(['280ms', '.28s'])(
+it.each(['900ms', '.9s'])(
   'uses %s for one interruptible place flight and the overview reset',
   (duration) => {
     state.width = 390;
@@ -163,7 +163,7 @@ it.each(['280ms', '.28s'])(
         get(target, key) {
           if (key === 'getPropertyValue')
             return (name: string) =>
-              name === '--duration-context'
+              name === '--duration-map-camera'
                 ? duration
                 : target.getPropertyValue(name);
           const value = Reflect.get(target, key);
@@ -187,7 +187,7 @@ it.each(['280ms', '.28s'])(
         focus={{ latitude: 49, longitude: 7 }}
       />,
     );
-    expect(state.fly).toHaveBeenLastCalledWith([49, 7], 15, { duration: 0.28 });
+    expect(state.fly).toHaveBeenLastCalledWith([49, 7], 15, { duration: 0.9 });
     expect(state.fit).toHaveBeenCalledTimes(1);
     expect(
       view.container.firstElementChild?.getAttribute('data-map-moving'),
@@ -198,7 +198,7 @@ it.each(['280ms', '.28s'])(
         focus={{ latitude: 54, longitude: 8 }}
       />,
     );
-    expect(state.fly).toHaveBeenLastCalledWith([54, 8], 15, { duration: 0.28 });
+    expect(state.fly).toHaveBeenLastCalledWith([54, 8], 15, { duration: 0.9 });
     const viewport = view.container.querySelector('.place-map-viewport');
     if (!viewport) throw new Error('Map viewport must exist');
     fireEvent.pointerDown(viewport);
@@ -215,7 +215,7 @@ it.each(['280ms', '.28s'])(
         [49, 7],
         [54, 8],
       ],
-      expect.objectContaining({ duration: 0.28, maxZoom: 12 }),
+      expect.objectContaining({ duration: 0.9, maxZoom: 12 }),
     );
     act(() => state.events.moveend());
     expect(

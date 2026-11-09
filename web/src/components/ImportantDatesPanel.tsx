@@ -503,11 +503,19 @@ export function ImportantDatesPanel({
   spaceId,
   people,
   partnerBirthday = null,
+  ownBirthday = null,
+  relationshipStartedOn = null,
+  sourcesPending = false,
+  sourcesUnavailable = false,
 }: {
   peopleApi: PeopleApi;
   spaceId: string;
   people: RelatedPersonView[];
   partnerBirthday?: PartnerBirthdayProjection | null;
+  ownBirthday?: PartnerBirthdayProjection | null;
+  relationshipStartedOn?: Date | null;
+  sourcesPending?: boolean;
+  sourcesUnavailable?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -736,14 +744,57 @@ export function ImportantDatesPanel({
           ]
         : [],
     ),
-    ...(partnerBirthday
+    ...[ownBirthday, partnerBirthday].flatMap((birthday) =>
+      birthday &&
+      !(datesQuery.data ?? []).some(
+        (date) =>
+          date.type === ImportantDateType.BIRTHDAY &&
+          date.repeats === DateRepeat.ANNUALLY &&
+          date.visibility === ContentVisibility.SHARED &&
+          !date.relatedPersonId &&
+          date.date.getUTCMonth() === birthday.birthday.getUTCMonth() &&
+          date.date.getUTCDate() === birthday.birthday.getUTCDate() &&
+          date.label.trim().toLocaleLowerCase(i18n.language) ===
+            t('importantDates.partnerBirthdayLabel', {
+              name: birthday.displayName,
+            })
+              .trim()
+              .toLocaleLowerCase(i18n.language),
+      )
+        ? [
+            {
+              key: `partner:${birthday.accountId}`,
+              date: birthday.birthday,
+              label: t('importantDates.partnerBirthdayLabel', {
+                name: birthday.displayName,
+              }),
+              custom: null as ImportantDateView | null,
+              person: null as RelatedPersonView | null,
+              partner: true,
+            },
+          ]
+        : [],
+    ),
+    ...(relationshipStartedOn &&
+    Number.isFinite(relationshipStartedOn.getTime()) &&
+    !(datesQuery.data ?? []).some(
+      (date) =>
+        date.type === ImportantDateType.ANNIVERSARY &&
+        date.repeats === DateRepeat.ANNUALLY &&
+        date.visibility === ContentVisibility.SHARED &&
+        !date.relatedPersonId &&
+        date.date.getUTCMonth() === relationshipStartedOn.getUTCMonth() &&
+        date.date.getUTCDate() === relationshipStartedOn.getUTCDate() &&
+        date.label.trim().toLocaleLowerCase(i18n.language) ===
+          t('importantDates.relationshipAnniversary')
+            .trim()
+            .toLocaleLowerCase(i18n.language),
+    )
       ? [
           {
-            key: `partner:${partnerBirthday.accountId}`,
-            date: partnerBirthday.birthday,
-            label: t('importantDates.partnerBirthdayLabel', {
-              name: partnerBirthday.displayName,
-            }),
+            key: 'relationship-anniversary',
+            date: relationshipStartedOn,
+            label: t('importantDates.relationshipAnniversary'),
             custom: null as ImportantDateView | null,
             person: null as RelatedPersonView | null,
             partner: true,
@@ -817,7 +868,10 @@ export function ImportantDatesPanel({
           onRetry={() => void datesQuery.refetch()}
         />
       ) : null}
-      {datesQuery.data && !entries.length ? (
+      {datesQuery.data &&
+      !entries.length &&
+      !sourcesPending &&
+      !sourcesUnavailable ? (
         <UiState kind="empty" title={t('importantDates.emptyTitle')} />
       ) : null}
       <ul className="occasions-list">

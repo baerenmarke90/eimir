@@ -1,5 +1,7 @@
 const de = {
   planLinkedLists: {
+    newPlanTitle: 'Picknick am See',
+    newListTitle: 'Für unseren Ausflug',
     title: 'Ein Tag am See',
     description: 'Zeit am Wasser und ein Picknick.',
     memoryTitle: 'Unser Picknick am See',

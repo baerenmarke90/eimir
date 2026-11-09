@@ -2,6 +2,7 @@ import { AttachmentsApi as GeneratedAttachmentsApi } from '../api/generated/apis
 import { ProfilesApi as GeneratedProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { StoryApi as GeneratedStoryApi } from '../api/generated/apis/StoryApi';
 import { DashboardApi as GeneratedDashboardApi } from '../api/generated/apis/DashboardApi';
+import { PlacesApi as GeneratedPlacesApi } from '../api/generated/apis/PlacesApi';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
   DefaultConfig,
@@ -47,6 +48,40 @@ export class ProfilesApi extends GeneratedProfilesApi {
   constructor(configuration: GeneratedConfiguration = DefaultConfig) {
     super(configuration);
     register(this, configuration);
+  }
+}
+
+/** Map projections share the same authorized thumbnail ownership as Story. */
+export class PlacesApi extends GeneratedPlacesApi {
+  constructor(configuration: GeneratedConfiguration = DefaultConfig) {
+    super(configuration);
+    register(this, configuration);
+  }
+
+  override async listMemoryMap(
+    ...args: Parameters<GeneratedPlacesApi['listMemoryMap']>
+  ) {
+    const lease = captureMediaCacheLease(this, args[0].spaceId);
+    const result = await readMediaProjection(lease, () =>
+      super.listMemoryMap(...args),
+    );
+    rememberAuthorizedMediaPreviews(
+      lease,
+      result.items.flatMap((entry) =>
+        entry.previewAttachmentId && entry.previewHasThumbnail
+          ? [
+              [
+                'attachment',
+                'MEMORY',
+                entry.memoryId,
+                entry.previewAttachmentId,
+                'thumbnail',
+              ],
+            ]
+          : [],
+      ),
+    );
+    return result;
   }
 }
 

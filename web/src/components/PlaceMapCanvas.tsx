@@ -319,7 +319,7 @@ export default function PlaceMapCanvas({
     const duration = container.current
       ? cssDurationMilliseconds(
           getComputedStyle(container.current).getPropertyValue(
-            '--duration-context',
+            '--duration-map-camera',
           ),
         ) / 1000
       : 0;

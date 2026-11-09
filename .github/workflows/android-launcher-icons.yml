@@ -261,7 +261,7 @@ jobs:
             -e class de.eimir.app.BackgroundMediaTransfersTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee background-media-transfers.log
-          grep -Eq '^OK \(4 tests\)' background-media-transfers.log
+          grep -Eq '^OK \(8 tests\)' background-media-transfers.log
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.NativeVideoPreparationTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \

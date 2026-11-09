@@ -144,6 +144,19 @@ Hosted exact-head checks must pass before merge. Physical-device acceptance of
 appearance, tone mapping and phone performance remains separate from synthetic
 codec acceptance.
 
+An API level is not an HDR capability guarantee. The native HDR acceptance uses
+the same `GlUtil.isYuvTargetExtensionSupported()` precondition as
+[Media3's upstream HDR tests](https://github.com/androidx/media/blob/release/libraries/test_utils/src/main/java/androidx/media3/test/utils/HdrCapabilitiesUtil.java),
+plus the platform's decoder query for the actual input track. A capable device
+must complete real tone mapping and every gray/highlight pixel assertion. When
+the actual GL/decoder capability is unavailable, the test still invokes the real
+preparation and requires a recoverable error, byte-identical retained original,
+no prepared state and no encoded output. No test is skipped. Synthetic capability
+booleans are recorded without source names or URIs. An emulator's negative-capability
+pass does not establish positive HDR appearance or speed on a physical phone.
+Production diagnostics retain only Media3's stable error category; raw codec
+messages and source URIs stay out of the error and bridge.
+
 Deploy matching updated Web/Android/backend/media sources. Compatible old-client
 uploads still work; incompatible old-client originals now fail validation rather
 than silently invoking server compression. Historical lossy video requires a

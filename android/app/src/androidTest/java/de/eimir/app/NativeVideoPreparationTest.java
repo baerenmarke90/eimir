@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.media.MediaCodecList;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaFormat;
 import android.net.Uri;
@@ -12,6 +13,9 @@ import android.os.Build;
 import android.os.CancellationSignal;
 import android.provider.OpenableColumns;
 import android.util.AtomicFile;
+import android.util.Log;
+import androidx.media3.common.util.GlUtil;
+import androidx.media3.common.util.UnstableApi;
 import androidx.core.content.FileProvider;
 import androidx.test.platform.app.InstrumentationRegistry;
 import java.io.File;
@@ -25,6 +29,7 @@ import org.junit.After;
 import org.junit.Test;
 
 /** Actual platform encoding and private staged-file handoff, without a network mock codec. */
+@androidx.annotation.OptIn(markerClass = UnstableApi.class)
 public class NativeVideoPreparationTest {
     private final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
     private final String instance = "https://video-preparation.eimir.invalid";
@@ -115,15 +120,33 @@ public class NativeVideoPreparationTest {
         assertEquals("The fixture must contain actual HDR, not relabelled SDR",
             fixture.startsWith("hlg") ? MediaFormat.COLOR_TRANSFER_HLG : MediaFormat.COLOR_TRANSFER_ST2084,
             input.video.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
-        if (Build.VERSION.SDK_INT < 29) {
-            try { NativeVideoPreparation.prepare(context, record, new CancellationSignal()); fail("OpenGL HDR requires API 29"); }
-            catch (java.io.IOException expected) { assertEquals("preparing", BackgroundMediaTransfers.read(context, id).phase()); }
-            return;
-        }
-        if (fixture.startsWith("pq")) {
+        if (fixture.startsWith("pq") && Build.VERSION.SDK_INT >= 29) {
             assertTrue("The native PQ fixture declares supported 1,000-nit mastering",
                 VideoPreparationSettings.supportsPqMastering(
                     input.video.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO), input.video.getByteBuffer("csd-0")));
+        }
+        // API level alone does not promise Media3's HDR input capabilities.
+        // Match the upstream HDR test contract using the actual GL extension
+        // and platform decoder query. Unsupported devices still execute the
+        // real preparation and must retain the original without a raw fallback.
+        boolean yuv = Build.VERSION.SDK_INT >= 29 && GlUtil.isYuvTargetExtensionSupported();
+        boolean decoder = Build.VERSION.SDK_INT >= 29
+            && new MediaCodecList(MediaCodecList.REGULAR_CODECS).findDecoderForFormat(input.video) != null;
+        Log.i("EimirVideoPreparationFixture", "HDR input capabilities: api=" + Build.VERSION.SDK_INT
+            + ", yuv=" + yuv + ", decoder=" + decoder);
+        if (!yuv || !decoder) {
+            try {
+                NativeVideoPreparation.prepare(context, record, new CancellationSignal());
+                fail("Unsupported HDR input must fail instead of becoming an unprocessed fallback");
+            } catch (java.io.IOException expected) {
+                assertEquals("preparing", BackgroundMediaTransfers.read(context, id).phase());
+                assertArrayEquals("Unsupported HDR keeps every original byte",
+                    Files.readAllBytes(original.toPath()),
+                    Files.readAllBytes(BackgroundMediaTransfers.source(context, id).toPath()));
+                assertFalse("Failed HDR cannot leave an encoded output",
+                    BackgroundMediaTransfers.preparationOutput(context, id).exists());
+            }
+            return;
         }
         NativeVideoPreparation.prepare(context, record, new CancellationSignal());
         File output = BackgroundMediaTransfers.source(context, id);

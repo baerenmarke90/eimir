@@ -127,7 +127,9 @@ final class NativeVideoPreparation {
                         .addListener(new Transformer.Listener() {
                             @Override public void onCompleted(Composition composition, ExportResult result) { completed.countDown(); }
                             @Override public void onError(Composition composition, ExportResult result, ExportException failure) {
-                                error.set(new IOException("On-device video preparation failed")); completed.countDown();
+                                // Stable categories aid diagnosis without logging codec messages or source URIs.
+                                error.set(new IOException("On-device video preparation failed: " + failure.getErrorCodeName()));
+                                completed.countDown();
                             }
                         }).build();
                     active.set(transformer);

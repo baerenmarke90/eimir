@@ -9,7 +9,9 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import {
   expectInlineAddLayout,
   expectLabeledAddAction,
+  expectReadableActionLabel,
 } from '../support/addAction';
+import { showContextTags, showHeartAudience } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -117,6 +119,15 @@ async function setup(page: Page, premium = false) {
 }
 
 async function tagGeometry(page: Page) {
+  if (!(await page.getByLabel(contextTags.newLabel).isVisible())) {
+    const disclosure = page.getByRole('button', {
+      name: contextTags.add,
+      exact: true,
+    });
+    await expectLabeledAddAction(disclosure);
+    await expectReadableActionLabel(disclosure);
+  }
+  await showContextTags(page);
   const row = page.locator('.context-tag-entry');
   const input = row.locator('input');
   const add = row.getByRole('button', { name: contextTags.add });
@@ -127,6 +138,13 @@ async function tagGeometry(page: Page) {
     '',
   );
   await expectInlineAddLayout(input, add);
+  const [entryBox, inputBox] = await Promise.all([
+    row.boundingBox(),
+    input.boundingBox(),
+  ]);
+  if (!entryBox || !inputBox)
+    throw new Error('Disclosed tag entry did not render.');
+  expect(inputBox.width).toBeGreaterThanOrEqual(entryBox.width - 1);
   const icon = add.locator('.eimir-icon-hinzufuegen');
   await expect(icon).toBeVisible();
   const symbol = await icon.boundingBox();
@@ -165,6 +183,7 @@ for (const variant of [
         exact: true,
       })
       .fill('A private thought');
+    await showHeartAudience(page);
     await page
       .getByRole('radio', {
         name: storyProducts.heartMomentProduct.visibilityPrivate,
@@ -253,6 +272,7 @@ test('private map choice stays draft-only until parent save and survives picker 
 }) => {
   const result = await setup(page);
   await page.goto('/story/heart-moments/new');
+  await showHeartAudience(page);
   await page
     .getByRole('radio', {
       name: storyProducts.heartMomentProduct.visibilityPrivate,
@@ -317,7 +337,7 @@ for (const destination of [
   '/plan/plans/new',
   '/plan/wishes/new',
 ]) {
-  test(`capture tag entry stays on one row at 320px and 200% text: ${destination}`, async ({
+  test(`capture tag entry remains readable without overlap at 320px and 200% text: ${destination}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: 320, height: 844 });
@@ -326,14 +346,6 @@ for (const destination of [
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
-    // Memory optional enrichment is disclosed by its existing control.
-    const details = page
-      .locator('details')
-      .filter({ has: page.locator('.context-tag-entry') });
-    for (const item of await details.all())
-      await item.evaluate((element) => {
-        (element as HTMLDetailsElement).open = true;
-      });
     await tagGeometry(page);
     if (destination === '/plan/plans/new') {
       await expectLabeledAddAction(

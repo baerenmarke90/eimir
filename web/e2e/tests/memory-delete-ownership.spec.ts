@@ -4,6 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   captureScreenshot,
   getTimelineItems,
@@ -19,7 +20,7 @@ async function expectMemoryControlsContained(page: Page) {
       const bounds = root.getBoundingClientRect();
       return [
         ...root.querySelectorAll(
-          '.memory-form .form-actions > *, .memory-form .file-picker, .memory-form .file-picker strong, .memory-delete-confirmation, .memory-delete-confirmation button',
+          '.composer-header button, .composer-header a, .memory-form .form-actions > *, .memory-form .file-picker, .memory-form .file-picker strong, .memory-delete-confirmation, .memory-delete-confirmation button',
         ),
       ].map((element) => {
         const box = element.getBoundingClientRect();
@@ -28,7 +29,7 @@ async function expectMemoryControlsContained(page: Page) {
           right: bounds.right - box.right,
           width: box.width,
           height: box.height,
-          button: element.tagName === 'BUTTON',
+          button: element.matches('button,a'),
         };
       });
     });
@@ -238,7 +239,7 @@ for (const profile of [
     expect(widths.scroll).toBe(widths.client);
     await expectMemoryControlsContained(page);
     await page
-      .getByRole('link', { name: de.common.cancel, exact: true })
+      .getByRole('link', { name: taskBoundary.back, exact: true })
       .click();
     await expect(page.locator('.memory-form')).toHaveCount(0);
     await page
@@ -255,7 +256,7 @@ for (const profile of [
         page.getByRole('button', { name: memoryProduct.save, exact: true }),
       ).toBeDisabled();
       await page
-        .getByRole('link', { name: de.common.cancel, exact: true })
+        .getByRole('link', { name: taskBoundary.back, exact: true })
         .click();
       await expect(page.locator('.memory-form')).toHaveCount(0);
       await page

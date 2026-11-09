@@ -161,19 +161,22 @@ async function inspect(page: Page, info: TestInfo, name: string) {
         overflow: document.documentElement.scrollWidth - innerWidth,
         controls: [
           ...root.querySelectorAll(
-            '.form-grid textarea, .form-grid input:not([type="file"]):not([type="checkbox"]):not([type="radio"]), .file-picker, .file-picker strong, .form-actions > *, .memory-delete-confirmation, .memory-delete-confirmation button',
+            '.composer-header button, .composer-header a, .form-grid textarea, .form-grid input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([aria-hidden="true"]), .file-picker, .file-picker strong, .form-actions > *, .memory-delete-confirmation, .memory-delete-confirmation button',
           ),
-        ].map((element) => {
-          const box = element.getBoundingClientRect();
-          return {
-            left: box.left - bounds.left,
-            right: bounds.right - box.right,
-            height: box.height,
-            interactive: element.matches(
-              'button,input,textarea,.button-link,.file-picker',
-            ),
-          };
-        }),
+        ]
+          // Empty tag inputs stay mounted while their disclosure is closed.
+          .filter((element) => element.getClientRects().length > 0)
+          .map((element) => {
+            const box = element.getBoundingClientRect();
+            return {
+              left: box.left - bounds.left,
+              right: bounds.right - box.right,
+              height: box.height,
+              interactive: element.matches(
+                'button,a,input,textarea,.button-link,.file-picker',
+              ),
+            };
+          }),
       };
     });
   expect(geometry.overflow).toBeLessThanOrEqual(1);

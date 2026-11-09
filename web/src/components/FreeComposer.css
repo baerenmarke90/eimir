@@ -460,32 +460,39 @@
 }
 
 .quiet-composer .heart-emotion-disclosure > summary {
-  position: relative;
   display: inline-flex;
   justify-content: flex-start;
   inline-size: fit-content;
   max-inline-size: 100%;
   gap: var(--space-3);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
-.quiet-composer .heart-emotion-disclosure > summary > .heart-emotion-badge {
+.quiet-composer .heart-emotion-summary-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  max-inline-size: 100%;
   min-block-size: var(--touch-target-comfortable);
-  padding: var(--space-2) var(--space-8) var(--space-2) var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--heart-emotion-surface);
   color: var(--color-text);
 }
 
-.quiet-composer .heart-emotion-disclosure > summary > .eimir-icon {
-  position: absolute;
-  inset-inline-end: var(--space-2);
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
+.quiet-composer .heart-emotion-summary-value > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  transform: rotate(90deg);
 }
 
-.quiet-composer .heart-emotion-disclosure[open] > summary > .eimir-icon {
-  transform: translateY(-50%) rotate(-90deg);
+.quiet-composer
+  .heart-emotion-disclosure[open]
+  .heart-emotion-summary-value
+  > .eimir-icon {
+  transform: rotate(-90deg);
 }
 
 /* At enlarged text the action must not consume the heading's reading width. */
@@ -495,7 +502,13 @@
   }
 
   .quiet-composer .composer-header .page-heading-action {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .quiet-composer .composer-header > div:not(.page-heading-action) {
     grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .quiet-composer .heart-moment-create-visibility-options {
@@ -505,6 +518,10 @@
   .quiet-composer .media-action-group > *,
   .quiet-composer .media-action-group .add-action {
     inline-size: 100%;
+  }
+
+  .quiet-composer .media-action-group {
+    padding-inline: 0;
   }
 }
 @media (forced-colors: active) {

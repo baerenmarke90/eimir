@@ -257,6 +257,48 @@
   pointer-events: none;
 }
 
+.media-lightbox-photo {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+.media-lightbox-photo[data-zoomed="true"] {
+  overscroll-behavior: contain;
+}
+.media-lightbox-photo:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+.media-lightbox-photo img {
+  display: block;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.media-photo-zoom-controls {
+  position: absolute;
+  z-index: 4;
+  inset-inline-start: var(--space-3);
+  inset-block-end: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+}
+.media-photo-zoom-controls button {
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: var(--font-action-label);
+}
+.media-photo-zoom-controls svg {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
 /* Keep localized controls separate as text grows; each keeps its full target. */
 .media-lightbox-actions {
   position: absolute;

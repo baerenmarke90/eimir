@@ -54,9 +54,7 @@ export function PlanStoryContinuation({
     void navigate(to, {
       state: {
         taskOriginKey,
-        ...((to === MEMORY_CREATE_ROUTE || to === HEART_MOMENT_CREATE_ROUTE) &&
-        accountId &&
-        apiBaseUrl
+        ...(accountId && apiBaseUrl
           ? {
               sourcePlan: {
                 id: plan.id,

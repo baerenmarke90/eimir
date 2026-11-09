@@ -66,8 +66,8 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "profiles.json": ("partner_profiles", "partner_nicknames", "profile_preferences"),
     "people.json": ("related_persons", "important_dates"),
     "memories.json": ("memories", "memory_attachments", "memory_plans", "memory_wishes"),
-    "heart-moments.json": ("heart_moments", "heart_moment_attachments"),
-    "milestones.json": ("milestones",),
+    "heart-moments.json": ("heart_moments", "heart_moment_attachments", "heart_moment_plans"),
+    "milestones.json": ("milestones", "milestone_plans"),
     "comments.json": ("comments",),
     "wishes.json": ("wishes",),
     "plans.json": ("plans", "plan_attachments", "plan_collections"),
@@ -110,6 +110,8 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
     "plan_collections": (("plan_id", "plans"), ("collection_id", "collections")),
     "memory_plans": (("memory_id", "memories"), ("plan_id", "plans")),
+    "heart_moment_plans": (("heart_moment_id", "heart_moments"), ("plan_id", "plans")),
+    "milestone_plans": (("milestone_id", "milestones"), ("plan_id", "plans")),
     "memory_wishes": (("memory_id", "memories"), ("wish_id", "wishes")),
     "place_memories": (("place_id", "places"), ("memory_id", "memories")),
     "place_milestones": (("place_id", "places"), ("milestone_id", "milestones")),
@@ -152,6 +154,8 @@ INSERT_ORDER = (
     "recap_sources",
     "recap_reflections",
     "memory_plans",
+    "heart_moment_plans",
+    "milestone_plans",
     "memory_wishes",
     "plan_collections",
     "place_memories",
@@ -1057,6 +1061,11 @@ def _validate_relations(
     tables: dict[str, list[dict[str, Any]]],
     ids: dict[str, set[UUID]],
 ) -> None:
+    shared_heart_ids = {
+        _uuid(row.get("id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        for raw in tables.get("heart_moments", [])
+        if (row := _row_snake(raw)).get("privacy_class") == "SPACE_SHARED"
+    }
     recap_targets = {
         "MEMORY": "memories",
         "HEART_MOMENT": "heart_moments",
@@ -1092,6 +1101,14 @@ def _validate_relations(
     for table_name, requirements in RELATION_REQUIREMENTS.items():
         for raw in tables.get(table_name, []):
             row = _row_snake(raw)
+            if table_name == "heart_moment_plans" and (
+                row.get("source_privacy_class") != "SPACE_SHARED"
+                or _uuid(row.get("heart_moment_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+                not in shared_heart_ids
+            ):
+                raise TransferArchiveError(
+                    "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
             for column, target in requirements:
                 if _uuid(row.get(column), ErrorCode.TRANSFER_RELATION_INVALID) not in ids.get(
                     target, set()

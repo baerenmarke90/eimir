@@ -2,6 +2,15 @@ const de = {
   planLinkedLists: {
     title: 'Ein Tag am See',
     description: 'Zeit am Wasser und ein Picknick.',
+    memoryTitle: 'Unser Picknick am See',
+    memoryBody: 'Unser gemeinsamer Rückblick.',
+    heartText: 'Mit dir war dieser Tag besonders.',
+    milestoneTitle: 'Unser erster gemeinsamer Ausflug',
+    milestoneBody: 'Ein wichtiger Tag für uns.',
+    savedMemoryBody: 'Unser eigener Rückblick.',
+    savedHeartText: 'Dieser Tag bleibt bei uns.',
+    savedMilestoneTitle: 'Unser erster Tag am See',
+    unsavedPlanDescription: 'Unser noch nicht gespeicherter Plantext.',
   },
   planningFollowup: {
     plan: 'Österreich entdecken',

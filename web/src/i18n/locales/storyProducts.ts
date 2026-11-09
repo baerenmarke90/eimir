@@ -46,6 +46,12 @@ const storyProducts = {
     done: 'Fertig',
     previous: 'Vorheriges Medium',
     next: 'Nächstes Medium',
+    zoomControls: 'Bildansicht steuern',
+    keyboardHelp:
+      'Mit Plus und Minus zoomen, das vergrößerte Bild mit den Pfeiltasten verschieben. Mit 0 das ganze Bild anzeigen.',
+    zoomIn: 'Bild vergrößern',
+    zoomOut: 'Bild verkleinern',
+    fit: 'Ganzes Bild anzeigen',
   },
   descriptionDisclosure: {
     more: 'Mehr anzeigen',

@@ -1,3 +1,4 @@
+import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import fixtures from '../fixtures/locales/de';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -21,7 +22,7 @@ const planId = '44444444-4444-4444-8444-444444444444';
 const placeId = '55555555-5555-4555-8555-555555555555';
 const stamp = '2026-11-09T10:00:00Z';
 
-async function fixture(page: Page) {
+async function fixture(page: Page, withStory = false) {
   await page.addInitScript(
     ({ accountId, spaceId }) => {
       localStorage.setItem(
@@ -108,7 +109,66 @@ async function fixture(page: Page) {
     memory: null as Record<string, unknown> | null,
     heart: null as Record<string, unknown> | null,
     failLinks: false,
+    failSourceLinks: false,
+    sourceLinks: [] as string[],
   };
+  const sourceBase = {
+    spaceId: SPACE_ID,
+    author: ME,
+    authorId: ACCOUNT_ID,
+    capabilities: CAPABILITIES,
+    happenedOn: '2026-11-08',
+    createdAt: stamp,
+    updatedAt: stamp,
+    version: 1,
+    attachments: [],
+    tags: [],
+    selectedCoverAttachmentId: null,
+  };
+  const storySources = [
+    {
+      slug: 'memories',
+      kind: 'MEMORY',
+      value: {
+        ...sourceBase,
+        id: 'memory-linked',
+        title: fixtures.planLinkedLists.memoryTitle,
+        body: fixtures.planLinkedLists.memoryBody,
+      },
+    },
+    {
+      slug: 'heart-moments',
+      kind: 'HEART_MOMENT',
+      value: {
+        ...sourceBase,
+        id: 'heart-linked',
+        text: fixtures.planLinkedLists.heartText,
+        emotion: 'LOVED',
+        visibility: 'SHARED',
+        attachment: null,
+        location: null,
+      },
+    },
+    {
+      slug: 'milestones',
+      kind: 'MILESTONE',
+      value: {
+        ...sourceBase,
+        id: 'milestone-linked',
+        title: fixtures.planLinkedLists.milestoneTitle,
+        body: fixtures.planLinkedLists.milestoneBody,
+      },
+    },
+  ];
+  const sourceResources = new Map<string, Record<string, unknown>>(
+    storySources.map(({ slug, value }) => [`${slug}/${value.id}`, value]),
+  );
+  const sourcePlans = new Map(
+    storySources.map(({ slug, value }) => [
+      `${slug}/${value.id}`,
+      new Set(withStory ? [planId] : []),
+    ]),
+  );
   let savedMemory: Record<string, unknown> | null = null;
   let savedHeart: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
@@ -116,6 +176,61 @@ async function fixture(page: Page) {
     const url = new URL(request.url());
     const method = request.method();
     const path = url.pathname;
+    if (path === `${base}/plans/${planId}/story`) {
+      const items = [...sourceResources].flatMap(([key, source]) => {
+        if (
+          !sourcePlans.get(key)?.has(planId) ||
+          source.visibility === 'PRIVATE'
+        )
+          return [];
+        const kind = key.startsWith('memories/')
+          ? 'MEMORY'
+          : key.startsWith('heart-moments/')
+            ? 'HEART_MOMENT'
+            : 'MILESTONE';
+        const field =
+          kind === 'MEMORY'
+            ? 'memory'
+            : kind === 'HEART_MOMENT'
+              ? 'heartMoment'
+              : 'milestone';
+        return [{ kind, effectiveDate: source.happenedOn, [field]: source }];
+      });
+      return route.fulfill({
+        json: { items, nextCursor: null, hasMore: false },
+      });
+    }
+    const sourcePath = path.slice(base.length + 1);
+    const relation = sourcePath.match(
+      /^(memories|heart-moments|milestones)\/([^/]+)\/plans(?:\/([^/]+))?$/,
+    );
+    if (relation) {
+      const key = `${relation[1]}/${relation[2]}`;
+      const linkedPlans = sourcePlans.get(key) ?? new Set<string>();
+      sourcePlans.set(key, linkedPlans);
+      if (method === 'GET')
+        return route.fulfill({ json: { items: [...linkedPlans] } });
+      if (sourceResources.get(key)?.visibility === 'PRIVATE')
+        return route.fulfill({ status: 404, json: { code: 'NOT_FOUND' } });
+      if (method === 'PUT') {
+        if (calls.failSourceLinks)
+          return route.fulfill({ status: 503, json: { code: 'UNAVAILABLE' } });
+        linkedPlans.add(relation[3]);
+        calls.sourceLinks.push(key);
+      } else if (method === 'DELETE') linkedPlans.delete(relation[3]);
+      else throw new Error(`Unexpected source relation method: ${method}`);
+      return route.fulfill({ status: 204 });
+    }
+    if (method === 'GET' && sourceResources.has(sourcePath))
+      return route.fulfill({ json: sourceResources.get(sourcePath) });
+    if (
+      method === 'GET' &&
+      /\/(places|comments)$/.test(sourcePath) &&
+      sourceResources.has(sourcePath.replace(/\/(places|comments)$/, ''))
+    )
+      return route.fulfill({
+        json: { items: [], nextCursor: null, hasMore: false },
+      });
     if (path === `${base}/plans/${planId}`) {
       if (method === 'PATCH') {
         const update = request.postDataJSON();
@@ -198,6 +313,7 @@ async function fixture(page: Page) {
         updatedAt: stamp,
         version: 1,
       };
+      sourceResources.set('memories/memory-new', savedMemory);
       return route.fulfill({ status: 201, json: savedMemory });
     }
     if (path === `${base}/memories/memory-new`)
@@ -234,6 +350,7 @@ async function fixture(page: Page) {
         updatedAt: stamp,
         version: 1,
       };
+      sourceResources.set('heart-moments/heart-new', savedHeart);
       return route.fulfill({ status: 201, json: savedHeart });
     }
     if (path === `${base}/heart-moments/heart-new`)
@@ -250,6 +367,15 @@ async function fixture(page: Page) {
       return route.fulfill({
         json: { items: [], hasMore: false, nextCursor: null },
       });
+    if (path === `${base}/milestones` && method === 'POST') {
+      const saved = {
+        ...sourceBase,
+        ...request.postDataJSON(),
+        id: 'milestone-new',
+      };
+      sourceResources.set('milestones/milestone-new', saved);
+      return route.fulfill({ status: 201, json: saved });
+    }
     if (await fulfillDefaultProductContext(route)) return;
     return route.fallback();
   });
@@ -258,7 +384,16 @@ async function fixture(page: Page) {
   await expect(
     page.getByRole('heading', { name: plan.title, exact: true }),
   ).toBeVisible();
-  return { unexpected, calls, lists, linked, place, plan };
+  return {
+    unexpected,
+    calls,
+    lists,
+    linked,
+    place,
+    plan,
+    storySources,
+    sourcePlans,
+  };
 }
 
 async function noOverflow(page: Page) {
@@ -520,7 +655,9 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await expect(page.getByLabel(de.memory.bodyLabel)).toHaveValue(
     state.plan.description,
   );
-  await page.getByLabel(de.memory.bodyLabel).fill('Unser eigener Rückblick.');
+  await page
+    .getByLabel(de.memory.bodyLabel)
+    .fill(fixtures.planLinkedLists.savedMemoryBody);
   await captureScreenshot(page, testInfo, 'memory-source-place.png', {
     fullPage: true,
   });
@@ -528,12 +665,17 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await expect(page).toHaveURL(/\/story\/memories\/memory-new$/);
   expect(state.calls.memory?.placeIds).toEqual([placeId]);
   await expect(
-    page.getByText('Unser eigener Rückblick.', { exact: true }),
+    page.getByText(fixtures.planLinkedLists.savedMemoryBody, { exact: true }),
   ).toBeVisible();
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+  await expect(
+    page.getByRole('link', {
+      name: new RegExp(`${state.plan.title}.*${copy.relations.kind.MEMORY}`),
+    }),
+  ).toBeVisible();
   expect(state.unexpected).toEqual([]);
 });
 
@@ -574,9 +716,305 @@ test('private HeartMoment continuation saves a protected location snapshot', asy
     latitude: state.place.latitude,
     longitude: state.place.longitude,
   });
+  expect(state.calls.sourceLinks).not.toContain('heart-moments/heart-new');
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+  expect(state.unexpected).toEqual([]);
+});
+
+for (const view of [
+  { width: 360, theme: 'light', large: false },
+  { width: 390, theme: 'dark', large: false },
+  { width: 430, theme: 'light', large: false },
+  { width: 1280, theme: 'dark', large: false },
+  { width: 320, theme: 'light', large: true },
+] as const) {
+  test(`completed Plan and all three source backlinks at ${view.width}px ${view.theme}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: 'reduce',
+    });
+    const state = await fixture(page, true);
+    if (view.large)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    const context = page.getByRole('region', {
+      name: copy.planStory.linksHeading,
+    });
+    await expect(context.getByRole('link')).toHaveCount(3);
+    await noOverflow(page);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await captureScreenshot(
+      page,
+      testInfo,
+      `plan-story-${view.width}-${view.theme}.png`,
+      { fullPage: true },
+    );
+    for (const source of state.storySources) {
+      const title =
+        'title' in source.value ? source.value.title : source.value.text;
+      await context.getByRole('link', { name: new RegExp(title) }).click();
+      await expect(page).toHaveURL(
+        new RegExp(`/story/${source.slug}/${source.value.id}$`),
+      );
+      const reverse = page.getByRole('region', {
+        name:
+          source.kind === 'MEMORY'
+            ? memoryCopy.planning.heading
+            : copy.planStory.plansHeading,
+      });
+      await expect(
+        reverse.getByRole('link', { name: new RegExp(state.plan.title) }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('button', {
+          name: copy.planStory.addPlan,
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await noOverflow(page);
+      if (source.kind === 'HEART_MOMENT')
+        await captureScreenshot(
+          page,
+          testInfo,
+          `heart-plan-backlink-${view.width}-${view.theme}.png`,
+          { fullPage: true },
+        );
+      await reverse
+        .getByRole('link', { name: new RegExp(state.plan.title) })
+        .click();
+      await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+      await expect(context.getByRole('link')).toHaveCount(3);
+    }
+    expect(state.calls.sourceLinks).toEqual([]);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('shared HeartMoment capture retains its Plan in both directions', async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  state.calls.failSourceLinks = true;
+  await page
+    .getByRole('button', {
+      name: copy.planStory.heartMomentAction,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByLabel(storyCopy.heartMomentProduct.textLabel, { exact: true })
+    .fill(fixtures.planLinkedLists.savedHeartText);
+  await page
+    .getByRole('button', {
+      name: storyCopy.heartMomentProduct.save,
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(/\/story\/heart-moments\/heart-new$/);
+  const reverse = page.getByRole('region', {
+    name: copy.planStory.plansHeading,
+  });
+  await expect(
+    page.getByText(fixtures.planLinkedLists.savedHeartText, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    reverse.getByRole('button', { name: de.common.retry, exact: true }),
+  ).toBeVisible();
+  expect(state.calls.sourceLinks).toEqual([]);
+  state.calls.failSourceLinks = false;
+  await reverse
+    .getByRole('button', { name: de.common.retry, exact: true })
+    .click();
+  await expect(
+    reverse.getByRole('link', { name: new RegExp(state.plan.title) }),
+  ).toBeVisible();
+  expect(state.calls.sourceLinks).toEqual(['heart-moments/heart-new']);
+  await reverse.getByRole('link').click();
+  await expect(
+    page
+      .getByRole('region', { name: copy.planStory.linksHeading })
+      .getByRole('link', {
+        name: new RegExp(fixtures.planLinkedLists.savedHeartText),
+      }),
+  ).toBeVisible();
+  expect(state.unexpected).toEqual([]);
+});
+
+test('a confirmed source link refreshes the Plan after returning during the pending write', async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  let release!: () => void;
+  let admitted = false;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    `**/heart-moments/heart-new/plans/${planId}`,
+    async (route) => {
+      if (route.request().method() === 'PUT') {
+        admitted = true;
+        await pending;
+      }
+      return route.fallback();
+    },
+  );
+  await page
+    .getByRole('button', {
+      name: copy.planStory.heartMomentAction,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByLabel(storyCopy.heartMomentProduct.textLabel, { exact: true })
+    .fill(fixtures.planLinkedLists.savedHeartText);
+  await page
+    .getByRole('button', {
+      name: storyCopy.heartMomentProduct.save,
+      exact: true,
+    })
+    .click();
+  await expect.poll(() => admitted).toBe(true);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+  const related = page.getByRole('region', {
+    name: copy.planStory.linksHeading,
+  });
+  await expect(related).toHaveCount(0);
+  release();
+  await expect(
+    related.getByRole('link', {
+      name: new RegExp(fixtures.planLinkedLists.savedHeartText),
+    }),
+  ).toBeVisible();
+  expect(state.calls.sourceLinks).toEqual(['heart-moments/heart-new']);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('Milestone capture retains its Plan and existing Milestones can unlink and relink in Edit', async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  await page
+    .getByRole('button', { name: copy.planStory.milestoneAction, exact: true })
+    .click();
+  await page
+    .getByLabel(storyCopy.milestoneProduct.titleLabel, { exact: true })
+    .fill(fixtures.planLinkedLists.savedMilestoneTitle);
+  await page
+    .getByRole('button', { name: storyCopy.milestoneProduct.save, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/milestones\/milestone-new$/);
+  const reverse = page.getByRole('region', {
+    name: copy.planStory.plansHeading,
+  });
+  await expect(
+    reverse.getByRole('link', { name: new RegExp(state.plan.title) }),
+  ).toBeVisible();
+  expect(state.calls.sourceLinks).toEqual(['milestones/milestone-new']);
+  await reverse.getByRole('link').click();
+  await page
+    .getByRole('region', { name: copy.planStory.linksHeading })
+    .getByRole('link', {
+      name: new RegExp(fixtures.planLinkedLists.savedMilestoneTitle),
+    })
+    .click();
+  await page
+    .getByRole('link', { name: storyCopy.milestoneProduct.edit, exact: true })
+    .click();
+  await page
+    .getByRole('button', {
+      name: memoryCopy.planning.remove.replace('{{title}}', state.plan.title),
+    })
+    .click();
+  await expect(
+    page
+      .getByRole('region', { name: copy.planStory.plansHeading })
+      .getByText(state.plan.title, { exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole('button', {
+      name: copy.planStory.addPlan,
+      exact: true,
+    })
+    .click();
+  const picker = page.getByRole('dialog', {
+    name: copy.planStory.addPlan,
+  });
+  await picker
+    .getByRole('button', { name: new RegExp(state.plan.title) })
+    .click();
+  await expect(picker).not.toBeVisible();
+  expect(state.calls.sourceLinks).toEqual([
+    'milestones/milestone-new',
+    'milestones/milestone-new',
+  ]);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('Plan field drafts survive attempted list and new-list navigation', async ({
+  page,
+}) => {
+  const state = await fixture(page);
+  state.linked.add('list-a');
+  await page.reload();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  const description = page.getByLabel(copy.common.description, { exact: true });
+  await description.fill(fixtures.planLinkedLists.unsavedPlanDescription);
+  await page
+    .locator('#plan-edit-section')
+    .getByRole('link', { name: /Alles fürs Picknick/ })
+    .click();
+  const discard = page.getByRole('alertdialog', {
+    name: copy.common.discardTitle,
+  });
+  await expect(discard).toBeVisible();
+  await discard.getByRole('button', { name: copy.common.keepEditing }).click();
+  await expect(description).toHaveValue(
+    fixtures.planLinkedLists.unsavedPlanDescription,
+  );
+  await page
+    .getByRole('button', { name: copy.collection.create, exact: true })
+    .click();
+  await page
+    .getByRole('dialog', { name: copy.collection.choose })
+    .getByRole('button', { name: copy.collection.createNew })
+    .click();
+  await expect(discard).toBeVisible();
+  await discard.getByRole('button', { name: copy.common.keepEditing }).click();
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+  await expect(description).toHaveValue(
+    fixtures.planLinkedLists.unsavedPlanDescription,
+  );
+  expect(state.unexpected).toEqual([]);
+});
+
+test('related Story continues past an empty page with a valid next cursor', async ({
+  page,
+}) => {
+  const state = await fixture(page, true);
+  const cursors: Array<string | null> = [];
+  await page.route(`**/plans/${planId}/story*`, async (route) => {
+    const cursor = new URL(route.request().url()).searchParams.get('cursor');
+    cursors.push(cursor);
+    if (cursor) return route.fallback();
+    return route.fulfill({
+      json: { items: [], hasMore: true, nextCursor: 'after-empty' },
+    });
+  });
+  await page.reload();
+  await expect(
+    page
+      .getByRole('region', { name: copy.planStory.linksHeading })
+      .getByRole('link'),
+  ).toHaveCount(3);
+  expect(cursors).toEqual([null, 'after-empty']);
   expect(state.unexpected).toEqual([]);
 });

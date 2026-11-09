@@ -1270,6 +1270,17 @@ capture, prefilling the existing Place without replacing manual edits or
 recovered drafts. PRIVATE HeartMoments keep only the protected location
 snapshot, with no shared Place relation or source backlink.
 
+PO follow-up #1709 (2026-11-09): completed Plans display their original linked
+Memories, shared HeartMoments and Milestones. Each source retains the reverse
+Plan context. Extend typed same-Space relations to shared HeartMoments and
+Milestones; management stays in the source editor, and canonical capture carries
+scoped, retryable association intent. PRIVATE HeartMoments never participate in
+shared Plan links. A shared-to-private transition removes these links atomically,
+and later sharing does not restore them. Existing Memory associations remain
+valid. Plan context uses authorized, paginated Story projection with Plan/viewer
+cursor binding; content and Plan lifecycle, deletion and portability remain
+independent.
+
 # 25. Places
 
 Place:

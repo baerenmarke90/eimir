@@ -66,6 +66,10 @@ export const authorSummaryQueryKeys = {
     planId
       ? (['m5-s3', 'plan-collections', spaceId, planId] as const)
       : (['m5-s3', 'plan-collections', spaceId] as const),
+  planStory: (spaceId: string, planId?: string) =>
+    planId
+      ? (['m5-s3', 'plan-story', spaceId, planId] as const)
+      : (['m5-s3', 'plan-story', spaceId] as const),
   relationTargets: (spaceId: string) =>
     ['m5-s3', 'relation-targets', spaceId] as const,
   wishDetail: (spaceId: string, wishId?: string) =>
@@ -129,6 +133,9 @@ export async function invalidateStoryProjections(
 ): Promise<void> {
   revokeSharedListCache(spaceId);
   await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.planStory(spaceId),
+    }),
     queryClient.invalidateQueries({ queryKey: ['context-tags', spaceId] }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.story(spaceId),
@@ -158,6 +165,9 @@ export async function invalidateAuthorSummaryConsumers(
   accountId?: string,
 ): Promise<void> {
   const invalidations = [
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.planStory(spaceId),
+    }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.discover(spaceId),
     }),

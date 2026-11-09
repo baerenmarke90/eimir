@@ -1,13 +1,14 @@
+import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescriptor';
+import { i18n } from '../i18n';
+import * as backgroundVideoUploads from './backgroundVideoUploads';
 import {
   completeMemoryAttachmentBinding,
   createMemoryWithReadyAttachments,
   MemoryAttachmentBindingError,
   uploadMemoryDraftAttachment,
 } from './memoryAttachmentDraft';
-import { waitUntilAttachmentReady, type ReferenceApis } from './referenceFlow';
-import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
-import { i18n } from '../i18n';
+import { type ReferenceApis, waitUntilAttachmentReady } from './referenceFlow';
 
 function uploadingAttachment() {
   return {
@@ -27,6 +28,50 @@ function uploadingAttachment() {
 }
 
 describe('uploadMemoryDraftAttachment', () => {
+  it.each(['de', 'en'])(
+    'reports rejected video admission with localized video recovery in %s',
+    async (locale) => {
+      const language = i18n.language;
+      const admission = vi
+        .spyOn(backgroundVideoUploads, 'startBackgroundVideoTransfer')
+        .mockRejectedValueOnce(new Error('Private native transport details'));
+      const file = new File(['video bytes'], 'selected.mp4', {
+        type: 'video/mp4',
+      });
+      const descriptor = { attachment: { id: 'video', version: 1 } };
+      const apis = {
+        attachments: {
+          createAttachmentUpload: vi.fn().mockResolvedValue(descriptor),
+          finalizeAttachmentUpload: vi.fn(),
+        },
+      } as unknown as ReferenceApis;
+      try {
+        await i18n.changeLanguage(locale);
+        await expect(
+          uploadMemoryDraftAttachment(
+            apis,
+            'https://api.example.invalid',
+            'synthetic',
+            'space',
+            file,
+            undefined,
+            vi.fn(),
+            { accountId: 'owner' },
+          ),
+        ).rejects.toThrow(i18n.t('video.startFailed'));
+        expect(admission).toHaveBeenCalledWith(
+          expect.objectContaining({ file, descriptor }),
+        );
+        expect(
+          apis.attachments.finalizeAttachmentUpload,
+        ).not.toHaveBeenCalled();
+      } finally {
+        admission.mockRestore();
+        await i18n.changeLanguage(language);
+      }
+    },
+  );
+
   it('cancels a pending validation read without leaving polling timers behind', async () => {
     vi.useFakeTimers();
     try {

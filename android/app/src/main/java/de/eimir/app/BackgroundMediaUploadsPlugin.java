@@ -1,6 +1,7 @@
 package de.eimir.app;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import com.getcapacitor.JSObject;
@@ -28,13 +29,17 @@ public class BackgroundMediaUploadsPlugin extends Plugin {
         } else stage(call);
     }
     @PermissionCallback private void notificationResult(PluginCall call) { stage(call); }
+    static BackgroundMediaTransfers.Record stageSelection(Context context, PluginCall call) throws Exception {
+        // Supported files fit in Integer; Capacitor getLong rejects JSON integers.
+        return BackgroundMediaTransfers.stage(context, call.getString("instance"),
+            call.getString("accountId"), call.getString("spaceId"), call.getString("attachmentId"),
+            call.getString("sourceName"), call.getInt("size", 0), call.getString("mimeType"));
+    }
     private void stage(PluginCall call) {
         io.execute(() -> {
             BackgroundMediaTransfers.Record record = null;
             try {
-                record = BackgroundMediaTransfers.stage(getContext(), call.getString("instance"),
-                    call.getString("accountId"), call.getString("spaceId"), call.getString("attachmentId"),
-                    call.getString("sourceName"), call.getLong("size", 0L), call.getString("mimeType"));
+                record = stageSelection(getContext(), call);
                 BackgroundMediaTransfers.schedule(getContext(), record);
                 call.resolve();
             } catch (Exception unavailable) {

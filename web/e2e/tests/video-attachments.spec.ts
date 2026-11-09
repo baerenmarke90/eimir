@@ -5,6 +5,7 @@ import de from '../../src/i18n/locales/de';
 import photoSources from '../../src/i18n/locales/photoSources';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyCopy from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
@@ -83,6 +84,7 @@ async function setup(
     processing?: boolean;
     uploadGate?: Promise<void>;
     failUploadOnce?: boolean;
+    failAdmissionOnce?: boolean;
   } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
@@ -98,6 +100,7 @@ async function setup(
     originalVideoReads: 0,
     uploads: 0,
     creates: 0,
+    videoAdmissions: 0,
     saved: options.retained
       ? memory([
           {
@@ -129,11 +132,16 @@ async function setup(
         videoMaxDurationSeconds: 180,
       });
     if (p.endsWith('/attachments') && method === 'POST') {
-      const body = request.postDataJSON(),
-        a = attachment(
-          body.mediaType === 'VIDEO' ? VIDEO : PHOTO,
-          body.mediaType,
-        );
+      const body = request.postDataJSON();
+      if (body.mediaType === 'VIDEO') {
+        state.videoAdmissions++;
+        if (options.failAdmissionOnce && state.videoAdmissions === 1)
+          return json({ status: 503, code: 'SERVICE_UNAVAILABLE' }, 503);
+      }
+      const a = attachment(
+        body.mediaType === 'VIDEO' ? VIDEO : PHOTO,
+        body.mediaType,
+      );
       return json(
         {
           attachment: { ...a, status: 'PENDING' },
@@ -726,3 +734,98 @@ test('a saved interrupted video resumes the same upload without recreating its p
   expect(state.bound).toEqual([VIDEO]);
   expect(unknown).toEqual([]);
 });
+
+for (const [width, colorScheme] of [
+  [320, 'dark'],
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`rejected video admission explains recovery before save and retries the selection ${width} ${colorScheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    let releaseUpload!: () => void;
+    const uploadGate = new Promise<void>((resolve) => {
+      releaseUpload = resolve;
+    });
+    const { state, unknown } = await setup(page, {
+      uploadGate,
+      failAdmissionOnce: true,
+    });
+    try {
+      await signIn(page);
+      await page.goto('/story/memories/new');
+      if (width === 320)
+        await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+      await page
+        .getByLabel(de.memory.bodyLabel, { exact: true })
+        .fill(momentBody);
+      await page
+        .getByRole('button', { name: photoSources.addMedia, exact: true })
+        .click();
+      await page.locator('input[type=file]').setInputFiles({
+        name: `eimir-selected-${VIDEO}.mp4`,
+        mimeType: 'video/mp4',
+        buffer: movie,
+      });
+      await page
+        .getByRole('button', {
+          name: de.memory.photoReviewFailure,
+          exact: true,
+        })
+        .click();
+      await expect(
+        page.getByText(videoCopy.startFailed, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(videoCopy.failedNotSaved, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(de.flow.uploadFailed, { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText(taskBoundary.failedPhotos, { exact: true }),
+      ).toBeVisible();
+      const save = page.getByRole('button', {
+        name: de.memory.save,
+        exact: true,
+      });
+      await expect(save).toBeDisabled();
+      expect(state.creates).toBe(0);
+      await page.screenshot({
+        path: info.outputPath(
+          `video-admission-failed-${width}-${colorScheme}.png`,
+        ),
+        fullPage: true,
+      });
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      await page
+        .getByRole('button', { name: de.common.retry, exact: true })
+        .click();
+      await expect.poll(() => state.uploads).toBe(1);
+      await expect(save).toBeEnabled();
+      await save.click();
+      await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY}$`));
+      expect(state.bound).toEqual([VIDEO]);
+      expect(state.creates).toBe(1);
+      await expect(page.locator('.media-processing-state')).toContainText(
+        videoCopy.uploading,
+      );
+      await page
+        .getByRole('link', { name: de.navigation.story, exact: true })
+        .click();
+      await page.goBack();
+      await expect(page.locator('.media-processing-state')).toContainText(
+        videoCopy.uploading,
+      );
+      releaseUpload();
+      await expect.poll(() => state.videoStatus).toBe('PROCESSING');
+      expect(state.videoAdmissions).toBe(2);
+      expect(state.creates).toBe(1);
+      expect(unknown).toEqual([]);
+    } finally {
+      releaseUpload();
+    }
+  });
+}

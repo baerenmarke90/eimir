@@ -14,6 +14,7 @@ export default {
   formats:
     'MP4 oder MOV · bis 3 Minuten und 250 MiB · gespeichert mit maximal 1080p',
   uploading: 'Video wird hochgeladen …',
+  startFailed: 'Der Video-Upload konnte nicht gestartet werden.',
   uploadInterrupted: 'Upload unterbrochen',
   uploadFailed:
     'Der Video-Upload wurde unterbrochen. Du kannst ihn fortsetzen.',
@@ -46,7 +47,7 @@ export default {
   showAll: 'Alle {{count}} Aufnahmen anzeigen',
   missing: 'Bitte entferne dieses Video und wähle es erneut aus.',
   failedNotSaved:
-    'Dein Moment kann schon gespeichert werden. Das Video erscheint dort, sobald der Upload abgeschlossen ist.',
+    'Deine Auswahl bleibt erhalten. Versuche den Upload erneut oder entferne das Video, um deinen Moment ohne dieses Video zu speichern.',
   volatile:
-    'Du kannst deinen Moment schon speichern. In der Android-App lädt dein Video im Hintergrund weiter; im Browser bleibt der Tab dafür geöffnet.',
+    'Das Video wird für den Upload vorbereitet. Danach kannst du deinen Moment speichern. In der Android-App lädt es im Hintergrund weiter; im Browser bleibt der Tab dafür geöffnet.',
 };

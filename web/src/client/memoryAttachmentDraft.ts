@@ -2,6 +2,10 @@ import { MediaType } from '../api/generated/models/MediaType';
 import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { i18n } from '../i18n';
+import {
+  cancelVideoTransfer,
+  startBackgroundVideoTransfer,
+} from './backgroundVideoUploads';
 import { ClientProblemError } from './problemDetails';
 import {
   type ReferenceApis,
@@ -10,10 +14,6 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
-import {
-  startBackgroundVideoTransfer,
-  cancelVideoTransfer,
-} from './backgroundVideoUploads';
 
 export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
 
@@ -161,7 +161,9 @@ export async function uploadMemoryDraftAttachment(
       throw error;
     }
     if (error instanceof ReferenceFlowError) throw error;
-    throw new ReferenceFlowError(i18n.t('flow.uploadFailed'));
+    throw new ReferenceFlowError(
+      i18n.t(video ? 'video.startFailed' : 'flow.uploadFailed'),
+    );
   }
 }
 

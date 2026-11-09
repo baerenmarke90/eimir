@@ -104,6 +104,7 @@ async function fixture(page: Page) {
   const linked = new Set<string>();
   const calls = {
     links: [] as string[],
+    planUpdates: [] as Record<string, unknown>[],
     memory: null as Record<string, unknown> | null,
     heart: null as Record<string, unknown> | null,
     failLinks: false,
@@ -115,8 +116,14 @@ async function fixture(page: Page) {
     const url = new URL(request.url());
     const method = request.method();
     const path = url.pathname;
-    if (path === `${base}/plans/${planId}`)
+    if (path === `${base}/plans/${planId}`) {
+      if (method === 'PATCH') {
+        const update = request.postDataJSON();
+        calls.planUpdates.push(update);
+        Object.assign(plan, update, { version: plan.version + 1 });
+      }
       return route.fulfill({ json: plan });
+    }
     if (path === `${base}/plans/${planId}/collections`)
       return route.fulfill({
         json: lists.filter((item) => linked.has(item.id)),
@@ -293,7 +300,23 @@ for (const view of [
     const state = await fixture(page);
     if (view.large)
       await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await expect(
+      page.getByRole('button', { name: copy.collection.create, exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: copy.collection.planHeading }),
+    ).toHaveCount(0);
+    await captureScreenshot(
+      page,
+      testInfo,
+      `plan-without-lists-${view.width}-${view.theme}.png`,
+      { fullPage: true },
+    );
     await page
+      .getByRole('button', { name: de.common.edit, exact: true })
+      .click();
+    await page
+      .locator('#plan-edit-section')
       .getByRole('button', { name: copy.collection.create, exact: true })
       .click();
     const dialog = page.getByRole('dialog', { name: copy.collection.choose });
@@ -335,6 +358,26 @@ for (const view of [
     await captureScreenshot(
       page,
       testInfo,
+      `plan-lists-edit-${view.width}-${view.theme}.png`,
+      { fullPage: true },
+    );
+    await page
+      .getByRole('button', { name: de.common.cancel, exact: true })
+      .click();
+    await expect(
+      page.getByRole('button', { name: de.common.edit, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: copy.collection.create, exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /Verknüpfung zu/ }),
+    ).toHaveCount(0);
+    await noOverflow(page);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await captureScreenshot(
+      page,
+      testInfo,
       `plan-lists-${view.width}-${view.theme}.png`,
       { fullPage: true },
     );
@@ -361,6 +404,15 @@ for (const view of [
     await expect(
       page.getByRole('link', { name: /Alles fürs Picknick/ }),
     ).toContainText('1 erledigt');
+    await expect(
+      page.getByRole('button', { name: copy.collection.create, exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /Verknüpfung zu/ }),
+    ).toHaveCount(0);
+    await page
+      .getByRole('button', { name: de.common.edit, exact: true })
+      .click();
     await page
       .getByRole('button', {
         name: copy.collection.unlink.replace(
@@ -373,6 +425,22 @@ for (const view of [
       page.getByRole('link', { name: /Alles fürs Picknick/ }),
     ).toHaveCount(0);
     expect(state.lists).toHaveLength(3);
+    await page
+      .getByRole('button', { name: copy.common.saveChanges, exact: true })
+      .click();
+    await expect(
+      page.getByRole('button', { name: de.common.edit, exact: true }),
+    ).toBeVisible();
+    expect(state.calls.planUpdates).toHaveLength(1);
+    await expect(
+      page.getByRole('button', { name: copy.collection.create, exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /Verknüpfung zu/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('link', { name: /Zeit zu zweit/ }),
+    ).toBeVisible();
     await noOverflow(page);
     await page.goto('/more/collections?scope=COMPLETED');
     if (view.large)

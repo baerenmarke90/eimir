@@ -65,6 +65,7 @@ function renderEditor(status: PlanDetail['status']) {
   const apis = {
     plans: {
       getPlan: vi.fn(async () => saved),
+      listPlanCollections: vi.fn(async () => []),
       updatePlan,
     },
     places: {

@@ -43,11 +43,13 @@ export function PlanCollectionLinks({
   spaceId,
   plan,
   disabled,
+  editing = false,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
   disabled: boolean;
+  editing?: boolean;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -58,7 +60,9 @@ export function PlanCollectionLinks({
   const trigger = useRef<HTMLButtonElement>(null);
   const sheet = useRef<ShortTaskSheetHandle>(null);
   const inFlight = useRef(false);
-  const capture = useTaskActivation(true);
+  const canManage = editing && plan.capabilities.canEdit;
+  const capture = useTaskActivation(canManage);
+  const mutationKey = ['plan-write', spaceId, plan.id] as const;
   const key = authorSummaryQueryKeys.planCollections(spaceId, plan.id);
   const linked = useQuery({
     queryKey: key,
@@ -73,7 +77,7 @@ export function PlanCollectionLinks({
   });
   const choices = useInfiniteQuery({
     queryKey: ['m5-s3', 'collections', spaceId, 'plan-choice', plan.id],
-    enabled: open,
+    enabled: open && canManage,
     retry: false,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
@@ -115,6 +119,7 @@ export function PlanCollectionLinks({
   const assembling =
     choices.isPending || choices.isFetching || choices.hasNextPage;
   const mutation = useMutation({
+    mutationKey,
     networkMode: 'always',
     retry: false,
     mutationFn: async (intent: {
@@ -140,24 +145,29 @@ export function PlanCollectionLinks({
         );
       }
     },
-    onSuccess: (_data, intent) => {
-      if (!intent.owns()) return;
-      if (!intent.unlink) {
-        setSelected([]);
-        setOpen(false);
-      }
-    },
     onSettled: (_data, _error, intent) => {
       inFlight.current = false;
       if (intent.owns()) void client.invalidateQueries({ queryKey: key });
     },
   });
+  const linkedSuccessfully =
+    mutation.isSuccess &&
+    !mutation.variables.unlink &&
+    mutation.variables.owns() &&
+    !disabled;
+  useEffect(() => {
+    if (!linkedSuccessfully) return;
+    // Restore focus only after the shared Plan write guard enables the trigger.
+    setSelected([]);
+    setOpen(false);
+  }, [linkedSuccessfully]);
   function mutate(ids: string[], unlink: boolean) {
     if (
       !ids.length ||
       disabled ||
       inFlight.current ||
-      !plan.capabilities.canEdit ||
+      !canManage ||
+      client.isMutating({ mutationKey, exact: true }) > 0 ||
       linked.error
     )
       return;
@@ -175,6 +185,8 @@ export function PlanCollectionLinks({
     });
   }
   const pending = disabled || mutation.isPending;
+  if (!canManage && !linked.isPending && !linked.error && !lists.length)
+    return null;
   return (
     <section
       className="planen-section plan-collection-links"
@@ -234,7 +246,7 @@ export function PlanCollectionLinks({
               </span>
               <ContentChevron />
             </Link>
-            {plan.capabilities.canEdit ? (
+            {canManage ? (
               <ListEntryIconButton
                 icon="unlink"
                 className="tertiary"
@@ -246,7 +258,7 @@ export function PlanCollectionLinks({
           </li>
         ))}
       </ul>
-      {plan.capabilities.canEdit ? (
+      {canManage ? (
         <AddActionButton
           ref={trigger}
           label={t('m5s3.collection.create')}
@@ -261,7 +273,7 @@ export function PlanCollectionLinks({
       {mutation.error ? <ProblemState error={mutation.error} /> : null}
       <ShortTaskSheet
         ref={sheet}
-        open={open}
+        open={open && canManage}
         title={t('m5s3.collection.choose')}
         restoreFocusRef={trigger}
         isDirty={selected.length > 0}

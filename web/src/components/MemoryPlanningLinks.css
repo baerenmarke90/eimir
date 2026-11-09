@@ -26,7 +26,7 @@
 .memory-planning-links > button {
   justify-self: start;
 }
-.memory-planning-links a.memory-planning-destination {
+.memory-planning-links .memory-planning-destination {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;

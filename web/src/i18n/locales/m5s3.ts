@@ -186,6 +186,10 @@ const m5s3 = {
     },
   },
   planStory: {
+    linksHeading: 'Momente zu diesem Plan',
+    plansHeading: 'Verknüpfte Pläne',
+    addPlan: 'Plan verknüpfen',
+    noPlans: 'Hier gibt es noch keine passenden Pläne.',
     heartMomentAction: 'Herzmoment festhalten',
     loadingSource: 'Plan und Ort werden übernommen …',
     intro:

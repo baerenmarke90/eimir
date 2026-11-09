@@ -109,3 +109,24 @@ def test_plan_list_links_require_both_portable_parents():
     rows["collections"] = []
     service._prune_relations(rows)
     assert rows["plan_collections"] == []
+
+
+@pytest.mark.parametrize(
+    "parent_class,relation_class",
+    [("OWNER_ONLY", "SPACE_SHARED"), ("OWNER_ONLY", "OWNER_ONLY"), ("SPACE_SHARED", "OWNER_ONLY")],
+)
+def test_plan_context_import_rejects_private_heart_associations(parent_class, relation_class):
+    heart_id, plan_id = uuid4(), uuid4()
+    tables = {
+        "heart_moments": [{"id": str(heart_id), "privacyClass": parent_class}],
+        "heart_moment_plans": [
+            {
+                "heartMomentId": str(heart_id),
+                "planId": str(plan_id),
+                "sourcePrivacyClass": relation_class,
+            }
+        ],
+    }
+    with pytest.raises(TransferArchiveError) as caught:
+        service._validate_relations(tables, {"heart_moments": {heart_id}, "plans": {plan_id}})
+    assert caught.value.code == ErrorCode.TRANSFER_RELATION_INVALID

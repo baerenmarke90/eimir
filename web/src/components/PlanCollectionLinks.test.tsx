@@ -23,7 +23,15 @@ const plan = { id: 'plan-1', capabilities: { canEdit: true } } as PlanDetail;
 const list = (id: string, title: string) =>
   ({ id, title, items: [] }) as unknown as CollectionDetail;
 
-function setup(failSecond = false) {
+function setup({
+  failSecond = false,
+  editing = true,
+  initialLinked = [],
+}: {
+  failSecond?: boolean;
+  editing?: boolean;
+  initialLinked?: CollectionDetail[];
+} = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -31,7 +39,8 @@ function setup(failSecond = false) {
     authorSummaryQueryKeys.planDetail('space-1', plan.id),
     plan,
   );
-  let linked: CollectionDetail[] = [];
+  let linked = initialLinked;
+  const listPlanCollections = vi.fn(async () => [...linked]);
   const all = [list('z', 'Zelten'), list('a', 'Ausflüge')];
   const link = vi.fn(async ({ collectionId }: { collectionId: string }) => {
     if (failSecond && collectionId === 'z')
@@ -52,10 +61,11 @@ function setup(failSecond = false) {
           spaceId="space-1"
           plan={plan}
           disabled={false}
+          editing={editing}
           apis={
             {
               plans: {
-                listPlanCollections: async () => [...linked],
+                listPlanCollections,
                 linkPlanCollection: link,
                 unlinkPlanCollection: unlink,
               },
@@ -66,10 +76,47 @@ function setup(failSecond = false) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { link, unlink, listCollections };
+  return { link, unlink, listCollections, listPlanCollections };
 }
 
 describe('Plan-linked canonical lists', () => {
+  it('keeps linked lists readable without management actions in normal detail', async () => {
+    const api = setup({
+      editing: false,
+      initialLinked: [list('a', 'Ausflüge')],
+    });
+    expect(await screen.findByRole('link', { name: /Ausflüge/ })).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.collection.create') }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n.t('m5s3.collection.unlink', { title: 'Ausflüge' }),
+      }),
+    ).toBeNull();
+    expect(api.listCollections).not.toHaveBeenCalled();
+    expect(api.link).not.toHaveBeenCalled();
+    expect(api.unlink).not.toHaveBeenCalled();
+  });
+
+  it('omits the confirmed empty section while reading a Plan', async () => {
+    const api = setup({ editing: false });
+    await waitFor(() =>
+      expect(api.listPlanCollections).toHaveBeenCalledTimes(1),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', {
+          name: i18n.t('m5s3.collection.planHeading'),
+        }),
+      ).toBeNull(),
+    );
+    expect(screen.queryByText(i18n.t('m5s3.collection.planEmpty'))).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.collection.create') }),
+    ).toBeNull();
+  });
+
   it('assembles alphabetical choices across pages and links multiple existing lists', async () => {
     const api = setup();
     const trigger = screen.getByRole('button', {
@@ -113,7 +160,7 @@ describe('Plan-linked canonical lists', () => {
   });
 
   it('retains the picker after a partial failure and reconciles confirmed links', async () => {
-    const api = setup(true);
+    const api = setup({ failSecond: true });
     const trigger = screen.getByRole('button', {
       name: i18n.t('m5s3.collection.create'),
     });

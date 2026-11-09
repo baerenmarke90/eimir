@@ -25280,6 +25280,191 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/plans": {
+      "get": {
+        "operationId": "listHeartMomentPlans",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "heartMomentId",
+            "required": true,
+            "schema": {
+              "title": "Heartmomentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationTargets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Targets",
+        "tags": [
+          "story-planning-relations"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/plans/{targetId}": {
+      "delete": {
+        "operationId": "unlinkHeartMomentPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "heartMomentId",
+            "required": true,
+            "schema": {
+              "title": "Heartmomentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Unlink",
+        "tags": [
+          "story-planning-relations"
+        ]
+      },
+      "put": {
+        "operationId": "linkHeartMomentPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "heartMomentId",
+            "required": true,
+            "schema": {
+              "title": "Heartmomentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Link",
+        "tags": [
+          "story-planning-relations"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/visibility": {
       "patch": {
         "operationId": "changeHeartMomentVisibility",
@@ -28410,6 +28595,191 @@
         "summary": "Create Milestone Comment",
         "tags": [
           "comments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/milestones/{milestoneId}/plans": {
+      "get": {
+        "operationId": "listMilestonePlans",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "milestoneId",
+            "required": true,
+            "schema": {
+              "title": "Milestoneid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationTargets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Targets",
+        "tags": [
+          "story-planning-relations"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/milestones/{milestoneId}/plans/{targetId}": {
+      "delete": {
+        "operationId": "unlinkMilestonePlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "milestoneId",
+            "required": true,
+            "schema": {
+              "title": "Milestoneid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Unlink",
+        "tags": [
+          "story-planning-relations"
+        ]
+      },
+      "put": {
+        "operationId": "linkMilestonePlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "milestoneId",
+            "required": true,
+            "schema": {
+              "title": "Milestoneid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Link",
+        "tags": [
+          "story-planning-relations"
         ]
       }
     },
@@ -32836,6 +33206,115 @@
           }
         },
         "summary": "Schedule Plan",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/plans/{planId}/story": {
+      "get": {
+        "operationId": "listPlanStory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Plan Story",
         "tags": [
           "plans"
         ]

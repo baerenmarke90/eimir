@@ -43,6 +43,7 @@ from eimir.api.v1 import (
     place_relations,
     places,
     plan_collections,
+    plan_story,
     plans,
     private_area,
     private_collections,
@@ -79,6 +80,8 @@ router.include_router(server_admin_observability.router)
 normal_router = APIRouter(dependencies=[Depends(require_normal_operation)])
 normal_router.include_router(account.router)
 normal_router.include_router(memory_planning_relations.router)
+normal_router.include_router(memory_planning_relations.story_router)
+normal_router.include_router(plan_story.router)
 normal_router.include_router(plan_collections.router)
 normal_router.include_router(context_tags.router)
 normal_router.include_router(appearance.router)

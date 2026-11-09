@@ -10,6 +10,7 @@ import photoCopy from '../../src/i18n/locales/photoSources';
 import placeCopy from '../../src/i18n/locales/photoPlaces';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import {
   ACCOUNT_ID,
   SPACE_ID,
@@ -67,7 +68,7 @@ const chapter = {
   endOn: '2026-10-31',
 };
 
-async function fixture(page: Page) {
+async function fixture(page: Page, photoCount = 2) {
   await page.addInitScript(
     ({ accountId, spaceId }) =>
       localStorage.setItem(
@@ -182,7 +183,7 @@ async function fixture(page: Page) {
         attachments: [
           attachment(),
           { ...attachment('photo-two'), position: 1 },
-        ],
+        ].slice(0, photoCount),
       });
     if (path === `${base}/attachments` && request.method() === 'POST')
       return json(
@@ -432,6 +433,212 @@ for (const view of [
     expect(state.unknown).toEqual([]);
   });
 }
+
+test.describe('photo-local touch gestures', () => {
+  test.use({ hasTouch: true });
+  for (const view of [
+    { width: 360, theme: 'light' },
+    { width: 390, theme: 'dark' },
+    { width: 430, theme: 'light' },
+    { width: 1280, theme: 'dark' },
+    { width: 320, theme: 'light' },
+  ] as const) {
+    test(`pinch, pan, double tap, fit and browse at ${view.width} ${view.theme}`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.theme,
+        reducedMotion: 'reduce',
+      });
+      const state = await fixture(page);
+      await signIn(page);
+      await page.goto('/story/memories/mem-canal');
+      const opener = page
+        .locator('.media-gallery-carousel-slide:not(.is-clone)')
+        .first();
+      await opener.click();
+      const dialog = page.getByRole('dialog', {
+        name: storyCopy.gallery.dialogAria,
+      });
+      const photo = dialog.locator('.media-lightbox-photo img');
+      const frame = dialog.locator('.media-lightbox-photo');
+      await expect(photo).toBeVisible();
+      const geometry = await frame.boundingBox();
+      if (!geometry) throw new Error('The photo viewport is unavailable.');
+      const x = geometry.x + geometry.width / 2;
+      const y = geometry.y + geometry.height / 2;
+      const distance = Math.min(100, geometry.width * 0.3);
+      const track = dialog.locator('.media-lightbox-track');
+      const scroll = await track.evaluate((node) => node.scrollLeft);
+      const route = page.url();
+      const documentState = () =>
+        page.evaluate(() => ({ scale: visualViewport?.scale, y: scrollY }));
+      const originalDocument = await documentState();
+      const scale = () =>
+        photo.evaluate(
+          (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).a,
+        );
+      const client = await page.context().newCDPSession(page);
+      try {
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [
+            { id: 1, x: x - 25, y },
+            { id: 2, x: x + 25, y },
+          ],
+        });
+        for (const spread of [40, 60, distance]) {
+          await client.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [
+              { id: 1, x: x - spread, y },
+              { id: 2, x: x + spread, y },
+            ],
+          });
+          await nextFrame(page);
+        }
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+        await expect.poll(scale).toBeGreaterThan(1.2);
+        const beforePan = await photo.evaluate(
+          (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+        );
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, x, y }],
+        });
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ id: 1, x: x + 55, y: y + 45 }],
+        });
+        await nextFrame(page);
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+        await expect
+          .poll(() =>
+            photo.evaluate(
+              (node) =>
+                new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+            ),
+          )
+          .not.toBe(beforePan);
+      } finally {
+        await client.detach();
+      }
+      expect(await documentState()).toEqual(originalDocument);
+      expect(page.url()).toBe(route);
+      expect(await track.evaluate((node) => node.scrollLeft)).toBe(scroll);
+      await captureScreenshot(
+        page,
+        info,
+        `photo-zoom-${view.width}-${view.theme}.png`,
+      );
+      await dialog
+        .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
+        .click();
+      await expect.poll(scale).toBe(1);
+      await page.touchscreen.tap(x, y);
+      await page.touchscreen.tap(x, y);
+      await expect.poll(scale).toBeGreaterThan(2);
+      await dialog
+        .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
+        .click();
+      await expect.poll(scale).toBe(1);
+      await swipeCarousel(page, 'next', 'lightbox');
+      await expect(dialog.locator('.media-lightbox-counter')).toContainText(
+        fixtures.planningFollowup.twoOfTwo,
+      );
+      await expect.poll(scale).toBe(1);
+      await dialog
+        .getByRole('button', { name: storyCopy.gallery.zoomIn, exact: true })
+        .click();
+      await expect.poll(scale).toBeGreaterThan(1);
+      await frame.focus();
+      const index = await dialog
+        .locator('.media-lightbox-counter')
+        .textContent();
+      await page.keyboard.press('ArrowLeft');
+      expect(
+        await dialog.locator('.media-lightbox-counter').textContent(),
+      ).toBe(index);
+      await page.keyboard.press('0');
+      await expect.poll(scale).toBe(1);
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(opener).toBeFocused();
+      expect(page.url()).toBe(route);
+      expect(state.unknown).toEqual([]);
+    });
+  }
+});
+
+test('single photo keeps mouse zoom, drag, keyboard controls and Back local to the viewer', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const state = await fixture(page, 1);
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal');
+  const opener = page
+    .locator('.media-gallery-carousel-slide:not(.is-clone)')
+    .first();
+  await opener.click();
+  const dialog = page.getByRole('dialog', {
+    name: storyCopy.gallery.dialogAria,
+  });
+  const image = dialog.locator('.media-lightbox-photo img');
+  await expect(image).toBeVisible();
+  await expect(dialog.locator('.media-lightbox-track')).toHaveCount(0);
+  const scale = () =>
+    image.evaluate(
+      (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).a,
+    );
+  const frame = dialog.locator('.media-lightbox-photo');
+  const box = await frame.boundingBox();
+  if (!box) throw new Error('The single photo viewport is unavailable.');
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.wheel(0, -120);
+  await expect.poll(scale).toBeGreaterThan(1);
+  const before = await image.evaluate(
+    (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+  );
+  await page.mouse.down();
+  await page.mouse.move(x + 35, y + 30, { steps: 4 });
+  await page.mouse.up();
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+      ),
+    )
+    .not.toBe(before);
+  const enlarged = await scale();
+  await dialog
+    .getByRole('button', { name: storyCopy.gallery.zoomOut, exact: true })
+    .click();
+  await expect.poll(scale).toBeLessThan(enlarged);
+  await frame.focus();
+  await page.keyboard.press('+');
+  await expect.poll(scale).toBeGreaterThan(1);
+  await page.keyboard.press('0');
+  await expect.poll(scale).toBe(1);
+  await page.goBack();
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await expect.poll(scale).toBe(1);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  expect(state.unknown).toEqual([]);
+});
 
 test('late account metadata preserves the selected Space and a recoverable Memory draft', async ({
   page,

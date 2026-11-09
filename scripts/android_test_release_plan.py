@@ -10,6 +10,7 @@ import json
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from dataclasses import dataclass
@@ -109,9 +110,22 @@ def read_plan(path: Path) -> Plan:
 
 
 def fetch(url: str, limit: int) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": "eimir-android-test-publication-verifier"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        content = response.read(limit + 1)
+    parsed = urllib.parse.urlsplit(url)
+    asset_variant = url.startswith(DOWNLOAD + "/") and not parsed.query and not parsed.fragment
+    request_url = url
+    for attempt in range(2):
+        request = urllib.request.Request(request_url, headers={"User-Agent": "eimir-android-test-publication-verifier"})
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                content = response.read(limit + 1)
+            break
+        except urllib.error.HTTPError as error:
+            if attempt or not asset_variant or error.code not in {502, 503, 504}:
+                raise
+            error.close()
+            # GitHub may serve a stale gateway error for the canonical download
+            # route while its download variant serves the same immutable asset.
+            request_url = url + "?download=1"
     if len(content) > limit:
         raise ValueError("Public response exceeds its size bound")
     return content

@@ -5,10 +5,11 @@ import hashlib
 import io
 import json
 import unittest
+from unittest.mock import patch
 import urllib.error
 import zipfile
 
-from android_test_release_plan import API, DOWNLOAD, FIREBASE_PROJECT, PACKAGE, admit, validate_plan, verify_once, verify_public
+from android_test_release_plan import API, DOWNLOAD, FIREBASE_PROJECT, PACKAGE, admit, fetch, validate_plan, verify_once, verify_public
 
 
 def plan_data():
@@ -83,6 +84,42 @@ class PublicFixture:
 
 
 class ReleasePlanTests(unittest.TestCase):
+    def test_public_asset_gateway_failure_uses_the_same_asset_download_variant(self):
+        url = f"{DOWNLOAD}/android-test-v0.2.0-test.57/SHA256SUMS"
+        for code in (502, 503, 504):
+            with self.subTest(code=code), patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+                open_url.side_effect = [urllib.error.HTTPError(url, code, "Gateway failure", {}, None),
+                                        io.BytesIO(b"verified")]
+                self.assertEqual(fetch(url, 8), b"verified")
+                self.assertEqual([call.args[0].full_url for call in open_url.call_args_list],
+                                 [url, url + "?download=1"])
+                self.assertTrue(all(call.kwargs == {"timeout": 30} for call in open_url.call_args_list))
+
+    def test_gateway_download_variant_retains_size_and_attempt_bounds(self):
+        url = f"{DOWNLOAD}/android-test-v0.2.0-test.57/SHA256SUMS"
+        with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+            open_url.side_effect = [urllib.error.HTTPError(url, 504, "Gateway failure", {}, None),
+                                    io.BytesIO(b"oversized")]
+            with self.assertRaisesRegex(ValueError, "size bound"):
+                fetch(url, 3)
+            self.assertEqual(open_url.call_count, 2)
+        with patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+            open_url.side_effect = urllib.error.HTTPError(url, 504, "Gateway failure", {}, None)
+            with self.assertRaises(urllib.error.HTTPError):
+                fetch(url, 3)
+            self.assertEqual(open_url.call_count, 2)
+
+    def test_download_variant_does_not_retry_api_other_origins_or_denied_assets(self):
+        asset = f"{DOWNLOAD}/android-test-v0.2.0-test.57/SHA256SUMS"
+        for url, code in ((API + "?per_page=30", 504),
+                          ("https://elsewhere.invalid/SHA256SUMS", 504),
+                          (asset + "?download=1", 504), (asset, 403), (asset, 404)):
+            with self.subTest(url=url, code=code), patch("android_test_release_plan.urllib.request.urlopen") as open_url:
+                open_url.side_effect = urllib.error.HTTPError(url, code, "Unavailable", {}, None)
+                with self.assertRaises(urllib.error.HTTPError):
+                    fetch(url, 3)
+                self.assertEqual(open_url.call_count, 1)
+
     def test_valid_plan_produces_only_bounded_known_workflow_values(self):
         plan = validate_plan(plan_data())
         self.assertEqual(plan.values()["PREVIOUS_TAG"], "android-test-v0.2.0-test.13")

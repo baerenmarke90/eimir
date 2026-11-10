@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -70,6 +70,7 @@ function renderPanel(
 function renderInteractivePanel(
   comments: CommentDetail[],
   overrides: Partial<CommentsApi> = {},
+  inlineComposer = false,
 ) {
   const queryClient = queryClientWithComments(comments);
   return render(
@@ -82,7 +83,9 @@ function renderInteractivePanel(
         currentAccountId="me"
         canComment={true}
         offline={false}
+        inlineComposer={inlineComposer}
       />
+      {inlineComposer ? <button type="button">Another task</button> : null}
     </QueryClientProvider>,
   );
 }
@@ -112,6 +115,106 @@ describe('CommentsPanel', () => {
       screen.queryByRole('button', { name: storyProducts.comments.cancel }),
     ).toBeNull();
   });
+  describe('inline comment success focus', () => {
+    async function submitInline() {
+      let resolve!: (value: CommentDetail) => void;
+      const response = new Promise<CommentDetail>((complete) => {
+        resolve = complete;
+      });
+      const createMemoryComment = vi.fn(() => response);
+      renderInteractivePanel(
+        [],
+        {
+          createMemoryComment,
+          listMemoryComments: vi.fn().mockResolvedValue({
+            items: [],
+            hasMore: false,
+            nextCursor: null,
+          }),
+        },
+        true,
+      );
+      const user = userEvent.setup();
+      const input = screen.getByRole('textbox', {
+        name: storyProducts.comments.inputLabel,
+      }) as HTMLTextAreaElement;
+      expect(document.activeElement).not.toBe(input);
+      await user.type(input, 'A thought worth keeping');
+      const send = screen.getByRole('button', {
+        name: storyProducts.comments.send,
+      });
+      await user.click(send);
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+      return {
+        input,
+        send,
+        user,
+        complete: async () => {
+          await act(async () =>
+            resolve(
+              comment({ authorId: 'me', body: 'A thought worth keeping' }),
+            ),
+          );
+        },
+      };
+    }
+
+    it('returns to the unchanged owned inline field after mouse submission leaves focus on the document', async () => {
+      const task = await submitInline();
+      // JSDOM retains focus on a newly disabled submit button; reproduce the
+      // document focus observed when the browser disables it after a mouse send.
+      task.input.focus();
+      task.input.blur();
+      expect(document.activeElement).toBe(document.body);
+      await task.complete();
+      await waitFor(() => expect(task.input.value).toBe(''));
+      expect(document.activeElement).toBe(task.input);
+    });
+
+    it('does not take focus back from another control after a confirmed inline save', async () => {
+      const task = await submitInline();
+      const other = screen.getByRole('button', { name: 'Another task' });
+      await task.user.click(other);
+      await task.complete();
+      await waitFor(() => expect(task.input.value).toBe(''));
+      expect(document.activeElement).toBe(other);
+    });
+
+    it('does not clear or focus a newer inline draft when an older response arrives', async () => {
+      const task = await submitInline();
+      await task.user.clear(task.input);
+      await task.user.type(task.input, 'A newer thought');
+      task.input.blur();
+      expect(document.activeElement).toBe(document.body);
+      await task.complete();
+      expect(task.input.value).toBe('A newer thought');
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it('keeps the existing trigger focus return for a disclosed non-inline composer', async () => {
+      renderInteractivePanel([], {
+        createMemoryComment: vi
+          .fn()
+          .mockResolvedValue(comment({ authorId: 'me' })),
+        listMemoryComments: vi
+          .fn()
+          .mockResolvedValue({ items: [], hasMore: false }),
+      });
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole('button', { name: storyProducts.comments.send }),
+      );
+      await user.type(screen.getByRole('textbox'), 'A confirmed reply');
+      await user.click(
+        screen.getByRole('button', { name: storyProducts.comments.send }),
+      );
+      await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: storyProducts.comments.send }),
+      );
+    });
+  });
+
   it('offers editing only on the caller’s own comment', () => {
     const html = renderPanel([
       comment({ id: 'own', authorId: 'me', body: 'Mine to fix' }),

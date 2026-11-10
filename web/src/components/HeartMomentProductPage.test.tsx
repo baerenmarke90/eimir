@@ -14,6 +14,7 @@ import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { AudioProcessingContext } from '../client/voiceNotes';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
 import contextTags from '../i18n/locales/contextTags';
@@ -150,44 +151,46 @@ function renderDetail(
   );
 }
 
-function renderCreate(entryState?: object) {
+function renderCreate(entryState?: object, audioProcessing = false) {
   const createHeartMoment = vi.fn().mockResolvedValue({ id: 'heart-new' });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter
-        initialEntries={[
-          { pathname: '/story/heart-moments/new', state: entryState },
-        ]}
-      >
-        <Routes>
-          <Route
-            path="/story/heart-moments/new"
-            element={
-              <HeartMomentProductPage
-                mode="create"
-                apis={
-                  {
-                    heartMoments: { createHeartMoment },
-                  } as unknown as ReferenceApis
-                }
-                apiBaseUrl="https://example.test"
-                accessToken="token"
-                spaceId="space-1"
-                currentAccountId="account-1"
-                loadAttachment={async () => 'blob:test-image'}
-              />
-            }
-          />
-          <Route
-            path="/story/heart-moments/:heartMomentId"
-            element={<p>Heart Moment result</p>}
-          />
-          <Route path="/story" element={<p>Story landing</p>} />
-        </Routes>
-      </MemoryRouter>
+      <AudioProcessingContext value={audioProcessing}>
+        <MemoryRouter
+          initialEntries={[
+            { pathname: '/story/heart-moments/new', state: entryState },
+          ]}
+        >
+          <Routes>
+            <Route
+              path="/story/heart-moments/new"
+              element={
+                <HeartMomentProductPage
+                  mode="create"
+                  apis={
+                    {
+                      heartMoments: { createHeartMoment },
+                    } as unknown as ReferenceApis
+                  }
+                  apiBaseUrl="https://example.test"
+                  accessToken="token"
+                  spaceId="space-1"
+                  currentAccountId="account-1"
+                  loadAttachment={async () => 'blob:test-image'}
+                />
+              }
+            />
+            <Route
+              path="/story/heart-moments/:heartMomentId"
+              element={<p>Heart Moment result</p>}
+            />
+            <Route path="/story" element={<p>Story landing</p>} />
+          </Routes>
+        </MemoryRouter>
+      </AudioProcessingContext>
     </QueryClientProvider>,
   );
   return createHeartMoment;
@@ -202,6 +205,180 @@ async function selectSuggestedContext(
   await user.click(screen.getByRole('button', { name: experiences.finish }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 }
+
+function expectContentOrder(...selectors: string[]) {
+  const elements = selectors.map((selector) => {
+    const element = document.querySelector(selector);
+    expect(element, `Expected rendered content for ${selector}`).not.toBeNull();
+    if (!element) throw new Error(`Missing rendered content: ${selector}`);
+    return element;
+  });
+  for (let index = 1; index < elements.length; index += 1)
+    expect(
+      elements[index - 1].compareDocumentPosition(elements[index]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      `${selectors[index - 1]} must precede ${selectors[index]}`,
+    ).not.toBe(0);
+}
+
+function protectedMediaApis() {
+  return {
+    attachments: {},
+    comments: {
+      listHeartMomentComments: async () => ({ items: [], hasMore: false }),
+    },
+    story: { recordStoryView: async () => undefined },
+  } as unknown as ReferenceApis;
+}
+
+const orderedMediaHeart: HeartMomentDetail = {
+  ...heartMoment,
+  tags: ['everyday'],
+  attachments: [
+    {
+      id: 'heart-photo',
+      position: 0,
+      status: 'READY',
+      mediaType: 'IMAGE',
+      mimeType: 'image/jpeg',
+      size: 1024,
+      width: 800,
+      height: 600,
+      hasThumbnail: true,
+      isSensitive: true,
+    },
+    {
+      id: 'heart-voice',
+      position: 1,
+      status: 'READY',
+      mediaType: 'AUDIO',
+      mimeType: 'audio/mp4',
+      size: 1024,
+      width: null,
+      height: null,
+      hasThumbnail: false,
+      isSensitive: true,
+      durationSeconds: 3,
+    },
+  ],
+};
+
+describe('HeartMoment media-first composition (#1735)', () => {
+  it('keeps the existing create media owners ahead of native text and feelings without an empty preview', async () => {
+    renderCreate(undefined, true);
+    const text = await screen.findByRole('textbox', {
+      name: storyProducts.heartMomentProduct.textLabel,
+    });
+    expectContentOrder(
+      '.composer-context-row',
+      '.composer-audience',
+      '.plan-photos-editor',
+      '.voice-editor[data-empty="true"]',
+      '#heart-moment-text',
+      '.heart-emotion-picker',
+    );
+    expect(document.querySelector('.photo-draft-gallery')).toBeNull();
+    expect(document.querySelector('.voice-player')).toBeNull();
+    expect(document.activeElement).not.toBe(text);
+    expect(screen.getAllByRole('radio')).toHaveLength(6);
+    await userEvent.setup().type(text, 'A thought worth keeping');
+    const form = document.querySelector<HTMLFormElement>(
+      '#heart-moment-create-form',
+    );
+    if (!form) throw new Error('The native create form is unavailable.');
+    expect(new FormData(form).get('text')).toBe('A thought worth keeping');
+    expect(new FormData(form).get('emotion')).toBe(HeartEmotion.LOVED);
+  });
+
+  it('orders existing editor photos and voice before the lead, feelings and tags without changing native values', async () => {
+    renderDetail(undefined, orderedMediaHeart, 'edit', protectedMediaApis());
+    await screen.findByDisplayValue(orderedMediaHeart.text);
+    await waitFor(() =>
+      expect(
+        document.querySelector('.plan-photos-editor[data-has-media="true"]'),
+      ).not.toBeNull(),
+    );
+    expectContentOrder(
+      '.composer-context-row',
+      '.plan-photos-editor[data-has-media="true"]',
+      '.voice-editor[data-empty="false"]',
+      '#heart-moment-text',
+      '.heart-emotion-picker',
+      '.context-tag-selected',
+    );
+    expect(screen.getAllByRole('radio')).toHaveLength(6);
+    const choice = screen.getByRole('radio', {
+      name: storyProducts.heartEmotion.GRATEFUL,
+    });
+    await userEvent.setup().click(choice.closest('label') ?? choice);
+    const form = document.querySelector<HTMLFormElement>(
+      '#heart-moment-edit-form',
+    );
+    if (!form) throw new Error('The native edit form is unavailable.');
+    expect(new FormData(form).get('text')).toBe(orderedMediaHeart.text);
+    expect(new FormData(form).get('emotion')).toBe(HeartEmotion.GRATEFUL);
+    expect(new FormData(form).getAll('tags')).toEqual(['everyday']);
+  });
+
+  it('reads photos, then voice, then authored text, feeling and tags', async () => {
+    renderDetail(undefined, orderedMediaHeart, 'detail', protectedMediaApis());
+    await screen.findByText(orderedMediaHeart.text);
+    expectContentOrder(
+      '.moment-metadata',
+      '.heart-moment-detail-container .media-gallery-carousel',
+      '.heart-moment-detail-container .voice-player',
+      '.heart-moment-detail-text',
+      '.heart-moment-detail-emotion',
+      '.memory-tag-summary',
+    );
+    expect(
+      document.querySelector('.heart-moment-detail-container audio'),
+    ).toBeNull();
+  });
+
+  it('keeps voice before authored text when no photo exists', async () => {
+    renderDetail(
+      undefined,
+      {
+        ...orderedMediaHeart,
+        attachments: orderedMediaHeart.attachments?.filter(
+          (attachment) => attachment.mediaType === 'AUDIO',
+        ),
+      },
+      'detail',
+      protectedMediaApis(),
+    );
+    await screen.findByText(orderedMediaHeart.text);
+    expect(document.querySelector('.media-gallery-carousel')).toBeNull();
+    expectContentOrder(
+      '.moment-metadata',
+      '.heart-moment-detail-container .voice-player',
+      '.heart-moment-detail-text',
+      '.heart-moment-detail-emotion',
+      '.memory-tag-summary',
+    );
+  });
+
+  it.each(['edit', 'detail'] as const)(
+    'starts with existing text ahead of feeling in a media-free %s',
+    async (mode) => {
+      renderDetail(undefined, heartMoment, mode);
+      if (mode === 'edit') {
+        await screen.findByDisplayValue(heartMoment.text);
+        expectContentOrder('#heart-moment-text', '.heart-emotion-picker');
+      } else {
+        await screen.findByText(heartMoment.text);
+        expectContentOrder(
+          '.heart-moment-detail-text',
+          '.heart-moment-detail-emotion',
+        );
+      }
+      expect(document.querySelector('.photo-draft-gallery')).toBeNull();
+      expect(document.querySelector('.media-gallery-carousel')).toBeNull();
+      expect(document.querySelector('.voice-player')).toBeNull();
+    },
+  );
+});
 
 describe('Heart Moment create request identity', () => {
   it('sends an idempotency key with the submitted snapshot', async () => {

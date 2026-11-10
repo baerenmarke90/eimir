@@ -126,6 +126,9 @@
   inline-size: var(--space-5);
   block-size: var(--space-5);
 }
+.page-plan-detail a.planen-schedule-place {
+  text-decoration: underline;
+}
 .page-plan-detail .plan-calendar-action {
   margin-block-start: var(--space-2);
 }

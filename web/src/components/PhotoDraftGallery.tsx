@@ -59,7 +59,7 @@ export function PhotoDraftGallery({
   const { t } = useTranslation();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [arranging, setArranging] = useState(false);
   const selected =
@@ -108,25 +108,50 @@ export function PhotoDraftGallery({
     ? selectedCoverKey
     : items[0].key;
   const showInspector =
-    actionsOpen &&
+    (Boolean(addAction) || inspectorOpen) &&
     (pending ||
       draft?.status === 'failed' ||
       selected.status === 'PROCESSING' ||
       selected.status === 'FAILED');
-  const hasPreview = items.some(
-    (item) => item.loadMedia || item.draft?.previewUrl,
-  );
+  const hasPreview =
+    Boolean(addAction) ||
+    items.some((item) => item.loadMedia || item.draft?.previewUrl);
+  function removeItem(item: PhotoDraftGalleryItem) {
+    const position = items.indexOf(item);
+    if (item.key === selected.key)
+      setSelectedKey(
+        items[position + 1]?.key ?? items[position - 1]?.key ?? null,
+      );
+    onRemove(item.key);
+  }
+  function removalLabel(item: PhotoDraftGalleryItem) {
+    return (
+      removeLabel?.(item.key) ??
+      t(
+        item.draft &&
+          ['preparing', 'uploading', 'validating'].includes(item.draft.status)
+          ? 'upload.cancel'
+          : 'memory.photoRemove',
+      )
+    );
+  }
   return (
     <div
-      className={`photo-draft-gallery${addAction ? ' composer-photo-draft' : ''}${actionsOpen ? ' is-managing' : ''}`}
+      className={`photo-draft-gallery${addAction ? ' composer-photo-draft' : ''}`}
     >
       {hasPreview ? (
-        <div className="photo-draft-stage">
-          {addAction && selected.key === coverKey ? (
-            <span className="photo-draft-cover-label media-overlay">
-              {t('experiences.cover')}
-            </span>
-          ) : null}
+        <fieldset
+          className="photo-draft-stage"
+          aria-label={
+            addAction
+              ? t(
+                  isVideo(selected)
+                    ? 'video.selectedItem'
+                    : 'memory.photoSelected',
+                )
+              : undefined
+          }
+        >
           <MediaGallery
             presentation={addAction ? 'composer' : 'default'}
             countStyle="label"
@@ -184,7 +209,57 @@ export function PhotoDraftGallery({
               if (!item) return null;
               return (
                 <>
-                  {revealed ? <GalleryExpandAction onOpen={open} /> : null}
+                  {!addAction && revealed ? (
+                    <GalleryExpandAction onOpen={open} />
+                  ) : null}
+                  {addAction && onSelectCover ? (
+                    item.key === coverKey ? (
+                      <span className="photo-draft-stage-cover media-overlay">
+                        <EimirIcon name="highlights" variant="filled" />
+                        <span>{t('experiences.cover')}</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="photo-draft-stage-cover media-overlay"
+                        disabled={disabled}
+                        onClick={() => onSelectCover(item.key)}
+                      >
+                        <EimirIcon name="highlights" />
+                        <span>{t('experiences.chooseCover')}</span>
+                      </button>
+                    )
+                  ) : null}
+                  {addAction && item.canRemove !== false ? (
+                    <button
+                      type="button"
+                      className="photo-draft-stage-remove media-overlay"
+                      disabled={disabled}
+                      aria-label={removalLabel(item)}
+                      onClick={() => removeItem(item)}
+                    >
+                      <EimirIcon name="close" />
+                    </button>
+                  ) : null}
+                  {addAction &&
+                  item.draft?.status === 'failed' &&
+                  onRetry &&
+                  !(
+                    isVideo(item) && selectedPhotoUnavailable(item.draft.file)
+                  ) ? (
+                    <button
+                      type="button"
+                      className="photo-draft-stage-retry media-overlay"
+                      disabled={disabled}
+                      onClick={() => onRetry(item.key)}
+                    >
+                      {t(
+                        selectedPhotoUnavailable(item.draft.file)
+                          ? 'memory.diary.photoRetry'
+                          : 'common.retry',
+                      )}
+                    </button>
+                  ) : null}
                   {onSensitive ? (
                     <label className="photo-draft-stage-sensitive media-overlay">
                       <input
@@ -206,61 +281,8 @@ export function PhotoDraftGallery({
               );
             }}
           />
-        </div>
+        </fieldset>
       ) : null}
-      <div
-        className="photo-draft-toolbar"
-        hidden={Boolean(addAction) && !actionsOpen}
-      >
-        {onSelectCover ? (
-          <button
-            type="button"
-            className="tertiary"
-            disabled={disabled}
-            aria-pressed={selected.key === coverKey}
-            onClick={() => {
-              onSelectCover(selected.key);
-              if (addAction) setActionsOpen(false);
-            }}
-          >
-            {t(
-              selected.key === coverKey
-                ? 'experiences.cover'
-                : 'experiences.chooseCover',
-            )}
-          </button>
-        ) : null}
-
-        {onOrderChange && items.length > 1 ? (
-          <button
-            type="button"
-            className="tertiary"
-            disabled={disabled}
-            onClick={() => setArranging(true)}
-          >
-            {t('experiences.arrange')}
-          </button>
-        ) : null}
-        {onSelectCover && selectedCoverKey ? (
-          <button
-            type="button"
-            className="tertiary"
-            disabled={disabled}
-            onClick={() => onSelectCover(null)}
-          >
-            {t('experiences.automaticCover')}
-          </button>
-        ) : null}
-        {addAction && actionsOpen ? (
-          <button
-            type="button"
-            className="tertiary"
-            onClick={() => setActionsOpen(false)}
-          >
-            {t('experiences.finish')}
-          </button>
-        ) : null}
-      </div>
       {arranging && onOrderChange ? (
         <PhotoArrangeTask
           items={items}
@@ -303,18 +325,22 @@ export function PhotoDraftGallery({
               id={item.key}
               index={position}
               disabled={disabled}
-              reorderable={Boolean(onOrderChange && items.length > 1)}
+              reorderable={Boolean(
+                !addAction && onOrderChange && items.length > 1,
+              )}
             >
               <fieldset
                 className="photo-draft-frame"
                 aria-label={
-                  item.key === selected.key
-                    ? t(
-                        isVideo(item)
-                          ? 'video.selectedItem'
-                          : 'memory.photoSelected',
-                      )
-                    : item.name
+                  addAction
+                    ? undefined
+                    : item.key === selected.key
+                      ? t(
+                          isVideo(item)
+                            ? 'video.selectedItem'
+                            : 'memory.photoSelected',
+                        )
+                      : item.name
                 }
               >
                 <button
@@ -323,20 +349,25 @@ export function PhotoDraftGallery({
                   data-media-key={item.key}
                   disabled={disabled}
                   aria-pressed={item.key === selected.key}
-                  aria-label={t(
-                    isVideo(item)
-                      ? 'video.selectItem'
-                      : 'memory.photoSelectItem',
-                    {
-                      name: item.name,
-                      position: position + 1,
-                      count: items.length,
-                      status: status(item),
-                    },
-                  )}
+                  aria-label={
+                    t(
+                      isVideo(item)
+                        ? 'video.selectItem'
+                        : 'memory.photoSelectItem',
+                      {
+                        name: item.name,
+                        position: position + 1,
+                        count: items.length,
+                        status: status(item),
+                      },
+                    ) +
+                    (addAction && item.key === coverKey
+                      ? `. ${t('experiences.cover')}`
+                      : '')
+                  }
                   onClick={() => {
                     setSelectedKey(item.key);
-                    setActionsOpen(true);
+                    if (!addAction) setInspectorOpen(true);
                   }}
                 >
                   <span className="photo-draft-tile-preview">
@@ -345,20 +376,36 @@ export function PhotoDraftGallery({
                   <span className="photo-draft-number" aria-hidden="true">
                     {position + 1}
                   </span>
+                  {addAction && item.key === coverKey ? (
+                    <span
+                      className="photo-draft-cover-star media-overlay"
+                      aria-hidden="true"
+                    >
+                      <EimirIcon name="highlights" variant="filled" />
+                    </span>
+                  ) : null}
                   {item.draft && item.draft.status !== 'ready' ? (
                     <span
                       className={`photo-draft-tile-status${item.draft.status === 'failed' ? ' is-failed' : ''}`}
                       aria-hidden="true"
                     >
-                      {item.draft.status === 'failed'
-                        ? t('memory.photoNeedsHelp')
-                        : item.draft.status === 'uploading'
-                          ? `${item.draft.progress}%`
-                          : t('memory.photoChecking')}
+                      {addAction ? (
+                        <EimirIcon
+                          name={
+                            item.draft.status === 'failed' ? 'hilfe' : 'foto'
+                          }
+                        />
+                      ) : item.draft.status === 'failed' ? (
+                        t('memory.photoNeedsHelp')
+                      ) : item.draft.status === 'uploading' ? (
+                        `${item.draft.progress}%`
+                      ) : (
+                        t('memory.photoChecking')
+                      )}
                     </span>
                   ) : null}
                 </button>
-                {item.canRemove !== false ? (
+                {!addAction && item.canRemove !== false ? (
                   <button
                     type="button"
                     className="photo-draft-action photo-draft-remove"
@@ -387,7 +434,7 @@ export function PhotoDraftGallery({
                     <EimirIcon name="close" />
                   </button>
                 ) : null}
-                {onSensitive ? (
+                {!addAction && onSensitive ? (
                   <label className="photo-draft-action photo-draft-sensitive">
                     <input
                       type="checkbox"
@@ -404,7 +451,7 @@ export function PhotoDraftGallery({
                     />
                   </label>
                 ) : null}
-                {onSelectCover ? (
+                {!addAction && onSelectCover ? (
                   <button
                     type="button"
                     className="photo-draft-action photo-draft-cover-toggle"
@@ -413,7 +460,6 @@ export function PhotoDraftGallery({
                     aria-pressed={item.key === coverKey}
                     onClick={() => {
                       onSelectCover(item.key);
-                      if (addAction) setActionsOpen(false);
                     }}
                   >
                     <EimirIcon
@@ -429,6 +475,46 @@ export function PhotoDraftGallery({
           ) : null}
         </ol>
       </PhotoDraftSorting>
+      <div className="photo-draft-toolbar">
+        {!addAction && onSelectCover ? (
+          <button
+            type="button"
+            className="tertiary"
+            disabled={disabled}
+            aria-pressed={selected.key === coverKey}
+            onClick={() => {
+              onSelectCover(selected.key);
+            }}
+          >
+            {t(
+              selected.key === coverKey
+                ? 'experiences.cover'
+                : 'experiences.chooseCover',
+            )}
+          </button>
+        ) : null}
+
+        {onOrderChange && items.length > 1 ? (
+          <button
+            type="button"
+            className="tertiary"
+            disabled={disabled}
+            onClick={() => setArranging(true)}
+          >
+            {t('experiences.arrange')}
+          </button>
+        ) : null}
+        {onSelectCover && selectedCoverKey ? (
+          <button
+            type="button"
+            className="tertiary"
+            disabled={disabled}
+            onClick={() => onSelectCover(null)}
+          >
+            {t('experiences.automaticCover')}
+          </button>
+        ) : null}
+      </div>
       {items.flatMap((item) =>
         item.draft?.attachmentId
           ? [
@@ -478,7 +564,7 @@ export function PhotoDraftGallery({
             onClick={() => {
               if (items.indexOf(failed[0]) >= 6) setExpanded(true);
               setSelectedKey(failed[0].key);
-              setActionsOpen(true);
+              if (!addAction) setInspectorOpen(true);
             }}
           >
             {t('memory.photoReviewFailure')}
@@ -523,7 +609,8 @@ export function PhotoDraftGallery({
             </div>
           ) : null}
           <div className="photo-draft-controls">
-            {draft?.status === 'failed' &&
+            {!addAction &&
+            draft?.status === 'failed' &&
             onRetry &&
             !(isVideo(selected) && unavailable) ? (
               <button

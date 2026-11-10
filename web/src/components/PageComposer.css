@@ -204,15 +204,6 @@ button.composer-chip {
 .page-composer .photo-draft-stage {
   position: relative;
 }
-.page-composer .photo-draft-cover-label {
-  position: absolute;
-  z-index: 1;
-  inset-block-start: var(--space-3);
-  inset-inline-start: var(--space-3);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-2);
-  font: var(--font-supporting-copy);
-}
 .page-composer .photo-draft-add {
   display: grid;
   place-items: center;
@@ -338,21 +329,6 @@ button.composer-chip {
 .page-composer .photo-draft-grid > li {
   flex: 0 0 var(--composer-thumbnail-size);
   inline-size: var(--composer-thumbnail-size);
-}
-.page-composer .photo-draft-toolbar[hidden] {
-  display: none;
-}
-.page-composer .composer-photo-draft:not(.is-managing) .photo-draft-action,
-.page-composer
-  .composer-photo-draft:not(.is-managing)
-  .photo-draft-stage-sensitive,
-.page-composer .composer-photo-draft:not(.is-managing) .media-gallery-expand {
-  display: none;
-}
-.page-composer .composer-photo-draft.is-managing .photo-draft-grid > li {
-  flex-basis: calc(var(--touch-target-web) * 3);
-  inline-size: calc(var(--touch-target-web) * 3);
-  max-inline-size: 100%;
 }
 .page-composer .photo-draft-number {
   display: none;
@@ -491,13 +467,6 @@ button.composer-chip {
   letter-spacing: normal;
 }
 
-.page-composer .photo-draft-cover-label {
-  pointer-events: none;
-}
-.page-composer .composer-photo-draft.is-managing .photo-draft-cover-label {
-  display: none;
-}
-
 .composer-tag-sheet .context-tag-disclosure .context-tag-entry {
   display: flex;
   align-items: center;
@@ -520,4 +489,143 @@ body:has(.page-composer)
 
 .page-composer .composer-photo-draft .photo-draft-tile {
   aspect-ratio: 1;
+}
+
+/* PO review #1735: stable thumbnail strip, editing directly on the stage. */
+.page-composer .composer-photo-draft .photo-draft-grid {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.page-composer .composer-photo-draft .photo-draft-tile {
+  cursor: pointer;
+}
+.page-composer .composer-photo-draft .photo-draft-tile[aria-pressed="true"] {
+  background: var(--composer-accent);
+}
+.page-composer .composer-photo-draft .photo-draft-tile:focus-visible {
+  outline-offset: calc(-1 * var(--border-focus-width, 3px));
+}
+.page-composer .composer-photo-draft .media-gallery-carousel-content {
+  object-fit: cover;
+}
+.page-composer .composer-photo-draft .media-gallery-carousel-backdrop {
+  display: none;
+}
+.page-composer .composer-photo-draft .photo-draft-stage-cover,
+.page-composer .composer-photo-draft .photo-draft-stage-remove,
+.page-composer .composer-photo-draft .photo-draft-stage-retry {
+  position: absolute;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-block-size: var(--touch-target-web);
+  min-inline-size: var(--touch-target-web);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+}
+.page-composer .composer-photo-draft .photo-draft-stage-cover {
+  inset-block-start: var(--space-3);
+  inset-inline-start: var(--space-3);
+  max-inline-size: calc(
+    100% -
+    var(--touch-target-web) -
+    var(--space-8) -
+    var(--space-1)
+  );
+}
+.page-composer .composer-photo-draft .photo-draft-stage-remove {
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  padding: var(--space-2);
+}
+.page-composer .composer-photo-draft .photo-draft-stage-sensitive {
+  inset-block-start: auto;
+  inset-inline-end: auto;
+  inset-block-end: var(--space-3);
+  inset-inline-start: var(--space-3);
+}
+.page-composer .composer-photo-draft .photo-draft-stage-retry {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+}
+.page-composer
+  .composer-photo-draft
+  .photo-draft-stage
+  :is(.photo-draft-stage-cover, .photo-draft-stage-remove)
+  > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.page-composer .photo-draft-cover-star {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-1);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+.page-composer .photo-draft-cover-star .eimir-icon,
+.page-composer .composer-photo-draft .photo-draft-tile-status .eimir-icon {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+.page-composer .composer-photo-draft .photo-draft-tile-status {
+  inset: auto auto var(--space-1) var(--space-1);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+@container product-content (max-width: 18rem) {
+  .page-composer .memory-planning-links > ul > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page-composer .memory-planning-links .memory-planning-destination {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page-composer
+    .memory-planning-links
+    .memory-planning-destination
+    > .eimir-icon:last-child {
+    display: none;
+  }
+  .page-composer .memory-planning-links > ul > li > button {
+    justify-self: end;
+  }
+  .page-composer .composer-photo-draft .photo-draft-stage-cover,
+  .page-composer .composer-photo-draft .photo-draft-stage-sensitive {
+    inline-size: var(--touch-target-web);
+    max-inline-size: none;
+    min-inline-size: var(--touch-target-web);
+    justify-content: center;
+    padding: var(--space-1);
+  }
+  .page-composer .composer-photo-draft .photo-draft-stage-cover > span,
+  .page-composer .composer-photo-draft .photo-draft-stage-sensitive > span {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .page-composer .composer-photo-draft .media-gallery-carousel-viewport {
+    block-size: max(
+      var(--composer-media-height),
+      calc(var(--touch-target-web) * 6)
+    );
+  }
 }

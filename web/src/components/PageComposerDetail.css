@@ -197,6 +197,12 @@
   aspect-ratio: auto;
   border-radius: var(--radius-sheet-top);
 }
+.page-composer-detail .media-gallery-carousel-content {
+  object-fit: cover;
+}
+.page-composer-detail .media-gallery-carousel-backdrop {
+  display: none;
+}
 .page-composer-detail
   .media-gallery-carousel
   button.media-gallery-carousel-nav {

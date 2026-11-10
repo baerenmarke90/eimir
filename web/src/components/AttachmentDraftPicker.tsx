@@ -149,6 +149,7 @@ export function AttachmentDraftPicker({
                   <DraftMediaPreview
                     draft={attachment}
                     context={videoContext}
+                    blurSensitivePreview={presentation !== 'default'}
                   />
                 ),
               }))}

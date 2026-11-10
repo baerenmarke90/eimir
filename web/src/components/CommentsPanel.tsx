@@ -270,6 +270,16 @@ function CommentsPanelContent({
         commentDraftRef.current = '';
         setCommentDraft('');
         setComposerOpen(false);
+        const input = inputRef.current;
+        const activeElement = document.activeElement;
+        if (
+          inlineComposer &&
+          input?.isConnected &&
+          (activeElement === document.body ||
+            activeElement === document.documentElement ||
+            input.form?.contains(activeElement))
+        )
+          input.focus({ preventScroll: true });
       }
     },
   });

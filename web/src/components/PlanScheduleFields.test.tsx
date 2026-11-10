@@ -230,6 +230,99 @@ describe('PlanScheduleFields', () => {
     ).toBe('2026-09-06');
   });
 
+  it('explicitly unschedules every wall-clock field through the owning form change path and retains the empty values after closing', async () => {
+    const changed = vi.fn();
+    const input = vi.fn();
+    const handle = createRef<PlanScheduleFieldsHandle>();
+    const { container } = render(
+      <form id="schedule-owner" onChange={changed} onInput={input}>
+        <fieldset>
+          <PlanScheduleFields
+            ref={handle}
+            compact
+            formId="schedule-owner"
+            idPrefix="unschedule-plan"
+            defaultDate="2026-09-05"
+            defaultTime="10:00"
+            defaultEnd="2026-09-06T11:00"
+            includeEnd
+          />
+        </fieldset>
+      </form>,
+    );
+    const form = container.querySelector('form') as HTMLFormElement;
+    const trigger = container.querySelector(
+      '.composer-schedule-trigger',
+    ) as HTMLButtonElement;
+    fireEvent.click(trigger);
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.plan.unschedule') }),
+    );
+    expect(changed).toHaveBeenCalledOnce();
+    expect(input).toHaveBeenCalledOnce();
+    expect(changed.mock.calls[0][0].target.id).toBe('unschedule-plan-date');
+    expect(
+      (
+        screen.getByLabelText(
+          i18n.t('m5s3.plan.plannedDate'),
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('');
+    const time = screen.getByLabelText(
+      i18n.t('m5s3.plan.plannedStartTime'),
+    ) as HTMLInputElement;
+    expect(time.value).toBe('');
+    expect(time.disabled).toBe(true);
+    expect(screen.queryByLabelText(i18n.t('m5s3.plan.endTime'))).toBeNull();
+    expect(screen.queryByLabelText(i18n.t('m5s3.plan.endDate'))).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(Object.fromEntries(new FormData(form))).toEqual({
+      plannedDate: '',
+      plannedTime: '',
+      plannedEnd: '',
+    });
+    expect(handle.current?.reportValidity()).toBe(true);
+    expect(trigger.textContent).toContain(
+      i18n.t('m5s3.overview.undatedHeading'),
+    );
+    expect(document.activeElement).toBe(trigger);
+    act(() => form.reset());
+    expect(Object.fromEntries(new FormData(form))).toEqual({
+      plannedDate: '2026-09-05',
+      plannedTime: '10:00',
+      plannedEnd: '2026-09-06T11:00',
+    });
+  });
+
+  it('clears invalid end validation when explicitly returning to an unscheduled plan', async () => {
+    const { handle, data, open, done } = compactSchedule({
+      defaultEnd: '2026-09-05T09:00',
+    });
+    open();
+    expect(screen.getByRole('alert').textContent).toBe(
+      i18n.t('m5s3.plan.endMustFollowStart'),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.plan.unschedule') }),
+    );
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(handle.current?.reportValidity()).toBe(true);
+    await done();
+    expect([...data().values()]).toEqual(['', '', '']);
+    open();
+    expect(
+      (
+        screen.getByLabelText(
+          i18n.t('m5s3.plan.plannedDate'),
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('');
+    expect(screen.queryByLabelText(i18n.t('m5s3.plan.endTime'))).toBeNull();
+  });
+
   it('reveals and focuses an invalid closed end range, keeps Done blocked, and accepts an explicit next-day end', async () => {
     const { handle, open, done, data } = compactSchedule({
       defaultEnd: '2026-09-05T09:00',

@@ -235,6 +235,7 @@ export function PlanPhotosEditor({
                   ) : item.draft ? (
                     <DraftMediaPreview
                       draft={item.draft}
+                      blurSensitivePreview={Boolean(presentation)}
                       context={
                         photoSourceContext
                           ? {

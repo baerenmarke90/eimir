@@ -1017,6 +1017,47 @@ export function HeartMomentProductPage({
                   }}
                 />
                 <div className="composer-content">
+                  <div className="heart-moment-create-media">
+                    <PlanPhotosEditor
+                      presentation="tools"
+                      pageWideDrop
+                      mediaTrigger={(open) =>
+                        tool(
+                          'photo',
+                          open,
+                          photos.items.length > 0,
+                          createMutation.isPending || parentSaved,
+                        )
+                      }
+                      controller={photos}
+                      spaceId={spaceId}
+                      parentType="HEART_MOMENT"
+                      disabled={createMutation.isPending || parentSaved}
+                      canUpload
+                      onChange={() => setFormDirty(true)}
+                      photoSourceContext={{
+                        apiBaseUrl,
+                        accessToken,
+                        accountId: currentAccountId,
+                      }}
+                    />
+                  </div>
+                  <VoiceNoteEditor
+                    voice={voice}
+                    apis={apis}
+                    spaceId={spaceId}
+                    disabled={createMutation.isPending || parentSaved}
+                    presentation="composer"
+                    renderTrigger={(open) =>
+                      tool(
+                        'voice',
+                        open,
+                        voice.hasAudio,
+                        createMutation.isPending,
+                      )
+                    }
+                    onChange={() => setFormDirty(true)}
+                  />
                   <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface">
                     <label htmlFor="heart-moment-text">
                       {t('heartMomentProduct.textLabel')}
@@ -1044,49 +1085,7 @@ export function HeartMomentProductPage({
                       />
                     </div>
                   </div>
-
-                  <div className="heart-moment-create-media">
-                    <PlanPhotosEditor
-                      presentation="tools"
-                      pageWideDrop
-                      mediaTrigger={(open) =>
-                        tool(
-                          'photo',
-                          open,
-                          photos.items.length > 0,
-                          createMutation.isPending || parentSaved,
-                        )
-                      }
-                      controller={photos}
-                      spaceId={spaceId}
-                      parentType="HEART_MOMENT"
-                      disabled={createMutation.isPending || parentSaved}
-                      canUpload
-                      onChange={() => setFormDirty(true)}
-                      photoSourceContext={{
-                        apiBaseUrl,
-                        accessToken,
-                        accountId: currentAccountId,
-                      }}
-                    />
-                  </div>
                 </div>
-                <VoiceNoteEditor
-                  voice={voice}
-                  apis={apis}
-                  spaceId={spaceId}
-                  disabled={createMutation.isPending || parentSaved}
-                  presentation="composer"
-                  renderTrigger={(open) =>
-                    tool(
-                      'voice',
-                      open,
-                      voice.hasAudio,
-                      createMutation.isPending,
-                    )
-                  }
-                  onChange={() => setFormDirty(true)}
-                />
                 <div className="composer-enrichment">
                   {createVisibility === ContentVisibility.PRIVATE ||
                   createLocation ? (
@@ -1747,24 +1746,6 @@ export function HeartMomentProductPage({
           data-heart-emotion={heartMoment.emotion}
         >
           <article className="story-surface product-detail-card coffee-table-layout">
-            <div className="heart-moment-detail-emotion">
-              <HeartEmotionBadge
-                emotion={heartMoment.emotion}
-                variant="detail"
-              />
-            </div>
-            {heartMoment.text ? (
-              <ExpandableDescription
-                text={heartMoment.text}
-                scope={JSON.stringify([
-                  apiBaseUrl,
-                  currentAccountId,
-                  spaceId,
-                  heartMoment.id,
-                ])}
-                className="heart-moment-detail-text"
-              />
-            ) : null}
             {visualMedia.length ? (
               <section aria-label={t('heartMomentProduct.photoLabel')}>
                 <MediaGallery
@@ -1819,6 +1800,34 @@ export function HeartMomentProductPage({
               </section>
             ) : null}
 
+            {voiceAttachment ? (
+              <SavedVoiceNote
+                apis={apis}
+                spaceId={spaceId}
+                momentId={heartMoment.id}
+                attachment={voiceAttachment}
+                title={heartMoment.audioTitle}
+                speaker={heartMoment.audioSpeakerName}
+              />
+            ) : null}
+            {heartMoment.text ? (
+              <ExpandableDescription
+                text={heartMoment.text}
+                scope={JSON.stringify([
+                  apiBaseUrl,
+                  currentAccountId,
+                  spaceId,
+                  heartMoment.id,
+                ])}
+                className="heart-moment-detail-text"
+              />
+            ) : null}
+            <div className="heart-moment-detail-emotion">
+              <HeartEmotionBadge
+                emotion={heartMoment.emotion}
+                variant="detail"
+              />
+            </div>
             {heartMoment.tags?.length ? (
               <ul
                 className="memory-tag-summary"
@@ -1833,16 +1842,6 @@ export function HeartMomentProductPage({
                   </li>
                 ))}
               </ul>
-            ) : null}
-            {voiceAttachment ? (
-              <SavedVoiceNote
-                apis={apis}
-                spaceId={spaceId}
-                momentId={heartMoment.id}
-                attachment={voiceAttachment}
-                title={heartMoment.audioTitle}
-                speaker={heartMoment.audioSpeakerName}
-              />
             ) : null}
             {shared && !changingVisibility ? (
               <StoryPlanningLinks
@@ -1935,6 +1934,7 @@ function HeartMomentFields({
       </div>
       {visibility}
       <div className="composer-content">
+        {children}
         <div className="field-group composer-writing-surface">
           <label htmlFor="heart-moment-text">
             {t('heartMomentProduct.textLabel')}
@@ -1958,7 +1958,6 @@ function HeartMomentFields({
           defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
           idPrefix="heart-moment-edit-emotion"
         />
-        {children}
       </div>
     </>
   );

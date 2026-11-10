@@ -915,6 +915,7 @@ export function MemoryProductPage({
                         ) : item.draft ? (
                           <DraftMediaPreview
                             draft={item.draft}
+                            blurSensitivePreview={!memory.experienceKind}
                             context={{
                               apis,
                               accountId: currentAccountId,

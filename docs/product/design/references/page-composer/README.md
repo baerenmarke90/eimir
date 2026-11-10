@@ -24,7 +24,7 @@ surface, and changes the composition around them:
 - the title uses the Literata display role; prose stays Instrument Sans with
   reading line length;
 - place and tag entry move from two filled pill buttons into a labeled bottom
-  tool row (photo, place, tag); chosen places and tags appear as quiet chips
+  tool row (place, tag); chosen places and tags appear as quiet chips
   below the prose and reopen their existing editors;
 - audience (`memory.sharedTitle` meaning) is shown as a quiet context line under
   the date, and the existing draft status stays as a small status line.
@@ -33,13 +33,16 @@ surface, and changes the composition around them:
 
 ![Generated Compact reference](generated-compact-reference.png)
 
-![Generated composer family reference](generated-composer-family-reference.png)
+![Generated HeartMoment reference](generated-heartmoment-reference.png)
 
-The second board applies the same anatomy to HeartMoment (three feelings showing
-icons and the full-page tint in Light and Dark,
-selectable visibility, photo and voice in one compact intake) and Plan
-(intention as title, schedule as context line, place/List/tag chips). Memory edit
-and Plan edit use the same anatomy as their create screens.
+![Generated Plan reference](generated-plan-reference.png)
+
+The second and third boards apply the same anatomy to HeartMoment (choosing a
+feeling with timeline icons and full-page tint, a populated entry with photo and
+voice note, Dark, and the shared photo source sheet) and Plan (without photos,
+with photos, schedule sheet). Each screen has exactly one visible media entry:
+the on-page intake in Diary/Memory, the Photo tool in HeartMoment and Plan.
+Memory edit and Plan edit use the same anatomy as their create screens.
 
 Implementation brief for the implementing agent:
 [IMPLEMENTATION-PROMPT.md](IMPLEMENTATION-PROMPT.md).
@@ -86,11 +89,12 @@ couple-experience question flows are out of scope.
   header, tool row, system bar) through the existing emotion surface/accent roles; feeling choices keep radio-group semantics; visibility is
   a selectable pill opening the existing choice. Plan: the schedule summary opens
   `PlanScheduleFields`; the unscheduled state uses its existing string.
-- Enrichment: the tool row (Diary/Memory: photo, place, tag; HeartMoment adds
-  voice; Plan adds shared List; 48 px+ targets, labeled) stays
+- Enrichment: the tool row (Diary/Memory: place, tag; HeartMoment: photo,
+  voice, place, tag; Plan: photo, place, List, tag; 48 px+ targets, labeled) stays
   above the keyboard/safe area. Place and tag open the existing bounded sheets;
   Done/grab handle/Back return focus to the invoking control. Chosen values are
-  chips that reopen the same editor.
+  chips that reopen the same editor. Only one media entry is visible per state:
+  where the tool row has Photo, no intake block is shown on the page.
 - 320/360 px: context lines and chips wrap; tool labels stay visible. 430 px and
   Expanded gain image width, not extra fields or columns. 200 % text keeps the
   focused field and submit reachable.

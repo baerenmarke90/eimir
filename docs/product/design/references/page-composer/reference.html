@@ -95,7 +95,7 @@
   .done { margin-top: 24px; height: 52px; border-radius: 999px; background: var(--brand-strong); color: var(--on-brand); display: grid; place-items: center; font-size: 16px; font-weight: 600; }
   .board + .board { margin-top: 32px; }
   .phone.heart { --bg: var(--emo-surface); --subtle: color-mix(in srgb, var(--emo-accent) 13%, var(--emo-surface));
-    --surface: color-mix(in srgb, #FFFFFF 62%, var(--emo-surface)); --chip-text: var(--emo-accent); --brand-strong: var(--emo-accent);
+    --surface: color-mix(in srgb, #FFFFFF 62%, var(--emo-surface)); --chip-text: var(--emo-accent); --brand-strong: var(--emo-accent); --brand: var(--emo-accent);
     --hairline: color-mix(in srgb, var(--emo-accent) 28%, var(--emo-surface)); }
   .phone.heart.dark { --surface: color-mix(in srgb, #FFFFFF 7%, var(--emo-surface)); --raised: color-mix(in srgb, #FFFFFF 9%, var(--emo-surface));
     --on-brand: var(--emo-surface); }
@@ -118,6 +118,17 @@
   .ctx.pick { display: inline-flex; align-self: flex-start; gap: 6px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--subtle); color: var(--chip-text); font-weight: 600; font-size: 14px; min-height: 34px; margin-top: 4px; }
   .ctx.pick i { font-size: 16px; }
   .title.lead { font-size: 25px; margin-top: 6px; }
+  .plan-cover, .heart-cover { height: 176px; }
+  .feel-summary { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 6px; border-radius: 999px;
+    background: var(--surface); font-size: 14px; font-weight: 600; }
+  .voice { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 14px 0 8px; border-radius: 16px; background: var(--surface); margin-top: 8px; }
+  .dark .voice { background: var(--raised); }
+  .play { width: 44px; height: 44px; border-radius: 50%; background: var(--emo-accent, var(--brand-strong)); color: var(--on-brand); display: grid; place-items: center; font-size: 20px; flex: none; }
+  .wave { flex: 1; height: 28px; display: flex; align-items: center; gap: 3px; }
+  .wave i { display: block; width: 3px; border-radius: 2px; background: color-mix(in srgb, var(--emo-accent, var(--brand)) 55%, transparent); }
+  .voice small { font-size: 12px; color: var(--text-2); font-weight: 600; }
+  .srcs { display: flex; flex-direction: column; gap: 8px; }
+  .srcs .src { background: var(--bg); }
 </style>
 </head>
 <body>
@@ -125,7 +136,7 @@
 
   <section>
     <div class="cap">1 · Empty</div>
-    <div class="sub">Two entry paths: media or words. No nested cards or file-format copy; place and tag wait in the tool row.</div>
+    <div class="sub">Two entry paths: media or words. Media has one entry (the intake, later the + tile); place and tag wait in the tool row.</div>
     <div class="phone" id="f-empty">
       <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save">Speichern</span></div>
@@ -146,7 +157,6 @@
         <div class="prose muted">Was möchtest du von diesem Tag festhalten?</div>
       </div>
       <div class="tools">
-        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
         <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
         <span class="tool"><i class="ti ti-tag"></i>Tag</span>
       </div>
@@ -162,7 +172,6 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
       <div class="scroll" data-content="filled"></div>
       <div class="tools">
-        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
         <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
         <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
       </div>
@@ -178,7 +187,6 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
       <div class="scroll" data-content="filled"></div>
       <div class="tools">
-        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
         <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
         <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
       </div>
@@ -220,13 +228,17 @@
 
 </div>
 
-<div class="board" id="board-family">
-  <section data-heart="LOVED" data-mode="light" data-cap="5 · HeartMoment · loved"></section>
-  <section data-heart="GRATEFUL" data-mode="light" data-cap="6 · HeartMoment · grateful"></section>
-  <section data-heart="SEEN" data-mode="dark" data-cap="7 · HeartMoment · seen · Dark"></section>
+<div class="board" id="board-heart">
+  <section data-heart="LOVED" data-mode="light" data-variant="text" data-cap="5 · HeartMoment · choosing a feeling"></section>
+  <section data-heart="GRATEFUL" data-mode="light" data-variant="media" data-cap="6 · HeartMoment · with photo and voice"></section>
+  <section data-heart="SEEN" data-mode="dark" data-variant="text" data-cap="7 · HeartMoment · Dark"></section>
+  <section data-heart="GRATEFUL" data-mode="light" data-variant="sheet" data-cap="8 · Photo source sheet"></section>
+</div>
+
+<div class="board" id="board-plan">
   <section>
-    <div class="cap">8 · Plan</div>
-    <div class="sub">Anticipation first: the intention is the title, schedule is the context line. Place, shared List and tag use the same tool row and chips.</div>
+    <div class="cap">9 · Plan</div>
+    <div class="sub">No media block on the page: Foto in the tool row is the single media entry. Place, shared List and tag appear as chips.</div>
     <div class="phone">
       <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
@@ -237,10 +249,6 @@
         </div>
         <div class="title lead">Picknick am Rhein</div>
         <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
-        <div class="intake compact">
-          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos hinzufügen<small>Vom Gerät auswählen</small></span></div>
-          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
-        </div>
         <div class="chips">
           <span class="chip"><i class="ti ti-map-pin"></i>Rheinufer</span>
           <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
@@ -252,6 +260,82 @@
         <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
         <span class="tool on"><i class="ti ti-checklist"></i>Liste</span>
         <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+  <section>
+    <div class="cap">10 · Plan · with photos</div>
+    <div class="sub">After selection the cover leads, followed by the draft gallery strip; the + tile adds more.</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+        </div>
+        <div class="cover plan-cover"><svg data-photo="picnic"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 3</span></div>
+        <div class="thumbs">
+          <div class="thumb sel"><svg data-photo="picnic"></svg></div>
+          <div class="thumb"><svg data-photo="boat"></svg></div>
+          <div class="thumb"><svg data-photo="coffee"></svg></div>
+          <div class="thumb add"><i class="ti ti-plus"></i></div>
+        </div>
+        <div class="title lead" style="margin-top:18px">Picknick am Rhein</div>
+        <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
+        <div class="chips">
+          <span class="chip"><i class="ti ti-map-pin"></i>Rheinufer</span>
+          <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
+          <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
+        </div>
+      </div>
+      <div class="tools">
+        <span class="tool on"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-checklist"></i>Liste</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+  <section>
+    <div class="cap">11 · Plan · schedule sheet</div>
+    <div class="sub">The schedule line opens the existing schedule fields in a short sheet.</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+        </div>
+        <div class="title lead">Picknick am Rhein</div>
+        <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
+        <div class="chips">
+          <span class="chip"><i class="ti ti-map-pin"></i>Rheinufer</span>
+          <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
+          <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
+        </div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-checklist"></i>Liste</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <h2>Wann soll's sein?</h2>
+        <p>Ohne Uhrzeit bleibt der ausgewählte Tag genau so bestehen.</p>
+        <div class="label" style="margin-top:4px">Datum</div>
+        <div class="field" style="color:var(--text)"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026</div>
+        <div class="label">Uhrzeit</div>
+        <div class="field" style="color:var(--text)"><i class="ti ti-clock"></i>12:00</div>
+        <div class="intake-alt" style="padding:8px 2px 0"><i class="ti ti-plus"></i>Endzeit hinzufügen</div>
+        <div class="intake-alt" style="padding:0 2px"><i class="ti ti-calendar-off"></i>Noch ohne festen Termin</div>
+        <div class="done">Fertig</div>
       </div>
       <div class="home"></div>
     </div>
@@ -296,6 +380,10 @@
     boat: `<rect width="400" height="300" fill="#B6D0E6"/><rect y="150" width="400" height="150" fill="#4F7CA3"/>
       <path d="M120 200 H290 L260 235 H150Z" fill="#F2E6D8"/><path d="M200 70 V200 H140Z" fill="#FFFFFF"/><path d="M206 90 V195 H260Z" fill="#F7D9C4"/>
       <path d="M0 250 h400" stroke="#9FC0DC" stroke-width="5" opacity=".6"/>`,
+    picnic: `<rect width="400" height="300" fill="#BFD9EE"/><circle cx="320" cy="70" r="28" fill="#FFE7B0"/><path d="M0 150 C 120 120 260 140 400 125 V300 H0Z" fill="#8DBA7A"/>
+      <path d="M0 175 C 140 160 260 175 400 165 V300 H0Z" fill="#76A866"/><path d="M80 210 L300 190 L340 270 L60 290Z" fill="#E8B7B0"/>
+      <path d="M120 206 L150 286 M190 200 L215 280 M260 194 L290 274 M75 240 L320 222" stroke="#F6E3DE" stroke-width="10"/>
+      <rect x="170" y="205" width="56" height="40" rx="8" fill="#B07A4F"/><path d="M178 205 C 180 188 216 188 218 205" stroke="#7A5136" stroke-width="5" fill="none"/>`,
     sunset: `<rect width="400" height="300" fill="#F29C7A"/><circle cx="200" cy="170" r="60" fill="#FFD49A"/><rect y="180" width="400" height="120" fill="#7B5C86"/>`
   };
 
@@ -315,23 +403,44 @@
   };
   const TEXT = {
     LOVED: 'Du hast mir heute einfach zugehört, ohne gleich eine Lösung zu suchen.',
-    GRATEFUL: 'Danke, dass du heute früh den Kaffee ans Bett gebracht hast.',
+    GRATEFUL: 'Danke für den Kaffee ans Bett heute früh.',
     SEEN: 'Du hast gemerkt, dass ich müde war, bevor ich etwas gesagt habe.',
   };
   const SUB = {
-    LOVED: 'The selected feeling tints the whole composer: page, header, tool row and accents use the existing emotion surface/accent roles.',
-    GRATEFUL: 'Switching the feeling re-tints the same composition; each choice shows its timeline icon.',
-    SEEN: 'Dark uses the dark emotion roles; shared visibility shows the people glyph.',
+    text: 'Choosing a feeling: chips show the timeline icons; the selection tints the whole composer. No media block on the page: Foto and Sprache in the tool row are the entries.',
+    media: 'After choosing, the feeling collapses to its existing summary pill. Photos lead as cover plus strip; the voice note plays inline.',
+    dark: 'Dark uses the dark emotion roles; shared visibility shows the people glyph.',
+    sheet: 'Foto opens one shared source sheet in every composer: device first, external sources with the Pro mark.',
   };
   const icon = (e, dark) => `<span class="emo-icon" style="--emo-accent:${EMO[e][dark ? 'dark' : 'light'][0]}"><svg viewBox="0 0 24 24" aria-hidden="true">${EMO[e].svg}</svg></span>`;
   document.querySelectorAll('section[data-heart]').forEach((sec) => {
-    const e = sec.dataset.heart, dark = sec.dataset.mode === 'dark';
+    const e = sec.dataset.heart, dark = sec.dataset.mode === 'dark', v = sec.dataset.variant;
     const [accent, surface] = EMO[e][dark ? 'dark' : 'light'];
     const vis = e === 'SEEN' ? '<i class="ti ti-users"></i>Für uns beide' : '<i class="ti ti-lock"></i>Nur für mich';
     const chips = Object.keys(EMO).map((k) => `<span class="chip${k === e ? ' chosen' : ''}">${icon(k, dark)}${EMO[k].de}</span>`).join('');
+    const expanded = `<div class="row-label">Gefühl</div><div class="feel">${chips}</div>`;
+    const summary = `<div class="row-label">Gefühl</div><span class="feel-summary">${icon(e, dark)}${EMO[e].de}<i class="ti ti-chevron-down" style="font-size:15px;color:var(--text-2)"></i></span>`;
+    const bars = [8,14,22,12,26,18,10,20,28,16,9,19,24,13,7,17,23,11,15,21,9,6].map((h) => `<i style="height:${h}px"></i>`).join('');
+    const media = `
+        <div class="cover heart-cover" style="margin-top:20px"><svg data-photo="coffee"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 2</span></div>
+        <div class="thumbs"><div class="thumb sel"><svg data-photo="coffee"></svg></div><div class="thumb"><svg data-photo="sunset"></svg></div><div class="thumb add"><i class="ti ti-plus"></i></div></div>
+        <div class="voice"><span class="play"><i class="ti ti-player-play"></i></span><span class="wave">${bars}</span><small>0:42</small></div>`;
+    const withMedia = v === 'media' || v === 'sheet';
+    const sheet = v === 'sheet' ? `
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <h2>Fotos hinzufügen</h2>
+        <p>Nur ausgewählte Fotos werden in deinen Entwurf kopiert.</p>
+        <div class="srcs">
+          <div class="src"><i class="ti ti-device-mobile"></i><span>Vom Gerät auswählen<small>Fotos und Videos gemeinsam auswählen</small></span></div>
+          <div class="src"><i class="ti ti-cloud"></i><span>Google Fotos</span><span class="pro">Pro</span></div>
+          <div class="src"><i class="ti ti-server-2"></i><span>Immich</span><span class="pro">Pro</span></div>
+        </div>
+      </div>` : '';
     sec.innerHTML = `
     <div class="cap">${sec.dataset.cap}</div>
-    <div class="sub">${SUB[e]}</div>
+    <div class="sub">${SUB[dark ? 'dark' : v]}</div>
     <div class="phone heart${dark ? ' dark' : ''}" style="--emo-accent:${accent};--emo-surface:${surface}">
       ${document.querySelector('.status').outerHTML}
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
@@ -341,20 +450,14 @@
           <div class="ctx pick">${vis}<i class="ti ti-chevron-down"></i></div>
         </div>
         <div class="title lead">${TEXT[e]}</div>
-        <div class="row-label">Gefühl</div>
-        <div class="feel">${chips}</div>
-        <div class="intake compact">
-          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos oder Videos hinzufügen<small>Vom Gerät auswählen</small></span></div>
-          <div class="src"><i class="ti ti-microphone"></i><span>Sprachnachricht<small>Bis zu 3 Minuten · 20 MB</small></span></div>
-          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
-        </div>
+        ${withMedia ? summary + media : expanded}
       </div>
       <div class="tools">
-        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
-        <span class="tool"><i class="ti ti-microphone"></i>Sprache</span>
+        <span class="tool${withMedia ? ' on' : ''}"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool${withMedia ? ' on' : ''}"><i class="ti ti-microphone"></i>Sprache</span>
         <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
         <span class="tool"><i class="ti ti-tag"></i>Tag</span>
-      </div>
+      </div>${sheet}
       <div class="home"></div>
     </div>`;
   });

@@ -18,9 +18,10 @@ deviation in the PR.
    templates, component contracts, design-system delivery, `design/tokens.json`).
 2. Read `docs/product/design/references/page-composer/README.md` (decision,
    baseline, Mobile Interaction Contract) and look at all PNGs in that folder:
-   `generated-compact-reference.png` (Diary: empty, populated, populated Dark,
-   tag sheet) and `generated-composer-family-reference.png` (HeartMoment Light
-   and Dark, Plan).
+   `generated-compact-reference.png` (frames 1–4, Diary: empty, populated,
+   populated Dark, tag sheet), `generated-heartmoment-reference.png` (frames 5–8:
+   choosing a feeling, with photo and voice, Dark, photo source sheet) and
+   `generated-plan-reference.png` (frames 9–11: Plan, with photos, schedule sheet).
 3. Check the state of issue #1726 / PR #1727 (soft composer media rows). If
    #1727 is merged, branch from `main`. If it is still open, ask the Product Owner
    whether to build on its branch; do not duplicate or fight its media-row work.
@@ -63,10 +64,15 @@ backend/API, native wrapper.
      owner-only) with chevron, opening the existing visibility choice.
 3. **Writing and media** – the page itself is the composer. Remove the wrapping
    writing surface/card around title, prose and media. No nested containers.
-   - Diary/Memory: media intake first (large), then title, then prose.
+   - Diary/Memory: media first (large intake while empty, cover + strip once
+     selected), then title, then prose.
    - HeartMoment: moment text first (display role, it is the lead), then the
-     feeling chips, then the compact intake (media + voice).
-   - Plan: intention title, then description, then the compact intake.
+     feeling, then selected media and the voice note. While no feeling has been
+     confirmed the chips are expanded; afterwards the existing compact disclosure
+     (`heart-emotion-disclosure` summary pill with icon) is used. No media block
+     is shown on the page until media or voice exists.
+   - Plan: cover + strip first once photos exist, then intention title, then
+     description. No media block is shown on the page until photos exist.
 4. **Chips** – chosen places, tags and shared Lists render below the content as
    quiet pill chips (subtle surface, accent text, leading icon, at least 44 px
    target with spacing). Tapping a chip reopens its existing editor. Order: places,
@@ -77,13 +83,17 @@ backend/API, native wrapper.
    software keyboard (use the existing keyboard/visual-viewport handling if one
    exists; otherwise CSS `env(safe-area-inset-bottom)` plus `visualViewport`).
    Items, each an icon over a short label, min 48 × 48 px:
-   - Diary/Memory: Photo, Place, Tag.
+   - Diary/Memory: Place, Tag (no Photo item: the on-page intake and later the
+     strip's add tile are the single media entry).
    - HeartMoment: Photo, Voice, Place, Tag.
    - Plan: Photo, Place, List, Tag.
-   Photo opens the device picker directly (same as the intake). Place, Tag, List
-   and Voice open their existing editors in a `ShortTaskSheet` (or the editor's
-   existing sheet). An item with a value shows the accent color. The row replaces
-   the current filled place/tag `AddAction` pills inside these composers.
+   **One media entry per state, never two visible at once.** Where the tool row
+   has Photo, the page shows no intake block; where the page shows the intake,
+   the tool row has no Photo item. Photo opens the shared photo source sheet
+   (frame 8). Place, Tag, List and Voice open their existing editors in a
+   `ShortTaskSheet` (or the editor's existing sheet). An item with a value shows
+   the accent color. The row replaces the current filled place/tag `AddAction`
+   pills inside these composers.
 
 ## 3. Media
 
@@ -92,16 +102,27 @@ backend/API, native wrapper.
   line "add photos or videos", secondary line "choose from device"; video wording
   only when video is actually eligible) and below it a quiet full-width row
   "other photo source" with `ProMark`, following existing availability and Pro rules.
-- **Compact intake (HeartMoment/Plan, and Diary when text is long)**: the same
-  surface as stacked full-width rows: device media, voice note (HeartMoment only,
-  with its existing limit hint), quiet external-source row with `ProMark`.
+- **Photo source sheet (frame 8)**: opened by the Photo tool (HeartMoment, Plan)
+  and by the Diary intake's external-source row. One `ShortTaskSheet` built from
+  `PhotoSourcePicker`/`DeviceMediaPicker`: title `photoSources.title`, the existing
+  consent sentence, then full-width soft rows — device (`photoSources.device`,
+  hint `photoSources.deviceMedia` only when video is eligible) first, then each
+  external source (Google Photos, Immich) with `ProMark` and its existing
+  availability, connection and Pro rules. Use neutral contextual icons, not
+  provider brand logos. Choosing device opens the system picker directly.
+- **Voice note (HeartMoment)**: the Voice tool opens `VoiceNoteEditor`
+  (record / choose file, existing limit). A saved note appears inline below the
+  photos as one soft row with a play button in the feeling accent, waveform and
+  duration (`SavedVoiceNote`), with its existing re-record/remove actions.
 - Idle file-format text (`memory.photoFormats`) is removed from the idle state; the
   existing `mediaDrop.supported*` messages appear only on rejection.
 - **After selection**: the chosen cover becomes a large rounded hero (full content
   width, about 214 px high at 390 px) with a "cover" badge top-left and
   "n of m" bottom-right, followed by a thumbnail strip (56 px, `radius.medium`):
-  selected ring, sensitive thumbnails blurred with an eye-off glyph, and a final
-  add tile. Reuse `PhotoDraftGallery`; keep cover choice, automatic cover,
+  selected ring (accent; feeling accent in HeartMoment), sensitive thumbnails
+  blurred with an eye-off glyph, and a final add tile that opens the same media
+  entry as the screen's Photo tool or intake. HeartMoment and Plan use a cover
+  height of about 176 px. Reuse `PhotoDraftGallery`; keep cover choice, automatic cover,
   sensitivity toggle (#1477), reorder, remove, retry, upload progress, video
   processing, swipe/fullscreen/zoom and limit messages. Restyle, do not rewrite.
 
@@ -117,7 +138,7 @@ backend/API, native wrapper.
 - Surfaces from semantic tokens only: page `background`, intake `surfaceSubtle`,
   raised rows `surface` (Light) / `surfaceRaised` (Dark), hairline above the tool
   row `border`. No idle outlines; focus-visible and forced-colors outlines stay.
-- HeartMoment feeling (frames 5–7 of the family board):
+- HeartMoment feeling (frames 5–8):
   - Each feeling chip shows the same icon the timeline uses: reuse the
     `EmotionIcon` glyphs and the `.heart-emotion-icon` treatment from
     `HeartEmotionVisual.tsx` / `HeartEmotionVisual.css` (icon in a 15 % accent

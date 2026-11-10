@@ -1,5 +1,6 @@
 import {
   type Ref,
+  type ReactNode,
   useEffect,
   useId,
   useImperativeHandle,
@@ -12,6 +13,8 @@ import { useContextTagSuggestions } from '../client/useContextTagSuggestions';
 import { useTranslation } from '../i18n';
 import './MemoryTagChoices.css';
 import { AddActionButton } from './AddAction';
+import { ComposerChip, ComposerTool } from './PageComposer';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 const MAX_TAGS = 8;
 const MAX_LABEL_LENGTH = 40;
@@ -24,6 +27,8 @@ export interface ContextTagEditorHandle {
 }
 
 type ContextTagEditorProps = {
+  presentation?: 'default' | 'composer';
+  renderTrigger?: (open: () => void) => ReactNode;
   selected: readonly string[];
   onChange: (tags: string[]) => void;
   suggestions: readonly string[];
@@ -64,12 +69,16 @@ function ContextTagEditorContent({
   onDraftValueChange,
   ref,
   learned,
+  presentation = 'default',
+  renderTrigger,
 }: ContextTagEditorProps & { learned?: ContextTagSuggestionsView }) {
   const { t } = useTranslation();
   const offered = Array.from(
     new Set([...(learned?.learned ?? []), ...suggestions]),
   );
   const id = useId();
+  const [open, setOpen] = useState(false);
+  const sheet = useRef<ShortTaskSheetHandle>(null);
   const [localDraft, setLocalDraft] = useState('');
   const draft = draftValue ?? localDraft;
   function setDraft(value: string) {
@@ -79,6 +88,7 @@ function ContextTagEditorContent({
   const [error, setError] = useState('');
   const [entryExpanded, setEntryExpanded] = useState(false);
   const entryVisible =
+    presentation === 'composer' ||
     !discloseEmpty ||
     entryExpanded ||
     selected.length > 0 ||
@@ -121,13 +131,14 @@ function ContextTagEditorContent({
     commitDraft() {
       const result = commit(true);
       if (result === null) {
+        if (presentation === 'composer') setOpen(true);
         inputRef.current?.focus();
         inputRef.current?.reportValidity();
       }
       return result;
     },
   }));
-  return (
+  const editor = (
     <fieldset
       className={`memory-tag-choices${discloseEmpty ? ' context-tag-disclosure' : ''}`}
       disabled={disabled}
@@ -139,7 +150,9 @@ function ContextTagEditorContent({
         <ul className="context-tag-selected memory-tag-list">
           {selected.map((tag) => (
             <li key={tag}>
-              <input type="hidden" name="tags" value={tag} />
+              {presentation !== 'composer' ? (
+                <input type="hidden" name="tags" value={tag} />
+              ) : null}
               <button
                 type="button"
                 className="context-tag-remove"
@@ -222,7 +235,10 @@ function ContextTagEditorContent({
             {error}
           </p>
         ) : null}
-        <details className="context-tag-suggestions">
+        <details
+          className="context-tag-suggestions"
+          open={presentation === 'composer' ? true : undefined}
+        >
           <summary>{t('contextTags.suggestions')}</summary>
           <div className="memory-tag-list">
             {offered.map((tag) => (
@@ -276,5 +292,61 @@ function ContextTagEditorContent({
         </details>
       </div>
     </fieldset>
+  );
+  if (presentation !== 'composer') return editor;
+  return (
+    <>
+      {selected.map((tag) => (
+        <input key={tag} type="hidden" name="tags" value={tag} />
+      ))}
+      {selected.length ? (
+        <div className="composer-chips context-tag-selected">
+          {selected.map((tag) => (
+            <ComposerChip
+              key={tag}
+              icon="tag"
+              disabled={disabled}
+              aria-label={t('composer.editTag', { name: labelForTag(tag) })}
+              onClick={() => setOpen(true)}
+            >
+              {labelForTag(tag)}
+            </ComposerChip>
+          ))}
+        </div>
+      ) : null}
+      {renderTrigger ? (
+        renderTrigger(() => setOpen(true))
+      ) : (
+        <ComposerTool
+          icon="tag"
+          label={t('composer.tag')}
+          active={selected.length > 0}
+          disabled={disabled}
+          onClick={() => setOpen(true)}
+        />
+      )}
+      <ShortTaskSheet
+        ref={sheet}
+        open={open}
+        title={t('composer.tagsTitle')}
+        onClose={() => setOpen(false)}
+        className="composer-tag-sheet"
+        isCloseBlocked={disabled}
+        footer={
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              if (commit(true) !== null) sheet.current?.requestClose();
+            }}
+          >
+            {t('experiences.finish')}
+          </button>
+        }
+      >
+        <p className="field-help">{t('composer.tagsHint')}</p>
+        {editor}
+      </ShortTaskSheet>
+    </>
   );
 }

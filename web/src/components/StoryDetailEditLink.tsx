@@ -23,6 +23,7 @@ export function StoryDetailEditLink({
       title={label}
     >
       <EditPencilIcon className="list-entry-icon" />
+      <span className="story-detail-edit-label">{label}</span>
     </Link>
   );
 }

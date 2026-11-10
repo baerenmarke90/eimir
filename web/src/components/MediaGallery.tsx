@@ -871,8 +871,7 @@ export function MediaGallery({
                       if (
                         directSensitiveToggle &&
                         item.isSensitive === true &&
-                        (item.mediaType !== MediaType.VIDEO ||
-                          !reveals.isRevealed(item.id))
+                        !reveals.isRevealed(item.id)
                       )
                         reveals.toggle(item.id);
                       else openLightbox(index);
@@ -887,8 +886,7 @@ export function MediaGallery({
                     aria-label={
                       directSensitiveToggle &&
                       item.isSensitive === true &&
-                      (item.mediaType !== MediaType.VIDEO ||
-                        !reveals.isRevealed(item.id))
+                      !reveals.isRevealed(item.id)
                         ? t(
                             reveals.isRevealed(item.id)
                               ? 'sensitiveMedia.hide'
@@ -933,6 +931,11 @@ export function MediaGallery({
               ) : null}
             </div>
 
+            {items.length === 1 ? (
+              <span className="media-gallery-carousel-counter media-overlay">
+                {t('gallery.counter', { index: 1, count: 1 })}
+              </span>
+            ) : null}
             {items.length > 1 ? (
               <>
                 <span
@@ -983,15 +986,36 @@ export function MediaGallery({
                 )
               : null}
           </div>
-          {items[carouselIndex]?.isSensitive === true &&
-          (!directSensitiveToggle ||
-            (items[carouselIndex]?.mediaType === MediaType.VIDEO &&
-              reveals.isRevealed(items[carouselIndex]!.id))) ? (
+          {items[carouselIndex]?.isSensitive === true ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}
               onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
             />
+          ) : null}
+          {items.length > 1 ? (
+            <div
+              className="media-gallery-position"
+              aria-label={t('gallery.aria')}
+            >
+              {items.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={t('gallery.openItem', {
+                    index: index + 1,
+                    count: items.length,
+                  })}
+                  aria-current={index === carouselIndex ? 'true' : undefined}
+                  onClick={() => {
+                    carouselScrollTarget.current = null;
+                    changeCarousel(index - carouselIndex);
+                  }}
+                >
+                  <span />
+                </button>
+              ))}
+            </div>
           ) : null}
           {items[carouselIndex]
             ? renderPhotoReactions?.(items[carouselIndex]!)

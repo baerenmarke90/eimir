@@ -19,6 +19,7 @@ interface Props {
   context?: VideoCaptureContext;
   onFiles: (files: FileList) => void;
   inSourceChooser?: boolean;
+  intake?: boolean;
   actionContainer?: HTMLElement | null;
 }
 
@@ -116,6 +117,7 @@ function DeviceInput({
   onFiles,
   inSourceChooser,
   actionContainer,
+  intake = false,
 }: Props & { videos: boolean }) {
   const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
@@ -146,10 +148,24 @@ function DeviceInput({
         { inSourceChooser, actionContainer },
         <MediaIntakeButton
           label={t(
-            inSourceChooser ? 'photoSources.device' : 'photoSources.addMedia',
+            inSourceChooser
+              ? 'photoSources.device'
+              : intake
+                ? videos
+                  ? 'composer.addMedia'
+                  : 'composer.addPhotos'
+                : 'photoSources.addMedia',
           )}
+          className={intake ? 'media-intake-device' : undefined}
+          description={
+            intake
+              ? t('composer.chooseOrDrag')
+              : inSourceChooser && videos
+                ? t('photoSources.deviceMedia')
+                : undefined
+          }
           icon="foto"
-          variant={inSourceChooser ? 'source' : 'entry'}
+          variant={inSourceChooser || intake ? 'source' : 'entry'}
           disabled={disabled}
           onClick={() => input.current?.click()}
         />,

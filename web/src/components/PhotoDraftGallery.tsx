@@ -33,6 +33,7 @@ export interface PhotoDraftGalleryItem {
 /** Bounded media selection with contextual inline actions. */
 export function PhotoDraftGallery({
   items,
+  addAction,
   disabled = false,
   onSensitive,
   onRemove,
@@ -44,6 +45,7 @@ export function PhotoDraftGallery({
   onSelectCover,
 }: {
   items: PhotoDraftGalleryItem[];
+  addAction?: ReactNode;
   disabled?: boolean;
   onOrderChange?: (keys: string[]) => void;
   selectedCoverKey?: string | null;
@@ -60,7 +62,10 @@ export function PhotoDraftGallery({
   const [actionsOpen, setActionsOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [arranging, setArranging] = useState(false);
-  const selected = items.find((item) => item.key === selectedKey) ?? items[0];
+  const selected =
+    items.find((item) => item.key === selectedKey) ??
+    items.find((item) => item.key === selectedCoverKey) ??
+    items[0];
   if (!selected) return null;
   const failed = items.filter((item) => item.draft?.status === 'failed');
   const visibleItems = expanded ? items : items.slice(0, 6);
@@ -112,85 +117,99 @@ export function PhotoDraftGallery({
     (item) => item.loadMedia || item.draft?.previewUrl,
   );
   return (
-    <div className="photo-draft-gallery">
+    <div
+      className={`photo-draft-gallery${addAction ? ' composer-photo-draft' : ''}${actionsOpen ? ' is-managing' : ''}`}
+    >
       {hasPreview ? (
-        <MediaGallery
-          resourceScopeKey={JSON.stringify([
-            resourceScopeKey,
-            items
-              .flatMap((item) =>
-                item.draft ? [[item.key, item.draft.previewUrl]] : [],
-              )
-              .sort(([a], [b]) => a.localeCompare(b)),
-          ])}
-          onSettledMediaChange={setSelectedKey}
-          initialMediaId={selected.key}
-          items={items.map((item) => ({
-            id: item.key,
-            mediaType: isVideo(item) ? 'VIDEO' : 'IMAGE',
-            status: item.status,
-            isSensitive: item.isSensitive,
-            hasThumbnail: Boolean(item.loadPoster),
-          }))}
-          loadMedia={(id, signal) => {
-            const item = items.find((entry) => entry.key === id);
-            if (item?.loadMedia) return item.loadMedia(signal);
-            if (item?.draft && !selectedPhotoUnavailable(item.draft.file)) {
-              // The gallery owns its bounded view URL; draft previews keep their owner.
-              return Promise.resolve(item.draft.file);
-            }
-            return Promise.reject(new Error('Selected photo is unavailable.'));
-          }}
-          loadPoster={(id, signal) => {
-            const item = items.find((entry) => entry.key === id);
-            return (
-              item?.loadPoster?.(signal) ??
-              Promise.reject(new Error('Selected poster is unavailable.'))
-            );
-          }}
-          loadPlayback={async (id, signal) => {
-            const item = items.find((entry) => entry.key === id);
-            if (item?.loadPlayback) return item.loadPlayback(signal);
-            if (
-              item?.draft?.previewUrl &&
-              !selectedPhotoUnavailable(item.draft.file)
-            ) {
-              return {
-                url: item.draft.previewUrl,
-                expiresAt: new Date(8640000000000000),
-              };
-            }
-            throw new Error('Selected video is unavailable.');
-          }}
-          renderPhotoActions={(media, open, revealed) => {
-            const item = items.find((entry) => entry.key === media.id);
-            if (!item) return null;
-            return (
-              <>
-                {revealed ? <GalleryExpandAction onOpen={open} /> : null}
-                {onSensitive ? (
-                  <label className="photo-draft-stage-sensitive media-overlay">
-                    <input
-                      type="checkbox"
-                      checked={item.isSensitive}
-                      disabled={disabled || item.canEditSensitivity === false}
-                      aria-label={`${t('sensitiveMedia.mark')}: ${item.name}`}
-                      onChange={(event) =>
-                        onSensitive(item.key, event.currentTarget.checked)
-                      }
-                    />
-                    <EimirIcon
-                      name={item.isSensitive ? 'privatsphaere' : 'lock-open'}
-                    />
-                    <span>{t('sensitiveMedia.shortLabel')}</span>
-                  </label>
-                ) : null}
-              </>
-            );
-          }}
-        />
+        <div className="photo-draft-stage">
+          {addAction ? (
+            <span className="photo-draft-cover-label media-overlay">
+              {t('experiences.cover')}
+            </span>
+          ) : null}
+          <MediaGallery
+            resourceScopeKey={JSON.stringify([
+              resourceScopeKey,
+              items
+                .flatMap((item) =>
+                  item.draft ? [[item.key, item.draft.previewUrl]] : [],
+                )
+                .sort(([a], [b]) => a.localeCompare(b)),
+            ])}
+            onSettledMediaChange={setSelectedKey}
+            initialMediaId={selected.key}
+            items={items.map((item) => ({
+              id: item.key,
+              mediaType: isVideo(item) ? 'VIDEO' : 'IMAGE',
+              status: item.status,
+              isSensitive: item.isSensitive,
+              hasThumbnail: Boolean(item.loadPoster),
+            }))}
+            loadMedia={(id, signal) => {
+              const item = items.find((entry) => entry.key === id);
+              if (item?.loadMedia) return item.loadMedia(signal);
+              if (item?.draft && !selectedPhotoUnavailable(item.draft.file)) {
+                // The gallery owns its bounded view URL; draft previews keep their owner.
+                return Promise.resolve(item.draft.file);
+              }
+              return Promise.reject(
+                new Error('Selected photo is unavailable.'),
+              );
+            }}
+            loadPoster={(id, signal) => {
+              const item = items.find((entry) => entry.key === id);
+              return (
+                item?.loadPoster?.(signal) ??
+                Promise.reject(new Error('Selected poster is unavailable.'))
+              );
+            }}
+            loadPlayback={async (id, signal) => {
+              const item = items.find((entry) => entry.key === id);
+              if (item?.loadPlayback) return item.loadPlayback(signal);
+              if (
+                item?.draft?.previewUrl &&
+                !selectedPhotoUnavailable(item.draft.file)
+              ) {
+                return {
+                  url: item.draft.previewUrl,
+                  expiresAt: new Date(8640000000000000),
+                };
+              }
+              throw new Error('Selected video is unavailable.');
+            }}
+            renderPhotoActions={(media, open, revealed) => {
+              const item = items.find((entry) => entry.key === media.id);
+              if (!item) return null;
+              return (
+                <>
+                  {revealed ? <GalleryExpandAction onOpen={open} /> : null}
+                  {onSensitive ? (
+                    <label className="photo-draft-stage-sensitive media-overlay">
+                      <input
+                        type="checkbox"
+                        checked={item.isSensitive}
+                        disabled={disabled || item.canEditSensitivity === false}
+                        aria-label={`${t('sensitiveMedia.mark')}: ${item.name}`}
+                        onChange={(event) =>
+                          onSensitive(item.key, event.currentTarget.checked)
+                        }
+                      />
+                      <EimirIcon
+                        name={item.isSensitive ? 'privatsphaere' : 'lock-open'}
+                      />
+                      <span>{t('sensitiveMedia.shortLabel')}</span>
+                    </label>
+                  ) : null}
+                </>
+              );
+            }}
+          />
+        </div>
       ) : null}
-      <div className="photo-draft-toolbar">
+      <div
+        className="photo-draft-toolbar"
+        hidden={Boolean(addAction) && !actionsOpen}
+      >
         {onSelectCover ? (
           <button
             type="button"
@@ -388,6 +407,9 @@ export function PhotoDraftGallery({
               </fieldset>
             </SortablePhotoDraftItem>
           ))}
+          {addAction ? (
+            <li className="photo-draft-add-item">{addAction}</li>
+          ) : null}
         </ol>
       </PhotoDraftSorting>
       {items.flatMap((item) =>

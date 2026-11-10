@@ -7,7 +7,9 @@ import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { AttachmentMediaDropZone } from './MediaDropZone';
 import type { VideoCaptureContext } from './VideoUploadAction';
-import type { ReactNode } from 'react';
+import { type ReactNode, useRef } from 'react';
+import { MediaIntakeButton } from './MediaIntakeButton';
+import { EimirIcon } from './EimirIcon';
 import { MediaActionGroup } from './MediaActionGroup';
 
 export interface AttachmentDraftPickerController {
@@ -35,7 +37,13 @@ export function AttachmentDraftPicker({
   onSelectCover,
   additionalActions,
   gallery,
+  presentation = 'default',
+  mediaTrigger,
+  pageWideDrop = false,
 }: {
+  presentation?: 'default' | 'diary' | 'tools';
+  mediaTrigger?: (open: () => void) => ReactNode;
+  pageWideDrop?: boolean;
   additionalActions?: ReactNode;
   gallery?: ReactNode;
   id: string;
@@ -56,13 +64,14 @@ export function AttachmentDraftPicker({
   };
 }) {
   const { t } = useTranslation();
+  const openSource = useRef<() => void>(() => {});
   const devicePicker = (
     close: () => void,
     actionContainer?: HTMLElement | null,
     blocked = false,
   ) => (
     <DeviceMediaPicker
-      id={id}
+      id={`${id}-source`}
       multiple={multiple}
       disabled={disabled || blocked}
       inSourceChooser={Boolean(sourceContext)}
@@ -80,6 +89,7 @@ export function AttachmentDraftPicker({
   return (
     <AttachmentMediaDropZone
       videoContext={videoContext}
+      pageWide={pageWideDrop}
       multiple={multiple}
       disabled={disabled}
       onFiles={(files) => {
@@ -122,6 +132,19 @@ export function AttachmentDraftPicker({
                   />
                 ),
               }))}
+              addAction={
+                presentation !== 'default' ? (
+                  <button
+                    type="button"
+                    className="photo-draft-add"
+                    aria-label={t('photoSources.addMedia')}
+                    disabled={disabled}
+                    onClick={() => openSource.current()}
+                  >
+                    <EimirIcon name="hinzufuegen" />
+                  </button>
+                ) : undefined
+              }
               onOrderChange={multiple ? attachments.reorder : undefined}
               selectedCoverKey={selectedCoverKey}
               onSelectCover={onSelectCover}
@@ -134,29 +157,70 @@ export function AttachmentDraftPicker({
             />
           ) : null}
 
-          {sourceContext ? (
-            <PhotoSourcePicker
-              {...sourceContext}
-              unified
-              beginSelection={() => {
-                const ticket = sourceContext.beginSelection();
-                return {
-                  ...ticket,
-                  commit: (files) => {
-                    if (ticket.signal.aborted || !files.length) return false;
-                    if (!multiple)
-                      for (const item of attachments.items)
-                        attachments.remove(item.id);
-                    return ticket.commit(files);
-                  },
-                };
-              }}
-              disabled={disabled}
-              devicePicker={devicePicker}
-            />
-          ) : (
-            devicePicker(() => {})
-          )}
+          <div
+            className={
+              presentation === 'diary' && !attachments.items.length && !gallery
+                ? 'composer-diary-intake'
+                : undefined
+            }
+          >
+            {presentation === 'diary' &&
+            !attachments.items.length &&
+            !gallery ? (
+              <DeviceMediaPicker
+                id={id}
+                multiple={multiple}
+                disabled={disabled}
+                intake
+                context={videoContext}
+                onFiles={attachments.addFiles}
+              />
+            ) : null}
+            {sourceContext ? (
+              <PhotoSourcePicker
+                {...sourceContext}
+                unified
+                renderTrigger={
+                  presentation !== 'default'
+                    ? (open) => {
+                        openSource.current = open;
+                        if (mediaTrigger) return mediaTrigger(open);
+                        return presentation === 'diary' &&
+                          !attachments.items.length &&
+                          !gallery ? (
+                          <MediaIntakeButton
+                            label={t('photoSources.more')}
+                            icon="photo-library"
+                            variant="source"
+                            proLabel={t('photoSources.pro')}
+                            className="photo-source-trigger"
+                            disabled={disabled}
+                            onClick={open}
+                          />
+                        ) : null;
+                      }
+                    : undefined
+                }
+                beginSelection={() => {
+                  const ticket = sourceContext.beginSelection();
+                  return {
+                    ...ticket,
+                    commit: (files) => {
+                      if (ticket.signal.aborted || !files.length) return false;
+                      if (!multiple)
+                        for (const item of attachments.items)
+                          attachments.remove(item.id);
+                      return ticket.commit(files);
+                    },
+                  };
+                }}
+                disabled={disabled}
+                devicePicker={devicePicker}
+              />
+            ) : (
+              devicePicker(() => {})
+            )}
+          </div>
           {additionalActions}
         </MediaActionGroup>
 

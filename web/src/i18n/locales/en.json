@@ -1,4 +1,24 @@
 {
+  "composer": {
+    "tools": "Enrich entry",
+    "place": "Place",
+    "tag": "Tag",
+    "photo": "Photo",
+    "voice": "Voice",
+    "list": "List",
+    "addPhotos": "Add photos",
+    "addMedia": "Add photos or videos",
+    "chooseOrDrag": "Choose from device or drag here",
+    "newPlace": "New place",
+    "createPlace": "Add a new place",
+    "createNamedPlace": "Create “{{name}}” as a new place",
+    "backToPlaces": "Back to your places",
+    "editTag": "Tag: {{name}}, edit",
+    "editPlace": "Place: {{name}}, edit",
+    "dropPhotos": "Drop photos here",
+    "tagsTitle": "What fits this moment?",
+    "tagsHint": "Optional · Choose what will remind you of this moment later."
+  },
   "common": {
     "cancel": "Cancel",
     "retry": "Try again",

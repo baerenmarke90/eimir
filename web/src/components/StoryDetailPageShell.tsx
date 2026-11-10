@@ -1,9 +1,11 @@
 import './StoryReading.css';
+import './PageComposerDetail.css';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 
 export interface StoryDetailPageShellProps {
+  before?: ReactNode;
   eyebrow?: string;
   title: ReactNode;
   titleAction?: ReactNode;
@@ -27,6 +29,7 @@ export interface StoryDetailPageShellProps {
  * framing contract.
  */
 export function StoryDetailPageShell({
+  before,
   eyebrow,
   title,
   titleAction,
@@ -42,24 +45,30 @@ export function StoryDetailPageShell({
   children,
 }: StoryDetailPageShellProps) {
   const { t } = useTranslation();
+  const composed = pageClassName.includes('page-composer-detail');
 
   return (
     <div className={`page story-reading ${pageClassName}`.trim()}>
-      {beforeHeader}
+      {!composed ? beforeHeader : null}
       {offline ? (
         <div className="inline-message" role="status">
           {t('offlineCache.banner')}
         </div>
       ) : null}
       <PageHeader
+        before={before}
+        variant={composed ? 'composer' : 'default'}
+        action={composed ? titleAction : undefined}
         eyebrow={eyebrow}
         title={title}
-        titleAction={titleAction}
+        titleAction={composed ? undefined : titleAction}
         titleContext={titleContext}
-        metadata={metadata}
+        metadata={composed ? undefined : metadata}
         description={description}
       />
 
+      {composed ? beforeHeader : null}
+      {composed ? metadata : null}
       <div {...containerDataAttributes} className={containerClassName}>
         <article
           className={`story-surface ${articleClassName} coffee-table-layout`.trim()}

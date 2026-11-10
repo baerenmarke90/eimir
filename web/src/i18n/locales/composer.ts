@@ -1,0 +1,21 @@
+const composer = {
+  tools: 'Eintrag ergänzen',
+  place: 'Ort',
+  tag: 'Tag',
+  photo: 'Foto',
+  voice: 'Sprache',
+  list: 'Liste',
+  addPhotos: 'Fotos hinzufügen',
+  addMedia: 'Fotos oder Videos hinzufügen',
+  chooseOrDrag: 'Vom Gerät auswählen oder hierher ziehen',
+  newPlace: 'Neuer Ort',
+  createPlace: 'Neuen Ort hinzufügen',
+  createNamedPlace: '„{{name}}“ als neuen Ort erstellen',
+  backToPlaces: 'Zurück zu euren Orten',
+  editTag: 'Tag: {{name}}, bearbeiten',
+  editPlace: 'Ort: {{name}}, bearbeiten',
+  dropPhotos: 'Fotos hier ablegen',
+  tagsTitle: 'Was passt zu diesem Moment?',
+  tagsHint: 'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
+};
+export default composer;

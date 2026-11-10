@@ -39,6 +39,7 @@ export type StoryPlanningLinksProps = {
   sourceKind: 'MEMORY' | 'HEART_MOMENT' | 'MILESTONE';
   canManage: boolean;
   editing?: boolean;
+  presentation?: 'default' | 'composer' | 'handoff';
   offline: boolean;
   initialPlanId?: string;
   onInitialPlanConsumed?: () => void;
@@ -68,6 +69,7 @@ function ScopedStoryPlanningLinks({
   sourceKind,
   canManage,
   editing = false,
+  presentation = 'default',
   offline,
   initialPlanId: suppliedInitialPlanId,
   onInitialPlanConsumed,
@@ -324,6 +326,29 @@ function ScopedStoryPlanningLinks({
     clientProblemKind(linked.error),
   );
   const targets = denied ? [] : (linked.data ?? []);
+  if (presentation === 'handoff')
+    return initialPlanId ? (
+      <div className="story-planning-handoff">
+        {linked.isLoading || mutation.isPending ? (
+          <p role="status">{t('m5s3.common.saving')}</p>
+        ) : null}
+        {linked.error ? (
+          <ProblemState
+            error={linked.error}
+            onRetry={() => void linked.refetch()}
+          />
+        ) : null}
+        {mutation.error ? (
+          <ProblemState
+            error={mutation.error}
+            onRetry={() => {
+              sourceApplied.current = false;
+              save('plans', initialPlanId);
+            }}
+          />
+        ) : null}
+      </div>
+    ) : null;
   if (!canManage && !targets.length) return null;
   if (!editing && !targets.length && !linked.error && !mutation.error)
     return null;
@@ -396,11 +421,27 @@ function ScopedStoryPlanningLinks({
         </>
       ) : null}
       {canManage && editing ? (
-        <AddActionButton
-          label={addLabel}
-          disabled={offline || linked.isLoading || denied || mutation.isPending}
-          onClick={() => setOpen(true)}
-        />
+        presentation === 'composer' ? (
+          <button
+            type="button"
+            className="tertiary composer-link-action"
+            disabled={
+              offline || linked.isLoading || denied || mutation.isPending
+            }
+            onClick={() => setOpen(true)}
+          >
+            <EimirIcon name="hinzufuegen" />
+            {addLabel}
+          </button>
+        ) : (
+          <AddActionButton
+            label={addLabel}
+            disabled={
+              offline || linked.isLoading || denied || mutation.isPending
+            }
+            onClick={() => setOpen(true)}
+          />
+        )
       ) : null}
       {linked.error && canManage ? (
         <ProblemState

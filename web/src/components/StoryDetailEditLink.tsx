@@ -9,10 +9,12 @@ export function StoryDetailEditLink({
   to,
   label,
   state,
+  text = false,
 }: {
   to: string;
   label: string;
   state?: unknown;
+  text?: boolean;
 }) {
   return (
     <Link
@@ -23,7 +25,7 @@ export function StoryDetailEditLink({
       title={label}
     >
       <EditPencilIcon className="list-entry-icon" />
-      <span className="story-detail-edit-label">{label}</span>
+      {text ? <span className="story-detail-edit-label">{label}</span> : null}
     </Link>
   );
 }

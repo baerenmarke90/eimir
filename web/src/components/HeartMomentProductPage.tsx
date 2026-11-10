@@ -510,6 +510,13 @@ export function HeartMomentProductPage({
   );
 
   const createMutation = useMutation({
+    mutationKey: [
+      'heart-moment-create',
+      apiBaseUrl,
+      contextKey,
+      mode,
+      location.key,
+    ],
     mutationFn: async ({
       values,
       planningTargets: selectedTargets,
@@ -1369,12 +1376,16 @@ export function HeartMomentProductPage({
                     disabled={
                       updateMutation.isPending ||
                       visibilityWrites > 0 ||
-                      deleteMutation.isBlocked
+                      deleteMutation.isPending
                     }
                     onChange={(visibility) => {
                       if (
                         queryClient.isMutating({ mutationKey: updateKey }) ||
-                        queryClient.isMutating({ mutationKey: deleteKey })
+                        queryClient.isMutating({ mutationKey: deleteKey }) ||
+                        queryClient.isMutating({
+                          mutationKey: visibilityMutationKey,
+                          exact: true,
+                        })
                       )
                         return;
                       const isCurrent = captureAuthorizedQuery(
@@ -1561,7 +1572,7 @@ export function HeartMomentProductPage({
             {visibilityMutation.error ? (
               <ProblemState error={visibilityMutation.error} />
             ) : null}
-            {visibilityMutation.isPending ? (
+            {visibilityWrites > 0 ? (
               <p role="status">{t('heartMomentProduct.visibilityChanging')}</p>
             ) : null}
             {updateMutation.error ? (
@@ -1756,6 +1767,7 @@ export function HeartMomentProductPage({
             {visualMedia.length ? (
               <section aria-label={t('heartMomentProduct.photoLabel')}>
                 <MediaGallery
+                  presentation="composer"
                   initialMediaId={
                     heartMoment.selectedCoverAttachmentId ?? undefined
                   }

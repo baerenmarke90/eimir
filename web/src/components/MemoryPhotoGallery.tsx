@@ -169,9 +169,9 @@ export function MemoryPhotoGallery({
   const photos = [...memory.attachments]
     .filter(isGalleryAttachment)
     .sort((a, b) =>
-      a.id === memory.selectedCoverAttachmentId
+      !memory.experienceKind && a.id === memory.selectedCoverAttachmentId
         ? -1
-        : b.id === memory.selectedCoverAttachmentId
+        : !memory.experienceKind && b.id === memory.selectedCoverAttachmentId
           ? 1
           : a.position - b.position,
     );
@@ -266,6 +266,7 @@ export function MemoryPhotoGallery({
   return (
     <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
+        presentation={memory.experienceKind ? 'default' : 'composer'}
         initialMediaId={memory.selectedCoverAttachmentId ?? undefined}
         items={photos.map(
           ({

@@ -7,6 +7,7 @@ describe('EIMIR-M5-Web-S2-SCOPE media gallery accessibility smoke', () => {
   it('renders an accessible media-first carousel with labeled position dots', () => {
     const html = renderToStaticMarkup(
       <MediaGallery
+        presentation="composer"
         items={[
           { id: 'image-1', mediaType: MediaType.IMAGE, isSensitive: false },
           { id: 'video-1', mediaType: MediaType.VIDEO, isSensitive: false },
@@ -36,9 +37,10 @@ describe('EIMIR-M5-Web-S2-SCOPE media gallery accessibility smoke', () => {
     expect(html.match(/type="button"/g)).toHaveLength(6);
   });
 
-  it('renders a single image without pagination or navigation chrome', () => {
+  it('renders one composer image with its count and without navigation chrome', () => {
     const html = renderToStaticMarkup(
       <MediaGallery
+        presentation="composer"
         items={[
           { id: 'image-1', mediaType: MediaType.IMAGE, isSensitive: false },
         ]}
@@ -55,4 +57,22 @@ describe('EIMIR-M5-Web-S2-SCOPE media gallery accessibility smoke', () => {
     expect(html).not.toContain(`aria-label="${i18n.t('gallery.next')}"`);
     expect(html.match(/type="button"/g)).toHaveLength(1);
   });
+});
+
+it('preserves uncomposed gallery pagination for out-of-scope consumers', () => {
+  const renderGallery = (count: number) =>
+    renderToStaticMarkup(
+      <MediaGallery
+        items={Array.from({ length: count }, (_, index) => ({
+          id: String(index),
+          mediaType: MediaType.IMAGE,
+          isSensitive: false,
+        }))}
+        loadMedia={async () => 'blob:test'}
+      />,
+    );
+  expect(renderGallery(1)).not.toContain('media-gallery-carousel-counter');
+  const multiple = renderGallery(3);
+  expect(multiple).toContain(i18n.t('gallery.counter', { index: 1, count: 3 }));
+  expect(multiple).not.toContain('media-gallery-position');
 });

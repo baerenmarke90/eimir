@@ -66,6 +66,7 @@ it('selects the exact photo from position dots and leaves the active dot unchang
   const load = vi.fn(async (id: string) => `blob:${id}`);
   const view = render(
     <MediaGallery
+      presentation="composer"
       items={images.slice(0, 3)}
       loadMedia={load}
       onSettledMediaChange={settled}

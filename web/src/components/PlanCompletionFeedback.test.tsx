@@ -295,12 +295,20 @@ it('recovers a conflict from a fresh read without replaying the stale version', 
   );
 
   await waitFor(() => expect(h.getPlan.mock.calls.length).toBe(reads + 1));
-  // Another member completed it: the confirmed result, no celebration.
+  // Another member completed it: show the authoritative read result without a new capture handoff.
   expect(await screen.findByText(m5s3.plan.completedTitle)).toBeDefined();
   expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
-  expect(
-    screen.getByRole('button', { name: m5s3.planStory.memoryAction }),
-  ).toBeDefined();
+  for (const action of [
+    m5s3.planStory.memoryAction,
+    m5s3.planStory.heartMomentAction,
+    m5s3.planStory.milestoneAction,
+  ])
+    expect(screen.queryByRole('button', { name: action })).toBeNull();
+  expect(screen.queryByText(pendingCopy())).toBeNull();
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)).toMatchObject({
+    status: 'COMPLETED',
+    version: 4,
+  });
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
 });
 
@@ -388,7 +396,9 @@ it('admits one editor save and locks inputs and completion until it finishes', a
     (form.elements.namedItem('plannedDate') as HTMLInputElement).disabled,
   ).toBe(true);
   expect(
-    (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).disabled,
+    (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).matches(
+      ':disabled',
+    ),
   ).toBe(true);
 });
 

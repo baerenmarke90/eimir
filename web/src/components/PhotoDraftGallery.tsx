@@ -128,6 +128,7 @@ export function PhotoDraftGallery({
             </span>
           ) : null}
           <MediaGallery
+            presentation={addAction ? 'composer' : 'default'}
             countStyle="label"
             resourceScopeKey={JSON.stringify([
               resourceScopeKey,

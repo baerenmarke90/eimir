@@ -1,5 +1,7 @@
 /* #1010 — one semantic visual language for the six existing HeartEmotion values. */
 :root {
+  --active-heart-emotion-surface: var(--color-background);
+  --active-heart-emotion-accent: var(--color-link-text);
   --emotion-loved-accent: #be3653;
   --emotion-loved-surface: #fff0f3;
   --emotion-seen-accent: #5d5aa6;

@@ -1369,6 +1369,7 @@ export function MemoryProductPage({
         memory.capabilities.canEdit &&
         !offline ? (
           <StoryDetailEditLink
+            text={!memory.experienceKind}
             to={memoryEditPath(memory.id)}
             label={t('memoryProduct.edit')}
             state={{ taskOriginKey: originKey }}

@@ -115,7 +115,8 @@ export function MediaGallery({
   renderCaption,
   dismissWithHistory = true,
   directSensitiveToggle = false,
-  countStyle = 'fraction',
+  presentation = 'default',
+  countStyle = presentation === 'composer' ? 'fraction' : 'label',
   onPhotoLongPress,
   renderPhotoActions,
   renderPhotoReactions,
@@ -141,6 +142,7 @@ export function MediaGallery({
   ) => ReactNode;
   dismissWithHistory?: boolean;
   directSensitiveToggle?: boolean;
+  presentation?: 'default' | 'composer';
   countStyle?: 'fraction' | 'label';
   onPhotoLongPress?: (id: string) => void;
   renderPhotoActions?: (
@@ -873,16 +875,30 @@ export function MediaGallery({
                       if (
                         directSensitiveToggle &&
                         item.isSensitive === true &&
-                        !reveals.isRevealed(item.id)
+                        (presentation !== 'composer' ||
+                          !reveals.isRevealed(item.id))
                       )
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
+                    aria-pressed={
+                      presentation !== 'composer' &&
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      item.mediaType !== MediaType.VIDEO
+                        ? reveals.isRevealed(item.id)
+                        : undefined
+                    }
                     aria-label={
                       directSensitiveToggle &&
                       item.isSensitive === true &&
-                      !reveals.isRevealed(item.id)
-                        ? t('sensitiveMedia.show')
+                      (presentation !== 'composer' ||
+                        !reveals.isRevealed(item.id))
+                        ? t(
+                            reveals.isRevealed(item.id)
+                              ? 'sensitiveMedia.hide'
+                              : 'sensitiveMedia.show',
+                          )
                         : (item.isSensitive !== false &&
                           !reveals.isRevealed(item.id)
                             ? t('sensitiveMedia.label') + '. '
@@ -922,7 +938,7 @@ export function MediaGallery({
               ) : null}
             </div>
 
-            {items.length === 1 ? (
+            {presentation === 'composer' && items.length === 1 ? (
               <span className="media-gallery-carousel-counter media-overlay">
                 {t(
                   countStyle === 'label'
@@ -989,14 +1005,15 @@ export function MediaGallery({
           </div>
           {items[carouselIndex]?.isSensitive === true &&
           (!directSensitiveToggle ||
-            reveals.isRevealed(items[carouselIndex]!.id)) ? (
+            (presentation === 'composer' &&
+              reveals.isRevealed(items[carouselIndex]!.id))) ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}
               onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
             />
           ) : null}
-          {items.length > 1 ? (
+          {presentation === 'composer' && items.length > 1 ? (
             <nav
               className="media-gallery-position"
               aria-label={t('gallery.aria')}

@@ -139,6 +139,7 @@ export function MediaGallery({
   // Scroll frames preview a swipe; only a selection or completed swipe owns
   // resize alignment. A layout change must not commit an intermediate slide.
   const carouselIndexRef = useRef(startingIndex);
+  const carouselScrollTarget = useRef<number | null>(startingIndex);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const imageFocusIndex =
     activeIndex ?? (renderPreviews ? null : carouselIndex);
@@ -198,7 +199,10 @@ export function MediaGallery({
   const lightboxScrollEndTimer = useRef<number | null>(null);
   const lightboxInitialIndex = useRef(0);
   const activeIndexRef = useRef<number | null>(null);
-  const carouselItemsIdentityRef = useRef<string | null>(null);
+  const carouselItemsIdentityRef = useRef<{
+    items: string;
+    mediaId?: string;
+  } | null>(null);
   const activeItemIdRef = useRef<string | null>(null);
   const cancelCarouselFeedback = useCallback(() => {
     if (carouselScrollFrame.current !== null) {
@@ -255,12 +259,24 @@ export function MediaGallery({
   }, [carouselIndex, items.length]);
 
   useLayoutEffect(() => {
-    const identity = JSON.stringify([itemIdentity, initialMediaId]);
-    if (carouselItemsIdentityRef.current === identity) return;
-    carouselItemsIdentityRef.current = identity;
+    const previous = carouselItemsIdentityRef.current;
+    if (previous?.items === itemIdentity && previous.mediaId === initialMediaId)
+      return;
+    carouselItemsIdentityRef.current = {
+      items: itemIdentity,
+      mediaId: initialMediaId,
+    };
+    // A parent acknowledging a native swipe is not a new scroll command.
+    if (
+      previous?.items === itemIdentity &&
+      carouselScrollTarget.current === null &&
+      carouselIndexRef.current === startingIndex
+    )
+      return;
     // A new explicit selection owns subsequent feedback and resize alignment.
     cancelCarouselFeedback();
     carouselIndexRef.current = startingIndex;
+    carouselScrollTarget.current = startingIndex;
     setCarouselIndex(startingIndex);
 
     const track = carouselTrack.current;
@@ -283,6 +299,7 @@ export function MediaGallery({
       const slide = carouselSlides.current[carouselIndexRef.current];
       if (!slide) return;
       cancelCarouselFeedback();
+      carouselScrollTarget.current = carouselIndexRef.current;
       setCarouselIndex(carouselIndexRef.current);
       track.scrollLeft = slide.offsetLeft;
     });
@@ -427,6 +444,14 @@ export function MediaGallery({
     const index = Number(nearest.dataset.carouselIndex);
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
+    // Passive native resnapping after layout changes cannot replace an explicit
+    // selection. A horizontal input hands selection back to the native swipe.
+    const requested = carouselScrollTarget.current;
+    if (requested !== null && index !== requested) {
+      const slide = carouselSlides.current[requested];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+      return;
+    }
     carouselIndexRef.current = index;
     setCarouselIndex(index);
     if (items[index]) onSettledMediaChange?.(items[index].id);
@@ -448,6 +473,11 @@ export function MediaGallery({
         if (!nearest) return;
         const index = Number(nearest.dataset.carouselIndex);
         if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          if (
+            carouselScrollTarget.current !== null &&
+            carouselScrollTarget.current !== index
+          )
+            return;
           setCarouselIndex(index);
         }
       });
@@ -468,6 +498,7 @@ export function MediaGallery({
     const direction = delta < 0 ? -1 : 1;
     const nextIndex = (carouselIndex + direction + items.length) % items.length;
     carouselIndexRef.current = nextIndex;
+    carouselScrollTarget.current = nextIndex;
     const track = carouselTrack.current;
     if (!track) {
       setCarouselIndex(nextIndex);
@@ -721,6 +752,13 @@ export function MediaGallery({
               ref={carouselTrack}
               className="eimir-media-snap-track media-gallery-carousel-track"
               onScroll={(event) => handleCarouselScroll(event.currentTarget)}
+              onPointerDown={() => {
+                carouselScrollTarget.current = null;
+              }}
+              onWheel={(event) => {
+                if (event.deltaX !== 0 || event.shiftKey)
+                  carouselScrollTarget.current = null;
+              }}
             >
               {items.length > 1 ? (
                 <div
@@ -749,6 +787,13 @@ export function MediaGallery({
                     data-carousel-index={index}
                     aria-hidden={!isActive}
                     tabIndex={isActive ? 0 : -1}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === 'ArrowLeft' ||
+                        event.key === 'ArrowRight'
+                      )
+                        carouselScrollTarget.current = null;
+                    }}
                     onPointerDown={(event) => {
                       photoPress.current.suppressClick = false;
                       if (

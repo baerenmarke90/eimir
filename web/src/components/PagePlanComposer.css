@@ -179,3 +179,18 @@
   color: var(--color-link-text);
   box-shadow: none;
 }
+
+.shared-list-composer .checklist-toggle-indicator {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  border: var(--border-divider-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+}
+.shared-list-composer
+  .checklist-toggle[aria-pressed="true"]
+  .checklist-toggle-indicator {
+  border-color: var(--color-action-emphasis);
+  background: var(--color-action-emphasis);
+  color: var(--color-on-action-emphasis);
+}

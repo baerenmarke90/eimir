@@ -94,7 +94,7 @@ function PhotoActions({
       >
         <EimirIcon name="smile-plus" />
         <span className="memory-photo-react-label">
-          {t('photoReactions.open')}
+          {t('photoReactions.react')}
         </span>
       </button>
       {popover.isOpen ? (

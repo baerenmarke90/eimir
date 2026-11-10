@@ -446,9 +446,20 @@ for (const variant of [
     await page.locator('.heart-emotion-disclosure > summary').click();
     for (const label of await page.locator('.heart-emotion-choice-label').all())
       await expectNaturalTextReflow(label, 2);
+    // The native radio is visually clipped; touch activates its full label.
+    // Keep the native checked/focus/keyboard assertions after that real action.
     await page
-      .getByRole('radio', { name: emotions.APPRECIATED, exact: true })
-      .check();
+      .locator('.heart-emotion-choice')
+      .filter({
+        has: page.getByRole('radio', {
+          name: emotions.APPRECIATED,
+          exact: true,
+        }),
+      })
+      .click();
+    await expect(
+      page.getByRole('radio', { name: emotions.APPRECIATED, exact: true }),
+    ).toBeChecked();
     await page
       .getByRole('radio', { name: emotions.APPRECIATED, exact: true })
       .press('ArrowRight');

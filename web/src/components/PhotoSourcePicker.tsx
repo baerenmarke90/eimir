@@ -17,12 +17,11 @@ import {
 import { usePhotoSources } from '../client/usePhotoSources';
 import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
 import { useTranslation } from '../i18n';
-import { ProMark } from './ProMark';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { AutoLoadTrigger } from './AutoLoadMore';
 import './PhotoSourcePicker.css';
-import { AddActionContent } from './AddAction';
+import { MediaIntakeButton } from './MediaIntakeButton';
 
 interface SelectionTask {
   api: PhotoSourcesApi;
@@ -370,22 +369,18 @@ export function PhotoSourcePicker({
         {devicePicker?.(() => {})}
         {availability &&
         (availability.enabled || availability.immichConnected) ? (
-          <button
+          <MediaIntakeButton
             ref={trigger}
-            type="button"
-            className="add-action photo-source-trigger"
+            label={t('photoSources.more')}
+            icon="photo-library"
+            proLabel={t('photoSources.pro')}
+            className="photo-source-trigger"
             disabled={disabled || remaining <= 0}
             onClick={() => {
               setMessage('');
               setOpen(true);
             }}
-          >
-            <AddActionContent
-              label={t('photoSources.more')}
-              icon="photo-library"
-            />{' '}
-            <ProMark label={t('photoSources.pro')} />
-          </button>
+          />
         ) : null}
       </div>
       <ShortTaskSheet

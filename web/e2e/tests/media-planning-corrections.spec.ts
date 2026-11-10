@@ -1,3 +1,5 @@
+import sources from '../../src/i18n/locales/photoSources';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -644,6 +646,129 @@ test.describe('free composer media preservation', () => {
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
       expect(state.bound).toHaveLength(2);
       expect(state.cover).toBe(state.bound[1]);
+    });
+  }
+});
+
+test.describe('integrated soft media choices', () => {
+  for (const scenario of [
+    { width: 360, theme: 'light', large: false },
+    { width: 390, theme: 'dark', large: false },
+    { width: 430, theme: 'light', large: false },
+    { width: 1280, theme: 'dark', large: false },
+    { width: 320, theme: 'light', large: true },
+  ] as const) {
+    test(`writing and media share one accessible composer at ${scenario.width} ${scenario.theme}`, async ({
+      page,
+    }, info) => {
+      test.setTimeout(60_000);
+      await page.setViewportSize({ width: scenario.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: scenario.theme,
+        reducedMotion: 'reduce',
+      });
+      const { plans } = await setup(page);
+      await page.route(`**/api/v1/spaces/${SPACE_ID}/photo-sources`, (route) =>
+        route.fulfill({
+          json: {
+            enabled: true,
+            canImport: false,
+            googleAvailable: false,
+            immichConnected: false,
+          },
+        }),
+      );
+      await signIn(page);
+      for (const [index, route] of [
+        '/story/memories/new',
+        '/story/memories/mem-canal/edit',
+        '/plan/plans/new',
+        `/plan/plans/${plans[0].id}`,
+      ].entries()) {
+        await page.goto(route);
+        if (index === 3)
+          await page
+            .getByRole('button', { name: m5s3.common.edit, exact: true })
+            .click();
+        if (scenario.large)
+          await page.evaluate(() => {
+            document.documentElement.style.fontSize = '200%';
+          });
+        const composer = page.locator('.composer-content');
+        await expect(composer).toHaveCount(1);
+        const device = composer.getByRole('button', {
+          name: sources.addMedia,
+          exact: true,
+        });
+        const external = composer.getByRole('button', {
+          name: sources.more,
+          exact: true,
+        });
+        await expect(device).toBeVisible();
+        await expect(external).toBeVisible();
+        await expect(composer.locator('.media-action-group')).toHaveCount(1);
+        for (const surface of [
+          composer,
+          composer.locator('.composer-writing-surface'),
+          device,
+          external,
+        ]) {
+          await expect(surface).toHaveCSS('border-top-width', '0px');
+        }
+        const geometry = await device.evaluate((element) => {
+          const row = element.getBoundingClientRect();
+          const parent = element.parentElement!.getBoundingClientRect();
+          return {
+            height: row.height,
+            width: row.width,
+            parentWidth: parent.width,
+          };
+        });
+        expect(geometry.height).toBeGreaterThanOrEqual(48);
+        expect(Math.abs(geometry.width - geometry.parentWidth)).toBeLessThan(1);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth + 1,
+          ),
+        ).toBe(true);
+        if (index === 0) {
+          const prose = composer.getByRole('textbox', {
+            name: de.memory.bodyLabel,
+            exact: true,
+          });
+          await prose.fill(copy.description);
+          await external.click();
+          const sheet = page.getByRole('dialog', {
+            name: sources.title,
+            exact: true,
+          });
+          await expect(sheet).toBeVisible();
+          await sheet
+            .getByRole('button', { name: taskSheets.close, exact: true })
+            .last()
+            .click();
+          await expect(external).toBeFocused();
+          await expect(prose).toHaveValue(copy.description);
+          await device.focus();
+          await expect(device).toHaveCSS('outline-style', 'solid');
+          const chooser = page.waitForEvent('filechooser');
+          await device.press('Enter');
+          await (await chooser).setFiles([]);
+          await expect(prose).toHaveValue(copy.description);
+          await expect(device).toBeFocused();
+          await page.locator('.composer-header h1').click();
+          const axe = await new AxeBuilder({ page })
+            .include('.free-composer')
+            .analyze();
+          expect(axe.violations).toEqual([]);
+          await captureScreenshot(
+            page,
+            info,
+            `shell-soft-composer-${scenario.width}-${scenario.theme}.png`,
+            { fullPage: true },
+          );
+        }
+      }
     });
   }
 });

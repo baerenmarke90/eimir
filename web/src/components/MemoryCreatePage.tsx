@@ -1025,53 +1025,52 @@ export function MemoryCreatePage({
             ) : null}
             {experienceKind ? narrativeField : null}
             {!experienceKind ? (
-              <div className="composer-writing-surface">
-                <div className="field-group immersive-create-title-field">
-                  <label htmlFor="title">
-                    {t('memory.titleLabelOptional')}
-                  </label>
-                  <input
-                    id="title"
-                    name="title"
-                    maxLength={200}
-                    placeholder={t('memory.titleLabelOptional')}
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    className="immersive-create-title-input"
+              <div className="composer-content">
+                <div className="composer-writing-surface">
+                  <div className="field-group immersive-create-title-field">
+                    <label htmlFor="title">
+                      {t('memory.titleLabelOptional')}
+                    </label>
+                    <input
+                      id="title"
+                      name="title"
+                      maxLength={200}
+                      placeholder={t('memory.titleLabelOptional')}
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      className="immersive-create-title-input"
+                    />
+                  </div>
+                  {narrativeField}
+                </div>
+                <div className="immersive-create-media">
+                  <AttachmentDraftPicker
+                    id="memory-create-images"
+                    videoContext={{ apis, accountId, spaceId }}
+                    attachments={attachments}
+                    selectedCoverKey={
+                      selectedCoverKey &&
+                      attachments.items.some(
+                        (item) => item.id === selectedCoverKey,
+                      )
+                        ? selectedCoverKey
+                        : null
+                    }
+                    onSelectCover={setSelectedCoverKey}
+                    sourceContext={{
+                      apiBaseUrl,
+                      accessToken,
+                      accountId,
+                      spaceId,
+                      remaining: Math.max(
+                        0,
+                        MAX_MEMORY_ATTACHMENTS - attachments.items.length,
+                      ),
+                      beginSelection: attachments.beginSelection,
+                    }}
+                    multiple
                   />
                 </div>
-                {narrativeField}
-              </div>
-            ) : null}
-
-            {!experienceKind ? (
-              <div className="immersive-create-media">
-                <AttachmentDraftPicker
-                  id="memory-create-images"
-                  videoContext={{ apis, accountId, spaceId }}
-                  attachments={attachments}
-                  selectedCoverKey={
-                    selectedCoverKey &&
-                    attachments.items.some(
-                      (item) => item.id === selectedCoverKey,
-                    )
-                      ? selectedCoverKey
-                      : null
-                  }
-                  onSelectCover={setSelectedCoverKey}
-                  sourceContext={{
-                    apiBaseUrl,
-                    accessToken,
-                    accountId,
-                    spaceId,
-                    remaining: Math.max(
-                      0,
-                      MAX_MEMORY_ATTACHMENTS - attachments.items.length,
-                    ),
-                    beginSelection: attachments.beginSelection,
-                  }}
-                  multiple
-                />
               </div>
             ) : null}
 

@@ -1,0 +1,76 @@
+button.media-intake-button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  min-block-size: var(--touch-target-comfortable);
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: none;
+  font: var(--font-action-label);
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.media-intake-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 var(--touch-target-web);
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-surface);
+  color: var(--color-action-primary);
+}
+
+.media-intake-icon .eimir-icon {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+
+.media-intake-copy {
+  display: grid;
+  flex: 1 1 8rem;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.media-intake-description {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.media-intake-pro {
+  flex: none;
+  margin-inline-start: auto;
+}
+
+.media-intake-pro:empty {
+  display: none;
+}
+
+.photo-source-trigger .media-intake-label {
+  color: var(--color-action-primary);
+}
+
+button.media-intake-button:hover:not(:disabled) {
+  background: var(--color-surface-raised);
+}
+
+button.media-intake-button:disabled {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+@media (forced-colors: active) {
+  button.media-intake-button {
+    border: var(--border-surface-width) solid ButtonText;
+  }
+}

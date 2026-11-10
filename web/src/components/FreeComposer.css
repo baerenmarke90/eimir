@@ -51,7 +51,7 @@
   inline-size: 100%;
   min-inline-size: 0;
   max-inline-size: 100%;
-  border: var(--border-authored-width) solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-medium);
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface);
@@ -71,7 +71,7 @@
   max-inline-size: var(--composer-max);
   min-inline-size: 0;
   padding: var(--space-3) var(--space-4);
-  border: var(--border-authored-width) solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text);
@@ -152,8 +152,8 @@
 }
 
 .free-composer .media-action-group {
-  border: var(--border-authored-width) solid var(--color-border);
-  background: var(--color-surface);
+  border: 0;
+  background: var(--color-surface-panel-tint);
   box-shadow: none;
 }
 
@@ -211,7 +211,7 @@
 
 @media (forced-colors: active) {
   .free-composer :is(input:not([type]), input[type="text"], textarea) {
-    border-color: CanvasText;
+    border: var(--border-surface-width) solid CanvasText;
   }
 }
 
@@ -359,19 +359,33 @@
 .composer-context-trigger[aria-expanded="true"] > .eimir-icon:last-child {
   transform: rotate(-90deg);
 }
+.free-composer .composer-content {
+  display: grid;
+  gap: var(--space-4);
+  min-inline-size: 0;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-content);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
 .quiet-composer .composer-writing-surface {
   display: grid;
   gap: var(--space-3);
   min-inline-size: 0;
   padding: var(--space-4);
-  border: var(--border-authored-width) solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-content);
   background: var(--color-surface);
   color: var(--color-text);
 }
-.quiet-composer .composer-writing-surface:focus-within {
-  border-color: var(--color-focus);
+.quiet-composer .composer-content > .composer-writing-surface {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
+
 .quiet-composer .composer-writing-surface .field-group {
   margin: 0;
   gap: 0;
@@ -534,11 +548,11 @@
   }
 
   .quiet-composer .media-action-group {
-    padding-inline: 0;
+    padding-inline: var(--space-2);
   }
 }
 @media (forced-colors: active) {
-  .quiet-composer .composer-writing-surface {
-    border-color: CanvasText;
+  .quiet-composer .composer-writing-surface :is(input, textarea) {
+    border: var(--border-surface-width) solid CanvasText;
   }
 }

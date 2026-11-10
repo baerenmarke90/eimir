@@ -615,51 +615,53 @@ export function PlanProductPage({
                   onChange={() => setEditDirty(true)}
                 />
               )}
-              <div className="composer-writing-surface">
-                <label htmlFor="plan-edit-title">
-                  {t('m5s3.common.title')}
-                </label>
-                <input
-                  id="plan-edit-title"
-                  ref={editTitle}
+              <div className="composer-content">
+                <div className="composer-writing-surface">
+                  <label htmlFor="plan-edit-title">
+                    {t('m5s3.common.title')}
+                  </label>
+                  <input
+                    id="plan-edit-title"
+                    ref={editTitle}
+                    disabled={writesPending}
+                    form="plan-edit-form"
+                    name="title"
+                    onChange={() => setEditDirty(true)}
+                    required
+                    maxLength={200}
+                    defaultValue={plan.title}
+                    aria-label={t('m5s3.common.title')}
+                  />
+                  <label htmlFor="plan-edit-description">
+                    {t('m5s3.common.description')}
+                  </label>
+                  <textarea
+                    form="plan-edit-form"
+                    id="plan-edit-description"
+                    name="description"
+                    rows={4}
+                    defaultValue={plan.description ?? ''}
+                    placeholder={t('m5s3.common.description')}
+                  />
+                </div>
+                <PlanPhotosEditor
+                  controller={photos}
+                  spaceId={spaceId}
+                  planId={plan.id}
                   disabled={writesPending}
-                  form="plan-edit-form"
-                  name="title"
-                  onChange={() => setEditDirty(true)}
-                  required
-                  maxLength={200}
-                  defaultValue={plan.title}
-                  aria-label={t('m5s3.common.title')}
-                />
-                <label htmlFor="plan-edit-description">
-                  {t('m5s3.common.description')}
-                </label>
-                <textarea
-                  form="plan-edit-form"
-                  id="plan-edit-description"
-                  name="description"
-                  rows={4}
-                  defaultValue={plan.description ?? ''}
-                  placeholder={t('m5s3.common.description')}
+                  canUpload={Boolean(apiBaseUrl && accessToken)}
+                  photoSourceContext={
+                    apiBaseUrl && accessToken && accountId
+                      ? { apiBaseUrl, accessToken, accountId }
+                      : undefined
+                  }
+                  onChange={() => {
+                    setPhotosChanged(true);
+                    setEditDirty(true);
+                  }}
                 />
               </div>
             </fieldset>
-            <PlanPhotosEditor
-              controller={photos}
-              spaceId={spaceId}
-              planId={plan.id}
-              disabled={writesPending}
-              canUpload={Boolean(apiBaseUrl && accessToken)}
-              photoSourceContext={
-                apiBaseUrl && accessToken && accountId
-                  ? { apiBaseUrl, accessToken, accountId }
-                  : undefined
-              }
-              onChange={() => {
-                setPhotosChanged(true);
-                setEditDirty(true);
-              }}
-            />
             <PlanWishLink
               key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
               apis={apis}

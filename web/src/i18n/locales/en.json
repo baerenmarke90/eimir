@@ -2175,6 +2175,8 @@
     "connected": "Immich is connected.",
     "configureInSettings": "Connect Immich under Settings › Media sources.",
     "addMedia": "Add media",
+    "mediaLabel": "Media",
+    "deviceMediaHint": "Photos and videos",
     "device": "Choose from device",
     "deviceMedia": "Choose photos and videos together",
     "previewFailed": "Preview unavailable",

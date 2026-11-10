@@ -1,7 +1,7 @@
 import { useContext, useRef } from 'react';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
-import { AddActionButton } from './AddAction';
+import { MediaIntakeButton } from './MediaIntakeButton';
 import {
   useVideoUploadPolicy,
   type VideoCaptureContext,
@@ -97,9 +97,12 @@ function DeviceInput({
           event.currentTarget.value = '';
         }}
       />
-      <AddActionButton
+      <MediaIntakeButton
         label={t('photoSources.addMedia')}
         icon="foto"
+        description={t(
+          videos ? 'photoSources.deviceMediaHint' : 'memory.photoFormats',
+        )}
         disabled={disabled}
         onClick={() => input.current?.click()}
       />

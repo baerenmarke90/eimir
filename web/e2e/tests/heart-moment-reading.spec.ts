@@ -55,7 +55,7 @@ async function expectFeelingSurface(
   const card = page.locator(
     reading
       ? '.heart-moment-detail-container .product-detail-card'
-      : '.quiet-composer .composer-writing-surface',
+      : '.quiet-composer .composer-content',
   );
   const semanticColor = await card.evaluate(
     (element, token) =>

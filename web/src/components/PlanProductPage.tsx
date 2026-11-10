@@ -1102,6 +1102,7 @@ export function PlanProductPage({
                 );
                 setSelectedPlaceId(chosen.id);
                 setEditDirty(true);
+                setPlacePending(false);
                 setPlaceOpen(false);
               }}
             />

@@ -29,7 +29,10 @@ beforeAll(() => {
   };
 });
 
-function renderEditor(status: PlanDetail['status']) {
+function renderEditor(
+  status: PlanDetail['status'],
+  places: { id: string; name: string }[] = [],
+) {
   const plan: PlanDetail = {
     capabilities: { canComment: false, canDelete: true, canEdit: true },
     createdAt: new Date('2026-08-01T10:00:00Z'),
@@ -83,7 +86,7 @@ function renderEditor(status: PlanDetail['status']) {
       updatePlan,
     },
     places: {
-      listPlaces: vi.fn(async () => ({ items: [], nextCursor: null })),
+      listPlaces: vi.fn(async () => ({ items: places, nextCursor: null })),
     },
   } as unknown as SharedPlanningApis;
   const queryClient = new QueryClient({
@@ -96,7 +99,10 @@ function renderEditor(status: PlanDetail['status']) {
     authorSummaryQueryKeys.planDetail('space-1', plan.id),
     plan,
   );
-  queryClient.setQueryData(authorSummaryQueryKeys.placeOptions('space-1'), []);
+  queryClient.setQueryData(
+    authorSummaryQueryKeys.placeOptions('space-1'),
+    places,
+  );
 
   render(
     <QueryClientProvider client={queryClient}>
@@ -205,6 +211,23 @@ describe('PlanProductPage editor request serialization', () => {
       },
     ]);
   });
+});
+
+it('releases the parent pending guard after choosing a Place and saves the staged location', async () => {
+  const h = renderEditor('IDEA', [{ id: 'river', name: 'Riverside' }]);
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.edit') }));
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('composer.place') }),
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Riverside' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  const save = screen.getByRole('button', {
+    name: i18n.t('m5s3.common.saveChanges'),
+  });
+  expect(save.hasAttribute('disabled')).toBe(false);
+  fireEvent.click(save);
+  await waitFor(() => expect(h.updatePlan).toHaveBeenCalledTimes(1));
+  expect(h.requestBodies[0]).toMatchObject({ placeId: 'river' });
 });
 
 it('keeps the initiating version during background reads and rebases only on deliberate retry without losing the draft', async () => {

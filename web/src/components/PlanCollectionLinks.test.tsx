@@ -207,6 +207,67 @@ describe('Plan-linked canonical lists', () => {
     );
   });
 
+  it('keeps an unsaved list entry until the user explicitly discards it', async () => {
+    const shared = {
+      id: 'list-draft',
+      spaceId: 'space-1',
+      title: 'Draft list',
+      version: 1,
+      capabilities: { canEdit: true, canDelete: true },
+      items: [],
+    } as unknown as CollectionDetail;
+    const createCollectionItem = vi.fn();
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <PlanCollectionLinks
+            spaceId="space-1"
+            plan={plan}
+            disabled={false}
+            apis={
+              {
+                plans: { listPlanCollections: vi.fn(async () => [shared]) },
+                collections: {
+                  getCollection: vi.fn(async () => shared),
+                  createCollectionItem,
+                },
+              } as unknown as SharedPlanningApis
+            }
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /^Draft list/ }));
+    const input = await screen.findByRole('textbox', {
+      name: i18n.t('m5s3.collection.newItem'),
+    });
+    fireEvent.change(input, { target: { value: 'Do not lose this' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
+    expect(screen.getByRole('dialog', { name: 'Draft list' })).toBeTruthy();
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+    expect((input as HTMLInputElement).value).toBe('Do not lose this');
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.common.keepEditing') }),
+    );
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect((input as HTMLInputElement).value).toBe('Do not lose this');
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.common.discardConfirm'),
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(createCollectionItem).not.toHaveBeenCalled();
+  });
+
   it('omits the confirmed empty section while reading a Plan', async () => {
     const api = setup({ editing: false });
     await waitFor(() =>

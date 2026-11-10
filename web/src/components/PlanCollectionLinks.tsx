@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { PlanningDiscardConfirmation } from './PlanningEditorLifecycle';
 import { AddActionButton } from './AddAction';
 import { CollectionProductPage } from './CollectionProductPage';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -55,9 +56,17 @@ export function PlanCollectionLinks({
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [listPending, setListPending] = useState(false);
   const [listDirty, setListDirty] = useState(false);
+  const [confirmListDiscard, setConfirmListDiscard] = useState(false);
+  const [discardListConfirmed, setDiscardListConfirmed] = useState(false);
+  const listContent = useRef<HTMLDivElement>(null);
   const listTrigger = useRef<HTMLButtonElement>(null);
   const listSheet = useRef<ShortTaskSheetHandle>(null);
   const openChoices = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!discardListConfirmed || listDirty || listPending) return;
+    setDiscardListConfirmed(false);
+    listSheet.current?.requestClose();
+  }, [discardListConfirmed, listDirty, listPending]);
   const canManage = editing && plan.capabilities.canEdit;
   const capture = useTaskActivation(canManage);
   const mutationKey = ['plan-write', spaceId, plan.id] as const;
@@ -252,9 +261,12 @@ export function PlanCollectionLinks({
         restoreFocusRef={listTrigger}
         isCloseBlocked={listPending}
         isDirty={listDirty}
+        onDiscardRequested={() => setConfirmListDiscard(true)}
         onClose={() => {
           setSelectedList(null);
           setListDirty(false);
+          setConfirmListDiscard(false);
+          setDiscardListConfirmed(false);
           void client.invalidateQueries({ queryKey: key });
         }}
         footer={
@@ -267,16 +279,35 @@ export function PlanCollectionLinks({
           </button>
         }
       >
-        {selectedList ? (
-          <CollectionProductPage
-            apis={apis}
-            spaceId={spaceId}
-            collectionId={selectedList}
-            embedded
-            onPendingChange={setListPending}
-            onDirtyChange={setListDirty}
+        {confirmListDiscard ? (
+          <PlanningDiscardConfirmation
+            onKeepEditing={() => {
+              setConfirmListDiscard(false);
+              listContent.current
+                ?.querySelector<HTMLInputElement>('input[name="title"]')
+                ?.focus();
+            }}
+            onDiscard={() => {
+              setListDirty(false);
+              setDiscardListConfirmed(true);
+            }}
           />
         ) : null}
+        <div ref={listContent}>
+          {selectedList ? (
+            <CollectionProductPage
+              apis={apis}
+              spaceId={spaceId}
+              collectionId={selectedList}
+              embedded
+              onPendingChange={setListPending}
+              onDirtyChange={(dirty) => {
+                setListDirty(dirty);
+                if (!dirty) setConfirmListDiscard(false);
+              }}
+            />
+          ) : null}
+        </div>
       </ShortTaskSheet>
       {mutation.error ? <ProblemState error={mutation.error} /> : null}
     </section>

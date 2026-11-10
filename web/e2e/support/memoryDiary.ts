@@ -6,6 +6,13 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import { expectNaturalTextReflow } from './addAction';
 
+/** Current readers own Back in their native header; other Story owners retain the shell. */
+export function storyDetailBack(page: Page) {
+  return page.locator(
+    '.composer-header .task-back-control:visible, .shell-detail-back:visible',
+  );
+}
+
 /** Open optional tag writing through the same visible Add action as a person. */
 export async function showContextTags(page: Page): Promise<void> {
   const input = page.getByLabel(contextTags.newLabel, { exact: true });

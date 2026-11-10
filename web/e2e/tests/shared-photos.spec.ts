@@ -263,7 +263,11 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/memory-42$/);
   await expect(
-    page.getByRole('heading', { name: 'Our day by the lake', level: 1 }),
+    page.getByRole('heading', {
+      name: 'Our day by the lake',
+      level: 2,
+      exact: true,
+    }),
   ).toBeVisible();
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })

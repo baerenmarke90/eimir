@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import copy from '../../src/i18n/locales/m5s3';
 import photoCopy from '../../src/i18n/locales/photoReactions';
 import storyCopy from '../../src/i18n/locales/storyProducts';
@@ -199,7 +200,7 @@ async function expectGalleryImage(image: Locator, maxHeight: number) {
         rect.bottom <= frame.bottom + 1,
     };
   });
-  expect(size.fit).toBe('contain');
+  expect(size.fit).toBe('cover');
   expect(size.height).toBeLessThanOrEqual(maxHeight + 1);
   expect(size.contained).toBe(true);
 }
@@ -563,7 +564,7 @@ for (const view of [
       .and(page.locator('.photo-draft-tile'))
       .click();
     await page
-      .locator('.photo-draft-inspector')
+      .locator('.photo-draft-stage')
       .getByRole('button', { name: de.common.retry, exact: true })
       .click();
     await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
@@ -687,7 +688,31 @@ for (const view of [
     const original = state.payloads[0].map((photo) => photo.attachmentId);
     async function changeDraft() {
       await drafts.first().click();
-      await dragDraftMedia(page, 0, 1);
+      if (view.large) {
+        const sourceKey = await drafts.first().getAttribute('data-media-key');
+        if (!sourceKey) throw new Error('Missing staged media identity');
+        await page
+          .getByRole('button', { name: experiences.arrange, exact: true })
+          .click();
+        const arrange = page.getByRole('dialog', {
+          name: experiences.arrange,
+          exact: true,
+        });
+        const items = arrange.locator('.media-arrange-grid .photo-draft-tile');
+        await expect(items.first()).toHaveAttribute('aria-pressed', 'true');
+        await arrange
+          .getByRole('button', { name: experiences.later, exact: true })
+          .click();
+        await expect(items.nth(1)).toHaveAttribute('data-media-key', sourceKey);
+        await arrange
+          .getByRole('button', { name: experiences.finish, exact: true })
+          .click();
+        await expect(arrange).toHaveCount(0);
+        await expect(drafts.nth(1)).toHaveAttribute(
+          'data-media-key',
+          sourceKey,
+        );
+      } else await dragDraftMedia(page, 0, 1);
       await expectInlineDraftActions(page);
       await drafts.first().click();
       await inspector.getByRole('checkbox').check();

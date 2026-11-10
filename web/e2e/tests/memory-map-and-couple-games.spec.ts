@@ -7,6 +7,7 @@ import de from '../../src/i18n/locales/de';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
+import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   captureScreenshot,
@@ -352,7 +353,7 @@ for (const [width, theme] of [
     ).toEqual([]);
     await memory.click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
-    await page.locator('.shell-detail-back').click();
+    await storyDetailBack(page).click();
     await expect(page).toHaveURL(/\/story\/map\?place=/);
     await expect(
       page.getByRole('link', { name: /Afternoon by the canal/ }),

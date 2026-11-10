@@ -12,7 +12,8 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtureCopy from '../fixtures/locales/de';
 import { expectLabeledComposerTool } from '../support/addAction';
-import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import { swipeCarousel } from '../support/mediaCarouselGesture';
+import { dragDraftMedia } from '../support/mediaDraft';
 import { expectMediaIntakeAction } from '../support/mediaIntake';
 import {
   ACCOUNT_ID,
@@ -508,16 +509,13 @@ test.describe('free composer media preservation', () => {
         new RegExp(de.memory.photoReady),
       );
       await tiles.nth(1).click();
-      const selected = page.locator('.photo-draft-frame').filter({
-        has: page.locator('.photo-draft-tile[aria-pressed="true"]'),
-      });
+      const selected = page.locator('.photo-draft-stage');
       const chosenKey = await tiles.nth(1).getAttribute('data-media-key');
       if (!chosenKey)
         throw new Error('The selected draft identity is unavailable.');
       await selected
         .getByRole('button', { name: experiences.chooseCover })
         .click();
-      await tiles.nth(1).click();
       const privacy = page.locator('.photo-draft-stage-sensitive');
       const privacyGeometry = () =>
         privacy.evaluate((element) => {
@@ -541,7 +539,9 @@ test.describe('free composer media preservation', () => {
       await page.locator('.photo-draft-stage').evaluate((stage) => {
         stage.scrollIntoView({ block: 'center', behavior: 'instant' });
       });
-      await page.locator('.photo-draft-gallery .media-gallery-expand').click();
+      await page
+        .locator('.photo-draft-stage .media-gallery-carousel-slide.is-active')
+        .click();
       const dialog = page.getByRole('dialog', {
         name: storyProducts.gallery.dialogAria,
       });
@@ -571,40 +571,7 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: storyProducts.gallery.close })
         .click();
       await expect(dialog).toHaveCount(0);
-      await tiles.nth(1).scrollIntoViewIfNeeded();
-      const from = await tiles.nth(1).boundingBox(),
-        to = await tiles.first().boundingBox();
-      if (!from || !to)
-        throw new Error('The draft sorting targets are unavailable.');
-      const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
-      const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
-      if (scenario.touch) {
-        const client = await page.context().newCDPSession(page);
-        try {
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchStart',
-            touchPoints: [start],
-          });
-          await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchMove',
-            touchPoints: [end],
-          });
-          await nextFrame(page);
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchEnd',
-            touchPoints: [],
-          });
-        } finally {
-          await client.detach();
-        }
-      } else {
-        await page.mouse.move(start.x, start.y);
-        await page.mouse.down();
-        await page.mouse.move(end.x, end.y, { steps: 8 });
-        await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
-        await page.mouse.up();
-      }
+      await dragDraftMedia(page, 1, 0, scenario.touch ? 'touch' : 'mouse');
       await expect(tiles.first()).toHaveAttribute('data-media-key', chosenKey);
       await page
         .getByRole('button', { name: experiences.arrange, exact: true })

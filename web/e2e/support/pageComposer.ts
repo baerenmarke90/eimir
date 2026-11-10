@@ -183,6 +183,7 @@ export async function installPageComposerFixture(
     ],
   ]);
   let uploadNumber = 0;
+  const uploads = { failuresRemaining: 0, requests: 0, failedRequests: 0 };
   const links = new Map<string, Set<string>>();
   if (linkedWish) {
     resources.set('wishes/composer-wish', {
@@ -296,6 +297,12 @@ export async function installPageComposerFixture(
     }
     if (path === `${base}/attachments` && method === 'POST') {
       const values = record();
+      uploads.requests++;
+      if (values.mediaType === 'IMAGE' && uploads.failuresRemaining > 0) {
+        uploads.failuresRemaining--;
+        uploads.failedRequests++;
+        return json({ code: 'TEMPORARILY_UNAVAILABLE' }, 503);
+      }
       const id = `composer-upload-${++uploadNumber}`;
       const item = {
         ...(values.mediaType === 'AUDIO' ? audio : image(id)),
@@ -349,6 +356,19 @@ export async function installPageComposerFixture(
       if ('text' in resource)
         resource.attachment = (resource.attachments as unknown[])[0] ?? null;
     };
+    const applyPlanSchedule = (
+      resource: Record<string, unknown>,
+      values: Record<string, unknown>,
+    ) => {
+      if (!Object.hasOwn(values, 'schedule')) return;
+      const schedule = values.schedule as Record<string, unknown> | null;
+      Object.assign(resource, {
+        plannedOn: schedule?.plannedOn ?? null,
+        plannedStart: schedule?.plannedStart ?? null,
+        plannedEnd: schedule?.plannedEnd ?? null,
+        status: schedule ? 'PLANNED' : 'IDEA',
+      });
+    };
     const resource = resources.get(key);
     if (resource) {
       if (method === 'PATCH') {
@@ -357,6 +377,7 @@ export async function installPageComposerFixture(
           version: Number(resource.version) + 1,
         });
         replaceAttachments(resource, values);
+        if (key.startsWith('plans/')) applyPlanSchedule(resource, values);
       }
       return json(resource);
     }
@@ -454,6 +475,7 @@ export async function installPageComposerFixture(
             : {}),
         };
         replaceAttachments(created, values);
+        if (key === 'plans') applyPlanSchedule(created, values);
         resources.set(`${key}/${id}`, created);
         return json(created, 201);
       }
@@ -468,5 +490,5 @@ export async function installPageComposerFixture(
     if (await fulfillDefaultProductContext(route)) return;
     return route.fallback();
   });
-  return { unexpected, calls, resources, list, places };
+  return { unexpected, calls, resources, list, places, uploads };
 }

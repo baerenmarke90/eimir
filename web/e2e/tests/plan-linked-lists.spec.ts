@@ -735,7 +735,9 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await selectedPlace.click();
   const places = page.getByRole('dialog');
   await expect(
-    places.getByText(state.place.address, { exact: true }),
+    places
+      .locator('.ordered-moment-places > ol')
+      .getByText(state.place.address, { exact: true }),
   ).toBeVisible();
   await places
     .getByRole('button', { name: experiences.finish, exact: true })

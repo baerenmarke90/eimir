@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
 import composer from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
@@ -10,6 +10,7 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { expectNaturalTextReflow } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
 import { openComposerMediaSources } from '../support/mediaIntake';
@@ -19,7 +20,6 @@ import {
   showComposerDate,
   showMemoryDetails,
 } from '../support/memoryDiary';
-import { expectNaturalTextReflow } from '../support/addAction';
 import {
   fulfillEmptyMomentPlaces,
   fulfillUnconfiguredPhotoSources,
@@ -88,7 +88,11 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     uploadRequests: 0,
     timelineRequests: [] as string[],
     unexpected: [] as string[],
-    saved: null as ReturnType<typeof memory> | null,
+    saved: null as
+      | (ReturnType<typeof memory> & {
+          selectedCoverAttachmentId?: string | null;
+        })
+      | null,
     releaseCreate: () => {},
   };
   const createGate = new Promise<void>((resolve) => {
@@ -1183,7 +1187,7 @@ test('failed uploads retain authored content and can retry before the first crea
     .getByRole('button', { name: new RegExp(de.memory.photoFailed) })
     .click();
   await page
-    .locator('.photo-draft-inspector')
+    .locator('.photo-draft-stage')
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);

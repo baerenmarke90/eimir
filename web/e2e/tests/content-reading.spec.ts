@@ -3,7 +3,6 @@ import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryCopy from '../../src/i18n/locales/memoryProduct';
-import { placeDetailPath } from '../../src/client/routes';
 import {
   ACCOUNT_ID,
   PARTNER_ID,
@@ -66,6 +65,8 @@ for (const [width, theme, large] of [
               {
                 id: 'lake-place',
                 name: 'Lake shore',
+                latitude: 49.1,
+                longitude: 7.2,
                 version: 1,
                 createdAt: plan.createdAt,
                 updatedAt: plan.updatedAt,
@@ -75,6 +76,20 @@ for (const [width, theme, large] of [
             ],
             hasMore: false,
             nextCursor: null,
+          },
+        });
+      if (path.endsWith('/wishes/source-wish'))
+        return route.fulfill({
+          json: {
+            id: 'source-wish',
+            spaceId: SPACE_ID,
+            title: 'A wish to walk by the lake',
+            description: '',
+            status: 'OPEN',
+            version: 1,
+            createdAt: plan.createdAt,
+            updatedAt: plan.updatedAt,
+            capabilities: plan.capabilities,
           },
         });
       if (path.endsWith('/link-preview')) {
@@ -92,14 +107,15 @@ for (const [width, theme, large] of [
     const more = page.locator('.description-disclosure');
     await expect(more).toHaveText(copy.descriptionDisclosure.more);
     await expect(more).toHaveAttribute('aria-expanded', 'false');
+    const place = page.locator('.planen-detail-when-where').getByRole('link', {
+      name: 'Lake shore',
+      exact: true,
+    });
+    await expect(place).toHaveCount(1);
+    await expect(place).toHaveAttribute('href', '/story/map?place=49.1%3A7.2');
     await expect(
-      page
-        .locator('.planen-detail-context, .planen-detail-when-where')
-        .getByRole('link'),
-    ).toHaveCount(2);
-    await expect(
-      page.getByRole('link', { name: 'Lake shore' }),
-    ).toHaveAttribute('href', placeDetailPath('lake-place'));
+      page.locator('.planen-detail-context .plan-wish-source'),
+    ).toHaveCount(1);
     await expect(
       page.getByRole('link', { name: m5s3.plan.openWish }),
     ).toHaveAttribute('href', '/plan/wishes/source-wish');

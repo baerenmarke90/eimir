@@ -6,7 +6,10 @@ import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
 import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
+import { openComposerPlace } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -174,6 +177,27 @@ for (const [width, theme, large] of [
         },
       }),
     );
+    await page.route(`**${base}/memory-map*`, (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              memoryId: 'mem-canal',
+              title: fixture.title,
+              happenedOn: '2026-05-12',
+              placeId: 'saar',
+              placeName: fixture.place,
+              latitude: 49.23,
+              longitude: 6.99,
+            },
+          ],
+          nextCursor: null,
+        },
+      }),
+    );
+    await page.route('https://tile.openstreetmap.org/**', (route) =>
+      route.fulfill({ contentType: 'image/jpeg', body: photo }),
+    );
     await signIn(page);
     await expect(page.locator('.subpage-back-slot')).toHaveCount(0);
     await page.goto('/story/memories/mem-canal');
@@ -181,7 +205,9 @@ for (const [width, theme, large] of [
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '200%';
       });
-    const back = page.locator('.subpage-back-slot .task-back-control');
+    const back = page
+      .locator('.composer-header')
+      .getByRole('button', { name: taskCopy.back, exact: true });
     await expect(back).toHaveCount(1);
     await expect(back).toBeVisible();
     await expect(back).toHaveAccessibleName(taskCopy.back);
@@ -190,12 +216,12 @@ for (const [width, theme, large] of [
     expect(backBox?.height).toBeGreaterThanOrEqual(44);
     const title = page.getByRole('heading', {
       name: fixture.title,
-      level: 1,
+      level: 2,
     });
     expect(backBox?.y).toBeLessThan((await title.boundingBox())?.y ?? 0);
-    const metadata = page.locator('header .moment-metadata');
+    const metadata = page.locator('.moment-metadata');
     await expect(
-      metadata.getByRole('button', { name: fixture.place }),
+      metadata.getByRole('link', { name: fixture.place, exact: true }),
     ).toBeVisible();
     await expect(metadata.locator('.moment-date svg')).toBeVisible();
     await expect(metadata.locator('time')).toHaveAttribute(
@@ -204,7 +230,7 @@ for (const [width, theme, large] of [
     );
     const dateBox = await metadata.locator('time').boundingBox();
     const placeBox = await metadata
-      .getByRole('button', { name: fixture.place })
+      .getByRole('link', { name: fixture.place, exact: true })
       .boundingBox();
     expect(placeBox?.width).toBeGreaterThanOrEqual(44);
     expect(placeBox?.height).toBeGreaterThanOrEqual(44);
@@ -232,22 +258,48 @@ for (const [width, theme, large] of [
       `story-context-${width}-${theme}${large ? '-large-reduced' : ''}.png`,
       { fullPage: true },
     );
-    await metadata.getByRole('button', { name: fixture.place }).click();
+    const place = metadata.getByRole('link', {
+      name: fixture.place,
+      exact: true,
+    });
+    await expect(place).toHaveAttribute(
+      'href',
+      '/story/map?place=49.23%3A6.99',
+    );
+    await place.click();
+    await expect(page).toHaveURL(/\/story\/map\?place=49.23%3A6.99$/);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('.memory-map-marker')).toHaveCount(1);
     await expect(
-      page.getByRole('dialog', { name: fixture.place }),
+      page.getByRole('link', { name: 'OpenStreetMap', exact: true }),
+    ).toHaveAttribute('href', 'https://www.openstreetmap.org/copyright');
+    await page
+      .getByRole('button', { name: taskCopy.back, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+    await expect(place).toBeFocused();
+    await page
+      .getByRole('link', { name: memoryProduct.edit, exact: true })
+      .click();
+    await openComposerPlace(page);
+    const picker = page.getByRole('dialog', {
+      name: placeCopy.add,
+      exact: true,
+    });
+    await expect(
+      picker
+        .locator('.ordered-moment-places > ol')
+        .getByText(fixture.address, { exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('link', {
-        name: placeCopy.mapAddress.replace('{{address}}', fixture.address),
-      }),
-    ).toHaveAttribute('href', /49.23/);
-    await expect(
-      page.getByRole('link', { name: '© OpenStreetMap' }),
-    ).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(
-      metadata.getByRole('button', { name: fixture.place }),
-    ).toBeFocused();
+    await picker
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
+    await expect(picker).toHaveCount(0);
+    await page
+      .locator('.composer-header')
+      .getByRole('link', { name: taskCopy.back, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     await back.click();
     await expect(page).toHaveURL(/\/story$/);
     await page.goto('/more/settings/appearance');
@@ -390,7 +442,10 @@ for (const [width, theme] of [
       );
       await section.getByRole('link', { name: copy.incoming.open }).click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-      await page.locator('.subpage-back-slot .task-back-control').click();
+      await page
+        .locator('.composer-header')
+        .getByRole('button', { name: taskCopy.back, exact: true })
+        .click();
       await expect(page).toHaveURL(/\/today$/);
       await expect(page.locator('.shared-experience-section')).toHaveCount(0);
     });
@@ -451,11 +506,11 @@ for (const shared of [true, false]) {
     await expect(
       page.getByText(fixture.heartText, { exact: true }),
     ).toBeVisible();
-    const meta = page.locator('header .moment-metadata');
+    const meta = page.locator('.moment-metadata');
     await expect(meta.locator('.moment-date svg')).toBeVisible();
     if (shared) {
       await expect(
-        meta.getByRole('button', { name: fixture.place }),
+        meta.getByRole('link', { name: fixture.place, exact: true }),
       ).toBeVisible();
       expect(reads).toBe(1);
       await captureScreenshot(
@@ -466,14 +521,19 @@ for (const shared of [true, false]) {
       );
     } else {
       expect(reads).toBe(0);
-      await expect(
-        page.getByRole('button', { name: fixture.place }),
-      ).toHaveCount(0);
+      await expect(meta.getByText(fixture.place, { exact: true })).toHaveCount(
+        0,
+      );
     }
     await expect(
-      page.locator('.subpage-back-slot .task-back-control'),
+      page
+        .locator('.composer-header')
+        .getByRole('button', { name: taskCopy.back, exact: true }),
     ).toHaveCount(1);
-    await page.locator('.subpage-back-slot .task-back-control').click();
+    await page
+      .locator('.composer-header')
+      .getByRole('button', { name: taskCopy.back, exact: true })
+      .click();
     await expect(page).toHaveURL(/\/story$/);
   });
 }

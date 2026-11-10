@@ -463,7 +463,8 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect(
     page.getByRole('heading', {
       name: 'Later October trip',
-      level: 1,
+      level: 2,
+      exact: true,
     }),
   ).toBeVisible();
 
@@ -487,6 +488,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect(
     page.getByRole('heading', {
       name: 'Earlier September outing',
+      level: 2,
       exact: true,
     }),
   ).toBeVisible();

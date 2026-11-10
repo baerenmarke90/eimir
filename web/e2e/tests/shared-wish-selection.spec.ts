@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/wishSelection';
 import planning from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localizedFixtures from '../fixtures/locales/de';
 import {
   ACCOUNT_ID,
@@ -350,7 +351,10 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(
     fixture.requests.find((item) => item.kind === 'plan')?.body.schedule,
   ).toEqual({ plannedOn: '2026-11-01' });
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page
+    .locator('.composer-header')
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/plan\/choose$/);
   await expect(
     page.getByRole('link', {

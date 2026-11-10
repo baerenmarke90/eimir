@@ -6,9 +6,12 @@ import taskBoundary from '../../src/i18n/locales/taskBoundary';
 export async function resumeLegacyMemoryAttempt(page: Page) {
   await expect
     .poll(async () =>
-      [de.memory.diary.draft.saved, de.memory.diary.draft.memoryOnly].includes(
-        await page.locator('.memory-draft-status').innerText(),
-      ),
+      (
+        [
+          de.memory.diary.draft.saved,
+          de.memory.diary.draft.memoryOnly,
+        ] as readonly string[]
+      ).includes(await page.locator('.memory-draft-status').innerText()),
     )
     .toBe(true);
   await page.evaluate(
@@ -74,7 +77,12 @@ export async function resumeLegacyMemoryAttempt(page: Page) {
   const accept = (dialog: Dialog) => {
     void dialog.accept();
   };
-  if (!page.listenerCount('dialog')) page.once('dialog', accept);
+  if (
+    !(page as Page & { listenerCount(event: 'dialog'): number }).listenerCount(
+      'dialog',
+    )
+  )
+    page.once('dialog', accept);
   await page.reload();
   page.off('dialog', accept);
   await page

@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -12,8 +9,6 @@ import { nextFrame } from '../support/mediaCarouselGesture';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
@@ -23,11 +18,6 @@ const TEST_NOW = '2026-09-01T10:00:00Z';
 const ME = { id: ACCOUNT_ID, displayName: 'Anna Sommer' };
 const PARTNER = { id: PARTNER_ID, displayName: 'Ben Winter' };
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
-
-const EVIDENCE_DIR = path.resolve(
-  __dirname,
-  '../../../docs/design/eimir/screenshots/global-header-document-flow',
-);
 
 function generateTimelineItems() {
   const items = [];
@@ -444,12 +434,6 @@ async function expectAnchoredNavigation(page: Page, safeArea = 0) {
 }
 
 test.describe('Global header document flow and persistent bottom navigation', () => {
-  test.beforeAll(() => {
-    if (!fs.existsSync(EVIDENCE_DIR)) {
-      fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
-    }
-  });
-
   test('bottom navigation stays viewport-anchored across scroll, safe areas and route return (#1489)', async ({
     page,
   }, testInfo) => {
@@ -643,10 +627,10 @@ test.describe('Global header document flow and persistent bottom navigation', ()
 
       if (route === '/today') {
         await page.screenshot({
-          path: path.join(EVIDENCE_DIR, '01-today-without-global-header.png'),
+          path: testInfo.outputPath('01-today-without-global-header.png'),
         });
         await testInfo.attach('today-without-global-header', {
-          path: path.join(EVIDENCE_DIR, '01-today-without-global-header.png'),
+          path: testInfo.outputPath('01-today-without-global-header.png'),
           contentType: 'image/png',
         });
       }
@@ -838,8 +822,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     expect(demoGeometry.safeTop.trim()).toBe('0px');
     await expectNoHorizontalOverflow(page);
 
-    const screenshotPath = path.join(
-      EVIDENCE_DIR,
+    const screenshotPath = testInfo.outputPath(
       '02-today-shared-surface-with-demo-banner.png',
     );
     await page.screenshot({ path: screenshotPath, fullPage: false });
@@ -990,14 +973,8 @@ for (const variant of [
     await page.screenshot({
       path: testInfo.outputPath(`reset-${variant.width}-${variant.theme}.png`),
     });
-    const followupEvidence = path.resolve(
-      __dirname,
-      '../../../docs/product/design/references/tabs-pro-private-tags/evidence',
-    );
-    fs.mkdirSync(followupEvidence, { recursive: true });
     await page.screenshot({
-      path: path.join(
-        followupEvidence,
+      path: testInfo.outputPath(
         `tab-reset-${variant.width}-${variant.theme}.png`,
       ),
     });

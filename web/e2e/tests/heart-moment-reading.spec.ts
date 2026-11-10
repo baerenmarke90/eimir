@@ -243,7 +243,13 @@ async function openHeart(
   return { unknown, writes: () => writes };
 }
 
-const scenarios = [
+const scenarios: readonly {
+  width: number;
+  theme: 'light' | 'dark';
+  photo?: boolean;
+  private?: boolean;
+  large?: boolean;
+}[] = [
   { width: 360, theme: 'light', photo: true },
   { width: 390, theme: 'dark', photo: true },
   { width: 430, theme: 'light', private: true },

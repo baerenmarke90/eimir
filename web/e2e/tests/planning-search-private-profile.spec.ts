@@ -161,6 +161,8 @@ async function fixture(page: Page, failLater = false) {
               id: placeId,
               name: 'Starnberger See',
               address: 'Am See',
+              latitude: 47.9,
+              longitude: 11.3,
               creator: ME,
               capabilities: CAPABILITIES,
               createdAt: target.createdAt,
@@ -265,6 +267,9 @@ for (const view of [
     await expect(
       facts.getByRole('link', { name: /Starnberger See/ }),
     ).toBeVisible();
+    await expect(
+      facts.getByRole('link', { name: /Starnberger See/ }),
+    ).toHaveAttribute('href', '/story/map?place=47.9%3A11.3');
     await expect(facts.locator('.planen-detail-schedule')).toBeVisible();
     await captureScreenshot(
       page,
@@ -449,6 +454,8 @@ test('a linked archived Place remains visible next to the Plan schedule', async 
         spaceId: SPACE_ID,
         name: 'Starnberger See',
         address: 'Am See',
+        latitude: 47.9,
+        longitude: 11.3,
         archivedAt: '2026-11-01T00:00:00Z',
         creator: ME,
         capabilities: CAPABILITIES,
@@ -464,6 +471,9 @@ test('a linked archived Place remains visible next to the Plan schedule', async 
   await expect(
     facts.getByRole('link', { name: /Starnberger See/ }),
   ).toBeVisible();
+  await expect(
+    facts.getByRole('link', { name: /Starnberger See/ }),
+  ).toHaveAttribute('href', '/story/map?place=47.9%3A11.3');
   await expect(facts.locator('.planen-detail-schedule')).toBeVisible();
   expect(placeReads).toBe(1);
   expect(state.unexpected).toEqual([]);

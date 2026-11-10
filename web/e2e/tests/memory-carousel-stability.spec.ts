@@ -1251,12 +1251,12 @@ test('Memory carousel keeps document and layout position stable across pointer a
       .locator('.media-gallery-carousel-content')
       .first()
       .evaluate((element) => getComputedStyle(element).objectFit),
-  ).toBe('contain');
+  ).toBe('cover');
 
   const ambientBackdrop = page
     .locator('.media-gallery-carousel-backdrop')
     .first();
-  await expect(ambientBackdrop).toBeVisible();
+  await expect(ambientBackdrop).toBeHidden();
   expect(
     await ambientBackdrop.evaluate(
       (element) => getComputedStyle(element).objectFit,
@@ -1929,8 +1929,8 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await page.goto(`/story/memories/${MEMORY_ID}/edit`);
   await selectDraftMedia(page);
   const mark = page
-    .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
-    .first();
+    .locator('.photo-draft-stage')
+    .getByRole('checkbox', { name: new RegExp(`^${sensitiveMedia.mark}:`) });
   await expect(mark).toBeChecked();
   await mark.uncheck();
   await page.screenshot({

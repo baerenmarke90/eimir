@@ -14,8 +14,8 @@
   "specs": {
     "page-composer.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 20,
-      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, saved-gallery fullscreen continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion."
+      "baselineTests": 26,
+      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, saved-gallery fullscreen continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. PO review adds all three composers' persistent cover controls, fixed-size strips, actual failed-upload retry and canonical save, with Compact Light/Dark evidence."
     },
     "moments-local-create.spec.ts": {
       "disposition": "PR_CRITICAL",

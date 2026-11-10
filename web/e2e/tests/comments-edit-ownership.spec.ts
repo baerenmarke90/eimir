@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   captureScreenshot,
   DETAIL_COMMENTS,
@@ -54,6 +55,10 @@ async function openJourney(
     reducedMotion: 'reduce',
   });
   const unknown = await installMocks(page, { strict: true });
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    await route.fallback();
+  });
   let comments = DETAIL_COMMENTS.map((item) => ({ ...item }));
   if (secondOwn)
     comments.push({
@@ -153,7 +158,7 @@ async function edit(panel: Locator, body: string) {
     .filter({ has: panel.page().getByText(body, { exact: true }) });
   await card.getByLabel(copy.moreActions, { exact: true }).click();
   await card.getByRole('button', { name: copy.edit, exact: true }).click();
-  return panel.getByRole('textbox');
+  return panel.locator('.comment-edit-form').getByRole('textbox');
 }
 
 async function accessible(page: Page) {
@@ -239,7 +244,9 @@ for (const scenario of cases) {
       await state.panel
         .getByRole('button', { name: copy.save, exact: true })
         .click();
-      await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+      await expect(
+        state.panel.locator('.comment-edit-form').getByRole('textbox'),
+      ).toHaveCount(0);
       await expect(
         state.panel.getByText('A later thought stays with me.', {
           exact: true,
@@ -302,7 +309,9 @@ test('confirmed comment edit retains a newer draft when its refresh fails', asyn
   await state.panel
     .getByRole('button', { name: copy.save, exact: true })
     .click();
-  await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+  await expect(
+    state.panel.locator('.comment-edit-form').getByRole('textbox'),
+  ).toHaveCount(0);
   await expect(
     state.panel.getByText('Keep this after the failed refresh.', {
       exact: true,

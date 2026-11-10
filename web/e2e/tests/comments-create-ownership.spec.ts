@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   captureScreenshot,
   DETAIL_COMMENTS,
@@ -52,6 +53,10 @@ async function openJourney(
     reducedMotion: 'reduce',
   });
   const unknown = await installMocks(page, { strict: true });
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    await route.fallback();
+  });
   let comments = holdInitial
     ? []
     : DETAIL_COMMENTS.map((item) => ({ ...item }));
@@ -129,10 +134,20 @@ async function openJourney(
 
 async function compose(page: Page, body: string) {
   const panel = page.locator('.comments-panel');
-  await panel.getByRole('button', { name: copy.send, exact: true }).click();
-  const field = panel.getByRole('textbox');
+  const form = panel.locator('form.comment-form');
+  if (!(await form.isVisible()))
+    await panel.getByRole('button', { name: copy.send, exact: true }).click();
+  const field = form.getByRole('textbox');
   await field.fill(body);
   return field;
+}
+
+async function expectSubmittedDraftCleared(page: Page, inline: boolean) {
+  const field = page
+    .locator('.comments-panel form.comment-form')
+    .getByRole('textbox');
+  if (inline) await expect(field).toHaveValue('');
+  else await expect(field).toHaveCount(0);
 }
 
 async function accessible(page: Page) {
@@ -169,7 +184,7 @@ for (const scenario of cases) {
       state.panel.getByRole('button', { name: copy.sending }),
     ).toBeDisabled();
     state.release();
-    await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+    await expectSubmittedDraftCleared(page, scenario.kind !== 'milestones');
     await expect(
       state.panel.getByText('The first submitted thought.', { exact: true }),
     ).toHaveCount(1);
@@ -249,7 +264,7 @@ for (const scenario of cases) {
     await state.panel
       .getByRole('button', { name: copy.send, exact: true })
       .click();
-    await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+    await expectSubmittedDraftCleared(page, scenario.kind !== 'milestones');
     await expect(
       state.panel.getByText('A new visit keeps its own words.', {
         exact: true,
@@ -302,7 +317,7 @@ test('comment create replaces the pending initial read without erasing later wor
   await state.panel
     .getByRole('button', { name: copy.send, exact: true })
     .click();
-  await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+  await expectSubmittedDraftCleared(page, true);
   await expect(
     state.panel.getByText('Later words stay in this task.', { exact: true }),
   ).toBeVisible();

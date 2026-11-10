@@ -1,7 +1,13 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, type TestInfo, test } from '@playwright/test';
+import {
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+  test,
+} from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
@@ -66,6 +72,53 @@ async function noOverflow(page: Page) {
   expect(geometry.scroll, JSON.stringify(geometry)).toBeLessThanOrEqual(
     geometry.viewport + 1,
   );
+}
+
+async function expectMediaBeforeWriting(
+  lead: Locator,
+  { composer: editing, heart }: { composer: boolean; heart: boolean },
+) {
+  const layout = await lead.evaluate(
+    (element, options) => {
+      const media = document.querySelector(
+        options.editing ? '.photo-draft-gallery' : '.media-gallery-carousel',
+      );
+      const voice = options.heart
+        ? document.querySelector('.voice-player')
+        : null;
+      const feeling = options.heart
+        ? document.querySelector(
+            options.editing
+              ? '.heart-emotion-picker'
+              : '.heart-moment-detail-emotion',
+          )
+        : null;
+      const rect = (node: Element | null) =>
+        node?.getBoundingClientRect().toJSON();
+      return {
+        media: rect(media),
+        voice: rect(voice),
+        lead: rect(element),
+        feeling: rect(feeling),
+      };
+    },
+    { editing, heart },
+  );
+  const diagnostic = JSON.stringify(layout);
+  expect(layout.media, diagnostic).toBeDefined();
+  expect(layout.media?.bottom, diagnostic).toBeLessThanOrEqual(
+    (layout.voice?.top ?? layout.lead?.top ?? 0) + 1,
+  );
+  if (layout.voice)
+    expect(layout.voice.bottom, diagnostic).toBeLessThanOrEqual(
+      (layout.lead?.top ?? 0) + 1,
+    );
+  if (heart) {
+    expect(layout.feeling, diagnostic).toBeDefined();
+    expect(layout.lead?.bottom, diagnostic).toBeLessThanOrEqual(
+      (layout.feeling?.top ?? 0) + 1,
+    );
+  }
 }
 
 async function capture(page: Page, info: TestInfo, name: string) {
@@ -162,6 +215,54 @@ async function capture(page: Page, info: TestInfo, name: string) {
         (feeling.visual?.bottom ?? 0) + 1,
       );
     }
+    const stages = await page
+      .locator('.photo-draft-stage .media-gallery-carousel-viewport')
+      .evaluateAll((viewports) =>
+        viewports.map((viewport) => ({
+          frame: viewport.getBoundingClientRect().toJSON(),
+          controls: [
+            ...viewport.querySelectorAll(
+              '.photo-draft-stage-cover, .photo-draft-stage-remove, .photo-draft-stage-sensitive, .media-gallery-carousel-counter',
+            ),
+          ].map((element) => ({
+            name: element.getAttribute('aria-label') ?? element.textContent,
+            rect: element.getBoundingClientRect().toJSON(),
+          })),
+        })),
+      );
+    for (const stage of stages) {
+      const diagnostic = JSON.stringify(stage);
+      expect(stage.controls, diagnostic).toHaveLength(4);
+      for (const [index, control] of stage.controls.entries()) {
+        expect(control.rect.left, diagnostic).toBeGreaterThanOrEqual(
+          stage.frame.left - 1,
+        );
+        expect(control.rect.right, diagnostic).toBeLessThanOrEqual(
+          stage.frame.right + 1,
+        );
+        expect(control.rect.top, diagnostic).toBeGreaterThanOrEqual(
+          stage.frame.top - 1,
+        );
+        expect(control.rect.bottom, diagnostic).toBeLessThanOrEqual(
+          stage.frame.bottom + 1,
+        );
+        for (const other of stage.controls.slice(index + 1)) {
+          const overlaps =
+            Math.min(control.rect.right, other.rect.right) -
+              Math.max(control.rect.left, other.rect.left) >
+              1 &&
+            Math.min(control.rect.bottom, other.rect.bottom) -
+              Math.max(control.rect.top, other.rect.top) >
+              1;
+          expect(overlaps, diagnostic).toBe(false);
+        }
+      }
+    }
+    if (stages.length)
+      expect(
+        (await new AxeBuilder({ page }).include('.photo-draft-stage').analyze())
+          .violations,
+      ).toEqual([]);
   }
   await noOverflow(page);
   await captureScreenshot(page, info, `1730-${name}.png`, {
@@ -464,7 +565,15 @@ for (const view of [
             exact: true,
           }),
         ).toBeVisible();
-      if (!screen.path.endsWith('/new')) await settleDraftPhotos(page);
+      if (!screen.path.endsWith('/new')) {
+        await settleDraftPhotos(page);
+        await expectMediaBeforeWriting(
+          page
+            .locator('input[name="title"], textarea#heart-moment-text')
+            .first(),
+          { composer: true, heart: screen.path.includes('heart-moments') },
+        );
+      }
       await capture(page, info, `${screen.name}-${suffix}`);
       if (screen.path.endsWith('/new')) {
         if (screen.path.includes('heart-moments')) {
@@ -492,6 +601,12 @@ for (const view of [
         if (screen.path.includes('heart-moments')) await addVoice(page);
         if (screen.path.includes('/plans/')) await addPlanList(page);
         await settleDraftPhotos(page);
+        await expectMediaBeforeWriting(
+          page
+            .locator('input[name="title"], textarea#heart-moment-text')
+            .first(),
+          { composer: true, heart: screen.path.includes('heart-moments') },
+        );
         if (
           screen.path.includes('heart-moments') &&
           view.width === 390 &&
@@ -554,6 +669,12 @@ for (const view of [
           .getByRole('link', { name: content.placeName, exact: true })
           .first(),
       ).toHaveAttribute('href', /\/story\/map\?place=/);
+      if (screen.path.startsWith('/plan/'))
+        await expect(
+          page
+            .getByRole('link', { name: content.placeName, exact: true })
+            .first(),
+        ).toHaveCSS('text-decoration-line', 'underline');
       const hero = page.locator(
         '.media-gallery-carousel-slide.is-active img.media-gallery-thumb-content',
       );
@@ -563,6 +684,12 @@ for (const view of [
           hero.evaluate((element: HTMLImageElement) => element.naturalWidth),
         )
         .toBeGreaterThan(0);
+      await expectMediaBeforeWriting(
+        screen.path.includes('heart-moments')
+          ? page.locator('.heart-moment-detail-text')
+          : page.getByRole('heading', { name: screen.title, exact: true }),
+        { composer: false, heart: screen.path.includes('heart-moments') },
+      );
       await expect(
         page
           .getByRole('link', { name: taskBoundary.back, exact: true })
@@ -613,20 +740,14 @@ test('Diary tools preserve photos, cover, sensitivity, place and tag through sav
   await expect(sources).toHaveCount(0);
   const second = page.locator('.photo-draft-item').nth(1);
   await second.locator('.photo-draft-tile').click();
-  await second
+  const stage = page.locator('.photo-draft-stage');
+  await stage
     .getByRole('button', { name: experiences.chooseCover, exact: true })
     .click();
-  await second.locator('.photo-draft-tile').click();
-  await second
-    .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
+  await stage
+    .getByRole('checkbox', { name: new RegExp(`^${sensitiveMedia.mark}:`) })
     .click();
-  await page
-    .locator('.photo-draft-gallery')
-    .getByRole('button', {
-      name: experiences.finish,
-      exact: true,
-    })
-    .click();
+  await expect(page.locator('.photo-draft-gallery.is-managing')).toHaveCount(0);
   await tool(page, composer.place).click();
   const places = page.getByRole('dialog').last();
   await places
@@ -679,6 +800,247 @@ test('Diary tools preserve photos, cover, sensitivity, place and tag through sav
   ).toHaveLength(1);
   expect(state.unexpected).toEqual([]);
 });
+
+for (const theme of ['light', 'dark'] as const) {
+  for (const kind of ['diary', 'heart', 'plan'] as const) {
+    test(`PO media controls stay on the cover through failed-upload retry and save: ${kind} ${theme}`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+      const state = await installPageComposerFixture(page, {
+        sensitivePhotos: false,
+      });
+      await signIn(page);
+      const route =
+        kind === 'diary'
+          ? '/story/memories/new'
+          : kind === 'heart'
+            ? '/story/heart-moments/new'
+            : '/plan/plans/new';
+      await page.goto(route);
+      if (kind === 'diary') {
+        await page
+          .getByLabel(de.memory.titleLabelOptional, { exact: true })
+          .fill(content.memoryTitle);
+        await page.locator('textarea[name="body"]').fill(content.memoryBody);
+      } else if (kind === 'heart') {
+        await page.locator('#heart-moment-text').fill(content.heartText);
+      } else {
+        await page
+          .getByLabel(m5s3.plan.intentionLabel, { exact: true })
+          .fill(content.planTitle);
+        await page
+          .getByLabel(m5s3.common.description, { exact: true })
+          .fill(content.planBody);
+      }
+      await addPhotos(page);
+      await settleDraftPhotos(page);
+      const draft = page.locator('.photo-draft-gallery');
+      const stage = draft.locator('.photo-draft-stage');
+      const tiles = draft.locator('.photo-draft-grid .photo-draft-tile');
+      const sensitivity = stage.getByRole('checkbox', {
+        name: new RegExp(`^${sensitiveMedia.mark}:`),
+      });
+      const assertStrip = async (count: number) => {
+        await expect(stage).toHaveRole('group');
+        await expect(stage).toHaveAccessibleName(de.memory.photoSelected);
+        await expect(draft).not.toHaveClass(/is-managing/);
+        await expect(tiles).toHaveCount(count);
+        await expect(
+          draft.locator('.photo-draft-grid :is(input, .photo-draft-action)'),
+        ).toHaveCount(0);
+        await expect(
+          draft.getByRole('button', { name: experiences.finish, exact: true }),
+        ).toHaveCount(0);
+        const geometry = await tiles.evaluateAll((buttons) =>
+          buttons.map((button) => {
+            const rect = button.getBoundingClientRect();
+            return { width: rect.width, height: rect.height, y: rect.y };
+          }),
+        );
+        for (const item of geometry) {
+          expect(item.width).toBeGreaterThanOrEqual(55);
+          expect(item.width).toBeLessThanOrEqual(57);
+          expect(item.height).toBeGreaterThanOrEqual(55);
+          expect(item.height).toBeLessThanOrEqual(57);
+          expect(Math.abs(item.y - geometry[0].y)).toBeLessThan(1);
+        }
+        for (const action of [
+          stage.locator('.photo-draft-stage-remove'),
+          stage.locator('.photo-draft-stage-sensitive'),
+        ]) {
+          await expect(action).toBeVisible();
+          const rect = await action.boundingBox();
+          expect(rect?.width).toBeGreaterThanOrEqual(44);
+          expect(rect?.height).toBeGreaterThanOrEqual(44);
+        }
+        await expect(
+          draft.getByRole('button', { name: experiences.arrange, exact: true }),
+        ).toBeVisible();
+        await noOverflow(page);
+      };
+      await assertStrip(2);
+      await expect(
+        stage.locator(
+          '.media-gallery-carousel-slide.is-active img.media-gallery-thumb-content',
+        ),
+      ).toHaveCSS('object-fit', 'cover');
+      await capture(page, info, `po-${kind}-media-several-390-${theme}`);
+      expect(
+        (
+          await new AxeBuilder({ page })
+            .include('.photo-draft-gallery')
+            .analyze()
+        ).violations,
+      ).toEqual([]);
+      await tiles.nth(1).click();
+      await expect(tiles.nth(1)).toHaveAttribute('aria-pressed', 'true');
+      await assertStrip(2);
+      await stage
+        .getByRole('button', { name: experiences.chooseCover, exact: true })
+        .click();
+      await expect(stage.locator('.photo-draft-stage-cover')).toContainText(
+        experiences.cover,
+      );
+      await sensitivity.check();
+      await expect(sensitivity).toBeChecked();
+      await expect(
+        stage.locator('.sensitive-media-cover').first(),
+      ).toBeVisible();
+      const protectedPreview = tiles.nth(1).locator('.sensitive-media-blurred');
+      await expect(protectedPreview).toBeVisible();
+      await expect
+        .poll(() =>
+          protectedPreview
+            .locator('img')
+            .evaluate((image: HTMLImageElement) => image.naturalWidth),
+        )
+        .toBeGreaterThan(0);
+      const treatment = await protectedPreview.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        const tileElement = element.closest('.photo-draft-tile');
+        if (!tileElement)
+          throw new Error('The protected thumbnail needs its clipping owner.');
+        const tile = tileElement.getBoundingClientRect();
+        const cover = element.closest('.sensitive-media-cover');
+        if (!cover) throw new Error('The protected image needs its cover.');
+        const mask = cover.getBoundingClientRect();
+        return {
+          image: element.querySelector('img')?.currentSrc,
+          filter: style.filter,
+          clippedByCover: getComputedStyle(cover).overflow,
+          maskInsideTile:
+            mask.left >= tile.left - 1 &&
+            mask.right <= tile.right + 1 &&
+            mask.top >= tile.top - 1 &&
+            mask.bottom <= tile.bottom + 1,
+          coversMask: Boolean(
+            rect.left <= mask.left &&
+              rect.right >= mask.right &&
+              rect.top <= mask.top &&
+              rect.bottom >= mask.bottom,
+          ),
+        };
+      });
+      expect(treatment.image).toMatch(/^blob:/);
+      expect(treatment.filter).toContain('blur(');
+      expect(treatment.clippedByCover).toBe('hidden');
+      expect(treatment.maskInsideTile).toBe(true);
+      expect(treatment.coversMask).toBe(true);
+      await expect(protectedPreview.getByRole('img')).toHaveCount(0);
+      await assertStrip(2);
+      await capture(page, info, `po-${kind}-media-sensitive-390-${theme}`);
+      await stage
+        .getByRole('button', { name: sensitiveMedia.show, exact: true })
+        .click();
+      await stage.locator('.media-gallery-carousel-slide.is-active').click();
+      const fullscreen = page.getByRole('dialog', {
+        name: gallery.dialogAria,
+        exact: true,
+      });
+      await expect(fullscreen).toBeVisible();
+      await fullscreen
+        .getByRole('button', { name: gallery.close, exact: true })
+        .click();
+      await expect(fullscreen).toHaveCount(0);
+      await expect(tiles.nth(1)).toHaveAttribute('aria-pressed', 'true');
+      state.uploads.failuresRemaining = 1;
+      await page
+        .locator('input[type="file"][accept*="image/jpeg"]')
+        .first()
+        .setInputFiles({
+          name: 'retry-photo.jpg',
+          mimeType: 'image/jpeg',
+          buffer: photo,
+        });
+      await expect(tiles).toHaveCount(3);
+      await expect(tiles.nth(2)).toHaveAccessibleName(
+        new RegExp(de.memory.photoFailed),
+      );
+      expect(state.uploads.failedRequests).toBe(1);
+      await tiles.nth(2).click();
+      const retry = stage
+        .getByRole('button', { name: de.common.retry, exact: true })
+        .and(stage.locator('.photo-draft-stage-retry'));
+      await expect(retry).toBeVisible();
+      await assertStrip(3);
+      await capture(page, info, `po-${kind}-media-failed-390-${theme}`);
+      expect(
+        (
+          await new AxeBuilder({ page })
+            .include('.photo-draft-gallery')
+            .analyze()
+        ).violations,
+      ).toEqual([]);
+      await retry.click();
+      await expect(tiles.nth(2)).toHaveAccessibleName(
+        new RegExp(de.memory.photoReady),
+      );
+      expect(state.uploads.requests).toBe(4);
+      await expect(retry).toHaveCount(0);
+      await stage.locator('.photo-draft-stage-remove').click();
+      await expect(tiles).toHaveCount(2);
+      await tiles.nth(1).click();
+      await expect(sensitivity).toBeChecked();
+      const saveName =
+        kind === 'diary'
+          ? de.memory.save
+          : kind === 'heart'
+            ? storyProducts.heartMomentProduct.save
+            : m5s3.common.save;
+      await page.getByRole('button', { name: saveName, exact: true }).click();
+      const resourceKind =
+        kind === 'diary'
+          ? 'memories'
+          : kind === 'heart'
+            ? 'heart-moments'
+            : 'plans';
+      await expect(page).toHaveURL(
+        new RegExp(`/${resourceKind}/composer-created-${resourceKind}$`),
+      );
+      const saved = state.resources.get(
+        `${resourceKind}/composer-created-${resourceKind}`,
+      );
+      if (!saved) throw new Error('The confirmed parent must be readable.');
+      expect(saved.selectedCoverAttachmentId).toBe('composer-upload-2');
+      expect(saved.attachments).toHaveLength(2);
+      expect(
+        (saved.attachments as Array<{ id: string; isSensitive: boolean }>).find(
+          (item) => item.id === 'composer-upload-2',
+        )?.isSensitive,
+      ).toBe(true);
+      expect(
+        state.calls.filter(
+          (call) =>
+            call.method === 'POST' && call.path.endsWith(`/${resourceKind}`),
+        ),
+      ).toHaveLength(1);
+      expect(state.unexpected).toEqual([]);
+    });
+  }
+}
 
 test('saved galleries retain sensitive reveal, swipe, fullscreen zoom and the same slide on return', async ({
   page,
@@ -954,7 +1316,16 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
   await expect(schedule.locator('input[type="date"]').first()).toHaveValue(
     '2026-11-21',
   );
+  await schedule
+    .getByRole('button', { name: m5s3.plan.unschedule, exact: true })
+    .click();
+  await expect(schedule.locator('input[type="date"]').first()).toHaveValue('');
+  for (const time of await schedule.locator('input[type="time"]').all())
+    await expect(time).toHaveValue('');
   await closePlanSchedule(page);
+  await expect(page.locator('.composer-schedule-trigger')).toContainText(
+    m5s3.overview.undatedHeading,
+  );
   await tool(page, composer.list).click();
   await capture(page, info, 'plan-list-choice');
   await closeChoice(page);
@@ -962,6 +1333,13 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
     .getByRole('button', { name: m5s3.common.saveChanges, exact: true })
     .click();
   await expect(page).toHaveURL(/\/plan\/plans\/composer-plan$/);
+  expect(
+    state.calls.find(
+      (call) =>
+        call.method === 'PATCH' && call.path.endsWith('/plans/composer-plan'),
+    )?.body.schedule,
+  ).toBeNull();
+  expect(state.resources.get('plans/composer-plan')?.plannedStart).toBeNull();
   const list = page
     .locator('.plan-collection-row')
     .filter({ hasText: content.listTitle });

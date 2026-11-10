@@ -643,3 +643,21 @@ body:has(.heart-emotion-page)
   display: grid;
   gap: var(--space-1);
 }
+
+.heart-emotion-page.page-composer .immersive-create-form {
+  gap: var(--space-2);
+}
+.heart-emotion-page.page-composer .heart-emotion-picker > legend {
+  margin-block-end: var(--space-2);
+  font: var(--font-supporting-copy);
+}
+.heart-emotion-page .voice-player-title {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

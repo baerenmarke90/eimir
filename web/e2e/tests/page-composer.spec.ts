@@ -431,6 +431,27 @@ for (const view of [
         if (screen.path.includes('heart-moments')) await addVoice(page);
         if (screen.path.includes('/plans/')) await addPlanList(page);
         await page.evaluate(() => window.scrollTo(0, 0));
+        if (
+          screen.path.includes('heart-moments') &&
+          view.width === 390 &&
+          !view.large
+        ) {
+          await waitForSettledMotion(page);
+          const geometry = await page.evaluate(() => ({
+            voiceBottom: document
+              .querySelector('.voice-player')
+              ?.getBoundingClientRect().bottom,
+            toolsTop: document
+              .querySelector('.composer-tool-row')
+              ?.getBoundingClientRect().top,
+          }));
+          expect(geometry.voiceBottom).toBeDefined();
+          expect(geometry.toolsTop).toBeDefined();
+          expect(
+            geometry.voiceBottom,
+            JSON.stringify(geometry),
+          ).toBeLessThanOrEqual(geometry.toolsTop ?? 0);
+        }
         await capture(
           page,
           info,

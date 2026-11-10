@@ -404,11 +404,22 @@ retains visible feeling radios and its separate visibility task.
 - The existing short sheet owns initial focus, trapping, Escape/Back and trigger
   restoration. Domain owners retain dirty/pending exit guards and native form
   values after a sheet closes. Header Save remains associated with that form.
-- Diary places media before title/prose; HeartMoment places its lead and visible
-  feelings before media/voice; Plan places selected media before title/prose.
-  The 56 px selected-media strip discloses existing management controls on
-  selection. Controls expand to preserve their touch targets; this narrowly
-  supersedes the always-visible corner controls in the earlier gallery contract.
+- The later [PO review of #1735](https://github.com/baerenmarke90/eimir/pull/1735#issuecomment-6776422807)
+  supersedes the Heart lead-first reference frames and the former media-management
+  disclosure. Context precedes photos, then Heart voice, existing title/lead and
+  prose, feeling, and chips/links. Empty media has no visible gap.
+- The inline stage uses the same filling crop in all three products; fullscreen
+  retains the full image. Cover choice, removal, sensitivity and count remain
+  at the four stage corners. The 56 px strip never enlarges or exposes per-item
+  controls: a thumbnail selects the stage only. The subsequent PO correction
+  removes the composer-only Arrange, automatic-cover reset and inline Reveal
+  rows. Stage activation opens the existing fullscreen, whose reveal/hide
+  controls remain. No replacement arrangement entry is introduced; default
+  galleries keep their existing `PhotoArrangeTask` and reset controls. Retry
+  belongs on the failed stage. Native touch/focus and pending/permission guards
+  remain authoritative.
+- The compact Plan schedule sheet explicitly offers the existing unscheduled
+  state through the native date-change path, including the owning dirty guard.
 - Light/Dark, semantic typography, reduced motion and reflow use shared roles.
   No domain request, analytics payload or private content storage belongs in
   these primitives. Existing source consent, Pro and native media owners remain.

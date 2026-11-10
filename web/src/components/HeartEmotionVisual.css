@@ -644,7 +644,8 @@ body:has(.heart-emotion-page)
   gap: var(--space-1);
 }
 
-.heart-emotion-page.page-composer .immersive-create-form {
+.heart-emotion-page.page-composer .immersive-create-form,
+.heart-emotion-page.page-composer .form-card.product-sheet {
   gap: var(--space-2);
 }
 .heart-emotion-page.page-composer .heart-emotion-picker > legend {

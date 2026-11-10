@@ -384,6 +384,14 @@ export function PhotoDraftGallery({
                       <EimirIcon name="highlights" variant="filled" />
                     </span>
                   ) : null}
+                  {addAction && item.isSensitive ? (
+                    <span
+                      className="photo-draft-sensitive-mark media-overlay"
+                      aria-hidden="true"
+                    >
+                      <EimirIcon name="eye-off" />
+                    </span>
+                  ) : null}
                   {item.draft && item.draft.status !== 'ready' ? (
                     <span
                       className={`photo-draft-tile-status${item.draft.status === 'failed' ? ' is-failed' : ''}`}

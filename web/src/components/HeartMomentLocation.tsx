@@ -173,6 +173,7 @@ export function HeartMomentLocationSummary({
         <MomentMapLink
           className="moment-place-summary"
           to={map}
+          returnFocusKey="private-heart-location"
           ariaLabel={location.name}
         >
           {content}

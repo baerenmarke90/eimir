@@ -5,6 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -380,10 +381,17 @@ for (const [width, colorScheme] of [
       })),
     );
     const gallery = page.locator('.photo-draft-gallery');
-    const visibleCount = width === 390 && colorScheme === 'dark' ? 6 : 3;
+    const count = width === 390 && colorScheme === 'dark' ? 20 : 3;
+    const visibleCount = Math.min(count, 6);
     await expect(
       gallery.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(visibleCount);
+    const selectedKey = await gallery
+      .locator('.photo-draft-tile')
+      .nth(1)
+      .getAttribute('data-media-key');
+    if (!selectedKey)
+      throw new Error('The selected cover identity is unavailable.');
     await gallery.locator('.photo-draft-tile').nth(1).click();
     const actions = page.getByRole('group', {
       name: de.memory.photoSelected,
@@ -474,25 +482,45 @@ for (const [width, colorScheme] of [
       'aria-label',
       /third.jpg/,
     );
+    // Arrangement owns order; it does not replace the independently selected preview or cover.
+    const selectedTile = gallery.locator(
+      '.photo-draft-tile[aria-pressed="true"]',
+    );
+    await expect(selectedTile).toHaveCount(1);
+    await expect(selectedTile).toHaveAttribute('data-media-key', selectedKey);
+    await expect(selectedTile).toHaveAttribute('aria-label', /second.jpg/);
     await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
       'aria-pressed',
-      'true',
+      'false',
     );
-    const selectedColor = await gallery
-      .locator('.photo-draft-tile')
-      .first()
-      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    await expect(selectedTile.locator('.photo-draft-cover-star')).toBeVisible();
+    const selectedColor = await selectedTile.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
     const otherColor = await gallery
       .locator('.photo-draft-tile')
-      .nth(1)
+      .first()
       .evaluate((element) => getComputedStyle(element).backgroundColor);
     expect(selectedColor).not.toBe(otherColor);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
       path: info.outputPath(`arrange-${width}-${colorScheme}.png`),
     });
-    await expect(gallery.locator('.photo-draft-number').first()).toHaveText(
-      '1',
+    await expect(
+      gallery.locator('.photo-draft-tile').first(),
+    ).toHaveAccessibleName(
+      de.memory.photoSelectItem
+        .replace('{{position}}', '1')
+        .replace('{{count}}', String(count))
+        .replace('{{name}}', 'third.jpg')
+        .replace('{{status}}', de.memory.photoReady),
+    );
+    const counter = actions.locator('.media-gallery-carousel-counter');
+    await expect(counter).toBeVisible();
+    await expect(counter).toHaveText(
+      storyProducts.gallery.counter
+        .replace('{{index}}', '3')
+        .replace('{{count}}', String(count)),
     );
     const binding = page.waitForRequest(
       (request) =>

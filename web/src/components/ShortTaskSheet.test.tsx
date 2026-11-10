@@ -386,6 +386,148 @@ describe('ShortTaskSheet history ownership', () => {
     expect(document.body.style.overflow).toBe('auto');
   });
 
+  describe('nested native cancel ownership', () => {
+    async function openNestedSheets(guard: 'none' | 'dirty' | 'blocked') {
+      const onParentClose = vi.fn();
+      const onChildClose = vi.fn();
+      const onDiscardRequested = vi.fn();
+      const onCloseBlocked = vi.fn();
+      function NestedSheets() {
+        const [parentOpen, setParentOpen] = useState(false);
+        const [childOpen, setChildOpen] = useState(false);
+        const parentTrigger = useRef<HTMLButtonElement>(null);
+        const childTrigger = useRef<HTMLButtonElement>(null);
+        return (
+          <>
+            <button
+              ref={parentTrigger}
+              type="button"
+              onClick={() => setParentOpen(true)}
+            >
+              Open parent
+            </button>
+            <ShortTaskSheet
+              open={parentOpen}
+              title="Parent choice"
+              restoreFocusRef={parentTrigger}
+              onClose={() => {
+                onParentClose();
+                setParentOpen(false);
+              }}
+            >
+              <button
+                ref={childTrigger}
+                type="button"
+                onClick={() => setChildOpen(true)}
+              >
+                Open child
+              </button>
+              <ShortTaskSheet
+                open={childOpen}
+                title="Child choice"
+                restoreFocusRef={childTrigger}
+                isDirty={guard === 'dirty'}
+                isCloseBlocked={guard === 'blocked'}
+                onDiscardRequested={onDiscardRequested}
+                onCloseBlocked={onCloseBlocked}
+                onClose={() => {
+                  onChildClose();
+                  setChildOpen(false);
+                }}
+              >
+                <input aria-label="Child draft" defaultValue="Unsaved choice" />
+              </ShortTaskSheet>
+            </ShortTaskSheet>
+          </>
+        );
+      }
+      render(<NestedSheets />);
+      fireEvent.click(screen.getByRole('button', { name: 'Open parent' }));
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
+      );
+      const parentMarker = window.history.state[EDITOR_HISTORY_STATE_KEY];
+      const trigger = screen.getByRole('button', { name: 'Open child' });
+      trigger.focus();
+      fireEvent.click(trigger);
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).not.toBe(
+          parentMarker,
+        ),
+      );
+      const parent = screen.getByRole('dialog', { name: 'Parent choice' });
+      const child = screen.getByRole('dialog', { name: 'Child choice' });
+      expect(child.parentElement).toBe(document.body);
+      expect(parent.contains(child)).toBe(false);
+      const input = screen.getByRole('textbox', { name: 'Child draft' });
+      input.focus();
+      return {
+        parent,
+        child,
+        input,
+        trigger,
+        parentMarker,
+        onParentClose,
+        onChildClose,
+        onDiscardRequested,
+        onCloseBlocked,
+      };
+    }
+
+    it('closes only the child portal and returns focus to its parent control', async () => {
+      const task = await openNestedSheets('none');
+      const cancel = new Event('cancel', { cancelable: true });
+      fireEvent(task.child, cancel);
+      expect(cancel.defaultPrevented).toBe(true);
+      await waitFor(() => expect(task.onChildClose).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('dialog', { name: 'Child choice' }),
+        ).toBeNull(),
+      );
+      expect(task.onParentClose).not.toHaveBeenCalled();
+      expect(task.onDiscardRequested).not.toHaveBeenCalled();
+      expect(task.onCloseBlocked).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog', { name: 'Parent choice' })).toBe(
+        task.parent,
+      );
+      expect(task.parent.hasAttribute('open')).toBe(true);
+      expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBe(
+        task.parentMarker,
+      );
+      await waitFor(() => expect(document.activeElement).toBe(task.trigger));
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+
+    for (const guard of ['dirty', 'blocked'] as const) {
+      it(`keeps both portals open when the child cancel is ${guard}`, async () => {
+        const task = await openNestedSheets(guard);
+        const cancel = new Event('cancel', { cancelable: true });
+        fireEvent(task.child, cancel);
+        expect(cancel.defaultPrevented).toBe(true);
+        expect(task.onChildClose).not.toHaveBeenCalled();
+        expect(task.onParentClose).not.toHaveBeenCalled();
+        expect(task.onDiscardRequested).toHaveBeenCalledTimes(
+          guard === 'dirty' ? 1 : 0,
+        );
+        expect(task.onCloseBlocked).toHaveBeenCalledTimes(
+          guard === 'blocked' ? 1 : 0,
+        );
+        expect(screen.getByRole('dialog', { name: 'Parent choice' })).toBe(
+          task.parent,
+        );
+        expect(screen.getByRole('dialog', { name: 'Child choice' })).toBe(
+          task.child,
+        );
+        expect(task.parent.hasAttribute('open')).toBe(true);
+        expect(task.child.hasAttribute('open')).toBe(true);
+        expect(task.input.getAttribute('value')).toBe('Unsaved choice');
+        expect(document.activeElement).toBe(task.input);
+        expect(document.body.style.overflow).toBe('hidden');
+      });
+    }
+  });
+
   it('keeps one localized semantic dismissal control for Compact and Expanded', () => {
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     fireEvent.click(screen.getByText('Task choices'));

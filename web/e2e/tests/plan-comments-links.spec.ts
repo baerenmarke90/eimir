@@ -485,8 +485,12 @@ for (const [width, theme] of [
       const padding = await control.evaluate((element) =>
         parseFloat(getComputedStyle(element).paddingInlineStart),
       );
-      if (control === place) expect(padding).toBe(0);
-      else expect(padding).toBeGreaterThan(0);
+      if (control === place) {
+        await expect(control).toHaveCSS('text-decoration-line', 'underline');
+        await expect(control).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        await expect(control).toHaveCSS('border-top-width', '0px');
+        await expect(control).toHaveCSS('box-shadow', 'none');
+      } else expect(padding).toBeGreaterThan(0);
     }
     await less.scrollIntoViewIfNeeded();
     await captureScreenshot(

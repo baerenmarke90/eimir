@@ -539,6 +539,7 @@ export function PlanProductPage({
                     <MomentMapLink
                       className="planen-schedule-place"
                       to={destination}
+                      returnFocusKey={`plan:${plan.id}:${linkedPlaceId}`}
                     >
                       {copy}
                     </MomentMapLink>

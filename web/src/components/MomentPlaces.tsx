@@ -279,6 +279,7 @@ export function MomentPlaces({
                   <MomentMapLink
                     className="moment-place-address"
                     to={destination}
+                    returnFocusKey={`${kind}:${targetId}:${place.id}`}
                     onNavigate={onNavigate}
                     ariaLabel={t('photoPlaces.mapAddress', {
                       address: place.address || name,
@@ -308,6 +309,7 @@ export function MomentPlaces({
                   <MomentMapLink
                     className="moment-place-summary"
                     to={destination}
+                    returnFocusKey={`${kind}:${targetId}:${place.id}`}
                     onNavigate={onNavigate}
                     ariaLabel={name}
                   >

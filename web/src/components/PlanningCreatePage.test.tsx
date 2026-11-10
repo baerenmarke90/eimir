@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -275,6 +276,113 @@ describe('PlanningCreatePage', () => {
       ifMatch: '4',
       planWishLink: { wishId: wish.id, wishVersion: wish.version },
     });
+  });
+
+  it('closes the Place task after an awaited create and saves the canonical Place id', async () => {
+    const canonicalPlace = {
+      id: 'place-created',
+      name: 'Rose garden (saved)',
+      address: '42 Garden Street',
+    };
+    let resolveCreate!: (place: typeof canonicalPlace) => void;
+    const response = new Promise<typeof canonicalPlace>((resolve) => {
+      resolveCreate = resolve;
+    });
+    const createPlace = vi.fn(() => response);
+    const { createPlan, locations } = renderCreate('plan', {
+      places: {
+        listPlaces: vi.fn().mockResolvedValue({
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        }),
+        createPlace,
+      } as unknown as SharedPlanningApis['places'],
+    });
+    const title = screen.getByLabelText(m5s3.plan.intentionLabel);
+    fireEvent.change(title, { target: { value: 'Garden picnic' } });
+    const placeTool = screen.getByRole('button', {
+      name: i18n.t('composer.place'),
+    });
+    fireEvent.click(placeTool);
+    const choice = await screen.findByRole('dialog', {
+      name: m5s3.common.place,
+    });
+    fireEvent.click(
+      within(choice).getByRole('button', {
+        name: i18n.t('composer.createPlace'),
+      }),
+    );
+    const creation = await screen.findByRole('dialog', {
+      name: i18n.t('composer.newPlace'),
+    });
+    fireEvent.change(within(creation).getByLabelText(m5s3.place.name), {
+      target: { value: 'Rose garden' },
+    });
+    fireEvent.change(within(creation).getByLabelText(m5s3.place.address), {
+      target: { value: canonicalPlace.address },
+    });
+    fireEvent.click(
+      within(creation).getByRole('button', {
+        name: i18n.t('photoPlaces.saveSharedPlace'),
+      }),
+    );
+    await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
+    expect(
+      (
+        screen.getByRole('button', {
+          name: m5s3.common.save,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        within(creation).getByRole('button', {
+          name: m5s3.common.saving,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(screen.getByRole('dialog', { name: m5s3.common.place })).toBe(
+      choice,
+    );
+    expect(
+      screen.getByRole('dialog', { name: i18n.t('composer.newPlace') }),
+    ).toBe(creation);
+    expect(createPlan).not.toHaveBeenCalled();
+
+    await act(async () => resolveCreate(canonicalPlace));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(
+      screen.queryByRole('alertdialog', { name: taskBoundary.discardTitle }),
+    ).toBeNull();
+    expect((title as HTMLInputElement).value).toBe('Garden picnic');
+    expect(
+      screen.getByRole('button', { name: canonicalPlace.name }),
+    ).toBeDefined();
+    await waitFor(() => expect(document.activeElement).toBe(placeTool));
+    expect(createPlace).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      placeCreate: {
+        name: 'Rose garden',
+        address: canonicalPlace.address,
+        latitude: undefined,
+        longitude: undefined,
+      },
+    });
+    const save = screen.getByRole('button', {
+      name: m5s3.common.save,
+    });
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(save);
+    await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
+    expect(createPlan.mock.calls[0][0].planCreate.placeId).toBe(
+      canonicalPlace.id,
+    );
+    await waitFor(() =>
+      expect(locations.at(-1)).toBe('/plan/plans/plan-created'),
+    );
+    expect(createPlace).toHaveBeenCalledTimes(1);
   });
 
   it('selects a searchable saved Place without creating another one', async () => {

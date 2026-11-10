@@ -205,6 +205,10 @@ async function install(page: Page, initial = emptyRound()) {
       });
       return;
     }
+    if (path === `${ROOT}/wishes/${WISH_IDS[0]}` && method === 'GET') {
+      await json({ ...wish(0), version: selectedPlan ? 2 : 1 });
+      return;
+    }
     if (path === `${ROOT}/plans` && method === 'GET') {
       await json({
         items: [

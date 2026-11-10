@@ -135,9 +135,10 @@ async function openJourney(
 async function compose(page: Page, body: string) {
   const panel = page.locator('.comments-panel');
   const form = panel.locator('form.comment-form');
-  if (!(await form.isVisible()))
-    await panel.getByRole('button', { name: copy.send, exact: true }).click();
   const field = form.getByRole('textbox');
+  const trigger = panel.locator('.comment-compose-trigger');
+  await expect(field.or(trigger)).toBeVisible();
+  if (await trigger.isVisible()) await trigger.click();
   await field.fill(body);
   return field;
 }

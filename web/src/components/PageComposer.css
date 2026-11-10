@@ -574,6 +574,18 @@ body:has(.page-composer)
   border-radius: var(--radius-pill);
   pointer-events: none;
 }
+.page-composer .photo-draft-sensitive-mark {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+.page-composer .photo-draft-sensitive-mark .eimir-icon,
 .page-composer .photo-draft-cover-star .eimir-icon,
 .page-composer .composer-photo-draft .photo-draft-tile-status .eimir-icon {
   inline-size: var(--space-4);

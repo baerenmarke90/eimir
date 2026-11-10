@@ -8,6 +8,7 @@ import taskCopy from '../../src/i18n/locales/taskBoundary';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import navigation from '../../src/i18n/locales/navigation';
 import { openComposerPlace } from '../support/memoryDiary';
 import {
@@ -244,9 +245,21 @@ for (const [width, theme, large] of [
         ),
       ).toBeLessThanOrEqual(3);
     expect(await page.locator('article .moment-places').count()).toBe(0);
-    await expect(
-      page.locator('.memory-photo-gallery img').first(),
-    ).toBeVisible();
+    const authoredPhoto = page
+      .locator('.memory-photo-gallery')
+      .getByRole('img', {
+        name: storyProducts.gallery.imageAlt,
+        exact: true,
+      });
+    await expect(authoredPhoto).toBeVisible();
+    await expect
+      .poll(() =>
+        authoredPhoto.evaluate(
+          (element: HTMLImageElement) =>
+            element.complete && element.naturalWidth > 0,
+        ),
+      )
+      .toBe(true);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth + 1,

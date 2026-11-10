@@ -683,7 +683,7 @@ export function PlanningCreatePage({
               setPlaceId(place.id);
               setPlacePending(false);
               setEnrichmentDirty(true);
-              placeSheet.current?.requestClose();
+              setPlaceOpen(false);
             }}
           />
         </ShortTaskSheet>

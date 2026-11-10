@@ -361,6 +361,7 @@
 }
 .free-composer .composer-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   min-inline-size: 0;
   padding: var(--space-4);
@@ -368,6 +369,10 @@
   border-radius: var(--radius-content);
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+.free-composer .composer-content > * {
+  min-inline-size: 0;
 }
 
 .quiet-composer .composer-writing-surface {
@@ -524,6 +529,26 @@
 
 /* At enlarged text the action must not consume the heading's reading width. */
 @container product-content (max-width: 18rem) {
+  .quiet-composer .composer-content .heart-emotion-choice {
+    flex-basis: 100%;
+  }
+
+  .quiet-composer .composer-content .heart-emotion-choice-visual {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-radius: var(--radius-medium);
+  }
+
+  .quiet-composer .composer-content .heart-emotion-choice-label {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .quiet-composer .composer-content .heart-emotion-choice-check {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
   .quiet-composer .composer-header.page-heading {
     grid-template-columns: auto minmax(0, 1fr);
   }

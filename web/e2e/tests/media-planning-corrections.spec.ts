@@ -717,7 +717,9 @@ test.describe('integrated soft media choices', () => {
         }
         const geometry = await device.evaluate((element) => {
           const row = element.getBoundingClientRect();
-          const parent = element.parentElement!.getBoundingClientRect();
+          const container = element.parentElement;
+          if (!container) throw new Error('The source choice is detached.');
+          const parent = container.getBoundingClientRect();
           return {
             height: row.height,
             width: row.width,
@@ -737,6 +739,8 @@ test.describe('integrated soft media choices', () => {
             exact: true,
           });
           await prose.fill(copy.description);
+          await expect(prose).toHaveCSS('outline-style', 'solid');
+          await expect(prose).toHaveCSS('outline-width', '2px');
           await external.click();
           const sheet = page.getByRole('dialog', {
             name: sources.title,
@@ -749,13 +753,20 @@ test.describe('integrated soft media choices', () => {
             .click();
           await expect(external).toBeFocused();
           await expect(prose).toHaveValue(copy.description);
-          await device.focus();
+          await external.press('Shift+Tab');
+          await expect(device).toBeFocused();
           await expect(device).toHaveCSS('outline-style', 'solid');
           const chooser = page.waitForEvent('filechooser');
           await device.press('Enter');
           await (await chooser).setFiles([]);
           await expect(prose).toHaveValue(copy.description);
           await expect(device).toBeFocused();
+          if (scenario.width === 360) {
+            await page.emulateMedia({ forcedColors: 'active' });
+            await expect(prose).toHaveCSS('border-top-style', 'solid');
+            await expect(device).toHaveCSS('border-top-style', 'solid');
+            await page.emulateMedia({ forcedColors: 'none' });
+          }
           await page.locator('.composer-header h1').click();
           const axe = await new AxeBuilder({ page })
             .include('.free-composer')

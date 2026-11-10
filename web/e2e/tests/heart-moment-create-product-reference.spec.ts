@@ -8,10 +8,8 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import {
-  expectLabeledAddAction,
-  expectReadableActionLabel,
-} from '../support/addAction';
+import { expectNaturalTextReflow } from '../support/addAction';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
 import {
   closeComposerDate,
   expectReadableComposerHeader,
@@ -815,10 +813,10 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const sourceTrigger = media.getByRole('button', {
         name: new RegExp(photoSources.more),
       });
-      await expectLabeledAddAction(mediaTrigger, 'foto');
+      await expectMediaIntakeAction(mediaTrigger, 'foto');
       await expect(sourceTrigger).toBeVisible();
       await expect(
-        sourceTrigger.locator('.button-icon.eimir-icon-photo-library'),
+        sourceTrigger.locator('.media-intake-icon .eimir-icon-photo-library'),
       ).toBeVisible();
       const deviceBox = await mediaTrigger.boundingBox();
       const sourceBox = await sourceTrigger.boundingBox();
@@ -828,22 +826,16 @@ for (const colorScheme of ['light', 'dark'] as const) {
         sourceBox.y - deviceBox.y - deviceBox.height,
       ).toBeGreaterThanOrEqual(8);
       const mediaLabelBox = await mediaTrigger
-        .locator('.add-action-label')
+        .locator('.media-intake-label')
         .boundingBox();
-      const iconBox = await mediaTrigger.locator('.button-icon').boundingBox();
+      const iconBox = await mediaTrigger
+        .locator('.media-intake-icon')
+        .boundingBox();
       if (!mediaLabelBox || !iconBox)
         throw new Error('Media action icon or label is missing.');
-      const groupStart = Math.min(iconBox.x, mediaLabelBox.x);
-      const groupEnd = Math.max(
-        iconBox.x + iconBox.width,
-        mediaLabelBox.x + mediaLabelBox.width,
-      );
-      expect(
-        Math.abs(
-          (groupStart + groupEnd) / 2 - deviceBox.x - deviceBox.width / 2,
-        ),
-      ).toBeLessThanOrEqual(2);
-      await expect(sourceTrigger).toHaveCSS('justify-content', 'center');
+      expect(mediaLabelBox.x).toBeGreaterThanOrEqual(iconBox.x + iconBox.width);
+      expect(Math.abs(deviceBox.width - sourceBox.width)).toBeLessThan(1);
+      await expectMediaIntakeAction(sourceTrigger, 'photo-library');
       const nativeChooser = page.waitForEvent('filechooser');
       await mediaTrigger.click();
       await (await nativeChooser).setFiles([]);
@@ -1033,8 +1025,11 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
     });
     await expectNoHorizontalOverflow(page);
     await expectReadableComposerHeader(page);
-    await expectReadableActionLabel(
-      page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+    await expectNaturalTextReflow(
+      page
+        .getByRole('button', { name: photoSources.addMedia, exact: true })
+        .locator('.media-intake-label'),
+      2,
     );
 
     const [largeTextPrivateBox, largeTextSharedBox] = await Promise.all([

@@ -17,7 +17,7 @@ import {
   showComposerDate,
   showMemoryDetails,
 } from '../support/memoryDiary';
-import { expectReadableActionLabel } from '../support/addAction';
+import { expectNaturalTextReflow } from '../support/addAction';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
@@ -1395,8 +1395,11 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
     .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
     .click();
   await expectReadableComposerHeader(page);
-  await expectReadableActionLabel(
-    page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+  await expectNaturalTextReflow(
+    page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .locator('.media-intake-label'),
+    2,
   );
   await fillMemory(page);
   await expectNoOverflow(page);

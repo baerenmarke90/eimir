@@ -12,6 +12,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { expectLabeledAddAction } from '../support/addAction';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
 import {
@@ -139,12 +140,14 @@ for (const [width, colorScheme] of [
       name: photoSources.addMedia,
       exact: true,
     });
-    await expectLabeledAddAction(sourcePicker, 'foto');
+    await expectMediaIntakeAction(sourcePicker, 'foto');
     const sourceBox = await sourcePicker.boundingBox();
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
     await expect(
-      page.locator('.immersive-create-media .media-device-choice .add-action'),
+      page.locator(
+        '.composer-content .media-device-choice .media-intake-button',
+      ),
     ).toHaveCount(1);
     await expect(
       page.getByText(de.memory.sharedTitle, { exact: true }),
@@ -2641,13 +2644,13 @@ for (const kind of ['plan', 'heart'] as const) {
     await page.goto(
       kind === 'heart' ? '/story/heart-moments/new' : '/plan/plans/new',
     );
-    await expectLabeledAddAction(
+    await expectMediaIntakeAction(
       page.getByRole('button', { name: photoSources.addMedia, exact: true }),
       'foto',
     );
     await expect(
       page.locator(
-        '.photo-source-trigger .button-icon.eimir-icon-photo-library',
+        '.photo-source-trigger .media-intake-icon .eimir-icon-photo-library',
       ),
     ).toBeVisible();
     if (kind === 'plan') {

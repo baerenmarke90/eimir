@@ -617,32 +617,36 @@ export function PlanProductPage({
               )}
               <div className="composer-content">
                 <div className="composer-writing-surface">
-                  <label htmlFor="plan-edit-title">
-                    {t('m5s3.common.title')}
-                  </label>
-                  <input
-                    id="plan-edit-title"
-                    ref={editTitle}
-                    disabled={writesPending}
-                    form="plan-edit-form"
-                    name="title"
-                    onChange={() => setEditDirty(true)}
-                    required
-                    maxLength={200}
-                    defaultValue={plan.title}
-                    aria-label={t('m5s3.common.title')}
-                  />
-                  <label htmlFor="plan-edit-description">
-                    {t('m5s3.common.description')}
-                  </label>
-                  <textarea
-                    form="plan-edit-form"
-                    id="plan-edit-description"
-                    name="description"
-                    rows={4}
-                    defaultValue={plan.description ?? ''}
-                    placeholder={t('m5s3.common.description')}
-                  />
+                  <div className="field-group">
+                    <label htmlFor="plan-edit-title">
+                      {t('m5s3.common.title')}
+                    </label>
+                    <input
+                      id="plan-edit-title"
+                      ref={editTitle}
+                      disabled={writesPending}
+                      form="plan-edit-form"
+                      name="title"
+                      onChange={() => setEditDirty(true)}
+                      required
+                      maxLength={200}
+                      defaultValue={plan.title}
+                      aria-label={t('m5s3.common.title')}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="plan-edit-description">
+                      {t('m5s3.common.description')}
+                    </label>
+                    <textarea
+                      form="plan-edit-form"
+                      id="plan-edit-description"
+                      name="description"
+                      rows={4}
+                      defaultValue={plan.description ?? ''}
+                      placeholder={t('m5s3.common.description')}
+                    />
+                  </div>
                 </div>
                 <PlanPhotosEditor
                   controller={photos}

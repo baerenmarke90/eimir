@@ -7,9 +7,7 @@ export function MediaActionGroup({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <div className="media-action-group">
-      <p className="media-action-group-label">
-        {t('photoSources.mediaLabel')}
-      </p>
+      <p className="media-action-group-label">{t('photoSources.mediaLabel')}</p>
       {children}
     </div>
   );

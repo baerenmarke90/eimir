@@ -1,4 +1,11 @@
 const composer = {
+  diaryEntry: 'Tagebucheintrag',
+  saved: 'Gespeichert',
+  emptyContent: 'Füge ein Foto, einen Titel oder deine Worte hinzu.',
+  linkRecovery:
+    'Dein Eintrag ist gespeichert. Die Verknüpfungen fehlen noch. Du kannst sie erneut übernehmen, ohne einen zweiten Eintrag anzulegen.',
+  planSavedLinkFailed:
+    'Dein Plan ist gespeichert. Die Verknüpfungen konnten noch nicht übernommen werden. Bitte versuche es erneut.',
   tools: 'Eintrag ergänzen',
   place: 'Ort',
   tag: 'Tag',

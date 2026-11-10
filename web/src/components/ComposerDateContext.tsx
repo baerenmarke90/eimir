@@ -163,7 +163,22 @@ export function ComposerDateContext({
       return value;
     }
   }
-  const dateSummary = `${summary(date)}${through ? ` – ${summary(through)}` : ''}`;
+  let dateSummary = summary(date);
+  if (date && through) {
+    try {
+      dateSummary = new Intl.DateTimeFormat(resolvedLocale(), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).formatRange(
+        dateInputValueToApiDate(date),
+        dateInputValueToApiDate(through),
+      );
+    } catch {
+      dateSummary = `${summary(date)} – ${summary(through)}`;
+    }
+  }
   const startError = error || (focusTarget === 'start' ? localError : '');
   const rangeError = endError || (focusTarget === 'end' ? localError : '');
   const visibleError = startError || rangeError;

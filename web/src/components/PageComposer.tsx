@@ -11,7 +11,7 @@ import './PageComposer.css';
 /** Labeled enrichment actions share one keyboard- and safe-area-aware boundary. */
 export function ComposerToolRow({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
-  const row = useRef<HTMLDivElement>(null);
+  const row = useRef<HTMLFieldSetElement>(null);
   useLayoutEffect(() => {
     const element = row.current;
     const page = element?.closest<HTMLElement>('.page-composer');
@@ -50,14 +50,13 @@ export function ComposerToolRow({ children }: { children: ReactNode }) {
     };
   }, []);
   return (
-    <div
+    <fieldset
       ref={row}
-      role="group"
       aria-label={t('composer.tools')}
       className="composer-tool-row"
     >
       {children}
-    </div>
+    </fieldset>
   );
 }
 

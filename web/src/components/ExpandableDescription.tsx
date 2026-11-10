@@ -33,7 +33,11 @@ export function ExpandableDescription({
   const expanded = expandedIdentity === identity;
   const visible = expanded ? readable : excerpt;
   return (
-    <div className="expandable-description">
+    <div
+      className="expandable-description"
+      data-collapsible={excerpt !== readable || undefined}
+      data-expanded={expanded || undefined}
+    >
       <div id={id}>
         {renderText ? (
           renderText(visible)

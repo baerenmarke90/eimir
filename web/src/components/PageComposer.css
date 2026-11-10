@@ -69,6 +69,9 @@
   padding: 0;
 }
 .composer-tool-row {
+  margin: 0;
+  min-inline-size: 0;
+  border: 0;
   position: fixed;
   inset-inline: 0;
   inset-block-end: var(--composer-keyboard-inset, 0px);
@@ -343,4 +346,20 @@ button.composer-chip {
 }
 .page-composer .composer-photo-draft .media-gallery-carousel-counter {
   inset-block-end: var(--space-3);
+}
+
+.composer-tool-slot {
+  display: contents;
+}
+
+.page-composer:has(.composer-writing-surface textarea:not(:placeholder-shown))
+  .composer-diary-intake
+  .media-intake-device {
+  min-block-size: var(--touch-target-comfortable);
+  padding: var(--space-3);
+  flex-direction: row;
+  text-align: start;
+}
+.page-composer .composer-diary-intake .media-intake-device .media-intake-label {
+  color: var(--color-text);
 }

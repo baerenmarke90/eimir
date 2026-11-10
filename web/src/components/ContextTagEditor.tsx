@@ -97,6 +97,9 @@ function ContextTagEditorContent({
   const entryId = `${id}-entry`;
   const focusOnExpand = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (open && error) inputRef.current?.focus();
+  }, [open, error]);
   const addRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (entryVisible && focusOnExpand.current) {

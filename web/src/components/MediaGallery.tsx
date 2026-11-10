@@ -994,7 +994,7 @@ export function MediaGallery({
             />
           ) : null}
           {items.length > 1 ? (
-            <div
+            <nav
               className="media-gallery-position"
               aria-label={t('gallery.aria')}
             >
@@ -1015,7 +1015,7 @@ export function MediaGallery({
                   <span />
                 </button>
               ))}
-            </div>
+            </nav>
           ) : null}
           {items[carouselIndex]
             ? renderPhotoReactions?.(items[carouselIndex]!)

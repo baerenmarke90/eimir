@@ -29,7 +29,8 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import './MemoryPlanningLinks.css';
 
 type Kind = 'plans' | 'wishes';
-type Target = { id: string; title: string; kind: Kind };
+export type StoryPlanningTarget = { id: string; title: string; kind: Kind };
+type Target = StoryPlanningTarget;
 export type StoryPlanningLinksProps = {
   apiBaseUrl: string;
   accessToken: string;
@@ -519,7 +520,7 @@ function PlanningTargetPicker({
   spaceId: string;
   linked: Target[];
   disabled: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, title: string) => void;
 }) {
   const { t } = useTranslation();
   const query = useInfiniteQuery({
@@ -598,7 +599,7 @@ function PlanningTargetPicker({
                   (target) => target.kind === kind && target.id === item.id,
                 )
               }
-              onClick={() => onSelect(item.id)}
+              onClick={() => onSelect(item.id, item.title)}
             >
               {item.title}
             </button>
@@ -608,4 +609,174 @@ function PlanningTargetPicker({
       <AutoLoadMore query={query}>{t('m5s3.common.loadMore')}</AutoLoadMore>
     </>
   );
+}
+
+/** The same bounded choice, staged locally until the parent create is confirmed. */
+export function StoryPlanningDraftLinks({
+  apiBaseUrl,
+  accessToken,
+  accountId,
+  spaceId,
+  targets,
+  onChange,
+  disabled = false,
+  sourceKind = 'MEMORY',
+}: {
+  apiBaseUrl: string;
+  accessToken: string;
+  accountId: string;
+  spaceId: string;
+  targets: StoryPlanningTarget[];
+  onChange: (next: StoryPlanningTarget[]) => void;
+  disabled?: boolean;
+  sourceKind?: 'MEMORY' | 'HEART_MOMENT';
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<Kind>('plans');
+  const apis = useMemo(
+    () => createSharedPlanningApis(apiBaseUrl, accessToken),
+    [apiBaseUrl, accessToken],
+  );
+  return (
+    <section className="memory-planning-links composer-planning-draft">
+      <div className="composer-chips">
+        {targets.map((target) => (
+          <button
+            type="button"
+            key={`${target.kind}:${target.id}`}
+            className="composer-chip tertiary"
+            disabled={disabled}
+            onClick={() => setOpen(true)}
+          >
+            <EimirIcon
+              name={target.kind === 'plans' ? 'kalender' : 'wuensche'}
+            />
+            {target.title}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="tertiary composer-link-action"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+      >
+        <EimirIcon name="hinzufuegen" />
+        {t(
+          sourceKind === 'MEMORY'
+            ? 'memoryProduct.planning.add'
+            : 'm5s3.planStory.addPlan',
+        )}
+      </button>
+      <ShortTaskSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t('memoryProduct.planning.add')}
+        isCloseBlocked={disabled}
+      >
+        <div className="composer-chips">
+          {targets.map((target) => (
+            <button
+              key={`${target.kind}:${target.id}`}
+              type="button"
+              className="composer-chip tertiary"
+              disabled={disabled}
+              aria-label={t('memoryProduct.planning.remove', {
+                title: target.title,
+              })}
+              onClick={() =>
+                onChange(
+                  targets.filter(
+                    (item) =>
+                      item.kind !== target.kind || item.id !== target.id,
+                  ),
+                )
+              }
+            >
+              {target.title} ×
+            </button>
+          ))}
+        </div>
+        {sourceKind === 'MEMORY' ? (
+          <fieldset className="planning-status-scope">
+            {(['plans', 'wishes'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={kind === value}
+                onClick={() => setKind(value)}
+              >
+                {t(`memoryProduct.planning.${value}`)}
+              </button>
+            ))}
+          </fieldset>
+        ) : null}
+        {open ? (
+          <PlanningTargetPicker
+            kind={kind}
+            apis={apis}
+            apiBaseUrl={apiBaseUrl}
+            accountId={accountId}
+            spaceId={spaceId}
+            linked={targets}
+            disabled={disabled}
+            onSelect={(id, title) => {
+              onChange([...targets, { id, title, kind }]);
+              setOpen(false);
+            }}
+          />
+        ) : null}
+      </ShortTaskSheet>
+    </section>
+  );
+}
+
+export async function linkDraftPlanningTargets({
+  apiBaseUrl,
+  accessToken,
+  spaceId,
+  contentId,
+  sourceKind,
+  targets,
+  isCurrent,
+}: {
+  apiBaseUrl: string;
+  accessToken: string;
+  spaceId: string;
+  contentId: string;
+  sourceKind: 'MEMORY' | 'HEART_MOMENT';
+  targets: readonly StoryPlanningTarget[];
+  isCurrent: () => boolean;
+}) {
+  const configuration = new Configuration({
+    basePath: apiBaseUrl,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const memories = new MemoryPlanningRelationsApi(configuration);
+  const story = new StoryPlanningRelationsApi(configuration);
+  for (const target of targets) {
+    if (!isCurrent()) throw new Error('Planning association task ended.');
+    assertOnlineWrite();
+    if (sourceKind === 'HEART_MOMENT') {
+      if (target.kind !== 'plans')
+        throw new Error('Unsupported HeartMoment relation.');
+      await story.linkHeartMomentPlan({
+        spaceId,
+        heartMomentId: contentId,
+        targetId: target.id,
+      });
+    } else if (target.kind === 'plans')
+      await memories.linkMemoryPlan({
+        spaceId,
+        memoryId: contentId,
+        targetId: target.id,
+      });
+    else
+      await memories.linkMemoryWish({
+        spaceId,
+        memoryId: contentId,
+        targetId: target.id,
+      });
+  }
 }

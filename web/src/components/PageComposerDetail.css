@@ -155,3 +155,14 @@
     scroll-behavior: auto;
   }
 }
+
+.page-composer-detail
+  .expandable-description[data-collapsible]:not([data-expanded])
+  > div {
+  max-block-size: calc(5 * 1.55em);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 65%, transparent);
+}
+.page-composer-detail .expandable-description {
+  font: var(--font-composer-prose);
+}

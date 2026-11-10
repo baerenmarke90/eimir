@@ -40,12 +40,14 @@ export function AttachmentDraftPicker({
   presentation = 'default',
   mediaTrigger,
   pageWideDrop = false,
+  hasMedia,
 }: {
   presentation?: 'default' | 'diary' | 'tools';
   mediaTrigger?: (open: () => void) => ReactNode;
   pageWideDrop?: boolean;
   additionalActions?: ReactNode;
-  gallery?: ReactNode;
+  gallery?: ReactNode | ((addAction: ReactNode) => ReactNode);
+  hasMedia?: boolean;
   id: string;
   selectedCoverKey?: string | null;
   onSelectCover?: (key: string | null) => void;
@@ -65,6 +67,20 @@ export function AttachmentDraftPicker({
 }) {
   const { t } = useTranslation();
   const openSource = useRef<() => void>(() => {});
+  const populated =
+    hasMedia ?? (attachments.items.length > 0 || Boolean(gallery));
+  const addAction =
+    presentation !== 'default' ? (
+      <button
+        type="button"
+        className="photo-draft-add"
+        aria-label={t('photoSources.addMedia')}
+        disabled={disabled}
+        onClick={() => openSource.current()}
+      >
+        <EimirIcon name="hinzufuegen" />
+      </button>
+    ) : undefined;
   const devicePicker = (
     close: () => void,
     actionContainer?: HTMLElement | null,
@@ -100,7 +116,7 @@ export function AttachmentDraftPicker({
     >
       <div className="field-group attachment-draft-picker">
         <MediaActionGroup unframed>
-          {gallery}
+          {typeof gallery === 'function' ? gallery(addAction) : gallery}
           {showItems && attachments.items.length > 0 ? (
             <PhotoDraftGallery
               key={JSON.stringify([
@@ -159,7 +175,7 @@ export function AttachmentDraftPicker({
 
           <div
             className={
-              presentation === 'diary' && !attachments.items.length && !gallery
+              presentation === 'diary' && !populated
                 ? 'composer-diary-intake'
                 : undefined
             }
@@ -218,7 +234,21 @@ export function AttachmentDraftPicker({
                 devicePicker={devicePicker}
               />
             ) : (
-              devicePicker(() => {})
+              <DeviceMediaPicker
+                id={id}
+                multiple={multiple}
+                disabled={disabled}
+                context={videoContext}
+                onFiles={attachments.addFiles}
+                renderTrigger={
+                  presentation !== 'default'
+                    ? (open) => {
+                        openSource.current = open;
+                        return mediaTrigger?.(open) ?? null;
+                      }
+                    : undefined
+                }
+              />
             )}
           </div>
           {additionalActions}

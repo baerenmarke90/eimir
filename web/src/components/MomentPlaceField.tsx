@@ -123,6 +123,19 @@ export function MomentPlaceField({
         isCloseBlocked={pending}
         onClose={() => setOpen(false)}
       >
+        {open && !disabled && value && !showSelection ? (
+          <div className="composer-place-context">
+            <span>{value.name}</span>
+            <button
+              type="button"
+              className="tertiary"
+              aria-label={t('experiences.removePlace', { name: value.name })}
+              onClick={() => onChange(undefined)}
+            >
+              <EimirIcon name="trash" />
+            </button>
+          </div>
+        ) : null}
         {open && !disabled ? picker : null}
       </ShortTaskSheet>
     </div>

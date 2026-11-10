@@ -53,7 +53,7 @@ export function StoryEditorPageShell({
 }) {
   return (
     <div
-      className={`page page-reading create-page product-editor-page free-composer${quiet ? ' quiet-composer' : ''}`}
+      className={`page page-reading create-page product-editor-page free-composer${quiet ? ' quiet-composer page-composer' : ''}`}
     >
       <PageHeader
         before={before}

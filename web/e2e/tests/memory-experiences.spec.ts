@@ -476,7 +476,50 @@ for (const [width, colorScheme] of [
         gallery.locator('.photo-draft-tile').first(),
       ).toHaveAttribute('aria-label', /first.jpg/);
     }
-    await dragDraftMedia(page, 2, 0);
+    if (width === 320 && colorScheme === 'dark') {
+      // At 200% text, use the native ordering action when both drag endpoints
+      // cannot share the arrangement task's visible scrollport.
+      const movedKey = await gallery
+        .locator('.photo-draft-tile')
+        .nth(2)
+        .getAttribute('data-media-key');
+      if (!movedKey)
+        throw new Error('The third photo identity is unavailable.');
+      await gallery
+        .getByRole('button', { name: experiences.arrange, exact: true })
+        .click();
+      const arrange = page.getByRole('dialog', {
+        name: experiences.arrange,
+        exact: true,
+      });
+      const arrangedTiles = arrange.locator(
+        '.media-arrange-grid .photo-draft-tile',
+      );
+      await expect(arrangedTiles.nth(2)).toHaveAttribute(
+        'data-media-key',
+        movedKey,
+      );
+      await arrangedTiles.nth(2).click();
+      await expect(arrangedTiles.nth(2)).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await arrange
+        .getByRole('group', { name: 'third.jpg', exact: true })
+        .getByRole('button', { name: experiences.first, exact: true })
+        .click();
+      await expect(arrangedTiles.first()).toHaveAttribute(
+        'data-media-key',
+        movedKey,
+      );
+      await arrange
+        .getByRole('button', { name: experiences.finish, exact: true })
+        .click();
+      await expect(arrange).toBeHidden();
+      await expect(
+        gallery.locator('.photo-draft-tile').first(),
+      ).toHaveAttribute('data-media-key', movedKey);
+    } else await dragDraftMedia(page, 2, 0);
     await expectInlineDraftActions(page);
     await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
       'aria-label',

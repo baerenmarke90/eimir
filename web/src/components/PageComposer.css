@@ -184,6 +184,9 @@ button.composer-chip {
   block-size: var(--composer-media-height);
   aspect-ratio: auto;
 }
+.page-composer .composer-photo-draft button.media-gallery-carousel-slide {
+  padding: 0;
+}
 .page-composer .photo-draft-toolbar {
   margin: 0;
   gap: var(--space-2);

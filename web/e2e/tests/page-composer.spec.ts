@@ -218,20 +218,60 @@ async function capture(page: Page, info: TestInfo, name: string) {
     const stages = await page
       .locator('.photo-draft-stage .media-gallery-carousel-viewport')
       .evaluateAll((viewports) =>
-        viewports.map((viewport) => ({
-          frame: viewport.getBoundingClientRect().toJSON(),
-          controls: [
-            ...viewport.querySelectorAll(
-              '.photo-draft-stage-cover, .photo-draft-stage-remove, .photo-draft-stage-sensitive, .media-gallery-carousel-counter',
-            ),
-          ].map((element) => ({
-            name: element.getAttribute('aria-label') ?? element.textContent,
-            rect: element.getBoundingClientRect().toJSON(),
-          })),
-        })),
+        viewports.map((viewport) => {
+          const slide = viewport.querySelector(
+            '.media-gallery-carousel-slide.is-active',
+          );
+          const image = slide?.querySelector('img.media-gallery-thumb-content');
+          const slideStyle = slide ? getComputedStyle(slide) : null;
+          return {
+            frame: viewport.getBoundingClientRect().toJSON(),
+            slide:
+              slide && slideStyle
+                ? {
+                    rect: slide.getBoundingClientRect().toJSON(),
+                    padding: [
+                      slideStyle.paddingTop,
+                      slideStyle.paddingRight,
+                      slideStyle.paddingBottom,
+                      slideStyle.paddingLeft,
+                    ],
+                  }
+                : null,
+            image: image
+              ? {
+                  rect: image.getBoundingClientRect().toJSON(),
+                  fit: getComputedStyle(image).objectFit,
+                }
+              : null,
+            controls: [
+              ...viewport.querySelectorAll(
+                '.photo-draft-stage-cover, .photo-draft-stage-remove, .photo-draft-stage-sensitive, .media-gallery-carousel-counter',
+              ),
+            ].map((element) => ({
+              name: element.getAttribute('aria-label') ?? element.textContent,
+              rect: element.getBoundingClientRect().toJSON(),
+            })),
+          };
+        }),
       );
     for (const stage of stages) {
       const diagnostic = JSON.stringify(stage);
+      expect(stage.slide?.padding, diagnostic).toEqual([
+        '0px',
+        '0px',
+        '0px',
+        '0px',
+      ]);
+      expect(stage.image?.fit, diagnostic).toBe('cover');
+      for (const bounds of [stage.slide?.rect, stage.image?.rect]) {
+        for (const edge of ['left', 'right', 'top', 'bottom'] as const) {
+          expect(
+            Math.abs((bounds?.[edge] ?? Number.NaN) - stage.frame[edge]),
+            diagnostic,
+          ).toBeLessThanOrEqual(1);
+        }
+      }
       expect(stage.controls, diagnostic).toHaveLength(4);
       for (const [index, control] of stage.controls.entries()) {
         expect(control.rect.left, diagnostic).toBeGreaterThanOrEqual(

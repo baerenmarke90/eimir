@@ -421,6 +421,16 @@ for (const [width, colorScheme] of [
         x: frame.x + frame.width / 2,
         y: frame.y + frame.height / 2,
       };
+      // The native swipe keeps scrolling after touchEnd. Wait for its actual
+      // completion before resizing and measuring the next drag's targets.
+      const scrollEnded = page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            window.addEventListener('scrollend', () => resolve(), {
+              once: true,
+            }),
+          ),
+      );
       await session.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
         touchPoints: [point],
@@ -436,6 +446,7 @@ for (const [width, colorScheme] of [
       await expect
         .poll(() => page.evaluate(() => window.scrollY))
         .toBeLessThan(scrollBefore);
+      await scrollEnded;
       await session.detach();
       await page.setViewportSize({ width, height: 900 });
       await expect(

@@ -875,7 +875,8 @@ export function MediaGallery({
                       if (
                         directSensitiveToggle &&
                         item.isSensitive === true &&
-                        (presentation !== 'composer' ||
+                        ((presentation !== 'composer' &&
+                          item.mediaType !== MediaType.VIDEO) ||
                           !reveals.isRevealed(item.id))
                       )
                         reveals.toggle(item.id);
@@ -892,7 +893,8 @@ export function MediaGallery({
                     aria-label={
                       directSensitiveToggle &&
                       item.isSensitive === true &&
-                      (presentation !== 'composer' ||
+                      ((presentation !== 'composer' &&
+                        item.mediaType !== MediaType.VIDEO) ||
                         !reveals.isRevealed(item.id))
                         ? t(
                             reveals.isRevealed(item.id)
@@ -1005,7 +1007,8 @@ export function MediaGallery({
           </div>
           {items[carouselIndex]?.isSensitive === true &&
           (!directSensitiveToggle ||
-            (presentation === 'composer' &&
+            ((presentation === 'composer' ||
+              items[carouselIndex]?.mediaType === MediaType.VIDEO) &&
               reveals.isRevealed(items[carouselIndex]!.id))) ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}

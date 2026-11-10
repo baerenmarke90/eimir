@@ -1165,6 +1165,28 @@ for (const state of [
 
     await page.getByRole('button', { name: openItemLabel(2, 6) }).click();
     await expectLightboxSettled(page, 1);
+    await expect(page.locator('.media-lightbox-close')).toBeFocused();
+    // Reflow the actual track during the native advance. The resize observer
+    // must preserve its destination while the media and viewport settle.
+    await page.locator('.media-lightbox-track').evaluate((track) => {
+      window.addEventListener(
+        'keydown',
+        () => {
+          track.addEventListener(
+            'scroll',
+            () => {
+              // Resize the owning stage, as a viewport change does. Shrinking
+              // only its centered track invents a different offset origin.
+              const stage = track.closest<HTMLElement>('.media-lightbox-stage');
+              if (!stage) throw new Error('The lightbox stage must exist.');
+              stage.style.inlineSize = 'calc(100% - 8px)';
+            },
+            { once: true },
+          );
+        },
+        { capture: true, once: true },
+      );
+    });
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('.media-lightbox-counter')).toHaveText(
       counterLabel(3, 6),
@@ -1173,8 +1195,17 @@ for (const state of [
     await expect
       .poll(() => contentReads.slice().sort())
       .toEqual([0, 1, 2, 3, 5].map((index) => sixImages[index]!.id).sort());
+    await expect(page.locator('.media-lightbox-close')).toBeFocused();
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `story-lightbox-resize-${state.width}-${state.theme}.png`,
+      ),
+    });
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: openItemLabel(2, 6) }),
+    ).toBeFocused();
     await expectCarouselSettled(page, 1);
     await expect(
       page.locator(

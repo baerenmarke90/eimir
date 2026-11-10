@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { PlansApi } from '../api/generated/apis/PlansApi';
+import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
@@ -16,6 +17,10 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
 import contextTags from '../i18n/locales/contextTags';
+import composer from '../i18n/locales/composer';
+import experiences from '../i18n/locales/experiences';
+import m5s3 from '../i18n/locales/m5s3';
+import de from '../i18n/locales/de';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
@@ -26,8 +31,14 @@ import { QuickCreateMenu } from './QuickCreateMenu';
 const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   window.matchMedia = (query: string) => ({
-    matches: false,
+    matches: query === '(prefers-reduced-motion: reduce)',
     media: query,
     onchange: null,
     addListener: () => {},
@@ -186,11 +197,10 @@ async function selectSuggestedContext(
   user: ReturnType<typeof userEvent.setup>,
   label: string,
 ) {
-  await user.click(screen.getByRole('button', { name: contextTags.add }));
-  await user.click(
-    screen.getByText(contextTags.suggestions, { selector: 'summary' }),
-  );
+  await user.click(screen.getByRole('button', { name: composer.tag }));
   await user.click(screen.getByRole('checkbox', { name: label }));
+  await user.click(screen.getByRole('button', { name: experiences.finish }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 }
 
 describe('Heart Moment create request identity', () => {
@@ -287,11 +297,13 @@ describe('Heart Moment create request identity', () => {
     expect(await screen.findByText('Heart Moment result')).toBeTruthy();
   });
 
-  it('commits an unfinished disclosed tag when header Save receives focus', async () => {
+  it('commits an unfinished tag when the sheet finishes before header Save', async () => {
     const createHeartMoment = renderCreate();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: contextTags.add }));
+    await user.click(screen.getByRole('button', { name: composer.tag }));
     await user.type(screen.getByLabelText(contextTags.newLabel), 'Quiet time');
+    await user.click(screen.getByRole('button', { name: experiences.finish }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await user.click(
       screen.getByRole('button', {
         name: storyProducts.heartMomentProduct.save,
@@ -308,22 +320,73 @@ describe('Heart Moment create request identity', () => {
     expect(createHeartMoment).toHaveBeenCalledOnce();
   });
 
-  it('keeps the chosen audience in native form data and restores its disclosure focus', async () => {
+  it('retries failed Plan associations against the known saved parent without creating twice', async () => {
+    const plan = { id: 'plan-1', title: 'Our picnic' };
+    vi.spyOn(PlansApi.prototype, 'listPlans').mockResolvedValue({
+      items: [plan],
+      nextCursor: null,
+    } as Awaited<ReturnType<PlansApi['listPlans']>>);
+    const link = vi
+      .spyOn(StoryPlanningRelationsApi.prototype, 'linkHeartMomentPlan')
+      .mockRejectedValueOnce(new Error('Association unavailable'))
+      .mockResolvedValue(undefined);
+    const create = renderCreate();
+    create.mockResolvedValue({ ...heartMoment, id: 'heart-new' });
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      'A thought worth keeping',
+    );
+    await user.click(
+      screen.getByRole('button', { name: m5s3.planStory.addPlan }),
+    );
+    await user.click(await screen.findByRole('button', { name: plan.title }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    await screen.findByText(composer.planSavedLinkFailed);
+    expect(create).toHaveBeenCalledOnce();
+    expect(
+      (
+        screen.getByLabelText(
+          storyProducts.heartMomentProduct.textLabel,
+        ) as HTMLTextAreaElement
+      ).disabled ||
+        (
+          screen
+            .getByLabelText(storyProducts.heartMomentProduct.textLabel)
+            .closest('fieldset') as HTMLFieldSetElement
+        ).disabled,
+    ).toBe(true);
+    await user.click(screen.getByRole('button', { name: de.common.retry }));
+    expect(await screen.findByText('Heart Moment result')).toBeTruthy();
+    expect(create).toHaveBeenCalledOnce();
+    expect(link).toHaveBeenCalledTimes(2);
+    expect(link).toHaveBeenLastCalledWith({
+      spaceId: 'space-1',
+      heartMomentId: 'heart-new',
+      targetId: 'plan-1',
+    });
+  });
+
+  it('keeps the chosen audience in native form data and restores its modal trigger focus', async () => {
     const createHeartMoment = renderCreate();
     const user = userEvent.setup();
-    const audience = screen.getByText(
-      storyProducts.heartMomentProduct.visibilityShared,
-      { selector: 'summary span' },
-    );
-    await user.click(audience);
-    const privateChoice = screen.getByRole('radio', {
-      name: storyProducts.heartMomentProduct.visibilityPrivate,
+    const audience = screen.getByRole('button', {
+      name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityShared}`,
     });
-    const disclosure = privateChoice.closest('details');
-    await user.click(privateChoice);
-    expect(disclosure?.open).toBe(false);
-    expect(document.activeElement).toBe(disclosure?.querySelector('summary'));
-    expect(disclosure?.querySelector('summary')?.textContent).toContain(
+    await user.click(audience);
+    await user.click(
+      screen.getByRole('radio', {
+        name: storyProducts.heartMomentProduct.visibilityPrivate,
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(audience);
+    expect(audience.textContent).toContain(
       storyProducts.heartMomentProduct.visibilityPrivate,
     );
     await user.type(
@@ -489,7 +552,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       screen.getAllByText(text, { normalizer: (value) => value }),
     ).toHaveLength(1);
     expect(
-      document.querySelector('header time')?.getAttribute('datetime'),
+      document.querySelector('.moment-metadata time')?.getAttribute('datetime'),
     ).toBe('2026-08-25');
   });
 
@@ -504,7 +567,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       screen.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
     ).toBeTruthy();
   });
-  it('replaces the oversized text button with a compact icon-only edit link', async () => {
+  it('keeps a quiet visible text action for editing in the read header', async () => {
     renderDetail();
     const editLink = await screen.findByRole('link', {
       name: storyProducts.heartMomentProduct.edit,
@@ -512,9 +575,10 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     expect(editLink.getAttribute('href')).toBe(
       '/story/heart-moments/heart-1/edit',
     );
-    // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe('');
-    expect(editLink.className).not.toContain('button-link');
+    expect(editLink.textContent?.trim()).toBe(
+      storyProducts.heartMomentProduct.edit,
+    );
+    expect(editLink.className).toContain('tertiary');
     expect(editLink.className).not.toContain('secondary-link');
   });
 
@@ -593,7 +657,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     );
   });
 
-  it('keeps the visibility toggle as plain text beside the status, no heading or warning card', async () => {
+  it('keeps visibility readable on detail and leaves privacy changes inside the editor', async () => {
     renderDetail(undefined, {
       ...heartMoment,
       authorId: 'account-1',
@@ -601,11 +665,18 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     });
     await screen.findByText('I love you more each day');
     expect(
-      screen.getByRole('button', {
-        name: storyProducts.heartMomentProduct.makePrivate,
+      screen.getByRole('status', {
+        name: relationshipComponents.visibilityShared,
       }),
     ).toBeTruthy();
-    expect(screen.queryByText(/Sichtbarkeit ändern/)).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: storyProducts.heartMomentProduct.makePrivate,
+      }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('link', { name: storyProducts.heartMomentProduct.edit }),
+    ).toBeTruthy();
   });
 });
 
@@ -817,8 +888,8 @@ describe('Completed Plan handoff to HeartMoment', () => {
       await screen.findByRole('button', { name: place.name });
       if (visibility === 'PRIVATE') {
         await user.click(
-          screen.getByText(storyProducts.heartMomentProduct.visibilityShared, {
-            selector: 'summary span',
+          screen.getByRole('button', {
+            name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityShared}`,
           }),
         );
         await user.click(
@@ -827,6 +898,7 @@ describe('Completed Plan handoff to HeartMoment', () => {
           }),
         );
       }
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       await user.click(
         screen.getByRole('button', {
           name: storyProducts.heartMomentProduct.save,

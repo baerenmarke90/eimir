@@ -5,16 +5,25 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import {
   HEART_EMOTIONS,
   HeartEmotionBadge,
   HeartEmotionPicker,
+  HeartEmotionSurface,
 } from './HeartEmotionVisual';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  document.documentElement.removeAttribute('data-theme');
+  document.documentElement.style.removeProperty(
+    '--active-heart-emotion-surface',
+  );
+});
 
 describe('HeartEmotionVisual', () => {
   it('renders all six domain emotions as one accessible single-choice picker', () => {
@@ -43,6 +52,81 @@ describe('HeartEmotionVisual', () => {
       (screen.getByRole('radio', { name: 'Geliebt' }) as HTMLInputElement)
         .checked,
     ).toBe(false);
+  });
+
+  it('keeps every feeling visible after a choice and reports native form resets', () => {
+    const changed = vi.fn();
+    const view = render(
+      <form>
+        <HeartEmotionPicker legend="Gefühl" onChange={changed} />
+      </form>,
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'Dankbar' }));
+    expect(changed).toHaveBeenLastCalledWith(HeartEmotion.GRATEFUL);
+    expect(screen.getAllByRole('radio')).toHaveLength(6);
+    expect(view.container.querySelector('details')).toBeNull();
+    const form = view.container.querySelector('form');
+    if (!form) throw new Error('The owning form is unavailable.');
+    expect(new FormData(form).get('emotion')).toBe(HeartEmotion.GRATEFUL);
+    act(() => form.reset());
+    expect(changed).toHaveBeenLastCalledWith(HeartEmotion.LOVED);
+    expect(new FormData(form).get('emotion')).toBe(HeartEmotion.LOVED);
+  });
+
+  it('tracks feeling and theme changes in browser chrome and restores the current theme on exit', async () => {
+    const meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    meta.content = 'baseline';
+    document.head.append(meta);
+    const getStyle = window.getComputedStyle.bind(window);
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => {
+      const style = getStyle(element);
+      const values: Record<string, string> = {};
+      const dark = document.documentElement.dataset.theme === 'dark';
+      if (element.classList.contains('heart-emotion-page'))
+        values['--heart-emotion-surface'] =
+          `${dark ? 'dark' : 'light'}-${(element as HTMLElement).dataset.heartEmotion}`;
+      if (element === document.documentElement)
+        values['--color-background'] = dark ? 'dark-ground' : 'light-ground';
+      return new Proxy(style, {
+        get(target, key) {
+          if (key === 'getPropertyValue')
+            return (name: string) =>
+              values[name] ?? target.getPropertyValue(name);
+          const value = Reflect.get(target, key);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      });
+    });
+    const view = render(
+      <HeartEmotionSurface emotion={HeartEmotion.LOVED}>
+        Content
+      </HeartEmotionSurface>,
+    );
+    expect(meta.content).toBe('light-LOVED');
+    view.rerender(
+      <HeartEmotionSurface emotion={HeartEmotion.GRATEFUL}>
+        Content
+      </HeartEmotionSurface>,
+    );
+    expect(meta.content).toBe('light-GRATEFUL');
+    act(() => {
+      document.documentElement.dataset.theme = 'dark';
+    });
+    await waitFor(() => expect(meta.content).toBe('dark-GRATEFUL'));
+    expect(
+      document.documentElement.style.getPropertyValue(
+        '--active-heart-emotion-surface',
+      ),
+    ).toBe('dark-GRATEFUL');
+    view.unmount();
+    expect(meta.content).toBe('dark-ground');
+    expect(
+      document.documentElement.style.getPropertyValue(
+        '--active-heart-emotion-surface',
+      ),
+    ).toBe('');
+    meta.remove();
   });
 
   it('preserves the selected feeling in FormData after collapsing the compact choice', () => {

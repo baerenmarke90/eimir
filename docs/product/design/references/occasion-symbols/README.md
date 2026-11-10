@@ -79,3 +79,46 @@ chronology, date markers, add action and authored names; use only three small
 two-tone cake/ring/sparkle symbols immediately before titles, with no type-name
 badge, description or name day; retain repeat text and use only people/lock
 symbols for audience. Preserve the existing identity and all visible functions.
+
+The [exact generation prompt](reference-prompt.txt) is retained with the reference.
+Owning work record: [#1733](https://github.com/baerenmarke90/eimir/issues/1733).
+
+## Runtime implementation evidence
+
+Tested product revision: `714a0943f5fcd441af29a18cc2bd1b54fa576fa2`.
+The subsequent evidence commit changes only documentation and captured images.
+
+- [Compact Light agenda](evidence/occasions-390-light.png): all three stored and
+  projected types use cake/ring/sparkle symbols immediately before titles.
+  Audience uses people/lock symbols, with no extra visible label or description.
+- [Expanded Dark reader](evidence/reader-1440-dark.png): long titles wrap, the
+  same type symbol accompanies the title, and repeat/audience share quiet context.
+- [200% Light editor](evidence/editor-200-percent-light.png) and
+  [400% Dark editor](evidence/editor-400-percent-dark.png): explicit choices and
+  reachable completion are preserved. The preceding agenda reflow is asserted.
+
+Inspected Compact/Expanded screenshots against the generated reference. Existing
+identity glyphs and tokens supply the final artwork; no generated bitmap ships
+in the product. Profile-derived birthdays and the relationship anniversary use
+their actual source type, without inferred label matching or duplicate records.
+
+All 40 complete browser cases pass: five People/occasion journeys plus 35
+cross-surface task-boundary cases. They cover explicit create/edit/save and the
+actual resulting reader, profile birthday navigation and focus/return, dirty
+Back, failures/pending/offline handling, Light/Dark, reduced motion,
+320/360/390/430/1280px task variants, large text/reflow, small height and axe.
+All 61 targeted component cases pass across ImportantDatesPanel (18),
+PlanningOccasions (1), RelatedPeoplePage (21) and ShortTaskSheet (21). The
+initial concurrent local run timed out on cold query/render work; reducing
+contention and rerunning the affected file with unchanged timeouts passed.
+No assertion, timeout, production behavior or CI protection was relaxed.
+
+Production build (including TypeScript, tokens, localization, legal and PWA
+checks), Web lint and formatting pass. Lint retains only existing warnings in
+unrelated files. Browser inventory validates all 104 specs; 17 planning/selection
+regressions pass. Existing ownership roots already cover the changed production
+entry points, so neither browser map nor the always-run core was altered.
+The validated planner conservatively selects all 104 retained specs
+(77 critical, 27 additional) because the new generated reference is an unmapped
+presentation asset. Hosted checks on the final PR head remain authoritative.
+No native capability, Android package or published release is changed.

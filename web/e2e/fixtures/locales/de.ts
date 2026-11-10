@@ -1,4 +1,11 @@
 const de = {
+  monthStory: {
+    photoTitles: [
+      'Mit Bruno im Wald',
+      'Sonnenaufgang am See',
+      'Abend auf dem Feld',
+    ],
+  },
   planLinkedLists: {
     newPlanTitle: 'Picknick am See',
     newListTitle: 'Für unseren Ausflug',

@@ -61,6 +61,7 @@ happens only in the composer (create/edit), never on the detail screen; the
 drop-cap initial is used only for Diary/Memory prose, not for Plans; long
 descriptions collapse with "show more"; detail screens have no "start new" action;
 places on detail screens open the in-app memory map;
+saved photos open in the existing fullscreen viewer again;
 Plans use the existing short schedule format ("Sa., 21. Nov. · 12:00 Uhr").
 
 ## 2. Shared anatomy (all in-scope composers, top to bottom)
@@ -186,7 +187,18 @@ current runtime; verify each on `main` and restore it where it regressed. Order:
    Sensitive photos stay concealed until "show image" and can be hidden again.
    Photo reactions (`photoReactions.*`, six reactions) open from a "react"
    button on the photo; summary chips under the gallery show counts and your own
-   reaction. Fullscreen/zoom remain as today.
+   reaction.
+   **Fullscreen is mandatory and currently reported broken by the PO for saved
+   photos.** Tapping a revealed photo (and its expand action,
+   `photoReactions.fullscreen`) opens the existing fullscreen viewer
+   (`GalleryExpandAction` → `openFullScreen` in `MemoryPhotoGallery` /
+   `MediaGallery`, rendered by `ZoomablePhoto`) on the same photo, with swipe
+   between photos, "n / m" count, pinch/double-tap zoom, visible close, and
+   Escape/system Back closing back to the same slide and focus. Sensitive photos
+   open only after "show image". Find the regression first — #1729 (merged
+   2026-11-10) reworked the `ZoomablePhoto` controls — and add a browser journey
+   that opens a saved Diary, HeartMoment and Plan photo in fullscreen and closes
+   it again. The composer draft gallery keeps its existing fullscreen preview.
 4. Title in the display role.
 5. Body:
    - Diary/Memory: prose on the page with the existing `drop-cap-letter`

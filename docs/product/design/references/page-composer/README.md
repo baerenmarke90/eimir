@@ -45,7 +45,8 @@ Lists open their list composer (frame 17); no drop-cap initial for Plans, and
 long descriptions collapse with "show more"; Plan descriptions keep a soft note
 box; no "start new" action on detail screens; Plans keep the existing short
 schedule format. Tapping a place on a detail screen opens the in-app memory map (existing
-`photoPlaceMapUrl` route and Pro boundary).
+`photoPlaceMapUrl` route and Pro boundary). Saved photos must open in the existing fullscreen viewer
+again; the PO reported this as currently broken.
 
 ## Generated visual preflight
 

@@ -79,6 +79,6 @@ button.media-intake-button:disabled {
 
 @media (forced-colors: active) {
   button.media-intake-button {
-    border: var(--border-surface-width) solid ButtonText;
+    border: var(--border-divider-width) solid ButtonText;
   }
 }

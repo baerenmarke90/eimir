@@ -761,24 +761,25 @@ test.describe('integrated soft media choices', () => {
           await (await chooser).setFiles([]);
           await expect(prose).toHaveValue(copy.description);
           await expect(device).toBeFocused();
-          if (scenario.width === 360) {
-            await page.emulateMedia({ forcedColors: 'active' });
-            await expect(prose).toHaveCSS('border-top-style', 'solid');
-            await expect(device).toHaveCSS('border-top-style', 'solid');
-            await page.emulateMedia({ forcedColors: 'none' });
-          }
+          await page.emulateMedia({ forcedColors: 'active' });
+          for (const control of [prose, device, external])
+            await expect(control).toHaveCSS('border-top-width', '1px');
+          await page.emulateMedia({ forcedColors: 'none' });
           await page.locator('.composer-header h1').click();
           const axe = await new AxeBuilder({ page })
             .include('.free-composer')
             .analyze();
           expect(axe.violations).toEqual([]);
-          await captureScreenshot(
-            page,
-            info,
-            `shell-soft-composer-${scenario.width}-${scenario.theme}.png`,
-            { fullPage: true },
-          );
         }
+        const surface = ['', '-memory-edit', '-plan-create', '-plan-edit'][
+          index
+        ];
+        await captureScreenshot(
+          page,
+          info,
+          `shell-soft-composer${surface}-${scenario.width}-${scenario.theme}.png`,
+          { fullPage: true },
+        );
       }
     });
   }

@@ -445,7 +445,7 @@ for (const scenario of visualScenarios) {
       await page.emulateMedia({ forcedColors: 'none' });
       await expect(page.locator('#wish-plan-description')).toHaveCSS(
         'border-top-width',
-        '1px',
+        '0px',
       );
       await expect(page.locator('#wish-plan-place')).toHaveCSS(
         'border-top-width',

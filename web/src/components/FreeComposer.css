@@ -211,7 +211,7 @@
 
 @media (forced-colors: active) {
   .free-composer :is(input:not([type]), input[type="text"], textarea) {
-    border: var(--border-surface-width) solid CanvasText;
+    border: var(--border-authored-width) solid CanvasText;
   }
 }
 
@@ -502,6 +502,7 @@
 
 .quiet-composer .heart-emotion-summary-value {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   min-inline-size: 0;
@@ -511,6 +512,10 @@
   border-radius: var(--radius-pill);
   background: var(--heart-emotion-surface);
   color: var(--color-text);
+}
+
+.quiet-composer .heart-emotion-disclosure {
+  min-inline-size: 0;
 }
 
 .quiet-composer .heart-emotion-summary-value > .eimir-icon {
@@ -575,9 +580,15 @@
   .quiet-composer .media-action-group {
     padding-inline: var(--space-2);
   }
+
+  .quiet-composer .composer-content {
+    padding-inline: var(--space-2);
+  }
 }
 @media (forced-colors: active) {
-  .quiet-composer .composer-writing-surface :is(input, textarea) {
-    border: var(--border-surface-width) solid CanvasText;
+  .quiet-composer
+    .composer-writing-surface
+    :is(input:not([type]), input[type="text"], textarea) {
+    border: var(--border-authored-width) solid CanvasText;
   }
 }

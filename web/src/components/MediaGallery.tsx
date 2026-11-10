@@ -800,17 +800,27 @@ export function MediaGallery({
                         photoPress.current.suppressClick = false;
                         return;
                       }
-                      if (directSensitiveToggle && item.isSensitive === true)
+                      if (
+                        directSensitiveToggle &&
+                        item.isSensitive === true &&
+                        (item.mediaType !== MediaType.VIDEO ||
+                          !reveals.isRevealed(item.id))
+                      )
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
                     aria-pressed={
-                      directSensitiveToggle && item.isSensitive === true
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      item.mediaType !== MediaType.VIDEO
                         ? reveals.isRevealed(item.id)
                         : undefined
                     }
                     aria-label={
-                      directSensitiveToggle && item.isSensitive === true
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      (item.mediaType !== MediaType.VIDEO ||
+                        !reveals.isRevealed(item.id))
                         ? t(
                             reveals.isRevealed(item.id)
                               ? 'sensitiveMedia.hide'
@@ -820,10 +830,22 @@ export function MediaGallery({
                           !reveals.isRevealed(item.id)
                             ? t('sensitiveMedia.label') + '. '
                             : '') +
-                          t('gallery.openItem', {
+                          (loadPlayback &&
+                          item.mediaType === MediaType.VIDEO &&
+                          (!item.status || item.status === 'READY')
+                            ? t('video.play')
+                            : t('gallery.openItem', {
+                                index: index + 1,
+                                count: items.length,
+                              }))
+                    }
+                    aria-description={
+                      item.mediaType === MediaType.VIDEO
+                        ? t('gallery.openItem', {
                             index: index + 1,
                             count: items.length,
                           })
+                        : undefined
                     }
                   >
                     {renderCarouselMedia(item)}
@@ -893,8 +915,10 @@ export function MediaGallery({
                 )
               : null}
           </div>
-          {!directSensitiveToggle &&
-          items[carouselIndex]?.isSensitive === true ? (
+          {items[carouselIndex]?.isSensitive === true &&
+          (!directSensitiveToggle ||
+            (items[carouselIndex]?.mediaType === MediaType.VIDEO &&
+              reveals.isRevealed(items[carouselIndex]!.id))) ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}

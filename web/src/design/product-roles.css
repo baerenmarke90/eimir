@@ -28,6 +28,9 @@
   --tracking-navigation-label: 0.02em;
   --font-action-label: 600 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-action-label: 0em;
+  --font-add-action-label:
+    600 0.875rem / 1.45 "Instrument Sans", "Arial", sans-serif;
+  --tracking-add-action-label: 0em;
   --media-overlay-surface: #140c1299;
   --media-overlay-surface-hover: #140c12b8;
   --media-overlay-edge: #ffffff59;
@@ -48,6 +51,7 @@
   --touch-target-web: 44px;
   --touch-target-comfortable: 48px;
   --icon-size-standard: 24px;
+  --add-action-icon: 20px;
   --media-action-icon: 20px;
   --media-action-inset: 8px;
   --space-content-group: 0.75rem;

@@ -18,6 +18,7 @@ import { Configuration, createSessionFetch } from './apiConfiguration';
 import { createBinaryUploadRequest } from './binaryUploadTransport';
 import { AttachmentsApi, StoryApi } from './mediaApis';
 import { loadAuthorizedStoryImage } from './storyMediaLoader';
+import { advanceUploadProgress } from './uploadProgress';
 
 export const UPLOAD_STALL_TIMEOUT_MS = 90_000;
 
@@ -164,6 +165,7 @@ export async function uploadAttachmentBytesWithProgress(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
+  let reportedProgress = 0;
   const xhrTransport: typeof fetch = (url, init) =>
     new Promise<Response>((resolve, reject) => {
       const request = createBinaryUploadRequest();
@@ -195,15 +197,18 @@ export async function uploadAttachmentBytesWithProgress(
       });
 
       request.upload.onprogress = (event) => {
+        if (finished) return;
         if (event.loaded > lastLoaded) {
           lastLoaded = event.loaded;
           armStallTimer();
         }
         if (!event.lengthComputable || event.total <= 0) return;
-        const progress = Math.min(
-          100,
-          Math.round((event.loaded / event.total) * 100),
+        const progress = advanceUploadProgress(
+          reportedProgress,
+          Math.min(99, Math.floor((event.loaded / event.total) * 100)),
         );
+        if (progress === reportedProgress) return;
+        reportedProgress = progress;
         options.onProgress?.(progress);
       };
       request.onload = () => {

@@ -274,6 +274,161 @@ async function setup(
   return { state, unknown };
 }
 
+// Exercise the production bridge observer without a native worker or device upload.
+async function observeNativeTransfer(page: Page) {
+  const state = { phase: 'uploading', progress: 17, complete: false, reads: 0 };
+  await page.exposeFunction('readVideoTransferFixture', () => {
+    state.reads++;
+    return {
+      items: state.complete
+        ? []
+        : [
+            {
+              attachmentId: VIDEO,
+              phase: state.phase,
+              progress: state.progress,
+            },
+          ],
+    };
+  });
+  await page.addInitScript(() => {
+    const host = window as unknown as {
+      CapacitorCustomPlatform: unknown;
+      Capacitor: unknown;
+      readVideoTransferFixture: () => Promise<unknown>;
+    };
+    host.CapacitorCustomPlatform = { name: 'android' };
+    host.Capacitor = {
+      PluginHeaders: [
+        {
+          name: 'App',
+          methods: [
+            { name: 'addListener', rtype: 'callback' },
+            ...['removeListener', 'getLaunchUrl'].map((name) => ({
+              name,
+              rtype: 'promise',
+            })),
+          ],
+        },
+        {
+          name: 'NativeSessionStorage',
+          methods: ['read', 'write', 'clear'].map((name) => ({
+            name,
+            rtype: 'promise',
+          })),
+        },
+        {
+          name: 'BackgroundMediaUploads',
+          methods: [
+            { name: 'addListener', rtype: 'callback' },
+            ...['list', 'removeListener'].map((name) => ({
+              name,
+              rtype: 'promise',
+            })),
+          ],
+        },
+      ],
+      nativeCallback: () => 'fixture-listener',
+      nativePromise: async (
+        plugin: string,
+        method: string,
+        options: { value?: string } = {},
+      ) => {
+        if (plugin === 'NativeSessionStorage') {
+          if (method === 'write')
+            sessionStorage.setItem(
+              'native-video-test-session',
+              options.value ?? '',
+            );
+          if (method === 'clear')
+            sessionStorage.removeItem('native-video-test-session');
+          return {
+            value:
+              sessionStorage.getItem('native-video-test-session') ?? undefined,
+          };
+        }
+        if (plugin === 'BackgroundMediaUploads' && method === 'list')
+          return host.readVideoTransferFixture();
+        return {};
+      },
+    };
+  });
+  return state;
+}
+
+for (const [width, colorScheme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [1280, 'light'],
+] as const) {
+  test(`upload observation preserves progress and page geometry ${width} ${colorScheme} (#1719)`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const transfer = await observeNativeTransfer(page);
+    const { state, unknown } = await setup(page, { retained: true });
+    state.videoStatus = 'PENDING';
+    await signIn(page);
+    await page.goto(`/story/memories/${MEMORY}`);
+    const placeholder = page.locator('.media-processing-state');
+    const progress = placeholder.getByRole('progressbar');
+    await expect(progress).toHaveAttribute('value', '17');
+    const geometry = () =>
+      page.evaluate(() => {
+        const gallery = document
+          .querySelector('.media-gallery-carousel-viewport')
+          ?.getBoundingClientRect();
+        const body = document
+          .querySelector('.memory-detail-body')
+          ?.getBoundingClientRect();
+        return {
+          scroll: window.scrollY,
+          top: gallery?.top,
+          height: gallery?.height,
+          body: body?.top,
+        };
+      });
+    const initial = await geometry();
+    transfer.progress = 63;
+    await expect(progress).toHaveAttribute('value', '63');
+    const reads = transfer.reads;
+    transfer.progress = 28;
+    await expect.poll(() => transfer.reads).toBeGreaterThan(reads);
+    await expect(progress).toHaveAttribute('value', '63');
+    expect(await geometry()).toEqual(initial);
+    await page.screenshot({
+      path: info.outputPath(`shell-upload-stable-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    transfer.progress = 100;
+    transfer.phase = 'processing';
+    await expect(placeholder).toContainText(videoCopy.processing);
+    await expect(progress).not.toHaveAttribute('value');
+    expect(await geometry()).toEqual(initial);
+    transfer.complete = true;
+    const processingReads = transfer.reads;
+    await expect.poll(() => transfer.reads).toBeGreaterThan(processingReads);
+    await expect(placeholder).toContainText(videoCopy.processing);
+    expect(await geometry()).toEqual(initial);
+    state.videoStatus = 'READY';
+    await expect(placeholder).toHaveCount(0);
+    await expect(page.locator('.is-active .video-play-mark')).toHaveCount(1);
+    await expect(page.locator('.media-gallery-expand')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: videoCopy.play, exact: true }),
+    ).toHaveCount(1);
+    expect(await geometry()).toEqual(initial);
+    await page.screenshot({
+      path: info.outputPath(
+        `shell-video-single-play-${width}-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+    expect(unknown).toEqual([]);
+  });
+}
+
 test('retained sensitive video controls stay readable and separate at 320px with large text', async ({
   page,
 }, info) => {

@@ -320,15 +320,6 @@ export function MemoryPhotoGallery({
                 revealed={revealed}
               />
             </>
-          ) : revealed ? (
-            <button
-              type="button"
-              className="media-gallery-expand media-overlay"
-              aria-label={t('video.play')}
-              onClick={openFullScreen}
-            >
-              <span aria-hidden="true">▶</span>
-            </button>
           ) : null
         }
         renderPhotoReactions={(item) => {

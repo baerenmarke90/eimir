@@ -106,3 +106,43 @@ it('does not fetch a sensitive poster or grant before explicit reveal', async ()
   await waitFor(() => expect(loadPlayback).toHaveBeenCalledTimes(1));
   expect(loadPoster).toHaveBeenCalledTimes(1);
 });
+
+it('plays a revealed sensitive video from its single preview action and can conceal it again', async () => {
+  const loadPlayback = vi.fn(async () => ({
+    url: '/playback/video',
+    expiresAt: new Date(Date.now() + 60000),
+  }));
+  render(
+    <MediaGallery
+      items={[
+        {
+          id: 'private-video',
+          mediaType: 'VIDEO',
+          status: 'READY',
+          isSensitive: true,
+          hasThumbnail: false,
+        },
+      ]}
+      loadMedia={vi.fn()}
+      loadPlayback={loadPlayback}
+      directSensitiveToggle
+    />,
+  );
+  expect(loadPlayback).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('sensitiveMedia.show') }),
+  );
+  const play = screen.getByRole('button', { name: i18n.t('video.play') });
+  expect(play.getAttribute('aria-description')).toBe(
+    i18n.t('gallery.openItem', { index: 1, count: 1 }),
+  );
+  fireEvent.click(play);
+  await waitFor(() => expect(loadPlayback).toHaveBeenCalledTimes(1));
+  fireEvent.keyDown(window, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('video.hide') }));
+  expect(
+    screen.queryByRole('button', { name: i18n.t('video.play') }),
+  ).toBeNull();
+  expect(loadPlayback).toHaveBeenCalledTimes(1);
+});

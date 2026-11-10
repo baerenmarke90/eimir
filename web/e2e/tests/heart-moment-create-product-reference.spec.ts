@@ -517,6 +517,58 @@ async function openVisibilityJourney(page: Page, failSecond = true) {
   return { unexpectedRequests, patches, releaseFirst };
 }
 
+for (const exit of ['button', 'browser'] as const) {
+  test(`HeartMoment discard returns to its captured origin after ${exit} Back (#1719)`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const unexpected = await installApiMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+    await page.locator('.quick-create-trigger:visible').click();
+    await page
+      .getByRole('link', {
+        name: navigation.quickCreateHeartMoment,
+        exact: true,
+      })
+      .click();
+    const thought = page.locator('#heart-moment-text');
+    await thought.fill('A thought worth keeping');
+    const close = () =>
+      exit === 'browser'
+        ? page.goBack()
+        : page
+            .getByRole('button', { name: taskBoundary.back, exact: true })
+            .click();
+    await close();
+    const confirmation = page.getByRole('dialog', {
+      name: taskBoundary.discardTitle,
+    });
+    await expect(confirmation).toBeVisible();
+    await confirmation
+      .getByRole('button', { name: taskBoundary.keepEditing, exact: true })
+      .click();
+    await expect(confirmation).toHaveCount(0);
+    await expect(thought).toHaveValue('A thought worth keeping');
+    await close();
+    await page.screenshot({
+      path: info.outputPath(`shell-heart-discard-${exit}.png`),
+      fullPage: true,
+    });
+    await confirmation
+      .getByRole('button', { name: taskBoundary.discard, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await expect(page.locator('.quick-create-trigger:visible')).toBeFocused();
+    await page.screenshot({
+      path: info.outputPath(`shell-heart-origin-${exit}.png`),
+      fullPage: true,
+    });
+    expect(unexpected).toEqual([]);
+  });
+}
+
 for (const viewport of [
   { width: 390, theme: 'light', large: false },
   { width: 430, theme: 'dark', large: false },

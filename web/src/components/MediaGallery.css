@@ -375,6 +375,16 @@
   inline-size: min(12rem, 100%);
   accent-color: var(--color-brand-strong);
 }
+.media-processing-progress {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  max-inline-size: 100%;
+}
+.media-processing-percent {
+  min-block-size: 1lh;
+  font-variant-numeric: tabular-nums;
+}
 .video-transfer-feedback {
   display: grid;
   gap: var(--space-2);

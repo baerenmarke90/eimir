@@ -194,3 +194,19 @@
   background: var(--color-action-emphasis);
   color: var(--color-on-action-emphasis);
 }
+
+.page-plan-composer #plan-edit-section.planning-subsection {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-plan-composer .plan-collection-chips > li {
+  flex: 0 1 auto;
+  max-inline-size: 100%;
+}
+.page-plan-composer .plan-collection-row > .composer-chip {
+  flex: 0 1 auto;
+}

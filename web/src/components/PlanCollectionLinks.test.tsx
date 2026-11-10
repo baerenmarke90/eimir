@@ -202,7 +202,7 @@ describe('Plan-linked canonical lists', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() =>
       expect(trigger.textContent).toContain(
-        i18n.t('m5s3.collection.progress', { count: 2, completed: 1 }),
+        i18n.t('composer.listProgress', { count: 2, completed: 1 }),
       ),
     );
   });

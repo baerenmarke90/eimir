@@ -30,6 +30,7 @@
   --font-composer-context:
     400 0.9375rem / 1.4 "Instrument Sans", "Arial", sans-serif;
   --tracking-composer-context: 0em;
+  --composer-detail-media-height: 15rem;
   --composer-media-height: 13.375rem;
   --composer-media-compact-height: 11rem;
   --composer-thumbnail-size: 3.5rem;

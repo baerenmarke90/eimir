@@ -115,6 +115,7 @@ export function MediaGallery({
   renderCaption,
   dismissWithHistory = true,
   directSensitiveToggle = false,
+  countStyle = 'fraction',
   onPhotoLongPress,
   renderPhotoActions,
   renderPhotoReactions,
@@ -140,6 +141,7 @@ export function MediaGallery({
   ) => ReactNode;
   dismissWithHistory?: boolean;
   directSensitiveToggle?: boolean;
+  countStyle?: 'fraction' | 'label';
   onPhotoLongPress?: (id: string) => void;
   renderPhotoActions?: (
     item: GalleryMediaItem,
@@ -517,10 +519,10 @@ export function MediaGallery({
   }
 
   function changeCarousel(delta: number) {
-    if (items.length < 2) return;
+    if (items.length < 2 || delta === 0) return;
 
     const direction = delta < 0 ? -1 : 1;
-    const nextIndex = (carouselIndex + direction + items.length) % items.length;
+    const nextIndex = (carouselIndex + delta + items.length) % items.length;
     carouselIndexRef.current = nextIndex;
     carouselScrollTarget.current = nextIndex;
     const track = carouselTrack.current;
@@ -876,22 +878,11 @@ export function MediaGallery({
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
-                    aria-pressed={
-                      directSensitiveToggle &&
-                      item.isSensitive === true &&
-                      item.mediaType !== MediaType.VIDEO
-                        ? reveals.isRevealed(item.id)
-                        : undefined
-                    }
                     aria-label={
                       directSensitiveToggle &&
                       item.isSensitive === true &&
                       !reveals.isRevealed(item.id)
-                        ? t(
-                            reveals.isRevealed(item.id)
-                              ? 'sensitiveMedia.hide'
-                              : 'sensitiveMedia.show',
-                          )
+                        ? t('sensitiveMedia.show')
                         : (item.isSensitive !== false &&
                           !reveals.isRevealed(item.id)
                             ? t('sensitiveMedia.label') + '. '
@@ -933,7 +924,12 @@ export function MediaGallery({
 
             {items.length === 1 ? (
               <span className="media-gallery-carousel-counter media-overlay">
-                {t('gallery.counter', { index: 1, count: 1 })}
+                {t(
+                  countStyle === 'label'
+                    ? 'gallery.counter'
+                    : 'gallery.fraction',
+                  { index: 1, count: 1 },
+                )}
               </span>
             ) : null}
             {items.length > 1 ? (
@@ -942,10 +938,15 @@ export function MediaGallery({
                   className="media-gallery-carousel-counter media-overlay"
                   aria-live="polite"
                 >
-                  {t('gallery.counter', {
-                    index: carouselIndex + 1,
-                    count: items.length,
-                  })}
+                  {t(
+                    countStyle === 'label'
+                      ? 'gallery.counter'
+                      : 'gallery.fraction',
+                    {
+                      index: carouselIndex + 1,
+                      count: items.length,
+                    },
+                  )}
                 </span>
                 <button
                   type="button"
@@ -986,7 +987,9 @@ export function MediaGallery({
                 )
               : null}
           </div>
-          {items[carouselIndex]?.isSensitive === true ? (
+          {items[carouselIndex]?.isSensitive === true &&
+          (!directSensitiveToggle ||
+            reveals.isRevealed(items[carouselIndex]!.id)) ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}
@@ -1002,7 +1005,7 @@ export function MediaGallery({
                 <button
                   key={item.id}
                   type="button"
-                  aria-label={t('gallery.openItem', {
+                  aria-label={t('gallery.selectItem', {
                     index: index + 1,
                     count: items.length,
                   })}

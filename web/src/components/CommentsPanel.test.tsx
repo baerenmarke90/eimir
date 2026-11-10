@@ -88,6 +88,30 @@ function renderInteractivePanel(
 }
 
 describe('CommentsPanel', () => {
+  it('discloses the detail composer without activating the keyboard on read', async () => {
+    const client = queryClientWithComments([]);
+    render(
+      <QueryClientProvider client={client}>
+        <CommentsPanel
+          commentsApi={{} as CommentsApi}
+          spaceId="space-1"
+          parentKind="memory"
+          parentId="memory-1"
+          currentAccountId="me"
+          canComment
+          offline={false}
+          inlineComposer
+        />
+      </QueryClientProvider>,
+    );
+    const input = await screen.findByRole('textbox', {
+      name: storyProducts.comments.inputLabel,
+    });
+    expect(document.activeElement).not.toBe(input);
+    expect(
+      screen.queryByRole('button', { name: storyProducts.comments.cancel }),
+    ).toBeNull();
+  });
   it('offers editing only on the caller’s own comment', () => {
     const html = renderPanel([
       comment({ id: 'own', authorId: 'me', body: 'Mine to fix' }),

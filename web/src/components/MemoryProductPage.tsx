@@ -1337,7 +1337,11 @@ export function MemoryProductPage({
 
   return (
     <StoryDetailPageShell
-      before={!memory.experienceKind ? returnControl : undefined}
+      before={
+        !memory.experienceKind ? (
+          <TaskBackButton inline onClick={() => requestReturn(originKey)} />
+        ) : undefined
+      }
       title={
         !memory.experienceKind
           ? t('composer.diaryEntry')
@@ -1516,6 +1520,7 @@ export function MemoryProductPage({
         />
       ) : null}
       <CommentsPanel
+        inlineComposer={!memory.experienceKind}
         triggerContainer={commentHost}
         commentsApi={apis.comments}
         spaceId={spaceId}

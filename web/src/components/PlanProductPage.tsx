@@ -75,6 +75,7 @@ import {
   type PlanScheduleFieldsHandle,
 } from './PlanScheduleFields';
 import { PlanCollectionLinks } from './PlanCollectionLinks';
+import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PlanStoryLinks } from './PlanStoryLinks';
 import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
@@ -143,6 +144,7 @@ export function PlanProductPage({
   const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [completionTarget, setCompletionTarget] = useState<string | null>(null);
   const completionTrigger = useRef<HTMLButtonElement>(null);
+  const [completionSheetPresent, setCompletionSheetPresent] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanDetail | null>(null);
   const [editDirty, setEditDirty] = useState(false);
   const [photosChanged, setPhotosChanged] = useState(false);
@@ -941,6 +943,7 @@ export function PlanProductPage({
         ) : null}
         <div hidden={isEditing} className="plan-discussion">
           <CommentsPanel
+            inlineComposer
             key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
             commentsApi={apis.comments ?? mediaApis.comments}
             linkPreviewsApi={linkPreviewsApi}
@@ -953,6 +956,19 @@ export function PlanProductPage({
             labelledComposer
           />
         </div>
+
+        {!isEditing && plan.status === 'COMPLETED' && completion.isConfirmed ? (
+          <PlanStoryContinuation
+            accountId={accountId}
+            apiBaseUrl={apiBaseUrl}
+            apis={apis}
+            spaceId={spaceId}
+            plan={plan}
+            focusOnMount={completion.isConfirmed && !completionSheetPresent}
+            justCompleted={completion.isConfirmed}
+            sharedAchievementEnabled={completion.hasSharedAchievement}
+          />
+        ) : null}
 
         {plan.status === 'COMPLETED' &&
         !completion.isConfirmed &&
@@ -1001,6 +1017,7 @@ export function PlanProductPage({
         ) : null}
         <ShortTaskSheet
           open={completionOpen}
+          onPresenceChange={setCompletionSheetPresent}
           title={t('m5s3.plan.completeDateTitle')}
           className="planen-completion-sheet"
           restoreFocusRef={completionTrigger}

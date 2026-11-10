@@ -166,15 +166,17 @@ export function ComposerDateContext({
   let dateSummary = summary(date);
   if (date && through) {
     try {
-      dateSummary = new Intl.DateTimeFormat(resolvedLocale(), {
+      const start = dateInputValueToApiDate(date);
+      const end = dateInputValueToApiDate(through);
+      const first = new Intl.DateTimeFormat(resolvedLocale(), {
         day: 'numeric',
         month: 'long',
-        year: 'numeric',
+        ...(start.getUTCFullYear() === end.getUTCFullYear()
+          ? {}
+          : { year: 'numeric' }),
         timeZone: 'UTC',
-      }).formatRange(
-        dateInputValueToApiDate(date),
-        dateInputValueToApiDate(through),
-      );
+      }).format(start);
+      dateSummary = `${first} – ${summary(through)}`;
     } catch {
       dateSummary = `${summary(date)} – ${summary(through)}`;
     }

@@ -195,7 +195,7 @@ export function PlanCollectionLinks({
                 <span className="content-overview-copy">
                   <strong>{list.title}</strong>
                   <span className="muted">
-                    {t('m5s3.collection.progress', {
+                    {t('composer.listProgress', {
                       count: list.items.length,
                       completed: list.items.filter((item) => item.completed)
                         .length,

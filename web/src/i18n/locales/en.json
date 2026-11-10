@@ -6,6 +6,8 @@
     "linkRecovery": "Your entry is saved. Its links are still missing. You can retry them without creating another entry.",
     "planSavedLinkFailed": "Your plan is saved. The links could not be applied yet. Please try again.",
     "tools": "Enrich entry",
+    "addOwnTag": "Add your own tag",
+    "yourTags": "Your tags",
     "place": "Place",
     "tag": "Tag",
     "photo": "Photo",
@@ -22,7 +24,9 @@
     "editPlace": "Place: {{name}}, edit",
     "dropPhotos": "Drop photos here",
     "tagsTitle": "What fits this moment?",
-    "tagsHint": "Optional · Choose what will remind you of this moment later."
+    "tagsHint": "Optional · Choose what will remind you of this moment later.",
+    "listProgress": "{{completed}} of {{count}} done",
+    "sharedListProgress": "Shared list · {{completed}} of {{count}} done"
   },
   "common": {
     "cancel": "Cancel",
@@ -2328,7 +2332,7 @@
     "actionButton": "Actions",
     "edit": "View place",
     "maps": "Open in Google Maps (external)",
-    "mapAddress": "{{address}} – open in Google Maps (external)",
+    "mapAddress": "{{address}} – view on your map",
     "viewMap": "View on map",
     "locationFallback": "Photo location",
     "remove": "Remove link",
@@ -4004,6 +4008,7 @@
     }
   },
   "photoReactions": {
+    "react": "React",
     "open": "React to this photo",
     "choose": "Choose reaction",
     "summary": "Reactions to this photo",
@@ -4059,6 +4064,8 @@
     "imageAlt": "Photo for this entry",
     "openItem": "Open media item {{index}} of {{count}}",
     "counter": "{{index}} of {{count}}",
+    "fraction": "{{index}} / {{count}}",
+    "selectItem": "Show media {{index}} of {{count}}",
     "close": "Close",
     "done": "Done",
     "previous": "Previous media",

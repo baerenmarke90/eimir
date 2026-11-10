@@ -61,12 +61,20 @@
 }
 .page-composer .composer-place-context {
   display: inline-flex;
+  flex: 0 1 auto;
+  max-inline-size: 100%;
+  font: var(--font-composer-context);
   align-items: center;
   gap: var(--space-2);
   color: var(--composer-accent);
   min-block-size: var(--touch-target-web);
   background: transparent;
   padding: 0;
+}
+.page-composer .composer-place-context > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
 }
 .composer-tool-row {
   margin: 0;
@@ -133,6 +141,9 @@ button.composer-chip {
   white-space: normal;
   overflow-wrap: anywhere;
   animation: composer-chip-enter var(--duration-transition) var(--easing-enter);
+}
+.composer-chip > span {
+  min-inline-size: 0;
 }
 .composer-chip .eimir-icon {
   flex: none;
@@ -253,7 +264,8 @@ button.composer-chip {
   block-size: var(--touch-target-comfortable);
 }
 .page-composer .composer-diary-intake .media-intake-device .media-intake-copy {
-  flex: none;
+  flex: 0 1 auto;
+  max-inline-size: 100%;
 }
 .page-composer .composer-diary-intake .photo-source-trigger {
   background: transparent;
@@ -362,4 +374,118 @@ button.composer-chip {
 }
 .page-composer .composer-diary-intake .media-intake-device .media-intake-label {
   color: var(--color-text);
+}
+
+.page-composer .composer-photo-draft .media-gallery-position {
+  display: none;
+}
+.composer-new-place,
+.page-composer .composer-link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: start;
+}
+.composer-new-place > .eimir-icon,
+.page-composer .composer-link-action > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.composer-new-place-sheet .short-task-sheet-body {
+  display: grid;
+  gap: var(--space-3);
+}
+.composer-new-place-sheet .short-task-sheet-body > label {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.composer-new-place-sheet .short-task-sheet-body > button {
+  inline-size: 100%;
+  border-radius: var(--radius-pill);
+}
+.composer-new-place-sheet .place-map-open {
+  min-block-size: calc(var(--touch-target-web) * 1.5);
+  border-radius: var(--radius-medium);
+}
+.product-shell:has(.page-composer) :is(.product-topbar, .mobile-bottom-shell) {
+  display: none;
+}
+.product-shell:has(.page-composer) .product-main {
+  padding-block-end: 0;
+}
+
+.page-composer :is(input, textarea):focus {
+  scroll-margin-block-end: calc(
+    var(--composer-tools-height, 6rem) +
+    var(--space-4)
+  );
+}
+.page-composer
+  .attachment-draft-picker[data-presentation="tools"][data-has-media="false"],
+.page-composer
+  .attachment-draft-picker[data-presentation="tools"][data-has-media="false"]
+  :is(.media-action-group, .photo-source-actions),
+.page-composer
+  .media-drop-zone:has(
+    > .attachment-draft-picker[data-presentation="tools"][data-has-media="false"]
+  ) {
+  display: contents;
+}
+
+.composer-tag-sheet .context-tag-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
+  background: var(--color-background);
+  border-radius: var(--radius-medium);
+}
+.composer-tag-sheet .context-tag-entry > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  color: var(--color-text-secondary);
+}
+.composer-tag-sheet .context-tag-entry > input {
+  flex: 1;
+  min-inline-size: 0;
+  background: transparent;
+  padding-inline: 0;
+}
+.composer-tag-sheet .context-tag-entry > .add-action {
+  flex: 0 1 auto;
+  background: transparent;
+  padding-inline: var(--space-2);
+}
+.composer-tag-sheet .context-tag-entry > .add-action .add-action-icon {
+  display: none;
+}
+.composer-tag-sheet .memory-tag-choice {
+  border: var(--border-divider-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font: var(--font-action-label);
+}
+.composer-tag-sheet .memory-tag-choice:has(input:checked) {
+  border-color: transparent;
+  background: var(--color-action-emphasis);
+  color: var(--color-on-action-emphasis);
+}
+.composer-tag-sheet .context-tag-suggestions {
+  margin-block-start: var(--space-4);
+}
+.composer-tag-sheet .context-tag-suggestions p {
+  font: var(--font-supporting-copy);
+  margin-block: var(--space-4) var(--space-2);
+}
+
+.page-composer .composer-enrichment:empty {
+  display: none;
+}
+
+.page-composer.quiet-composer .composer-header.page-heading h1 {
+  font: var(--font-action-label);
+  letter-spacing: normal;
 }

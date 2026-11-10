@@ -122,12 +122,13 @@ export function PhotoDraftGallery({
     >
       {hasPreview ? (
         <div className="photo-draft-stage">
-          {addAction ? (
+          {addAction && selected.key === coverKey ? (
             <span className="photo-draft-cover-label media-overlay">
               {t('experiences.cover')}
             </span>
           ) : null}
           <MediaGallery
+            countStyle="label"
             resourceScopeKey={JSON.stringify([
               resourceScopeKey,
               items
@@ -216,7 +217,10 @@ export function PhotoDraftGallery({
             className="tertiary"
             disabled={disabled}
             aria-pressed={selected.key === coverKey}
-            onClick={() => onSelectCover(selected.key)}
+            onClick={() => {
+              onSelectCover(selected.key);
+              if (addAction) setActionsOpen(false);
+            }}
           >
             {t(
               selected.key === coverKey
@@ -244,6 +248,15 @@ export function PhotoDraftGallery({
             onClick={() => onSelectCover(null)}
           >
             {t('experiences.automaticCover')}
+          </button>
+        ) : null}
+        {addAction && actionsOpen ? (
+          <button
+            type="button"
+            className="tertiary"
+            onClick={() => setActionsOpen(false)}
+          >
+            {t('experiences.finish')}
           </button>
         ) : null}
       </div>
@@ -397,7 +410,10 @@ export function PhotoDraftGallery({
                     disabled={disabled}
                     aria-label={t('experiences.chooseCover')}
                     aria-pressed={item.key === coverKey}
-                    onClick={() => onSelectCover(item.key)}
+                    onClick={() => {
+                      onSelectCover(item.key);
+                      if (addAction) setActionsOpen(false);
+                    }}
                   >
                     <EimirIcon
                       name={item.key === coverKey ? 'check' : 'square'}

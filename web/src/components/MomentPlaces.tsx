@@ -309,7 +309,7 @@ export function MomentPlaces({
                     className="moment-place-summary"
                     to={destination}
                     onNavigate={onNavigate}
-                    ariaLabel={t('photoPlaces.mapAddress', { address: name })}
+                    ariaLabel={name}
                   >
                     <EimirIcon name="orte" />
                     <span>{name}</span>

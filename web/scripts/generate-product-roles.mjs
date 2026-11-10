@@ -75,6 +75,7 @@ typography('composer-lead', 'composerLead', 'display');
 typography('composer-prose', 'composerProse');
 typography('composer-context', 'composerContext');
 for (const [name, source] of Object.entries({
+  'composer-detail-media-height': 'detailMediaHeight',
   'composer-media-height': 'mediaHeight',
   'composer-media-compact-height': 'mediaCompactHeight',
   'composer-thumbnail-size': 'thumbnailSize',

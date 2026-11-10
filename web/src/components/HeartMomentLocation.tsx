@@ -173,7 +173,7 @@ export function HeartMomentLocationSummary({
         <MomentMapLink
           className="moment-place-summary"
           to={map}
-          ariaLabel={t('photoPlaces.mapAddress', { address: location.name })}
+          ariaLabel={location.name}
         >
           {content}
         </MomentMapLink>

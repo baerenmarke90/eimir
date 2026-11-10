@@ -792,10 +792,15 @@ function CollectionProductDetail({
 
         <div className="shared-list-toolbar">
           <p>
-            {t('m5s3.collection.progress', {
-              count: items.length,
-              completed: items.filter((item) => item.completed).length,
-            })}
+            {t(
+              embedded
+                ? 'composer.sharedListProgress'
+                : 'm5s3.collection.progress',
+              {
+                count: items.length,
+                completed: items.filter((item) => item.completed).length,
+              },
+            )}
           </p>
           {!embedded &&
           collection.capabilities.canEdit &&

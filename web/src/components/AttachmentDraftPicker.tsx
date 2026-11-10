@@ -114,7 +114,11 @@ export function AttachmentDraftPicker({
         attachments.addFiles(files);
       }}
     >
-      <div className="field-group attachment-draft-picker">
+      <div
+        className="field-group attachment-draft-picker"
+        data-presentation={presentation}
+        data-has-media={populated}
+      >
         <MediaActionGroup unframed>
           {typeof gallery === 'function' ? gallery(addAction) : gallery}
           {showItems && attachments.items.length > 0 ? (
@@ -180,9 +184,7 @@ export function AttachmentDraftPicker({
                 : undefined
             }
           >
-            {presentation === 'diary' &&
-            !attachments.items.length &&
-            !gallery ? (
+            {presentation === 'diary' && !populated ? (
               <DeviceMediaPicker
                 id={id}
                 multiple={multiple}
@@ -201,9 +203,7 @@ export function AttachmentDraftPicker({
                     ? (open) => {
                         openSource.current = open;
                         if (mediaTrigger) return mediaTrigger(open);
-                        return presentation === 'diary' &&
-                          !attachments.items.length &&
-                          !gallery ? (
+                        return presentation === 'diary' && !populated ? (
                           <MediaIntakeButton
                             label={t('photoSources.more')}
                             icon="photo-library"
@@ -235,7 +235,7 @@ export function AttachmentDraftPicker({
               />
             ) : (
               <DeviceMediaPicker
-                id={id}
+                id={presentation === 'default' ? id : `${id}-fallback`}
                 multiple={multiple}
                 disabled={disabled}
                 context={videoContext}

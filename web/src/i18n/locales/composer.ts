@@ -1,4 +1,6 @@
 const composer = {
+  addOwnTag: 'Eigenen Tag hinzufügen',
+  yourTags: 'Eure Tags',
   diaryEntry: 'Tagebucheintrag',
   saved: 'Gespeichert',
   emptyContent: 'Füge ein Foto, einen Titel oder deine Worte hinzu.',
@@ -12,6 +14,8 @@ const composer = {
   photo: 'Foto',
   voice: 'Sprache',
   list: 'Liste',
+  listProgress: '{{completed}} von {{count}} erledigt',
+  sharedListProgress: 'Gemeinsame Liste · {{completed}} von {{count}} erledigt',
   addPhotos: 'Fotos hinzufügen',
   addMedia: 'Fotos oder Videos hinzufügen',
   chooseOrDrag: 'Vom Gerät auswählen oder hierher ziehen',

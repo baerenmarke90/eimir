@@ -1244,7 +1244,7 @@ export function MemoryCreatePage({
                 />
               ) : null}
             </div>
-            {!experienceKind ? (
+            {!experienceKind && (hasUserContent || planningLinks.length > 0) ? (
               <StoryPlanningDraftLinks
                 apiBaseUrl={apiBaseUrl}
                 accessToken={accessToken}

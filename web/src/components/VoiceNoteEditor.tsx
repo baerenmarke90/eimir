@@ -151,7 +151,12 @@ export function VoiceNoteEditor({
     />
   );
   return (
-    <div className="voice-editor">
+    <div
+      className="voice-editor"
+      data-empty={
+        !voice.hasAudio && !voice.hasPending && !voice.hasFailed && !error
+      }
+    >
       {presentation === 'composer' ? (
         <>
           {voice.hasAudio ? (

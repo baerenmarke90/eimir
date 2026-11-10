@@ -60,6 +60,47 @@ it('loads only the visible carousel image and neighbours, moving and wrapping th
   ).toBe('blob:5');
 });
 
+it('selects the exact photo from position dots and leaves the active dot unchanged', async () => {
+  vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+  const settled = vi.fn();
+  const load = vi.fn(async (id: string) => `blob:${id}`);
+  const view = render(
+    <MediaGallery
+      items={images.slice(0, 3)}
+      loadMedia={load}
+      onSettledMediaChange={settled}
+    />,
+  );
+  await waitFor(() => expect(load).toHaveBeenCalledTimes(3));
+  const dot = (index: number) =>
+    screen.getByRole('button', {
+      name: labels.selectItem
+        .replace('{{index}}', String(index))
+        .replace('{{count}}', '3'),
+    });
+  const activePhoto = () =>
+    view.container
+      .querySelector('.media-gallery-carousel-slide.is-active')
+      ?.getAttribute('data-carousel-index');
+  expect(activePhoto()).toBe('0');
+  expect(dot(1).getAttribute('aria-current')).toBe('true');
+
+  fireEvent.click(dot(3));
+  expect(activePhoto()).toBe('2');
+  expect(dot(3).getAttribute('aria-current')).toBe('true');
+  expect(settled.mock.calls).toEqual([['2']]);
+
+  fireEvent.click(dot(3));
+  expect(activePhoto()).toBe('2');
+  expect(dot(3).getAttribute('aria-current')).toBe('true');
+  expect(settled.mock.calls).toEqual([['2']]);
+
+  fireEvent.click(dot(1));
+  expect(activePhoto()).toBe('0');
+  expect(dot(1).getAttribute('aria-current')).toBe('true');
+  expect(settled.mock.calls).toEqual([['2'], ['0']]);
+});
+
 it('discards a previous scroll completion when an editor selects another photo', async () => {
   vi.useFakeTimers();
   vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });

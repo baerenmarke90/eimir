@@ -1,3 +1,4 @@
+import './PageComposerDetail.css';
 import {
   useIsMutating,
   useMutation,
@@ -253,7 +254,7 @@ export function HeartMomentProductPage({
     confirmedCreateIntent.current = null;
     setParentSaved(false);
     setPlanningTargets([]);
-  }, [apiBaseUrl, currentAccountId, spaceId, mode]);
+  }, [apiBaseUrl, currentAccountId, spaceId, mode, location.key]);
   const [editTags, setEditTags] = useState<string[]>([]);
   const [photoTool, setPhotoTool] = useState<HTMLSpanElement | null>(null);
   const [voiceTool, setVoiceTool] = useState<HTMLSpanElement | null>(null);
@@ -820,7 +821,6 @@ export function HeartMomentProductPage({
     isCloseBlocked:
       createMutation.isPending ||
       updateMutation.isPending ||
-      visibilityWrites > 0 ||
       placePending ||
       attachments.hasPending ||
       voice.hasPending,
@@ -920,9 +920,7 @@ export function HeartMomentProductPage({
                   form="heart-moment-create-form"
                   className="composer-submit"
                   data-saveable={Boolean(
-                    createText.trim() ||
-                      createTags.length ||
-                      combinedEntries.length,
+                    createText.trim() || combinedEntries.length,
                   )}
                   aria-label={
                     createMutation.isPending
@@ -1154,7 +1152,10 @@ export function HeartMomentProductPage({
                     onDraftChange={() => setFormDirty(true)}
                   />
                 </div>
-                {createVisibility === ContentVisibility.SHARED ? (
+                {createVisibility === ContentVisibility.SHARED &&
+                (createText.trim() ||
+                  combinedEntries.length > 0 ||
+                  planningTargets.length > 0) ? (
                   <StoryPlanningDraftLinks
                     apiBaseUrl={apiBaseUrl}
                     accessToken={accessToken}
@@ -1228,7 +1229,6 @@ export function HeartMomentProductPage({
               </TaskBackLink>
             }
             title={t('heartMomentProduct.editHeading')}
-            description={t('heartMomentProduct.editIntro')}
           />
           <UiState
             kind={offline ? 'offline' : 'permission'}
@@ -1296,6 +1296,7 @@ export function HeartMomentProductPage({
     return (
       <HeartEmotionSurface emotion={emotion} className="page-composer">
         <StoryEditorPageShell
+          pageComposer={false}
           quiet
           before={
             <TaskBackLink
@@ -1311,15 +1312,12 @@ export function HeartMomentProductPage({
             </TaskBackLink>
           }
           title={t('heartMomentProduct.editHeading')}
-          description={t('heartMomentProduct.editIntro')}
           headerAction={
             <button
               type="submit"
               form="heart-moment-edit-form"
               className="composer-submit"
-              data-saveable={Boolean(
-                editText.trim() || editTags.length || combinedEntries.length,
-              )}
+              data-saveable={Boolean(editText.trim() || combinedEntries.length)}
               aria-label={
                 updateMutation.isPending
                   ? t('heartMomentProduct.saving')
@@ -1370,7 +1368,7 @@ export function HeartMomentProductPage({
                     readOnly={heartMoment.authorId !== currentAccountId}
                     disabled={
                       updateMutation.isPending ||
-                      visibilityMutation.isPending ||
+                      visibilityWrites > 0 ||
                       deleteMutation.isBlocked
                     }
                     onChange={(visibility) => {
@@ -1851,6 +1849,7 @@ export function HeartMomentProductPage({
               </p>
             ) : shared ? (
               <CommentsPanel
+                inlineComposer
                 triggerContainer={commentHost}
                 commentsApi={apis.comments}
                 spaceId={spaceId}
@@ -2026,7 +2025,8 @@ function HeartVisibilityChoice({
                     )}
                     value={visibility}
                     checked={value === visibility}
-                    onChange={() => {
+                    onChange={(event) => {
+                      event.stopPropagation();
                       onChange(visibility);
                       setOpen(false);
                     }}

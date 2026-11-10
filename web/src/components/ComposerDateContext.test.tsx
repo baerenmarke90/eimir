@@ -116,7 +116,7 @@ describe('ComposerDateContext', () => {
     );
     expect(values.getAll('happenedOn')).toEqual(['2026-11-10']);
     expect(values.getAll('happenedUntil')).toEqual(['2026-11-12']);
-    expect(trigger.textContent).toContain('10. November 2026');
+    expect(trigger.textContent).toContain('10. November');
     expect(trigger.textContent).toContain('12. November 2026');
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });

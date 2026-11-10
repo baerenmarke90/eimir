@@ -147,6 +147,7 @@ interface CommentsPanelProps {
   offline: boolean;
   triggerContainer?: HTMLElement | null;
   labelledComposer?: boolean;
+  inlineComposer?: boolean;
   linkPreviewsApi?: LinkPreviewsApi;
 }
 
@@ -174,6 +175,7 @@ function CommentsPanelContent({
   offline,
   triggerContainer,
   labelledComposer = false,
+  inlineComposer = false,
   linkPreviewsApi,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
@@ -186,16 +188,17 @@ function CommentsPanelContent({
       commentActionRefs.current.get(previousEditingId.current)?.focus();
     previousEditingId.current = editingId;
   }, [editingId]);
-  const [composerOpen, setComposerOpen] = useState(false);
+  const [requestedComposerOpen, setComposerOpen] = useState(false);
+  const composerOpen = inlineComposer || requestedComposerOpen;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const wasComposerOpen = useRef(false);
   useEffect(() => {
-    if (composerOpen) inputRef.current?.focus();
+    if (composerOpen && !inlineComposer) inputRef.current?.focus();
     else if (wasComposerOpen.current)
       triggerRef.current?.focus({ preventScroll: true });
     wasComposerOpen.current = composerOpen;
-  }, [composerOpen]);
+  }, [composerOpen, inlineComposer]);
   const [commentDraft, setCommentDraft] = useState('');
   const commentDraftRef = useRef('');
   const commentDraftRevisionRef = useRef(0);
@@ -560,7 +563,7 @@ function CommentsPanelContent({
           onSubmit={submit}
         >
           <label
-            className="sr-only"
+            className={inlineComposer ? undefined : 'sr-only'}
             htmlFor={`${parentKind}-${parentId}-comment`}
           >
             {t('comments.inputLabel')}
@@ -586,6 +589,7 @@ function CommentsPanelContent({
             </button>
             <button
               type="button"
+              hidden={inlineComposer}
               className="tertiary"
               onClick={() => {
                 createMutation.reset();

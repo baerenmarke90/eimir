@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import composer from '../../src/i18n/locales/composer';
 import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
@@ -558,7 +559,7 @@ test('content and photo save opens the confirmed canonical Memory and returns to
     page.getByRole('heading', { name: TITLE, exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('status').filter({ hasText: taskBoundary.saved }),
+    page.getByRole('status').filter({ hasText: composer.saved }),
   ).toBeVisible();
   expect(api.createRequests).toBe(1);
   expect(api.bindRequests).toBe(0);
@@ -999,7 +1000,7 @@ test('confirmed create is still a success when a subsequent Timeline refresh fai
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   await expect(
-    page.getByRole('status').filter({ hasText: taskBoundary.saved }),
+    page.getByRole('status').filter({ hasText: composer.saved }),
   ).toBeVisible();
   expect(api.createRequests).toBe(1);
 });

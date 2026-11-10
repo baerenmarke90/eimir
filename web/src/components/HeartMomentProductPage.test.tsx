@@ -207,10 +207,10 @@ describe('Heart Moment create request identity', () => {
   it('sends an idempotency key with the submitted snapshot', async () => {
     const createHeartMoment = renderCreate();
     const user = userEvent.setup();
-    await user.type(
+    await user.click(
       screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
-      'A quiet, wonderful evening',
     );
+    await user.paste('A quiet, wonderful evening');
     await user.click(
       screen.getByRole('button', {
         name: storyProducts.heartMomentProduct.save,

@@ -1,5 +1,3 @@
-import { openComposerMediaSources } from '../support/mediaIntake';
-import { fulfillDefaultProductContext } from '../support/productContext';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -10,6 +8,9 @@ import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { openComposerMediaSources } from '../support/mediaIntake';
+import { openComposerPlace } from '../support/memoryDiary';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -632,7 +633,7 @@ for (const [width, theme] of [
       .click();
     await openComposerMediaSources(page);
     await page
-      .locator('#plan-photos')
+      .locator('#plan-photos-source')
       .setInputFiles(
         fileURLToPath(
           new URL(
@@ -641,6 +642,7 @@ for (const [width, theme] of [
           ),
         ),
       );
+    await openComposerPlace(page);
     await page.getByRole('button', { name: planningCopy.map.open }).click();
     const sheet = page.getByRole('dialog', { name: planningCopy.map.title });
     await expect(sheet).toBeVisible();
@@ -665,8 +667,11 @@ for (const [width, theme] of [
     await sheet.getByRole('button', { name: planningCopy.map.confirm }).click();
     await expect(sheet).toHaveCount(0);
     await expect(
-      page.getByLabel(planningCopy.common.place, { exact: true }),
+      page.locator('input[type="hidden"][name="placeId"]'),
     ).toHaveValue('map-place');
+    await expect(page.locator('.composer-place-context')).toContainText(
+      'Sankt Peter-Ording',
+    );
     await page.getByRole('switch', { name: copy.anticipation.show }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
     await captureScreenshot(

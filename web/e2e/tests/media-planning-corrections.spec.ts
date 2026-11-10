@@ -1,17 +1,19 @@
-import { expectMediaIntakeAction } from '../support/mediaIntake';
-import sources from '../../src/i18n/locales/photoSources';
-import taskSheets from '../../src/i18n/locales/taskSheets';
-import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
-import storyProducts from '../../src/i18n/locales/storyProducts';
-import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composerCopy from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import sources from '../../src/i18n/locales/photoSources';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtureCopy from '../fixtures/locales/de';
+import { expectLabeledComposerTool } from '../support/addAction';
+import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -333,7 +335,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   expect(state.planReads).toEqual(['', '20']);
   await page.goto(`/plan/plans/${plans[0].id}`);
   await expect(
-    page.getByRole('button', { name: m5s3.plan.linkWish }),
+    page.getByRole('button', { name: memoryProduct.planning.add }),
   ).toHaveCount(0);
   await page
     .getByRole('button', { name: m5s3.common.edit, exact: true })
@@ -341,7 +343,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   await page
     .getByRole('textbox', { name: m5s3.common.title, exact: true })
     .fill(copy.edit);
-  await page.getByRole('button', { name: m5s3.plan.linkWish }).click();
+  await page.getByRole('button', { name: memoryProduct.planning.add }).click();
   await page.getByRole('radio', { name: wishes[0].title, exact: true }).check();
   await captureScreenshot(
     page,
@@ -515,6 +517,7 @@ test.describe('free composer media preservation', () => {
       await selected
         .getByRole('button', { name: experiences.chooseCover })
         .click();
+      await tiles.nth(1).click();
       const privacy = page.locator('.photo-draft-stage-sensitive');
       const privacyGeometry = () =>
         privacy.evaluate((element) => {
@@ -695,18 +698,28 @@ test.describe('integrated soft media choices', () => {
           await page.evaluate(() => {
             document.documentElement.style.fontSize = '200%';
           });
-        const composer = page.locator('.composer-content');
+        const composer = page.locator('.page-composer');
         await expect(composer).toHaveCount(1);
-        const entry = composer.getByRole('button', {
-          name: sources.addMedia,
-          exact: true,
-        });
-        await expectMediaIntakeAction(entry, 'foto');
+        const diary = index < 2;
+        const entry = diary
+          ? composer.getByRole('button', { name: sources.more, exact: true })
+          : composer
+              .locator('.composer-tool-row')
+              .getByRole('button', { name: composerCopy.photo, exact: true });
+        if (diary) {
+          await expectMediaIntakeAction(
+            composer.locator('.media-intake-device'),
+            'foto',
+          );
+          await expect(entry).toBeVisible();
+          await expect(entry.locator('.media-intake-pro')).toHaveCount(1);
+        } else await expectLabeledComposerTool(entry, 'foto');
         await expect(composer.locator('.media-action-group')).toHaveCount(1);
+        await expect(composer.locator('.media-action-group-label')).toHaveCount(
+          0,
+        );
         await expect(
-          composer.locator(
-            '.media-action-group-label, .media-intake-description, .media-intake-pro',
-          ),
+          composer.getByText(de.memory.photoFormats, { exact: true }),
         ).toHaveCount(0);
         await expect(composer.locator('.media-action-group')).toHaveCSS(
           'background-color',
@@ -714,10 +727,10 @@ test.describe('integrated soft media choices', () => {
         );
         await expect(
           composer.getByRole('button', { name: sources.more, exact: true }),
-        ).toHaveCount(0);
+        ).toHaveCount(diary ? 1 : 0);
         for (const surface of [
           composer,
-          composer.locator('.composer-writing-surface'),
+          composer.locator('.composer-writing-surface, .page-composer-writing'),
           entry,
         ])
           await expect(surface).toHaveCSS('border-top-width', '0px');
@@ -737,7 +750,7 @@ test.describe('integrated soft media choices', () => {
         }
         await entry.press('Enter');
         const sheet = page.getByRole('dialog', {
-          name: sources.addMedia,
+          name: sources.title,
           exact: true,
         });
         await expect(sheet).toBeVisible();

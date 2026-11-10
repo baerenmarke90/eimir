@@ -35,7 +35,8 @@ surface, and changes the composition around them:
 
 ![Generated composer family reference](generated-composer-family-reference.png)
 
-The second board applies the same anatomy to HeartMoment (feeling-tinted page,
+The second board applies the same anatomy to HeartMoment (three feelings showing
+icons and the full-page tint in Light and Dark,
 selectable visibility, photo and voice in one compact intake) and Plan
 (intention as title, schedule as context line, place/List/tag chips). Memory edit
 and Plan edit use the same anatomy as their create screens.
@@ -80,8 +81,9 @@ couple-experience question flows are out of scope.
 - Writing: native labeled title and prose fields; no autofocus; tapping prose
   starts typing. Text-only entries collapse the media surface to the compact
   intake, never a photo-shaped gap.
-- HeartMoment: the selected feeling tints the page through the existing emotion
-  surface/accent roles; feeling choices keep radio-group semantics; visibility is
+- HeartMoment: every feeling choice shows its timeline icon (`EmotionIcon`) in
+  its own emotion accent; the selected feeling tints the whole composer (page,
+  header, tool row, system bar) through the existing emotion surface/accent roles; feeling choices keep radio-group semantics; visibility is
   a selectable pill opening the existing choice. Plan: the schedule summary opens
   `PlanScheduleFields`; the unscheduled state uses its existing string.
 - Enrichment: the tool row (Diary/Memory: photo, place, tag; HeartMoment adds

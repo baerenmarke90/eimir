@@ -117,10 +117,30 @@ backend/API, native wrapper.
 - Surfaces from semantic tokens only: page `background`, intake `surfaceSubtle`,
   raised rows `surface` (Light) / `surfaceRaised` (Dark), hairline above the tool
   row `border`. No idle outlines; focus-visible and forced-colors outlines stay.
-- HeartMoment: the selected feeling tints the whole composer page using the
-  existing `--emotion-*-surface` / `--emotion-*-accent` roles (Light and Dark).
-  Feeling choices render as chips (selected = filled accent with check) but keep
-  `HeartEmotionPicker` radio-group semantics.
+- HeartMoment feeling (frames 5–7 of the family board):
+  - Each feeling chip shows the same icon the timeline uses: reuse the
+    `EmotionIcon` glyphs and the `.heart-emotion-icon` treatment from
+    `HeartEmotionVisual.tsx` / `HeartEmotionVisual.css` (icon in a 15 % accent
+    circle). Every chip carries its own `data-emotion`, so each icon keeps its own
+    emotion accent even when another feeling is selected. Do not draw new icons.
+  - The selected chip is filled with its emotion accent, icon and label on the
+    accent, followed by a check; unselected chips sit on a light surface.
+  - The selected feeling tints the whole composer, not only the writing
+    surface: page background, header, tool row and safe-area background use
+    `--heart-emotion-surface`; header submit, visibility pill, intake icons,
+    external-source row, tool icons and chips use `--heart-emotion-accent`; the
+    intake surface and hairlines are `color-mix` derivations of both. Drive it from
+    the existing `.heart-emotion-compose:has(... :checked)` /
+    `[data-heart-emotion]` mechanism and the existing emotion roles (Light and
+    Dark); add no new palette.
+  - The browser/Android system bar (`meta[name="theme-color"]`, currently set in
+    `applyResolvedTheme` from `--color-background`) follows the feeling surface
+    while the HeartMoment composer is open and is restored on exit. If this is not
+    achievable without a native capability change, document it as a deviation.
+  - Re-tinting on a feeling change uses the existing feedback duration; reduced
+    motion switches instantly.
+  - Keep `HeartEmotionPicker` radio-group semantics, the default feeling, form
+    reset behavior and the accessible label of each choice.
 - No new hex literals in component CSS; add semantic tokens where needed.
 
 ## 5. Behavior and lifecycle (must not regress)

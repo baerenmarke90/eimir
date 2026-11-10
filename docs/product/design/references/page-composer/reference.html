@@ -94,11 +94,20 @@
   .chip.chosen { background: var(--brand-strong); color: var(--on-brand); }
   .done { margin-top: 24px; height: 52px; border-radius: 999px; background: var(--brand-strong); color: var(--on-brand); display: grid; place-items: center; font-size: 16px; font-weight: 600; }
   .board + .board { margin-top: 32px; }
-  .phone.heart { --bg: #FFF0F3; --subtle: #F9DDE4; --surface: #FFF7F9; --chip-text: #BE3653; --brand-strong: #BE3653; --hairline: #EFC6D0; }
-  .phone.heart.dark { --bg: #3B1E27; --subtle: #52303B; --surface: #472631; --raised: #4A2A35; --chip-text: #FF90A6; --brand-strong: #FF90A6; --on-brand: #3B1E27; --hairline: #6A3E4B; }
+  .phone.heart { --bg: var(--emo-surface); --subtle: color-mix(in srgb, var(--emo-accent) 13%, var(--emo-surface));
+    --surface: color-mix(in srgb, #FFFFFF 62%, var(--emo-surface)); --chip-text: var(--emo-accent); --brand-strong: var(--emo-accent);
+    --hairline: color-mix(in srgb, var(--emo-accent) 28%, var(--emo-surface)); }
+  .phone.heart.dark { --surface: color-mix(in srgb, #FFFFFF 7%, var(--emo-surface)); --raised: color-mix(in srgb, #FFFFFF 9%, var(--emo-surface));
+    --on-brand: var(--emo-surface); }
+  .emo-icon { display: inline-grid; width: 26px; height: 26px; flex: none; place-items: center; border-radius: 50%;
+    background: color-mix(in srgb, var(--emo-accent) 15%, transparent); color: var(--emo-accent); }
+  .emo-icon svg { width: 17px; height: 17px; }
+  .feel .chip { padding-left: 6px; gap: 8px; height: 40px; }
+  .feel .chip.chosen .emo-icon { background: color-mix(in srgb, var(--on-brand) 22%, transparent); color: var(--on-brand); }
+  .feel .chip.chosen::after { content: '✓'; font-size: 14px; margin-left: 2px; }
   .feel { display: flex; flex-wrap: wrap; gap: 8px; }
   .feel .chip { background: var(--surface); color: var(--text); }
-  .feel .chip.chosen { background: var(--brand-strong); color: var(--on-brand); }
+  .feel .chip.chosen { background: var(--emo-accent); color: var(--on-brand); }
   .row-label { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--text-2); margin: 20px 0 10px; }
   .intake.compact { padding: 6px; display: flex; flex-direction: column; gap: 6px; margin-top: 20px; }
   .src { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px; border-radius: 16px; background: var(--surface); font-size: 15px; font-weight: 600; }
@@ -212,74 +221,11 @@
 </div>
 
 <div class="board" id="board-family">
+  <section data-heart="LOVED" data-mode="light" data-cap="5 · HeartMoment · loved"></section>
+  <section data-heart="GRATEFUL" data-mode="light" data-cap="6 · HeartMoment · grateful"></section>
+  <section data-heart="SEEN" data-mode="dark" data-cap="7 · HeartMoment · seen · Dark"></section>
   <section>
-    <div class="cap">5 · HeartMoment</div>
-    <div class="sub">The chosen feeling (here loved) tints the page. Words lead, audience stays explicit and selectable; photo and voice share one intake.</div>
-    <div class="phone heart">
-      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
-      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
-      <div class="scroll">
-        <div class="context">
-          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
-          <div class="ctx pick"><i class="ti ti-lock"></i>Nur für mich<i class="ti ti-chevron-down"></i></div>
-        </div>
-        <div class="title lead">Du hast mir heute einfach zugehört, ohne gleich eine Lösung zu suchen.</div>
-        <div class="row-label">Gefühl</div>
-        <div class="feel">
-          <span class="chip chosen"><i class="ti ti-check"></i>Geliebt</span>
-          <span class="chip">Gesehen</span><span class="chip">Wertgeschätzt</span>
-          <span class="chip">Unterstützt</span><span class="chip">Dankbar</span><span class="chip">Glücklich</span>
-        </div>
-        <div class="intake compact">
-          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos oder Videos hinzufügen<small>Vom Gerät auswählen</small></span></div>
-          <div class="src"><i class="ti ti-microphone"></i><span>Sprachnachricht<small>Bis zu 3 Minuten · 20 MB</small></span></div>
-          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
-        </div>
-      </div>
-      <div class="tools">
-        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
-        <span class="tool"><i class="ti ti-microphone"></i>Sprache</span>
-        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
-        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
-      </div>
-      <div class="home"></div>
-    </div>
-  </section>
-  <section>
-    <div class="cap">6 · HeartMoment · Dark</div>
-    <div class="sub">Same anatomy in Dark with the dark feeling surface.</div>
-    <div class="phone heart dark">
-      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
-      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
-      <div class="scroll">
-        <div class="context">
-          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
-          <div class="ctx pick"><i class="ti ti-lock"></i>Nur für mich<i class="ti ti-chevron-down"></i></div>
-        </div>
-        <div class="title lead">Du hast mir heute einfach zugehört, ohne gleich eine Lösung zu suchen.</div>
-        <div class="row-label">Gefühl</div>
-        <div class="feel">
-          <span class="chip chosen"><i class="ti ti-check"></i>Geliebt</span>
-          <span class="chip">Gesehen</span><span class="chip">Wertgeschätzt</span>
-          <span class="chip">Unterstützt</span><span class="chip">Dankbar</span><span class="chip">Glücklich</span>
-        </div>
-        <div class="intake compact">
-          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos oder Videos hinzufügen<small>Vom Gerät auswählen</small></span></div>
-          <div class="src"><i class="ti ti-microphone"></i><span>Sprachnachricht<small>Bis zu 3 Minuten · 20 MB</small></span></div>
-          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
-        </div>
-      </div>
-      <div class="tools">
-        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
-        <span class="tool"><i class="ti ti-microphone"></i>Sprache</span>
-        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
-        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
-      </div>
-      <div class="home"></div>
-    </div>
-  </section>
-  <section>
-    <div class="cap">7 · Plan</div>
+    <div class="cap">8 · Plan</div>
     <div class="sub">Anticipation first: the intention is the title, schedule is the context line. Place, shared List and tag use the same tool row and chips.</div>
     <div class="phone">
       <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
@@ -352,6 +298,66 @@
       <path d="M0 250 h400" stroke="#9FC0DC" stroke-width="5" opacity=".6"/>`,
     sunset: `<rect width="400" height="300" fill="#F29C7A"/><circle cx="200" cy="170" r="60" fill="#FFD49A"/><rect y="180" width="400" height="120" fill="#7B5C86"/>`
   };
+
+  const EMO = {
+    LOVED: { de: 'Geliebt', light: ['#be3653', '#fff0f3'], dark: ['#ff90a6', '#3b1e27'],
+      svg: '<path d="M12 20.6 4.7 13.8C1.9 11.2 2 6.9 4.8 5.1c2.3-1.5 5.2-.9 7.2 1.4 2-2.3 4.9-2.9 7.2-1.4 2.8 1.8 2.9 6.1.1 8.7L12 20.6Z" fill="currentColor"/>' },
+    SEEN: { de: 'Gesehen', light: ['#5d5aa6', '#f1f0ff'], dark: ['#b2a9ff', '#28243f'],
+      svg: '<path d="M2.7 12s3.3-5.2 9.3-5.2 9.3 5.2 9.3 5.2-3.3 5.2-9.3 5.2S2.7 12 2.7 12Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/>' },
+    APPRECIATED: { de: 'Wertgeschätzt', light: ['#9b5966', '#fbeef1'], dark: ['#e6a3b0', '#3a252b'],
+      svg: '<path d="m12 2.8 1.6 5.6 5.6 1.6-5.6 1.6-1.6 5.6-1.6-5.6L4.8 10l5.6-1.6L12 2.8Z" fill="currentColor"/><path d="m18.2 14.2.8 2.6 2.6.8-2.6.8-.8 2.6-.8-2.6-2.6-.8 2.6-.8.8-2.6Z" fill="currentColor" opacity=".72"/>' },
+    SUPPORTED: { de: 'Unterstützt', light: ['#2f7467', '#e9f6f2'], dark: ['#7bd9c5', '#183732'],
+      svg: '<path d="M4.2 12.2c2.2 0 3.7 1 5.1 2.5l2.1 2.1c.4.4 1 .4 1.4 0l2.1-2.1c1.4-1.5 2.9-2.5 5.1-2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 13.1 9 10.4c-1.1-1-1.1-2.7 0-3.6.9-.8 2.2-.6 3 .4.8-1 2.1-1.2 3-.4 1.1.9 1.1 2.6 0 3.6l-3 2.7Z" fill="currentColor"/><path d="M4.1 16.6c2.4.1 4.1 1 5.8 2.4M19.9 16.6c-2.4.1-4.1 1-5.8 2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+    GRATEFUL: { de: 'Dankbar', light: ['#9a6320', '#fff3df'], dark: ['#f0bb70', '#3b2a18'],
+      svg: '<circle cx="12" cy="12" r="3.1" fill="currentColor"/><path d="M12 3.1v3M12 17.9v3M3.1 12h3M17.9 12h3M5.7 5.7l2.1 2.1M16.2 16.2l2.1 2.1M18.3 5.7l-2.1 2.1M7.8 16.2l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>' },
+    HAPPY: { de: 'Glücklich', light: ['#9a7118', '#fff7d6'], dark: ['#ffd77b', '#3a3118'],
+      svg: '<circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="9.2" cy="10.2" r=".9" fill="currentColor"/><circle cx="14.8" cy="10.2" r=".9" fill="currentColor"/><path d="M8.7 13.7c.9 1.4 2 2.1 3.3 2.1s2.4-.7 3.3-2.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' },
+  };
+  const TEXT = {
+    LOVED: 'Du hast mir heute einfach zugehört, ohne gleich eine Lösung zu suchen.',
+    GRATEFUL: 'Danke, dass du heute früh den Kaffee ans Bett gebracht hast.',
+    SEEN: 'Du hast gemerkt, dass ich müde war, bevor ich etwas gesagt habe.',
+  };
+  const SUB = {
+    LOVED: 'The selected feeling tints the whole composer: page, header, tool row and accents use the existing emotion surface/accent roles.',
+    GRATEFUL: 'Switching the feeling re-tints the same composition; each choice shows its timeline icon.',
+    SEEN: 'Dark uses the dark emotion roles; shared visibility shows the people glyph.',
+  };
+  const icon = (e, dark) => `<span class="emo-icon" style="--emo-accent:${EMO[e][dark ? 'dark' : 'light'][0]}"><svg viewBox="0 0 24 24" aria-hidden="true">${EMO[e].svg}</svg></span>`;
+  document.querySelectorAll('section[data-heart]').forEach((sec) => {
+    const e = sec.dataset.heart, dark = sec.dataset.mode === 'dark';
+    const [accent, surface] = EMO[e][dark ? 'dark' : 'light'];
+    const vis = e === 'SEEN' ? '<i class="ti ti-users"></i>Für uns beide' : '<i class="ti ti-lock"></i>Nur für mich';
+    const chips = Object.keys(EMO).map((k) => `<span class="chip${k === e ? ' chosen' : ''}">${icon(k, dark)}${EMO[k].de}</span>`).join('');
+    sec.innerHTML = `
+    <div class="cap">${sec.dataset.cap}</div>
+    <div class="sub">${SUB[e]}</div>
+    <div class="phone heart${dark ? ' dark' : ''}" style="--emo-accent:${accent};--emo-surface:${surface}">
+      ${document.querySelector('.status').outerHTML}
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx pick">${vis}<i class="ti ti-chevron-down"></i></div>
+        </div>
+        <div class="title lead">${TEXT[e]}</div>
+        <div class="row-label">Gefühl</div>
+        <div class="feel">${chips}</div>
+        <div class="intake compact">
+          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos oder Videos hinzufügen<small>Vom Gerät auswählen</small></span></div>
+          <div class="src"><i class="ti ti-microphone"></i><span>Sprachnachricht<small>Bis zu 3 Minuten · 20 MB</small></span></div>
+          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
+        </div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool"><i class="ti ti-microphone"></i>Sprache</span>
+        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>`;
+  });
   const tpl = document.getElementById('filled').innerHTML;
   document.querySelectorAll('[data-content="filled"]').forEach((el) => { el.innerHTML = tpl; });
   document.querySelectorAll('svg[data-photo]').forEach((svg, i) => {

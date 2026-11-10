@@ -209,6 +209,14 @@ The Product Owner decision in `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 
 - Screen Templates (`docs/SCREEN-TEMPLATES.md`) are subordinate to this invariant: when a template's wording conflicts with it, the invariant wins. Correct the template, or document the conflict in the issue/PR, rather than following the template literally.
 - `Reuse before build` remains mandatory, but reuse is not a design justification by itself. No agent may argue "I reused the existing table/list component, therefore the design is correct" — an existing pattern that produces the wrong UX for the task is a design-system gap to close (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 17), not a pattern to keep reusing.
 
+### Browser-only controls must be hidden in the native app
+
+The Product Owner decision of 2026-11-10 confirms mobile-first delivery and requires
+buttons intended exclusively for browser use to be hidden in the native app,
+including its Capacitor WebView. Determine visibility from the runtime platform,
+not the viewport width. Apply this rule when adding or changing browser-only
+controls; a client change that exposes them in the native app is not merge-ready.
+
 ### Motion is required behavior
 
 Every material interaction must deliberately decide whether motion or feedback is needed. Reuse motion tokens and platform capabilities. State changes, reordering, sheets/panes, success feedback, and emotionally meaningful actions should not feel like abrupt DOM/data replacement.
@@ -234,9 +242,9 @@ as in Planning. The Product Owner correction #1724 uses photo, photo-library,
 Place, list and tag motifs for the corresponding enrichment actions. This includes
 People, important days, authored tags, media and inline insertion controls.
 The Product Owner correction #1697 supersedes #1693's icon-only circular
-interpretation. The later #1726 correction uses the shared soft, full-width
-media-intake choices inside composers instead of blue pills for device/external
-source selection; see the Button contract for this narrow exception. Keep native task/link/input lifecycles; local CSS may arrange
+interpretation. The later #1726 correction uses one soft media entry inside
+composers and shared full-width device/external choices in its source sheet;
+see the Button contract for this narrow exception. Keep native task/link/input lifecycles; local CSS may arrange
 the action but must not replace its surface, radius, spacing or visible label.
 
 Reusable visual values must use semantic design tokens instead of repeated component-level literals.

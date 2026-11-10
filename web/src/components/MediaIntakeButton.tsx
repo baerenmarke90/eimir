@@ -9,6 +9,7 @@ export function MediaIntakeButton({
   icon,
   description,
   proLabel,
+  variant = 'source',
   className = '',
   ...props
 }: Omit<ComponentProps<'button'>, 'children'> & {
@@ -16,6 +17,7 @@ export function MediaIntakeButton({
   icon: EimirIconName;
   description?: string;
   proLabel?: string;
+  variant?: 'entry' | 'source';
 }) {
   const descriptionId = useId();
   const proId = `${descriptionId}-pro`;
@@ -23,7 +25,7 @@ export function MediaIntakeButton({
     <button
       type="button"
       {...props}
-      className={`media-intake-button ${className}`}
+      className={`media-intake-button media-intake-${variant} ${className}`}
       aria-label={label}
       aria-describedby={
         [description ? descriptionId : '', proLabel ? proId : '']

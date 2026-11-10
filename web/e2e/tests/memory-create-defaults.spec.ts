@@ -12,7 +12,10 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { expectLabeledAddAction } from '../support/addAction';
-import { expectMediaIntakeAction } from '../support/mediaIntake';
+import {
+  expectMediaIntakeAction,
+  openComposerMediaSources,
+} from '../support/mediaIntake';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
 import {
@@ -145,9 +148,7 @@ for (const [width, colorScheme] of [
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
     await expect(
-      page.locator(
-        '.composer-content .media-device-choice .media-intake-button',
-      ),
+      page.locator('.composer-content .photo-source-composer-trigger'),
     ).toHaveCount(1);
     await expect(
       page.getByText(de.memory.sharedTitle, { exact: true }),
@@ -221,9 +222,7 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: new RegExp(photoSources.more) })
-      .click();
+    await openComposerMediaSources(page);
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await expect(sheet.getByRole('radio')).toHaveCount(0);
     await expect(
@@ -312,7 +311,7 @@ test('Google browser authorization returns selected copies to the unsaved diary'
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await sheet
     .getByRole('button', { name: photoSources.google, exact: true })
@@ -370,7 +369,7 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
@@ -409,7 +408,7 @@ for (const failed of [1, 2]) {
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
-    await page.getByRole('button', { name: photoSources.more }).click();
+    await openComposerMediaSources(page);
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await sheet
       .getByRole('button', { name: photoSources.immich, exact: true })
@@ -474,7 +473,7 @@ test('Pro expiry retains the personal link and permits disconnect without import
 }) => {
   const source = sourceScenario(true, false);
   await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), source);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByRole('button', { name: photoSources.immich, exact: true }),
@@ -506,7 +505,7 @@ test('offline source import at narrow large text preserves the diary draft', asy
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
@@ -2649,10 +2648,8 @@ for (const kind of ['plan', 'heart'] as const) {
       'foto',
     );
     await expect(
-      page.locator(
-        '.photo-source-trigger .media-intake-icon .eimir-icon-photo-library',
-      ),
-    ).toBeVisible();
+      page.locator('.composer-content .photo-source-trigger'),
+    ).toHaveCount(0);
     if (kind === 'plan') {
       await expectLabeledAddAction(
         page.getByRole('button', { name: m5s3.collection.create, exact: true }),
@@ -2680,7 +2677,7 @@ for (const kind of ['plan', 'heart'] as const) {
         .check();
     } else
       await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
-    await page.getByRole('button', { name: photoSources.more }).click();
+    await openComposerMediaSources(page);
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await expect(
       sheet.getByLabel(photoSources.accept, { exact: true }),

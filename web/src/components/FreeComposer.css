@@ -153,7 +153,8 @@
 
 .free-composer .media-action-group {
   border: 0;
-  background: var(--color-surface-panel-tint);
+  padding: 0;
+  background: transparent;
   box-shadow: none;
 }
 
@@ -578,7 +579,7 @@
   }
 
   .quiet-composer .media-action-group {
-    padding-inline: var(--space-2);
+    padding-inline: 0;
   }
 
   .quiet-composer .composer-content {

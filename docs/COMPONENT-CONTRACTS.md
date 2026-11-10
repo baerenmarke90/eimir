@@ -98,6 +98,11 @@ ActionState     = idle | submitting | success | error
   icon-only circular interpretation. Existing selection choices, Back, Close,
   overflow and the global shell plus retain their distinct interaction roles.
 - Product Owner correction #1726 defines a narrow media-intake exception:
+  its approved chat refinement uses one soft composer entry which opens the
+  existing source sheet. Device/external choices live in that sheet, with Pro
+  only on external choices; gallery content sits directly in the composer.
+  The media section heading, nested media surface and idle format hints are
+  omitted. The original grouped-row direction below is superseded for composers.
   grouped device and external photo-source choices use the shared media intake
   button with a full-width, borderless filled surface, contextual icon, visible
   localized label, optional format hint and external-source Pro mark. They live

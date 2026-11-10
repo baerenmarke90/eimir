@@ -56,11 +56,17 @@ export function AttachmentDraftPicker({
   };
 }) {
   const { t } = useTranslation();
-  const devicePicker = (close: () => void) => (
+  const devicePicker = (
+    close: () => void,
+    actionContainer?: HTMLElement | null,
+    blocked = false,
+  ) => (
     <DeviceMediaPicker
       id={id}
       multiple={multiple}
-      disabled={disabled}
+      disabled={disabled || blocked}
+      inSourceChooser={Boolean(sourceContext)}
+      actionContainer={actionContainer}
       context={videoContext}
       onFiles={(files) => {
         if (!multiple && files.length)
@@ -83,7 +89,7 @@ export function AttachmentDraftPicker({
       }}
     >
       <div className="field-group attachment-draft-picker">
-        <MediaActionGroup>
+        <MediaActionGroup unframed>
           {gallery}
           {showItems && attachments.items.length > 0 ? (
             <PhotoDraftGallery
@@ -131,6 +137,7 @@ export function AttachmentDraftPicker({
           {sourceContext ? (
             <PhotoSourcePicker
               {...sourceContext}
+              unified
               beginSelection={() => {
                 const ticket = sourceContext.beginSelection();
                 return {

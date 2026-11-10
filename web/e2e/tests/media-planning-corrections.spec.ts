@@ -1,3 +1,4 @@
+import { expectMediaIntakeAction } from '../support/mediaIntake';
 import sources from '../../src/i18n/locales/photoSources';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import de from '../../src/i18n/locales/de';
@@ -672,9 +673,9 @@ test.describe('integrated soft media choices', () => {
         route.fulfill({
           json: {
             enabled: true,
-            canImport: false,
-            googleAvailable: false,
-            immichConnected: false,
+            canImport: true,
+            googleAvailable: true,
+            immichConnected: true,
           },
         }),
       );
@@ -696,80 +697,119 @@ test.describe('integrated soft media choices', () => {
           });
         const composer = page.locator('.composer-content');
         await expect(composer).toHaveCount(1);
-        const device = composer.getByRole('button', {
+        const entry = composer.getByRole('button', {
           name: sources.addMedia,
           exact: true,
         });
-        const external = composer.getByRole('button', {
-          name: sources.more,
-          exact: true,
-        });
-        await expect(device).toBeVisible();
-        await expect(external).toBeVisible();
+        await expectMediaIntakeAction(entry, 'foto');
         await expect(composer.locator('.media-action-group')).toHaveCount(1);
+        await expect(
+          composer.locator(
+            '.media-action-group-label, .media-intake-description, .media-intake-pro',
+          ),
+        ).toHaveCount(0);
+        await expect(composer.locator('.media-action-group')).toHaveCSS(
+          'background-color',
+          'rgba(0, 0, 0, 0)',
+        );
+        await expect(
+          composer.getByRole('button', { name: sources.more, exact: true }),
+        ).toHaveCount(0);
         for (const surface of [
           composer,
           composer.locator('.composer-writing-surface'),
-          device,
-          external,
-        ]) {
+          entry,
+        ])
           await expect(surface).toHaveCSS('border-top-width', '0px');
-        }
-        const geometry = await device.evaluate((element) => {
-          const row = element.getBoundingClientRect();
-          const container = element.parentElement;
-          if (!container) throw new Error('The source choice is detached.');
-          const parent = container.getBoundingClientRect();
-          return {
-            height: row.height,
-            width: row.width,
-            parentWidth: parent.width,
-          };
-        });
-        expect(geometry.height).toBeGreaterThanOrEqual(48);
-        expect(Math.abs(geometry.width - geometry.parentWidth)).toBeLessThan(1);
         expect(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth + 1,
           ),
         ).toBe(true);
+        const prose = composer.getByRole('textbox', {
+          name: de.memory.bodyLabel,
+          exact: true,
+        });
         if (index === 0) {
-          const prose = composer.getByRole('textbox', {
-            name: de.memory.bodyLabel,
-            exact: true,
-          });
           await prose.fill(copy.description);
           await expect(prose).toHaveCSS('outline-style', 'solid');
           await expect(prose).toHaveCSS('outline-width', '2px');
-          await external.click();
-          const sheet = page.getByRole('dialog', {
-            name: sources.title,
-            exact: true,
-          });
-          await expect(sheet).toBeVisible();
-          await sheet
-            .getByRole('button', { name: taskSheets.close, exact: true })
-            .last()
-            .click();
-          await expect(external).toBeFocused();
-          await expect(prose).toHaveValue(copy.description);
-          await external.press('Shift+Tab');
+        }
+        await entry.press('Enter');
+        const sheet = page.getByRole('dialog', {
+          name: sources.addMedia,
+          exact: true,
+        });
+        await expect(sheet).toBeVisible();
+        const device = sheet.getByRole('button', {
+          name: sources.device,
+          exact: true,
+        });
+        const google = sheet.getByRole('button', {
+          name: sources.google,
+          exact: true,
+        });
+        const immich = sheet.getByRole('button', {
+          name: sources.immich,
+          exact: true,
+        });
+        for (const [action, icon] of [
+          [device, 'foto'],
+          [google, 'photo-library'],
+          [immich, 'photo-library'],
+        ] as const)
+          await expectMediaIntakeAction(action, icon);
+        await expect(device.locator('.media-intake-pro')).toHaveCount(0);
+        await expect(google.locator('.media-intake-pro')).toHaveCount(1);
+        await expect(immich.locator('.media-intake-pro')).toHaveCount(1);
+        expect(
+          await sheet.evaluate(
+            (element) => element.scrollWidth <= element.clientWidth + 1,
+          ),
+        ).toBe(true);
+        if (index === 0) {
+          await page.keyboard.press('Tab');
+          await expect(sheet.locator('.short-task-sheet-body')).toBeFocused();
+          await page.keyboard.press('Tab');
           await expect(device).toBeFocused();
           await expect(device).toHaveCSS('outline-style', 'solid');
           const chooser = page.waitForEvent('filechooser');
           await device.press('Enter');
           await (await chooser).setFiles([]);
-          await expect(prose).toHaveValue(copy.description);
+          await expect(sheet).toBeVisible();
           await expect(device).toBeFocused();
+          const axe = await new AxeBuilder({ page })
+            .include('.photo-source-sheet')
+            .analyze();
+          expect(axe.violations).toEqual([]);
+          await captureScreenshot(
+            page,
+            info,
+            `shell-unified-source-choice-${scenario.width}-${scenario.theme}.png`,
+            { fullPage: true },
+          );
           await page.emulateMedia({ forcedColors: 'active' });
-          for (const control of [prose, device, external])
+          for (const action of [device, google, immich])
+            await expect(action).toHaveCSS('border-top-width', '1px');
+          await page.emulateMedia({ forcedColors: 'none' });
+        }
+        await sheet
+          .getByRole('button', { name: taskSheets.close, exact: true })
+          .last()
+          .click();
+        await expect(sheet).toHaveCount(0);
+        await expect(entry).toBeFocused();
+        if (index === 0) {
+          await expect(prose).toHaveValue(copy.description);
+          await page.emulateMedia({ forcedColors: 'active' });
+          for (const control of [prose, entry])
             await expect(control).toHaveCSS('border-top-width', '1px');
           await page.emulateMedia({ forcedColors: 'none' });
           await page.locator('.composer-header h1').click();
-          const axe = await new AxeBuilder({ page })
-            .include('.free-composer')
-            .analyze();
-          expect(axe.violations).toEqual([]);
+          expect(
+            (await new AxeBuilder({ page }).include('.free-composer').analyze())
+              .violations,
+          ).toEqual([]);
         }
         const surface = ['', '-memory-edit', '-plan-create', '-plan-edit'][
           index

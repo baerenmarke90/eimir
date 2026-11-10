@@ -539,34 +539,14 @@ for (const width of [390, 320] as const) {
       await expect(
         media.getByRole('button', { name: new RegExp(photoSources.more) }),
       ).toHaveCount(0);
-      // The soft source choice adds its visible heading and format hint. Keep
-      // its content-sized rhythm rather than the former one-line pill height.
-      const mediaRhythm = await mediaGroup.evaluate((element) => {
-        const style = getComputedStyle(element);
-        const heading = element.querySelector('.media-action-group-label');
-        if (!heading) throw new Error('The media heading is missing.');
-        return (
-          heading.getBoundingClientRect().height +
-          parseFloat(style.rowGap) +
-          parseFloat(style.paddingBlockStart) +
-          parseFloat(style.paddingBlockEnd)
-        );
-      });
-      expect(mediaBox.height).toBeLessThanOrEqual(
-        pickerBox.height + mediaRhythm + 1,
+      await expect(mediaGroup.locator('.media-action-group-label')).toHaveCount(
+        0,
       );
-      const pickerContent = await picker.evaluate((element) => {
-        const style = getComputedStyle(element);
-        const content = [...element.children].map(
-          (child) => child.getBoundingClientRect().height,
-        );
-        return (
-          Math.max(...content) +
-          parseFloat(style.paddingBlockStart) +
-          parseFloat(style.paddingBlockEnd)
-        );
-      });
-      expect(pickerBox.height).toBeLessThanOrEqual(pickerContent + 1);
+      await expect(mediaGroup).toHaveCSS(
+        'background-color',
+        'rgba(0, 0, 0, 0)',
+      );
+      expect(mediaBox.height).toBeLessThanOrEqual(pickerBox.height + 1);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
       await expect(dateTrigger).toHaveAttribute('aria-haspopup', 'dialog');
       const dateInput = await showComposerDate(page);

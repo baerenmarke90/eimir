@@ -77,8 +77,56 @@ button.media-intake-button:disabled {
   color: var(--color-text-muted);
 }
 
+button.media-intake-entry {
+  inline-size: fit-content;
+  justify-self: start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-panel-tint);
+  color: var(--color-link-text);
+}
+
+.media-intake-entry .media-intake-icon {
+  flex-basis: var(--space-6);
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  background: transparent;
+}
+
+.media-intake-entry .media-intake-copy {
+  flex: 1 1 auto;
+}
+
+.media-device-choice--chooser {
+  display: contents;
+}
+
+.photo-source-device-slot {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.media-device-actions {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.media-device-actions:empty {
+  display: none;
+}
+
+.photo-source-sheet .media-intake-button {
+  background: var(--color-surface-panel-tint);
+}
+
 @media (forced-colors: active) {
-  button.media-intake-button {
+  button.media-intake-button,
+  .photo-source-sheet button.media-intake-button {
     border: var(--border-divider-width) solid ButtonText;
   }
 }

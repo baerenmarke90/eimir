@@ -269,12 +269,18 @@ for (const view of [
       })
       .click();
     await expect(picker).not.toBeVisible();
-    const chooserPromise = page.waitForEvent('filechooser');
     await page
       .getByRole('button', { name: photoCopy.addMedia, exact: true })
       .click();
+    const sourceSheet = page.getByRole('dialog', {
+      name: photoCopy.addMedia,
+      exact: true,
+    });
+    const chooserPromise = page.waitForEvent('filechooser');
+    await sourceSheet
+      .getByRole('button', { name: photoCopy.device, exact: true })
+      .click();
     const chooser = await chooserPromise;
-    await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
     await chooser.setFiles({
       name: 'lake.jpg',
       mimeType: 'image/jpeg',

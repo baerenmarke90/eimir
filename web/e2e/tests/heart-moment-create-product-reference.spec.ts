@@ -1,3 +1,4 @@
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -9,7 +10,10 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectNaturalTextReflow } from '../support/addAction';
-import { expectMediaIntakeAction } from '../support/mediaIntake';
+import {
+  expectMediaIntakeAction,
+  openComposerMediaSources,
+} from '../support/mediaIntake';
 import {
   closeComposerDate,
   expectReadableComposerHeader,
@@ -810,36 +814,29 @@ for (const colorScheme of ['light', 'dark'] as const) {
         name: photoSources.addMedia,
         exact: true,
       });
-      const sourceTrigger = media.getByRole('button', {
-        name: new RegExp(photoSources.more),
-      });
       await expectMediaIntakeAction(mediaTrigger, 'foto');
-      await expect(sourceTrigger).toBeVisible();
+      await expect(media.locator('.photo-source-trigger')).toHaveCount(0);
+      const sourceSheet = await openComposerMediaSources(page);
+      const deviceChoice = sourceSheet.getByRole('button', {
+        name: photoSources.device,
+        exact: true,
+      });
+      await expectMediaIntakeAction(deviceChoice, 'foto');
       await expect(
-        sourceTrigger.locator('.media-intake-icon .eimir-icon-photo-library'),
+        sourceSheet.getByRole('button', {
+          name: photoSources.immich,
+          exact: true,
+        }),
       ).toBeVisible();
-      const deviceBox = await mediaTrigger.boundingBox();
-      const sourceBox = await sourceTrigger.boundingBox();
-      if (!deviceBox || !sourceBox)
-        throw new Error('Media source actions are missing.');
-      expect(
-        sourceBox.y - deviceBox.y - deviceBox.height,
-      ).toBeGreaterThanOrEqual(8);
-      const mediaLabelBox = await mediaTrigger
-        .locator('.media-intake-label')
-        .boundingBox();
-      const iconBox = await mediaTrigger
-        .locator('.media-intake-icon')
-        .boundingBox();
-      if (!mediaLabelBox || !iconBox)
-        throw new Error('Media action icon or label is missing.');
-      expect(mediaLabelBox.x).toBeGreaterThanOrEqual(iconBox.x + iconBox.width);
-      expect(Math.abs(deviceBox.width - sourceBox.width)).toBeLessThan(1);
-      await expectMediaIntakeAction(sourceTrigger, 'photo-library');
       const nativeChooser = page.waitForEvent('filechooser');
-      await mediaTrigger.click();
+      await deviceChoice.click();
       await (await nativeChooser).setFiles([]);
-      await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
+      await expect(sourceSheet).toBeVisible();
+      await sourceSheet
+        .getByRole('button', { name: taskSheets.close, exact: true })
+        .last()
+        .click();
+      await expect(mediaTrigger).toBeFocused();
       await expect(photoInput).toBeAttached();
       await expect(photoInput).not.toHaveAttribute('required', '');
 

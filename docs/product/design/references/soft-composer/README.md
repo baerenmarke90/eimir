@@ -1,5 +1,10 @@
 # Soft composer and integrated media intake (#1726)
 
+The later [approved unified-intake refinement](unified-intake/README.md)
+supersedes the separate in-composer source rows, nested media surface and idle
+format hints below. It retains the same domain owners and adds one combined
+entry with source choices in the existing sheet.
+
 ## Product Owner decision and baseline
 
 On 2026-11-10 the Product Owner requested one writing/media composition and

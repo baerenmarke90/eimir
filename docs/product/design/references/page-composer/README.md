@@ -24,10 +24,20 @@ surface, and changes the composition around them:
 - the title uses the Literata display role; prose stays Instrument Sans with
   reading line length;
 - place and tag entry move from two filled pill buttons into a labeled bottom
-  tool row (place, tag); chosen places and tags appear as quiet chips
+  tool row (place, tag); chosen tags appear as quiet chips
   below the prose and reopen their existing editors;
-- audience (`memory.sharedTitle` meaning) is shown as a quiet context line under
-  the date, and the existing draft status stays as a small status line.
+- the date is shown short (no weekday) with the chosen place beside it; the
+  Diary/Memory and Plan composers show no audience line (PO refinement below), and the existing draft status stays as a small status line.
+
+## Product Owner refinements (2026-11-10)
+
+After reviewing the click demo, the PO decided: no "visible to both" line in the
+Diary/Memory and Plan composers (supersedes R1 row 6 for these composers); a
+short date without weekday with the place directly beside it; drag and drop for
+media; creating a new place from the place sheet; feeling chips stay visible
+without delayed collapse; the detail screens keep the swipeable gallery with
+photo count, photo reactions, comments, the drop-cap initial, the place beside
+the date and the linked Wishes and Plans. Frames 12–16 show these.
 
 ## Generated visual preflight
 
@@ -36,6 +46,8 @@ surface, and changes the composition around them:
 ![Generated HeartMoment reference](generated-heartmoment-reference.png)
 
 ![Generated Plan reference](generated-plan-reference.png)
+
+![Generated detail reference](generated-detail-reference.png)
 
 The second and third boards apply the same anatomy to HeartMoment (choosing a
 feeling with timeline icons and full-page tint, a populated entry with photo and
@@ -75,8 +87,8 @@ couple-experience question flows are out of scope.
 - Header: task Back, localized title, header submit as the only filled action;
   it reads as quiet until there is saveable content, but stays operable and
   reports the existing validation instead of being disabled.
-- Context: date summary opens the existing date/range control; audience is a
-  fixed, labeled line, not a toggle.
+- Context: short date (no weekday) opens the existing date/range control; the
+  chosen place sits beside it. Diary/Memory and Plan show no audience line.
 - Media: one full-width device action (localized photo/video hint from actual
   video eligibility) and one external-source row with existing availability and
   Pro boundary. After selection, the cover image leads; the strip keeps cover

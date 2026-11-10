@@ -129,6 +129,8 @@
   .voice small { font-size: 12px; color: var(--text-2); font-weight: 600; }
   .srcs { display: flex; flex-direction: column; gap: 8px; }
   .srcs .src { background: var(--bg); }
+  .ctx-row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; }
+  .ctx.place { color: var(--chip-text); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -136,20 +138,19 @@
 
   <section>
     <div class="cap">1 · Empty</div>
-    <div class="sub">Two entry paths: media or words. Media has one entry (the intake, later the + tile); place and tag wait in the tool row.</div>
+    <div class="sub">Two entry paths: media or words, drag and drop included. Short date only; place and tag wait in the tool row.</div>
     <div class="phone" id="f-empty">
       <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
-          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>10. November 2026<i class="ti ti-chevron-down chev"></i></div>
         </div>
         <div class="intake">
           <div class="intake-main">
             <div class="bubble"><i class="ti ti-photo-plus"></i></div>
             <strong>Fotos oder Videos hinzufügen</strong>
-            <span>Vom Gerät auswählen</span>
+            <span>Vom Gerät auswählen oder hierher ziehen</span>
           </div>
           <div class="intake-alt"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
         </div>
@@ -166,7 +167,7 @@
 
   <section>
     <div class="cap">2 · Populated</div>
-    <div class="sub">The cover image leads, prose gets reading space. Chosen places and tags appear as quiet chips.</div>
+    <div class="sub">The cover leads, prose gets reading space. The chosen place sits next to the date; tags appear as quiet chips.</div>
     <div class="phone" id="f-filled">
       <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
@@ -238,19 +239,17 @@
 <div class="board" id="board-plan">
   <section>
     <div class="cap">9 · Plan</div>
-    <div class="sub">No media block on the page: Foto in the tool row is the single media entry. Place, shared List and tag appear as chips.</div>
+    <div class="sub">No media block on the page: Foto in the tool row is the single media entry. Place sits next to the short date; List and tag appear as chips.</div>
     <div class="phone">
       <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div>
-          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
         </div>
         <div class="title lead">Picknick am Rhein</div>
         <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
         <div class="chips">
-          <span class="chip"><i class="ti ti-map-pin"></i>Rheinufer</span>
           <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
           <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
         </div>
@@ -272,8 +271,7 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div>
-          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
         </div>
         <div class="cover plan-cover"><svg data-photo="picnic"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 3</span></div>
         <div class="thumbs">
@@ -285,7 +283,6 @@
         <div class="title lead" style="margin-top:18px">Picknick am Rhein</div>
         <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
         <div class="chips">
-          <span class="chip"><i class="ti ti-map-pin"></i>Rheinufer</span>
           <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
           <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
         </div>
@@ -307,13 +304,11 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div>
-          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
         </div>
         <div class="title lead">Picknick am Rhein</div>
         <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
         <div class="chips">
-          <span class="chip"><i class="ti ti-map-pin"></i>Rheinufer</span>
           <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
           <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
         </div>
@@ -344,8 +339,7 @@
 
 <template id="filled">
   <div class="context">
-    <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 8. November 2026<i class="ti ti-chevron-down chev"></i></div>
-    <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+    <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>8. November 2026<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Malcesine</div></div>
   </div>
   <div class="cover"><svg data-photo="lake"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 4</span></div>
   <div class="thumbs">
@@ -358,7 +352,6 @@
   <div class="title">Frühstück am See</div>
   <div class="prose">Viel zu früh aufgestanden, aber der Nebel über dem Wasser war es wert. Den Kaffee hast du natürlich vergessen.</div>
   <div class="chips">
-    <span class="chip"><i class="ti ti-map-pin"></i>Malcesine</span>
     <span class="chip"><i class="ti ti-tag"></i>Urlaub</span>
     <span class="chip"><i class="ti ti-tag"></i>Unterwegs zusammen</span>
   </div>
@@ -408,7 +401,7 @@
   };
   const SUB = {
     text: 'Choosing a feeling: chips show the timeline icons; the selection tints the whole composer. No media block on the page: Foto and Sprache in the tool row are the entries.',
-    media: 'After choosing, the feeling collapses to its existing summary pill. Photos lead as cover plus strip; the voice note plays inline.',
+    media: 'Feeling chips stay visible after choosing (no delayed collapse). Photos lead as cover plus strip; the voice note plays inline.',
     dark: 'Dark uses the dark emotion roles; shared visibility shows the people glyph.',
     sheet: 'Foto opens one shared source sheet in every composer: device first, external sources with the Pro mark.',
   };
@@ -446,11 +439,11 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>10. November 2026<i class="ti ti-chevron-down chev"></i></div>
           <div class="ctx pick">${vis}<i class="ti ti-chevron-down"></i></div>
         </div>
         <div class="title lead">${TEXT[e]}</div>
-        ${withMedia ? summary + media : expanded}
+        ${expanded}${withMedia ? media : ''}
       </div>
       <div class="tools">
         <span class="tool${withMedia ? ' on' : ''}"><i class="ti ti-photo"></i>Foto</span>

@@ -21,7 +21,9 @@ deviation in the PR.
    `generated-compact-reference.png` (frames 1–4, Diary: empty, populated,
    populated Dark, tag sheet), `generated-heartmoment-reference.png` (frames 5–8:
    choosing a feeling, with photo and voice, Dark, photo source sheet) and
-   `generated-plan-reference.png` (frames 9–11: Plan, with photos, schedule sheet).
+   `generated-plan-reference.png` (frames 9–11: Plan, with photos, schedule sheet)
+   and `generated-detail-reference.png` (frames 12–16: new place sheet, Diary
+   entry detail top and bottom, HeartMoment detail, Plan detail).
 3. Check the state of issue #1726 / PR #1727 (soft composer media rows). If
    #1727 is merged, branch from `main`. If it is still open, ask the Product Owner
    whether to build on its branch; do not duplicate or fight its media-row work.
@@ -41,11 +43,19 @@ deviation in the PR.
 ## 1. Scope
 
 In scope: Diary/Memory create (non-experience path), Memory edit, HeartMoment
-create and edit, Plan create and edit.
+create and edit, Plan create and edit, and the Diary/Memory, HeartMoment and
+Plan detail (read) screens (section 3a).
 
 Out of scope: Wish, Milestone, Chapter, couple-experience question/answer flows
-(`experienceKind` paths keep their current layout), read/detail screens,
-backend/API, native wrapper.
+(`experienceKind` paths keep their current layout), backend/API, native wrapper.
+
+Product Owner decisions of 2026-11-10 that this brief encodes (they supersede
+conflicting earlier wording, including Product Reference v1 R1 row 6 for the
+fixed audience line): no "visible to both" line in Diary/Memory and Plan
+composers; short date without weekday; place next to the date; drag and drop for
+media in every composer; creating a new place from the place sheet; feeling
+chips stay visible; detail screens keep gallery swipe, photo count, comments,
+reactions, drop-cap initial, place next to the date and linked Wishes/Plans.
 
 ## 2. Shared anatomy (all in-scope composers, top to bottom)
 
@@ -54,29 +64,32 @@ backend/API, native wrapper.
    (subtle surface, secondary text) while nothing saveable exists and becomes the
    filled accent once content exists. Keep its current validation behavior; do not
    make it a disabled control.
-2. **Context lines** – no card. Line 1: calendar icon + localized long date
-   (Plan: schedule summary incl. time, or the unscheduled string) + chevron;
-   tapping opens the existing date/range or `PlanScheduleFields` control in a
-   `ShortTaskSheet`. Line 2: audience.
-   - Diary/Memory/Plan: fixed audience line with people icon (shared space; not a
-     toggle).
-   - HeartMoment: a pill showing the selected visibility (lock icon for
-     owner-only) with chevron, opening the existing visibility choice.
+2. **Context row** – no card. One wrapping row: calendar icon + short localized
+   date without weekday (`Intl` `{ day: 'numeric', month: 'long', year: 'numeric' }`,
+   e.g. "10. November 2026"; Diary range "8. November – 10. November 2026"; Plan
+   adds " · 12:00" or uses the unscheduled string) + chevron; tapping opens the
+   existing date/range or `PlanScheduleFields` control in a `ShortTaskSheet`.
+   Directly to its right (wrapping below on narrow widths): the chosen place(s)
+   with a pin icon in the accent color (first place, then "+n"), opening the place
+   editor. No place, no place item.
+   - Diary/Memory/Plan: **no audience line** (PO decision).
+   - HeartMoment: below the row, a pill showing the selected visibility (lock icon
+     for owner-only) with chevron, opening the existing visibility choice.
 3. **Writing and media** – the page itself is the composer. Remove the wrapping
    writing surface/card around title, prose and media. No nested containers.
    - Diary/Memory: media first (large intake while empty, cover + strip once
      selected), then title, then prose.
    - HeartMoment: moment text first (display role, it is the lead), then the
-     feeling, then selected media and the voice note. While no feeling has been
-     confirmed the chips are expanded; afterwards the existing compact disclosure
-     (`heart-emotion-disclosure` summary pill with icon) is used. No media block
-     is shown on the page until media or voice exists.
+     feeling chips, then selected media and the voice note. The feeling chips
+     always stay visible; selecting one never collapses or hides them (no
+     disclosure, no delay). No media block is shown on the page until media or
+     voice exists.
    - Plan: cover + strip first once photos exist, then intention title, then
      description. No media block is shown on the page until photos exist.
-4. **Chips** – chosen places, tags and shared Lists render below the content as
-   quiet pill chips (subtle surface, accent text, leading icon, at least 44 px
-   target with spacing). Tapping a chip reopens its existing editor. Order: places,
-   Lists, tags.
+4. **Chips** – chosen shared Lists and tags render below the content as quiet
+   pill chips (subtle surface, accent text, leading icon, at least 44 px target
+   with spacing). Tapping a chip reopens its existing editor. Order: Lists, tags.
+   Places are not chips; they live in the context row.
 5. **Draft/status line** – keep the existing draft status and pending/error/offline
    notices with their current owners and copy; style as small secondary text.
 6. **Tool row** – a labeled bottom row, sticky above the safe area and the
@@ -116,6 +129,17 @@ backend/API, native wrapper.
   duration (`SavedVoiceNote`), with its existing re-record/remove actions.
 - Idle file-format text (`memory.photoFormats`) is removed from the idle state; the
   existing `mediaDrop.supported*` messages appear only on rejection.
+- **Drag and drop** in every composer: dropping image files anywhere on the
+  composer page adds them through the existing media-drop/intake owner. While
+  files are dragged over the page, show a dashed accent drop overlay with
+  "drop photos here" copy. The Diary intake's secondary line mentions dragging.
+  Unsupported files show the existing `mediaDrop.supported*` message.
+- **New place**: the place sheet lists saved places, filtered by its search
+  field, and starts with a row "add new place" (or "create '<search text>' as a
+  new place" when the text matches nothing). It opens the existing shared-place
+  creation (`photoPlaces.saveSharedPlace`, `photoPlaces.sharedCreateHint`,
+  `PlaceMapPicker`): name prefilled from the search text, optional address, map
+  choice, then save and select it (frame 12).
 - **After selection**: the chosen cover becomes a large rounded hero (full content
   width, about 214 px high at 390 px) with a "cover" badge top-left and
   "n of m" bottom-right, followed by a thumbnail strip (56 px, `radius.medium`):
@@ -125,6 +149,31 @@ backend/API, native wrapper.
   height of about 176 px. Reuse `PhotoDraftGallery`; keep cover choice, automatic cover,
   sensitivity toggle (#1477), reorder, remove, retry, upload progress, video
   processing, swipe/fullscreen/zoom and limit messages. Restyle, do not rewrite.
+
+## 3a. Detail (read) screens
+
+Frames 13–16. The PO reported these capabilities missing in the current runtime;
+verify each on `main` and restore it where it regressed. Order:
+
+1. Header: Back, localized type title, Edit as text action. After a save, a
+   short "saved" status pill.
+2. Meta row: short date (as in the composer) and, to its right, the place(s);
+   HeartMoment adds its visibility. HeartMoment then shows `HeartEmotionBadge`
+   (detail variant: icon + feeling) and keeps its feeling tint on the page.
+3. Gallery (`MemoryPhotoGallery` / `MediaGallery`): one swipeable full-width
+   gallery with scroll-snap, "n / m" count top-right, position dots below,
+   previous/next buttons for pointer and keyboard (arrow keys), the cover first.
+   Sensitive photos stay concealed until "show image" and can be hidden again.
+   Photo reactions (`photoReactions.*`, six reactions) open from a "react"
+   button on the photo; summary chips under the gallery show counts and your own
+   reaction. Fullscreen/zoom remain as today.
+4. Title in the display role; prose with the existing `drop-cap-letter` initial
+   (first letter uppercase, display font, brand/accent color, 1.3em).
+5. Tags; HeartMoment voice note; Plan shared Lists.
+6. "Linked Wishes and Plans" (`StoryPlanningLinks`, `memoryProduct.planning.*`)
+   with the linked items and the link action.
+7. Comments (`CommentsPanel`) with the existing composer; not rendered for
+   owner-only HeartMoments.
 
 ## 4. Type, color, spacing
 

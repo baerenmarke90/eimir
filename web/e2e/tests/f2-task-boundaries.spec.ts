@@ -390,11 +390,14 @@ async function fillMemory(page: Page, withPhoto = false) {
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(BODY);
   if (withPhoto) {
     const sources = await openComposerMediaSources(page);
-    await sources.locator('input[type=file]').setInputFiles({
-      name: 'river.jpg',
-      mimeType: 'image/jpeg',
-      buffer: await readFile(PHOTO),
-    });
+    await page
+      .locator('.media-device-choice--chooser input[type=file]')
+      .setInputFiles({
+        name: 'river.jpg',
+        mimeType: 'image/jpeg',
+        buffer: await readFile(PHOTO),
+      });
+    await expect(sources).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toBeVisible();
@@ -595,11 +598,14 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
     page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue('');
   const sources = await openComposerMediaSources(page);
-  await sources.locator('input[type=file]').setInputFiles({
-    name: 'river.jpg',
-    mimeType: 'image/jpeg',
-    buffer: await readFile(PHOTO),
-  });
+  await page
+    .locator('.media-device-choice--chooser input[type=file]')
+    .setInputFiles({
+      name: 'river.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await readFile(PHOTO),
+    });
+  await expect(sources).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
@@ -1154,11 +1160,14 @@ test('failed uploads retain authored content and can retry before the first crea
   await openMemory(page);
   await fillMemory(page);
   const sources = await openComposerMediaSources(page);
-  await sources.locator('input[type=file]').setInputFiles({
-    name: 'river.jpg',
-    mimeType: 'image/jpeg',
-    buffer: await readFile(PHOTO),
-  });
+  await page
+    .locator('.media-device-choice--chooser input[type=file]')
+    .setInputFiles({
+      name: 'river.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await readFile(PHOTO),
+    });
+  await expect(sources).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
   ).toBeVisible();

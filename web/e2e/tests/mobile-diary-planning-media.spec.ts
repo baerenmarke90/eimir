@@ -484,6 +484,11 @@ test.describe('photo-local touch gestures', () => {
       const closeBox = await close.boundingBox();
       expect(closeBox?.width).toBeGreaterThanOrEqual(44);
       expect(closeBox?.height).toBeGreaterThanOrEqual(44);
+      await captureScreenshot(
+        page,
+        info,
+        `story-photo-viewer-${view.width}-${view.theme}${native ? '-native-app' : ''}.png`,
+      );
       const geometry = await frame.boundingBox();
       if (!geometry) throw new Error('The photo viewport is unavailable.');
       const x = geometry.x + geometry.width / 2;
@@ -556,7 +561,7 @@ test.describe('photo-local touch gestures', () => {
       await captureScreenshot(
         page,
         info,
-        `photo-zoom-${view.width}-${view.theme}${native ? '-native-app' : ''}.png`,
+        `story-photo-zoom-${view.width}-${view.theme}${native ? '-native-app' : ''}.png`,
       );
       if (native) {
         await page.touchscreen.tap(x, y);

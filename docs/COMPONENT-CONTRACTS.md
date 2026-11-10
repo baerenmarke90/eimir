@@ -97,6 +97,13 @@ ActionState     = idle | submitting | success | error
   or hide its label. Product Owner correction #1697 supersedes #1693's
   icon-only circular interpretation. Existing selection choices, Back, Close,
   overflow and the global shell plus retain their distinct interaction roles.
+- Product Owner correction #1726 defines a narrow media-intake exception:
+  grouped device and external photo-source choices use the shared media intake
+  button with a full-width, borderless filled surface, contextual icon, visible
+  localized label, optional format hint and external-source Pro mark. They live
+  inside the writing composer; this selection presentation does not change
+  file/source ownership or the other AddAction entry points. Idle writing fields
+  are borderless; keyboard focus, errors and forced-colors remain distinguishable.
 - Hover feedback must keep the control's hit target stationary. Translating a
   button away from a pointer at its edge can alternate hover state indefinitely
   and prevent both a real click and native actionability checks. Reuse color

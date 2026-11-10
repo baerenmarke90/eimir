@@ -234,7 +234,9 @@ as in Planning. The Product Owner correction #1724 uses photo, photo-library,
 Place, list and tag motifs for the corresponding enrichment actions. This includes
 People, important days, authored tags, media and inline insertion controls.
 The Product Owner correction #1697 supersedes #1693's icon-only circular
-interpretation. Keep native task/link/input lifecycles; local CSS may arrange
+interpretation. The later #1726 correction uses the shared soft, full-width
+media-intake choices inside composers instead of blue pills for device/external
+source selection; see the Button contract for this narrow exception. Keep native task/link/input lifecycles; local CSS may arrange
 the action but must not replace its surface, radius, spacing or visible label.
 
 Reusable visual values must use semantic design tokens instead of repeated component-level literals.

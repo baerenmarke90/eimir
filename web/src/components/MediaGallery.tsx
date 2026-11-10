@@ -115,6 +115,7 @@ export function MediaGallery({
   renderCaption,
   dismissWithHistory = true,
   directSensitiveToggle = false,
+  showInlineSensitiveControl = true,
   presentation = 'default',
   countStyle = presentation === 'composer' ? 'fraction' : 'label',
   onPhotoLongPress,
@@ -142,6 +143,8 @@ export function MediaGallery({
   ) => ReactNode;
   dismissWithHistory?: boolean;
   directSensitiveToggle?: boolean;
+  /** Fullscreen reveal/hide remains available independently of this inline row. */
+  showInlineSensitiveControl?: boolean;
   presentation?: 'default' | 'composer';
   countStyle?: 'fraction' | 'label';
   onPhotoLongPress?: (id: string) => void;
@@ -1005,7 +1008,8 @@ export function MediaGallery({
                 )
               : null}
           </div>
-          {items[carouselIndex]?.isSensitive === true &&
+          {showInlineSensitiveControl &&
+          items[carouselIndex]?.isSensitive === true &&
           (!directSensitiveToggle ||
             ((presentation === 'composer' ||
               items[carouselIndex]?.mediaType === MediaType.VIDEO) &&

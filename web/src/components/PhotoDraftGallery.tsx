@@ -154,6 +154,7 @@ export function PhotoDraftGallery({
         >
           <MediaGallery
             presentation={addAction ? 'composer' : 'default'}
+            showInlineSensitiveControl={!addAction}
             countStyle="label"
             resourceScopeKey={JSON.stringify([
               resourceScopeKey,
@@ -502,7 +503,7 @@ export function PhotoDraftGallery({
           </button>
         ) : null}
 
-        {onOrderChange && items.length > 1 ? (
+        {!addAction && onOrderChange && items.length > 1 ? (
           <button
             type="button"
             className="tertiary"
@@ -512,7 +513,7 @@ export function PhotoDraftGallery({
             {t('experiences.arrange')}
           </button>
         ) : null}
-        {onSelectCover && selectedCoverKey ? (
+        {!addAction && onSelectCover && selectedCoverKey ? (
           <button
             type="button"
             className="tertiary"

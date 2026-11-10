@@ -52,7 +52,7 @@ function Harness() {
   );
 }
 
-function renderComposer(initialItems = items) {
+function renderComposer(initialItems = items, composer = true) {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
   };
@@ -70,7 +70,9 @@ function renderComposer(initialItems = items) {
     return (
       <PhotoDraftGallery
         items={photos}
-        addAction={<button type="button">Add photos</button>}
+        addAction={
+          composer ? <button type="button">Add photos</button> : undefined
+        }
         selectedCoverKey={selectedCoverKey}
         onSelectCover={(key) => {
           cover(key);
@@ -110,8 +112,12 @@ function renderComposer(initialItems = items) {
   ];
   const keys = () => tiles().map((tile) => tile.dataset.mediaKey);
   const coverKey = () =>
-    strip().querySelector('.photo-draft-cover-star')?.closest('button')?.dataset
-      .mediaKey;
+    strip()
+      .querySelector(
+        '.photo-draft-cover-star, .photo-draft-cover-toggle[aria-pressed="true"]',
+      )
+      ?.closest('.photo-draft-frame')
+      ?.querySelector<HTMLButtonElement>('.photo-draft-tile')?.dataset.mediaKey;
   return {
     ...view,
     cover,
@@ -192,6 +198,13 @@ it('keeps composer stage controls present while thumbnail selection only changes
     }),
   ).toBeTruthy();
   expect(view.order).not.toHaveBeenCalled();
+  for (const name of ['experiences.arrange', 'experiences.automaticCover'])
+    expect(screen.queryByRole('button', { name: i18n.t(name) })).toBeNull();
+  expect(
+    chosen().querySelector(
+      '.media-gallery-carousel > .sensitive-media-control',
+    ),
+  ).toBeNull();
   expect(view.container.querySelector('button button')).toBeNull();
 });
 
@@ -259,8 +272,8 @@ it('retries the exact failed composer item on the stage without per-tile or dupl
   expect(screen.queryByRole('dialog')).toBeNull();
 });
 
-it('publishes arrangement only on Finish and resets explicit cover to the canonical first image', async () => {
-  const view = renderComposer();
+it('keeps legacy arrangement Cancel/Finish and automatic cover reset unchanged', async () => {
+  const view = renderComposer(items, false);
   const arrange = () =>
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('experiences.arrange') }),
@@ -309,9 +322,9 @@ it('publishes arrangement only on Finish and resets explicit cover to the canoni
   expect(view.coverKey()).toBe('third');
   fireEvent.click(view.tiles()[1]);
   fireEvent.click(
-    chosen().querySelector(
-      'button.photo-draft-stage-cover',
-    ) as HTMLButtonElement,
+    within(chosen()).getByRole('button', {
+      name: i18n.t('experiences.chooseCover'),
+    }),
   );
   expect(view.coverKey()).toBe('first');
   fireEvent.click(

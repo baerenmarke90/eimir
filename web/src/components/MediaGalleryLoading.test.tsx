@@ -6,8 +6,10 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import storyProducts from '../i18n/locales/storyProducts';
+import sensitiveMedia from '../i18n/locales/sensitiveMedia';
 import { MediaGallery, type GalleryMediaItem } from './MediaGallery';
 
 const labels = storyProducts.gallery;
@@ -292,6 +294,75 @@ it('follows fullscreen navigation and restores the carousel window after close',
     view.container.querySelector('.is-active img')?.getAttribute('src'),
   ).toBe('blob:0');
 });
+
+for (const inline of [false, true]) {
+  it(`opens concealed composer photos directly in fullscreen with inline controls ${inline}`, async () => {
+    const revoke = vi.fn();
+    vi.stubGlobal('URL', { revokeObjectURL: revoke });
+    const load = vi.fn(async (id: string) => `blob:${id}`);
+    const view = render(
+      <MediaGallery
+        presentation="composer"
+        showInlineSensitiveControl={inline ? undefined : false}
+        resourceScopeKey={`sensitive-composer-${inline}`}
+        items={[
+          { id: 'protected-photo', mediaType: 'IMAGE', isSensitive: true },
+        ]}
+        loadMedia={load}
+      />,
+    );
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+    const stage = view.container.querySelector<HTMLButtonElement>(
+      '.media-gallery-carousel-slide.is-active',
+    );
+    if (!stage) throw new Error('The native stage button must be available.');
+    await waitFor(() =>
+      expect(
+        stage
+          .querySelector('.sensitive-media-blurred img')
+          ?.getAttribute('src'),
+      ).toBe('blob:protected-photo'),
+    );
+    const inlineControl = () =>
+      view.container.querySelector(
+        '.media-gallery-carousel > .sensitive-media-control',
+      );
+    expect(Boolean(inlineControl())).toBe(inline);
+    if (inline)
+      expect(inlineControl()?.getAttribute('aria-label')).toBe(
+        sensitiveMedia.show,
+      );
+    stage.focus();
+    fireEvent.click(stage);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.querySelector('.sensitive-media-cover')).not.toBeNull();
+    expect(dialog.querySelector('.media-lightbox-photo')).toBeNull();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: sensitiveMedia.show }),
+    );
+    await waitFor(() =>
+      expect(
+        dialog.querySelector('.media-lightbox-photo img')?.getAttribute('src'),
+      ).toBe('blob:protected-photo'),
+    );
+    expect(dialog.querySelector('.sensitive-media-cover')).toBeNull();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: sensitiveMedia.hide }),
+    );
+    expect(dialog.querySelector('.sensitive-media-cover')).not.toBeNull();
+    expect(dialog.querySelector('.media-lightbox-photo')).toBeNull();
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(revoke).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(stage));
+    expect(stage.querySelector('.sensitive-media-cover')).not.toBeNull();
+    expect(Boolean(inlineControl())).toBe(inline);
+    expect(load).toHaveBeenCalledTimes(1);
+    view.unmount();
+    expect(revoke).toHaveBeenCalledWith('blob:protected-photo');
+  });
+}
 
 it('aborts out-of-window work and disposes late URLs without rendering them', async () => {
   const revoke = vi.fn();

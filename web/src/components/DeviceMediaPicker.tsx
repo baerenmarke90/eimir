@@ -1,7 +1,9 @@
-import { useContext, useRef } from 'react';
+import { type ReactNode, useContext, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
-import { AddActionButton } from './AddAction';
+import { MediaIntakeButton } from './MediaIntakeButton';
+import { containModalTabFocus } from './useModalLifecycle';
 import {
   useVideoUploadPolicy,
   type VideoCaptureContext,
@@ -16,6 +18,40 @@ interface Props {
   disabled: boolean;
   context?: VideoCaptureContext;
   onFiles: (files: FileList) => void;
+  inSourceChooser?: boolean;
+  actionContainer?: HTMLElement | null;
+}
+
+/** Keep the native input mounted while its action participates in the source sheet. */
+function renderActions(
+  props: Pick<Props, 'inSourceChooser' | 'actionContainer'>,
+  children: ReactNode,
+) {
+  return props.inSourceChooser
+    ? props.actionContainer
+      ? createPortal(
+          <fieldset
+            className="media-device-actions"
+            onKeyDown={(event) => {
+              // Portaled controls keep React ancestry with their native input.
+              // Reuse the sheet's key boundary before events reach that ancestry.
+              if (
+                event.key === 'Escape' ||
+                containModalTabFocus(
+                  event,
+                  event.currentTarget.closest('dialog'),
+                  { visibleOnly: true, wrapFromOutside: true },
+                )
+              )
+                event.stopPropagation();
+            }}
+          >
+            {children}
+          </fieldset>,
+          props.actionContainer,
+        )
+      : null
+    : children;
 }
 
 /** One platform picker; video eligibility changes its allowlist, not its owner. */
@@ -43,26 +79,31 @@ function EnabledDeviceMediaPicker(
           policy.data?.videoProcessingEnabled && policy.data.videoUploadAllowed,
         )}
       />
-      {policy.isPending ? (
-        <p role="status">{t('states.loading.title')}</p>
-      ) : null}
-      {policy.isError ? (
-        <div role="alert">
-          <p>{t('photoSources.videoAvailabilityUnavailable')}</p>
-          <button
-            type="button"
-            className="tertiary"
-            disabled={props.disabled || policy.isFetching}
-            onClick={() => void policy.refetch()}
-          >
-            {t('common.retry')}
-          </button>
-        </div>
-      ) : null}
-      {policy.data?.videoProcessingEnabled &&
-      !policy.data.videoUploadAllowed ? (
-        <VideoUploadAction {...props} context={context} />
-      ) : null}
+      {renderActions(
+        props,
+        <>
+          {policy.isPending ? (
+            <p role="status">{t('states.loading.title')}</p>
+          ) : null}
+          {policy.isError ? (
+            <div role="alert">
+              <p>{t('photoSources.videoAvailabilityUnavailable')}</p>
+              <button
+                type="button"
+                className="tertiary"
+                disabled={props.disabled || policy.isFetching}
+                onClick={() => void policy.refetch()}
+              >
+                {t('common.retry')}
+              </button>
+            </div>
+          ) : null}
+          {policy.data?.videoProcessingEnabled &&
+          !policy.data.videoUploadAllowed ? (
+            <VideoUploadAction {...props} context={context} />
+          ) : null}
+        </>,
+      )}
     </>
   );
 }
@@ -73,11 +114,15 @@ function DeviceInput({
   disabled,
   videos,
   onFiles,
+  inSourceChooser,
+  actionContainer,
 }: Props & { videos: boolean }) {
   const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
   return (
-    <div className="media-device-choice">
+    <div
+      className={`media-device-choice${inSourceChooser ? ' media-device-choice--chooser' : ''}`}
+    >
       <input
         ref={input}
         tabIndex={-1}
@@ -97,12 +142,18 @@ function DeviceInput({
           event.currentTarget.value = '';
         }}
       />
-      <AddActionButton
-        label={t('photoSources.addMedia')}
-        icon="foto"
-        disabled={disabled}
-        onClick={() => input.current?.click()}
-      />
+      {renderActions(
+        { inSourceChooser, actionContainer },
+        <MediaIntakeButton
+          label={t(
+            inSourceChooser ? 'photoSources.device' : 'photoSources.addMedia',
+          )}
+          icon="foto"
+          variant={inSourceChooser ? 'source' : 'entry'}
+          disabled={disabled}
+          onClick={() => input.current?.click()}
+        />,
+      )}
     </div>
   );
 }

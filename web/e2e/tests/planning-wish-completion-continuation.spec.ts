@@ -374,7 +374,7 @@ async function captureEvidence(
 }
 
 for (const scenario of visualScenarios) {
-  test(`Wish continuation frames authored fields and keeps utility controls tonal: ${scenario.name}`, async ({
+  test(`Wish continuation keeps authoring and utility controls soft and borderless: ${scenario.name}`, async ({
     page,
   }, info) => {
     await page.setViewportSize(scenario.viewport);
@@ -408,17 +408,7 @@ for (const scenario of visualScenarios) {
     ]) {
       const control = page.locator(selector);
       await expect(control).toBeVisible();
-      const border = await control.evaluate(
-        (node) => getComputedStyle(node).borderTopWidth,
-      );
-      const authored =
-        selector === '#wish-plan-title' ||
-        selector === '#wish-plan-description';
-      const role = await control.evaluate(
-        (node, name) => getComputedStyle(node).getPropertyValue(name),
-        authored ? '--border-authored-width' : '--border-control-width',
-      );
-      expect(parseFloat(border)).toBe(parseFloat(role));
+      await expect(control).toHaveCSS('border-top-width', '0px');
       expect(
         await control.evaluate(
           (node) => getComputedStyle(node).backgroundColor,
@@ -455,7 +445,7 @@ for (const scenario of visualScenarios) {
       await page.emulateMedia({ forcedColors: 'none' });
       await expect(page.locator('#wish-plan-description')).toHaveCSS(
         'border-top-width',
-        '1px',
+        '0px',
       );
       await expect(page.locator('#wish-plan-place')).toHaveCSS(
         'border-top-width',

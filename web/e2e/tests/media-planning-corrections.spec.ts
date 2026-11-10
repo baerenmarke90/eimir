@@ -1,3 +1,6 @@
+import { expectMediaIntakeAction } from '../support/mediaIntake';
+import sources from '../../src/i18n/locales/photoSources';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -644,6 +647,180 @@ test.describe('free composer media preservation', () => {
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
       expect(state.bound).toHaveLength(2);
       expect(state.cover).toBe(state.bound[1]);
+    });
+  }
+});
+
+test.describe('integrated soft media choices', () => {
+  for (const scenario of [
+    { width: 360, theme: 'light', large: false },
+    { width: 390, theme: 'dark', large: false },
+    { width: 430, theme: 'light', large: false },
+    { width: 1280, theme: 'dark', large: false },
+    { width: 320, theme: 'light', large: true },
+  ] as const) {
+    test(`writing and media share one accessible composer at ${scenario.width} ${scenario.theme}`, async ({
+      page,
+    }, info) => {
+      test.setTimeout(60_000);
+      await page.setViewportSize({ width: scenario.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: scenario.theme,
+        reducedMotion: 'reduce',
+      });
+      const { plans } = await setup(page);
+      await page.route(`**/api/v1/spaces/${SPACE_ID}/photo-sources`, (route) =>
+        route.fulfill({
+          json: {
+            enabled: true,
+            canImport: true,
+            googleAvailable: true,
+            immichConnected: true,
+          },
+        }),
+      );
+      await signIn(page);
+      for (const [index, route] of [
+        '/story/memories/new',
+        '/story/memories/mem-canal/edit',
+        '/plan/plans/new',
+        `/plan/plans/${plans[0].id}`,
+      ].entries()) {
+        await page.goto(route);
+        if (index === 3)
+          await page
+            .getByRole('button', { name: m5s3.common.edit, exact: true })
+            .click();
+        if (scenario.large)
+          await page.evaluate(() => {
+            document.documentElement.style.fontSize = '200%';
+          });
+        const composer = page.locator('.composer-content');
+        await expect(composer).toHaveCount(1);
+        const entry = composer.getByRole('button', {
+          name: sources.addMedia,
+          exact: true,
+        });
+        await expectMediaIntakeAction(entry, 'foto');
+        await expect(composer.locator('.media-action-group')).toHaveCount(1);
+        await expect(
+          composer.locator(
+            '.media-action-group-label, .media-intake-description, .media-intake-pro',
+          ),
+        ).toHaveCount(0);
+        await expect(composer.locator('.media-action-group')).toHaveCSS(
+          'background-color',
+          'rgba(0, 0, 0, 0)',
+        );
+        await expect(
+          composer.getByRole('button', { name: sources.more, exact: true }),
+        ).toHaveCount(0);
+        for (const surface of [
+          composer,
+          composer.locator('.composer-writing-surface'),
+          entry,
+        ])
+          await expect(surface).toHaveCSS('border-top-width', '0px');
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth + 1,
+          ),
+        ).toBe(true);
+        const prose = composer.getByRole('textbox', {
+          name: de.memory.bodyLabel,
+          exact: true,
+        });
+        if (index === 0) {
+          await prose.fill(copy.description);
+          await expect(prose).toHaveCSS('outline-style', 'solid');
+          await expect(prose).toHaveCSS('outline-width', '2px');
+        }
+        await entry.press('Enter');
+        const sheet = page.getByRole('dialog', {
+          name: sources.addMedia,
+          exact: true,
+        });
+        await expect(sheet).toBeVisible();
+        const device = sheet.getByRole('button', {
+          name: sources.device,
+          exact: true,
+        });
+        const google = sheet.getByRole('button', {
+          name: sources.google,
+          exact: true,
+        });
+        const immich = sheet.getByRole('button', {
+          name: sources.immich,
+          exact: true,
+        });
+        for (const [action, icon] of [
+          [device, 'foto'],
+          [google, 'photo-library'],
+          [immich, 'photo-library'],
+        ] as const)
+          await expectMediaIntakeAction(action, icon);
+        await expect(device.locator('.media-intake-pro')).toHaveCount(0);
+        await expect(google.locator('.media-intake-pro')).toHaveCount(1);
+        await expect(immich.locator('.media-intake-pro')).toHaveCount(1);
+        expect(
+          await sheet.evaluate(
+            (element) => element.scrollWidth <= element.clientWidth + 1,
+          ),
+        ).toBe(true);
+        if (index === 0) {
+          await page.keyboard.press('Tab');
+          await expect(sheet.locator('.short-task-sheet-body')).toBeFocused();
+          await page.keyboard.press('Tab');
+          await expect(device).toBeFocused();
+          await expect(device).toHaveCSS('outline-style', 'solid');
+          const chooser = page.waitForEvent('filechooser');
+          await device.press('Enter');
+          await (await chooser).setFiles([]);
+          await expect(sheet).toBeVisible();
+          await expect(device).toBeFocused();
+          const axe = await new AxeBuilder({ page })
+            .include('.photo-source-sheet')
+            .analyze();
+          expect(axe.violations).toEqual([]);
+          await captureScreenshot(
+            page,
+            info,
+            `shell-unified-source-choice-${scenario.width}-${scenario.theme}.png`,
+            { fullPage: true },
+          );
+          await page.emulateMedia({ forcedColors: 'active' });
+          for (const action of [device, google, immich])
+            await expect(action).toHaveCSS('border-top-width', '1px');
+          await page.emulateMedia({ forcedColors: 'none' });
+        }
+        await sheet
+          .getByRole('button', { name: taskSheets.close, exact: true })
+          .last()
+          .click();
+        await expect(sheet).toHaveCount(0);
+        await expect(entry).toBeFocused();
+        if (index === 0) {
+          await expect(prose).toHaveValue(copy.description);
+          await page.emulateMedia({ forcedColors: 'active' });
+          for (const control of [prose, entry])
+            await expect(control).toHaveCSS('border-top-width', '1px');
+          await page.emulateMedia({ forcedColors: 'none' });
+          await page.locator('.composer-header h1').click();
+          expect(
+            (await new AxeBuilder({ page }).include('.free-composer').analyze())
+              .violations,
+          ).toEqual([]);
+        }
+        const surface = ['', '-memory-edit', '-plan-create', '-plan-edit'][
+          index
+        ];
+        await captureScreenshot(
+          page,
+          info,
+          `shell-soft-composer${surface}-${scenario.width}-${scenario.theme}.png`,
+          { fullPage: true },
+        );
+      }
     });
   }
 });

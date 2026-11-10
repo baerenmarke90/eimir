@@ -10,6 +10,7 @@ import taskSheets from '../../src/i18n/locales/taskSheets';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -691,6 +692,7 @@ test('source selection waits for video eligibility and preserves photo fallback 
   await body.fill(momentBody);
   const input = page.locator('#memory-create-images');
   await expect(input).toBeDisabled();
+  const sources = await openComposerMediaSources(page);
   release();
   await expect(
     page.getByText(photoSources.videoAvailabilityUnavailable, { exact: true }),
@@ -703,7 +705,15 @@ test('source selection waits for video eligibility and preserves photo fallback 
     .click();
   await expect(input).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
   expect(requests).toBe(2);
+  await expect(sources).toBeVisible();
+  await sources
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .last()
+    .click();
   await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+  ).toBeFocused();
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);
 });

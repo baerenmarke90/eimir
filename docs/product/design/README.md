@@ -111,3 +111,7 @@ the affected #1715 story/planning composition while retaining its domain owners.
 records the approved profile-first workflow, whole-avatar viewing, shared-only
 people and the dedicated occasions mode in Planning. This explicit PO decision
 supersedes person audience selection and the former combined People/date page.
+
+[Soft composers and integrated media intake (#1726)](references/soft-composer/README.md)
+records the later borderless writing surfaces and grouped full-width media
+choices, retaining the quiet task header and existing attachment lifecycles.

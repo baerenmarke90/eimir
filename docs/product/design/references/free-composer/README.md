@@ -41,6 +41,14 @@ labels, form ownership, constraints, recovery and all media/tag functions below
 remain binding. HeartMoment writing/reading cards use the full selected feeling
 surface. Other capture types retain this document's existing presentation.
 
+### Scoped follow-up: soft surfaces and integrated media (#1726)
+
+The Product Owner's 2026-11-10 [soft-composer correction](../soft-composer/README.md)
+removes idle authored outlines and integrates media into the writing composition.
+Device/external sources use soft full-width choices. This supersedes the original
+visible-frame and media-pill presentation below, while retaining focus,
+forced-colors, field labels, native semantics and all domain/media owners.
+
 ### Original #1715 decisions
 
 - Use the current eimir. palette, self-hosted typography, material depth, glyphs

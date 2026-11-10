@@ -15,7 +15,7 @@ import contextTags from '../../src/i18n/locales/contextTags';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import photoSources from '../../src/i18n/locales/photoSources';
-import { expectLabeledAddAction } from '../support/addAction';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -464,7 +464,7 @@ for (const width of [390, 320] as const) {
         name: photoSources.addMedia,
         exact: true,
       });
-      await expectLabeledAddAction(picker, 'foto');
+      await expectMediaIntakeAction(picker, 'foto');
       await expect(media.locator('input[type="file"]')).toHaveCount(1);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
@@ -531,13 +531,22 @@ for (const width of [390, 320] as const) {
       expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
       // This Free fixture has no configured external source; retain that gate.
-      await expect(mediaGroup).toHaveCSS('border-top-style', 'solid');
+      await expect(mediaGroup).toHaveCSS('border-top-width', '0px');
+      await expect(
+        page.locator('.composer-content .media-action-group'),
+      ).toHaveCount(1);
       await expect(media.locator('.media-gallery')).toHaveCount(0);
       await expect(
         media.getByRole('button', { name: new RegExp(photoSources.more) }),
       ).toHaveCount(0);
-      expect(mediaBox.height).toBeLessThan(125);
-      expect(pickerBox.height).toBeLessThan(80);
+      await expect(mediaGroup.locator('.media-action-group-label')).toHaveCount(
+        0,
+      );
+      await expect(mediaGroup).toHaveCSS(
+        'background-color',
+        'rgba(0, 0, 0, 0)',
+      );
+      expect(mediaBox.height).toBeLessThanOrEqual(pickerBox.height + 1);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
       await expect(dateTrigger).toHaveAttribute('aria-haspopup', 'dialog');
       const dateInput = await showComposerDate(page);

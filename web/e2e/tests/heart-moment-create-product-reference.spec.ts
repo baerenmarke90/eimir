@@ -1,3 +1,4 @@
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -8,10 +9,11 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { expectNaturalTextReflow } from '../support/addAction';
 import {
-  expectLabeledAddAction,
-  expectReadableActionLabel,
-} from '../support/addAction';
+  expectMediaIntakeAction,
+  openComposerMediaSources,
+} from '../support/mediaIntake';
 import {
   closeComposerDate,
   expectReadableComposerHeader,
@@ -812,42 +814,29 @@ for (const colorScheme of ['light', 'dark'] as const) {
         name: photoSources.addMedia,
         exact: true,
       });
-      const sourceTrigger = media.getByRole('button', {
-        name: new RegExp(photoSources.more),
+      await expectMediaIntakeAction(mediaTrigger, 'foto');
+      await expect(media.locator('.photo-source-trigger')).toHaveCount(0);
+      const sourceSheet = await openComposerMediaSources(page);
+      const deviceChoice = sourceSheet.getByRole('button', {
+        name: photoSources.device,
+        exact: true,
       });
-      await expectLabeledAddAction(mediaTrigger, 'foto');
-      await expect(sourceTrigger).toBeVisible();
+      await expectMediaIntakeAction(deviceChoice, 'foto');
       await expect(
-        sourceTrigger.locator('.button-icon.eimir-icon-photo-library'),
+        sourceSheet.getByRole('button', {
+          name: photoSources.immich,
+          exact: true,
+        }),
       ).toBeVisible();
-      const deviceBox = await mediaTrigger.boundingBox();
-      const sourceBox = await sourceTrigger.boundingBox();
-      if (!deviceBox || !sourceBox)
-        throw new Error('Media source actions are missing.');
-      expect(
-        sourceBox.y - deviceBox.y - deviceBox.height,
-      ).toBeGreaterThanOrEqual(8);
-      const mediaLabelBox = await mediaTrigger
-        .locator('.add-action-label')
-        .boundingBox();
-      const iconBox = await mediaTrigger.locator('.button-icon').boundingBox();
-      if (!mediaLabelBox || !iconBox)
-        throw new Error('Media action icon or label is missing.');
-      const groupStart = Math.min(iconBox.x, mediaLabelBox.x);
-      const groupEnd = Math.max(
-        iconBox.x + iconBox.width,
-        mediaLabelBox.x + mediaLabelBox.width,
-      );
-      expect(
-        Math.abs(
-          (groupStart + groupEnd) / 2 - deviceBox.x - deviceBox.width / 2,
-        ),
-      ).toBeLessThanOrEqual(2);
-      await expect(sourceTrigger).toHaveCSS('justify-content', 'center');
       const nativeChooser = page.waitForEvent('filechooser');
-      await mediaTrigger.click();
+      await deviceChoice.click();
       await (await nativeChooser).setFiles([]);
-      await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
+      await expect(sourceSheet).toBeVisible();
+      await sourceSheet
+        .getByRole('button', { name: taskSheets.close, exact: true })
+        .last()
+        .click();
+      await expect(mediaTrigger).toBeFocused();
       await expect(photoInput).toBeAttached();
       await expect(photoInput).not.toHaveAttribute('required', '');
 
@@ -1033,8 +1022,11 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
     });
     await expectNoHorizontalOverflow(page);
     await expectReadableComposerHeader(page);
-    await expectReadableActionLabel(
-      page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+    await expectNaturalTextReflow(
+      page
+        .getByRole('button', { name: photoSources.addMedia, exact: true })
+        .locator('.media-intake-label'),
+      2,
     );
 
     const [largeTextPrivateBox, largeTextSharedBox] = await Promise.all([

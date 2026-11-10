@@ -31,7 +31,6 @@ function ruleBlock(css: string, selector: string): string {
 const layoutCss = readSource('./layout.css');
 const shellCss = readSource('./shell.css');
 const stylesCss = readSource('./styles.css');
-const composerCss = readSource('./components/FreeComposer.css');
 const commentsCss = readSource('./components/CommentsPanel.css');
 const timelineProgressiveCss = readSource(
   './components/StoryTimelineProgressive.css',
@@ -347,16 +346,5 @@ describe('shared form controls', () => {
     expect(stylesCss).toContain(
       '.form-grid > label:not(.choice-row),\n.field-group > label:first-child:not(.choice-row)',
     );
-  });
-});
-
-describe('Approved authored-field role (#1715)', () => {
-  it('keeps the explicit authored frame separate from ordinary control frames', () => {
-    expect(productRolesCss).toContain('--border-authored-width: 1px');
-    expect(productRolesCss).toContain('--border-control-width: 0px');
-    expect(composerCss).toContain(
-      'border: var(--border-authored-width) solid var(--color-border)',
-    );
-    expect(composerCss).toContain('outline: 2px solid var(--color-focus)');
   });
 });

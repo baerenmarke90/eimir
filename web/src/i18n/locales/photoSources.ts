@@ -4,6 +4,8 @@ const photoSources = {
   connected: 'Immich ist verbunden.',
   configureInSettings: 'Verbinde Immich unter Einstellungen › Medienquellen.',
   addMedia: 'Medien hinzufügen',
+  mediaLabel: 'Medien',
+  deviceMediaHint: 'Fotos und Videos',
   device: 'Vom Gerät auswählen',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',
   previewFailed: 'Vorschau fehlt',

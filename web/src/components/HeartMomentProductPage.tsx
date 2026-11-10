@@ -7,6 +7,7 @@ import {
 import {
   type FormEvent,
   type Ref,
+  type ReactNode,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -933,57 +934,58 @@ export function HeartMomentProductPage({
                 </fieldset>
               </details>
             </div>
-            <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface">
-              <label htmlFor="heart-moment-text">
-                {t('heartMomentProduct.textLabel')}
-              </label>
-              <textarea
-                id="heart-moment-text"
-                name="text"
-                value={createText}
-                onChange={(event) => setCreateText(event.target.value)}
-                rows={4}
-                maxLength={4000}
-                placeholder={t('heartMomentProduct.textPlaceholder')}
-                className="immersive-create-title-multiline"
-              />
-            </div>
+            <div className="composer-content">
+              <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface">
+                <label htmlFor="heart-moment-text">
+                  {t('heartMomentProduct.textLabel')}
+                </label>
+                <textarea
+                  id="heart-moment-text"
+                  name="text"
+                  value={createText}
+                  onChange={(event) => setCreateText(event.target.value)}
+                  rows={4}
+                  maxLength={4000}
+                  placeholder={t('heartMomentProduct.textPlaceholder')}
+                  className="immersive-create-title-multiline"
+                />
+              </div>
 
-            <div className="heart-moment-create-field-grid">
-              <div className="heart-moment-create-emotion-picker">
-                <HeartEmotionPicker
-                  compact
-                  legend={t('heartMomentProduct.emotionLabel')}
-                  idPrefix="heart-moment-create-emotion"
+              <div className="heart-moment-create-field-grid">
+                <div className="heart-moment-create-emotion-picker">
+                  <HeartEmotionPicker
+                    compact
+                    legend={t('heartMomentProduct.emotionLabel')}
+                    idPrefix="heart-moment-create-emotion"
+                  />
+                </div>
+              </div>
+
+              <div className="heart-moment-create-media">
+                <PlanPhotosEditor
+                  additionalActions={
+                    <VoiceNoteEditor
+                      voice={voice}
+                      apis={apis}
+                      spaceId={spaceId}
+                      disabled={createMutation.isPending}
+                      onChange={() => setFormDirty(true)}
+                    />
+                  }
+                  controller={photos}
+                  spaceId={spaceId}
+                  parentType="HEART_MOMENT"
+                  disabled={createMutation.isPending}
+                  canUpload
+                  onChange={() => setFormDirty(true)}
+                  photoSourceContext={{
+                    apiBaseUrl,
+                    accessToken,
+                    accountId: currentAccountId,
+                  }}
                 />
               </div>
             </div>
-
-            <div className="heart-moment-create-media">
-              <PlanPhotosEditor
-                additionalActions={
-                  <VoiceNoteEditor
-                    voice={voice}
-                    apis={apis}
-                    spaceId={spaceId}
-                    disabled={createMutation.isPending}
-                    onChange={() => setFormDirty(true)}
-                  />
-                }
-                controller={photos}
-                spaceId={spaceId}
-                parentType="HEART_MOMENT"
-                disabled={createMutation.isPending}
-                canUpload
-                onChange={() => setFormDirty(true)}
-                photoSourceContext={{
-                  apiBaseUrl,
-                  accessToken,
-                  accountId: currentAccountId,
-                }}
-              />
-            </div>
-
             <div className="composer-enrichment">
               {createVisibility === ContentVisibility.PRIVATE ||
               createLocation ? (
@@ -1202,33 +1204,34 @@ export function HeartMomentProductPage({
               heartMoment={heartMoment}
               dateContextRef={dateContextRef}
               onDateChange={() => setFormDirty(true)}
-            />
-            <PlanPhotosEditor
-              additionalActions={
-                <VoiceNoteEditor
-                  voice={voice}
-                  apis={apis}
-                  spaceId={spaceId}
-                  momentId={heartMomentId}
-                  canManageExisting={heartMoment.capabilities.canDelete}
-                  disabled={updateMutation.isPending}
-                  onChange={() => setFormDirty(true)}
-                />
-              }
-              controller={photos}
-              spaceId={spaceId}
-              planId={heartMoment.id}
-              parentType="HEART_MOMENT"
-              disabled={updateMutation.isPending}
-              canUpload
-              canManageExisting={heartMoment.capabilities.canDelete}
-              onChange={() => setFormDirty(true)}
-              photoSourceContext={{
-                apiBaseUrl,
-                accessToken,
-                accountId: currentAccountId,
-              }}
-            />
+            >
+              <PlanPhotosEditor
+                additionalActions={
+                  <VoiceNoteEditor
+                    voice={voice}
+                    apis={apis}
+                    spaceId={spaceId}
+                    momentId={heartMomentId}
+                    canManageExisting={heartMoment.capabilities.canDelete}
+                    disabled={updateMutation.isPending}
+                    onChange={() => setFormDirty(true)}
+                  />
+                }
+                controller={photos}
+                spaceId={spaceId}
+                planId={heartMoment.id}
+                parentType="HEART_MOMENT"
+                disabled={updateMutation.isPending}
+                canUpload
+                canManageExisting={heartMoment.capabilities.canDelete}
+                onChange={() => setFormDirty(true)}
+                photoSourceContext={{
+                  apiBaseUrl,
+                  accessToken,
+                  accountId: currentAccountId,
+                }}
+              />
+            </HeartMomentFields>
             {heartMoment.visibility === ContentVisibility.PRIVATE ||
             editLocation ? (
               <HeartMomentLocationField
@@ -1606,10 +1609,12 @@ export function HeartMomentProductPage({
 }
 
 function HeartMomentFields({
+  children,
   heartMoment,
   dateContextRef,
   onDateChange,
 }: {
+  children: ReactNode;
   heartMoment?: HeartMomentDetail;
   dateContextRef: Ref<ComposerDateContextHandle>;
   onDateChange: () => void;
@@ -1629,25 +1634,28 @@ function HeartMomentFields({
         }
         onChange={onDateChange}
       />
-      <div className="field-group composer-writing-surface">
-        <label htmlFor="heart-moment-text">
-          {t('heartMomentProduct.textLabel')}
-        </label>
-        <textarea
-          id="heart-moment-text"
-          name="text"
-          rows={5}
-          maxLength={4000}
-          defaultValue={heartMoment?.text ?? ''}
-          placeholder={t('heartMomentProduct.textPlaceholder')}
+      <div className="composer-content">
+        <div className="field-group composer-writing-surface">
+          <label htmlFor="heart-moment-text">
+            {t('heartMomentProduct.textLabel')}
+          </label>
+          <textarea
+            id="heart-moment-text"
+            name="text"
+            rows={5}
+            maxLength={4000}
+            defaultValue={heartMoment?.text ?? ''}
+            placeholder={t('heartMomentProduct.textPlaceholder')}
+          />
+        </div>
+        <HeartEmotionPicker
+          compact
+          legend={t('heartMomentProduct.emotionLabel')}
+          defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
+          idPrefix="heart-moment-edit-emotion"
         />
+        {children}
       </div>
-      <HeartEmotionPicker
-        compact
-        legend={t('heartMomentProduct.emotionLabel')}
-        defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
-        idPrefix="heart-moment-edit-emotion"
-      />
     </>
   );
 }

@@ -413,56 +413,58 @@ export function PlanningCreatePage({
               />
             </div>
           ) : null}
-          <div className="composer-writing-surface">
-            <div className="field-group planning-intention-field">
-              <label htmlFor="planning-create-title">
-                {t(
-                  isPlan
-                    ? 'm5s3.plan.intentionLabel'
-                    : 'm5s3.wish.intentionLabel',
-                )}
-              </label>
-              <input
-                id="planning-create-title"
-                name="title"
-                required
-                maxLength={200}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder={t('m5s3.common.title')}
-              />
-            </div>
-
-            {isPlan ? (
-              <div className="field-group">
-                <label htmlFor="planning-create-description">
-                  {t('m5s3.common.description')}
+          <div className="composer-content">
+            <div className="composer-writing-surface">
+              <div className="field-group planning-intention-field">
+                <label htmlFor="planning-create-title">
+                  {t(
+                    isPlan
+                      ? 'm5s3.plan.intentionLabel'
+                      : 'm5s3.wish.intentionLabel',
+                  )}
                 </label>
-                <textarea
-                  id="planning-create-description"
-                  name="description"
-                  rows={4}
-                  placeholder={t('m5s3.common.description')}
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
+                <input
+                  id="planning-create-title"
+                  name="title"
+                  required
+                  maxLength={200}
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder={t('m5s3.common.title')}
                 />
               </div>
+
+              {isPlan ? (
+                <div className="field-group">
+                  <label htmlFor="planning-create-description">
+                    {t('m5s3.common.description')}
+                  </label>
+                  <textarea
+                    id="planning-create-description"
+                    name="description"
+                    rows={4}
+                    placeholder={t('m5s3.common.description')}
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                  />
+                </div>
+              ) : null}
+            </div>
+            {isPlan ? (
+              <PlanPhotosEditor
+                controller={photos}
+                spaceId={spaceId}
+                disabled={pending}
+                canUpload={Boolean(apiBaseUrl && accessToken)}
+                photoSourceContext={
+                  apiBaseUrl && accessToken && accountId
+                    ? { apiBaseUrl, accessToken, accountId }
+                    : undefined
+                }
+                onChange={() => setEnrichmentDirty(true)}
+              />
             ) : null}
           </div>
-          {isPlan ? (
-            <PlanPhotosEditor
-              controller={photos}
-              spaceId={spaceId}
-              disabled={pending}
-              canUpload={Boolean(apiBaseUrl && accessToken)}
-              photoSourceContext={
-                apiBaseUrl && accessToken && accountId
-                  ? { apiBaseUrl, accessToken, accountId }
-                  : undefined
-              }
-              onChange={() => setEnrichmentDirty(true)}
-            />
-          ) : null}
           <div className="composer-enrichment">
             {isPlan ? (
               <div className="planning-place-choice">

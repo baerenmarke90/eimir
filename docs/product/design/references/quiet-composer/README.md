@@ -40,8 +40,10 @@ explicitly excluded new features, decorations, palettes, and changed controls.
 - Title and prose share one bounded writing surface but remain distinct,
   labeled native fields with their existing names, constraints and handlers.
   Title and prose precede media. The Plan note precedes linked Lists.
-- Media intake retains one shared frame, including HeartMoment voice intake.
-  Canonical blue plus-label Add actions remain visible. Populated media retain
+- Media intake retains one shared group, including HeartMoment voice intake.
+  The later [soft-composer correction #1726](../soft-composer/README.md) moves
+  this group inside the writing composition and uses full-width soft source
+  choices in place of blue device/external intake pills. Populated media retain
   their original pixels, source owners and complete interaction behavior.
 - Empty tag entry is disclosed by the canonical Add action. Selected removable
   chips remain visible. The opened input uses the full available width; Enter,

@@ -489,3 +489,10 @@ button.composer-chip {
   font: var(--font-action-label);
   letter-spacing: normal;
 }
+
+.page-composer .photo-draft-cover-label {
+  pointer-events: none;
+}
+.page-composer .composer-photo-draft.is-managing .photo-draft-cover-label {
+  display: none;
+}

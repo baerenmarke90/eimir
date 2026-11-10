@@ -350,8 +350,9 @@ button.composer-chip {
   display: none;
 }
 .page-composer .composer-photo-draft.is-managing .photo-draft-grid > li {
-  flex-basis: calc(var(--touch-target-web) * 2 + var(--space-2));
-  inline-size: calc(var(--touch-target-web) * 2 + var(--space-2));
+  flex-basis: calc(var(--touch-target-web) * 3);
+  inline-size: calc(var(--touch-target-web) * 3);
+  max-inline-size: 100%;
 }
 .page-composer .photo-draft-number {
   display: none;
@@ -515,4 +516,8 @@ body:has(.page-composer)
   background: var(--color-background);
   color: var(--color-link-text);
   box-shadow: none;
+}
+
+.page-composer .composer-photo-draft .photo-draft-tile {
+  aspect-ratio: 1;
 }

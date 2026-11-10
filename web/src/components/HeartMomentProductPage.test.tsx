@@ -855,6 +855,139 @@ describe('Heart Moment view receipt', () => {
 });
 
 describe('Completed Plan handoff to HeartMoment', () => {
+  it('leaves an unchanged editor clean after confirming capture from a source Place', async () => {
+    const place = {
+      id: 'place-1',
+      name: 'Bostalsee',
+      address: 'Am See',
+      latitude: 49.56,
+      longitude: 7.07,
+    } as PlaceDetail;
+    vi.spyOn(PlansApi.prototype, 'getPlan').mockResolvedValue({
+      id: 'plan-1',
+      spaceId: 'space-1',
+      status: 'COMPLETED',
+      title: 'Our day',
+      description: 'Quiet by the water',
+      experiencedOn: new Date('2026-11-08T00:00:00Z'),
+      placeId: place.id,
+      capabilities: { canEdit: true },
+    } as PlanDetail);
+    vi.spyOn(PlacesApi.prototype, 'getPlace').mockResolvedValue(place);
+    vi.spyOn(PlacesApi.prototype, 'listMomentPlaces').mockResolvedValue({
+      items: [place],
+      nextCursor: null,
+      hasMore: false,
+    });
+    vi.spyOn(
+      StoryPlanningRelationsApi.prototype,
+      'listHeartMomentPlans',
+    ).mockResolvedValue({ items: ['plan-1'] });
+    vi.spyOn(
+      StoryPlanningRelationsApi.prototype,
+      'linkHeartMomentPlan',
+    ).mockResolvedValue(undefined);
+    const saved = { ...heartMoment, text: 'Quiet by the water' };
+    const createHeartMoment = vi.fn().mockResolvedValue(saved);
+    const updateHeartMoment = vi.fn();
+    const apis = {
+      heartMoments: {
+        createHeartMoment,
+        updateHeartMoment,
+        getHeartMoment: vi.fn().mockResolvedValue(saved),
+      },
+      story: { recordStoryView: vi.fn().mockResolvedValue(undefined) },
+      comments: {
+        listHeartMomentComments: vi.fn().mockResolvedValue({
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        }),
+      },
+    } as unknown as ReferenceApis;
+    function CaptureLifecycle() {
+      const { pathname } = useLocation();
+      const mode = pathname.endsWith('/new')
+        ? 'create'
+        : pathname.endsWith('/edit')
+          ? 'edit'
+          : 'detail';
+      return (
+        <HeartMomentProductPage
+          mode={mode}
+          apis={apis}
+          apiBaseUrl="https://example.test"
+          accessToken="token"
+          spaceId="space-1"
+          currentAccountId="account-1"
+          loadAttachment={async () => 'blob:test-image'}
+        />
+      );
+    }
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/story/heart-moments/new',
+              state: {
+                sourcePlan: {
+                  id: 'plan-1',
+                  spaceId: 'space-1',
+                  accountId: 'account-1',
+                  instance: 'https://example.test',
+                },
+              },
+            },
+          ]}
+        >
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <Routes>
+              <Route
+                path="/story/heart-moments/:heartMomentId/*"
+                element={<CaptureLifecycle />}
+              />
+            </Routes>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await screen.findByRole('button', { name: place.name });
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    const edit = await screen.findByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+    });
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+    expect(createHeartMoment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heartMomentCreate: expect.objectContaining({ placeId: place.id }),
+      }),
+    );
+    await user.click(edit);
+    await screen.findByRole('heading', {
+      level: 1,
+      name: storyProducts.heartMomentProduct.editHeading,
+    });
+    await user.click(screen.getByRole('link', { name: taskBoundary.back }));
+    await screen.findByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+    });
+    expect(screen.queryByText(taskBoundary.discardTitle)).toBeNull();
+    expect(updateHeartMoment).not.toHaveBeenCalled();
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+  });
+
   it.each(['PRIVATE', 'SHARED'] as const)(
     'retains the source Place with %s privacy',
     async (visibility) => {

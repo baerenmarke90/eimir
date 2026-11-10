@@ -820,9 +820,10 @@ export function HeartMomentProductPage({
     isDirty:
       !deleteMutation.isPending &&
       (formDirty ||
-        Boolean(createPlace) ||
-        Boolean(createLocation) ||
-        planningTargets.length > 0 ||
+        (mode === 'create' &&
+          (Boolean(createPlace) ||
+            Boolean(createLocation) ||
+            planningTargets.length > 0)) ||
         photos.items.some((item) => item.draft !== undefined) ||
         Boolean(voice.draft)),
     isCloseBlocked:

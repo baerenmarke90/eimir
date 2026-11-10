@@ -3,6 +3,7 @@ import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
+import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import m5s3 from '../../src/i18n/locales/m5s3';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -10,6 +11,7 @@ import {
   expectInlineAddLayout,
   expectLabeledAddAction,
   expectReadableActionLabel,
+  expectNaturalTextReflow,
 } from '../support/addAction';
 import { showContextTags, showHeartAudience } from '../support/memoryDiary';
 import {
@@ -347,6 +349,23 @@ for (const destination of [
       document.documentElement.style.fontSize = '200%';
     });
     await tagGeometry(page);
+    if (destination === '/story/heart-moments/new') {
+      await showHeartAudience(page);
+      await page.screenshot({
+        path: info.outputPath('shell-1695-heart-choice-large-audience.png'),
+        fullPage: true,
+      });
+      for (const label of await page
+        .locator('.heart-moment-create-visibility-option strong')
+        .all())
+        await expectNaturalTextReflow(label, 2);
+      await page.locator('.composer-audience > summary').click();
+      await page.locator('.heart-emotion-disclosure > summary').click();
+      for (const label of await page
+        .locator('.heart-emotion-choice-label')
+        .all())
+        await expectNaturalTextReflow(label, 2);
+    }
     if (destination === '/plan/plans/new') {
       await expectLabeledAddAction(
         page.getByRole('button', { name: photoPlaces.add, exact: true }),
@@ -358,5 +377,129 @@ for (const destination of [
       ),
       fullPage: true,
     });
+  });
+}
+
+for (const variant of [
+  { width: 320, theme: 'light', locale: 'de' },
+  { width: 320, theme: 'dark', locale: 'en' },
+  { width: 1280, theme: 'light', locale: 'en' },
+  { width: 1280, theme: 'dark', locale: 'de' },
+] as const) {
+  test(`Heart Moment choices remain readable through save/read/edit at 200%: ${variant.width} ${variant.theme} ${variant.locale}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: variant.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: variant.theme,
+      reducedMotion: 'reduce',
+    });
+    const result = await setup(page);
+    await page.route('**/api/v1/auth/me', (route) =>
+      route.fulfill({
+        json: {
+          ...ME,
+          languagePreference: variant.locale,
+          locale: variant.locale,
+          languageVersion: 1,
+        },
+      }),
+    );
+    await page.route('**/api/v1/account/language-preference', (route) =>
+      route.fulfill({
+        json: {
+          preference: variant.locale,
+          effectiveLocale: variant.locale,
+          version: 1,
+        },
+        headers: { ETag: '"1"' },
+      }),
+    );
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.documentElement.style.fontSize = '200%';
+      });
+    });
+    await page.goto('/story/heart-moments/new');
+    await expect(page.locator('html')).toHaveAttribute('lang', variant.locale);
+    const copy =
+      variant.locale === 'en'
+        ? en.heartMomentProduct
+        : storyProducts.heartMomentProduct;
+    const emotions =
+      variant.locale === 'en' ? en.heartEmotion : storyProducts.heartEmotion;
+    await page
+      .getByRole('textbox', { name: copy.textLabel, exact: true })
+      .fill('A quiet thought worth keeping');
+    await showHeartAudience(page);
+    for (const label of await page
+      .locator('.heart-moment-create-visibility-option strong')
+      .all())
+      await expectNaturalTextReflow(label, 2);
+    await page.screenshot({
+      path: info.outputPath('shell-1695-heart-choice-audience.png'),
+      fullPage: true,
+    });
+    await page
+      .getByRole('radio', { name: copy.visibilityPrivate, exact: true })
+      .check();
+    await page.locator('.heart-emotion-disclosure > summary').click();
+    for (const label of await page.locator('.heart-emotion-choice-label').all())
+      await expectNaturalTextReflow(label, 2);
+    await page
+      .getByRole('radio', { name: emotions.APPRECIATED, exact: true })
+      .check();
+    await page
+      .getByRole('radio', { name: emotions.APPRECIATED, exact: true })
+      .press('ArrowRight');
+    await expect(
+      page.getByRole('radio', { name: emotions.SUPPORTED, exact: true }),
+    ).toBeChecked();
+    await page.screenshot({
+      path: info.outputPath('shell-1695-heart-choice-emotion.png'),
+      fullPage: true,
+    });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.getByRole('button', { name: copy.save, exact: true }).click();
+    await expect(page).toHaveURL(/\/story\/heart-moments\/private-heart$/);
+    expect(result.mutations[0]).toMatchObject({
+      visibility: 'PRIVATE',
+      emotion: 'SUPPORTED',
+    });
+    await expect(page.locator('.heart-emotion-badge--detail')).toContainText(
+      emotions.SUPPORTED,
+    );
+    await page.reload();
+    await expect(page.locator('.heart-emotion-badge--detail')).toContainText(
+      emotions.SUPPORTED,
+    );
+    await page.goto('/story/heart-moments/private-heart/edit');
+    await page.locator('.heart-emotion-disclosure > summary').click();
+    await expect(
+      page.getByRole('radio', { name: emotions.SUPPORTED, exact: true }),
+    ).toBeChecked();
+    for (const label of await page.locator('.heart-emotion-choice-label').all())
+      await expectNaturalTextReflow(label, 2);
+    await page
+      .getByRole('radio', { name: emotions.SUPPORTED, exact: true })
+      .press('ArrowRight');
+    await expect(
+      page.getByRole('radio', { name: emotions.GRATEFUL, exact: true }),
+    ).toBeChecked();
+    await page.screenshot({
+      path: info.outputPath('shell-1695-heart-choice-edit.png'),
+      fullPage: true,
+    });
+    await page.getByRole('button', { name: copy.save, exact: true }).click();
+    await expect(page).toHaveURL(/\/story\/heart-moments\/private-heart$/);
+    expect(result.mutations.at(-1)).toMatchObject({ emotion: 'GRATEFUL' });
+    await expect(page.locator('.heart-emotion-badge--detail')).toContainText(
+      emotions.GRATEFUL,
+    );
+    expect(result.sharedWrites()).toBe(0);
   });
 }

@@ -62,6 +62,7 @@ export function VoiceNoteEditor({
         <VoiceNotePlayer
           src={draft.previewUrl}
           title={t('voiceNotes.title')}
+          defaultTitle
           duration={draft.durationSeconds}
         />
       ) : voice.existing && momentId ? (

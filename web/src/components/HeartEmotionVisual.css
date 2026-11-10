@@ -652,7 +652,7 @@ body:has(.heart-emotion-page)
   margin-block-end: var(--space-2);
   font: var(--font-supporting-copy);
 }
-.heart-emotion-page .voice-player-title {
+.heart-emotion-page .voice-player-title[data-default-title] {
   position: absolute;
   inline-size: 1px;
   block-size: 1px;
@@ -661,4 +661,8 @@ body:has(.heart-emotion-page)
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.heart-emotion-page.page-composer .composer-content {
+  gap: var(--space-3);
 }

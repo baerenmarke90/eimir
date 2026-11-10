@@ -82,6 +82,7 @@ export function SavedVoiceNote({
       <VoiceNotePlayer
         src={resource.url}
         title={title || t('voiceNotes.title')}
+        defaultTitle={!title}
         speaker={speaker}
         duration={attachment.durationSeconds}
       />

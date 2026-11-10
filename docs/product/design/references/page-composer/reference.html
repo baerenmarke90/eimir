@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Diary composer reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,500;7..72,600&display=block" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  /* Values mirror design/tokens.json semantic roles (light/dark). */
+  .phone {
+    --bg: #E6EBFA; --surface: #F3F5FC; --subtle: #D6E1F7; --raised: #FFFFFF;
+    --text: #19233E; --text-2: #58627B; --brand: #4C6ED0; --brand-strong: #3055B8;
+    --on-brand: #FFFFFF; --hairline: #BBC9E5; --chip-text: #3055B8; --scrim: rgb(25 35 62 / 38%);
+    --pro-bg: #F9EAF4; --pro-text: #9B2F6A;
+  }
+  .phone.dark {
+    --bg: #171B2F; --surface: #252B43; --subtle: #303F62; --raised: #303751;
+    --text: #F6F7FF; --text-2: #C4CEE8; --brand: #42558C; --brand-strong: #B7C8FF;
+    --on-brand: #171B2F; --hairline: #46506F; --chip-text: #B7C8FF; --scrim: rgb(0 0 0 / 55%);
+    --pro-bg: #46394F; --pro-text: #F6C9E1;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #CDD5EA; font-family: 'Instrument Sans', Arial, sans-serif; padding: 16px; }
+  .board { display: flex; gap: 40px; align-items: flex-start; padding: 32px; width: max-content; }
+  .cap { font-size: 18px; font-weight: 600; color: #19233E; margin-bottom: 6px; }
+  .sub { font-size: 14px; color: #3F4963; margin-bottom: 16px; max-width: 390px; min-height: 60px; line-height: 1.4; }
+  .phone { width: 390px; height: 844px; border-radius: 44px; background: var(--bg); color: var(--text);
+    position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 10px #19233E; margin-left: 10px; }
+  .status { height: 47px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font-size: 15px; font-weight: 600; }
+  .status i { font-size: 16px; margin-left: 4px; }
+  .head { display: flex; align-items: center; gap: 8px; padding: 6px 20px 10px 12px; }
+  .back { width: 44px; height: 44px; display: grid; place-items: center; font-size: 24px; }
+  .head h1 { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .save { height: 44px; padding: 0 16px; border-radius: 999px; font-size: 16px; font-weight: 600;
+    display: inline-flex; align-items: center; background: var(--subtle); color: var(--text-2); }
+  .save.ready { background: var(--brand-strong); color: var(--on-brand); }
+  .dark .save.ready { background: var(--brand-strong); }
+  .scroll { flex: 1; padding: 4px 20px 0; overflow: hidden; }
+  .context { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+  .ctx { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 15px; color: var(--text-2); }
+  .ctx i { font-size: 18px; }
+  .ctx.date { color: var(--text); font-weight: 500; }
+  .ctx .chev { font-size: 15px; color: var(--text-2); }
+  .intake { border-radius: 24px; background: var(--subtle); padding: 8px; }
+  .intake-main { height: 172px; border-radius: 18px; background: var(--surface); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px; text-align: center; }
+  .dark .intake-main { background: var(--raised); }
+  .bubble { width: 52px; height: 52px; border-radius: 50%; background: var(--pro-bg); color: var(--brand-strong);
+    display: grid; place-items: center; font-size: 26px; }
+  .dark .bubble { color: var(--text); }
+  .intake-main strong { font-size: 17px; font-weight: 600; }
+  .intake-main span { font-size: 14px; color: var(--text-2); }
+  .intake-alt { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 10px 0; font-size: 15px; font-weight: 500; color: var(--chip-text); }
+  .intake-alt i { font-size: 20px; }
+  .pro { margin-left: auto; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--pro-bg); color: var(--pro-text); }
+  .title { font-family: 'Literata', Georgia, serif; font-size: 27px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; margin: 20px 0 8px; }
+  .muted { color: var(--text-2); opacity: 1; }
+  .title.muted { font-weight: 500; }
+  .prose { font-size: 17px; line-height: 1.55; }
+  .cover { height: 214px; border-radius: 24px; overflow: hidden; position: relative; }
+  .cover svg, .thumb svg { width: 100%; height: 100%; display: block; }
+  .badge { position: absolute; top: 12px; left: 12px; font-size: 12px; font-weight: 600; color: #fff; background: rgb(25 35 62 / 55%);
+    padding: 5px 10px; border-radius: 999px; display: flex; gap: 5px; align-items: center; }
+  .count { position: absolute; right: 12px; bottom: 12px; font-size: 12px; font-weight: 600; color: #fff; background: rgb(25 35 62 / 55%); padding: 5px 10px; border-radius: 999px; }
+  .thumbs { display: flex; gap: 8px; margin-top: 8px; }
+  .thumb { width: 56px; height: 56px; border-radius: 14px; overflow: hidden; position: relative; flex: none; }
+  .thumb.sel { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--brand); }
+  .thumb.sensitive svg { filter: blur(7px) saturate(.6); transform: scale(1.2); }
+  .thumb.sensitive::after { content: ''; position: absolute; inset: 0; background: rgb(25 35 62 / 30%); }
+  .thumb.sensitive i { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 20px; z-index: 1; }
+  .thumb.add { background: var(--subtle); display: grid; place-items: center; font-size: 24px; color: var(--chip-text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--subtle);
+    color: var(--chip-text); font-size: 14px; font-weight: 600; }
+  .chip i { font-size: 16px; }
+  .draft { display: flex; gap: 6px; align-items: flex-start; margin-top: 14px; font-size: 12px; line-height: 1.4; color: var(--text-2); }
+  .draft i { font-size: 15px; }
+  .tools { border-top: 1px solid var(--hairline); background: var(--bg); padding: 6px 20px 28px; display: flex; justify-content: space-around; }
+  .tool { width: 76px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font-size: 12px; font-weight: 600; color: var(--text-2); border-radius: 14px; }
+  .tool i { font-size: 23px; color: var(--chip-text); }
+  .tool.on { color: var(--chip-text); }
+  .home { position: absolute; z-index: 4; bottom: 8px; left: 50%; width: 134px; height: 5px; border-radius: 3px; background: var(--text); transform: translateX(-50%); opacity: .85; }
+  .scrim { position: absolute; inset: 0; z-index: 2; background: var(--scrim); }
+  .sheet { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 10px 20px 40px; }
+  .dark .sheet { background: var(--raised); }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--hairline); margin: 0 auto 18px; }
+  .sheet h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .sheet p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; line-height: 1.4; }
+  .field { height: 52px; border-radius: 16px; background: var(--bg); display: flex; align-items: center; padding: 0 16px; font-size: 16px; color: var(--text-2); gap: 10px; }
+  .label { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--text-2); margin: 20px 0 10px; display: flex; gap: 6px; align-items: center; }
+  .chip.out { background: transparent; box-shadow: inset 0 0 0 1.5px var(--hairline); color: var(--text); }
+  .chip.chosen { background: var(--brand-strong); color: var(--on-brand); }
+  .done { margin-top: 24px; height: 52px; border-radius: 999px; background: var(--brand-strong); color: var(--on-brand); display: grid; place-items: center; font-size: 16px; font-weight: 600; }
+  .board + .board { margin-top: 32px; }
+  .phone.heart { --bg: #FFF0F3; --subtle: #F9DDE4; --surface: #FFF7F9; --chip-text: #BE3653; --brand-strong: #BE3653; --hairline: #EFC6D0; }
+  .phone.heart.dark { --bg: #3B1E27; --subtle: #52303B; --surface: #472631; --raised: #4A2A35; --chip-text: #FF90A6; --brand-strong: #FF90A6; --on-brand: #3B1E27; --hairline: #6A3E4B; }
+  .feel { display: flex; flex-wrap: wrap; gap: 8px; }
+  .feel .chip { background: var(--surface); color: var(--text); }
+  .feel .chip.chosen { background: var(--brand-strong); color: var(--on-brand); }
+  .row-label { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--text-2); margin: 20px 0 10px; }
+  .intake.compact { padding: 6px; display: flex; flex-direction: column; gap: 6px; margin-top: 20px; }
+  .src { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px; border-radius: 16px; background: var(--surface); font-size: 15px; font-weight: 600; }
+  .dark .src { background: var(--raised); }
+  .src i { font-size: 22px; color: var(--chip-text); }
+  .src small { display: block; font-size: 12px; font-weight: 400; color: var(--text-2); }
+  .src.quiet { background: transparent; min-height: 44px; color: var(--chip-text); font-weight: 500; }
+  .ctx.pick { display: inline-flex; align-self: flex-start; gap: 6px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--subtle); color: var(--chip-text); font-weight: 600; font-size: 14px; min-height: 34px; margin-top: 4px; }
+  .ctx.pick i { font-size: 16px; }
+  .title.lead { font-size: 25px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="board" id="board-diary">
+
+  <section>
+    <div class="cap">1 · Empty</div>
+    <div class="sub">Two entry paths: media or words. No nested cards or file-format copy; place and tag wait in the tool row.</div>
+    <div class="phone" id="f-empty">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+        </div>
+        <div class="intake">
+          <div class="intake-main">
+            <div class="bubble"><i class="ti ti-photo-plus"></i></div>
+            <strong>Fotos oder Videos hinzufügen</strong>
+            <span>Vom Gerät auswählen</span>
+          </div>
+          <div class="intake-alt"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
+        </div>
+        <div class="title muted">Titel (optional)</div>
+        <div class="prose muted">Was möchtest du von diesem Tag festhalten?</div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cap">2 · Populated</div>
+    <div class="sub">The cover image leads, prose gets reading space. Chosen places and tags appear as quiet chips.</div>
+    <div class="phone" id="f-filled">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll" data-content="filled"></div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cap">3 · Populated · Dark</div>
+    <div class="sub">Same anatomy in Dark; imagery stays natural, soft surfaces instead of outlines.</div>
+    <div class="phone dark" id="f-dark">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll" data-content="filled"></div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cap">4 · Tag sheet</div>
+    <div class="sub">Optional details open as a short sheet over the draft and return to the composition.</div>
+    <div class="phone" id="f-sheet">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll" data-content="filled"></div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <h2>Was passt zu diesem Moment?</h2>
+        <p>Optional · Wähle aus, was euch später an diesen Moment erinnert.</p>
+        <div class="field"><i class="ti ti-plus"></i>Eigenen Tag hinzufügen</div>
+        <div class="label"><i class="ti ti-sparkles"></i>KI-Vorschläge · Du entscheidest, was passt.</div>
+        <div class="chips" style="margin-top:0">
+          <span class="chip chosen"><i class="ti ti-check"></i>Urlaub</span>
+          <span class="chip out">Sonnenaufgang</span>
+          <span class="chip out">Am Wasser</span>
+        </div>
+        <div class="label">Eure Tags</div>
+        <div class="chips" style="margin-top:0">
+          <span class="chip chosen"><i class="ti ti-check"></i>Unterwegs zusammen</span>
+          <span class="chip out">Lachen</span>
+          <span class="chip out">Zuhause</span>
+          <span class="chip out">Besonderer Tag</span>
+        </div>
+        <div class="done">Fertig</div>
+      </div>
+      <div class="home" style="background:var(--text)"></div>
+    </div>
+  </section>
+
+</div>
+
+<div class="board" id="board-family">
+  <section>
+    <div class="cap">5 · HeartMoment</div>
+    <div class="sub">The chosen feeling (here loved) tints the page. Words lead, audience stays explicit and selectable; photo and voice share one intake.</div>
+    <div class="phone heart">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx pick"><i class="ti ti-lock"></i>Nur für mich<i class="ti ti-chevron-down"></i></div>
+        </div>
+        <div class="title lead">Du hast mir heute einfach zugehört, ohne gleich eine Lösung zu suchen.</div>
+        <div class="row-label">Gefühl</div>
+        <div class="feel">
+          <span class="chip chosen"><i class="ti ti-check"></i>Geliebt</span>
+          <span class="chip">Gesehen</span><span class="chip">Wertgeschätzt</span>
+          <span class="chip">Unterstützt</span><span class="chip">Dankbar</span><span class="chip">Glücklich</span>
+        </div>
+        <div class="intake compact">
+          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos oder Videos hinzufügen<small>Vom Gerät auswählen</small></span></div>
+          <div class="src"><i class="ti ti-microphone"></i><span>Sprachnachricht<small>Bis zu 3 Minuten · 20 MB</small></span></div>
+          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
+        </div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool"><i class="ti ti-microphone"></i>Sprache</span>
+        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+  <section>
+    <div class="cap">6 · HeartMoment · Dark</div>
+    <div class="sub">Same anatomy in Dark with the dark feeling surface.</div>
+    <div class="phone heart dark">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>Dienstag, 10. November 2026<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx pick"><i class="ti ti-lock"></i>Nur für mich<i class="ti ti-chevron-down"></i></div>
+        </div>
+        <div class="title lead">Du hast mir heute einfach zugehört, ohne gleich eine Lösung zu suchen.</div>
+        <div class="row-label">Gefühl</div>
+        <div class="feel">
+          <span class="chip chosen"><i class="ti ti-check"></i>Geliebt</span>
+          <span class="chip">Gesehen</span><span class="chip">Wertgeschätzt</span>
+          <span class="chip">Unterstützt</span><span class="chip">Dankbar</span><span class="chip">Glücklich</span>
+        </div>
+        <div class="intake compact">
+          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos oder Videos hinzufügen<small>Vom Gerät auswählen</small></span></div>
+          <div class="src"><i class="ti ti-microphone"></i><span>Sprachnachricht<small>Bis zu 3 Minuten · 20 MB</small></span></div>
+          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
+        </div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool"><i class="ti ti-microphone"></i>Sprache</span>
+        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+  <section>
+    <div class="cap">7 · Plan</div>
+    <div class="sub">Anticipation first: the intention is the title, schedule is the context line. Place, shared List and tag use the same tool row and chips.</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+        </div>
+        <div class="title lead">Picknick am Rhein</div>
+        <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
+        <div class="intake compact">
+          <div class="src"><i class="ti ti-photo-plus"></i><span>Fotos hinzufügen<small>Vom Gerät auswählen</small></span></div>
+          <div class="src quiet"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
+        </div>
+        <div class="chips">
+          <span class="chip"><i class="ti ti-map-pin"></i>Rheinufer</span>
+          <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
+          <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
+        </div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-checklist"></i>Liste</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+</div>
+
+<template id="filled">
+  <div class="context">
+    <div class="ctx date"><i class="ti ti-calendar-event"></i>Samstag, 8. November 2026<i class="ti ti-chevron-down chev"></i></div>
+    <div class="ctx"><i class="ti ti-users"></i>Für euch beide sichtbar</div>
+  </div>
+  <div class="cover"><svg data-photo="lake"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 4</span></div>
+  <div class="thumbs">
+    <div class="thumb sel"><svg data-photo="lake"></svg></div>
+    <div class="thumb"><svg data-photo="coffee"></svg></div>
+    <div class="thumb"><svg data-photo="boat"></svg></div>
+    <div class="thumb sensitive"><svg data-photo="sunset"></svg><i class="ti ti-eye-off"></i></div>
+    <div class="thumb add"><i class="ti ti-plus"></i></div>
+  </div>
+  <div class="title">Frühstück am See</div>
+  <div class="prose">Viel zu früh aufgestanden, aber der Nebel über dem Wasser war es wert. Den Kaffee hast du natürlich vergessen.</div>
+  <div class="chips">
+    <span class="chip"><i class="ti ti-map-pin"></i>Malcesine</span>
+    <span class="chip"><i class="ti ti-tag"></i>Urlaub</span>
+    <span class="chip"><i class="ti ti-tag"></i>Unterwegs zusammen</span>
+  </div>
+  <div class="draft"><i class="ti ti-device-mobile-check"></i>Entwurf auf diesem Gerät gesichert · noch nicht gemeinsam gespeichert.</div>
+</template>
+
+<script>
+  const photos = {
+    lake: `<defs><linearGradient id="s1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6C9A8"/><stop offset=".55" stop-color="#E9D9D4"/><stop offset="1" stop-color="#B9C9DC"/></linearGradient></defs>
+      <rect width="400" height="300" fill="url(#s1)"/><circle cx="270" cy="118" r="30" fill="#FFE7C2" opacity=".9"/>
+      <path d="M0 170 L70 105 L120 140 L190 80 L260 140 L320 110 L400 160 V210 H0Z" fill="#8C97B4"/>
+      <path d="M0 185 L90 140 L170 175 L250 130 L330 170 L400 150 V215 H0Z" fill="#6F7C9C"/>
+      <rect y="205" width="400" height="95" fill="#9FB3CC"/><rect y="205" width="400" height="22" fill="#E8EEF6" opacity=".7"/>
+      <path d="M232 230 h76 M246 246 h48 M226 262 h88" stroke="#FFE7C2" stroke-width="4" opacity=".7"/>
+      <path d="M40 300 C 60 255 100 250 130 300Z" fill="#3E4A63"/><rect x="58" y="268" width="5" height="32" fill="#2B3448"/>`,
+    coffee: `<rect width="400" height="300" fill="#C9A88A"/><rect y="170" width="400" height="130" fill="#8E6A52"/>
+      <ellipse cx="150" cy="190" rx="70" ry="22" fill="#F4EEE8"/><rect x="95" y="120" width="110" height="70" rx="14" fill="#F4EEE8"/><ellipse cx="150" cy="122" rx="55" ry="14" fill="#6B4433"/>
+      <ellipse cx="290" cy="200" rx="60" ry="18" fill="#E7D4C3"/><rect x="245" y="140" width="90" height="60" rx="12" fill="#E7D4C3"/><ellipse cx="290" cy="142" rx="45" ry="11" fill="#5A392B"/>`,
+    boat: `<rect width="400" height="300" fill="#B6D0E6"/><rect y="150" width="400" height="150" fill="#4F7CA3"/>
+      <path d="M120 200 H290 L260 235 H150Z" fill="#F2E6D8"/><path d="M200 70 V200 H140Z" fill="#FFFFFF"/><path d="M206 90 V195 H260Z" fill="#F7D9C4"/>
+      <path d="M0 250 h400" stroke="#9FC0DC" stroke-width="5" opacity=".6"/>`,
+    sunset: `<rect width="400" height="300" fill="#F29C7A"/><circle cx="200" cy="170" r="60" fill="#FFD49A"/><rect y="180" width="400" height="120" fill="#7B5C86"/>`
+  };
+  const tpl = document.getElementById('filled').innerHTML;
+  document.querySelectorAll('[data-content="filled"]').forEach((el) => { el.innerHTML = tpl; });
+  document.querySelectorAll('svg[data-photo]').forEach((svg, i) => {
+    svg.setAttribute('viewBox', '0 0 400 300');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    svg.innerHTML = photos[svg.dataset.photo].replaceAll('id="s1"', `id="s1-${i}"`).replaceAll('url(#s1)', `url(#s1-${i})`);
+  });
+</script>
+</body>
+</html>

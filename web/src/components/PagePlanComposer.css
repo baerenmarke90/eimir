@@ -148,7 +148,7 @@
   font: var(--font-supporting-copy);
   color: var(--color-text-secondary);
 }
-.page-plan-detail .plan-collection-row > button {
+.page-plan-detail:not(.page-plan-composer) .plan-collection-row > button {
   flex: 1;
   text-align: start;
   min-inline-size: 0;
@@ -209,4 +209,8 @@
 }
 .page-plan-composer .plan-collection-row > .composer-chip {
   flex: 0 1 auto;
+}
+
+.page-plan-composer .plan-collection-row > .list-entry-icon-button {
+  flex: 0 0 auto;
 }

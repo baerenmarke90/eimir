@@ -20,7 +20,8 @@
 .page-composer-detail .composer-header .page-heading-action {
   margin: 0;
 }
-.page-composer-detail .story-detail-edit-link {
+.page-composer-detail .composer-header .story-detail-edit-link,
+.page-composer-detail .composer-header .story-detail-edit-text {
   display: inline-flex;
   inline-size: auto;
   padding-inline: var(--space-2);

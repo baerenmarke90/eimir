@@ -1,21 +1,22 @@
-import { expect, test } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
 import AxeBuilder from '@axe-core/playwright';
-import memory from '../../src/i18n/locales/memoryProduct';
+import { expect, test } from '@playwright/test';
 import tags from '../../src/i18n/locales/contextTags';
+import memory from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   closeComposerDate,
+  closeContextTags,
   showComposerDate,
+  showContextSuggestions,
   showContextTags,
 } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
-  installMocks,
-  signIn,
   captureScreenshot,
+  installMocks,
+  SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 for (const [width, theme] of [
@@ -192,30 +193,32 @@ test('device review: shared learned labels and AI proposals remain explicit in t
   await page.goto('/story/heart-moments/new');
   await showContextTags(page);
   const editor = page.getByRole('group', { name: tags.label });
-  await editor.locator('summary').click();
+  await showContextSuggestions(page);
   await expect(
     editor.getByRole('checkbox', { name: 'Unser Konzert', exact: true }),
   ).toBeVisible();
   await expect(
     editor.getByRole('checkbox', { name: 'Belgien', exact: true }),
   ).toBeVisible();
-  await expect(editor.locator('input[type="hidden"]')).toHaveCount(0);
+  const serializedTags = page.locator(
+    '.page-composer input[type="hidden"][name="tags"]',
+  );
+  await expect(serializedTags).toHaveCount(0);
   await editor
     .getByRole('checkbox', { name: 'Unser Konzert', exact: true })
     .click();
   await editor.getByRole('checkbox', { name: 'Belgien', exact: true }).click();
   expect(
-    await editor
-      .locator('input[type="hidden"]')
-      .evaluateAll((inputs) =>
-        inputs.map((input) => (input as HTMLInputElement).value),
-      ),
+    await serializedTags.evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).value),
+    ),
   ).toEqual(['Unser Konzert', 'Belgien']);
+  await closeContextTags(page);
   const order = await page.evaluate(() => {
     const feeling = document.querySelector(
       '.heart-moment-create-emotion-picker',
     );
-    const tags = document.querySelector('.memory-tag-choices');
+    const tags = document.querySelector('.composer-tool-row');
     return Boolean(
       feeling &&
         tags &&

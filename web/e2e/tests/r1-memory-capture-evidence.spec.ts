@@ -1,3 +1,4 @@
+import { openComposerMediaSources } from '../support/mediaIntake';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import photoSources from '../../src/i18n/locales/photoSources';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
@@ -332,9 +333,7 @@ test.describe('R1 Memory Create evidence', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
+    await openComposerMediaSources(page);
     await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
@@ -351,9 +350,7 @@ test.describe('R1 Memory Create evidence', () => {
       await page.emulateMedia({ colorScheme });
       await page.setViewportSize({ width: 390, height: 1000 });
       await openMemoryCreate(page);
-      await page
-        .getByRole('button', { name: photoSources.addMedia, exact: true })
-        .click();
+      await openComposerMediaSources(page);
       await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
       await expect(
         page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),

@@ -5,7 +5,6 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
-import photoSources from '../../src/i18n/locales/photoSources';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -14,6 +13,7 @@ import {
   dragDraftMedia,
   expectInlineDraftActions,
 } from '../support/mediaDraft';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import { closeComposerDate, showComposerDate } from '../support/memoryDiary';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
@@ -26,13 +26,6 @@ const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const MEMORY_ID = '44444444-4444-4444-8444-444444444444';
 const TEST_NOW = '2026-09-16T10:00:00Z';
-const EVIDENCE_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  '..',
-  'docs/product/design/references/moment-media-controls/evidence',
-);
 const CABIN_FIXTURE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
@@ -350,7 +343,7 @@ for (const [width, colorScheme] of [
 ] as const) {
   test(`period, independent cover and arrange-save-return at ${width} ${colorScheme}`, async ({
     page,
-  }) => {
+  }, info) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     await openMemoryCreate(page);
@@ -368,8 +361,8 @@ for (const [width, colorScheme] of [
     // The native date editor keeps calendar dates rather than timezone instants.
     await date.fill('2026-12-31');
     await closeComposerDate(page);
-    await page.getByRole('button', { name: photoSources.addMedia }).click();
-    const input = page.locator('#memory-create-images');
+    await openComposerMediaSources(page);
+    const input = page.locator('#memory-create-images-source');
     await expect(input).toBeAttached();
     await expect(input).toBeEnabled();
     await input.setInputFiles(
@@ -410,13 +403,16 @@ for (const [width, colorScheme] of [
       await gallery
         .locator('.photo-draft-tile')
         .first()
-        .scrollIntoViewIfNeeded();
+        .evaluate((element) =>
+          element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+        );
       const frame = await gallery
         .locator('.photo-draft-tile')
         .first()
         .boundingBox();
       if (!frame) throw new Error('Missing photo scroll geometry');
       const scrollBefore = await page.evaluate(() => window.scrollY);
+      expect(scrollBefore).toBeGreaterThan(0);
       const point = {
         x: frame.x + frame.width / 2,
         y: frame.y + frame.height / 2,
@@ -493,7 +489,7 @@ for (const [width, colorScheme] of [
     expect(selectedColor).not.toBe(otherColor);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, `arrange-${width}-${colorScheme}.png`),
+      path: info.outputPath(`arrange-${width}-${colorScheme}.png`),
     });
     await expect(gallery.locator('.photo-draft-number').first()).toHaveText(
       '1',
@@ -516,7 +512,7 @@ for (const [width, colorScheme] of [
     ).toHaveCount(1);
     await expect(page.getByText(/31.*2026.*3.*2027/).first()).toBeVisible();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, `saved-${width}-${colorScheme}.png`),
+      path: info.outputPath(`saved-${width}-${colorScheme}.png`),
     });
     expect(
       await page.evaluate(

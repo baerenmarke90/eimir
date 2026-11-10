@@ -9,8 +9,14 @@ import placeCopy from '../../src/i18n/locales/photoPlaces';
 import photoCopy from '../../src/i18n/locales/photoSources';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import fixtures from '../fixtures/locales/de';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
-import { showContextTags } from '../support/memoryDiary';
+import {
+  closeContextTags,
+  openComposerPlace,
+  showContextSuggestions,
+  showContextTags,
+} from '../support/memoryDiary';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -239,6 +245,7 @@ for (const view of [
       .fill(fixtures.planningFollowup.wishNew);
     await showContextTags(page);
     await page.getByLabel(tagCopy.newLabel).fill(fixtures.planningFollowup.tag);
+    await closeContextTags(page);
     await page
       .getByRole('button', { name: copy.common.save, exact: true })
       .click();
@@ -252,16 +259,15 @@ for (const view of [
       .getByLabel(copy.plan.intentionLabel)
       .fill(fixtures.planningFollowup.planNew);
     await showContextTags(page);
-    await page.getByText(tagCopy.suggestions, { exact: true }).click();
+    await showContextSuggestions(page);
     await page
       .getByRole('checkbox', {
         name: fixtures.planningFollowup.tag,
         exact: true,
       })
       .check();
-    await page
-      .getByRole('button', { name: placeCopy.add, exact: true })
-      .click();
+    await closeContextTags(page);
+    await openComposerPlace(page);
     const picker = page.getByRole('dialog');
     await picker.getByLabel(placeCopy.savedSearch).fill('Garten');
     await picker
@@ -270,13 +276,7 @@ for (const view of [
       })
       .click();
     await expect(picker).not.toBeVisible();
-    await page
-      .getByRole('button', { name: photoCopy.addMedia, exact: true })
-      .click();
-    const sourceSheet = page.getByRole('dialog', {
-      name: photoCopy.addMedia,
-      exact: true,
-    });
+    const sourceSheet = await openComposerMediaSources(page);
     const chooserPromise = page.waitForEvent('filechooser');
     await sourceSheet
       .getByRole('button', { name: photoCopy.device, exact: true })

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
@@ -11,11 +11,7 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
-import { expectLabeledAddAction } from '../support/addAction';
-import {
-  expectMediaIntakeAction,
-  openComposerMediaSources,
-} from '../support/mediaIntake';
+import { expectLabeledComposerTool } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
 import {
@@ -24,8 +20,16 @@ import {
   selectDraftMedia,
 } from '../support/mediaDraft';
 import {
+  expectMediaIntakeAction,
+  openComposerMediaSources,
+} from '../support/mediaIntake';
+import {
+  closeContextTags,
   expectComposerDate,
+  openComposerPlace,
   setComposerDate,
+  showContextSuggestions,
+  showContextTags,
   showHeartAudience,
   showMemoryDetails,
 } from '../support/memoryDiary';
@@ -140,7 +144,7 @@ for (const [width, colorScheme] of [
         document.documentElement.style.fontSize = '32px';
       });
     const sourcePicker = page.getByRole('button', {
-      name: photoSources.addMedia,
+      name: composer.addPhotos,
       exact: true,
     });
     await expectMediaIntakeAction(sourcePicker, 'foto');
@@ -148,7 +152,7 @@ for (const [width, colorScheme] of [
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
     await expect(
-      page.locator('.composer-content .photo-source-composer-trigger'),
+      page.locator('.composer-content .photo-source-trigger'),
     ).toHaveCount(1);
     await expect(
       page.getByText(de.memory.sharedTitle, { exact: true }),
@@ -543,8 +547,23 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const viewport = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
+    outside: [...document.querySelectorAll('body *')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName,
+          class: element.className.toString(),
+          x: rect.x,
+          right: rect.right,
+          width: rect.width,
+        };
+      })
+      .filter((rect) => rect.width > 0 && rect.right > innerWidth + 1)
+      .slice(0, 16),
   }));
-  expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth);
+  expect(viewport.scrollWidth, JSON.stringify(viewport)).toBeLessThanOrEqual(
+    viewport.clientWidth,
+  );
 }
 
 async function browserLocalToday(page: Page): Promise<string> {
@@ -1058,9 +1077,6 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.png', 'two.png', 'three.png'].map((name) => ({
         name,
@@ -1149,6 +1165,7 @@ async function expectDateField(page: Page): Promise<void> {
 async function submitAndReadCreateRequest(
   page: Page,
 ): Promise<MemoryCreateRequestBody> {
+  await closeContextTags(page);
   const requestPromise = page.waitForRequest((request) => {
     const pathname = new URL(request.url()).pathname;
     return (
@@ -1184,7 +1201,7 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await showMemoryDetails(page);
+  await showContextTags(page);
   const input = page.getByLabel(contextTags.newLabel);
   await input.fill('  Ostsee   2026  ');
   await input.press('Enter');
@@ -1239,6 +1256,7 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
   await page
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
+  await showContextTags(page);
   await page
     .getByRole('button', {
       name: contextTags.remove.replace('{{tag}}', 'Ostsee 2026'),
@@ -1250,6 +1268,7 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
       request.method() === 'PATCH' &&
       request.url().endsWith(`/memories/${MEMORY_ID}`),
   );
+  await closeContextTags(page);
   await page
     .getByRole('button', { name: memoryProduct.save, exact: true })
     .click();
@@ -1275,9 +1294,10 @@ test('text-only with the default date saves a non-empty localized fallback title
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
-  await showMemoryDetails(page);
-  await page.getByText(contextTags.suggestions, { exact: true }).click();
+  await showContextTags(page);
+  await showContextSuggestions(page);
   await page.getByText(de.memory.tagLabels.home, { exact: true }).click();
+  await closeContextTags(page);
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
@@ -1375,8 +1395,7 @@ test('Memory Create defaults render without overflow and capture product visual 
   const writing = page.locator('.composer-writing-surface');
   await expect(writing.getByRole('textbox')).toHaveCount(2);
   const divider = writing.locator('.field-group + .field-group');
-  await expect(divider).toHaveCSS('border-top-style', 'solid');
-  await expect(divider).toHaveCSS('border-top-width', '1px');
+  await expect(divider).toHaveCSS('border-top-width', '0px');
   await expect(page.getByLabel(de.memory.titleLabelOptional)).toBeEditable();
   await expect(
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -1447,8 +1466,8 @@ for (const [width, colorScheme] of [
     ]);
     if (!titleBox || !bodyBox || !mediaBox)
       throw new Error('The authored capture composition did not render.');
+    expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(titleBox.y);
     expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(bodyBox.y);
-    expect(bodyBox.y + bodyBox.height).toBeLessThanOrEqual(mediaBox.y);
     const text =
       'A quiet afternoon together.\n\nWe want to remember the little details.';
     await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(text);
@@ -1456,9 +1475,6 @@ for (const [width, colorScheme] of [
     await setComposerDate(page, '2025-12-24');
     await showMemoryDetails(page);
     await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.png', 'two.png'].map((name) => ({
         name,
@@ -1474,6 +1490,7 @@ for (const [width, colorScheme] of [
     await selectDraftMedia(page);
     await dragDraftMedia(page, 0, 1);
     await expectInlineDraftActions(page);
+    await showContextTags(page);
     await page.getByLabel(contextTags.newLabel).fill('An unfinished label');
     await expect(page.locator('.memory-draft-status')).toHaveText(
       de.memory.diary.draft.saved,
@@ -1498,9 +1515,11 @@ for (const [width, colorScheme] of [
     await expect(page.getByLabel(de.memory.titleLabelOptional)).toHaveValue(
       AUTHORED_TITLE,
     );
+    await showContextTags(page);
     await expect(page.getByLabel(contextTags.newLabel)).toHaveValue(
       'An unfinished label',
     );
+    await closeContextTags(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
@@ -1689,9 +1708,6 @@ test('diary recovery retries only attachment binding for an already created entr
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'photo.png',
     mimeType: 'image/png',
@@ -1787,9 +1803,6 @@ test('diary restores a file whose unbound server upload has expired', async ({
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'photo.png',
     mimeType: 'image/png',
@@ -1835,9 +1848,6 @@ async function stageRecoveryPhotos(page: Page, photos: PhotoBatchScenario) {
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
   await page.locator('#memory-create-images').setInputFiles(
     ['first.jpg', 'second.jpg'].map((name) => ({
       name,
@@ -1940,12 +1950,7 @@ for (const [width, colorScheme] of [
       ),
     ).toEqual([]);
     await page.screenshot({
-      path: fileURLToPath(
-        new URL(
-          `../../../docs/product/design/references/1467/recovery-${width}-${colorScheme}.png`,
-          import.meta.url,
-        ),
-      ),
+      path: testInfo.outputPath(`recovery-${width}-${colorScheme}.png`),
       fullPage: true,
     });
     await page.unroute(missingPath, unavailable);
@@ -2235,15 +2240,17 @@ for (const [width, colorScheme] of [
     );
     const placeCopy = (await import('../../src/i18n/locales/photoPlaces'))
       .default;
-    await page
-      .getByRole('button', { name: placeCopy.add, exact: true })
-      .click();
+    await openComposerPlace(page);
     const picker = page.getByRole('dialog', { name: placeCopy.add });
     await picker.getByRole('button', { name: /Kölner Dom/ }).click();
+    await picker
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
     await expect(picker).toHaveCount(0);
-    const selected = page
-      .getByRole('group', { name: experiences.places, exact: true })
-      .getByText(destination.name, { exact: true });
+    const selected = page.getByRole('button', {
+      name: composer.editPlace.replace('{{name}}', destination.name),
+      exact: true,
+    });
     await expect(selected).toBeVisible();
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
@@ -2329,7 +2336,7 @@ test('new capture Place is deliberately shared before the entry is saved', async
   await page.route(`**/spaces/${SPACE_ID}/places/lookup`, (route) =>
     route.fulfill({ json: { items: [destination] } }),
   );
-  await page.getByRole('button', { name: copy.add, exact: true }).click();
+  await openComposerPlace(page);
   await page
     .getByRole('dialog', { name: copy.add })
     .getByRole('button', { name: planning.map.open, exact: true })
@@ -2355,10 +2362,15 @@ test('new capture Place is deliberately shared before the entry is saved', async
   await map
     .getByRole('button', { name: copy.saveSharedPlace, exact: true })
     .click();
+  await page
+    .getByRole('dialog', { name: copy.add, exact: true })
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   await expect(
-    page
-      .getByRole('group', { name: experiences.places, exact: true })
-      .getByText(destination.name, { exact: true }),
+    page.getByRole('button', {
+      name: composer.editPlace.replace('{{name}}', destination.name),
+      exact: true,
+    }),
   ).toBeVisible();
   expect(creations).toHaveLength(1);
   await page
@@ -2390,9 +2402,6 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       Array.from({ length: 10 }, (_, index) => ({
         name: `travel-${index}.jpg`,
@@ -2490,9 +2499,6 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.jpg', 'two.jpg', 'three.jpg'].map((name) => ({
         name,
@@ -2506,10 +2512,8 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page.locator('#memory-edit-images').setInputFiles({
+    await openComposerMediaSources(page);
+    await page.locator('#memory-edit-images-source').setInputFiles({
       name: 'later.jpg',
       mimeType: 'image/jpeg',
       buffer: photos.photoBytes!,
@@ -2643,20 +2647,26 @@ for (const kind of ['plan', 'heart'] as const) {
     await page.goto(
       kind === 'heart' ? '/story/heart-moments/new' : '/plan/plans/new',
     );
-    await expectMediaIntakeAction(
-      page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+    await expectLabeledComposerTool(
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.photo, exact: true }),
       'foto',
     );
     await expect(
       page.locator('.composer-content .photo-source-trigger'),
     ).toHaveCount(0);
     if (kind === 'plan') {
-      await expectLabeledAddAction(
-        page.getByRole('button', { name: m5s3.collection.create, exact: true }),
+      await expectLabeledComposerTool(
+        page
+          .locator('.composer-tool-row')
+          .getByRole('button', { name: composer.list, exact: true }),
         'listen',
       );
-      await expectLabeledAddAction(
-        page.getByRole('button', { name: contextTags.add, exact: true }),
+      await expectLabeledComposerTool(
+        page
+          .locator('.composer-tool-row')
+          .getByRole('button', { name: composer.tag, exact: true }),
         'tag',
       );
     }

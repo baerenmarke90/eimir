@@ -1,25 +1,26 @@
-import {
-  selectDraftMedia,
-  dragDraftMedia,
-  expectInlineDraftActions,
-} from '../support/mediaDraft';
-import { fulfillDefaultProductContext } from '../support/productContext';
-import photoSources from '../../src/i18n/locales/photoSources';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, type Locator, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
 import photoCopy from '../../src/i18n/locales/photoReactions';
 import storyCopy from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  dragDraftMedia,
+  expectInlineDraftActions,
+  selectDraftMedia,
+} from '../support/mediaDraft';
+import { openComposerMediaSources } from '../support/mediaIntake';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -30,6 +31,8 @@ const galleryCounter = (index: number, count: number) =>
   storyCopy.gallery.counter
     .replace('{{index}}', String(index))
     .replace('{{count}}', String(count));
+const inlineGalleryCounter = (index: number, count: number) =>
+  `${index} / ${count}`;
 const dimensions = {
   portrait: [800, 1200],
   landscape: [1600, 900],
@@ -346,7 +349,7 @@ for (const scenario of [
       .setChecked(!scenario.sensitive);
     await expectInlineDraftActions(page);
     await page
-      .getByRole('button', { name: de.common.cancel, exact: true })
+      .getByRole('button', { name: taskBoundary.back, exact: true })
       .click();
     await page
       .getByRole('button', { name: copy.common.discardConfirm, exact: true })
@@ -530,11 +533,9 @@ for (const view of [
         content: 'html { font-size: 200% !important; }',
       });
     await page.locator('#planning-create-title').fill(TITLE);
+    await openComposerMediaSources(page);
     await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page
-      .locator('#plan-photos')
+      .locator('#plan-photos-source')
       .setInputFiles([
         imageFile('portrait'),
         imageFile('landscape'),
@@ -591,7 +592,7 @@ for (const view of [
       });
     const gallery = page.locator('.plan-photo-gallery');
     await expect(gallery.locator('.media-gallery-carousel-counter')).toHaveText(
-      galleryCounter(1, 3),
+      inlineGalleryCounter(1, 3),
     );
     await expectGalleryImage(
       gallery
@@ -639,7 +640,7 @@ for (const view of [
       }
       await expect(
         gallery.locator('.media-gallery-carousel-counter'),
-      ).toHaveText(galleryCounter(2, 3));
+      ).toHaveText(inlineGalleryCounter(2, 3));
     }
     await gallery.getByRole('button', { name: photoCopy.fullscreen }).click();
     const viewer = page.getByRole('dialog', {
@@ -683,7 +684,7 @@ for (const view of [
     }
     await changeDraft();
     await page
-      .getByRole('button', { name: de.common.cancel, exact: true })
+      .getByRole('button', { name: taskBoundary.back, exact: true })
       .click();
     await page
       .getByRole('button', { name: copy.common.discardConfirm, exact: true })
@@ -714,7 +715,7 @@ for (const view of [
         .locator('.sensitive-media-cover'),
     ).toBeVisible();
     await expect(gallery.locator('.media-gallery-carousel-counter')).toHaveText(
-      galleryCounter(1, 2),
+      inlineGalleryCounter(1, 2),
     );
     expect(
       await page.evaluate(

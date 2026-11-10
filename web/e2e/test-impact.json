@@ -1,6 +1,19 @@
 {
   "version": 1,
   "specs": {
+    "page-composer.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/MemoryPhotoGallery.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx"
+      ]
+    },
     "moments-local-create.spec.ts": {
       "roots": [
         "web/src/components/MomentCreateMenu.tsx",

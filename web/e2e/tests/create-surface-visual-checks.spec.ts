@@ -1,21 +1,23 @@
-import { fulfillFreeEntitlements } from '../support/freeEntitlements';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import {
-  closeComposerDate,
-  expectComposerDate,
-  showComposerDate,
-  showContextTags,
-  showMemoryDetails,
-} from '../support/memoryDiary';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import contextTags from '../../src/i18n/locales/contextTags';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import storyProducts from '../../src/i18n/locales/storyProducts';
 import photoSources from '../../src/i18n/locales/photoSources';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import { expectLabeledComposerTool } from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expectMediaIntakeAction } from '../support/mediaIntake';
+import {
+  closeComposerDate,
+  closeContextTags,
+  expectComposerDate,
+  showComposerDate,
+  showContextSuggestions,
+  showContextTags,
+  showMemoryDetails,
+} from '../support/memoryDiary';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -374,7 +376,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     await showMemoryDetails(page);
     await showContextTags(page);
-    await page.getByText(contextTags.suggestions, { exact: true }).click();
+    await showContextSuggestions(page);
     const homeTag = page.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
     });
@@ -417,8 +419,22 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await page.keyboard.press('Space');
     await expect(homeTag).not.toBeChecked();
 
+    const tagAxeResult = await new AxeBuilder({ page })
+      .include('dialog.composer-tag-sheet')
+      .withTags([
+        'wcag2a',
+        'wcag2aa',
+        'wcag21a',
+        'wcag21aa',
+        'wcag22a',
+        'wcag22aa',
+      ])
+      .analyze();
+    expect(tagAxeResult.violations).toEqual([]);
+    await closeContextTags(page);
+
     const axeResult = await new AxeBuilder({ page })
-      .include('.immersive-create-form')
+      .include('.page-composer')
       .withTags([
         'wcag2a',
         'wcag2aa',
@@ -433,7 +449,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 }
 
 for (const width of [390, 320] as const) {
-  test(`Memory Create keeps ordered Places and the empty photo picker compact at ${width}px (#855)`, async ({
+  test(`Memory Create keeps Place tools and the media-first intake bounded at ${width}px (#1730)`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -460,16 +476,26 @@ for (const width of [390, 320] as const) {
       const title = page.getByLabel(de.memory.titleLabelOptional);
       const media = page.locator('.immersive-create-media');
       const mediaGroup = media.locator('.media-action-group');
-      const picker = media.getByRole('button', {
-        name: photoSources.addMedia,
-        exact: true,
-      });
+      const picker = media.locator('.media-intake-device');
       await expectMediaIntakeAction(picker, 'foto');
-      await expect(media.locator('input[type="file"]')).toHaveCount(1);
+      const fileInputs = media.locator('input[type="file"]');
+      await expect(fileInputs).toHaveCount(2);
+      expect(
+        await fileInputs.evaluateAll(
+          (inputs) => new Set(inputs.map((input) => input.id)).size,
+        ),
+      ).toBe(2);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
       const dateTrigger = page.locator('.composer-date-trigger');
-      const places = page.locator('.ordered-moment-places');
+      const places = page
+        .locator('.composer-tool-row button')
+        .filter({ has: page.locator('.eimir-icon-orte') });
+      await expectLabeledComposerTool(places, 'orte');
+      await expect(page.locator('.composer-tool-row button')).toHaveCount(2);
+      await expect(
+        page.locator('.composer-tool-row .eimir-icon-foto'),
+      ).toHaveCount(0);
       const saveButton = page.getByRole('button', { name: de.memory.save });
       const form = page.locator('.immersive-create-form');
       const quickCreateTrigger = page.locator(
@@ -511,34 +537,61 @@ for (const width of [390, 320] as const) {
       )
         throw new Error('The compact capture composition did not render.');
 
-      // #1717 keeps native completion in the header and one writing surface.
+      // #1730 keeps native completion in the header and media before writing.
       expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(dateBox.y);
-      expect(dateBox.y + dateBox.height).toBeLessThanOrEqual(titleFieldBox.y);
+      expect(dateBox.y + dateBox.height).toBeLessThanOrEqual(mediaBox.y);
+      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(titleFieldBox.y);
       expect(titleFieldBox.y + titleFieldBox.height).toBeLessThanOrEqual(
         narrativeBox.y,
       );
-      expect(narrativeBox.y + narrativeBox.height).toBeLessThanOrEqual(
-        mediaBox.y,
-      );
-      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(placesBox.y);
+      expect(narrativeBox.y).toBeLessThan(placesBox.y);
       expect(saveBox.height).toBeGreaterThanOrEqual(48);
       expect(dateBox.height).toBeGreaterThanOrEqual(44);
       expect(titleFieldBox.x).toBeGreaterThanOrEqual(0);
       expect(placesBox.height).toBeLessThan(125);
       await expect(places.getByRole('listitem')).toHaveCount(0);
-      const addPlaceBox = await places.getByRole('button').boundingBox();
+      const addPlaceBox = await places.boundingBox();
       if (!addPlaceBox) throw new Error('Add Place did not render.');
       expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
-      // This Free fixture has no configured external source; retain that gate.
+      // The intake keeps the source entry; unavailable providers remain absent.
       await expect(mediaGroup).toHaveCSS('border-top-width', '0px');
       await expect(
         page.locator('.composer-content .media-action-group'),
       ).toHaveCount(1);
       await expect(media.locator('.media-gallery')).toHaveCount(0);
+      const otherSource = media.getByRole('button', {
+        name: photoSources.more,
+        exact: true,
+      });
+      await expect(otherSource).toBeVisible();
+      await expect(otherSource.locator('.pro-mark')).toBeVisible();
+      await otherSource.click();
+      const sourceSheet = page.getByRole('dialog', {
+        name: photoSources.title,
+        exact: true,
+      });
+      await expect(sourceSheet).toBeVisible();
       await expect(
-        media.getByRole('button', { name: new RegExp(photoSources.more) }),
+        sourceSheet.getByRole('button', {
+          name: photoSources.device,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        sourceSheet.getByRole('button', {
+          name: photoSources.google,
+          exact: true,
+        }),
       ).toHaveCount(0);
+      await expect(
+        sourceSheet.getByRole('button', {
+          name: photoSources.immich,
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(sourceSheet).toHaveCount(0);
       await expect(mediaGroup.locator('.media-action-group-label')).toHaveCount(
         0,
       );
@@ -546,7 +599,7 @@ for (const width of [390, 320] as const) {
         'background-color',
         'rgba(0, 0, 0, 0)',
       );
-      expect(mediaBox.height).toBeLessThanOrEqual(pickerBox.height + 1);
+      expect(mediaBox.height).toBeGreaterThanOrEqual(pickerBox.height);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
       await expect(dateTrigger).toHaveAttribute('aria-haspopup', 'dialog');
       const dateInput = await showComposerDate(page);
@@ -789,7 +842,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('link', { name: memoryProduct.edit }).click();
     await showContextTags(page);
-    await page.getByText(contextTags.suggestions, { exact: true }).click();
+    await showContextSuggestions(page);
     await expect(
       page.getByRole('checkbox', { name: de.memory.tagLabels.home }),
     ).toBeChecked();

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoReactions from '../../src/i18n/locales/photoReactions';
@@ -116,6 +117,14 @@ function counterLabel(index: number, count: number): string {
   return GALLERY.counter
     .replace('{{index}}', String(index))
     .replace('{{count}}', String(count));
+}
+
+function inlineCounterLabel(index: number, count: number): string {
+  return `${index} / ${count}`;
+}
+
+function privacyControl(scope: Page | Locator, label: string): Locator {
+  return scope.getByRole('button', { name: label, exact: true });
 }
 
 async function pointerClickWithoutScroll(
@@ -805,17 +814,12 @@ for (const state of [
           detailPhoto.locator('.sensitive-media-cover'),
         ).toBeVisible();
         const detailGallery = page.locator('.media-gallery-carousel');
-        await detailGallery
-          .getByRole('button', { name: sensitiveMedia.show, exact: true })
-          .click();
+        await privacyControl(detailGallery, sensitiveMedia.show).click();
         await expect(detailPhoto.locator('.sensitive-media-cover')).toHaveCount(
           0,
         );
         await expect(
-          detailGallery.getByRole('button', {
-            name: sensitiveMedia.hide,
-            exact: true,
-          }),
+          privacyControl(detailGallery, sensitiveMedia.hide),
         ).toBeVisible();
         await page.goBack();
         await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
@@ -957,19 +961,24 @@ for (const state of [
     await page.goto(`/story/memories/${MEMORY_ID}`);
     await expect(
       page.getByRole('heading', {
-        name: fixtureCopy.subpageNavigation.approvedDate,
+        name: composer.diaryEntry,
         level: 1,
       }),
     ).toBeVisible();
-    const place = page.locator('header .moment-metadata').getByRole('button', {
+    const context = page.locator('.page-composer-detail .moment-metadata');
+    const place = context.getByRole('link', {
       name: fixtureCopy.subpageNavigation.approvedPlace,
       exact: true,
     });
     await expect(place).toBeVisible();
+    await expect(place).toHaveAttribute('href', '/story/map?place=0%3A0');
     await expect(page.locator('.moment-places h2')).toHaveClass('sr-only');
-    await expect(page.locator('header .moment-date svg')).toBeVisible();
-    await expect(page.locator('header time')).toHaveCount(1);
-    await expect(page.locator('header time')).toHaveAttribute(
+    await expect(context.locator('.moment-date svg')).toBeVisible();
+    await expect(context.locator('time')).toHaveCount(1);
+    await expect(context.locator('time')).toHaveText(
+      fixtureCopy.subpageNavigation.approvedDate,
+    );
+    await expect(context.locator('time')).toHaveAttribute(
       'datetime',
       '2026-10-27',
     );
@@ -989,16 +998,13 @@ for (const state of [
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    const photo = page.getByRole('button', {
-      name: sensitiveMedia.show,
-      exact: true,
-    });
+    const photo = page.locator('.media-gallery-carousel-slide.is-active');
     await expect(photo.locator('.sensitive-media-blurred img')).toHaveAttribute(
       'src',
       /^blob:/,
     );
     await page.screenshot({
-      path: `../../docs/product/design/references/1485/approved-${state.theme}-${state.width}.png`,
+      path: info.outputPath(`approved-${state.theme}-${state.width}.png`),
       fullPage: true,
     });
     await photo.hover();
@@ -1023,9 +1029,10 @@ for (const state of [
       name: /Liebe: 1 Reaktion.*entfernen/,
     });
     await expect(chip).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-    ).toHaveAttribute('aria-pressed', 'false');
+    await expect(privacyControl(page, sensitiveMedia.show)).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     await chip.click();
     await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
     expect(writes).toEqual([{ reaction: 'LOVE' }, { reaction: null }]);
@@ -1156,7 +1163,7 @@ for (const state of [
     if (state.width < 600) await swipeCarousel(page, 'next');
     else await page.getByRole('button', { name: GALLERY.next }).click();
     await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-      counterLabel(2, 6),
+      inlineCounterLabel(2, 6),
     );
     await expectCarouselSettled(page, 1);
     await expect
@@ -1283,7 +1290,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
   for (const step of pointerSteps) {
     const before = await geometry(page);
     await pointerClickWithoutScroll(page, step.control);
-    await expect(counter).toHaveText(counterLabel(step.expected, 3));
+    await expect(counter).toHaveText(inlineCounterLabel(step.expected, 3));
     await expectCarouselSettled(page, step.expected - 1);
     await expect(
       page.locator('.media-gallery-carousel-slide.is-active'),
@@ -1298,7 +1305,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
   await expect(next).toBeFocused();
   const beforeKeyboard = await geometry(page);
   await page.keyboard.press('Enter');
-  await expect(counter).toHaveText(counterLabel(3, 3));
+  await expect(counter).toHaveText(inlineCounterLabel(3, 3));
   await expectCarouselSettled(page, 2);
   await expect(next).toBeFocused();
   expectStableGeometry(beforeKeyboard, await geometry(page));
@@ -1431,7 +1438,7 @@ for (const width of [320, 390] as const) {
         expect(drag.visibleSlides).toBeGreaterThanOrEqual(2);
         await expect(
           page.locator('.media-gallery-carousel-counter'),
-        ).toHaveText(counterLabel(step.expected, 3));
+        ).toHaveText(inlineCounterLabel(step.expected, 3));
         await expectCarouselSettled(page, step.expected - 1);
         await expect(
           page.locator('.media-gallery-carousel-slide.is-outgoing'),
@@ -1504,7 +1511,7 @@ test('Memory carousel is effectively static with reduced motion and reflows at 2
   const before = await geometry(page);
   await page.getByRole('button', { name: GALLERY.next }).click();
   await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-    counterLabel(2, 3),
+    inlineCounterLabel(2, 3),
   );
   await nextFrame(page);
   expectStableGeometry(before, await geometry(page));
@@ -1682,15 +1689,10 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   await expect(
     page.getByRole('heading', { name: MULTI_MEMORY.title }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: sensitiveMedia.show, exact: true })
-    .click();
+  await privacyControl(page, sensitiveMedia.show).click();
   await page.getByRole('button', { name: photoReactions.fullscreen }).click();
   const dialog = page.getByRole('dialog');
-  const privacy = dialog.getByRole('button', {
-    name: sensitiveMedia.hide,
-    exact: true,
-  });
+  const privacy = privacyControl(dialog, sensitiveMedia.hide);
   const close = dialog.getByRole('button', {
     name: GALLERY.close,
     exact: true,
@@ -1709,14 +1711,10 @@ test('photo overlay controls remain separate, readable and operable in fullscree
     path: info.outputPath('fullscreen-glass-controls.png'),
   });
   await privacy.click();
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.show)).toBeVisible();
   await page.setViewportSize({ width: 320, height: 844 });
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-  await dialog
-    .getByRole('button', { name: sensitiveMedia.show, exact: true })
-    .click();
+  await privacyControl(dialog, sensitiveMedia.show).click();
   const largePrivacy = await privacy.boundingBox();
   const largeClose = await close.boundingBox();
   const largeStage = await dialog
@@ -1737,9 +1735,7 @@ test('photo overlay controls remain separate, readable and operable in fullscree
     path: info.outputPath('fullscreen-sensitive-320-large.png'),
   });
   await privacy.click();
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.show)).toBeVisible();
   await close.click();
   await expect(dialog).toHaveCount(0);
 });
@@ -1757,7 +1753,9 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
     page.getByRole('button', { name: GALLERY.previous }),
   ).toHaveCount(0);
   await expect(page.getByRole('button', { name: GALLERY.next })).toHaveCount(0);
-  await expect(page.locator('.media-gallery-carousel-counter')).toHaveCount(0);
+  await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
+    inlineCounterLabel(1, 1),
+  );
   await expect(page.locator('.media-gallery-carousel-footer')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: openItemLabel(1, 1) }),
@@ -1782,7 +1780,7 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
 test('sensitive media remains local to one item and conceals on return and actual backgrounding', async ({
   page,
   context,
-}) => {
+}, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await installApiMocks(
@@ -1805,25 +1803,18 @@ test('sensitive media remains local to one item and conceals on return and actua
         .analyze()
     ).violations,
   ).toEqual([]);
-  const reveal = page.getByRole('button', {
-    name: sensitiveMedia.show,
-    exact: true,
-  });
+  const reveal = privacyControl(page, sensitiveMedia.show);
   const box = await reveal.boundingBox();
   expect(box?.height).toBeGreaterThanOrEqual(44);
   await reveal.focus();
   await page.keyboard.press('Enter');
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
-  ).toBeFocused();
+  await expect(privacyControl(page, sensitiveMedia.hide)).toBeFocused();
   await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
   await page.getByRole('button', { name: photoReactions.fullscreen }).click();
   const dialog = page.getByRole('dialog');
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.hide)).toBeVisible();
   await page.screenshot({
-    path: '../../docs/product/design/references/1485/runtime-lightbox-revealed-390.png',
+    path: info.outputPath('runtime-lightbox-revealed-390.png'),
   });
   await page.keyboard.press('ArrowRight');
   await expect(
@@ -1832,16 +1823,12 @@ test('sensitive media remains local to one item and conceals on return and actua
     ),
   ).toHaveCount(0);
   await page.keyboard.press('ArrowRight');
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.show)).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   // Ordinary window focus changes must retain the inline reveal.
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(page, sensitiveMedia.hide)).toBeVisible();
   const other = await context.newPage();
   await other.goto('about:blank');
   await other.bringToFront();
@@ -1859,22 +1846,16 @@ test('sensitive media remains local to one item and conceals on return and actua
       value: 'visible',
     });
   });
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole('button', { name: sensitiveMedia.show, exact: true })
-    .click();
+  await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
+  await privacyControl(page, sensitiveMedia.show).click();
   await page.reload();
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
 });
 
 for (const theme of ['light', 'dark'] as const) {
   test(`sensitive media reflows in ${theme} and retains readable controls`, async ({
     page,
-  }) => {
+  }, info) => {
     await page.addInitScript(
       (theme) => localStorage.setItem('eimir.theme', theme),
       theme,
@@ -1890,10 +1871,7 @@ for (const theme of ['light', 'dark'] as const) {
     for (const width of [320, 360, 390, 430, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       await expectCarouselSettled(page, 0);
-      const reveal = page.getByRole('button', {
-        name: sensitiveMedia.show,
-        exact: true,
-      });
+      const reveal = privacyControl(page, sensitiveMedia.show);
       await expect(reveal).toBeVisible();
       const box = await reveal.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -1911,7 +1889,7 @@ for (const theme of ['light', 'dark'] as const) {
       await reveal.scrollIntoViewIfNeeded();
       await nextFrame(page);
       await page.screenshot({
-        path: `../../docs/product/design/references/1485/runtime-${theme}-${width}.png`,
+        path: info.outputPath(`runtime-${theme}-${width}.png`),
         fullPage: width < 840,
       });
     }
@@ -1919,16 +1897,14 @@ for (const theme of ['light', 'dark'] as const) {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
-    await expect(
-      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-    ).toBeVisible();
+    await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
     await page.screenshot({
-      path: `../../docs/product/design/references/1485/runtime-${theme}-320-large-text.png`,
+      path: info.outputPath(`runtime-${theme}-320-large-text.png`),
       fullPage: true,
     });
   });
@@ -1936,7 +1912,7 @@ for (const theme of ['light', 'dark'] as const) {
 
 test('sensitive photo editing retains a failed classification draft and saves on deliberate retry', async ({
   page,
-}) => {
+}, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installApiMocks(
     page,
@@ -1952,7 +1928,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await expect(mark).toBeChecked();
   await mark.uncheck();
   await page.screenshot({
-    path: '../../docs/product/design/references/1477/runtime-edit-390.png',
+    path: info.outputPath('runtime-edit-390.png'),
     fullPage: true,
   });
   await expectInlineDraftActions(page);

@@ -1,30 +1,40 @@
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import {
+  expectLabeledComposerTool,
+  expectNaturalTextReflow,
+} from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expectNaturalTextReflow } from '../support/addAction';
 import {
   expectMediaIntakeAction,
   openComposerMediaSources,
 } from '../support/mediaIntake';
 import {
   closeComposerDate,
+  closeContextTags,
+  closeHeartAudience,
   expectReadableComposerHeader,
+  openComposerPlace,
   showComposerDate,
+  showContextSuggestions,
   showContextTags,
   showHeartAudience,
+  showHeartEmotions,
 } from '../support/memoryDiary';
 import {
   fulfillEmptyMomentPlaces,
   fulfillUnconfiguredPhotoSources,
 } from '../support/photoSources';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -55,23 +65,31 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 async function expectHeartDetailContainment(page: Page): Promise<void> {
   const geometry = await page
-    .locator('.heart-moment-detail-container article')
+    .locator('.heart-moment-detail-container article, #heart-moment-edit-form')
     .evaluate((card) => {
       const bounds = card.getBoundingClientRect();
       return [
         ...card.children,
         ...card.querySelectorAll('.heart-moment-provenance-footer > *'),
-      ].map((element) => ({
-        left: element.getBoundingClientRect().left - bounds.left,
-        right: bounds.right - element.getBoundingClientRect().right,
-      }));
+      ]
+        .filter((element) => element.getClientRects().length > 0)
+        .map((element) => ({
+          left: element.getBoundingClientRect().left - bounds.left,
+          right: bounds.right - element.getBoundingClientRect().right,
+        }));
     });
   for (const item of geometry) {
     expect(item.left).toBeGreaterThanOrEqual(0);
     expect(item.right).toBeGreaterThanOrEqual(0);
   }
   const action = await page
-    .locator('.heart-moment-visibility-action')
+    .locator('.composer-audience > button')
+    .or(
+      page.getByRole('link', {
+        name: storyProducts.heartMomentProduct.edit,
+        exact: true,
+      }),
+    )
     .boundingBox();
   expect(action?.width).toBeGreaterThanOrEqual(44);
   expect(action?.height).toBeGreaterThanOrEqual(44);
@@ -101,6 +119,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillDefaultProductContext(route)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
@@ -519,6 +538,46 @@ async function openVisibilityJourney(page: Page, failSecond = true) {
   return { unexpectedRequests, patches, releaseFirst };
 }
 
+async function openHeartEditor(page: Page) {
+  await page
+    .getByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(/\/heart-moments\/[^/]+\/edit$/);
+  await expect(
+    page.getByLabel(storyProducts.heartMomentProduct.textLabel, {
+      exact: true,
+    }),
+  ).toBeVisible();
+}
+
+async function returnToHeartDetail(page: Page) {
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+    .click();
+  await expect(page).toHaveURL(/\/heart-moments\/[^/]+$/);
+  await expect(
+    page.getByText('A quiet afternoon together', { exact: true }),
+  ).toBeVisible();
+}
+
+async function chooseHeartAudience(
+  page: Page,
+  visibility: 'SHARED' | 'PRIVATE',
+) {
+  const sheet = await showHeartAudience(page);
+  const label =
+    visibility === 'PRIVATE'
+      ? storyProducts.heartMomentProduct.visibilityPrivate
+      : storyProducts.heartMomentProduct.visibilityShared;
+  // A successful choice closes its own modal before Playwright can re-check the radio.
+  await sheet.getByRole('radio', { name: label, exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+}
+
 for (const exit of ['button', 'browser'] as const) {
   test(`HeartMoment discard returns to its captured origin after ${exit} Back (#1719)`, async ({
     page,
@@ -595,22 +654,19 @@ for (const viewport of [
       await page.locator('html').evaluate((element) => {
         element.style.fontSize = '200%';
       });
-    const makePrivate = page.getByRole('button', {
-      name: storyProducts.heartMomentProduct.makePrivate,
-      exact: true,
-    });
-    const makeShared = page.getByRole('button', {
-      name: storyProducts.heartMomentProduct.makeShared,
-      exact: true,
-    });
+    await openHeartEditor(page);
+    const audience = page.locator('.composer-audience > button');
     const pending = page.getByText(
       storyProducts.heartMomentProduct.visibilityChanging,
       { exact: true },
     );
-    await makePrivate.click();
+    await chooseHeartAudience(page, 'PRIVATE');
     await expect.poll(() => state.patches.length).toBe(1);
     await expect(pending).toBeVisible();
-    await expect(makePrivate).toBeDisabled();
+    await expect(audience).toBeDisabled();
+    await returnToHeartDetail(page);
+    await expect(pending).toBeVisible();
+    await expect(page.locator('.comments-panel')).toHaveCount(0);
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
@@ -622,6 +678,15 @@ for (const viewport of [
     await expect(
       page.getByText('A quiet afternoon together', { exact: true }),
     ).toBeVisible();
+    await expect(pending).toBeVisible();
+    await openHeartEditor(page);
+    await expect(audience).toBeDisabled();
+    expect(state.patches).toHaveLength(1);
+    await expect(
+      page.getByLabel(storyProducts.heartMomentProduct.textLabel, {
+        exact: true,
+      }),
+    ).toHaveValue('A quiet afternoon together');
     const prefix = `heart-visibility-${viewport.width}-${viewport.theme}${viewport.large ? '-large' : ''}`;
     await writeFile(
       info.outputPath(`${prefix}-geometry.json`),
@@ -640,45 +705,50 @@ for (const viewport of [
       fullPage: true,
     });
     await expect(pending).toBeVisible();
-    await expect(makePrivate).toBeDisabled();
+    await expect(audience).toBeDisabled();
     await expect(page.locator('.comments-panel')).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
     await expectHeartDetailContainment(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     state.releaseFirst();
-    await expect(makeShared).toBeEnabled();
-    await expect(
-      page.getByText(storyProducts.heartMomentProduct.commentsPrivate, {
-        exact: true,
-      }),
-    ).toBeVisible();
+    await expect(audience).toBeEnabled();
+    await expect(audience).toContainText(
+      storyProducts.heartMomentProduct.visibilityPrivate,
+    );
+    await expect(pending).toHaveCount(0);
     await expectHeartDetailContainment(page);
     await page.screenshot({
       path: info.outputPath(`${prefix}-private.png`),
       fullPage: true,
     });
-    await makeShared.click();
+    await returnToHeartDetail(page);
+    await expect(page.locator('.comments-panel')).toHaveCount(0);
+    await openHeartEditor(page);
+    await chooseHeartAudience(page, 'SHARED');
     await expect(
       page.getByText(de.states.server.title, { exact: true }),
     ).toBeVisible();
-    await expect(makeShared).toBeEnabled();
-    await expect(
-      page.getByText(storyProducts.heartMomentProduct.commentsPrivate, {
-        exact: true,
-      }),
-    ).toBeVisible();
+    await expect(audience).toBeEnabled();
+    await expect(audience).toContainText(
+      storyProducts.heartMomentProduct.visibilityPrivate,
+    );
+    await expect(page.locator('.comments-panel')).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
     await expectHeartDetailContainment(page);
     await page.screenshot({
       path: info.outputPath(`${prefix}-error.png`),
       fullPage: true,
     });
-    await makeShared.click();
-    await expect(makePrivate).toBeEnabled();
-    await expect(page.locator('.comments-panel')).toBeVisible();
+    await chooseHeartAudience(page, 'SHARED');
+    await expect(audience).toBeEnabled();
+    await expect(audience).toContainText(
+      storyProducts.heartMomentProduct.visibilityShared,
+    );
     await expect(
       page.getByText(de.states.server.title, { exact: true }),
     ).toHaveCount(0);
+    await returnToHeartDetail(page);
+    await expect(page.locator('.comments-panel')).toBeVisible();
     expect(state.patches).toEqual([
       { ifMatch: '1', body: { visibility: 'PRIVATE' } },
       { ifMatch: '2', body: { visibility: 'SHARED' } },
@@ -692,21 +762,23 @@ for (const viewport of [
       page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
-    await expect(makePrivate).toBeEnabled();
+    await expect(
+      page.getByText('A quiet afternoon together', { exact: true }),
+    ).toBeVisible();
+    await openHeartEditor(page);
+    await expect(audience).toBeEnabled();
     await expect(pending).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
     await expectHeartDetailContainment(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     for (let tabs = 0; tabs < 30; tabs += 1) {
       if (
-        await makePrivate.evaluate(
-          (element) => element === document.activeElement,
-        )
+        await audience.evaluate((element) => element === document.activeElement)
       )
         break;
       await page.keyboard.press('Tab');
     }
-    await expect(makePrivate).toBeFocused();
+    await expect(audience).toBeFocused();
     await page.screenshot({
       path: info.outputPath(`${prefix}-confirmed.png`),
       fullPage: true,
@@ -725,22 +797,24 @@ for (const theme of ['light', 'dark'] as const) {
       window.localStorage.setItem('eimir.theme', 'system'),
     );
     const state = await openVisibilityJourney(page, false);
+    await openHeartEditor(page);
     await page.context().setOffline(true);
-    const action = page.getByRole('button', {
-      name: storyProducts.heartMomentProduct.makePrivate,
-      exact: true,
-    });
-    await action.click();
+    const action = page.locator('.composer-audience > button');
+    await chooseHeartAudience(page, 'PRIVATE');
     await expect(
       page.getByText(de.states.offline.title, { exact: true }),
     ).toBeVisible();
     await expect(action).toBeEnabled();
+    await expect(action).toContainText(
+      storyProducts.heartMomentProduct.visibilityShared,
+    );
     expect(state.patches).toHaveLength(0);
     await page.screenshot({
       path: info.outputPath(`heart-visibility-offline-360-${theme}.png`),
       fullPage: true,
     });
     await page.context().setOffline(false);
+    await returnToHeartDetail(page);
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
@@ -749,24 +823,28 @@ for (const theme of ['light', 'dark'] as const) {
       page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
+    await expect(
+      page.getByText('A quiet afternoon together', { exact: true }),
+    ).toBeVisible();
+    await openHeartEditor(page);
     await expect(action).toBeEnabled();
     expect(state.patches).toHaveLength(0);
-    await action.click();
+    await chooseHeartAudience(page, 'PRIVATE');
     await expect.poll(() => state.patches.length).toBe(1);
     state.releaseFirst();
-    await expect(
-      page.getByRole('button', {
-        name: storyProducts.heartMomentProduct.makeShared,
-        exact: true,
-      }),
-    ).toBeEnabled();
+    await expect(action).toBeEnabled();
+    await expect(action).toContainText(
+      storyProducts.heartMomentProduct.visibilityPrivate,
+    );
     expect(state.patches).toHaveLength(1);
+    await returnToHeartDetail(page);
+    await expect(page.locator('.comments-panel')).toHaveCount(0);
     expect(state.unexpectedRequests).toEqual([]);
   });
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Heart Moment Create matches the approved #1717 Compact composition (${colorScheme})`, async ({
+  test(`Heart Moment Create matches the approved #1730 Compact composition (${colorScheme})`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -793,28 +871,29 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const visibility = page.locator('.composer-audience');
       const actions = page.locator('.composer-header .page-heading-action');
       const photoInput = page.getByLabel(de.memory.photoLabel, { exact: true });
-      const sharedRadio = page.locator(
-        '#heart-moment-create-visibility-shared',
-      );
-      const privateRadio = page.locator(
-        '#heart-moment-create-visibility-private',
-      );
+      const sharedRadio = page.getByRole('radio', {
+        name: storyProducts.heartMomentProduct.visibilityShared,
+        exact: true,
+      });
+      const privateRadio = page.getByRole('radio', {
+        name: storyProducts.heartMomentProduct.visibilityPrivate,
+        exact: true,
+      });
       const saveButton = page.getByRole('button', {
         name: storyProducts.heartMomentProduct.save,
       });
 
       await expect(form).toBeVisible();
-      await expect(media).toBeVisible();
+      await expect(media).toBeAttached();
       await expect(note).toBeVisible();
       await expect(visibility).toBeVisible();
       await expect(actions).toBeVisible();
 
       // Authored words precede optional media in the approved free composer.
-      const mediaTrigger = media.getByRole('button', {
-        name: photoSources.addMedia,
-        exact: true,
-      });
-      await expectMediaIntakeAction(mediaTrigger, 'foto');
+      const mediaTrigger = page
+        .locator('.composer-tool-row button')
+        .filter({ has: page.locator('.eimir-icon-foto') });
+      await expectLabeledComposerTool(mediaTrigger, 'foto');
       await expect(media.locator('.photo-source-trigger')).toHaveCount(0);
       const sourceSheet = await openComposerMediaSources(page);
       const deviceChoice = sourceSheet.getByRole('button', {
@@ -841,8 +920,10 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(photoInput).not.toHaveAttribute('required', '');
 
       // Preserve the existing product default while making the choice explicit.
+      await showHeartAudience(page);
       await expect(sharedRadio).toBeChecked();
       await expect(privateRadio).not.toBeChecked();
+      await closeHeartAudience(page);
       await expect(
         page.getByText(storyProducts.heartMomentProduct.sharedHelp),
       ).toHaveCount(0);
@@ -854,11 +935,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
       );
 
       const emotion = page.locator('.heart-moment-create-emotion-picker');
-      const feelingSummary = emotion.locator('summary');
+      await showHeartEmotions(page);
       await expect(
-        feelingSummary.getByText('Geliebt', { exact: true }),
-      ).toBeVisible();
-      await feelingSummary.click();
+        emotion.getByRole('radio', {
+          name: storyProducts.heartEmotion.LOVED,
+          exact: true,
+        }),
+      ).toBeChecked();
+      await expect(emotion.getByRole('radio')).toHaveCount(6);
       const label = emotion
         .getByRole('group', {
           name: storyProducts.heartMomentProduct.emotionLabel,
@@ -870,19 +954,28 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ]);
       if (!surfaceBox || !labelBox)
         throw new Error('Emotion group is missing.');
-      expect(labelBox.y).toBeGreaterThan(surfaceBox.y);
+      expect(labelBox.y).toBeGreaterThanOrEqual(surfaceBox.y);
       expect(labelBox.y + labelBox.height).toBeLessThan(
         surfaceBox.y + surfaceBox.height,
       );
 
       await showHeartAudience(page);
-      await privateRadio.check();
+      await privateRadio.click();
+      await expect(page.locator('dialog.composer-audience-sheet')).toHaveCount(
+        0,
+      );
+      await showHeartAudience(page);
       await expect(privateRadio).toBeChecked();
       await expect(sharedRadio).not.toBeChecked();
       await showHeartAudience(page);
       await privateRadio.focus();
       await privateRadio.press('ArrowRight');
+      await expect(page.locator('dialog.composer-audience-sheet')).toHaveCount(
+        0,
+      );
+      await showHeartAudience(page);
       await expect(sharedRadio).toBeChecked();
+      await closeHeartAudience(page);
 
       const dateInput = await showComposerDate(
         page,
@@ -915,7 +1008,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       const [noteBox, mediaBox, audienceBox] = await Promise.all([
         note.boundingBox(),
-        media.boundingBox(),
+        mediaTrigger.boundingBox(),
         visibility.boundingBox(),
       ]);
       if (!noteBox || !mediaBox || !audienceBox)
@@ -924,6 +1017,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         );
       expect(audienceBox.y + audienceBox.height).toBeLessThanOrEqual(noteBox.y);
       expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(mediaBox.y);
+      await expect(media.locator('.photo-draft-gallery')).toHaveCount(0);
 
       const [saveBox, formBox] = await Promise.all([
         saveButton.boundingBox(),
@@ -991,16 +1085,32 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
     await expectNoHorizontalOverflow(page);
     await showHeartAudience(page);
 
-    const privateCard = page
-      .locator('.heart-moment-create-visibility-option')
-      .filter({ has: page.locator('#heart-moment-create-visibility-private') });
-    const sharedCard = page
-      .locator('.heart-moment-create-visibility-option')
-      .filter({ has: page.locator('#heart-moment-create-visibility-shared') });
-    const [privateBox, sharedBox] = await Promise.all([
-      privateCard.boundingBox(),
-      sharedCard.boundingBox(),
-    ]);
+    for (const name of [
+      storyProducts.heartMomentProduct.visibilityPrivate,
+      storyProducts.heartMomentProduct.visibilityShared,
+    ])
+      await expect(
+        page.getByRole('radio', { name, exact: true }),
+      ).toBeVisible();
+    const visibilityGeometry = () =>
+      page
+        .locator('.heart-moment-create-visibility-option')
+        .evaluateAll((choices) =>
+          choices.map((choice) => {
+            const radio = choice.querySelector<HTMLInputElement>('input');
+            const bounds = choice.getBoundingClientRect();
+            return {
+              value: radio?.value,
+              x: bounds.x,
+              y: bounds.y,
+              width: bounds.width,
+              height: bounds.height,
+            };
+          }),
+        );
+    const boxes = await visibilityGeometry();
+    const privateBox = boxes.find((box) => box.value === 'PRIVATE');
+    const sharedBox = boxes.find((box) => box.value === 'SHARED');
     if (!privateBox || !sharedBox) {
       throw new Error('Visibility cards did not render at 320px.');
     }
@@ -1021,18 +1131,25 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
       document.documentElement.style.fontSize = '32px';
     });
     await expectNoHorizontalOverflow(page);
+    await closeHeartAudience(page);
     await expectReadableComposerHeader(page);
     await expectNaturalTextReflow(
       page
-        .getByRole('button', { name: photoSources.addMedia, exact: true })
-        .locator('.media-intake-label'),
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.photo, exact: true })
+        .locator('span')
+        .last(),
       2,
     );
+    await showHeartAudience(page);
 
-    const [largeTextPrivateBox, largeTextSharedBox] = await Promise.all([
-      privateCard.boundingBox(),
-      sharedCard.boundingBox(),
-    ]);
+    const largeTextBoxes = await visibilityGeometry();
+    const largeTextPrivateBox = largeTextBoxes.find(
+      (box) => box.value === 'PRIVATE',
+    );
+    const largeTextSharedBox = largeTextBoxes.find(
+      (box) => box.value === 'SHARED',
+    );
     if (!largeTextPrivateBox || !largeTextSharedBox) {
       throw new Error('Visibility cards did not render with large text.');
     }
@@ -1138,6 +1255,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
       request.method() === 'POST' &&
       request.url().endsWith(`/spaces/${SPACE_ID}/heart-moments`),
   );
+  await closeContextTags(page);
   await page
     .getByRole('button', { name: storyProducts.heartMomentProduct.save })
     .click();
@@ -1171,6 +1289,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
       exact: true,
     })
     .click();
+  await showContextTags(page);
   await page
     .getByRole('button', {
       name: contextTags.remove.replace('{{tag}}', 'Ostsee'),
@@ -1182,6 +1301,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
       request.method() === 'PATCH' &&
       request.url().includes('/heart-moments/44444444'),
   );
+  await closeContextTags(page);
   await page
     .getByRole('button', { name: storyProducts.heartMomentProduct.save })
     .click();
@@ -1200,9 +1320,7 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   await page.setViewportSize({ width: 390, height: 844 });
   await openHeartMomentCreate(page);
   await expect(page.locator('#heart-moment-text')).not.toBeFocused();
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
+  await openComposerMediaSources(page);
   await page.getByLabel(de.memory.photoLabel, { exact: true }).setInputFiles({
     name: 'cabin-lake.jpg',
     mimeType: 'image/jpeg',
@@ -1239,7 +1357,11 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
       name: storyProducts.heartMomentProduct.detailEyebrow,
     }),
   ).toBeVisible();
-  const savedPhoto = page.locator('.media-gallery-thumb-content');
+  const savedPhoto = page
+    .locator(
+      '.media-gallery-carousel-slide:not(.is-clone) img.media-gallery-thumb-content',
+    )
+    .first();
   await expect(savedPhoto).toBeVisible();
   await expect
     .poll(() =>
@@ -1248,7 +1370,10 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
       ),
     )
     .toBeGreaterThan(0);
-  await page.locator('.shell-detail-back').click();
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+    .click();
   await expect(page).toHaveURL(/\/story$/);
 });
 
@@ -1310,7 +1435,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     });
 
     await showContextTags(page);
-    await page.getByText(contextTags.suggestions, { exact: true }).click();
+    await showContextSuggestions(page);
     await page
       .getByRole('checkbox', {
         name: storyProducts.heartMomentProduct.tagLabels.everyday,
@@ -1321,6 +1446,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
         request.method() === 'POST' &&
         request.url().endsWith(`/spaces/${SPACE_ID}/heart-moments`),
     );
+    await closeContextTags(page);
     await page
       .getByRole('button', { name: storyProducts.heartMomentProduct.save })
       .click();
@@ -1336,7 +1462,10 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
       }),
     ).toBeVisible();
     await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
-    await page.locator('.shell-detail-back').click();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+      .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(
       page.getByRole('button', { name: navigation.newContent, exact: true }),
@@ -1373,7 +1502,7 @@ for (const visibility of ['SHARED', 'PRIVATE'] as const) {
           json: { items: [destination], nextCursor: null, hasMore: false },
         }),
     );
-    await page.getByRole('button', { name: copy.add, exact: true }).click();
+    await openComposerPlace(page);
     await page
       .getByRole('dialog', { name: copy.add })
       .getByRole('button', { name: /Unser Café/ })
@@ -1388,7 +1517,10 @@ for (const visibility of ['SHARED', 'PRIVATE'] as const) {
           name: storyProducts.heartMomentProduct.visibilityPrivate,
           exact: true,
         })
-        .check();
+        .click();
+      await expect(page.locator('dialog.composer-audience-sheet')).toHaveCount(
+        0,
+      );
       await expect(
         page.getByRole('button', { name: destination.name, exact: true }),
       ).toBeVisible();

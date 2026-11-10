@@ -11,6 +11,7 @@ import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import {
   closeComposerDate,
   expectReadableComposerHeader,
@@ -18,7 +19,11 @@ import {
   showMemoryDetails,
 } from '../support/memoryDiary';
 import { expectNaturalTextReflow } from '../support/addAction';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import {
+  fulfillEmptyMomentPlaces,
+  fulfillUnconfiguredPhotoSources,
+} from '../support/photoSources';
+import { fulfillDefaultProductContext } from '../support/productContext';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -110,6 +115,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
@@ -382,10 +389,8 @@ async function fillMemory(page: Page, withPhoto = false) {
     .fill(TITLE);
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(BODY);
   if (withPhoto) {
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page.locator('#memory-create-images').setInputFiles({
+    const sources = await openComposerMediaSources(page);
+    await sources.locator('input[type=file]').setInputFiles({
       name: 'river.jpg',
       mimeType: 'image/jpeg',
       buffer: await readFile(PHOTO),
@@ -589,10 +594,8 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
   await expect(
     page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue('');
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
-  await page.locator('#memory-create-images').setInputFiles({
+  const sources = await openComposerMediaSources(page);
+  await sources.locator('input[type=file]').setInputFiles({
     name: 'river.jpg',
     mimeType: 'image/jpeg',
     buffer: await readFile(PHOTO),
@@ -1150,10 +1153,8 @@ test('failed uploads retain authored content and can retry before the first crea
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
-  await page.locator('#memory-create-images').setInputFiles({
+  const sources = await openComposerMediaSources(page);
+  await sources.locator('input[type=file]').setInputFiles({
     name: 'river.jpg',
     mimeType: 'image/jpeg',
     buffer: await readFile(PHOTO),
@@ -1397,7 +1398,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await expectReadableComposerHeader(page);
   await expectNaturalTextReflow(
     page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .getByRole('button', { name: photoSources.more, exact: true })
       .locator('.media-intake-label'),
     2,
   );

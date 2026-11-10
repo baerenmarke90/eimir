@@ -1,7 +1,6 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -10,10 +9,18 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import {
   expectInlineAddLayout,
   expectLabeledAddAction,
-  expectReadableActionLabel,
+  expectLabeledComposerTool,
   expectNaturalTextReflow,
+  expectReadableActionLabel,
 } from '../support/addAction';
-import { showContextTags, showHeartAudience } from '../support/memoryDiary';
+import {
+  closeContextTags,
+  closeHeartAudience,
+  openComposerPlace,
+  showContextTags,
+  showHeartAudience,
+  showHeartEmotions,
+} from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -29,10 +36,6 @@ const LOCATION = {
   latitude: 49.1,
   longitude: 7.2,
 };
-const EVIDENCE = path.resolve(
-  import.meta.dirname,
-  '../../../docs/product/design/references/tabs-pro-private-tags/evidence',
-);
 
 async function setup(page: Page, premium = false) {
   let saved: Record<string, unknown> | null = null;
@@ -122,23 +125,47 @@ async function setup(page: Page, premium = false) {
 
 async function tagGeometry(page: Page) {
   if (!(await page.getByLabel(contextTags.newLabel).isVisible())) {
-    const disclosure = page.getByRole('button', {
-      name: contextTags.add,
-      exact: true,
-    });
-    await expectLabeledAddAction(disclosure, 'tag');
-    await expectReadableActionLabel(disclosure);
+    const tool = page
+      .locator('.composer-tool-row button')
+      .filter({ has: page.locator('.eimir-icon-tag') });
+    if (await tool.count()) await expectLabeledComposerTool(tool, 'tag');
+    else {
+      const disclosure = page.getByRole('button', {
+        name: contextTags.add,
+        exact: true,
+      });
+      await expectLabeledAddAction(disclosure, 'tag');
+      await expectReadableActionLabel(disclosure);
+    }
   }
   await showContextTags(page);
   const row = page.locator('.context-tag-entry');
   const input = row.locator('input');
   const add = row.getByRole('button', { name: contextTags.add });
-  await expectLabeledAddAction(add, 'tag');
-  await expect(input).toHaveAttribute('placeholder', contextTags.placeholder);
-  await expect(page.locator('.context-tag-suggestions')).not.toHaveAttribute(
-    'open',
-    '',
+  const inComposerSheet =
+    (await page.locator('dialog.composer-tag-sheet').count()) > 0;
+  if (inComposerSheet) {
+    await expect(add).toBeVisible();
+    await expect(add).toHaveAttribute('type', 'button');
+    await expectNaturalTextReflow(add.locator('.add-action-label'), 2);
+    const bounds = await add.boundingBox();
+    expect(bounds?.width).toBeGreaterThanOrEqual(44);
+    expect(bounds?.height).toBeGreaterThanOrEqual(44);
+  } else await expectLabeledAddAction(add, 'tag');
+  await expect(input).toHaveAttribute(
+    'placeholder',
+    inComposerSheet ? composer.addOwnTag : contextTags.placeholder,
   );
+  if (inComposerSheet)
+    await expect(page.locator('.context-tag-suggestions')).toHaveAttribute(
+      'open',
+      '',
+    );
+  else
+    await expect(page.locator('.context-tag-suggestions')).not.toHaveAttribute(
+      'open',
+      '',
+    );
   await expectInlineAddLayout(input, add);
   const [entryBox, inputBox] = await Promise.all([
     row.boundingBox(),
@@ -146,8 +173,16 @@ async function tagGeometry(page: Page) {
   ]);
   if (!entryBox || !inputBox)
     throw new Error('Disclosed tag entry did not render.');
-  expect(inputBox.width).toBeGreaterThanOrEqual(entryBox.width - 1);
-  const icon = add.locator('.eimir-icon-tag');
+  if (inComposerSheet) {
+    expect(inputBox.width).toBeGreaterThanOrEqual(44);
+    expect(inputBox.x).toBeGreaterThanOrEqual(entryBox.x);
+    expect(inputBox.x + inputBox.width).toBeLessThanOrEqual(
+      entryBox.x + entryBox.width,
+    );
+  } else expect(inputBox.width).toBeGreaterThanOrEqual(entryBox.width - 1);
+  const icon = inComposerSheet
+    ? row.locator(':scope > .eimir-icon')
+    : add.locator('.eimir-icon-tag');
   await expect(icon).toBeVisible();
   const symbol = await icon.boundingBox();
   expect(symbol?.width).toBeGreaterThanOrEqual(20);
@@ -191,10 +226,9 @@ for (const variant of [
         name: storyProducts.heartMomentProduct.visibilityPrivate,
         exact: true,
       })
-      .check();
-    await page
-      .getByRole('button', { name: photoPlaces.add, exact: true })
       .click();
+    await closeHeartAudience(page);
+    await openComposerPlace(page);
     await page
       .getByRole('dialog', { name: photoPlaces.add, exact: true })
       .getByRole('button', { name: LOCATION.name })
@@ -205,22 +239,14 @@ for (const variant of [
     await page
       .getByRole('button', { name: contextTags.add, exact: true })
       .click();
+    await closeContextTags(page);
     await page.locator('#heart-moment-create-heading').click();
-    await fs.mkdir(EVIDENCE, { recursive: true });
     await page.screenshot({
-      path: path.join(
-        EVIDENCE,
+      path: info.outputPath(
         `private-create-${variant.width}-${variant.theme}.png`,
       ),
       fullPage: true,
     });
-    await fs.copyFile(
-      path.join(
-        EVIDENCE,
-        `private-create-${variant.width}-${variant.theme}.png`,
-      ),
-      info.outputPath(`shell-1693-tags-${variant.width}-${variant.theme}.png`),
-    );
     expect(
       (
         await new AxeBuilder({ page })
@@ -242,17 +268,24 @@ for (const variant of [
       tags: ['Our quiet place'],
     });
     expect(result.mutations[0]).not.toHaveProperty('placeId');
-    await page
-      .getByRole('button', { name: LOCATION.name, exact: true })
-      .click();
-    await expect(
-      page.getByRole('dialog').getByText(LOCATION.address),
-    ).toBeVisible();
-    await page.keyboard.press('Escape');
+    const placeLink = page.locator('.moment-location .moment-place-summary');
+    await expect(placeLink).toContainText(LOCATION.name);
+    await expect(placeLink).toHaveAttribute(
+      'href',
+      '/story/map?place=49.1%3A7.2',
+    );
+    await placeLink.click();
+    await expect(page).toHaveURL(/\/story\/map\?place=49\.1%3A7\.2$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/story\/heart-moments\/private-heart$/);
     await page.goto('/story/heart-moments/private-heart/edit');
+    await openComposerPlace(page);
     await page
+      .getByRole('dialog')
       .getByRole('button', { name: photoPlaces.removeSelection, exact: true })
       .click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await page
       .getByRole('button', {
         name: storyProducts.heartMomentProduct.save,
@@ -262,7 +295,7 @@ for (const variant of [
     await expect(page).toHaveURL(/private-heart$/);
     await page.reload();
     await expect(
-      page.getByRole('button', { name: LOCATION.name, exact: true }),
+      page.locator('.moment-location .moment-place-summary'),
     ).toHaveCount(0);
     expect(result.mutations.at(-1)).toMatchObject({ location: null });
     expect(result.sharedWrites()).toBe(0);
@@ -280,10 +313,9 @@ test('private map choice stays draft-only until parent save and survives picker 
       name: storyProducts.heartMomentProduct.visibilityPrivate,
       exact: true,
     })
-    .check();
-  await page
-    .getByRole('button', { name: photoPlaces.add, exact: true })
     .click();
+  await closeHeartAudience(page);
+  await openComposerPlace(page);
   await page.getByRole('button', { name: m5s3.map.open, exact: true }).click();
   const map = page.getByRole('dialog', { name: m5s3.map.title, exact: true });
   await map.getByLabel(m5s3.map.searchLabel).fill('Quiet lake');
@@ -313,7 +345,7 @@ test('private map choice stays draft-only until parent save and survives picker 
 for (const premium of [false, true]) {
   test(`More feature badges follow the effective Space tier: ${premium ? 'Pro' : 'Free'}`, async ({
     page,
-  }) => {
+  }, info) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await setup(page, premium);
     await page.goto('/more');
@@ -321,11 +353,9 @@ for (const premium of [false, true]) {
       premium ? 0 : 3,
     );
     await expect(page.locator('a[href="/more/insights"]')).toBeVisible();
-    await fs.mkdir(EVIDENCE, { recursive: true });
     await page.locator('h1').click();
     await page.screenshot({
-      path: path.join(
-        EVIDENCE,
+      path: info.outputPath(
         premium ? 'more-pro-390-light.png' : 'more-free-390-light.png',
       ),
       fullPage: true,
@@ -349,6 +379,7 @@ for (const destination of [
       document.documentElement.style.fontSize = '200%';
     });
     await tagGeometry(page);
+    await closeContextTags(page);
     if (destination === '/story/heart-moments/new') {
       await showHeartAudience(page);
       await page.screenshot({
@@ -359,18 +390,18 @@ for (const destination of [
         .locator('.heart-moment-create-visibility-option strong')
         .all())
         await expectNaturalTextReflow(label, 2);
-      await page.locator('.composer-audience > summary').click();
-      await page.locator('.heart-emotion-disclosure > summary').click();
+      await closeHeartAudience(page);
+      await showHeartEmotions(page);
       for (const label of await page
         .locator('.heart-emotion-choice-label')
         .all())
         await expectNaturalTextReflow(label, 2);
     }
     if (destination === '/plan/plans/new') {
-      await expectLabeledAddAction(
-        page.getByRole('button', { name: photoPlaces.add, exact: true }),
-        'orte',
-      );
+      const placeTool = page
+        .locator('.composer-tool-row button')
+        .filter({ has: page.locator('.eimir-icon-orte') });
+      await expectLabeledComposerTool(placeTool, 'orte');
     }
     await page.screenshot({
       path: info.outputPath(
@@ -443,8 +474,9 @@ for (const variant of [
     });
     await page
       .getByRole('radio', { name: copy.visibilityPrivate, exact: true })
-      .check();
-    await page.locator('.heart-emotion-disclosure > summary').click();
+      .click();
+    await closeHeartAudience(page);
+    await showHeartEmotions(page);
     for (const label of await page.locator('.heart-emotion-choice-label').all())
       await expectNaturalTextReflow(label, 2);
     // The native radio is visually clipped; touch activates its full label.
@@ -490,7 +522,7 @@ for (const variant of [
       emotions.SUPPORTED,
     );
     await page.goto('/story/heart-moments/private-heart/edit');
-    await page.locator('.heart-emotion-disclosure > summary').click();
+    await showHeartEmotions(page);
     await expect(
       page.getByRole('radio', { name: emotions.SUPPORTED, exact: true }),
     ).toBeChecked();

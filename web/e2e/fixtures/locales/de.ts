@@ -1,4 +1,21 @@
 const de = {
+  pageComposer: {
+    memoryTitle: 'Frühstück am See',
+    memoryBody:
+      'Viel zu früh aufgestanden, aber der Nebel über dem Wasser war es wert. Den Kaffee hast du natürlich vergessen.\n\nBeim nächsten Mal bringen wir eine große Thermoskanne mit.',
+    heartText: 'Danke für den Kaffee ans Bett heute früh.',
+    planTitle: 'Picknick am Rhein',
+    planBody:
+      'Treffpunkt an der großen Wiese hinter dem Bootshaus.\n\nWir bringen Decke, Thermoskanne und das Brot vom Wochenmarkt mit. Falls es regnet, suchen wir uns einen Platz unter den Bäumen. Am Nachmittag bleiben wir noch eine Weile am Wasser und nehmen uns Zeit für einen Spaziergang. Danach fahren wir gemeinsam nach Hause.',
+    placeName: 'Bootssteg',
+    placeAddress: 'Am See 1, Nohfelden',
+    listTitle: 'Picknick-Liste',
+    listItems: ['Decke', 'Thermoskanne', 'Brot vom Wochenmarkt', 'Kuchen'],
+    addedListItem: 'Obst für den Nachmittag',
+    tag: 'Urlaub',
+    suggestedTags: ['Sonnenaufgang', 'Am Wasser'],
+    newPlace: 'Unser Lieblingsplatz',
+  },
   planLinkedLists: {
     newPlanTitle: 'Picknick am See',
     newListTitle: 'Für unseren Ausflug',

@@ -516,12 +516,10 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    const device = page.locator('input[type=file][accept^="image/"]');
+    const sources = await openComposerMediaSources(page);
+    const device = sources.locator('input[type=file][accept^="image/"]');
     await expect(device).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
-    await expect(page.locator('input[type=file]')).toHaveCount(1);
+    await expect(sources.locator('input[type=file]')).toHaveCount(1);
     await device.setInputFiles([
       { name: 'sunrise.jpg', mimeType: 'image/jpeg', buffer: image },
       { name: 'jump.mp4', mimeType: 'video/mp4', buffer: movie },
@@ -690,9 +688,10 @@ test('source selection waits for video eligibility and preserves photo fallback 
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  const input = page.locator('#memory-create-images');
-  await expect(input).toBeDisabled();
+  await expect(page.locator('#memory-create-images')).toBeDisabled();
   const sources = await openComposerMediaSources(page);
+  const input = sources.locator('input[type=file]');
+  await expect(input).toBeDisabled();
   release();
   await expect(
     page.getByText(photoSources.videoAvailabilityUnavailable, { exact: true }),
@@ -712,7 +711,7 @@ test('source selection waits for video eligibility and preserves photo fallback 
     .click();
   await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+    page.getByRole('button', { name: photoSources.more, exact: true }),
   ).toBeFocused();
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);
@@ -724,9 +723,7 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
+  await openComposerMediaSources(page);
   await page.getByRole('button', { name: new RegExp(videoCopy.add) }).click();
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);
@@ -820,10 +817,8 @@ test('an interrupted local journal does not block an atomic save while video byt
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page.locator('input[type=file]').setInputFiles({
+    const sources = await openComposerMediaSources(page);
+    await sources.locator('input[type=file]').setInputFiles({
       name: 'private-video.mp4',
       mimeType: 'video/mp4',
       buffer: movie,
@@ -873,10 +868,8 @@ test('a saved interrupted video resumes the same upload without recreating its p
   await signIn(page);
   await page.goto('/story/memories/new');
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(momentBody);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
-  await page.locator('input[type=file]').setInputFiles({
+  const sources = await openComposerMediaSources(page);
+  await sources.locator('input[type=file]').setInputFiles({
     name: 'our-video.mp4',
     mimeType: 'video/mp4',
     buffer: movie,
@@ -932,10 +925,8 @@ for (const [width, colorScheme] of [
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
         .fill(momentBody);
-      await page
-        .getByRole('button', { name: photoSources.addMedia, exact: true })
-        .click();
-      await page.locator('input[type=file]').setInputFiles({
+      const sources = await openComposerMediaSources(page);
+      await sources.locator('input[type=file]').setInputFiles({
         name: `eimir-selected-${VIDEO}.mp4`,
         mimeType: 'video/mp4',
         buffer: movie,

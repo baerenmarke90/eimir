@@ -2,6 +2,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import copy from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -52,20 +55,22 @@ async function expectFeelingSurface(
   emotion: Emotion,
   reading = false,
 ) {
-  const card = page.locator(
-    reading
-      ? '.heart-moment-detail-container .product-detail-card'
-      : '.quiet-composer .composer-content',
-  );
-  const semanticColor = await card.evaluate(
+  const surface = page.locator('.heart-emotion-page');
+  const semanticColor = await surface.evaluate(
     (element, token) =>
       getComputedStyle(element).getPropertyValue(token).trim(),
     `--emotion-${emotion.toLowerCase()}-surface`,
   );
   const expectedBackground = rgb(semanticColor);
-  await expect(card).toHaveCSS('background-color', expectedBackground);
-  await expect(card).toHaveCSS('background-image', 'none');
-  const text = card.locator(reading ? '.heart-moment-detail-text' : 'textarea');
+  await expect(surface).toHaveCSS('background-color', expectedBackground);
+  await expect(surface).toHaveCSS('background-image', 'none');
+  await expect(page.locator('.composer-header')).toHaveCSS(
+    'background-color',
+    expectedBackground,
+  );
+  const text = surface.locator(
+    reading ? '.heart-moment-detail-text' : 'textarea.composer-lead',
+  );
   const colors = await text.evaluate((element) => ({
     text: getComputedStyle(element).color,
     placeholder: getComputedStyle(element, '::placeholder').color,
@@ -89,22 +94,27 @@ async function expectFeelingSurface(
 }
 
 async function chooseFeeling(page: Page, emotion: Emotion) {
-  const picker = page.locator('.heart-emotion-disclosure');
-  if (
-    !(await picker.evaluate((element) => (element as HTMLDetailsElement).open))
-  )
-    await picker.locator('summary').click();
+  const picker = page.locator('.heart-emotion-picker');
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole('radio')).toHaveCount(EMOTIONS.length);
   const radio = picker.getByRole('radio', {
     name: copy.heartEmotion[emotion],
     exact: true,
   });
   await picker.locator(`label[data-emotion="${emotion}"]`).click();
   await expect(radio).toBeChecked();
-  await picker.locator('summary').click();
-  await expect(picker.locator('summary')).toContainText(
-    copy.heartEmotion[emotion],
-  );
+  await expect(
+    picker.locator(`label[data-emotion="${emotion}"]`),
+  ).toBeVisible();
   return expectFeelingSurface(page, emotion);
+}
+
+async function installComposerDefaults(page: Page) {
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
+    await route.fallback();
+  });
 }
 
 const TEXT =
@@ -161,6 +171,7 @@ async function openHeart(
   options: { photo?: boolean; private?: boolean; text?: string } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
+  await installComposerDefaults(page);
   let writes = 0;
   let heart = {
     id: 'hm-love',
@@ -292,7 +303,7 @@ for (const scenario of scenarios) {
     if ('private' in scenario) {
       await expect(page.locator('.comments-panel')).toHaveCount(0);
       await expect(
-        page.getByText(copy.heartMomentProduct.commentsPrivate),
+        page.locator('.moment-metadata .visibility-private'),
       ).toBeVisible();
     }
     await page
@@ -323,14 +334,17 @@ for (const scenario of scenarios) {
       info,
       `heart-reading-saved-${scenario.width}-${scenario.theme}.png`,
     );
-    await page.locator('.shell-detail-back').click();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+      .click();
     await expect(page).toHaveURL(/\/story(?:\?.*)?$/);
     await expect(page.locator('#momente-diary')).toBeVisible();
     expect(state.unknown).toEqual([]);
   });
 }
 
-test('all six native feelings color the complete HeartMoment card through create, edit and reload in both themes', async ({
+test('all six native feelings color the complete HeartMoment page through create, edit and reload in both themes', async ({
   browser,
 }, info) => {
   for (const theme of ['light', 'dark'] as const) {
@@ -344,6 +358,7 @@ test('all six native feelings color the complete HeartMoment card through create
     });
     const page = await context.newPage();
     const unknown = await installMocks(page, { strict: true });
+    await installComposerDefaults(page);
     const id = 'heart-feeling-color';
     const path = `/api/v1/spaces/${SPACE_ID}/heart-moments/${id}`;
     let creates = 0;
@@ -384,9 +399,10 @@ test('all six native feelings color the complete HeartMoment card through create
     );
     await signIn(page);
     await page.goto('/story/heart-moments/new');
+    await expect(page.locator('.heart-emotion-picker')).toBeVisible();
     await expect(
-      page.locator('.heart-emotion-disclosure summary'),
-    ).toContainText(copy.heartEmotion.LOVED);
+      page.getByRole('radio', { name: copy.heartEmotion.LOVED, exact: true }),
+    ).toBeChecked();
     await expectFeelingSurface(page, 'LOVED');
     await page
       .getByRole('textbox', {

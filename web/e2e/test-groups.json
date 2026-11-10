@@ -320,7 +320,7 @@
     "today-living-home.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 28,
-      "reason": "PO #1546 clarification retains monthly highlights and retrospectives; only the ready monthly invitation archive action is removed. Preserve the complete carousel, source, dismissal, reflow, keyboard and accessibility coverage."
+      "reason": "Feature-owned Today composition, monthly mosaic 1/2/3-photo reference states, concealed media, optional story summary, category navigation/return, reflow, keyboard and Light/Dark accessibility. PO #1736 supersedes the former monthly carousel presentation."
     },
     "today-pro-insights.spec.ts": {
       "disposition": "PR_CRITICAL",

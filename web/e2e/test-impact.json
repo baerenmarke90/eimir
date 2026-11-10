@@ -745,7 +745,9 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/MemoryProductPage.tsx",
-        "web/src/components/M4ProductPages.tsx"
+        "web/src/components/M4ProductPages.tsx",
+        "web/src/components/SharedStorySummary.tsx",
+        "web/src/components/StoryProductPage.tsx"
       ]
     },
     "today-pinned-collection.spec.ts": {

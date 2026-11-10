@@ -951,7 +951,7 @@
       "allActivityAction": "View all activity",
       "recentEmpty": "No shared entries yet.",
       "storySummaryKicker": "Already part of you",
-      "storySummaryTitle": "Your story in numbers",
+      "storySummaryTitle": "Your story",
       "storySummaryIntro": "Follow individual traces and keep exploring here.",
       "storySummarySettingsTitle": "Your story in numbers",
       "storySummaryMemories": "Moments",
@@ -964,7 +964,17 @@
       "storySummaryMilestonesCount_one": "{{count}} milestone",
       "storySummaryMilestonesCount_other": "{{count}} milestones",
       "itemFallback": "Shared entry",
-      "anniversaryTitle": "Your anniversary"
+      "anniversaryTitle": "Your anniversary",
+      "storySummarySharedMemories_one": "shared memory",
+      "storySummarySharedMemories_other": "shared memories",
+      "storySummaryMemoriesInPeriod_one": "memory in {{period}}",
+      "storySummaryMemoriesInPeriod_other": "memories in {{period}}",
+      "storySummaryPeriodYears_one": "{{formattedCount}} year",
+      "storySummaryPeriodYears_other": "{{formattedCount}} years",
+      "storySummaryPeriodMonths_one": "{{formattedCount}} month",
+      "storySummaryPeriodMonths_other": "{{formattedCount}} months",
+      "storySummaryPeriodDays_one": "{{formattedCount}} day",
+      "storySummaryPeriodDays_other": "{{formattedCount}} days"
     },
     "today": {
       "roles": {
@@ -1023,8 +1033,8 @@
         "retrospectiveDismissed": "Recap hidden for today"
       },
       "monthly": {
-        "title": "Your month",
-        "allAction": "View moments",
+        "title": "Your {{month}}",
+        "allAction": "All moments",
         "allAriaLabel": "View all shared moments"
       },
       "relationshipSignal": {

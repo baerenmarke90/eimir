@@ -196,7 +196,14 @@ describe('Pro memory map', () => {
     await vi.waitFor(() =>
       expect(screen.queryByRole('dialog', { name: copy.title })).toBeNull(),
     );
-    expect(screen.getByRole('link', { name: /By the lake/ })).toBeTruthy();
+    expect(
+      (await screen.findByRole('link', { name: /By the lake/ })).getAttribute(
+        'href',
+      ),
+    ).toBe('/story/memories/m1');
+    expect(screen.getByTestId('external-map').getAttribute('data-focus')).toBe(
+      '49:7',
+    );
   });
   it('opens the map immediately, groups co-located sources and opens canonical memories', async () => {
     setup(

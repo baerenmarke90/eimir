@@ -222,7 +222,7 @@ export function PlanPhotosEditor({
                       status={item.existing.status}
                       compact
                     />
-                  ) : item.isSensitive ? (
+                  ) : item.isSensitive && (!presentation || !item.draft) ? (
                     <SensitiveMediaCover />
                   ) : item.existing && planId ? (
                     <SavedPhoto

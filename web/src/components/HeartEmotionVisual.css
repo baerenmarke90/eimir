@@ -670,3 +670,24 @@ body:has(.heart-emotion-page)
 .heart-emotion-page.page-composer .heart-emotion-picker-grid {
   row-gap: var(--space-1);
 }
+
+@container product-content (max-width: 18rem) {
+  .heart-emotion-page.page-composer .heart-emotion-choice-visual {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: var(--space-1);
+    border-radius: var(--radius-medium);
+  }
+  .heart-emotion-page.page-composer .heart-emotion-choice-label {
+    display: block;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    overflow-wrap: normal;
+    hyphens: none;
+  }
+  .heart-emotion-page.page-composer .heart-emotion-choice-check {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-end: var(--space-3);
+  }
+}

@@ -901,7 +901,9 @@ export function PlanProductPage({
           </div>
         ) : null}
 
-        {!isEditing ? <ContextTagList tags={plan.tags} /> : null}
+        {!isEditing ? (
+          <ContextTagList tags={plan.tags} presentation="composer" />
+        ) : null}
         {!isEditing ? (
           <div className="planen-detail-context">
             <PlanCollectionLinks

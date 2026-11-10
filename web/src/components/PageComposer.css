@@ -496,3 +496,23 @@ button.composer-chip {
 .page-composer .composer-photo-draft.is-managing .photo-draft-cover-label {
   display: none;
 }
+
+.composer-tag-sheet .context-tag-disclosure .context-tag-entry {
+  display: flex;
+  align-items: center;
+}
+body:has(.page-composer)
+  :is(.composer-tag-sheet, .composer-new-place-sheet, .composer-date-sheet) {
+  background: var(--color-surface);
+}
+.composer-new-place-sheet .place-map-open {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  inline-size: 100%;
+  min-block-size: calc(var(--touch-target-comfortable) * 2);
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  color: var(--color-link-text);
+  box-shadow: none;
+}

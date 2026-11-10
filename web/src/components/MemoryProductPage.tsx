@@ -1471,6 +1471,7 @@ export function MemoryProductPage({
           <ul className="memory-tag-summary">
             {memory.tags.map((tag) => (
               <li key={tag}>
+                {!memory.experienceKind ? <EimirIcon name="tag" /> : null}
                 {(MEMORY_TAGS as readonly string[]).includes(tag)
                   ? t(`memory.tagLabels.${tag}`)
                   : tag}

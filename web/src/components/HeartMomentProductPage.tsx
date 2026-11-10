@@ -1825,6 +1825,7 @@ export function HeartMomentProductPage({
               >
                 {heartMoment.tags.map((tag) => (
                   <li key={tag}>
+                    <EimirIcon name="tag" />
                     {(HEART_MOMENT_TAGS as readonly string[]).includes(tag)
                       ? t(`heartMomentProduct.tagLabels.${tag}`)
                       : tag}

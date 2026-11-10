@@ -3,7 +3,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import { assertOnlineWrite } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
@@ -25,7 +25,9 @@ export function CollectionChoicePicker({
   disabled,
   onChoose,
   onPendingChange,
+  renderTrigger,
 }: {
+  renderTrigger?: (open: () => void) => ReactNode;
   apis: SharedPlanningApis;
   spaceId: string;
   value?: CollectionDetail[];
@@ -151,23 +153,34 @@ export function CollectionChoicePicker({
       if (owns()) setLinking(false);
     }
   }
+  function beginChoice() {
+    setSelected(value.map((item) => item.id));
+    setConfirmed(false);
+    setTitle('');
+    setCreating(false);
+    setError(null);
+    create.reset();
+    setOpen(true);
+  }
   return (
     <>
-      <AddActionButton
-        ref={trigger}
-        label={t('m5s3.collection.create')}
-        icon="listen"
-        disabled={disabled}
-        onClick={() => {
-          setSelected(value.map((item) => item.id));
-          setConfirmed(false);
-          setTitle('');
-          setCreating(false);
-          setError(null);
-          create.reset();
-          setOpen(true);
-        }}
-      />
+      {renderTrigger ? (
+        renderTrigger(() => {
+          trigger.current =
+            document.activeElement instanceof HTMLButtonElement
+              ? document.activeElement
+              : null;
+          beginChoice();
+        })
+      ) : (
+        <AddActionButton
+          ref={trigger}
+          label={t('m5s3.collection.create')}
+          icon="listen"
+          disabled={disabled}
+          onClick={beginChoice}
+        />
+      )}
       <ShortTaskSheet
         open={open}
         title={t('m5s3.collection.choose')}

@@ -10,7 +10,6 @@ import {
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { i18n } from '../i18n';
@@ -108,7 +107,7 @@ describe('PlanningCreatePage', () => {
       { target: { value: 'A picnic together' } },
     );
     fireEvent.click(
-      screen.getByRole('button', { name: m5s3.collection.create }),
+      screen.getByRole('button', { name: i18n.t('composer.list') }),
     );
     fireEvent.click(
       await within(await screen.findByRole('dialog')).findByRole('checkbox'),
@@ -224,6 +223,60 @@ describe('PlanningCreatePage', () => {
     expect(schedule.plannedEnd.getMinutes()).toBe(30);
   });
 
+  it('stages a Wish before creation and retries its association without creating another Plan', async () => {
+    const wish = { id: 'wish-source', title: 'A lakeside picnic', version: 2 };
+    const parent = { id: 'saved-plan', sourceWishId: null, version: 3 };
+    const createPlan = vi.fn().mockResolvedValue(parent);
+    const getPlan = vi.fn().mockResolvedValue({ ...parent, version: 4 });
+    const linkWishToPlan = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValue({
+        plan: { ...parent, sourceWishId: wish.id, version: 5 },
+        wish,
+      });
+    renderCreate('plan', {
+      plans: {
+        createPlan,
+        getPlan,
+        linkWishToPlan,
+      } as unknown as SharedPlanningApis['plans'],
+      wishes: {
+        listWishes: vi
+          .fn()
+          .mockResolvedValue({ items: [wish], nextCursor: null }),
+      } as unknown as SharedPlanningApis['wishes'],
+    });
+    fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
+      target: { value: 'Our picnic' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('memoryProduct.planning.add'),
+      }),
+    );
+    fireEvent.click(await screen.findByRole('radio', { name: wish.title }));
+    fireEvent.click(
+      screen.getByRole('button', { name: m5s3.plan.confirmWishLink }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(linkWishToPlan).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await screen.findByText(i18n.t('composer.planSavedLinkFailed'));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    );
+    await screen.findByText('Plan result');
+    expect(createPlan).toHaveBeenCalledTimes(1);
+    expect(getPlan).toHaveBeenCalledTimes(1);
+    expect(linkWishToPlan).toHaveBeenNthCalledWith(2, {
+      spaceId: 'space-1',
+      planId: parent.id,
+      ifMatch: '4',
+      planWishLink: { wishId: wish.id, wishVersion: wish.version },
+    });
+  });
+
   it('selects a searchable saved Place without creating another one', async () => {
     const createPlace = vi.fn();
     const { createPlan } = renderCreate('plan', {
@@ -240,7 +293,7 @@ describe('PlanningCreatePage', () => {
       target: { value: 'Picnic' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('photoPlaces.add') }),
+      screen.getByRole('button', { name: i18n.t('composer.place') }),
     );
     fireEvent.change(screen.getByLabelText(i18n.t('photoPlaces.savedSearch')), {
       target: { value: 'Rose' },

@@ -1,4 +1,9 @@
 import { TaskBackButton } from './TaskBackButton';
+import { createPortal } from 'react-dom';
+import { ComposerToolRow, ComposerTool, ComposerChip } from './PageComposer';
+import { PlanWishLink } from './PlanWishLink';
+import { planningIfMatch } from '../client/sharedPlanning';
+import './PagePlanComposer.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -119,6 +124,16 @@ export function PlanningCreatePage({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [placeId, setPlaceId] = useState('');
+  const [wish, setWish] = useState<WishDetail | null>(null);
+  const placeTrigger = useRef<HTMLButtonElement>(null);
+  const listTrigger = useRef<HTMLButtonElement>(null);
+  const [photoToolHost, setPhotoToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
+  const [listToolHost, setListToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
   const [placeOpen, setPlaceOpen] = useState(false);
   const [placePending, setPlacePending] = useState(false);
   const placeSheet = useRef<ShortTaskSheetHandle>(null);
@@ -154,7 +169,8 @@ export function PlanningCreatePage({
       placeId ||
       tags.length ||
       enrichmentDirty ||
-      photos.items.length,
+      photos.items.length ||
+      wish,
   );
   const onClose = useCallback(() => {
     clearPhotos();
@@ -189,10 +205,12 @@ export function PlanningCreatePage({
     mutationFn: async ({
       values,
       collectionIds,
+      selectedWish,
       owns,
     }: {
       values: PlanningCreateValues;
       collectionIds: string[];
+      selectedWish?: WishDetail | null;
       owns: () => boolean;
     }) => {
       assertOnlineWrite();
@@ -212,7 +230,14 @@ export function PlanningCreatePage({
         values: requestValues,
       };
       const created =
-        confirmedParent.current ??
+        (confirmedParent.current
+          ? kind === 'plan' && selectedWish
+            ? await apis.plans.getPlan({
+                spaceId,
+                planId: confirmedParent.current.id,
+              })
+            : confirmedParent.current
+          : null) ??
         (await submitCreateRequest<
           PlanningCreateSnapshot,
           PlanDetail | WishDetail
@@ -256,6 +281,30 @@ export function PlanningCreatePage({
             }),
           );
         }
+      if (kind === 'plan' && selectedWish) {
+        const current = created as PlanDetail;
+        if (current.sourceWishId !== selectedWish.id) {
+          assertOnlineWrite();
+          if (!owns()) throw new Error('Planning task ownership changed');
+          const linked = await apiCall(() =>
+            apis.plans.linkWishToPlan({
+              spaceId,
+              planId: current.id,
+              ifMatch: planningIfMatch(current),
+              planWishLink: {
+                wishId: selectedWish.id,
+                wishVersion: selectedWish.version,
+              },
+            }),
+          );
+          if (!owns()) throw new Error('Planning task ownership changed');
+          confirmedParent.current = linked.plan;
+          await queryClient.invalidateQueries({
+            queryKey: ['m5-s3', 'wishes', spaceId],
+          });
+          return linked.plan;
+        }
+      }
       return created;
     },
     onSuccess: async (created, intent) => {
@@ -310,7 +359,7 @@ export function PlanningCreatePage({
       setOfflineAttempt(true);
       return;
     }
-    const committedTags = tagEditor.current?.commitDraft();
+    const committedTags = tagEditor.current?.commitDraft() ?? tags;
     if (!committedTags) return;
     if (scheduleFields.current?.reportValidity() === false) return;
     const data = new FormData(event.currentTarget);
@@ -337,11 +386,332 @@ export function PlanningCreatePage({
         schedule,
       },
       collectionIds: lists.map((list) => list.id),
+      selectedWish: wish,
       owns: capture(),
     });
   }
 
   const isPlan = kind === 'plan';
+  const chosenPlace = placesQuery.data?.find((place) => place.id === placeId);
+  if (isPlan)
+    return (
+      <div className="page planning-create-task free-composer quiet-composer page-composer page-plan-composer">
+        <ComposerHeader
+          before={
+            <TaskBackButton
+              inline
+              onClick={requestClose}
+              aria-disabled={pending}
+            />
+          }
+          title={t('m5s3.plan.createHeading')}
+          action={
+            <button
+              type="submit"
+              form="planning-create-form"
+              data-saveable={Boolean(title.trim())}
+              disabled={
+                pending ||
+                placePending ||
+                collectionPending ||
+                photos.hasPending ||
+                photos.hasFailed
+              }
+            >
+              {pending
+                ? t('m5s3.common.saving')
+                : parentSaved
+                  ? t('common.retry')
+                  : t('m5s3.common.save')}
+            </button>
+          }
+        />
+        <div ref={headingRef} tabIndex={-1} className="planning-task-focus" />
+        <form
+          id="planning-create-form"
+          className="planning-intention-form"
+          onSubmit={submit}
+        >
+          <fieldset
+            disabled={pending || parentSaved}
+            onChange={() => setEnrichmentDirty(true)}
+          >
+            <legend className="sr-only">{t('m5s3.plan.createHeading')}</legend>
+            <div className="composer-context page-composer-context-row">
+              <PlanScheduleFields
+                ref={scheduleFields}
+                compact
+                formId="planning-create-form"
+                disabled={pending || parentSaved}
+                idPrefix="planning-create-schedule"
+                includeEnd
+              />
+              {chosenPlace ? (
+                <button
+                  type="button"
+                  className="composer-place-context tertiary"
+                  onClick={(event) => {
+                    placeTrigger.current = event.currentTarget;
+                    setPlaceOpen(true);
+                  }}
+                >
+                  <EimirIcon name="orte" />
+                  {chosenPlace.name}
+                </button>
+              ) : null}
+            </div>
+            <PlanPhotosEditor
+              controller={photos}
+              spaceId={spaceId}
+              disabled={pending || parentSaved}
+              canUpload={Boolean(apiBaseUrl && accessToken)}
+              presentation="tools"
+              pageWideDrop
+              mediaTrigger={(open) =>
+                photoToolHost
+                  ? createPortal(
+                      <ComposerTool
+                        icon="foto"
+                        label={t('composer.photo')}
+                        active={Boolean(photos.items.length)}
+                        disabled={pending || parentSaved}
+                        onClick={open}
+                      />,
+                      photoToolHost,
+                    )
+                  : null
+              }
+              photoSourceContext={
+                apiBaseUrl && accessToken && accountId
+                  ? { apiBaseUrl, accessToken, accountId }
+                  : undefined
+              }
+              onChange={() => setEnrichmentDirty(true)}
+            />
+            <div className="page-composer-writing">
+              <label className="sr-only" htmlFor="planning-create-title">
+                {t('m5s3.plan.intentionLabel')}
+              </label>
+              <input
+                id="planning-create-title"
+                name="title"
+                className="page-composer-title"
+                required
+                maxLength={200}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder={t('m5s3.common.title')}
+              />
+              <label className="sr-only" htmlFor="planning-create-description">
+                {t('m5s3.common.description')}
+              </label>
+              <textarea
+                id="planning-create-description"
+                name="description"
+                className="page-composer-prose"
+                onInput={(event) => {
+                  event.currentTarget.style.height = 'auto';
+                  event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`;
+                }}
+                rows={2}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder={t('m5s3.common.description')}
+              />
+            </div>
+            <div className="composer-selected-chips">
+              {lists.map((list) => (
+                <ComposerChip
+                  key={list.id}
+                  icon="listen"
+                  onClick={() => listTrigger.current?.click()}
+                >
+                  {list.title}
+                </ComposerChip>
+              ))}
+            </div>
+            <MemoryTagChoices
+              presentation="composer"
+              parentType="PLAN"
+              selected={tags}
+              onChange={setTags}
+              editorRef={tagEditor}
+              onDraftChange={() => setEnrichmentDirty(true)}
+              renderTrigger={(open) =>
+                tagToolHost
+                  ? createPortal(
+                      <ComposerTool
+                        icon="tag"
+                        label={t('composer.tag')}
+                        active={Boolean(tags.length)}
+                        onClick={open}
+                        disabled={pending || parentSaved}
+                      />,
+                      tagToolHost,
+                    )
+                  : null
+              }
+            />
+            <PlanWishLink
+              apis={apis}
+              spaceId={spaceId}
+              disabled={pending || parentSaved}
+              draftChoice={{
+                value: wish,
+                onChoose: (value) => {
+                  setWish(value);
+                  setEnrichmentDirty(true);
+                },
+              }}
+              presentation="composer"
+              renderTrigger={(open) => (
+                <>
+                  {wish ? (
+                    <ComposerChip icon="wuensche" onClick={open}>
+                      {wish.title}
+                    </ComposerChip>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="composer-link-entry tertiary"
+                    onClick={open}
+                  >
+                    <EimirIcon name="hinzufuegen" />
+                    {t('memoryProduct.planning.add')}
+                  </button>
+                </>
+              )}
+            />
+          </fieldset>
+        </form>
+        {pending ? (
+          <p className="composer-status" role="status">
+            {t('m5s3.common.saving')}
+          </p>
+        ) : null}
+        {offlineAttempt ? (
+          <p className="inline-message" role="alert">
+            {t('taskBoundary.offline')}
+          </p>
+        ) : null}
+        {problem ? <ProblemState error={problem} /> : null}
+        {parentSaved && problem ? (
+          <p role="status">
+            {t(
+              wish
+                ? 'composer.planSavedLinkFailed'
+                : 'm5s3.collection.planSavedLinkFailed',
+            )}
+          </p>
+        ) : null}
+        <ComposerToolRow>
+          <span className="composer-tool-slot" ref={setPhotoToolHost} />
+          <ComposerTool
+            icon="orte"
+            label={t('composer.place')}
+            active={Boolean(placeId)}
+            disabled={pending || parentSaved}
+            ref={placeTrigger}
+            onClick={() => setPlaceOpen(true)}
+          />
+          <span className="composer-tool-slot" ref={setListToolHost} />
+          <span className="composer-tool-slot" ref={setTagToolHost} />
+        </ComposerToolRow>
+        <CollectionChoicePicker
+          apis={apis}
+          spaceId={spaceId}
+          value={lists}
+          disabled={pending || parentSaved}
+          onChoose={(selected) => {
+            setLists(selected);
+            setEnrichmentDirty(true);
+          }}
+          onPendingChange={setCollectionPending}
+          renderTrigger={(open) =>
+            listToolHost
+              ? createPortal(
+                  <ComposerTool
+                    ref={listTrigger}
+                    icon="listen"
+                    label={t('composer.list')}
+                    active={Boolean(lists.length)}
+                    disabled={pending || parentSaved}
+                    onClick={open}
+                  />,
+                  listToolHost,
+                )
+              : null
+          }
+        />
+        <ShortTaskSheet
+          ref={placeSheet}
+          open={placeOpen}
+          isCloseBlocked={placePending}
+          title={t('m5s3.common.place')}
+          restoreFocusRef={placeTrigger}
+          onClose={() => setPlaceOpen(false)}
+        >
+          {placeId ? (
+            <button
+              type="button"
+              className="tertiary"
+              disabled={placePending}
+              onClick={() => {
+                setPlaceId('');
+                setEnrichmentDirty(true);
+                placeSheet.current?.requestClose();
+              }}
+            >
+              {t('m5s3.common.noPlace')}
+            </button>
+          ) : null}
+          <PlaceChoicePicker
+            api={apis.places}
+            spaceId={spaceId}
+            queryKey={authorSummaryQueryKeys.placeOptions(spaceId)}
+            offline={!navigator.onLine}
+            confirmSharedCreate
+            onPendingChange={setPlacePending}
+            onChoose={(place) => {
+              queryClient.setQueryData(
+                authorSummaryQueryKeys.placeOptions(spaceId),
+                (current: typeof placesQuery.data) => [
+                  ...(current ?? []).filter((entry) => entry.id !== place.id),
+                  place,
+                ],
+              );
+              setPlaceId(place.id);
+              setPlacePending(false);
+              setEnrichmentDirty(true);
+              placeSheet.current?.requestClose();
+            }}
+          />
+        </ShortTaskSheet>
+        <ShortTaskSheet
+          ref={discardRef}
+          open={showDiscard}
+          role="alertdialog"
+          title={t('taskBoundary.discardTitle')}
+          onClose={keepEditing}
+        >
+          <p>{t('taskBoundary.discardBody')}</p>
+          <div className="form-actions">
+            <button type="button" className="secondary" onClick={keepEditing}>
+              {t('taskBoundary.keepEditing')}
+            </button>
+            <button
+              type="button"
+              className="danger"
+              onClick={() =>
+                discardRef.current?.closeForNavigation(() => closeTask())
+              }
+            >
+              {t('taskBoundary.discard')}
+            </button>
+          </div>
+        </ShortTaskSheet>
+      </div>
+    );
   return (
     <div className="page planning-create-task free-composer quiet-composer">
       <ComposerHeader

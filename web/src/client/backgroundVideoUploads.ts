@@ -8,6 +8,7 @@ import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor'
 import { isAndroidApp } from './config';
 import type { ReferenceApis } from './referenceFlow';
 import { uploadAttachmentBytesWithProgress } from './referenceFlow';
+import { advanceUploadProgress } from './uploadProgress';
 
 export interface VideoTransfer {
   attachmentId: string;
@@ -168,31 +169,59 @@ function changed() {
 function update(id: string, patch: Partial<VideoTransfer>) {
   const current = transfers.get(id);
   if (!current) return;
-  transfers.set(id, { ...current, ...patch });
+  const next = {
+    ...current,
+    ...patch,
+    progress:
+      patch.progress === undefined
+        ? current.progress
+        : advanceUploadProgress(current.progress, patch.progress),
+  };
+  if (next.phase === current.phase && next.progress === current.progress)
+    return;
+  transfers.set(id, next);
   changed();
 }
 async function readNative() {
   if (!nativeOwner || polling || !hasNativeVideoTransfers()) return;
   const owner = nativeOwner;
   const generation = revision;
+  const observed = new Map(transfers);
   polling = true;
   try {
     const result = await native.list(owner);
     if (generation !== revision || owner !== nativeOwner) return;
     const ids = new Set(result.items.map((item) => item.attachmentId));
+    // Native workers remove completed staging records. Retain the last known
+    // processing phase for this session until the parent read catches up;
+    // absence must not briefly turn accepted bytes into a new unknown upload.
     for (const [id, item] of transfers)
       if (
         item.native &&
+        item.phase !== 'processing' &&
         JSON.stringify(item.owner) === JSON.stringify(owner) &&
+        observed.get(id) === item &&
         !ids.has(id)
       )
         transfers.delete(id);
     for (const item of result.items) {
       const previous = transfers.get(item.attachmentId);
-      if (previous?.phase === item.phase && previous.progress === item.progress)
-        continue;
+      // Admission, cancellation and retry may complete while the native list is
+      // in flight. That older snapshot must not replace their new attempt.
+      if (previous !== observed.get(item.attachmentId)) continue;
+      const progress = advanceUploadProgress(
+        previous?.progress ?? 0,
+        item.progress,
+      );
+      const phase =
+        previous?.phase === 'processing' && item.phase === 'uploading'
+          ? previous.phase
+          : item.phase;
+      if (previous?.phase === phase && previous.progress === progress) continue;
       transfers.set(item.attachmentId, {
         ...item,
+        phase,
+        progress,
         owner,
         native: true,
         size: previous?.size ?? 0,
@@ -234,7 +263,7 @@ export function observeNativeVideoTransfers(owner: VideoTransferOwner) {
   if (!hasNativeVideoTransfers()) return;
   if (nativeOwner && JSON.stringify(nativeOwner) !== JSON.stringify(owner))
     clearBackgroundVideoTransfers();
-  nativeOwner = owner;
+  nativeOwner ??= owner;
   void readNative();
 }
 
@@ -346,12 +375,17 @@ export async function startBackgroundVideoTransfer({
       void native.cancel({ ...owner, attachmentId }).catch(() => undefined);
     throw new DOMException('Transfer ownership changed.', 'AbortError');
   }
+  const observed = transfers.get(attachmentId);
+  const continuingNative =
+    nativeTransfer &&
+    observed?.native &&
+    JSON.stringify(observed.owner) === JSON.stringify(owner);
   const entry: Transfer = {
     attachmentId,
     owner,
     native: nativeTransfer,
-    phase: 'uploading',
-    progress: 0,
+    phase: continuingNative ? observed.phase : 'uploading',
+    progress: continuingNative ? observed.progress : 0,
     size: selected.size,
   };
   if (!nativeTransfer)
@@ -393,7 +427,9 @@ export async function retryVideoTransfer(attachmentId: string) {
   const item = transfers.get(attachmentId);
   if (item?.phase !== 'failed') return;
   if (item.native) await native.retry({ ...item.owner, attachmentId });
-  update(attachmentId, { phase: 'uploading', progress: 0 });
+  if (transfers.get(attachmentId) !== item) return;
+  transfers.set(attachmentId, { ...item, phase: 'uploading', progress: 0 });
+  changed();
   pump();
 }
 export function cancelVideoTransfer(attachmentId: string) {

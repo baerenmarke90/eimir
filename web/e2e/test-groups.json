@@ -518,7 +518,7 @@
     "private-location-and-capture-tags.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,
-      "reason": "Feature-owned parent-private location capture, map selection without shared Place writes, save/edit/reload, subscribed feature marks and shared capture-tag reflow. No always-run expansion."
+      "reason": "Feature-owned parent-private location capture, map selection without shared Place writes, save/edit/reload, subscribed feature marks, shared capture-tag reflow and de/en Heart Moment choice readability at 200% text. No always-run expansion."
     },
     "plan-linked-lists.spec.ts": {
       "disposition": "PR_CRITICAL",

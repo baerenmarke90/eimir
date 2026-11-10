@@ -1,3 +1,5 @@
+import { advanceUploadProgress } from './uploadProgress';
+
 export type AttachmentDraftStatus =
   | 'preparing'
   | 'uploading'
@@ -91,7 +93,7 @@ export function attachmentDraftReducer(
         action.attempt,
         (draft) => ({
           ...draft,
-          progress: Math.max(0, Math.min(100, action.progress)),
+          progress: advanceUploadProgress(draft.progress, action.progress),
         }),
       );
     case 'phase':
@@ -102,7 +104,12 @@ export function attachmentDraftReducer(
         (draft) => ({
           ...draft,
           status: action.status,
-          progress: action.status === 'validating' ? 100 : 0,
+          progress:
+            action.status === 'validating'
+              ? 100
+              : action.status === draft.status
+                ? draft.progress
+                : 0,
           error: undefined,
         }),
       );

@@ -89,6 +89,128 @@ it('discards a previous scroll completion when an editor selects another photo',
         ?.getAttribute('data-carousel-index'),
     ).toBe('1');
 
+    fireEvent.pointerDown(track);
+    track.scrollLeft = 300;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).toHaveBeenCalledExactlyOnceWith('2');
+
+    // Echoing the settled selection must not interrupt an ongoing gesture.
+    view.rerender(<MediaGallery {...props} initialMediaId="2" />);
+    track.scrollLeft = 400;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled.mock.calls).toEqual([['2'], ['3']]);
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});
+
+it('keeps the selected photo through a resize during transient scroll feedback', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+  let resize: ResizeObserverCallback | undefined;
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: ResizeObserverCallback) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  const settled = vi.fn();
+  const load = vi.fn(() => new Promise<string>(() => {}));
+  const view = render(
+    <MediaGallery
+      items={images}
+      initialMediaId="1"
+      loadMedia={load}
+      onSettledMediaChange={settled}
+    />,
+  );
+  const track = view.container.querySelector<HTMLDivElement>(
+    '.media-gallery-carousel-track',
+  );
+  try {
+    if (!track || !resize)
+      throw new Error('The carousel must observe its size.');
+    let width = 100;
+    Object.defineProperty(track, 'clientWidth', { get: () => width });
+    for (const [index, slide] of Array.from(track.children).entries())
+      Object.defineProperty(slide, 'offsetLeft', { value: index * 100 });
+    // A native resnap can briefly report the neighbouring slide before resize.
+    fireEvent.pointerDown(track);
+    track.scrollLeft = 100;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(20));
+    expect(
+      view.container
+        .querySelector('.is-active')
+        ?.getAttribute('data-carousel-index'),
+    ).toBe('0');
+
+    width += 20;
+    act(() => resize?.([], {} as ResizeObserver));
+    expect(track.scrollLeft).toBe(200);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).not.toHaveBeenCalled();
+    expect(
+      view.container
+        .querySelector('.is-active')
+        ?.getAttribute('data-carousel-index'),
+    ).toBe('1');
+
+    // The next completed native swipe still updates the editor selection.
+    fireEvent.pointerDown(track);
+    track.scrollLeft = 300;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).toHaveBeenCalledExactlyOnceWith('2');
+    width += 20;
+    act(() => resize?.([], {} as ResizeObserver));
+    expect(track.scrollLeft).toBe(300);
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});
+
+it('retains an explicit selection when the browser resnaps without horizontal input', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+  const settled = vi.fn();
+  const load = vi.fn(() => new Promise<string>(() => {}));
+  const view = render(
+    <MediaGallery
+      items={images}
+      initialMediaId="1"
+      loadMedia={load}
+      onSettledMediaChange={settled}
+    />,
+  );
+  const track = view.container.querySelector<HTMLDivElement>(
+    '.media-gallery-carousel-track',
+  );
+  try {
+    if (!track) throw new Error('The carousel track must be rendered.');
+    for (const [index, slide] of Array.from(track.children).entries())
+      Object.defineProperty(slide, 'offsetLeft', { value: index * 100 });
+    fireEvent.wheel(track, { deltaY: 100 });
+    track.scrollLeft = 100;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).not.toHaveBeenCalled();
+    expect(track.scrollLeft).toBe(200);
+    expect(
+      view.container
+        .querySelector('.is-active')
+        ?.getAttribute('data-carousel-index'),
+    ).toBe('1');
+
+    fireEvent.wheel(track, { deltaX: 100 });
     track.scrollLeft = 300;
     fireEvent.scroll(track);
     await act(async () => vi.advanceTimersByTime(100));
@@ -181,3 +303,97 @@ it('keeps empty, short and mixed-media galleries bounded without loading videos'
   expect(load.mock.lastCall?.[0]).toBe('2');
   expect(load.mock.calls.filter(([id]) => id === '1')).toHaveLength(1);
 });
+
+for (const reducedMotion of [false, true]) {
+  it(`retains the keyboard destination through lightbox resize with reduced motion ${reducedMotion}`, async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', () => ({ matches: reducedMotion }));
+    vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+    const observers = new Map<Element, ResizeObserverCallback>();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private callback: ResizeObserverCallback) {}
+        observe(element: Element) {
+          observers.set(element, this.callback);
+        }
+        disconnect() {}
+      },
+    );
+    const load = vi.fn(() => new Promise<string>(() => {}));
+    let width = 100;
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
+      () => width,
+    );
+    const view = render(
+      <MediaGallery
+        items={images}
+        initialMediaId="1"
+        loadMedia={load}
+        dismissWithHistory={false}
+      />,
+    );
+    try {
+      const trigger = view.container.querySelector<HTMLButtonElement>(
+        '.media-gallery-carousel-slide.is-active',
+      );
+      if (!trigger) throw new Error('The selected gallery trigger must exist.');
+      trigger.focus();
+      fireEvent.click(trigger);
+      const dialog = screen.getByRole('dialog');
+      const track = dialog.querySelector<HTMLDivElement>(
+        '.media-lightbox-track',
+      );
+      if (!track) throw new Error('The lightbox track must exist.');
+      for (const [index, slide] of Array.from(track.children).entries())
+        Object.defineProperty(slide, 'offsetLeft', {
+          get: () => index * width,
+        });
+      track.scrollLeft = 200;
+      track.scrollTo = vi.fn();
+      const close = dialog.querySelector<HTMLButtonElement>(
+        '.media-lightbox-close',
+      );
+      if (!close) throw new Error('The lightbox close control must exist.');
+      expect(document.activeElement).toBe(close);
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      if (!reducedMotion)
+        expect(track.scrollTo).toHaveBeenCalledWith({
+          left: 300,
+          behavior: 'smooth',
+        });
+      // Initial observer delivery is not a resize and must not cut motion short.
+      act(() => observers.get(track)?.([], {} as ResizeObserver));
+      expect(track.scrollLeft).toBe(reducedMotion ? 300 : 200);
+      // A resize arrives before normal-motion scroll feedback reaches photo 3.
+      width = 120;
+      act(() => observers.get(track)?.([], {} as ResizeObserver));
+      expect(track.scrollLeft).toBe(360);
+      fireEvent.scroll(track);
+      await act(async () => vi.advanceTimersByTime(100));
+      expect(dialog.querySelector('.media-lightbox-counter')?.textContent).toBe(
+        labels.counter.replace('{{index}}', '3').replace('{{count}}', '6'),
+      );
+      expect(document.activeElement).toBe(close);
+      // Genuine input can interrupt explicit navigation and select another slide.
+      fireEvent.pointerDown(track);
+      track.scrollLeft = 480;
+      fireEvent.scroll(track);
+      await act(async () => vi.advanceTimersByTime(100));
+      expect(dialog.querySelector('.media-lightbox-counter')?.textContent).toBe(
+        labels.counter.replace('{{index}}', '4').replace('{{count}}', '6'),
+      );
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(document.activeElement).toBe(trigger);
+      expect(
+        view.container
+          .querySelector('.is-active')
+          ?.getAttribute('data-carousel-index'),
+      ).toBe('1');
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+    }
+  });
+}

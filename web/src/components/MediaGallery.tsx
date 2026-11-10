@@ -28,6 +28,53 @@ import { VideoPlayer, type VideoSourceLoader } from './VideoPlayer';
 import { ZoomablePhoto } from './ZoomablePhoto';
 import './MediaGallery.css';
 
+function cancelScrollFeedback(
+  frame: { current: number | null },
+  timer: { current: number | null },
+) {
+  if (frame.current !== null) {
+    window.cancelAnimationFrame(frame.current);
+    frame.current = null;
+  }
+  if (timer.current !== null) {
+    window.clearTimeout(timer.current);
+    timer.current = null;
+  }
+}
+
+function observeTrackResize(track: HTMLDivElement, onResize: () => void) {
+  let width = track.clientWidth;
+  let height = track.clientHeight;
+  const observer = new ResizeObserver(() => {
+    const nextWidth = track.clientWidth;
+    const nextHeight = track.clientHeight;
+    // Initial delivery and re-observation are not geometry changes. In
+    // particular, they must not interrupt an in-flight native animation.
+    if (width === nextWidth && height === nextHeight) return;
+    width = nextWidth;
+    height = nextHeight;
+    onResize();
+  });
+  observer.observe(track);
+  return () => observer.disconnect();
+}
+
+function nearestSnapSlide(
+  track: HTMLDivElement,
+  attribute: 'data-carousel-index' | 'data-lightbox-index',
+): HTMLElement | null {
+  const slides = Array.from(
+    track.querySelectorAll<HTMLElement>(`[${attribute}]`),
+  );
+  if (slides.length === 0) return null;
+  return slides.reduce((nearest, slide) =>
+    Math.abs(slide.offsetLeft - track.scrollLeft) <
+    Math.abs(nearest.offsetLeft - track.scrollLeft)
+      ? slide
+      : nearest,
+  );
+}
+
 export function GalleryExpandAction({
   onOpen,
   className = '',
@@ -136,10 +183,10 @@ export function MediaGallery({
     () => () => cancelPhotoPress(),
     [resourceScopeKey, itemIdentity, cancelPhotoPress],
   );
+  // Scroll frames preview a swipe; only a selection or completed swipe owns
+  // resize alignment. A layout change must not commit an intermediate slide.
   const carouselIndexRef = useRef(startingIndex);
-  useLayoutEffect(() => {
-    carouselIndexRef.current = carouselIndex;
-  }, [carouselIndex]);
+  const carouselScrollTarget = useRef<number | null>(startingIndex);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const imageFocusIndex =
     activeIndex ?? (renderPreviews ? null : carouselIndex);
@@ -198,31 +245,25 @@ export function MediaGallery({
   const lightboxScrollFrame = useRef<number | null>(null);
   const lightboxScrollEndTimer = useRef<number | null>(null);
   const lightboxInitialIndex = useRef(0);
+  const lightboxScrollTarget = useRef<number | null>(null);
   const activeIndexRef = useRef<number | null>(null);
-  const carouselItemsIdentityRef = useRef<string | null>(null);
+  const carouselItemsIdentityRef = useRef<{
+    items: string;
+    mediaId?: string;
+  } | null>(null);
   const activeItemIdRef = useRef<string | null>(null);
   const cancelCarouselFeedback = useCallback(() => {
-    if (carouselScrollFrame.current !== null) {
-      window.cancelAnimationFrame(carouselScrollFrame.current);
-      carouselScrollFrame.current = null;
-    }
-    if (carouselScrollEndTimer.current !== null) {
-      window.clearTimeout(carouselScrollEndTimer.current);
-      carouselScrollEndTimer.current = null;
-    }
+    cancelScrollFeedback(carouselScrollFrame, carouselScrollEndTimer);
+  }, []);
+  const cancelLightboxFeedback = useCallback(() => {
+    cancelScrollFeedback(lightboxScrollFrame, lightboxScrollEndTimer);
   }, []);
   const dismiss = useCallback(() => {
-    if (lightboxScrollFrame.current !== null) {
-      window.cancelAnimationFrame(lightboxScrollFrame.current);
-      lightboxScrollFrame.current = null;
-    }
-    if (lightboxScrollEndTimer.current !== null) {
-      window.clearTimeout(lightboxScrollEndTimer.current);
-      lightboxScrollEndTimer.current = null;
-    }
+    cancelLightboxFeedback();
+    lightboxScrollTarget.current = null;
     activeIndexRef.current = null;
     setActiveIndex(null);
-  }, []);
+  }, [cancelLightboxFeedback]);
   const closeHistoryEntry = useEditorHistoryEntry({
     isActive: dismissWithHistory && activeIndex !== null,
     isDirty: false,
@@ -256,12 +297,24 @@ export function MediaGallery({
   }, [carouselIndex, items.length]);
 
   useLayoutEffect(() => {
-    const identity = JSON.stringify([itemIdentity, initialMediaId]);
-    if (carouselItemsIdentityRef.current === identity) return;
-    carouselItemsIdentityRef.current = identity;
+    const previous = carouselItemsIdentityRef.current;
+    if (previous?.items === itemIdentity && previous.mediaId === initialMediaId)
+      return;
+    carouselItemsIdentityRef.current = {
+      items: itemIdentity,
+      mediaId: initialMediaId,
+    };
+    // A parent acknowledging a native swipe is not a new scroll command.
+    if (
+      previous?.items === itemIdentity &&
+      carouselScrollTarget.current === null &&
+      carouselIndexRef.current === startingIndex
+    )
+      return;
     // A new explicit selection owns subsequent feedback and resize alignment.
     cancelCarouselFeedback();
     carouselIndexRef.current = startingIndex;
+    carouselScrollTarget.current = startingIndex;
     setCarouselIndex(startingIndex);
 
     const track = carouselTrack.current;
@@ -280,25 +333,22 @@ export function MediaGallery({
     const track = carouselTrack.current;
     if (!track || items.length < 2 || typeof ResizeObserver === 'undefined')
       return;
-    const observer = new ResizeObserver(() => {
+    return observeTrackResize(track, () => {
       const slide = carouselSlides.current[carouselIndexRef.current];
-      if (slide) track.scrollLeft = slide.offsetLeft;
+      if (!slide) return;
+      cancelCarouselFeedback();
+      carouselScrollTarget.current = carouselIndexRef.current;
+      setCarouselIndex(carouselIndexRef.current);
+      track.scrollLeft = slide.offsetLeft;
     });
-    observer.observe(track);
-    return () => observer.disconnect();
-  }, [items.length]);
+  }, [items.length, cancelCarouselFeedback]);
 
   useEffect(
     () => () => {
       cancelCarouselFeedback();
-      if (lightboxScrollFrame.current !== null) {
-        window.cancelAnimationFrame(lightboxScrollFrame.current);
-      }
-      if (lightboxScrollEndTimer.current !== null) {
-        window.clearTimeout(lightboxScrollEndTimer.current);
-      }
+      cancelLightboxFeedback();
     },
-    [cancelCarouselFeedback],
+    [cancelCarouselFeedback, cancelLightboxFeedback],
   );
 
   const lightboxOpen = activeIndex !== null;
@@ -315,18 +365,23 @@ export function MediaGallery({
     const track = lightboxTrack.current;
     if (!lightboxOpen || !track || typeof ResizeObserver === 'undefined')
       return;
-    const observer = new ResizeObserver(() => {
-      const current = activeIndexRef.current;
+    return observeTrackResize(track, () => {
+      // Resize owns geometry, not selection. An in-flight keyboard/button
+      // advance retains its destination until native scrolling reaches it.
+      const current = lightboxScrollTarget.current ?? activeIndexRef.current;
       const slide = current === null ? null : lightboxSlides.current[current];
-      if (slide) track.scrollLeft = slide.offsetLeft;
+      if (current === null || !slide) return;
+      cancelLightboxFeedback();
+      track.scrollLeft = slide.offsetLeft;
+      activeIndexRef.current = current;
+      activeItemIdRef.current = items[current]?.id ?? null;
+      setActiveIndex(current);
     });
-    observer.observe(track);
-    return () => observer.disconnect();
-  }, [lightboxOpen]);
+  }, [lightboxOpen, items, cancelLightboxFeedback]);
 
   const changeActive = useCallback(
     (delta: number) => {
-      const current = activeIndexRef.current;
+      const current = lightboxScrollTarget.current ?? activeIndexRef.current;
       if (current === null || items.length < 2) return;
 
       const direction = delta < 0 ? -1 : 1;
@@ -361,6 +416,8 @@ export function MediaGallery({
       }
 
       if (!target) return;
+      cancelLightboxFeedback();
+      lightboxScrollTarget.current = nextIndex;
 
       if (reducedMotion) {
         track.scrollLeft = target.offsetLeft;
@@ -372,7 +429,7 @@ export function MediaGallery({
 
       track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
     },
-    [items],
+    [items, cancelLightboxFeedback],
   );
 
   useModalLifecycle({
@@ -404,27 +461,22 @@ export function MediaGallery({
 
   if (items.length === 0) return null;
 
-  function nearestCarouselSlide(track: HTMLDivElement): HTMLElement | null {
-    const slides = Array.from(
-      track.querySelectorAll<HTMLElement>('[data-carousel-index]'),
-    );
-    if (slides.length === 0) return null;
-
-    return slides.reduce((nearest, slide) =>
-      Math.abs(slide.offsetLeft - track.scrollLeft) <
-      Math.abs(nearest.offsetLeft - track.scrollLeft)
-        ? slide
-        : nearest,
-    );
-  }
-
   function finishCarouselScroll(track: HTMLDivElement) {
-    const nearest = nearestCarouselSlide(track);
+    const nearest = nearestSnapSlide(track, 'data-carousel-index');
     if (!nearest) return;
 
     const index = Number(nearest.dataset.carouselIndex);
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
+    // Passive native resnapping after layout changes cannot replace an explicit
+    // selection. A horizontal input hands selection back to the native swipe.
+    const requested = carouselScrollTarget.current;
+    if (requested !== null && index !== requested) {
+      const slide = carouselSlides.current[requested];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+      return;
+    }
+    carouselIndexRef.current = index;
     setCarouselIndex(index);
     if (items[index]) onSettledMediaChange?.(items[index].id);
 
@@ -441,10 +493,15 @@ export function MediaGallery({
     if (carouselScrollFrame.current === null) {
       carouselScrollFrame.current = window.requestAnimationFrame(() => {
         carouselScrollFrame.current = null;
-        const nearest = nearestCarouselSlide(track);
+        const nearest = nearestSnapSlide(track, 'data-carousel-index');
         if (!nearest) return;
         const index = Number(nearest.dataset.carouselIndex);
         if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          if (
+            carouselScrollTarget.current !== null &&
+            carouselScrollTarget.current !== index
+          )
+            return;
           setCarouselIndex(index);
         }
       });
@@ -464,6 +521,8 @@ export function MediaGallery({
 
     const direction = delta < 0 ? -1 : 1;
     const nextIndex = (carouselIndex + direction + items.length) % items.length;
+    carouselIndexRef.current = nextIndex;
+    carouselScrollTarget.current = nextIndex;
     const track = carouselTrack.current;
     if (!track) {
       setCarouselIndex(nextIndex);
@@ -499,28 +558,17 @@ export function MediaGallery({
     track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
   }
 
-  function nearestLightboxSlide(track: HTMLDivElement): HTMLElement | null {
-    const slides = Array.from(
-      track.querySelectorAll<HTMLElement>('[data-lightbox-index]'),
-    );
-    if (slides.length === 0) return null;
-
-    return slides.reduce((nearest, slide) =>
-      Math.abs(slide.offsetLeft - track.scrollLeft) <
-      Math.abs(nearest.offsetLeft - track.scrollLeft)
-        ? slide
-        : nearest,
-    );
-  }
-
   function finishLightboxScroll(track: HTMLDivElement) {
     if (activeIndexRef.current === null) return;
-    const nearest = nearestLightboxSlide(track);
+    const nearest = nearestSnapSlide(track, 'data-lightbox-index');
     if (!nearest) return;
 
     const index = Number(nearest.dataset.lightboxIndex);
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
+    const requested = lightboxScrollTarget.current;
+    if (requested !== null && requested !== index) return;
+    lightboxScrollTarget.current = null;
     activeIndexRef.current = index;
     activeItemIdRef.current = items[index]?.id ?? null;
     setActiveIndex(index);
@@ -540,10 +588,15 @@ export function MediaGallery({
       lightboxScrollFrame.current = window.requestAnimationFrame(() => {
         lightboxScrollFrame.current = null;
         if (activeIndexRef.current === null) return;
-        const nearest = nearestLightboxSlide(track);
+        const nearest = nearestSnapSlide(track, 'data-lightbox-index');
         if (!nearest) return;
         const index = Number(nearest.dataset.lightboxIndex);
         if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          if (
+            lightboxScrollTarget.current !== null &&
+            lightboxScrollTarget.current !== index
+          )
+            return;
           activeIndexRef.current = index;
           activeItemIdRef.current = items[index]?.id ?? null;
           setActiveIndex(index);
@@ -562,6 +615,7 @@ export function MediaGallery({
 
   function openLightbox(index: number) {
     lightboxInitialIndex.current = index;
+    lightboxScrollTarget.current = null;
     activeIndexRef.current = index;
     activeItemIdRef.current = items[index]?.id ?? null;
     setActiveIndex(index);
@@ -717,6 +771,13 @@ export function MediaGallery({
               ref={carouselTrack}
               className="eimir-media-snap-track media-gallery-carousel-track"
               onScroll={(event) => handleCarouselScroll(event.currentTarget)}
+              onPointerDown={() => {
+                carouselScrollTarget.current = null;
+              }}
+              onWheel={(event) => {
+                if (event.deltaX !== 0 || event.shiftKey)
+                  carouselScrollTarget.current = null;
+              }}
             >
               {items.length > 1 ? (
                 <div
@@ -745,6 +806,13 @@ export function MediaGallery({
                     data-carousel-index={index}
                     aria-hidden={!isActive}
                     tabIndex={isActive ? 0 : -1}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === 'ArrowLeft' ||
+                        event.key === 'ArrowRight'
+                      )
+                        carouselScrollTarget.current = null;
+                    }}
                     onPointerDown={(event) => {
                       photoPress.current.suppressClick = false;
                       if (
@@ -800,17 +868,27 @@ export function MediaGallery({
                         photoPress.current.suppressClick = false;
                         return;
                       }
-                      if (directSensitiveToggle && item.isSensitive === true)
+                      if (
+                        directSensitiveToggle &&
+                        item.isSensitive === true &&
+                        (item.mediaType !== MediaType.VIDEO ||
+                          !reveals.isRevealed(item.id))
+                      )
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
                     aria-pressed={
-                      directSensitiveToggle && item.isSensitive === true
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      item.mediaType !== MediaType.VIDEO
                         ? reveals.isRevealed(item.id)
                         : undefined
                     }
                     aria-label={
-                      directSensitiveToggle && item.isSensitive === true
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      (item.mediaType !== MediaType.VIDEO ||
+                        !reveals.isRevealed(item.id))
                         ? t(
                             reveals.isRevealed(item.id)
                               ? 'sensitiveMedia.hide'
@@ -820,10 +898,22 @@ export function MediaGallery({
                           !reveals.isRevealed(item.id)
                             ? t('sensitiveMedia.label') + '. '
                             : '') +
-                          t('gallery.openItem', {
+                          (loadPlayback &&
+                          item.mediaType === MediaType.VIDEO &&
+                          (!item.status || item.status === 'READY')
+                            ? t('video.play')
+                            : t('gallery.openItem', {
+                                index: index + 1,
+                                count: items.length,
+                              }))
+                    }
+                    aria-description={
+                      item.mediaType === MediaType.VIDEO
+                        ? t('gallery.openItem', {
                             index: index + 1,
                             count: items.length,
                           })
+                        : undefined
                     }
                   >
                     {renderCarouselMedia(item)}
@@ -893,8 +983,10 @@ export function MediaGallery({
                 )
               : null}
           </div>
-          {!directSensitiveToggle &&
-          items[carouselIndex]?.isSensitive === true ? (
+          {items[carouselIndex]?.isSensitive === true &&
+          (!directSensitiveToggle ||
+            (items[carouselIndex]?.mediaType === MediaType.VIDEO &&
+              reveals.isRevealed(items[carouselIndex]!.id))) ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}
@@ -934,6 +1026,13 @@ export function MediaGallery({
                     <div
                       ref={lightboxTrack}
                       className="eimir-media-snap-track media-lightbox-track"
+                      onPointerDown={() => {
+                        lightboxScrollTarget.current = null;
+                      }}
+                      onWheel={(event) => {
+                        if (event.deltaX !== 0 || event.shiftKey)
+                          lightboxScrollTarget.current = null;
+                      }}
                       onScroll={(event) =>
                         handleLightboxScroll(event.currentTarget)
                       }

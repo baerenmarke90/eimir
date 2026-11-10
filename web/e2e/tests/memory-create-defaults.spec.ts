@@ -1370,6 +1370,15 @@ test('Memory Create defaults render without overflow and capture product visual 
   // by default rather than the transient date-editing state.
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).click();
+  const writing = page.locator('.composer-writing-surface');
+  await expect(writing.getByRole('textbox')).toHaveCount(2);
+  const divider = writing.locator('.field-group + .field-group');
+  await expect(divider).toHaveCSS('border-top-style', 'solid');
+  await expect(divider).toHaveCSS('border-top-width', '1px');
+  await expect(page.getByLabel(de.memory.titleLabelOptional)).toBeEditable();
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toBeEditable();
   await expectNoHorizontalOverflow(page);
   await page.screenshot({
     path: testInfo.outputPath('shell-memory-create-defaults-compact.png'),

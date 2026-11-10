@@ -275,6 +275,10 @@ the concrete APIs, usage, existing consumers and validation scope.
   radius and sheets the sheet radius. Caption text remains readable below the
   image. A full image view exposes the complete image; absent media differs
   from loading or failed media.
+  The PO-approved Wir monthly mosaic (#1736) is a bounded exception: captions
+  overlay a legibility scrim, calendar dates remain in each link's accessible
+  name, and sensitive photos retain concealment plus a visible localized label.
+  Its one/two/three-photo layouts use the sheet radius without a swipe track.
 - Compact page gutters resolve to the tokenized narrow or comfortable value
   from available width. Resizing does not reset content/selection. Insets and
   keyboard protection remain platform responsibilities.

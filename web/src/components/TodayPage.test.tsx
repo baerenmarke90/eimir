@@ -18,7 +18,11 @@ import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
-import { formatRelationshipDuration, TodayPage } from './TodayPage';
+import {
+  formatRelationshipDuration,
+  TodayMonthlyMosaic,
+  TodayPage,
+} from './TodayPage';
 
 function event(overrides: Partial<ActivityItem> = {}): ActivityItem {
   return {
@@ -1876,13 +1880,10 @@ it('keeps the monthly photo strip bounded and chronological', () => {
   const monthly = sectionHtml(html, 'today-section-monthly');
   const trace = sectionHtml(html, 'today-section-recent');
 
-  // The strip took the three eligible photos below the featured one and
-  // uses the same shared media-swipe primitive as Story galleries.
+  // The bounded selection is unchanged; its presentation is now a static mosaic.
   expect(html).toContain('today-monthly-strip-3');
-  expect(html).toContain('eimir-media-snap-track');
-  expect(
-    html.split('eimir-media-snap-item eimir-media-snap-item-start').length - 1,
-  ).toBe(3);
+  expect(monthly).not.toContain('eimir-media-snap-track');
+  expect(monthly).not.toContain('eimir-media-snap-item');
   for (const title of ['Strip Photo A', 'Strip Photo B', 'Strip Photo C']) {
     expect(monthly).toContain(title);
   }
@@ -2661,4 +2662,39 @@ describe('Today content clarity', () => {
     expect(html).toContain('14. Mai 2027');
     expect(html).not.toContain('Gemeinsamer Eintrag');
   });
+});
+
+describe('monthly mosaic', () => {
+  it.each([1, 2, 3])(
+    'keeps %s photo links, accessible dates and concealed sensitive media',
+    (count) => {
+      const items = Array.from({ length: count }, (_, index) => ({
+        id: `memory-${index}`,
+        createdAt: null,
+        scheduledAt: null,
+        type: 'MEMORY' as const,
+        titleOrText: `Our walk ${index}`,
+        occurredOn: new Date('2026-11-10T00:00:00Z'),
+        previewAttachmentId: `photo-${index}`,
+        previewIsSensitive: index === count - 1,
+      }));
+      const html = renderToStaticMarkup(
+        <MemoryRouter>
+          <TodayMonthlyMosaic
+            items={items}
+            loadMemoryImage={async () => 'blob:preview'}
+          />
+        </MemoryRouter>,
+      );
+      expect(html).toContain(`today-monthly-strip-${count}`);
+      expect(html.match(/class="today-monthly-item"/g)).toHaveLength(count);
+      expect(html).toContain('Our walk 0 · 10.11.2026');
+      expect(html).toContain(`href="/story/memories/memory-${count - 1}"`);
+      expect(html).toContain('sensitive-media-cover');
+      expect(html).toContain('Sensibler Inhalt');
+      expect(html).not.toContain('<img');
+      expect(html).not.toContain('<time');
+      expect(html).not.toContain('eimir-media-snap-track');
+    },
+  );
 });

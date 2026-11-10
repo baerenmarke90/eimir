@@ -1136,6 +1136,7 @@
   padding: var(--space-2);
   color: var(--media-overlay-foreground);
   background: var(--media-overlay-surface);
+  padding-block-end: calc(4 * var(--space-story-category-gap));
   font: var(--font-media-caption);
   text-align: center;
   overflow-wrap: anywhere;

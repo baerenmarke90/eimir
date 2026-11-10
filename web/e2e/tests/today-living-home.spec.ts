@@ -1801,6 +1801,21 @@ for (const [width, theme, largeText] of [
           `${names[2]} · 10.11.2026 · Sensibler Inhalt`,
         );
         await expect(sensitive.getByRole('button')).toHaveCount(0);
+        const labelLayout = await sensitive.evaluate((node) => {
+          const label = node.querySelector('.today-monthly-sensitive-label');
+          const caption = node.querySelector('.today-monthly-caption');
+          if (!label || !caption)
+            throw new Error('Missing sensitive tile copy');
+          const text = document.createRange();
+          text.selectNodeContents(label);
+          return {
+            labelBottom: text.getBoundingClientRect().bottom,
+            captionTop: caption.getBoundingClientRect().top,
+          };
+        });
+        expect(labelLayout.labelBottom).toBeLessThanOrEqual(
+          labelLayout.captionTop,
+        );
       }
       const overflow = await month
         .locator('.today-monthly-strip')

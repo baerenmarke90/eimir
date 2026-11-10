@@ -127,6 +127,7 @@ export function PlanProductPage({
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editTitleValue, setEditTitleValue] = useState('');
   const editFocus = useRef<HTMLDivElement>(null);
+  const mapReturnFocusEntry = useRef<string | null>(null);
   const [saved, showSaved] = useTransientFlag(2500);
   useEffect(() => {
     if (taskState?.planningCreated) showSaved();
@@ -540,6 +541,7 @@ export function PlanProductPage({
                       className="planen-schedule-place"
                       to={destination}
                       returnFocusKey={`plan:${plan.id}:${linkedPlaceId}`}
+                      returnFocusEntryRef={mapReturnFocusEntry}
                     >
                       {copy}
                     </MomentMapLink>

@@ -1408,10 +1408,10 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
   ).toEqual([]);
 });
 
-test('detail Places open the existing in-app map and Back restores the same reading position', async ({
+test('detail Places restore their map invoker without consuming a later clean editor return', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 390, height: 600 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await installPageComposerFixture(page);
   await signIn(page);
@@ -1431,6 +1431,7 @@ test('detail Places open the existing in-app map and Back restores the same read
     );
     await page.evaluate(() => window.scrollTo(0, 60));
     const before = await page.evaluate(() => window.scrollY);
+    expect(before).toBeGreaterThan(0);
     await place.click();
     await expect(page).toHaveURL(/\/story\/map\?place=49.56%3A7.07$/);
     await page
@@ -1438,9 +1439,33 @@ test('detail Places open the existing in-app map and Back restores the same read
       .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
       .click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect(place).toBeFocused();
     await expect
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeCloseTo(before, 0);
+    if (path.startsWith('/plan/')) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const editorOrigin = await page.evaluate(() => window.scrollY);
+      expect(editorOrigin).toBe(0);
+      expect(editorOrigin).not.toBe(before);
+      const editLabel = m5s3.common.edit;
+      const edit = page
+        .getByRole('button', { name: editLabel, exact: true })
+        .or(page.getByRole('link', { name: editLabel, exact: true }));
+      await expect(edit).toBeInViewport();
+      await edit.click();
+      await expect(page.locator('.page-composer').last()).toBeVisible();
+      const close = page.locator('.composer-header .task-back-control:visible');
+      await expect(close).toHaveCount(1);
+      await expect(close).toHaveAccessibleName(taskBoundary.close);
+      await close.click();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await waitForSettledMotion(page);
+      await expect(edit).toBeFocused();
+      await expect
+        .poll(() => page.evaluate(() => window.scrollY))
+        .toBeCloseTo(editorOrigin, 0);
+    }
   }
   expect(state.unexpected).toEqual([]);
 });

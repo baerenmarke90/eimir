@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, type RefObject, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 
@@ -10,6 +10,7 @@ export function MomentMapLink({
   ariaLabel,
   onNavigate,
   returnFocusKey,
+  returnFocusEntryRef,
 }: {
   to: string;
   children: ReactNode;
@@ -17,12 +18,14 @@ export function MomentMapLink({
   ariaLabel?: string;
   onNavigate?: (proceed: () => void) => void;
   returnFocusKey?: string;
+  returnFocusEntryRef?: RefObject<string | null>;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { captureOrigin, resolveOrigin } = useTaskOrigin();
   const link = useRef<HTMLAnchorElement>(null);
-  const restoredEntry = useRef<string | null>(null);
+  const localRestoredEntry = useRef<string | null>(null);
+  const restoredEntry = returnFocusEntryRef ?? localRestoredEntry;
   const selectedKey = returnFocusKey
     ? `moment-map:${returnFocusKey}`
     : undefined;
@@ -61,6 +64,7 @@ export function MomentMapLink({
     location.pathname,
     location.search,
     resolveOrigin,
+    restoredEntry,
   ]);
   return (
     <Link

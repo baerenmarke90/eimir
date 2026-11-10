@@ -14,6 +14,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { MomentMapLink } from './MomentMapLink';
 
@@ -41,18 +42,66 @@ function MapTask({ readerPath }: { readerPath: string }) {
   );
 }
 
+function Reader({
+  onNavigate,
+  preserveReturnFocus = false,
+}: {
+  onNavigate?: (proceed: () => void) => void;
+  preserveReturnFocus?: boolean;
+}) {
+  const returnFocusEntry = useRef<string | null>(null);
+  const editTrigger = useRef<HTMLButtonElement>(null);
+  const wasEditing = useRef(false);
+  const [editing, setEditing] = useState(false);
+  useLayoutEffect(() => {
+    if (wasEditing.current && !editing) editTrigger.current?.focus();
+    wasEditing.current = editing;
+  }, [editing]);
+  if (editing)
+    return (
+      <button type="button" onClick={() => setEditing(false)}>
+        Close editor
+      </button>
+    );
+  return (
+    <>
+      <input aria-label="Reader input" />
+      <button ref={editTrigger} type="button" onClick={() => setEditing(true)}>
+        Edit
+      </button>
+      <MomentMapLink
+        to={mapPath}
+        returnFocusKey="place:first"
+        returnFocusEntryRef={preserveReturnFocus ? returnFocusEntry : undefined}
+      >
+        First place
+      </MomentMapLink>
+      <MomentMapLink
+        to={mapPath}
+        returnFocusKey="place:second"
+        returnFocusEntryRef={preserveReturnFocus ? returnFocusEntry : undefined}
+        onNavigate={onNavigate}
+      >
+        Second place at the same coordinates
+      </MomentMapLink>
+    </>
+  );
+}
+
 function Harness({
   readerPath = '/story/memories/memory-1',
   accountId = 'account-a',
   spaceId = 'space-a',
   returnKey,
   onNavigate,
+  preserveReturnFocus,
 }: {
   readerPath?: string;
   accountId?: string;
   spaceId?: string;
   returnKey?: string;
   onNavigate?: (proceed: () => void) => void;
+  preserveReturnFocus?: boolean;
 }) {
   return (
     <MemoryRouter
@@ -69,19 +118,10 @@ function Harness({
           <Route
             path={readerPath}
             element={
-              <>
-                <input aria-label="Reader input" />
-                <MomentMapLink to={mapPath} returnFocusKey="place:first">
-                  First place
-                </MomentMapLink>
-                <MomentMapLink
-                  to={mapPath}
-                  returnFocusKey="place:second"
-                  onNavigate={onNavigate}
-                >
-                  Second place at the same coordinates
-                </MomentMapLink>
-              </>
+              <Reader
+                onNavigate={onNavigate}
+                preserveReturnFocus={preserveReturnFocus}
+              />
             }
           />
           <Route
@@ -171,6 +211,60 @@ describe('Moment map reader return', () => {
       });
       advanceFrame();
       expect(window.scrollTo).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(['/plan/plans/plan-1'])(
+    'does not replay map focus after same-route editor dismissal for %s',
+    async (readerPath) => {
+      render(<Harness readerPath={readerPath} preserveReturnFocus />);
+      fireEvent.click(
+        screen.getByRole('link', {
+          name: 'Second place at the same coordinates',
+        }),
+      );
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Return to reader' }),
+      );
+      const returned = await screen.findByRole('link', {
+        name: 'Second place at the same coordinates',
+      });
+      advanceFrame();
+      advanceFrame();
+      expect(document.activeElement).toBe(returned);
+      expect(window.scrollTo).toHaveBeenCalledTimes(2);
+      const mapReturnKey = (location.state as { taskReturnKey: string })
+        .taskReturnKey;
+
+      vi.spyOn(window, 'scrollY', 'get').mockReturnValue(680);
+      vi.mocked(window.scrollTo).mockClear();
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+      expect(screen.queryByRole('link')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Close editor' }));
+      const edit = screen.getByRole('button', { name: 'Edit' });
+      expect(document.activeElement).toBe(edit);
+      expect((location.state as { taskReturnKey: string }).taskReturnKey).toBe(
+        mapReturnKey,
+      );
+      advanceFrame();
+      advanceFrame();
+      expect(document.activeElement).toBe(edit);
+      expect(window.scrollTo).not.toHaveBeenCalled();
+      expect(window.scrollY).toBe(680);
+
+      fireEvent.click(screen.getByRole('link', { name: 'First place' }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Return to reader' }),
+      );
+      const nextReturn = await screen.findByRole('link', {
+        name: 'First place',
+      });
+      advanceFrame();
+      expect(document.activeElement).toBe(nextReturn);
+      expect(window.scrollTo).toHaveBeenLastCalledWith({
+        top: 680,
+        behavior: 'instant',
+      });
     },
   );
 

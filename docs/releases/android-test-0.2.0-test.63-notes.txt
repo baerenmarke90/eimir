@@ -1,0 +1,8 @@
+eimir. Android 0.2.0-test.63
+
+- Include current main with merged #1725.
+- Add matching icons to existing media, photo-source, Place, List, tag and video actions across the shared create/edit surfaces.
+- Keep the compact blue buttons, visible localized labels and consistent icon sizing in Light, Dark and enlarged text.
+- Retain native pickers, draft safety, gallery controls and the existing upload/save behavior.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.62; increasing versionCode 63. Install over the existing app. Physical-device installation, session/data continuity, OS App Links and accessibility remain separate acceptance. Existing video/backend/media contracts are unchanged.

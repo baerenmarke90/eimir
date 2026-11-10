@@ -99,6 +99,7 @@ function DeviceInput({
       />
       <AddActionButton
         label={t('photoSources.addMedia')}
+        icon="foto"
         disabled={disabled}
         onClick={() => input.current?.click()}
       />

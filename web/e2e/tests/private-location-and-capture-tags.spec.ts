@@ -126,14 +126,14 @@ async function tagGeometry(page: Page) {
       name: contextTags.add,
       exact: true,
     });
-    await expectLabeledAddAction(disclosure);
+    await expectLabeledAddAction(disclosure, 'tag');
     await expectReadableActionLabel(disclosure);
   }
   await showContextTags(page);
   const row = page.locator('.context-tag-entry');
   const input = row.locator('input');
   const add = row.getByRole('button', { name: contextTags.add });
-  await expectLabeledAddAction(add);
+  await expectLabeledAddAction(add, 'tag');
   await expect(input).toHaveAttribute('placeholder', contextTags.placeholder);
   await expect(page.locator('.context-tag-suggestions')).not.toHaveAttribute(
     'open',
@@ -147,7 +147,7 @@ async function tagGeometry(page: Page) {
   if (!entryBox || !inputBox)
     throw new Error('Disclosed tag entry did not render.');
   expect(inputBox.width).toBeGreaterThanOrEqual(entryBox.width - 1);
-  const icon = add.locator('.eimir-icon-hinzufuegen');
+  const icon = add.locator('.eimir-icon-tag');
   await expect(icon).toBeVisible();
   const symbol = await icon.boundingBox();
   expect(symbol?.width).toBeGreaterThanOrEqual(20);
@@ -369,6 +369,7 @@ for (const destination of [
     if (destination === '/plan/plans/new') {
       await expectLabeledAddAction(
         page.getByRole('button', { name: photoPlaces.add, exact: true }),
+        'orte',
       );
     }
     await page.screenshot({

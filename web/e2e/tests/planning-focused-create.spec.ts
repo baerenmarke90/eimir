@@ -370,7 +370,7 @@ test('an undated Plan is valid while optional context remains available', async 
     name: photoPlaces.add,
     exact: true,
   });
-  await expectLabeledAddAction(addPlace);
+  await expectLabeledAddAction(addPlace, 'orte');
   await addPlace.click();
   await page
     .getByRole('dialog', { name: m5s3.common.place, exact: true })

@@ -156,6 +156,7 @@ export function CollectionChoicePicker({
       <AddActionButton
         ref={trigger}
         label={t('m5s3.collection.create')}
+        icon="listen"
         disabled={disabled}
         onClick={() => {
           setSelected(value.map((item) => item.id));
@@ -246,6 +247,7 @@ export function CollectionChoicePicker({
               />
               <AddActionButton
                 label={t('m5s3.collection.createNew')}
+                icon="listen"
                 pending={create.isPending}
                 disabled={busy || !title.trim()}
                 onClick={() => {
@@ -259,6 +261,7 @@ export function CollectionChoicePicker({
           ) : (
             <AddActionButton
               label={t('m5s3.collection.createNew')}
+              icon="listen"
               disabled={busy}
               onClick={() => setCreating(true)}
             />

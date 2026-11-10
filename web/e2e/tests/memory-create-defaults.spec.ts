@@ -139,7 +139,7 @@ for (const [width, colorScheme] of [
       name: photoSources.addMedia,
       exact: true,
     });
-    await expectLabeledAddAction(sourcePicker);
+    await expectLabeledAddAction(sourcePicker, 'foto');
     const sourceBox = await sourcePicker.boundingBox();
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
@@ -2641,6 +2641,28 @@ for (const kind of ['plan', 'heart'] as const) {
     await page.goto(
       kind === 'heart' ? '/story/heart-moments/new' : '/plan/plans/new',
     );
+    await expectLabeledAddAction(
+      page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+      'foto',
+    );
+    await expect(
+      page.locator(
+        '.photo-source-trigger .button-icon.eimir-icon-photo-library',
+      ),
+    ).toBeVisible();
+    if (kind === 'plan') {
+      await expectLabeledAddAction(
+        page.getByRole('button', { name: m5s3.collection.create, exact: true }),
+        'listen',
+      );
+      await expectLabeledAddAction(
+        page.getByRole('button', { name: contextTags.add, exact: true }),
+        'tag',
+      );
+    }
+    await captureScreenshot(page, info, `shell-add-icons-${kind}.png`, {
+      fullPage: true,
+    });
     const text =
       kind === 'heart'
         ? storyProducts.heartMomentProduct.textLabel

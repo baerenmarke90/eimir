@@ -81,8 +81,13 @@ ActionState     = idle | submitting | success | error
   visually dominant primary action in the current view/state.
 - All create/add entry points, including authored tags, media and inline list
   insertion, use `AddActionLink` or `AddActionButton`: the same filled
-  canonical-blue pill, shared plus icon and **visible localized action label**
-  (de-DE example: **“+ Plan hinzufügen”**), with a comfortable 48 px target.
+  canonical-blue pill, shared icon and **visible localized action label**,
+  with a comfortable 48 px target. The optional typed `icon` prop selects an
+  `EimirIcon` motif; the plus remains the default for generic creation.
+  Product Owner correction #1724 uses photo for device media, photo-library for
+  other photo sources, pin for Places, list for Lists, tag for authored tags and
+  video for the dedicated video action. Icons are decorative, share the same
+  size and inherit the action foreground, including their accent strokes.
   Existing task-origin links, native file labels and add/edit chips can reuse
   `AddActionContent` with the same `add-action` surface without replacing their
   lifecycle. Selected values keep their existing edit/selection meaning.

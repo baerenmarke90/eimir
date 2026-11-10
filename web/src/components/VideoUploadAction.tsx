@@ -77,7 +77,7 @@ function EnabledVideoUploadAction({
             }}
           />
           <label className="file-picker add-action" htmlFor={`${id}-video`}>
-            <AddActionContent label={t('video.add')} />
+            <AddActionContent label={t('video.add')} icon="video" />
           </label>
           <small>{t('video.formats')}</small>
         </>
@@ -88,7 +88,8 @@ function EnabledVideoUploadAction({
           disabled={disabled}
           onClick={() => setProOpen(true)}
         >
-          <AddActionContent label={t('video.add')} /> <ProMark label="Pro" />
+          <AddActionContent label={t('video.add')} icon="video" />{' '}
+          <ProMark label="Pro" />
         </button>
       )}
       <ShortTaskSheet

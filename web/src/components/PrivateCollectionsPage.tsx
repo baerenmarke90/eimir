@@ -142,6 +142,7 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
         action={
           <AddActionLink
             label={t('privateArea.collections.add')}
+            icon="listen"
             to={`${PRIVATE_COLLECTIONS_PATH}/new`}
           />
         }

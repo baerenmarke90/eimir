@@ -480,7 +480,10 @@ export function PlanningCreatePage({
                         ?.name ?? t('m5s3.common.place')}
                     </>
                   ) : (
-                    <AddActionContent label={t('photoPlaces.add')} />
+                    <AddActionContent
+                      label={t('photoPlaces.add')}
+                      icon="orte"
+                    />
                   )}
                 </button>
                 {placeId ? (

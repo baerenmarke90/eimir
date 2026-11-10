@@ -3,6 +3,7 @@ const composer = {
   yourTags: 'Eure Tags',
   diaryEntry: 'Tagebucheintrag',
   saved: 'Gespeichert',
+  viewLinkedPlan: 'Verknüpften Plan ansehen',
   emptyContent: 'Füge ein Foto, einen Titel oder deine Worte hinzu.',
   linkRecovery:
     'Dein Eintrag ist gespeichert. Die Verknüpfungen fehlen noch. Du kannst sie erneut übernehmen, ohne einen zweiten Eintrag anzulegen.',

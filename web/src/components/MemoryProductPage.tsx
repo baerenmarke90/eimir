@@ -1490,6 +1490,7 @@ export function MemoryProductPage({
           spaceId={spaceId}
           memoryId={memory.id}
           canManage={memory.capabilities.canEdit}
+          presentation="detail"
           offline={offline}
           initialPlanId={(() => {
             const candidate = (

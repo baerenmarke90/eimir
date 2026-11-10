@@ -158,6 +158,14 @@
   background: var(--color-surface);
   box-shadow: none;
 }
+.page-composer-detail .memory-planning-destination .memory-planning-kind {
+  color: var(--composer-accent);
+  font: var(--font-action-label);
+}
+.page-composer-detail .memory-planning-destination strong {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
 .page-composer-detail
   .comment-form-compact
   .comment-compose-actions

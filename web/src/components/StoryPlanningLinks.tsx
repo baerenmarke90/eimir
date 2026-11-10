@@ -40,7 +40,7 @@ export type StoryPlanningLinksProps = {
   sourceKind: 'MEMORY' | 'HEART_MOMENT' | 'MILESTONE';
   canManage: boolean;
   editing?: boolean;
-  presentation?: 'default' | 'composer' | 'handoff';
+  presentation?: 'default' | 'composer' | 'detail' | 'handoff';
   offline: boolean;
   initialPlanId?: string;
   onInitialPlanConsumed?: () => void;
@@ -357,7 +357,9 @@ function ScopedStoryPlanningLinks({
     <section className="memory-planning-links" aria-label={heading}>
       {targets.length ? (
         <>
-          <h2>{heading}</h2>
+          <h2 className={presentation === 'detail' ? 'sr-only' : undefined}>
+            {heading}
+          </h2>
           <ul>
             {targets.map((target) => (
               <li key={`${target.kind}:${target.id}`}>
@@ -393,9 +395,13 @@ function ScopedStoryPlanningLinks({
                     <span>
                       <span className="memory-planning-kind">
                         {t(
-                          target.kind === 'plans'
-                            ? 'memoryProduct.planning.linkedPlan'
-                            : 'memoryProduct.planning.linkedWish',
+                          presentation === 'detail'
+                            ? target.kind === 'plans'
+                              ? 'composer.viewLinkedPlan'
+                              : 'm5s3.plan.openWish'
+                            : target.kind === 'plans'
+                              ? 'memoryProduct.planning.linkedPlan'
+                              : 'memoryProduct.planning.linkedWish',
                         )}
                       </span>
                       <strong>{target.title}</strong>

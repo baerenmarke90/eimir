@@ -554,6 +554,7 @@ for (const exit of ['button', 'browser'] as const) {
     await page.screenshot({
       path: info.outputPath(`shell-heart-discard-${exit}.png`),
       fullPage: true,
+      animations: 'disabled',
     });
     await confirmation
       .getByRole('button', { name: taskBoundary.discard, exact: true })

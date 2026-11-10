@@ -369,11 +369,17 @@ for (const [width, colorScheme] of [
     const transfer = await observeNativeTransfer(page);
     const { state, unknown } = await setup(page, { retained: true });
     state.videoStatus = 'PENDING';
+    if (state.saved) state.saved.body = Array(6).fill(momentBody).join('\n');
     await signIn(page);
     await page.goto(`/story/memories/${MEMORY}`);
     const placeholder = page.locator('.media-processing-state');
     const progress = placeholder.getByRole('progressbar');
     await expect(progress).toHaveAttribute('value', '17');
+    expect((await progress.boundingBox())?.width).toBeGreaterThan(100);
+    await page.locator('.memory-provenance-footer').scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0);
     const geometry = () =>
       page.evaluate(() => {
         const gallery = document

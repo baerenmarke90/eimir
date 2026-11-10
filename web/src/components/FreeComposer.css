@@ -370,7 +370,7 @@
   min-inline-size: 0;
 }
 .quiet-composer .composer-writing-surface .field-group + .field-group {
-  border-block-start: var(--border-surface-width) solid
+  border-block-start: var(--border-divider-width) solid
     var(--color-border-subtle);
   padding-block-start: var(--space-3);
 }

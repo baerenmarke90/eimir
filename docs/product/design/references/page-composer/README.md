@@ -39,6 +39,13 @@ without delayed collapse; the detail screens keep the swipeable gallery with
 photo count, photo reactions, comments, the drop-cap initial, the place beside
 the date and the linked Wishes and Plans. Frames 12–16 show these.
 
+A second review the same day added: linking Wishes/Plans only in the composer
+(detail shows them read-only; HeartMoment detail has no linked section); Plan
+Lists open their list composer (frame 17); no drop-cap initial for Plans, and
+long descriptions collapse with "show more"; Plan descriptions keep a soft note
+box; no "start new" action on detail screens; Plans keep the existing short
+schedule format.
+
 ## Generated visual preflight
 
 ![Generated Compact reference](generated-compact-reference.png)

@@ -22,8 +22,9 @@ deviation in the PR.
    populated Dark, tag sheet), `generated-heartmoment-reference.png` (frames 5–8:
    choosing a feeling, with photo and voice, Dark, photo source sheet) and
    `generated-plan-reference.png` (frames 9–11: Plan, with photos, schedule sheet)
-   and `generated-detail-reference.png` (frames 12–16: new place sheet, Diary
-   entry detail top and bottom, HeartMoment detail, Plan detail).
+   and `generated-detail-reference.png` (frames 12–17: new place sheet, Diary
+   entry detail top and bottom, HeartMoment detail, Plan detail, shared List
+   composer).
 3. Check the state of issue #1726 / PR #1727 (soft composer media rows). If
    #1727 is merged, branch from `main`. If it is still open, ask the Product Owner
    whether to build on its branch; do not duplicate or fight its media-row work.
@@ -55,7 +56,11 @@ fixed audience line): no "visible to both" line in Diary/Memory and Plan
 composers; short date without weekday; place next to the date; drag and drop for
 media in every composer; creating a new place from the place sheet; feeling
 chips stay visible; detail screens keep gallery swipe, photo count, comments,
-reactions, drop-cap initial, place next to the date and linked Wishes/Plans.
+reactions, place next to the date and linked Wishes/Plans; linking a Wish or Plan
+happens only in the composer (create/edit), never on the detail screen; the
+drop-cap initial is used only for Diary/Memory prose, not for Plans; long
+descriptions collapse with "show more"; detail screens have no "start new" action;
+Plans use the existing short schedule format ("Sa., 21. Nov. · 12:00 Uhr").
 
 ## 2. Shared anatomy (all in-scope composers, top to bottom)
 
@@ -67,7 +72,9 @@ reactions, drop-cap initial, place next to the date and linked Wishes/Plans.
 2. **Context row** – no card. One wrapping row: calendar icon + short localized
    date without weekday (`Intl` `{ day: 'numeric', month: 'long', year: 'numeric' }`,
    e.g. "10. November 2026"; Diary range "8. November – 10. November 2026"; Plan
-   adds " · 12:00" or uses the unscheduled string) + chevron; tapping opens the
+   uses the existing short schedule format `{ weekday: 'short', day: 'numeric',
+   month: 'short' }` + " · 12:00 Uhr", e.g. "Sa., 21. Nov. · 12:00 Uhr", or the
+   unscheduled string) + chevron; tapping opens the
    existing date/range or `PlanScheduleFields` control in a `ShortTaskSheet`.
    Directly to its right (wrapping below on narrow widths): the chosen place(s)
    with a pin icon in the accent color (first place, then "+n"), opening the place
@@ -90,6 +97,11 @@ reactions, drop-cap initial, place next to the date and linked Wishes/Plans.
    pill chips (subtle surface, accent text, leading icon, at least 44 px target
    with spacing). Tapping a chip reopens its existing editor. Order: Lists, tags.
    Places are not chips; they live in the context row.
+   Below the chips, linked Wishes/Plans appear as chips (heart icon for a Wish,
+   calendar icon for a Plan) followed by a quiet "link Wish or Plan" row
+   (`memoryProduct.planning.add`) that opens the existing `StoryPlanningLinks`
+   choice in a sheet with Wishes/Plans tabs. This is the only place to link or
+   unlink, in Diary/Memory, HeartMoment and Plan.
 5. **Draft/status line** – keep the existing draft status and pending/error/offline
    notices with their current owners and copy; style as small secondary text.
 6. **Tool row** – a labeled bottom row, sticky above the safe area and the
@@ -152,14 +164,16 @@ reactions, drop-cap initial, place next to the date and linked Wishes/Plans.
 
 ## 3a. Detail (read) screens
 
-Frames 13–16. The PO reported these capabilities missing in the current runtime;
-verify each on `main` and restore it where it regressed. Order:
+Frames 13–17. The PO reported several of these capabilities missing in the
+current runtime; verify each on `main` and restore it where it regressed. Order:
 
 1. Header: Back, localized type title, Edit as text action. After a save, a
-   short "saved" status pill.
+   short "saved" status pill. No "start new entry/plan" action anywhere.
 2. Meta row: short date (as in the composer) and, to its right, the place(s);
-   HeartMoment adds its visibility. HeartMoment then shows `HeartEmotionBadge`
-   (detail variant: icon + feeling) and keeps its feeling tint on the page.
+   Plan shows its schedule in the accent color; HeartMoment adds its visibility.
+   Plan: directly below, the existing `PlanCalendarAction` ("add to calendar") as
+   a soft full-width-or-content button. HeartMoment: `HeartEmotionBadge` (detail
+   variant: icon + feeling) and the feeling tint on the page.
 3. Gallery (`MemoryPhotoGallery` / `MediaGallery`): one swipeable full-width
    gallery with scroll-snap, "n / m" count top-right, position dots below,
    previous/next buttons for pointer and keyboard (arrow keys), the cover first.
@@ -167,12 +181,22 @@ verify each on `main` and restore it where it regressed. Order:
    Photo reactions (`photoReactions.*`, six reactions) open from a "react"
    button on the photo; summary chips under the gallery show counts and your own
    reaction. Fullscreen/zoom remain as today.
-4. Title in the display role; prose with the existing `drop-cap-letter` initial
-   (first letter uppercase, display font, brand/accent color, 1.3em).
-5. Tags; HeartMoment voice note; Plan shared Lists.
-6. "Linked Wishes and Plans" (`StoryPlanningLinks`, `memoryProduct.planning.*`)
-   with the linked items and the link action.
-7. Comments (`CommentsPanel`) with the existing composer; not rendered for
+4. Title in the display role.
+5. Body:
+   - Diary/Memory: prose on the page with the existing `drop-cap-letter`
+     initial (first letter uppercase, display font, brand/accent color, 1.3em).
+   - Plan: description in one soft note box (surface role, `radius.card`-like
+     22 px, no border, no shadow) without a drop cap.
+   - Both use `ExpandableDescription`: long text is clamped (about five lines)
+     with a fade and "show more" / "show less".
+6. Tags; HeartMoment voice note; Plan "shared Lists" rows (icon, name, "n of m
+   done", chevron) — tapping a List opens its existing list composer (checklist
+   with check/uncheck and add entry) in a sheet, and the row count updates on
+   close (frame 17).
+7. Linked Wishes/Plans read-only, as the existing soft "view linked Wish/Plan"
+   buttons with the item title as secondary line. No link action here; linking
+   lives in the composer. HeartMoment detail shows no linked section.
+8. Comments (`CommentsPanel`) with the existing composer; not rendered for
    owner-only HeartMoments.
 
 ## 4. Type, color, spacing

@@ -131,6 +131,7 @@
   .srcs .src { background: var(--bg); }
   .ctx-row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; }
   .ctx.place { color: var(--chip-text); font-weight: 600; }
+  .linkrow { display: flex; align-items: center; gap: 8px; min-height: 40px; margin-top: 10px; color: var(--chip-text); font-weight: 600; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -245,7 +246,7 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>Sa., 21. Nov. · 12:00 Uhr<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
         </div>
         <div class="title lead">Picknick am Rhein</div>
         <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
@@ -253,6 +254,7 @@
           <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
           <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
         </div>
+        <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
       </div>
       <div class="tools">
         <span class="tool"><i class="ti ti-photo"></i>Foto</span>
@@ -271,7 +273,7 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>Sa., 21. Nov. · 12:00 Uhr<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
         </div>
         <div class="cover plan-cover"><svg data-photo="picnic"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 3</span></div>
         <div class="thumbs">
@@ -286,6 +288,7 @@
           <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
           <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
         </div>
+        <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
       </div>
       <div class="tools">
         <span class="tool on"><i class="ti ti-photo"></i>Foto</span>
@@ -304,7 +307,7 @@
       <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
       <div class="scroll">
         <div class="context">
-          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>21. November 2026 · 12:00<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>Sa., 21. Nov. · 12:00 Uhr<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
         </div>
         <div class="title lead">Picknick am Rhein</div>
         <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
@@ -312,6 +315,7 @@
           <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
           <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
         </div>
+        <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
       </div>
       <div class="tools">
         <span class="tool"><i class="ti ti-photo"></i>Foto</span>
@@ -355,6 +359,7 @@
     <span class="chip"><i class="ti ti-tag"></i>Urlaub</span>
     <span class="chip"><i class="ti ti-tag"></i>Unterwegs zusammen</span>
   </div>
+  <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
   <div class="draft"><i class="ti ti-device-mobile-check"></i>Entwurf auf diesem Gerät gesichert · noch nicht gemeinsam gespeichert.</div>
 </template>
 

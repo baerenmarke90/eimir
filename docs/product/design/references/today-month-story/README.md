@@ -66,9 +66,9 @@ this change.
 - Lead line in the display role: the total count of the rendered categories in
   the accent color (about 30 px), followed by "Erinnerungen in 3 Jahren" (about
   21 px). The period comes from the existing relationship duration: years when
-  at least one year, otherwise months, otherwise days, with correct German
-  dative plural/singular ("in einem Jahr", "in 4 Monaten"). Without a duration
-  the line reads "{{count}} gemeinsame Erinnerungen".
+  at least one year, otherwise months, otherwise days, with the correct
+  singular/plural (and, in German, dative) forms from the locale files. Without
+  a duration the line falls back to a period-free "shared memories" phrase.
 - Below: a 10 px pill bar split into segments proportional to each rendered
   category (3 px gaps, each segment at least about 6 % wide), decorative and
   `aria-hidden`.

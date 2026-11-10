@@ -1014,7 +1014,8 @@ for (const state of [
     const picker = page.getByRole('group', { name: 'Reaktion auswählen' });
     await expect(picker).toBeVisible();
     await expect(picker.getByRole('button')).toHaveCount(6);
-    await expect(photo).toHaveAttribute('aria-pressed', 'false');
+    await expect(photo).toHaveAccessibleName(sensitiveMedia.show);
+    await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
     await page.screenshot({
       path: info.outputPath('preset-picker.png'),
       fullPage: true,
@@ -1029,10 +1030,8 @@ for (const state of [
       name: /Liebe: 1 Reaktion.*entfernen/,
     });
     await expect(chip).toBeVisible();
-    await expect(privacyControl(page, sensitiveMedia.show)).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
+    await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
     await chip.click();
     await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
     expect(writes).toEqual([{ reaction: 'LOVE' }, { reaction: null }]);
@@ -1407,10 +1406,11 @@ for (const width of [320, 390] as const) {
       await positionGalleryForReading(page);
 
       const next = page.locator('.media-gallery-carousel-next');
-      await expect(next).toHaveCSS('clip-path', 'inset(50%)');
-      expect(
-        await next.evaluate((node) => node.getBoundingClientRect().width),
-      ).toBeLessThanOrEqual(1);
+      await expect(next).toBeVisible();
+      await expect(next).toHaveCSS('clip-path', 'none');
+      const nextBox = await next.boundingBox();
+      expect(nextBox?.width).toBeGreaterThanOrEqual(44);
+      expect(nextBox?.height).toBeGreaterThanOrEqual(44);
 
       const interaction = await carouselInteractionContract(page);
       expect(interaction.usesSharedTrack).toBe(true);
@@ -1808,7 +1808,13 @@ test('sensitive media remains local to one item and conceals on return and actua
   expect(box?.height).toBeGreaterThanOrEqual(44);
   await reveal.focus();
   await page.keyboard.press('Enter');
-  await expect(privacyControl(page, sensitiveMedia.hide)).toBeFocused();
+  await expect(active).toBeFocused();
+  await expect(active).toHaveAccessibleName(openItemLabel(1, 3));
+  const hide = privacyControl(page, sensitiveMedia.hide);
+  await expect(hide).toBeVisible();
+  const hideBox = await hide.boundingBox();
+  expect(hideBox?.width).toBeGreaterThanOrEqual(44);
+  expect(hideBox?.height).toBeGreaterThanOrEqual(44);
   await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
   await page.getByRole('button', { name: photoReactions.fullscreen }).click();
   const dialog = page.getByRole('dialog');

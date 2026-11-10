@@ -145,12 +145,8 @@ async function tagGeometry(page: Page) {
   const inComposerSheet =
     (await page.locator('dialog.composer-tag-sheet').count()) > 0;
   if (inComposerSheet) {
-    await expect(add).toBeVisible();
-    await expect(add).toHaveAttribute('type', 'button');
-    await expectNaturalTextReflow(add.locator('.add-action-label'), 2);
-    const bounds = await add.boundingBox();
-    expect(bounds?.width).toBeGreaterThanOrEqual(44);
-    expect(bounds?.height).toBeGreaterThanOrEqual(44);
+    await expect(input).toHaveValue('');
+    await expect(add).toHaveCount(0);
   } else await expectLabeledAddAction(add, 'tag');
   await expect(input).toHaveAttribute(
     'placeholder',
@@ -166,15 +162,17 @@ async function tagGeometry(page: Page) {
       'open',
       '',
     );
-  await expectInlineAddLayout(input, add);
-  const [entryBox, inputBox] = await Promise.all([
-    row.boundingBox(),
-    input.boundingBox(),
-  ]);
-  if (!entryBox || !inputBox)
-    throw new Error('Disclosed tag entry did not render.');
+  const { entryBox, inputBox } = await row.evaluate((element) => {
+    const input = element.querySelector('input');
+    if (!input) throw new Error('Disclosed tag entry did not render.');
+    return {
+      entryBox: element.getBoundingClientRect().toJSON(),
+      inputBox: input.getBoundingClientRect().toJSON(),
+    };
+  });
   if (inComposerSheet) {
     expect(inputBox.width).toBeGreaterThanOrEqual(44);
+    expect(inputBox.height).toBeGreaterThanOrEqual(44);
     expect(inputBox.x).toBeGreaterThanOrEqual(entryBox.x);
     expect(inputBox.x + inputBox.width).toBeLessThanOrEqual(
       entryBox.x + entryBox.width,
@@ -187,6 +185,39 @@ async function tagGeometry(page: Page) {
   const symbol = await icon.boundingBox();
   expect(symbol?.width).toBeGreaterThanOrEqual(20);
   expect(symbol?.height).toBeGreaterThanOrEqual(20);
+  if (inComposerSheet) {
+    const geometry = await row.evaluate((element) => {
+      const input = element.querySelector('input');
+      const icon = element.querySelector(':scope > .eimir-icon');
+      if (!input || !icon)
+        throw new Error('The quiet tag input lost its icon.');
+      return {
+        input: input.getBoundingClientRect().toJSON(),
+        icon: icon.getBoundingClientRect().toJSON(),
+      };
+    });
+    if (
+      geometry.icon.y < geometry.input.bottom &&
+      geometry.input.y < geometry.icon.bottom
+    )
+      expect(geometry.icon.right).toBeLessThanOrEqual(geometry.input.x + 1);
+    else expect(geometry.icon.bottom).toBeLessThanOrEqual(geometry.input.y + 1);
+    // A blank composer has one quiet input and leading icon. The existing
+    // explicit add action appears once there is text to commit.
+    await input.fill('A quiet tag');
+    await expect(add).toBeVisible();
+    await expect(add).toBeEnabled();
+    await expect(add).toHaveAttribute('type', 'button');
+    await expectNaturalTextReflow(add.locator('.add-action-label'), 2);
+    const bounds = await add.boundingBox();
+    expect(bounds?.width).toBeGreaterThanOrEqual(44);
+    expect(bounds?.height).toBeGreaterThanOrEqual(44);
+  }
+  await expectInlineAddLayout(input, add);
+  if (inComposerSheet) {
+    await input.clear();
+    await expect(add).toHaveCount(0);
+  }
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

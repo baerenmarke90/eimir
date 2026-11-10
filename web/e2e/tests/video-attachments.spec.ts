@@ -365,7 +365,7 @@ for (const [width, colorScheme] of [
   test(`upload observation preserves progress and page geometry ${width} ${colorScheme} (#1719)`, async ({
     page,
   }, info) => {
-    await page.setViewportSize({ width, height: 900 });
+    await page.setViewportSize({ width, height: 500 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const transfer = await observeNativeTransfer(page);
     const { state, unknown } = await setup(page, { retained: true });
@@ -377,7 +377,11 @@ for (const [width, colorScheme] of [
     const progress = placeholder.getByRole('progressbar');
     await expect(progress).toHaveAttribute('value', '17');
     expect((await progress.boundingBox())?.width).toBeGreaterThan(100);
-    await page.locator('.memory-provenance-footer').scrollIntoViewIfNeeded();
+    await page
+      .locator('.memory-provenance-footer')
+      .evaluate((element) =>
+        element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+      );
     await expect
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeGreaterThan(0);
@@ -589,7 +593,7 @@ for (const [width, colorScheme] of [
     state.videoStatus = 'READY';
     await expect(page.locator('.media-processing-state')).toHaveCount(0);
     await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-      storyCopy.gallery.counter
+      storyCopy.gallery.fraction
         .replace('{{index}}', '2')
         .replace('{{count}}', '2'),
     );
@@ -699,12 +703,14 @@ test('source selection waits for video eligibility and preserves photo fallback 
   await expect(input).toBeDisabled();
   release();
   await expect(
-    page.getByText(photoSources.videoAvailabilityUnavailable, { exact: true }),
+    sources.getByText(photoSources.videoAvailabilityUnavailable, {
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(input).toBeEnabled();
   await expect(input).not.toHaveAttribute('accept', /video/);
   expect(requests).toBe(1);
-  await page
+  await sources
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(input).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
@@ -728,8 +734,10 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  await openComposerMediaSources(page);
-  await page.getByRole('button', { name: new RegExp(videoCopy.add) }).click();
+  const sources = await openComposerMediaSources(page);
+  await sources
+    .getByRole('button', { name: new RegExp(videoCopy.add) })
+    .click();
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);
   await sheet

@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
+import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -664,8 +665,11 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
-    await sheet.getByRole('button', { name: planningCopy.map.confirm }).click();
+    await sheet
+      .getByRole('button', { name: photoPlaces.saveSharedPlace, exact: true })
+      .click();
     await expect(sheet).toHaveCount(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(
       page.locator('input[type="hidden"][name="placeId"]'),
     ).toHaveValue('map-place');

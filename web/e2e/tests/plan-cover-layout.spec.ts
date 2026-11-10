@@ -33,6 +33,12 @@ const galleryCounter = (index: number, count: number) =>
     .replace('{{count}}', String(count));
 const inlineGalleryCounter = (index: number, count: number) =>
   `${index} / ${count}`;
+
+async function closePlanEditor(page: Page) {
+  const close = page.locator('.composer-header .task-back-control');
+  await expect(close).toHaveAccessibleName(taskBoundary.close);
+  await close.click();
+}
 const dimensions = {
   portrait: [800, 1200],
   landscape: [1600, 900],
@@ -348,9 +354,7 @@ for (const scenario of [
       .getByRole('checkbox')
       .setChecked(!scenario.sensitive);
     await expectInlineDraftActions(page);
-    await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
-      .click();
+    await closePlanEditor(page);
     await page
       .getByRole('button', { name: copy.common.discardConfirm, exact: true })
       .click();
@@ -608,12 +612,24 @@ for (const view of [
       );
       const box = await track.boundingBox();
       if (!box) throw new Error('Missing gallery track');
+      const start = {
+        x: box.x + box.width * 0.82,
+        y: box.y + box.height * 0.3,
+      };
+      const initialTarget = await track.evaluate((element, point) => {
+        const target = document.elementFromPoint(point.x, point.y);
+        return {
+          onTrack: target !== null && element.contains(target),
+          overlay: Boolean(target?.closest('.media-overlay')),
+        };
+      }, start);
+      expect(initialTarget).toEqual({ onTrack: true, overlay: false });
       const touch = await page.context().newCDPSession(page);
       try {
-        const y = box.y + box.height / 2;
+        const y = start.y;
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
-          touchPoints: [{ x: box.x + box.width * 0.82, y }],
+          touchPoints: [start],
         });
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
@@ -683,9 +699,7 @@ for (const view of [
       await expectInlineDraftActions(page);
     }
     await changeDraft();
-    await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
-      .click();
+    await closePlanEditor(page);
     await page
       .getByRole('button', { name: copy.common.discardConfirm, exact: true })
       .click();

@@ -31,7 +31,11 @@ import {
   pageComposerVoiceInput,
 } from '../support/pageComposer';
 import { waitForSettledMotion } from '../support/settledMotion';
-import { captureScreenshot, signIn } from '../support/storyTimelineFixture';
+import {
+  captureScreenshot,
+  DETAIL_COMMENTS,
+  signIn,
+} from '../support/storyTimelineFixture';
 
 const photo = readFileSync(
   new URL(
@@ -123,6 +127,42 @@ async function capture(page: Page, info: TestInfo, name: string) {
     );
   const diagnoseHeader = name === 'plan-edit-frame-10-390-light';
   const beforeHeader = diagnoseHeader ? await inspectHeader() : undefined;
+  if (info.title.includes('200-percent')) {
+    const selectedFeelings = await page
+      .locator('.heart-emotion-choice:has(input:checked)')
+      .evaluateAll((choices) =>
+        choices.map((choice) => {
+          const visual = choice
+            .querySelector('.heart-emotion-choice-visual')
+            ?.getBoundingClientRect();
+          const check = choice
+            .querySelector('.heart-emotion-choice-check')
+            ?.getBoundingClientRect();
+          return {
+            emotion: choice.getAttribute('data-emotion'),
+            visual: visual?.toJSON(),
+            check: check?.toJSON(),
+          };
+        }),
+      );
+    for (const feeling of selectedFeelings) {
+      const diagnostic = JSON.stringify(feeling);
+      expect(feeling.visual, diagnostic).toBeDefined();
+      expect(feeling.check, diagnostic).toBeDefined();
+      expect(feeling.check?.left, diagnostic).toBeGreaterThanOrEqual(
+        (feeling.visual?.left ?? 0) - 1,
+      );
+      expect(feeling.check?.right, diagnostic).toBeLessThanOrEqual(
+        (feeling.visual?.right ?? 0) + 1,
+      );
+      expect(feeling.check?.top, diagnostic).toBeGreaterThanOrEqual(
+        (feeling.visual?.top ?? 0) - 1,
+      );
+      expect(feeling.check?.bottom, diagnostic).toBeLessThanOrEqual(
+        (feeling.visual?.bottom ?? 0) + 1,
+      );
+    }
+  }
   await noOverflow(page);
   await captureScreenshot(page, info, `1730-${name}.png`, {
     animations: 'disabled',
@@ -183,6 +223,20 @@ async function addPhotos(page: Page) {
     await expect(tile).toHaveAccessibleName(new RegExp(de.memory.photoReady));
 }
 
+async function settleDraftPhotos(page: Page) {
+  for (const tile of await page.locator('.photo-draft-tile').all()) {
+    await tile.scrollIntoViewIfNeeded();
+    const image = tile.locator('img').last();
+    await expect(image).toBeVisible();
+    await expect
+      .poll(() =>
+        image.evaluate((element: HTMLImageElement) => element.naturalWidth),
+      )
+      .toBeGreaterThan(0);
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+}
+
 async function addPlaceAndTag(page: Page) {
   await tool(page, composer.place).click();
   const places = page.getByRole('dialog').last();
@@ -190,12 +244,15 @@ async function addPlaceAndTag(page: Page) {
     .getByLabel(photoPlaces.savedSearch, { exact: true })
     .fill(content.placeName);
   await places
+    .locator('.moment-place-choices')
     .getByRole('button', { name: new RegExp(`^${content.placeName}`) })
     .click();
   if (await places.isVisible()) await closeChoice(page);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: new RegExp(content.placeName) }).first(),
+    page
+      .locator('.composer-place-context')
+      .filter({ hasText: content.placeName }),
   ).toBeVisible();
   await showContextTags(page);
   const tag = page.getByRole('checkbox', {
@@ -337,7 +394,10 @@ for (const view of [
       reducedMotion: view.motion,
     });
     await page.clock.setFixedTime('2026-11-10T12:00:00Z');
-    const state = await installPageComposerFixture(page);
+    const state = await installPageComposerFixture(page, {
+      sensitivePhotos: false,
+      linkedWish: true,
+    });
     await signIn(page);
     page.on('dialog', (dialog) => dialog.accept());
     const suffix = `${view.width}-${view.theme}${view.large ? '-200-percent' : ''}${view.motion === 'reduce' ? '-reduced' : ''}`;
@@ -404,6 +464,7 @@ for (const view of [
             exact: true,
           }),
         ).toBeVisible();
+      if (!screen.path.endsWith('/new')) await settleDraftPhotos(page);
       await capture(page, info, `${screen.name}-${suffix}`);
       if (screen.path.endsWith('/new')) {
         if (screen.path.includes('heart-moments')) {
@@ -430,7 +491,7 @@ for (const view of [
         await addPlaceAndTag(page);
         if (screen.path.includes('heart-moments')) await addVoice(page);
         if (screen.path.includes('/plans/')) await addPlanList(page);
-        await page.evaluate(() => window.scrollTo(0, 0));
+        await settleDraftPhotos(page);
         if (
           screen.path.includes('heart-moments') &&
           view.width === 390 &&
@@ -490,19 +551,42 @@ for (const view of [
       await expect(page.locator('.media-gallery-carousel')).toBeVisible();
       await expect(
         page
+          .getByRole('link', { name: content.placeName, exact: true })
+          .first(),
+      ).toHaveAttribute('href', /\/story\/map\?place=/);
+      const hero = page.locator(
+        '.media-gallery-carousel-slide.is-active img.media-gallery-thumb-content',
+      );
+      await expect(hero).toBeVisible();
+      await expect
+        .poll(() =>
+          hero.evaluate((element: HTMLImageElement) => element.naturalWidth),
+        )
+        .toBeGreaterThan(0);
+      await expect(
+        page
           .getByRole('link', { name: taskBoundary.back, exact: true })
           .or(
             page.getByRole('button', { name: taskBoundary.back, exact: true }),
           ),
       ).toBeVisible();
+      if (view.width === 390 && view.motion === 'no-preference')
+        expect((await new AxeBuilder({ page }).analyze()).violations).toEqual(
+          [],
+        );
       await capture(page, info, `${screen.name}-${suffix}`);
       if (screen.name === 'diary-detail-frame-13') {
-        await page
-          .getByRole('heading', {
-            name: storyProducts.comments.heading,
-            exact: true,
-          })
-          .scrollIntoViewIfNeeded();
+        await expect(
+          page
+            .locator('.memory-planning-links')
+            .getByRole('link', { name: new RegExp(content.wishTitle) }),
+        ).toHaveAttribute('href', '/plan/wishes/composer-wish');
+        const comments = page.locator('.comments-panel');
+        await expect(comments).toContainText(DETAIL_COMMENTS[0].body);
+        await expect(comments.locator('textarea')).toBeVisible();
+        await comments.evaluate((panel) =>
+          panel.scrollIntoView({ block: 'center', behavior: 'instant' }),
+        );
         await capture(page, info, `diary-comments-frame-14-${suffix}`);
       }
     }
@@ -549,10 +633,16 @@ test('Diary tools preserve photos, cover, sensitivity, place and tag through sav
     .getByLabel(photoPlaces.savedSearch, { exact: true })
     .fill(content.placeName);
   await places
-    .getByRole('button', { name: new RegExp(content.placeName) })
+    .locator('.moment-place-choices')
+    .getByRole('button', { name: new RegExp(`^${content.placeName}`) })
     .click();
   if (await places.isVisible()) await closeChoice(page);
   await expect(places).toHaveCount(0);
+  await expect(
+    page
+      .locator('.composer-place-context')
+      .filter({ hasText: content.placeName }),
+  ).toBeVisible();
   await showContextTags(page);
   await capture(page, info, 'diary-tag-sheet-frame-4');
   await page

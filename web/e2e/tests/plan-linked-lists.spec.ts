@@ -461,6 +461,19 @@ function listTool(page: Page) {
     .getByRole('button', { name: composer.list, exact: true });
 }
 
+async function closePlanEditor(page: Page) {
+  const close = page.locator('.composer-header .task-back-control');
+  await expect(close).toHaveAccessibleName(taskBoundary.close);
+  await close.click();
+}
+
+async function closeHeartEditor(page: Page) {
+  const back = page.locator('.composer-header .task-back-control');
+  await expect(back).toHaveAccessibleName(taskBoundary.back);
+  await expect(back).toHaveAttribute('href', /\/heart-moments\/[^/]+$/);
+  await back.click();
+}
+
 function linkedList(page: Page, title: string) {
   return page.locator('.plan-collection-row').filter({ hasText: title });
 }
@@ -558,9 +571,7 @@ for (const view of [
       `plan-lists-edit-${view.width}-${view.theme}.png`,
       { fullPage: true },
     );
-    await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
-      .click();
+    await closePlanEditor(page);
     await expect(
       page.getByRole('button', { name: de.common.edit, exact: true }),
     ).toBeVisible();
@@ -729,21 +740,28 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await places
     .getByRole('button', { name: experiences.finish, exact: true })
     .click();
+  await expect(places).toHaveCount(0);
   await expect(page.getByLabel(de.memory.bodyLabel)).toHaveValue(
     state.plan.description,
   );
   await page
     .getByLabel(de.memory.bodyLabel)
     .fill(fixtures.planLinkedLists.savedMemoryBody);
+  await expect(page.getByLabel(de.memory.bodyLabel)).toHaveValue(
+    fixtures.planLinkedLists.savedMemoryBody,
+  );
   await captureScreenshot(page, testInfo, 'memory-source-place.png', {
     fullPage: true,
   });
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(/\/story\/memories\/memory-new$/);
   expect(state.calls.memory?.placeIds).toEqual([placeId]);
-  await expect(
-    page.getByText(fixtures.planLinkedLists.savedMemoryBody, { exact: true }),
-  ).toBeVisible();
+  expect(state.calls.memory?.body).toBe(
+    fixtures.planLinkedLists.savedMemoryBody,
+  );
+  await expect(page.locator('.memory-detail-body')).toHaveText(
+    fixtures.planLinkedLists.savedMemoryBody,
+  );
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .click();
@@ -863,9 +881,7 @@ for (const view of [
           `heart-plan-backlink-${view.width}-${view.theme}.png`,
           { fullPage: true },
         );
-        await page
-          .getByRole('button', { name: taskBoundary.back, exact: true })
-          .click();
+        await closeHeartEditor(page);
         await expect(reverse).toHaveCount(0);
         await page
           .getByRole('button', { name: taskBoundary.back, exact: true })
@@ -947,9 +963,7 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
     .getByRole('link', { name: storyCopy.heartMomentProduct.edit, exact: true })
     .click();
   await expect(reverse).toContainText(state.plan.title);
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await closeHeartEditor(page);
   await expect(reverse).toHaveCount(0);
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
@@ -1087,9 +1101,7 @@ test('Plan field drafts survive guarded exit, bounded list choice and in-context
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   const description = page.getByLabel(copy.common.description, { exact: true });
   await description.fill(fixtures.planLinkedLists.unsavedPlanDescription);
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await closePlanEditor(page);
   const discard = page.getByRole('alertdialog', {
     name: copy.common.discardTitle,
   });
@@ -1192,7 +1204,9 @@ test('Plan creation keeps its draft while creating a list and retries a partial 
   await page
     .getByRole('button', { name: copy.common.save, exact: true })
     .click();
-  await expect(page.getByText(composer.planSavedLinkFailed)).toBeVisible();
+  await expect(
+    page.getByText(copy.collection.planSavedLinkFailed),
+  ).toBeVisible();
   expect(state.calls.creates).toHaveLength(1);
   state.calls.failLinks = false;
   await page

@@ -109,6 +109,12 @@ ActionState     = idle | submitting | success | error
   inside the writing composer; this selection presentation does not change
   file/source ownership or the other AddAction entry points. Idle writing fields
   are borderless; keyboard focus, errors and forced-colors remain distinguishable.
+- Product Owner correction #1730 supersedes conflicting #1717/#1726
+  composition for non-experience Memory, HeartMoment and Plan create/edit.
+  The page itself is the writing surface. Labeled tools replace filled
+  Place/Tag/List/Voice insertion pills, and selected values use quiet edit
+  chips. Diary has one on-page media entry; HeartMoment and Plan use the Photo
+  tool and shared source sheet. Other AddAction consumers retain their contract.
 - Hover feedback must keep the control's hit target stationary. Translating a
   button away from a pointer at its edge can alternate hover state indefinitely
   and prevent both a real click and native actionability checks. Reuse color
@@ -210,9 +216,13 @@ See [the composition and evidence](product/design/subpage-navigation-context/REA
 ### 5.5 Moment date and Place context
 
 Memory and shared HeartMoment readers group the calendar date and all authorized
-Places above media in one wrapping row. Each Place opens its address/map and
-attribution in the existing short sheet; no external request occurs until an
-explicit link. Private HeartMoment readers display their protected parent location snapshot and
+Places above media in one wrapping row. For the #1730 non-experience Memory,
+HeartMoment and Plan readers, coordinates link directly through `MomentMapLink`
+to the existing internal Memory map; a Place without coordinates stays text.
+Map Back restores the same detail and reading position. Composer context opens
+its existing Place editor instead. Out-of-scope experience readers retain their
+short-sheet context. No external request occurs without an explicit action.
+Private HeartMoment readers display their protected parent location snapshot and
 do not request shared Place relations. Private capture may deliberately copy a
 saved Place or map choice into that snapshot without creating a shared Place. A Memory's
 date-only fallback heading displays its calendar date once, with Places beside
@@ -376,6 +386,32 @@ declare all existing editors migrated.
 - Reduced motion preserves identical focus, state and result semantics. The
   Web/native proof exercises production consumers; broader R1/R2 composition
   and other lifecycle migrations retain their own acceptance owners.
+
+### 8.5 Page composer
+
+`ComposerToolRow`, `ComposerTool` and `ComposerChip` provide presentation for
+#1730; existing domain owners retain authoring, permissions and persistence.
+The anatomy is native header submit, wrapping date/Place context, unwrapped
+writing/media, selected chips, status and a labeled tool group. HeartMoment
+retains visible feeling radios and its separate visibility task.
+
+- Tools are native buttons with localized visible labels and at least 48 px
+  targets; selected edit chips have at least 44 px targets. Caller-supplied
+  active, disabled, pending and error states remain truthful.
+- The tool row follows the visual viewport and safe area. Content reserves its
+  measured height; focused fields can scroll above it. Opening a reader or
+  composer does not automatically activate the keyboard.
+- The existing short sheet owns initial focus, trapping, Escape/Back and trigger
+  restoration. Domain owners retain dirty/pending exit guards and native form
+  values after a sheet closes. Header Save remains associated with that form.
+- Diary places media before title/prose; HeartMoment places its lead and visible
+  feelings before media/voice; Plan places selected media before title/prose.
+  The 56 px selected-media strip discloses existing management controls on
+  selection. Controls expand to preserve their touch targets; this narrowly
+  supersedes the always-visible corner controls in the earlier gallery contract.
+- Light/Dark, semantic typography, reduced motion and reflow use shared roles.
+  No domain request, analytics payload or private content storage belongs in
+  these primitives. Existing source consent, Pro and native media owners remain.
 
 ## 9. Feedback components
 

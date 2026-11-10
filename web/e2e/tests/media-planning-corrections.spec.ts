@@ -538,6 +538,9 @@ test.describe('free composer media preservation', () => {
       await expect(selected.getByRole('checkbox')).toBeChecked();
       expect(await privacyGeometry()).toEqual(before);
       await privacy.locator('input').uncheck();
+      await page.locator('.photo-draft-stage').evaluate((stage) => {
+        stage.scrollIntoView({ block: 'center', behavior: 'instant' });
+      });
       await page.locator('.photo-draft-gallery .media-gallery-expand').click();
       const dialog = page.getByRole('dialog', {
         name: storyProducts.gallery.dialogAria,
@@ -815,8 +818,11 @@ test.describe('integrated soft media choices', () => {
         if (index === 0) {
           await expect(prose).toHaveValue(copy.description);
           await page.emulateMedia({ forcedColors: 'active' });
-          for (const control of [prose, entry])
-            await expect(control).toHaveCSS('border-top-width', '1px');
+          await expect(prose).toHaveCSS('border-top-width', '0px');
+          await prose.focus();
+          await expect(prose).toHaveCSS('outline-style', 'solid');
+          await expect(prose).toHaveCSS('outline-width', '2px');
+          await expect(entry).toHaveCSS('border-top-width', '1px');
           await page.emulateMedia({ forcedColors: 'none' });
           await page.locator('.composer-header h1').click();
           expect(

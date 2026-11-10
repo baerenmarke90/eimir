@@ -1317,13 +1317,17 @@ test('text-only with the default date saves a non-empty localized fallback title
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: new Intl.DateTimeFormat('de-DE', {
-        dateStyle: 'long',
-        timeZone: 'UTC',
-      }).format(new Date(`${expectedDate}T00:00:00Z`)),
+      name: composer.diaryEntry,
       exact: true,
     }),
   ).toBeVisible();
+  await expect(page.locator('.moment-metadata time')).toHaveCount(1);
+  await expect(page.locator('.moment-metadata time')).toHaveText(
+    new Intl.DateTimeFormat('de-DE', {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(new Date(`${expectedDate}T00:00:00Z`)),
+  );
   await expect(
     page.getByText(de.memory.tagLabels.home, { exact: true }),
   ).toBeVisible();
@@ -1892,7 +1896,7 @@ for (const [width, colorScheme] of [
 ] as const) {
   test(`memory-only recovery keeps missing photo positions and can retry (${width})`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
@@ -2687,7 +2691,10 @@ for (const kind of ['plan', 'heart'] as const) {
         .getByLabel(storyProducts.heartMomentProduct.visibilityPrivate, {
           exact: true,
         })
-        .check();
+        .click();
+      await expect(page.locator('dialog.composer-audience-sheet')).toHaveCount(
+        0,
+      );
     } else
       await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
     await openComposerMediaSources(page);
@@ -2736,7 +2743,9 @@ for (const kind of ['plan', 'heart'] as const) {
     expect(source.originals).toBe(count);
     if (kind === 'plan') {
       const media = await page.locator('.plan-photo-gallery').boundingBox();
-      const title = await page.locator('h1').boundingBox();
+      const title = await page
+        .getByRole('heading', { name: AUTHORED_BODY, exact: true })
+        .boundingBox();
       if (!media || !title)
         throw new Error('Saved Plan media or title is missing.');
       expect(media.y + media.height).toBeLessThanOrEqual(title.y);

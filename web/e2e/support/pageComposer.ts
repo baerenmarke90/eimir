@@ -33,7 +33,13 @@ export const pageComposerVoiceInput = new URL(
 
 export const pageComposerContent = fixtures.pageComposer;
 
-export async function installPageComposerFixture(page: Page) {
+export async function installPageComposerFixture(
+  page: Page,
+  {
+    sensitivePhotos = true,
+    linkedWish = false,
+  }: { sensitivePhotos?: boolean; linkedWish?: boolean } = {},
+) {
   await page.addInitScript(
     ({ accountId, spaceId }) => {
       localStorage.setItem('eimir.theme', 'system');
@@ -79,7 +85,7 @@ export async function installPageComposerFixture(page: Page) {
   });
   const photos = [
     image('composer-photo-1'),
-    image('composer-photo-2', 1, true),
+    image('composer-photo-2', 1, sensitivePhotos),
   ];
   const audio = {
     ...image('composer-voice'),
@@ -178,6 +184,19 @@ export async function installPageComposerFixture(page: Page) {
   ]);
   let uploadNumber = 0;
   const links = new Map<string, Set<string>>();
+  if (linkedWish) {
+    resources.set('wishes/composer-wish', {
+      ...shared,
+      id: 'composer-wish',
+      title: pageComposerContent.wishTitle,
+      status: 'OPEN',
+      description: null,
+      tags: [],
+      attachments: [],
+      placeId: null,
+    });
+    links.set('memories/mem-canal/wishes', new Set(['composer-wish']));
+  }
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();

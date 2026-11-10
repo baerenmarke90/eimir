@@ -32,7 +32,20 @@ export async function swipeCarousel(
   const endX =
     direction === 'next' ? box.x + box.width * 0.12 : box.x + box.width * 0.88;
   const midX = startX + (endX - startX) * 0.58;
-  const clientY = box.y + box.height / 2;
+  // Inline galleries expose 44px Previous/Next overlays at their vertical
+  // center. Start the real touch on unobstructed media, above those controls.
+  const clientY = box.y + box.height * (surface === 'inline' ? 0.3 : 0.5);
+  if (surface === 'inline') {
+    const touchesMedia = await track.evaluate(
+      (element, point) => {
+        const hit = document.elementFromPoint(point.x, point.y);
+        return hit !== null && element.contains(hit);
+      },
+      { x: startX, y: clientY },
+    );
+    if (!touchesMedia)
+      throw new Error('The inline swipe starts outside the carousel media.');
+  }
   const startScrollLeft = await track.evaluate((element) => element.scrollLeft);
   const client = await page.context().newCDPSession(page);
 

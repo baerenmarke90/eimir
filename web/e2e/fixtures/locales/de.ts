@@ -15,6 +15,7 @@ const de = {
     tag: 'Urlaub',
     suggestedTags: ['Sonnenaufgang', 'Am Wasser'],
     newPlace: 'Unser Lieblingsplatz',
+    wishTitle: 'Mehr Tagesausflüge zu zweit',
   },
   planLinkedLists: {
     newPlanTitle: 'Picknick am See',

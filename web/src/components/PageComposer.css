@@ -364,7 +364,7 @@ button.composer-chip {
   display: contents;
 }
 
-.page-composer:has(.composer-writing-surface textarea:not(:placeholder-shown))
+.page-composer:has(.composer-header button[data-saveable="true"])
   .composer-diary-intake
   .media-intake-device {
   min-block-size: var(--touch-target-comfortable);

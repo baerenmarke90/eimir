@@ -242,7 +242,10 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     expect(card.querySelector('.important-date-marker')).not.toBeNull();
     expect(card.textContent).toContain(date.label);
     expect(card.textContent).toContain(importantDates.repeats.ANNUALLY);
-    expect(card.textContent).toContain(importantDates.visibility.SHARED);
+    expect(card.textContent).not.toContain(importantDates.visibility.SHARED);
+    expect(
+      within(card).getByRole('img', { name: importantDates.visibility.SHARED }),
+    ).not.toBeNull();
     expect(card.querySelector('svg')).not.toBeNull();
     expect(container.querySelector('.important-date-chip')).toBeNull();
   });
@@ -486,7 +489,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
         peopleApi.updateImportantDateApiV1SpacesSpaceIdImportantDatesDateIdPut,
       ).toHaveBeenCalledTimes(1);
     });
-    await screen.findByRole('heading', { name: 'Our seaside anniversary' });
+    await screen.findByRole('heading', { name: /Our seaside anniversary/ });
     fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
         name: 'Schließen',
@@ -570,7 +573,12 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       name: new RegExp(importantDates.visibility.PRIVATE, 'i'),
     });
     expect(card.textContent).toContain(privateDate.label);
-    expect(card.textContent).toContain(importantDates.visibility.PRIVATE);
+    expect(card.textContent).not.toContain(importantDates.visibility.PRIVATE);
+    expect(
+      within(card).getByRole('img', {
+        name: importantDates.visibility.PRIVATE,
+      }),
+    ).not.toBeNull();
     expect(card.textContent).not.toContain(person.displayName);
   });
 

@@ -33,6 +33,7 @@ import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -42,6 +43,52 @@ import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 const DATE_TYPES = Object.values(ImportantDateType);
 const DATE_REPEATS = Object.values(DateRepeat);
 const VISIBILITIES = Object.values(ContentVisibility);
+const OCCASION_ICONS: Record<ImportantDateType, EimirIconName> = {
+  BIRTHDAY: 'geburtstag',
+  ANNIVERSARY: 'jahrestag',
+  CUSTOM: 'highlights',
+};
+
+function OccasionTitle({
+  type,
+  label,
+}: {
+  type: ImportantDateType;
+  label: string;
+}) {
+  const { t } = useTranslation();
+  const typeLabel = t(`importantDates.type.${type}`);
+  return (
+    <span className="occasion-title">
+      <span
+        className="occasion-type-symbol"
+        role="img"
+        aria-label={typeLabel}
+        title={typeLabel}
+      >
+        <EimirIcon name={OCCASION_ICONS[type]} variant="duotone" />
+      </span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function OccasionVisibility({ visibility }: { visibility: ContentVisibility }) {
+  const { t } = useTranslation();
+  const label = t(`importantDates.visibility.${visibility}`);
+  return (
+    <span
+      className="occasion-visibility"
+      role="img"
+      aria-label={label}
+      title={label}
+    >
+      <DestinationIcon
+        icon={visibility === ContentVisibility.PRIVATE ? 'private' : 'people'}
+      />
+    </span>
+  );
+}
 
 function dateInputValue(value: Date | null | undefined): string {
   if (!value) return '';
@@ -724,6 +771,7 @@ export function ImportantDatesPanel({
       key: date.id,
       date: date.date,
       label: date.label,
+      type: date.type,
       custom: date,
       person: null as RelatedPersonView | null,
       partner: false,
@@ -735,6 +783,7 @@ export function ImportantDatesPanel({
             {
               key: `person:${person.id}`,
               date: person.birthday,
+              type: ImportantDateType.BIRTHDAY,
               label: t('importantDates.partnerBirthdayLabel', {
                 name: person.displayName,
               }),
@@ -766,6 +815,7 @@ export function ImportantDatesPanel({
             {
               key: `partner:${birthday.accountId}`,
               date: birthday.birthday,
+              type: ImportantDateType.BIRTHDAY,
               label: t('importantDates.partnerBirthdayLabel', {
                 name: birthday.displayName,
               }),
@@ -795,6 +845,7 @@ export function ImportantDatesPanel({
           {
             key: 'relationship-anniversary',
             date: relationshipStartedOn,
+            type: ImportantDateType.ANNIVERSARY,
             label: t('importantDates.relationshipAnniversary'),
             custom: null as ImportantDateView | null,
             person: null as RelatedPersonView | null,
@@ -918,20 +969,15 @@ export function ImportantDatesPanel({
                   </span>
                 </time>
                 <span className="important-date-timeline-body">
-                  <strong>{entry.label}</strong>
+                  <strong>
+                    <OccasionTitle type={entry.type} label={entry.label} />
+                  </strong>
                   {entry.custom ? (
                     <span className="important-date-meta">
                       {t(`importantDates.repeats.${entry.custom.repeats}`)} ·{' '}
-                      <DestinationIcon
-                        icon={
-                          entry.custom.visibility === ContentVisibility.PRIVATE
-                            ? 'private'
-                            : 'people'
-                        }
+                      <OccasionVisibility
+                        visibility={entry.custom.visibility}
                       />
-                      {t(
-                        `importantDates.visibility.${entry.custom.visibility}`,
-                      )}
                     </span>
                   ) : null}
                 </span>
@@ -947,7 +993,13 @@ export function ImportantDatesPanel({
         ref={readerRef}
         restoreFocusRef={readerReturnRef}
         open={Boolean(selected)}
-        title={selected?.label ?? t('importantDates.heading')}
+        title={
+          selected ? (
+            <OccasionTitle type={selected.type} label={selected.label} />
+          ) : (
+            t('importantDates.heading')
+          )
+        }
         onClose={() => setReadingKey(null)}
       >
         {selected ? (
@@ -964,9 +1016,9 @@ export function ImportantDatesPanel({
             </p>
             {selected.custom ? (
               <>
-                <p>{t(`importantDates.repeats.${selected.custom.repeats}`)}</p>
-                <p>
-                  {t(`importantDates.visibility.${selected.custom.visibility}`)}
+                <p className="important-date-meta occasion-reader-meta">
+                  {t(`importantDates.repeats.${selected.custom.repeats}`)} ·{' '}
+                  <OccasionVisibility visibility={selected.custom.visibility} />
                 </p>
                 <button type="button" onClick={openEditor}>
                   {t('importantDates.edit')}

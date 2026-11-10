@@ -14,6 +14,7 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import voiceNotes from '../../src/i18n/locales/voiceNotes';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import {
@@ -27,6 +28,7 @@ import {
 import {
   pageComposerContent as content,
   installPageComposerFixture,
+  pageComposerVoiceInput,
 } from '../support/pageComposer';
 import { waitForSettledMotion } from '../support/settledMotion';
 import { captureScreenshot, signIn } from '../support/storyTimelineFixture';
@@ -179,6 +181,75 @@ async function addPhotos(page: Page) {
   await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
   for (const tile of await page.locator('.photo-draft-tile').all())
     await expect(tile).toHaveAccessibleName(new RegExp(de.memory.photoReady));
+}
+
+async function addPlaceAndTag(page: Page) {
+  await tool(page, composer.place).click();
+  const places = page.getByRole('dialog').last();
+  await places
+    .getByLabel(photoPlaces.savedSearch, { exact: true })
+    .fill(content.placeName);
+  await places
+    .getByRole('button', { name: new RegExp(`^${content.placeName}`) })
+    .click();
+  if (await places.isVisible()) await closeChoice(page);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: new RegExp(content.placeName) }).first(),
+  ).toBeVisible();
+  await showContextTags(page);
+  const tag = page.getByRole('checkbox', {
+    name: new RegExp(`^(?:✓\\s*)?${content.tag}$`),
+  });
+  if (!(await tag.isChecked())) await tag.click();
+  await expect(tag).toBeChecked();
+  await closeChoice(page);
+  await expect(
+    page.getByRole('button', {
+      name: composer.editTag.replace('{{name}}', content.tag),
+      exact: true,
+    }),
+  ).toBeVisible();
+}
+
+async function addVoice(page: Page) {
+  await tool(page, composer.voice).click();
+  const source = page.getByRole('dialog', {
+    name: voiceNotes.title,
+    exact: true,
+  });
+  await expect(source).toBeVisible();
+  const chooser = page.waitForEvent('filechooser');
+  await source
+    .getByRole('button', { name: voiceNotes.choose, exact: true })
+    .click();
+  await (await chooser).setFiles(pageComposerVoiceInput);
+  await expect(source).toHaveCount(0);
+  await expect(page.locator('.voice-player')).toBeVisible();
+  await expect(
+    page.getByRole('button', {
+      name: storyProducts.heartMomentProduct.save,
+      exact: true,
+    }),
+  ).toBeEnabled();
+}
+
+async function addPlanList(page: Page) {
+  await tool(page, composer.list).click();
+  const choice = page.getByRole('dialog', {
+    name: m5s3.collection.choose,
+    exact: true,
+  });
+  await choice
+    .getByRole('checkbox', { name: new RegExp(content.listTitle) })
+    .check();
+  await choice
+    .getByRole('button', { name: m5s3.collection.link, exact: true })
+    .click();
+  await expect(choice).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: content.listTitle, exact: true }),
+  ).toBeVisible();
 }
 
 async function fullScreenRoundTrip(page: Page, info: TestInfo, name: string) {
@@ -356,6 +427,9 @@ for (const view of [
           await page.locator('textarea[name="body"]').fill(content.memoryBody);
         }
         await addPhotos(page);
+        await addPlaceAndTag(page);
+        if (screen.path.includes('heart-moments')) await addVoice(page);
+        if (screen.path.includes('/plans/')) await addPlanList(page);
         await page.evaluate(() => window.scrollTo(0, 0));
         await capture(
           page,

@@ -26,6 +26,11 @@ const voice = readFileSync(
   ),
 );
 
+export const pageComposerVoiceInput = new URL(
+  '../../../backend/tests/fixtures/media/voice/short.ogg',
+  import.meta.url,
+).pathname;
+
 export const pageComposerContent = fixtures.pageComposer;
 
 export async function installPageComposerFixture(page: Page) {
@@ -80,6 +85,7 @@ export async function installPageComposerFixture(page: Page) {
     ...image('composer-voice'),
     mediaType: 'AUDIO',
     mimeType: 'audio/mp4',
+    originalName: 'short.m4a',
     size: voice.length,
     durationSeconds: 1,
     hasThumbnail: false,
@@ -273,7 +279,8 @@ export async function installPageComposerFixture(page: Page) {
       const values = record();
       const id = `composer-upload-${++uploadNumber}`;
       const item = {
-        ...image(id),
+        ...(values.mediaType === 'AUDIO' ? audio : image(id)),
+        id,
         mediaType: values.mediaType,
         status: 'PENDING',
       };

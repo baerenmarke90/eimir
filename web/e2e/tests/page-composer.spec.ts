@@ -329,6 +329,82 @@ async function capture(page: Page, info: TestInfo, name: string) {
       fullPage: true,
       animations: 'disabled',
     });
+  if (
+    /^(diary-edit-frame-2|heart-edit-frame-6|plan-edit-frame-10)-320-light-200-percent-reduced$/.test(
+      name,
+    )
+  ) {
+    const scrollY = await page.evaluate(() => window.scrollY);
+    try {
+      await nextFrame(page);
+      await waitForSettledMotion(page);
+      const stage = page.locator(
+        '.photo-draft-stage .media-gallery-carousel-viewport',
+      );
+      await stage.evaluate((element) =>
+        element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+      );
+      await nextFrame(page);
+      await waitForSettledMotion(page);
+      await expect(stage).toBeInViewport({ ratio: 1 });
+      const corners = stage.locator(
+        '.photo-draft-stage-cover, .photo-draft-stage-remove, .photo-draft-stage-sensitive, .media-gallery-carousel-counter',
+      );
+      await expect(corners).toHaveCount(4);
+      for (const corner of await corners.all()) {
+        await expect(corner).toBeVisible();
+        await expect(corner).toBeInViewport({ ratio: 1 });
+      }
+      const geometry = await stage.evaluate((element) => {
+        const slide = element.querySelector(
+          '.media-gallery-carousel-slide.is-active',
+        );
+        const image = slide?.querySelector('img.media-gallery-thumb-content');
+        return {
+          frame: element.getBoundingClientRect().toJSON(),
+          bounds: [slide, image].map((node) =>
+            node?.getBoundingClientRect().toJSON(),
+          ),
+          fit: image ? getComputedStyle(image).objectFit : null,
+        };
+      });
+      const diagnostic = JSON.stringify(geometry);
+      expect(geometry.fit, diagnostic).toBe('cover');
+      for (const bounds of geometry.bounds)
+        for (const edge of ['left', 'right', 'top', 'bottom'] as const)
+          expect(
+            Math.abs((bounds?.[edge] ?? Number.NaN) - geometry.frame[edge]),
+            diagnostic,
+          ).toBeLessThanOrEqual(1);
+      const visibleCorners = await corners.evaluateAll((elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          const hit = document.elementFromPoint(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          );
+          return Boolean(
+            hit &&
+              (element.matches('.media-gallery-carousel-counter')
+                ? element
+                    .closest('.media-gallery-carousel-viewport')
+                    ?.contains(hit)
+                : element.contains(hit)),
+          );
+        }),
+      );
+      expect(visibleCorners).toEqual([true, true, true, true]);
+      await captureScreenshot(page, info, `1730-${name}-stage.png`, {
+        animations: 'disabled',
+      });
+    } finally {
+      await page.evaluate(
+        (top) => window.scrollTo({ top, behavior: 'instant' }),
+        scrollY,
+      );
+      await nextFrame(page);
+    }
+  }
 }
 
 async function closeChoice(page: Page) {

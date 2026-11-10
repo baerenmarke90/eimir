@@ -583,14 +583,15 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: storyProducts.gallery.close })
         .click();
       await expect(dialog).toHaveCount(0);
-      // Latest PO correction removes composer arrangement/reset rows. Browsing
-      // changes the selected preview while cover identity and import order remain.
+      // Latest PO correction removes composer arrangement/reset rows. The native
+      // thumbnail selects the preview without changing cover identity or import order.
       await expectQuietComposerMedia(page);
       expect(
         await tiles.evaluateAll((buttons) =>
           buttons.map((button) => button.getAttribute('data-media-key')),
         ),
       ).toEqual(inputKeys);
+      await tiles.first().click();
       await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
       await expect(tiles.nth(1)).toHaveAttribute('data-media-key', chosenKey);
       await expect(

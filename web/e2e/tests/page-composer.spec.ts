@@ -22,6 +22,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import { expectQuietComposerMedia } from '../support/mediaDraft';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import {
   closePlanSchedule,
@@ -134,6 +135,8 @@ async function capture(page: Page, info: TestInfo, name: string) {
       active.blur();
   });
   await waitForSettledMotion(page);
+  if (await page.locator('.composer-photo-draft').count())
+    await expectQuietComposerMedia(page);
   const inspectHeader = () =>
     page.locator('.composer-header').evaluateAll((headers) =>
       headers.map((header) => ({
@@ -915,9 +918,7 @@ for (const theme of ['light', 'dark'] as const) {
           expect(rect?.width).toBeGreaterThanOrEqual(44);
           expect(rect?.height).toBeGreaterThanOrEqual(44);
         }
-        await expect(
-          draft.getByRole('button', { name: experiences.arrange, exact: true }),
-        ).toBeVisible();
+        await expectQuietComposerMedia(page);
         await noOverflow(page);
       };
       await assertStrip(2);
@@ -992,20 +993,47 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(protectedPreview.getByRole('img')).toHaveCount(0);
       await assertStrip(2);
       await capture(page, info, `po-${kind}-media-sensitive-390-${theme}`);
-      await stage
-        .getByRole('button', { name: sensitiveMedia.show, exact: true })
-        .click();
+      // The latest PO correction removes the inline reveal row; the existing
+      // image activation still opens concealed fullscreen with its privacy controls.
       await stage.locator('.media-gallery-carousel-slide.is-active').click();
       const fullscreen = page.getByRole('dialog', {
         name: gallery.dialogAria,
         exact: true,
       });
       await expect(fullscreen).toBeVisible();
+      const revealedPhoto = fullscreen.getByRole('img', {
+        name: gallery.imageAlt,
+        exact: true,
+      });
+      await expect(revealedPhoto).toHaveCount(0);
+      const reveal = fullscreen.getByRole('button', {
+        name: sensitiveMedia.show,
+        exact: true,
+      });
+      await expect(reveal).toHaveAttribute('aria-pressed', 'false');
+      await reveal.click();
+      await expect(revealedPhoto).toBeVisible();
+      await expect
+        .poll(() =>
+          revealedPhoto.evaluate(
+            (image: HTMLImageElement) => image.naturalWidth,
+          ),
+        )
+        .toBeGreaterThan(0);
+      const hide = fullscreen.getByRole('button', {
+        name: sensitiveMedia.hide,
+        exact: true,
+      });
+      await expect(hide).toHaveAttribute('aria-pressed', 'true');
+      await hide.click();
+      await expect(revealedPhoto).toHaveCount(0);
+      await expect(reveal).toHaveAttribute('aria-pressed', 'false');
       await fullscreen
         .getByRole('button', { name: gallery.close, exact: true })
         .click();
       await expect(fullscreen).toHaveCount(0);
       await expect(tiles.nth(1)).toHaveAttribute('aria-pressed', 'true');
+      await expectQuietComposerMedia(page);
       state.uploads.failuresRemaining = 1;
       await page
         .locator('input[type="file"][accept*="image/jpeg"]')

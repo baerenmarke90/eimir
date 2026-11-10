@@ -13,7 +13,7 @@ import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtureCopy from '../fixtures/locales/de';
 import { expectLabeledComposerTool } from '../support/addAction';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
-import { dragDraftMedia } from '../support/mediaDraft';
+import { expectQuietComposerMedia } from '../support/mediaDraft';
 import { expectMediaIntakeAction } from '../support/mediaIntake';
 import {
   ACCOUNT_ID,
@@ -92,6 +92,7 @@ async function setup(page: Page, failNextWish = false) {
     planSaveMatch: '',
     mediaWrites: 0,
     bound: [] as string[],
+    allocatedByName: {} as Record<string, string>,
     cover: null as string | null,
     failNextWish,
   };
@@ -194,6 +195,12 @@ async function setup(page: Page, failNextWish = false) {
     }
     if (p === `${root}/attachments` && method === 'POST') {
       const attachmentId = id(200 + ++state.mediaWrites);
+      const originalName = request.postDataJSON().originalName;
+      if (typeof originalName !== 'string')
+        throw new Error(
+          'Canonical media admission requires its original filename.',
+        );
+      state.allocatedByName[originalName] = attachmentId;
       const a = {
         id: attachmentId,
         mediaType: 'IMAGE',
@@ -481,10 +488,10 @@ test('real local codec worker reduces transfer bytes without dropping the audio 
 test.describe('free composer media preservation', () => {
   test.use({ hasTouch: true });
   for (const scenario of [
-    { width: 390, theme: 'dark', touch: true },
-    { width: 1280, theme: 'light', touch: false },
+    { width: 390, theme: 'dark' },
+    { width: 1280, theme: 'light' },
   ] as const) {
-    test(`draft gallery keeps zoom, sorting, privacy and cover through save at ${scenario.width}`, async ({
+    test(`draft gallery keeps zoom, selection, privacy and cover through save at ${scenario.width}`, async ({
       page,
     }, info) => {
       await page.setViewportSize({ width: scenario.width, height: 900 });
@@ -505,6 +512,11 @@ test.describe('free composer media preservation', () => {
       await expect.poll(() => state.mediaWrites).toBe(2);
       const tiles = page.locator('.photo-draft-grid .photo-draft-tile');
       await expect(tiles).toHaveCount(2);
+      const inputKeys = await tiles.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('data-media-key')),
+      );
+      expect(inputKeys.every(Boolean)).toBe(true);
+      await expectQuietComposerMedia(page);
       await expect(tiles.first()).toHaveAccessibleName(
         new RegExp(de.memory.photoReady),
       );
@@ -571,20 +583,22 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: storyProducts.gallery.close })
         .click();
       await expect(dialog).toHaveCount(0);
-      await dragDraftMedia(page, 1, 0, scenario.touch ? 'touch' : 'mouse');
-      await expect(tiles.first()).toHaveAttribute('data-media-key', chosenKey);
-      await page
-        .getByRole('button', { name: experiences.arrange, exact: true })
-        .click();
-      const arrange = page.getByRole('dialog', { name: experiences.arrange });
-      await arrange
-        .getByRole('button', { name: experiences.last, exact: true })
-        .click();
-      await arrange
-        .getByRole('button', { name: experiences.finish, exact: true })
-        .click();
-      await expect(arrange).toHaveCount(0);
+      // Latest PO correction removes composer arrangement/reset rows. Browsing
+      // changes the selected preview while cover identity and import order remain.
+      await expectQuietComposerMedia(page);
+      expect(
+        await tiles.evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('data-media-key')),
+        ),
+      ).toEqual(inputKeys);
+      await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
       await expect(tiles.nth(1)).toHaveAttribute('data-media-key', chosenKey);
+      await expect(
+        tiles.nth(1).locator('.photo-draft-cover-star'),
+      ).toBeVisible();
+      await expect(
+        tiles.first().locator('.photo-draft-cover-star'),
+      ).toHaveCount(0);
       await expect(prose).toHaveValue(copy.description);
       await expect
         .poll(() =>
@@ -618,7 +632,11 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: memoryProduct.save, exact: true })
         .click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-      expect(state.bound).toHaveLength(2);
+      expect(state.bound).toEqual(
+        ['first-photo.jpg', 'second-photo.jpg'].map(
+          (name) => state.allocatedByName[name],
+        ),
+      );
       expect(state.cover).toBe(state.bound[1]);
     });
   }

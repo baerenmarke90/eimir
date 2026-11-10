@@ -9,8 +9,8 @@ import photoCopy from '../../src/i18n/locales/photoReactions';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
-  dragDraftMedia,
   expectInlineDraftActions,
+  expectQuietComposerMedia,
   selectDraftMedia,
 } from '../support/mediaDraft';
 import { openComposerMediaSources } from '../support/mediaIntake';
@@ -539,6 +539,22 @@ for (const view of [
       });
     await page.locator('#planning-create-title').fill(TITLE);
     await openComposerMediaSources(page);
+    const photoNames = ['portrait.png', 'landscape.png', 'square.png'];
+    const importedAttachmentIds = Promise.all(
+      photoNames.map((name) =>
+        page
+          .waitForResponse(
+            (response) =>
+              response.request().method() === 'POST' &&
+              new URL(response.url()).pathname === `${BASE}/attachments` &&
+              response.request().postDataJSON().originalName === name &&
+              response.status() === 201,
+          )
+          .then(
+            async (response) => (await response.json()).attachment.id as string,
+          ),
+      ),
+    );
     await page
       .locator('#plan-photos-source')
       .setInputFiles([
@@ -552,6 +568,12 @@ for (const view of [
       exact: true,
     });
     await expect(drafts).toHaveCount(3);
+    const initialKeys = await drafts.evaluateAll((tiles) =>
+      tiles.map((tile) => tile.getAttribute('data-media-key')),
+    );
+    expect(initialKeys.every((key) => key !== null)).toBe(true);
+    // Latest PO correction removes composer arrangement/reset rows without a replacement.
+    await expectQuietComposerMedia(page);
     const save = page.locator('.composer-header button[type=submit]');
     expect(
       await save.evaluate((button: HTMLButtonElement) => button.form?.id),
@@ -573,6 +595,17 @@ for (const view of [
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(3);
     await expect(save).toBeEnabled();
+    expect(
+      await drafts.evaluateAll((tiles) =>
+        tiles.map((tile) => tile.getAttribute('data-media-key')),
+      ),
+    ).toEqual(initialKeys);
+    await expect(inspector.locator('.photo-draft-stage-cover')).toHaveText(
+      experiences.cover,
+    );
+    await expect(
+      drafts.first().locator('.photo-draft-cover-star'),
+    ).toBeVisible();
     await captureScreenshot(
       page,
       info,
@@ -589,7 +622,13 @@ for (const view of [
     await save.click();
     await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN}$`));
     expect(state.counts()).toEqual({ creates: 1, uploads: 4, patches: 0 });
-    expect(state.payloads[0].map((photo) => photo.position)).toEqual([0, 1, 2]);
+    expect(state.payloads[0]).toEqual(
+      (await importedAttachmentIds).map((attachmentId, position) => ({
+        attachmentId,
+        position,
+        isSensitive: false,
+      })),
+    );
     await page.reload();
     if (view.large)
       await page.addStyleTag({
@@ -687,40 +726,31 @@ for (const view of [
       .click();
     const original = state.payloads[0].map((photo) => photo.attachmentId);
     async function changeDraft() {
+      await expectQuietComposerMedia(page);
+      const originalKeys = await drafts.evaluateAll((tiles) =>
+        tiles.map((tile) => tile.getAttribute('data-media-key')),
+      );
       await drafts.first().click();
-      if (view.large) {
-        const sourceKey = await drafts.first().getAttribute('data-media-key');
-        if (!sourceKey) throw new Error('Missing staged media identity');
-        await page
-          .getByRole('button', { name: experiences.arrange, exact: true })
-          .click();
-        const arrange = page.getByRole('dialog', {
-          name: experiences.arrange,
-          exact: true,
-        });
-        const items = arrange.locator('.media-arrange-grid .photo-draft-tile');
-        await expect(items.first()).toHaveAttribute('aria-pressed', 'true');
-        await arrange
-          .getByRole('button', { name: experiences.later, exact: true })
-          .click();
-        await expect(items.nth(1)).toHaveAttribute('data-media-key', sourceKey);
-        await arrange
-          .getByRole('button', { name: experiences.finish, exact: true })
-          .click();
-        await expect(arrange).toHaveCount(0);
-        await expect(drafts.nth(1)).toHaveAttribute(
-          'data-media-key',
-          sourceKey,
-        );
-      } else await dragDraftMedia(page, 0, 1);
-      await expectInlineDraftActions(page);
-      await drafts.first().click();
+      await expect(drafts.first()).toHaveAttribute('aria-pressed', 'true');
+      await expect(inspector.locator('.photo-draft-stage-cover')).toHaveText(
+        experiences.cover,
+      );
       await inspector.getByRole('checkbox').check();
+      await expectQuietComposerMedia(page);
       await expectInlineDraftActions(page);
       await drafts.last().click();
       await inspector
         .getByRole('button', { name: de.memory.photoRemove, exact: true })
         .click();
+      await expect(drafts).toHaveCount(2);
+      expect(
+        await drafts.evaluateAll((tiles) =>
+          tiles.map((tile) => tile.getAttribute('data-media-key')),
+        ),
+      ).toEqual(originalKeys.slice(0, 2));
+      await expect(
+        drafts.first().locator('.photo-draft-cover-star'),
+      ).toBeVisible();
       await expectInlineDraftActions(page);
     }
     await changeDraft();
@@ -743,8 +773,8 @@ for (const view of [
     ).toBeVisible();
     expect(state.counts().patches).toBe(1);
     expect(state.payloads[1]).toEqual([
-      { attachmentId: original[1], position: 0, isSensitive: true },
-      { attachmentId: original[0], position: 1, isSensitive: false },
+      { attachmentId: original[0], position: 0, isSensitive: true },
+      { attachmentId: original[1], position: 1, isSensitive: false },
     ]);
     await page.reload();
     await expect(

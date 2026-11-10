@@ -11,8 +11,8 @@ import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import {
-  dragDraftMedia,
   expectInlineDraftActions,
+  expectQuietComposerMedia,
 } from '../support/mediaDraft';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import { closeComposerDate, showComposerDate } from '../support/memoryDiary';
@@ -342,7 +342,7 @@ for (const [width, colorScheme] of [
   [320, 'dark'],
   [390, 'dark'],
 ] as const) {
-  test(`period, independent cover and arrange-save-return at ${width} ${colorScheme}`, async ({
+  test(`period, independent cover and original-order save-return at ${width} ${colorScheme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 900 });
@@ -366,15 +366,31 @@ for (const [width, colorScheme] of [
     const input = page.locator('#memory-create-images-source');
     await expect(input).toBeAttached();
     await expect(input).toBeEnabled();
+    const photoNames = [
+      'first.jpg',
+      'second.jpg',
+      'third.jpg',
+      ...(width === 390 && colorScheme === 'dark'
+        ? Array.from({ length: 17 }, (_, index) => `extra-${index}.jpg`)
+        : []),
+    ];
+    const importedAttachmentIds = Promise.all(
+      photoNames.map((name) =>
+        page
+          .waitForResponse(
+            (response) =>
+              response.request().method() === 'POST' &&
+              response.url().endsWith(`/spaces/${SPACE_ID}/attachments`) &&
+              response.request().postDataJSON().originalName === name &&
+              response.status() === 201,
+          )
+          .then(
+            async (response) => (await response.json()).attachment.id as string,
+          ),
+      ),
+    );
     await input.setInputFiles(
-      [
-        'first.jpg',
-        'second.jpg',
-        'third.jpg',
-        ...(width === 390 && colorScheme === 'dark'
-          ? Array.from({ length: 17 }, (_, index) => `extra-${index}.jpg`)
-          : []),
-      ].map((name) => ({
+      photoNames.map((name) => ({
         name,
         mimeType: 'image/jpeg',
         buffer: readFileSync(CABIN_FIXTURE),
@@ -386,6 +402,14 @@ for (const [width, colorScheme] of [
     await expect(
       gallery.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(visibleCount);
+    const originalKeys = await gallery
+      .locator('.photo-draft-tile')
+      .evaluateAll((tiles) =>
+        tiles.map((tile) => tile.getAttribute('data-media-key')),
+      );
+    expect(originalKeys.every((key) => key !== null)).toBe(true);
+    // Latest PO correction removes composer arrangement/reset rows without a replacement.
+    await expectQuietComposerMedia(page);
     const selectedKey = await gallery
       .locator('.photo-draft-tile')
       .nth(1)
@@ -402,7 +426,7 @@ for (const [width, colorScheme] of [
       .click();
     await expectInlineDraftActions(page);
     if (width === 390 && colorScheme === 'light') {
-      // A quick swipe on the photo scrolls before the hold-to-drag activates.
+      // A vertical swipe on the photo strip keeps native page scrolling.
       await page.setViewportSize({ width, height: 600 });
       const session = await page.context().newCDPSession(page);
       await session.send('Emulation.setTouchEmulationEnabled', {
@@ -456,76 +480,20 @@ for (const [width, colorScheme] of [
       await expect(
         gallery.locator('.photo-draft-tile').first(),
       ).toHaveAttribute('aria-label', /first.jpg/);
-      await dragDraftMedia(page, 0, 2);
-      await expect(gallery.locator('.photo-draft-tile').last()).toHaveAttribute(
-        'aria-label',
-        /first.jpg/,
-      );
-      await dragDraftMedia(page, 2, 1, 'touch');
-      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
-        'aria-label',
-        /first.jpg/,
-      );
-      await dragDraftMedia(page, 1, 0, 'touch', true);
-      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
-        'aria-label',
-        /first.jpg/,
-      );
-      await dragDraftMedia(page, 1, 0, 'touch');
-      await expect(
-        gallery.locator('.photo-draft-tile').first(),
-      ).toHaveAttribute('aria-label', /first.jpg/);
     }
-    if (width === 320 && colorScheme === 'dark') {
-      // At 200% text, use the native ordering action when both drag endpoints
-      // cannot share the arrangement task's visible scrollport.
-      const movedKey = await gallery
-        .locator('.photo-draft-tile')
-        .nth(2)
-        .getAttribute('data-media-key');
-      if (!movedKey)
-        throw new Error('The third photo identity is unavailable.');
-      await gallery
-        .getByRole('button', { name: experiences.arrange, exact: true })
-        .click();
-      const arrange = page.getByRole('dialog', {
-        name: experiences.arrange,
-        exact: true,
-      });
-      const arrangedTiles = arrange.locator(
-        '.media-arrange-grid .photo-draft-tile',
-      );
-      await expect(arrangedTiles.nth(2)).toHaveAttribute(
-        'data-media-key',
-        movedKey,
-      );
-      await arrangedTiles.nth(2).click();
-      await expect(arrangedTiles.nth(2)).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      );
-      await arrange
-        .getByRole('group', { name: 'third.jpg', exact: true })
-        .getByRole('button', { name: experiences.first, exact: true })
-        .click();
-      await expect(arrangedTiles.first()).toHaveAttribute(
-        'data-media-key',
-        movedKey,
-      );
-      await arrange
-        .getByRole('button', { name: experiences.finish, exact: true })
-        .click();
-      await expect(arrange).toBeHidden();
-      await expect(
-        gallery.locator('.photo-draft-tile').first(),
-      ).toHaveAttribute('data-media-key', movedKey);
-    } else await dragDraftMedia(page, 2, 0);
     await expectInlineDraftActions(page);
     await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
       'aria-label',
-      /third.jpg/,
+      /first.jpg/,
     );
-    // Arrangement owns order; it does not replace the independently selected preview or cover.
+    expect(
+      await gallery
+        .locator('.photo-draft-tile')
+        .evaluateAll((tiles) =>
+          tiles.map((tile) => tile.getAttribute('data-media-key')),
+        ),
+    ).toEqual(originalKeys);
+    // Cover and preview selection preserve the original imported order.
     const selectedTile = gallery.locator(
       '.photo-draft-tile[aria-pressed="true"]',
     );
@@ -547,7 +515,7 @@ for (const [width, colorScheme] of [
     expect(selectedColor).not.toBe(otherColor);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
-      path: info.outputPath(`arrange-${width}-${colorScheme}.png`),
+      path: info.outputPath(`original-order-${width}-${colorScheme}.png`),
     });
     await expect(
       gallery.locator('.photo-draft-tile').first(),
@@ -555,14 +523,14 @@ for (const [width, colorScheme] of [
       de.memory.photoSelectItem
         .replace('{{position}}', '1')
         .replace('{{count}}', String(count))
-        .replace('{{name}}', 'third.jpg')
+        .replace('{{name}}', 'first.jpg')
         .replace('{{status}}', de.memory.photoReady),
     );
     const counter = actions.locator('.media-gallery-carousel-counter');
     await expect(counter).toBeVisible();
     await expect(counter).toHaveText(
       storyProducts.gallery.counter
-        .replace('{{index}}', '3')
+        .replace('{{index}}', '2')
         .replace('{{count}}', String(count)),
     );
     const binding = page.waitForRequest(
@@ -574,9 +542,19 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: de.memory.save, exact: true })
       .click();
     const saved = (await binding).postDataJSON();
+    expect(
+      saved.attachments.map(
+        (item: { attachmentId: string }) => item.attachmentId,
+      ),
+    ).toEqual(await importedAttachmentIds);
+    expect(
+      saved.attachments.map((item: { position: number }) => item.position),
+    ).toEqual(photoNames.map((_, index) => index));
     expect(saved.selectedCoverAttachmentId).toBe(
-      saved.attachments[2].attachmentId,
+      saved.attachments[1].attachmentId,
     );
+    expect(saved.happenedOn).toBe('2026-12-31');
+    expect(saved.happenedUntil).toBe('2027-01-03');
     await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
     await expect(
       page.getByRole('button', { name: taskBoundary.back, exact: true }),

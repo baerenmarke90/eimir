@@ -1,7 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
-import { waitForSettledMotion } from './settledMotion';
 
 /** Select one media identity without opening a second task or saving the draft. */
 export async function selectDraftMedia(page: Page, index = 0) {
@@ -21,6 +20,19 @@ export async function expectInlineDraftActions(page: Page) {
   await expect(
     page.getByRole('group', { name: de.memory.photoSelected, exact: true }),
   ).toBeVisible();
+  if (await page.locator('.composer-photo-draft').count())
+    await expectQuietComposerMedia(page);
+}
+
+/** Latest PO correction: no redundant composer action rows or replacement entry. */
+export async function expectQuietComposerMedia(page: Page) {
+  const gallery = page.locator('.composer-photo-draft');
+  await expect(gallery).toBeVisible();
+  for (const name of [experiences.arrange, experiences.automaticCover])
+    await expect(
+      gallery.getByRole('button', { name, exact: true }),
+    ).toHaveCount(0);
+  await expect(gallery.locator('.sensitive-media-control')).toHaveCount(0);
 }
 
 /** Drag the photo itself; corner actions are separate pointer targets. */
@@ -31,100 +43,9 @@ export async function dragDraftMedia(
   input: 'mouse' | 'touch' = 'mouse',
   cancel = false,
 ) {
-  const composer = page.locator('.composer-photo-draft');
-  if (await composer.count()) {
-    const strip = composer.locator('.photo-draft-tile');
-    const sourceKey = await strip.nth(from).getAttribute('data-media-key');
-    if (!sourceKey) throw new Error('Missing photo identity');
-    await composer
-      .getByRole('button', { name: experiences.arrange, exact: true })
-      .click();
-    const sheet = page.getByRole('dialog', {
-      name: experiences.arrange,
-      exact: true,
-    });
-    const items = sheet.locator(
-      '.media-arrange-grid > li:not([data-dnd-placeholder])',
-    );
-    const handle = items.nth(from).locator('.media-arrange-handle');
-    await handle.scrollIntoViewIfNeeded();
-    const a = await handle.boundingBox();
-    const b = await items
-      .nth(to)
-      .locator('.media-arrange-handle')
-      .boundingBox();
-    if (!a || !b) throw new Error('Missing arrange-task drag geometry');
-    const start = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
-    const end = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-    const session =
-      input === 'touch' ? await page.context().newCDPSession(page) : null;
-    if (session) {
-      await session.send('Emulation.setTouchEmulationEnabled', {
-        enabled: true,
-      });
-      await session.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [start],
-      });
-    } else {
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
-    }
-    const dragging = sheet.locator(
-      '.media-arrange-grid > li[data-dnd-dragging]',
-    );
-    await expect(dragging).toHaveCount(1);
-    await expect(dragging.locator('.photo-draft-tile')).toHaveAttribute(
-      'data-media-key',
-      sourceKey,
-    );
-    const scrollport = sheet.locator('.short-task-sheet-body');
-    const viewport = await scrollport.boundingBox();
-    if (!viewport) throw new Error('Missing arrange-task scrollport');
-    expect(end.y).toBeGreaterThanOrEqual(viewport.y);
-    expect(end.y).toBeLessThanOrEqual(viewport.y + viewport.height);
-    for (let step = 1; step <= 12; step++) {
-      const point = {
-        x: start.x + ((end.x - start.x) * step) / 12,
-        y: start.y + ((end.y - start.y) * step) / 12,
-      };
-      if (session)
-        await session.send('Input.dispatchTouchEvent', {
-          type: 'touchMove',
-          touchPoints: [point],
-        });
-      else await page.mouse.move(point.x, point.y);
-      await page.evaluate(() => new Promise(requestAnimationFrame));
-    }
-    if (cancel) await page.keyboard.press('Escape');
-    if (session) {
-      await session.send('Input.dispatchTouchEvent', {
-        type: 'touchEnd',
-        touchPoints: [],
-      });
-      await session.detach();
-    } else await page.mouse.up();
-    await expect(dragging).toHaveCount(0);
-    await waitForSettledMotion(page);
-    if (cancel) {
-      if (await sheet.isVisible())
-        await sheet
-          .getByRole('button', { name: experiences.cancel, exact: true })
-          .click();
-    } else {
-      await expect(items.nth(to).locator('.photo-draft-tile')).toHaveAttribute(
-        'data-media-key',
-        sourceKey,
-      );
-      await sheet
-        .getByRole('button', { name: experiences.finish, exact: true })
-        .click();
-    }
-    await expect(sheet).toHaveCount(0);
-    if (!cancel)
-      await expect(strip.nth(to)).toHaveAttribute('data-media-key', sourceKey);
-    return;
-  }
+  // Latest PO correction removes composer arrangement rows without a replacement.
+  // This gesture helper remains exclusively for the unchanged legacy sortable owner.
+  await expect(page.locator('.composer-photo-draft')).toHaveCount(0);
   const tiles = page.locator('.photo-draft-tile');
   await tiles.nth(from).scrollIntoViewIfNeeded();
   const initial = await tiles.nth(from).boundingBox(),

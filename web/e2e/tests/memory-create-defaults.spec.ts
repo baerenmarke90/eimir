@@ -15,8 +15,8 @@ import { expectLabeledComposerTool } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
 import {
-  dragDraftMedia,
   expectInlineDraftActions,
+  expectQuietComposerMedia,
   selectDraftMedia,
 } from '../support/mediaDraft';
 import {
@@ -1495,7 +1495,12 @@ for (const [width, colorScheme] of [
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
     await selectDraftMedia(page);
-    await dragDraftMedia(page, 0, 1);
+    // Latest PO correction removes composer arrangement without a replacement.
+    await expectQuietComposerMedia(page);
+    await expect(page.locator('.photo-draft-tile').first()).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await expectInlineDraftActions(page);
     await showContextTags(page);
     await page.getByLabel(contextTags.newLabel).fill('An unfinished label');
@@ -1543,7 +1548,7 @@ for (const [width, colorScheme] of [
     );
     expect(photos.creates).toBe(1);
     expect(photos.bound).toEqual(
-      ['two.png', 'one.png'].map((name) => photos.idsByName[name]),
+      ['one.png', 'two.png'].map((name) => photos.idsByName[name]),
     );
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
@@ -2398,7 +2403,7 @@ for (const [width, colorScheme] of [
   [430, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`compact photo ordering retains and saves a dense selection (${width})`, async ({
+  test(`compact photo selection retains and saves canonical input order (${width})`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
@@ -2430,12 +2435,28 @@ for (const [width, colorScheme] of [
       })
       .click();
     await expect(tiles).toHaveCount(10);
+    const inputKeys = await tiles.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute('data-media-key')),
+    );
+    expect(inputKeys.every(Boolean)).toBe(true);
     await tiles.nth(2).click();
-    await dragDraftMedia(page, 2, 0);
-    await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
-    expect(await tiles.first().getAttribute('aria-label')).toContain(
+    // Selection does not reorder imports or replace the automatic first cover.
+    await expectQuietComposerMedia(page);
+    await expect(tiles.nth(2)).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      tiles.first().locator('.photo-draft-cover-star'),
+    ).toBeVisible();
+    await expect(tiles.nth(2).locator('.photo-draft-cover-star')).toHaveCount(
+      0,
+    );
+    expect(await tiles.nth(2).getAttribute('aria-label')).toContain(
       'travel-2.jpg',
     );
+    expect(
+      await tiles.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('data-media-key')),
+      ),
+    ).toEqual(inputKeys);
     expect(photos.uploaded).toHaveLength(10);
     await expectInlineDraftActions(page);
     await page.getByRole('button', { name: de.memory.photoShowLess }).click();
@@ -2475,12 +2496,10 @@ for (const [width, colorScheme] of [
     ).toEqual([]);
     await page.getByRole('button', { name: de.memory.save }).click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
-    const firstOrder = [
-      'travel-2.jpg',
-      'travel-0.jpg',
-      'travel-1.jpg',
-      ...Array.from({ length: 7 }, (_, index) => `travel-${index + 3}.jpg`),
-    ];
+    const firstOrder = Array.from(
+      { length: 10 },
+      (_, index) => `travel-${index}.jpg`,
+    );
     expect(photos.bound).toEqual(
       firstOrder.map((name) => photos.idsByName[name]),
     );
@@ -2495,7 +2514,7 @@ for (const [width, colorScheme] of [
   [390, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`Memory editing interleaves saved and newly selected photos (${width})`, async ({
+  test(`Memory editing retains saved order and appends newly selected photos (${width})`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
@@ -2526,12 +2545,22 @@ for (const [width, colorScheme] of [
       buffer: photos.photoBytes!,
     });
     await expect.poll(() => photos.ready.size).toBe(4);
-    await page.locator('.photo-draft-tile').last().click();
-    await dragDraftMedia(page, 3, 1);
-    await expect(page.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    const editTiles = page.locator('.photo-draft-tile');
+    const inputKeys = await editTiles.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute('data-media-key')),
     );
+    await editTiles.last().click();
+    // Latest PO correction removes composer arrangement: new files stay appended.
+    await expectQuietComposerMedia(page);
+    await expect(editTiles.last()).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      editTiles.first().locator('.photo-draft-cover-star'),
+    ).toBeVisible();
+    expect(
+      await editTiles.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('data-media-key')),
+      ),
+    ).toEqual(inputKeys);
     await expectInlineDraftActions(page);
     await page
       .getByRole('heading', {
@@ -2550,7 +2579,7 @@ for (const [width, colorScheme] of [
       .click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
     expect(photos.bound).toEqual(
-      ['one.jpg', 'later.jpg', 'two.jpg', 'three.jpg'].map(
+      ['one.jpg', 'two.jpg', 'three.jpg', 'later.jpg'].map(
         (name) => photos.idsByName[name],
       ),
     );

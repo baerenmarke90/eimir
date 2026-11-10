@@ -442,6 +442,7 @@ export function PlanProductPage({
       ) : null}
       {isEditing ? (
         <ComposerHeader
+          key="plan-edit-header"
           before={
             <TaskBackButton inline onClick={editorLifecycle.requestClose}>
               {t('taskBoundary.close')}
@@ -468,6 +469,7 @@ export function PlanProductPage({
         />
       ) : (
         <ComposerHeader
+          key="plan-read-header"
           before={
             <TaskBackButton
               inline

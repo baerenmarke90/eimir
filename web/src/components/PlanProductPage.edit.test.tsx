@@ -213,6 +213,22 @@ describe('PlanProductPage editor request serialization', () => {
   });
 });
 
+it('keeps the activating Edit button separate from the new native-submit control', async () => {
+  const h = renderEditor('IDEA');
+  const edit = screen.getByRole('button', {
+    name: i18n.t('common.edit'),
+  }) as HTMLButtonElement;
+  fireEvent.click(edit);
+  await screen.findByRole('button', {
+    name: i18n.t('m5s3.common.saveChanges'),
+  });
+  // Native click default activation runs after React's discrete event update.
+  // The initiating read action must not become a submit control mid-click.
+  expect(edit.type).toBe('button');
+  expect(edit.form).toBeNull();
+  expect(h.updatePlan).not.toHaveBeenCalled();
+});
+
 it('releases the parent pending guard after choosing a Place and saves the staged location', async () => {
   const h = renderEditor('IDEA', [{ id: 'river', name: 'Riverside' }]);
   fireEvent.click(screen.getByRole('button', { name: i18n.t('common.edit') }));

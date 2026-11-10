@@ -89,6 +89,124 @@ it('discards a previous scroll completion when an editor selects another photo',
         ?.getAttribute('data-carousel-index'),
     ).toBe('1');
 
+    fireEvent.pointerDown(track);
+    track.scrollLeft = 300;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).toHaveBeenCalledExactlyOnceWith('2');
+
+    // Echoing the settled selection must not interrupt an ongoing gesture.
+    view.rerender(<MediaGallery {...props} initialMediaId="2" />);
+    track.scrollLeft = 400;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled.mock.calls).toEqual([['2'], ['3']]);
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});
+
+it('keeps the selected photo through a resize during transient scroll feedback', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+  let resize: ResizeObserverCallback | undefined;
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: ResizeObserverCallback) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  const settled = vi.fn();
+  const load = vi.fn(() => new Promise<string>(() => {}));
+  const view = render(
+    <MediaGallery
+      items={images}
+      initialMediaId="1"
+      loadMedia={load}
+      onSettledMediaChange={settled}
+    />,
+  );
+  const track = view.container.querySelector<HTMLDivElement>(
+    '.media-gallery-carousel-track',
+  );
+  try {
+    if (!track || !resize)
+      throw new Error('The carousel must observe its size.');
+    for (const [index, slide] of Array.from(track.children).entries())
+      Object.defineProperty(slide, 'offsetLeft', { value: index * 100 });
+    // A native resnap can briefly report the neighbouring slide before resize.
+    fireEvent.pointerDown(track);
+    track.scrollLeft = 100;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(20));
+    expect(
+      view.container
+        .querySelector('.is-active')
+        ?.getAttribute('data-carousel-index'),
+    ).toBe('0');
+
+    act(() => resize?.([], {} as ResizeObserver));
+    expect(track.scrollLeft).toBe(200);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).not.toHaveBeenCalled();
+    expect(
+      view.container
+        .querySelector('.is-active')
+        ?.getAttribute('data-carousel-index'),
+    ).toBe('1');
+
+    // The next completed native swipe still updates the editor selection.
+    fireEvent.pointerDown(track);
+    track.scrollLeft = 300;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).toHaveBeenCalledExactlyOnceWith('2');
+    act(() => resize?.([], {} as ResizeObserver));
+    expect(track.scrollLeft).toBe(300);
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});
+
+it('retains an explicit selection when the browser resnaps without horizontal input', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+  const settled = vi.fn();
+  const load = vi.fn(() => new Promise<string>(() => {}));
+  const view = render(
+    <MediaGallery
+      items={images}
+      initialMediaId="1"
+      loadMedia={load}
+      onSettledMediaChange={settled}
+    />,
+  );
+  const track = view.container.querySelector<HTMLDivElement>(
+    '.media-gallery-carousel-track',
+  );
+  try {
+    if (!track) throw new Error('The carousel track must be rendered.');
+    for (const [index, slide] of Array.from(track.children).entries())
+      Object.defineProperty(slide, 'offsetLeft', { value: index * 100 });
+    fireEvent.wheel(track, { deltaY: 100 });
+    track.scrollLeft = 100;
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(100));
+    expect(settled).not.toHaveBeenCalled();
+    expect(track.scrollLeft).toBe(200);
+    expect(
+      view.container
+        .querySelector('.is-active')
+        ?.getAttribute('data-carousel-index'),
+    ).toBe('1');
+
+    fireEvent.wheel(track, { deltaX: 100 });
     track.scrollLeft = 300;
     fireEvent.scroll(track);
     await act(async () => vi.advanceTimersByTime(100));

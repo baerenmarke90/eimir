@@ -166,7 +166,12 @@
       ]
     },
     "heart-moment-create-product-reference.spec.ts": {
-      "roots": ["web/src/components/HeartMomentProductPage.tsx"]
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/client/taskOrigin.tsx"
+      ]
     },
     "heart-moment-delete-ownership.spec.ts": {
       "roots": ["web/src/components/HeartMomentProductPage.tsx"]

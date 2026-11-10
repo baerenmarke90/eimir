@@ -22,7 +22,7 @@ export async function expectLabeledAddAction(action: Locator) {
       iconSize: getComputedStyle(
         element.querySelector('.button-icon') as Element,
       ).inlineSize,
-      expectedIconSize: style.getPropertyValue('--icon-size-standard').trim(),
+      expectedIconSize: style.getPropertyValue('--add-action-icon').trim(),
     };
   });
   expect(appearance.width).toBeGreaterThanOrEqual(48);

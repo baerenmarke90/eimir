@@ -136,10 +136,10 @@ export function MediaGallery({
     () => () => cancelPhotoPress(),
     [resourceScopeKey, itemIdentity, cancelPhotoPress],
   );
+  // Scroll frames preview a swipe; only a selection or completed swipe owns
+  // resize alignment. A layout change must not commit an intermediate slide.
   const carouselIndexRef = useRef(startingIndex);
-  useLayoutEffect(() => {
-    carouselIndexRef.current = carouselIndex;
-  }, [carouselIndex]);
+  const carouselScrollTarget = useRef<number | null>(startingIndex);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const imageFocusIndex =
     activeIndex ?? (renderPreviews ? null : carouselIndex);
@@ -199,7 +199,10 @@ export function MediaGallery({
   const lightboxScrollEndTimer = useRef<number | null>(null);
   const lightboxInitialIndex = useRef(0);
   const activeIndexRef = useRef<number | null>(null);
-  const carouselItemsIdentityRef = useRef<string | null>(null);
+  const carouselItemsIdentityRef = useRef<{
+    items: string;
+    mediaId?: string;
+  } | null>(null);
   const activeItemIdRef = useRef<string | null>(null);
   const cancelCarouselFeedback = useCallback(() => {
     if (carouselScrollFrame.current !== null) {
@@ -256,12 +259,24 @@ export function MediaGallery({
   }, [carouselIndex, items.length]);
 
   useLayoutEffect(() => {
-    const identity = JSON.stringify([itemIdentity, initialMediaId]);
-    if (carouselItemsIdentityRef.current === identity) return;
-    carouselItemsIdentityRef.current = identity;
+    const previous = carouselItemsIdentityRef.current;
+    if (previous?.items === itemIdentity && previous.mediaId === initialMediaId)
+      return;
+    carouselItemsIdentityRef.current = {
+      items: itemIdentity,
+      mediaId: initialMediaId,
+    };
+    // A parent acknowledging a native swipe is not a new scroll command.
+    if (
+      previous?.items === itemIdentity &&
+      carouselScrollTarget.current === null &&
+      carouselIndexRef.current === startingIndex
+    )
+      return;
     // A new explicit selection owns subsequent feedback and resize alignment.
     cancelCarouselFeedback();
     carouselIndexRef.current = startingIndex;
+    carouselScrollTarget.current = startingIndex;
     setCarouselIndex(startingIndex);
 
     const track = carouselTrack.current;
@@ -282,11 +297,15 @@ export function MediaGallery({
       return;
     const observer = new ResizeObserver(() => {
       const slide = carouselSlides.current[carouselIndexRef.current];
-      if (slide) track.scrollLeft = slide.offsetLeft;
+      if (!slide) return;
+      cancelCarouselFeedback();
+      carouselScrollTarget.current = carouselIndexRef.current;
+      setCarouselIndex(carouselIndexRef.current);
+      track.scrollLeft = slide.offsetLeft;
     });
     observer.observe(track);
     return () => observer.disconnect();
-  }, [items.length]);
+  }, [items.length, cancelCarouselFeedback]);
 
   useEffect(
     () => () => {
@@ -425,6 +444,15 @@ export function MediaGallery({
     const index = Number(nearest.dataset.carouselIndex);
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
+    // Passive native resnapping after layout changes cannot replace an explicit
+    // selection. A horizontal input hands selection back to the native swipe.
+    const requested = carouselScrollTarget.current;
+    if (requested !== null && index !== requested) {
+      const slide = carouselSlides.current[requested];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+      return;
+    }
+    carouselIndexRef.current = index;
     setCarouselIndex(index);
     if (items[index]) onSettledMediaChange?.(items[index].id);
 
@@ -445,6 +473,11 @@ export function MediaGallery({
         if (!nearest) return;
         const index = Number(nearest.dataset.carouselIndex);
         if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          if (
+            carouselScrollTarget.current !== null &&
+            carouselScrollTarget.current !== index
+          )
+            return;
           setCarouselIndex(index);
         }
       });
@@ -464,6 +497,8 @@ export function MediaGallery({
 
     const direction = delta < 0 ? -1 : 1;
     const nextIndex = (carouselIndex + direction + items.length) % items.length;
+    carouselIndexRef.current = nextIndex;
+    carouselScrollTarget.current = nextIndex;
     const track = carouselTrack.current;
     if (!track) {
       setCarouselIndex(nextIndex);
@@ -717,6 +752,13 @@ export function MediaGallery({
               ref={carouselTrack}
               className="eimir-media-snap-track media-gallery-carousel-track"
               onScroll={(event) => handleCarouselScroll(event.currentTarget)}
+              onPointerDown={() => {
+                carouselScrollTarget.current = null;
+              }}
+              onWheel={(event) => {
+                if (event.deltaX !== 0 || event.shiftKey)
+                  carouselScrollTarget.current = null;
+              }}
             >
               {items.length > 1 ? (
                 <div
@@ -745,6 +787,13 @@ export function MediaGallery({
                     data-carousel-index={index}
                     aria-hidden={!isActive}
                     tabIndex={isActive ? 0 : -1}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === 'ArrowLeft' ||
+                        event.key === 'ArrowRight'
+                      )
+                        carouselScrollTarget.current = null;
+                    }}
                     onPointerDown={(event) => {
                       photoPress.current.suppressClick = false;
                       if (
@@ -800,17 +849,27 @@ export function MediaGallery({
                         photoPress.current.suppressClick = false;
                         return;
                       }
-                      if (directSensitiveToggle && item.isSensitive === true)
+                      if (
+                        directSensitiveToggle &&
+                        item.isSensitive === true &&
+                        (item.mediaType !== MediaType.VIDEO ||
+                          !reveals.isRevealed(item.id))
+                      )
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
                     aria-pressed={
-                      directSensitiveToggle && item.isSensitive === true
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      item.mediaType !== MediaType.VIDEO
                         ? reveals.isRevealed(item.id)
                         : undefined
                     }
                     aria-label={
-                      directSensitiveToggle && item.isSensitive === true
+                      directSensitiveToggle &&
+                      item.isSensitive === true &&
+                      (item.mediaType !== MediaType.VIDEO ||
+                        !reveals.isRevealed(item.id))
                         ? t(
                             reveals.isRevealed(item.id)
                               ? 'sensitiveMedia.hide'
@@ -820,10 +879,22 @@ export function MediaGallery({
                           !reveals.isRevealed(item.id)
                             ? t('sensitiveMedia.label') + '. '
                             : '') +
-                          t('gallery.openItem', {
+                          (loadPlayback &&
+                          item.mediaType === MediaType.VIDEO &&
+                          (!item.status || item.status === 'READY')
+                            ? t('video.play')
+                            : t('gallery.openItem', {
+                                index: index + 1,
+                                count: items.length,
+                              }))
+                    }
+                    aria-description={
+                      item.mediaType === MediaType.VIDEO
+                        ? t('gallery.openItem', {
                             index: index + 1,
                             count: items.length,
                           })
+                        : undefined
                     }
                   >
                     {renderCarouselMedia(item)}
@@ -893,8 +964,10 @@ export function MediaGallery({
                 )
               : null}
           </div>
-          {!directSensitiveToggle &&
-          items[carouselIndex]?.isSensitive === true ? (
+          {items[carouselIndex]?.isSensitive === true &&
+          (!directSensitiveToggle ||
+            (items[carouselIndex]?.mediaType === MediaType.VIDEO &&
+              reveals.isRevealed(items[carouselIndex]!.id))) ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}

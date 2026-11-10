@@ -21,7 +21,10 @@ import {
   EDITOR_HISTORY_STATE_KEY,
   useEditorHistoryEntry,
 } from '../client/useEditorHistoryEntry';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import taskSheets from '../i18n/locales/taskSheets';
+import { DraftExitPrompt } from './DraftExitPrompt';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 function fireReactAnimationEnd(element: Element): void {
@@ -129,6 +132,96 @@ function Task({
 }
 
 describe('ShortTaskSheet history ownership', () => {
+  for (const reducedMotion of [true, false]) {
+    it(`hands a discard destination off after child and parent teardown (reduced motion: ${reducedMotion})`, async () => {
+      mockMatchMedia(reducedMotion);
+      const onDefaultExit = vi.fn();
+      const destination = vi.fn(() => {
+        expect(document.querySelector('dialog[open]')).toBeNull();
+        expect(document.body.style.overflow).not.toBe('hidden');
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeUndefined();
+      });
+      function DraftTask() {
+        const editor = useTaskEditorLifecycle({
+          isDirty: true,
+          onClose: onDefaultExit,
+        });
+        return (
+          <>
+            <input aria-label="Draft" defaultValue="A thought worth keeping" />
+            <button
+              type="button"
+              onClick={() => editor.requestClose(destination)}
+            >
+              Leave draft
+            </button>
+            <DraftExitPrompt
+              open={editor.showDiscardConfirm}
+              onKeep={editor.keepEditing}
+              onDiscard={editor.closeConfirmed}
+            />
+          </>
+        );
+      }
+      render(<DraftTask />);
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
+      );
+      const parent = window.history.state[EDITOR_HISTORY_STATE_KEY];
+      fireEvent.click(screen.getByText('Leave draft'));
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).not.toBe(parent),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: taskBoundary.discard }),
+      );
+      if (!reducedMotion) {
+        const dialog = screen.getByRole('dialog');
+        await waitFor(() =>
+          expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+        );
+        expect(destination).not.toHaveBeenCalled();
+        fireReactAnimationEnd(dialog);
+      }
+      await waitFor(() => expect(destination).toHaveBeenCalledTimes(1));
+      expect(onDefaultExit).not.toHaveBeenCalled();
+    });
+  }
+
+  it('keeps the draft and parent guard when Back dismisses its discard prompt', async () => {
+    const onExit = vi.fn();
+    function DraftTask() {
+      const editor = useTaskEditorLifecycle({ isDirty: true, onClose: onExit });
+      return (
+        <>
+          <input aria-label="Draft" defaultValue="A thought worth keeping" />
+          <DraftExitPrompt
+            open={editor.showDiscardConfirm}
+            onKeep={editor.keepEditing}
+            onDiscard={editor.closeConfirmed}
+          />
+        </>
+      );
+    }
+    render(<DraftTask />);
+    await waitFor(() =>
+      expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
+    );
+    const parent = window.history.state[EDITOR_HISTORY_STATE_KEY];
+    await back();
+    expect(screen.getByRole('dialog')).toBeDefined();
+    await back();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('textbox').getAttribute('value')).toBe(
+      'A thought worth keeping',
+    );
+    expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBe(parent);
+    expect(onExit).not.toHaveBeenCalled();
+    await back();
+    fireEvent.click(screen.getByRole('button', { name: taskBoundary.discard }));
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1));
+  });
+
   it('lets only the innermost task consume Back and preserves the parent guard', async () => {
     const onExit = vi.fn();
     const onDiscard = vi.fn();

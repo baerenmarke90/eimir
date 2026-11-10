@@ -48,6 +48,23 @@ describe('attachmentDraftReducer', () => {
     });
     expect(state[0]?.progress).toBe(37);
 
+    for (const progress of [12, Number.NaN, Number.POSITIVE_INFINITY]) {
+      state = attachmentDraftReducer(state, {
+        type: 'progress',
+        id: 'one',
+        attempt: 1,
+        progress,
+      });
+      expect(state[0]?.progress).toBe(37);
+    }
+    state = attachmentDraftReducer(state, {
+      type: 'phase',
+      id: 'one',
+      attempt: 1,
+      status: 'uploading',
+    });
+    expect(state[0]?.progress).toBe(37);
+
     state = attachmentDraftReducer(state, {
       type: 'start',
       id: 'one',

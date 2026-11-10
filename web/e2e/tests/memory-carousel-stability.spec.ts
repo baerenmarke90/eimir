@@ -1175,7 +1175,11 @@ for (const state of [
           track.addEventListener(
             'scroll',
             () => {
-              track.style.inlineSize = 'calc(100% - 8px)';
+              // Resize the owning stage, as a viewport change does. Shrinking
+              // only its centered track invents a different offset origin.
+              const stage = track.closest<HTMLElement>('.media-lightbox-stage');
+              if (!stage) throw new Error('The lightbox stage must exist.');
+              stage.style.inlineSize = 'calc(100% - 8px)';
             },
             { once: true },
           );

@@ -137,6 +137,8 @@ it('keeps the selected photo through a resize during transient scroll feedback',
   try {
     if (!track || !resize)
       throw new Error('The carousel must observe its size.');
+    let width = 100;
+    Object.defineProperty(track, 'clientWidth', { get: () => width });
     for (const [index, slide] of Array.from(track.children).entries())
       Object.defineProperty(slide, 'offsetLeft', { value: index * 100 });
     // A native resnap can briefly report the neighbouring slide before resize.
@@ -150,6 +152,7 @@ it('keeps the selected photo through a resize during transient scroll feedback',
         ?.getAttribute('data-carousel-index'),
     ).toBe('0');
 
+    width += 20;
     act(() => resize?.([], {} as ResizeObserver));
     expect(track.scrollLeft).toBe(200);
     await act(async () => vi.advanceTimersByTime(100));
@@ -166,6 +169,7 @@ it('keeps the selected photo through a resize during transient scroll feedback',
     fireEvent.scroll(track);
     await act(async () => vi.advanceTimersByTime(100));
     expect(settled).toHaveBeenCalledExactlyOnceWith('2');
+    width += 20;
     act(() => resize?.([], {} as ResizeObserver));
     expect(track.scrollLeft).toBe(300);
   } finally {
@@ -317,6 +321,10 @@ for (const reducedMotion of [false, true]) {
       },
     );
     const load = vi.fn(() => new Promise<string>(() => {}));
+    let width = 100;
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
+      () => width,
+    );
     const view = render(
       <MediaGallery
         items={images}
@@ -337,7 +345,6 @@ for (const reducedMotion of [false, true]) {
         '.media-lightbox-track',
       );
       if (!track) throw new Error('The lightbox track must exist.');
-      let width = 100;
       for (const [index, slide] of Array.from(track.children).entries())
         Object.defineProperty(slide, 'offsetLeft', {
           get: () => index * width,
@@ -355,6 +362,9 @@ for (const reducedMotion of [false, true]) {
           left: 300,
           behavior: 'smooth',
         });
+      // Initial observer delivery is not a resize and must not cut motion short.
+      act(() => observers.get(track)?.([], {} as ResizeObserver));
+      expect(track.scrollLeft).toBe(reducedMotion ? 300 : 200);
       // A resize arrives before normal-motion scroll feedback reaches photo 3.
       width = 120;
       act(() => observers.get(track)?.([], {} as ResizeObserver));

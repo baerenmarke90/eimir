@@ -42,6 +42,23 @@ function cancelScrollFeedback(
   }
 }
 
+function observeTrackResize(track: HTMLDivElement, onResize: () => void) {
+  let width = track.clientWidth;
+  let height = track.clientHeight;
+  const observer = new ResizeObserver(() => {
+    const nextWidth = track.clientWidth;
+    const nextHeight = track.clientHeight;
+    // Initial delivery and re-observation are not geometry changes. In
+    // particular, they must not interrupt an in-flight native animation.
+    if (width === nextWidth && height === nextHeight) return;
+    width = nextWidth;
+    height = nextHeight;
+    onResize();
+  });
+  observer.observe(track);
+  return () => observer.disconnect();
+}
+
 function nearestSnapSlide(
   track: HTMLDivElement,
   attribute: 'data-carousel-index' | 'data-lightbox-index',
@@ -316,7 +333,7 @@ export function MediaGallery({
     const track = carouselTrack.current;
     if (!track || items.length < 2 || typeof ResizeObserver === 'undefined')
       return;
-    const observer = new ResizeObserver(() => {
+    return observeTrackResize(track, () => {
       const slide = carouselSlides.current[carouselIndexRef.current];
       if (!slide) return;
       cancelCarouselFeedback();
@@ -324,8 +341,6 @@ export function MediaGallery({
       setCarouselIndex(carouselIndexRef.current);
       track.scrollLeft = slide.offsetLeft;
     });
-    observer.observe(track);
-    return () => observer.disconnect();
   }, [items.length, cancelCarouselFeedback]);
 
   useEffect(
@@ -350,7 +365,7 @@ export function MediaGallery({
     const track = lightboxTrack.current;
     if (!lightboxOpen || !track || typeof ResizeObserver === 'undefined')
       return;
-    const observer = new ResizeObserver(() => {
+    return observeTrackResize(track, () => {
       // Resize owns geometry, not selection. An in-flight keyboard/button
       // advance retains its destination until native scrolling reaches it.
       const current = lightboxScrollTarget.current ?? activeIndexRef.current;
@@ -362,8 +377,6 @@ export function MediaGallery({
       activeItemIdRef.current = items[current]?.id ?? null;
       setActiveIndex(current);
     });
-    observer.observe(track);
-    return () => observer.disconnect();
   }, [lightboxOpen, items, cancelLightboxFeedback]);
 
   const changeActive = useCallback(

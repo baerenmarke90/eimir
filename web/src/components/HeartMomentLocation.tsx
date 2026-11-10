@@ -80,7 +80,7 @@ export function HeartMomentLocationField({
             <span>{value.name}</span>
           </>
         ) : (
-          <AddActionContent label={t('photoPlaces.add')} />
+          <AddActionContent label={t('photoPlaces.add')} icon="orte" />
         )}
       </button>
       {value ? (

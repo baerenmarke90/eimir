@@ -464,7 +464,7 @@ for (const width of [390, 320] as const) {
         name: photoSources.addMedia,
         exact: true,
       });
-      await expectLabeledAddAction(picker);
+      await expectLabeledAddAction(picker, 'foto');
       await expect(media.locator('input[type="file"]')).toHaveCount(1);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');

@@ -24,6 +24,8 @@ label.add-action {
 }
 
 .add-action .button-icon {
+  --identity-icon-accent: currentColor;
+  --identity-icon-cool: currentColor;
   inline-size: var(--add-action-icon);
   block-size: var(--add-action-icon);
   flex: 0 0 var(--add-action-icon);

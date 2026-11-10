@@ -225,7 +225,7 @@ async function openOverview(page: Page, kind: 'places' | 'collections') {
     name: kind === 'places' ? m5s3.place.create : m5s3.collection.create,
     exact: true,
   });
-  await expectLabeledAddAction(action);
+  await expectLabeledAddAction(action, kind === 'places' ? 'orte' : 'listen');
   const [heading, control, content] = await Promise.all([
     page.locator('h1').boundingBox(),
     action.boundingBox(),

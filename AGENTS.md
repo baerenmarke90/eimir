@@ -229,7 +229,9 @@ rather than styling an icon/text or tertiary action as the main creation control
 (Product Owner correction #1688). Preserve the single-primary-action hierarchy.
 All create/add entry points reuse the shared `AddActionButton`, `AddActionLink`
 or `AddActionContent` presentation: a filled canonical-blue pill with the shared
-plus icon and a visible localized action label, as in Planning. This includes
+contextual icon (defaulting to the plus) and a visible localized action label,
+as in Planning. The Product Owner correction #1724 uses photo, photo-library,
+Place, list and tag motifs for the corresponding enrichment actions. This includes
 People, important days, authored tags, media and inline insertion controls.
 The Product Owner correction #1697 supersedes #1693's icon-only circular
 interpretation. Keep native task/link/input lifecycles; local CSS may arrange

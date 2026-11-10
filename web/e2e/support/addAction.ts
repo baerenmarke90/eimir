@@ -1,7 +1,11 @@
 import { expect, type Locator } from '@playwright/test';
+import type { EimirIconName } from '../../src/components/EimirIcon';
 
 /** Rendered geometry catches local surface overrides that component tests miss. */
-export async function expectLabeledAddAction(action: Locator) {
+export async function expectLabeledAddAction(
+  action: Locator,
+  iconName: EimirIconName = 'hinzufuegen',
+) {
   await expect(action).toBeVisible();
   const appearance = await action.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -35,7 +39,18 @@ export async function expectLabeledAddAction(action: Locator) {
   expect(appearance.text).toBe(appearance.label);
   expect(appearance.iconSize).toBe(appearance.expectedIconSize);
   await expect(action.locator('.add-action-label')).toBeVisible();
-  await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
+  const icon = action.locator(`.button-icon.eimir-icon-${iconName}`);
+  await expect(icon).toBeVisible();
+  await expect(icon).toHaveAttribute('aria-hidden', 'true');
+  await expect(icon).toHaveAttribute('focusable', 'false');
+  expect(
+    await icon.evaluate((element) => {
+      const foreground = getComputedStyle(element).color;
+      return [...element.querySelectorAll('path, rect, circle')].every(
+        (part) => getComputedStyle(part).stroke === foreground,
+      );
+    }),
+  ).toBe(true);
 }
 
 /** Labeled insertion may wrap, but input and action must never overlap. */

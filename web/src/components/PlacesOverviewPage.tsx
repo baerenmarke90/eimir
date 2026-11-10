@@ -206,6 +206,7 @@ export function PlacesOverviewPage({
         action={
           <AddActionButton
             label={t('m5s3.place.create')}
+            icon="orte"
             ref={createActionRef}
             id="place-name"
             onClick={() => {

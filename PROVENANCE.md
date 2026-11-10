@@ -93,6 +93,12 @@ eimir., not screenshots or assets copied from a predecessor. The
 roadmap graphics under `docs/assets/roadmap/` and the M2 SVG diagrams were
 created specifically for this repository's documentation and handoff.
 
+The tag and photo-library outline motifs added to `EimirIcon.tsx` for #1724
+were drawn specifically for eimir. with AI assistance on the existing 24 px
+icon grid. They reuse the project's stroke grammar, have no third-party source
+and follow the project's source-code license. Companion browser evidence uses
+synthetic test identities and the existing approved product fixtures.
+
 Unless an individual entry states otherwise, these project assets have no
 separate public license grant. No font or audio assets are currently part of
 the repository.

@@ -63,3 +63,9 @@ Validate targeted field/source/gallery/voice regressions and complete browser
 journeys (open, write/select, save, observe, edit, return), then record runtime
 Light/Dark Compact/Expanded, populated-media, large-text and reduced-motion
 captures under `evidence/`. This generated image is not implementation evidence.
+
+## Runtime acceptance evidence
+
+[Reviewed runtime captures and behavioral validation](evidence/README.md)
+record the implemented composition, source revision, Light/Dark and
+Compact/Expanded coverage, large-text behavior and complete retained journeys.

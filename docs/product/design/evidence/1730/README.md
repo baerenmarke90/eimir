@@ -9,6 +9,9 @@ and to `d258eb833` after #1734 merged. The latter's shared sheet and important-d
 changes were integrated without conflicts. The PO correction also integrates
 `ae4f001416` (#1737), whose five additions are reference files for the separate
 Today monthly-story experience; it changes no runtime source or dependency.
+Before delivery, `main` advanced to `b23039090` (#1739). The integration below
+preserves both sets of semantic roles and fixture fields; it does not change any
+Composer component, style or consumed token value.
 Reference head:
 `4bbb3110b31a0944992712a125900391754261c4`.
 This audit compares the initial runtime baseline with the integrated implementation.
@@ -300,8 +303,9 @@ Focused unit verification and the updated browser/capture manifest bind the
 correction to its source revision. The initial result above is historical,
 not evidence for the changed media interaction.
 
-The final application source is `894c445d6`. Both browser revisions below
-contain the same `web/src` tree, and the integrated `main` is `ae4f001416`.
+The Composer captures and results below use application source `894c445d6`
+and `main` at `ae4f001416`. Both browser revisions contain the same `web/src`
+tree. The subsequent current-main integration is recorded separately below.
 No source or browser expectation changed during an individual run.
 
 | Check | Observed result |
@@ -345,6 +349,24 @@ actual viewport without those capture artifacts.
 
 No unchanged remote workflow retry was used. GitHub Checks record CI on the final PR head. No physical-device acceptance or
 Android package build was performed in this Web validation.
+
+## Current main integration
+
+The delivery integrates `b23039090` (#1739) at `5fd8eb5b2`. Its Today monthly
+mosaic/story changes add semantic roles and localized fixture fields. Both sets
+of tokens and both fixture groups were kept; the generated roles preserve all
+previous declaration values. No Composer component, style or consumed role
+changed. The 174 captures therefore keep their actual `eb1c0abfe` / `894c445d6`
+provenance against `ae4f001416`.
+
+On `cf3ee953c`, the production build, 126 focused tests in four files (5.75 s),
+63-entry E2E type check, formatting, inventory and all 38 browser-planning
+regressions passed. Actual full collection is 1,241 cases in 105 specs; the
+historical inventory numbers are separate. The integration selection executed
+**234/234 passing cases in 16 complete specs** with `--workers=1` (8.3 min, zero
+skipped/flaky): the existing 133-case core and six Today, story, settings and
+reflow specs. It includes the Today-to-Composer routes and enlarged-text reflow.
+The manifest records the exact selection, native statistics and report hashes.
 
 ## Reference-to-runtime comparison
 

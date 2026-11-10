@@ -1484,5 +1484,60 @@
         }
       }
     ]
+  },
+  "currentMainIntegration": {
+    "integratedMain": "b2303909063cc8a2074a99a407fb63e6707b3cbf",
+    "testedRevision": "cf3ee953cacb6d801d0010bb82dd67c6473a3d33",
+    "webSourceTree": "27d404ea50b7c6adf8decf78f2748630eae8bda1",
+    "e2eTree": "c7a90bd28a69e0a762e4b18f6a65bc3e8f702795",
+    "upstreamPullRequest": 1739,
+    "scope": "Additive Today semantic roles and locale fixture groups. No Composer component, style or consumed role value changed; the 174 captures retain their actual earlier provenance.",
+    "fullCollection": {
+      "cases": 1241,
+      "specs": 105
+    },
+    "integrationCollection": {
+      "cases": 234,
+      "specs": 16,
+      "coreCases": 133,
+      "countsBySpec": {
+        "browser-session-reload.spec.ts": 3,
+        "f2-task-boundaries.spec.ts": 35,
+        "floating-bottom-nav-scroll.spec.ts": 19,
+        "hidden-file-inputs.spec.ts": 2,
+        "i18n-accessible-names.spec.ts": 1,
+        "media-url-continuity.spec.ts": 4,
+        "memory-delete-ownership.spec.ts": 7,
+        "product-accessibility.spec.ts": 32,
+        "product-reflow.spec.ts": 7,
+        "quick-create-destination-handoff.spec.ts": 20,
+        "relationship-reflections.spec.ts": 14,
+        "session-retention.spec.ts": 10,
+        "shared-story-summary-visual.spec.ts": 5,
+        "today-daily-quote.spec.ts": 18,
+        "today-living-home.spec.ts": 36,
+        "wir-design-selection.spec.ts": 21
+      }
+    },
+    "browserWorkers": 1,
+    "nativeStats": {
+      "startTime": "2026-11-10T22:34:29.153Z",
+      "duration": 500767.45999999996,
+      "expected": 234,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "nativeReportSHA256": "03b84f8a1b9974085352f1e920fedbcb2a6077e4e48e952d0ed22809e4de7a60",
+    "executionLedgerSHA256": "38990e32dfd679c5c726b0dab370f034fcf7915ef2a6d23b73d17ff4b0a3babe",
+    "applicationChecks": {
+      "focusedUnitFiles": 4,
+      "focusedUnitsPassed": 126,
+      "unitDurationSeconds": 5.75,
+      "productionBuild": "passed",
+      "e2eTypecheckEntries": 63,
+      "planningRegressionsPassed": 38,
+      "browserInventorySpecs": 105
+    }
   }
 }

@@ -380,7 +380,10 @@ export function PhotoSourcePicker({
               setOpen(true);
             }}
           >
-            <AddActionContent label={t('photoSources.more')} />{' '}
+            <AddActionContent
+              label={t('photoSources.more')}
+              icon="photo-library"
+            />{' '}
             <ProMark label={t('photoSources.pro')} />
           </button>
         ) : null}

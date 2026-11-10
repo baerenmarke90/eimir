@@ -15,6 +15,8 @@ export const EIMIR_ICON_NAMES = [
   'geteilt',
   'nurfuer',
   'foto',
+  'photo-library',
+  'tag',
   'video',
   'erinnerungen',
   'highlights',
@@ -184,6 +186,20 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
       <rect x="2.8" y="5" width="18.4" height="15" rx="2.5" />
       <circle className="accent" cx="8" cy="9.3" r="1.3" />
       <path d="m4 17 5-4.8 3.2 2.7 3.1-3 4.8 5" />
+    </>
+  ),
+  'photo-library': (
+    <>
+      <path d="M5 7V4.5A2.5 2.5 0 0 1 7.5 2H19a2 2 0 0 1 2 2v12" />
+      <rect x="2" y="7" width="15" height="14" rx="2.5" />
+      <circle className="accent" cx="6.5" cy="11" r="1" />
+      <path d="m3.5 18 4-4 2.5 2 2.5-2.5L16 17" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M3 3h8l10 10-8 8L3 11V3Z" />
+      <circle className="accent" cx="7.5" cy="7.5" r="1.5" />
     </>
   ),
   video: (

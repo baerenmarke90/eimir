@@ -179,6 +179,7 @@ export function MomentPlaces({
       {canManage && !denied && !query.isPending ? (
         <AddActionButton
           label={t('photoPlaces.add')}
+          icon="orte"
           ref={addTrigger}
           aria-haspopup="dialog"
           disabled={offline || query.isPending}

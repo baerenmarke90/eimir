@@ -815,8 +815,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const sourceTrigger = media.getByRole('button', {
         name: new RegExp(photoSources.more),
       });
-      await expectLabeledAddAction(mediaTrigger);
+      await expectLabeledAddAction(mediaTrigger, 'foto');
       await expect(sourceTrigger).toBeVisible();
+      await expect(
+        sourceTrigger.locator('.button-icon.eimir-icon-photo-library'),
+      ).toBeVisible();
       const deviceBox = await mediaTrigger.boundingBox();
       const sourceBox = await sourceTrigger.boundingBox();
       if (!deviceBox || !sourceBox)

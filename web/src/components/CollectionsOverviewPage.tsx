@@ -186,6 +186,7 @@ export function CollectionsOverviewPage({
         action={
           <AddActionButton
             label={t('m5s3.collection.create')}
+            icon="listen"
             ref={createActionRef}
             id="collection-title"
             onClick={() => {

@@ -162,6 +162,7 @@ function ContextTagEditorContent({
       {!entryVisible ? (
         <AddActionButton
           label={t('contextTags.add')}
+          icon="tag"
           aria-expanded={false}
           aria-controls={entryId}
           onClick={() => {
@@ -212,6 +213,7 @@ function ContextTagEditorContent({
           <AddActionButton
             ref={addRef}
             label={t('contextTags.add')}
+            icon="tag"
             onClick={() => commit()}
           />
         </div>

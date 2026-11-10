@@ -939,6 +939,7 @@
     },
     "private-location-and-capture-tags.spec.ts": {
       "roots": [
+        "web/src/components/HeartEmotionVisual.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/HeartMomentLocation.tsx",
         "web/src/components/PlaceChoicePicker.tsx",

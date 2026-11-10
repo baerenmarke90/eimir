@@ -646,10 +646,10 @@ body:has(.heart-emotion-page)
 
 .heart-emotion-page.page-composer .immersive-create-form,
 .heart-emotion-page.page-composer .form-card.product-sheet {
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 .heart-emotion-page.page-composer .heart-emotion-picker > legend {
-  margin-block-end: var(--space-2);
+  margin-block-end: var(--space-1);
   font: var(--font-supporting-copy);
 }
 .heart-emotion-page .voice-player-title[data-default-title] {
@@ -665,4 +665,8 @@ body:has(.heart-emotion-page)
 
 .heart-emotion-page.page-composer .composer-content {
   gap: var(--space-3);
+}
+
+.heart-emotion-page.page-composer .heart-emotion-picker-grid {
+  row-gap: var(--space-1);
 }

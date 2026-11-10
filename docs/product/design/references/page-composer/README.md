@@ -44,7 +44,8 @@ A second review the same day added: linking Wishes/Plans only in the composer
 Lists open their list composer (frame 17); no drop-cap initial for Plans, and
 long descriptions collapse with "show more"; Plan descriptions keep a soft note
 box; no "start new" action on detail screens; Plans keep the existing short
-schedule format.
+schedule format. Tapping a place on a detail screen opens the in-app memory map (existing
+`photoPlaceMapUrl` route and Pro boundary).
 
 ## Generated visual preflight
 

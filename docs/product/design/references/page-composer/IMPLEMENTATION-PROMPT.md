@@ -60,6 +60,7 @@ reactions, place next to the date and linked Wishes/Plans; linking a Wish or Pla
 happens only in the composer (create/edit), never on the detail screen; the
 drop-cap initial is used only for Diary/Memory prose, not for Plans; long
 descriptions collapse with "show more"; detail screens have no "start new" action;
+places on detail screens open the in-app memory map;
 Plans use the existing short schedule format ("Sa., 21. Nov. · 12:00 Uhr").
 
 ## 2. Shared anatomy (all in-scope composers, top to bottom)
@@ -171,6 +172,11 @@ current runtime; verify each on `main` and restore it where it regressed. Order:
    short "saved" status pill. No "start new entry/plan" action anywhere.
 2. Meta row: short date (as in the composer) and, to its right, the place(s);
    Plan shows its schedule in the accent color; HeartMoment adds its visibility.
+   Each place is a link into the in-app memory map through the existing
+   `MomentMapLink` / `photoPlaceMapUrl` (`/story/map?place=<lat>:<lng>`), keeping
+   the map's existing Pro boundary and a Back that returns to the same detail
+   screen and scroll position. A place without coordinates stays plain text. In
+   the composers, tapping the place still opens the place editor.
    Plan: directly below, the existing `PlanCalendarAction` ("add to calendar") as
    a soft full-width-or-content button. HeartMoment: `HeartEmotionBadge` (detail
    variant: icon + feeling) and the feeling tint on the page.

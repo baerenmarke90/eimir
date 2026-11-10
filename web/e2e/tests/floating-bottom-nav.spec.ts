@@ -5,25 +5,15 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import navigation from '../../src/i18n/locales/navigation';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
-
-const EVIDENCE_DIR = path.resolve(
-  __dirname,
-  '../../../docs/product/design/references/today-clarity/navigation',
-);
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const dimensions = await page.evaluate(() => ({
@@ -283,12 +273,6 @@ async function waitForGamesHub(page: Page): Promise<void> {
 }
 
 test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
-  test.beforeAll(() => {
-    if (!fs.existsSync(EVIDENCE_DIR)) {
-      fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
-    }
-  });
-
   test('shell composition: four destinations + centered Quick Create before Planen in one docked shell', async ({
     page,
   }) => {
@@ -467,7 +451,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(axeResultsLight.violations).toEqual([]);
 
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390.png'),
+      path: testInfo.outputPath('00-quick-create-sheet-open-390.png'),
     });
     await page.screenshot({
       path: testInfo.outputPath('shell-quick-create-sheet-390-light.png'),
@@ -484,7 +468,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(axeResultsDark.violations).toEqual([]);
 
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390-dark.png'),
+      path: testInfo.outputPath('00-quick-create-sheet-open-390-dark.png'),
     });
     await page.screenshot({
       path: testInfo.outputPath('shell-quick-create-sheet-390-dark.png'),
@@ -1052,7 +1036,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '01-today-390-light.png'),
+      path: testInfo.outputPath('01-today-390-light.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'dark' });
@@ -1064,7 +1048,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.reload();
     await page.waitForURL('**/today');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '02-today-390-dark.png'),
+      path: testInfo.outputPath('02-today-390-dark.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'light' });
@@ -1076,7 +1060,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.goto('/story/memories/new');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '03-memory-create-390-light.png'),
+      path: testInfo.outputPath('03-memory-create-390-light.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'dark' });
@@ -1088,7 +1072,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.reload();
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '04-memory-create-390-dark.png'),
+      path: testInfo.outputPath('04-memory-create-390-dark.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'light' });
@@ -1099,25 +1083,25 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
     await page.goto('/plan');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '05-plan-390-light.png'),
+      path: testInfo.outputPath('05-plan-390-light.png'),
     });
 
     await page.goto('/story');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '06-momente-390-light.png'),
+      path: testInfo.outputPath('06-momente-390-light.png'),
     });
 
     await page.setViewportSize({ width: 320, height: 600 });
     await page.goto('/today');
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '07-reflow-320px.png'),
+      path: testInfo.outputPath('07-reflow-320px.png'),
     });
 
     await page.setViewportSize({ width: 390, height: 640 });
     await page.goto('/today');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '08-small-height-390x640.png'),
+      path: testInfo.outputPath('08-small-height-390x640.png'),
     });
 
     await page.setViewportSize({ width: 390, height: 500 });
@@ -1126,7 +1110,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     const titleInput = page.getByLabel(de.memory.titleLabelOptional);
     await titleInput.focus();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '09-constrained-height-form-focus.png'),
+      path: testInfo.outputPath('09-constrained-height-form-focus.png'),
     });
 
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -1134,7 +1118,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
     await expect(page.locator('.shell-nav')).toBeVisible();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '10-expanded-desktop-1280x800.png'),
+      path: testInfo.outputPath('10-expanded-desktop-1280x800.png'),
     });
 
     await page.setViewportSize({ width: 780, height: 844 });
@@ -1149,7 +1133,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
         ),
     );
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '11-zoom-200-percent.png'),
+      path: testInfo.outputPath('11-zoom-200-percent.png'),
     });
 
     // #902 Product Reference evidence: Compact Light/Dark, 320 reflow and Expanded.

@@ -11,7 +11,6 @@
         "web/src/components/MemoryPhotoGallery.tsx",
         "web/src/components/MediaGallery.tsx",
         "web/src/components/PhotoDraftGallery.tsx",
-        "web/src/components/PhotoArrangeTask.tsx",
         "web/src/components/CollectionProductPage.tsx",
         "web/src/components/MemoryMapPage.tsx"
       ]

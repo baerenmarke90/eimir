@@ -1,5 +1,8 @@
 # Unified composer media intake — PO refinement
 
+The implemented result and final behavioral checks are recorded in
+[runtime evidence](evidence/README.md).
+
 The Product Owner reviewed these generated images in chat on 2026-11-10 and
 requested their implementation and merge in #1727. Reviewed main remains
 `f334067cff7b2c7638571a3fd50db52ddcaf8633`; implementation starts from #1727

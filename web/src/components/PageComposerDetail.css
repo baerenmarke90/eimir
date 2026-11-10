@@ -153,6 +153,20 @@
 .page-composer-detail .memory-planning-links {
   margin-block: var(--space-4);
 }
+.page-composer-detail .memory-planning-links a.memory-planning-destination {
+  border: 0;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+.page-composer-detail
+  .comment-form-compact
+  .comment-compose-actions
+  > button[type="submit"] {
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--composer-accent);
+}
 @media (prefers-reduced-motion: reduce) {
   .page-composer-detail {
     scroll-behavior: auto;

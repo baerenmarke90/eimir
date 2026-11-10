@@ -686,8 +686,10 @@ body:has(.heart-emotion-page)
     hyphens: none;
   }
   .heart-emotion-page.page-composer .heart-emotion-choice-check {
-    position: absolute;
-    inset-block-start: var(--space-2);
-    inset-inline-end: var(--space-3);
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    margin: 0;
   }
 }

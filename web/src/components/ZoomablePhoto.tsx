@@ -1,6 +1,7 @@
 import type { PanzoomObject } from '@panzoom/panzoom';
 import Panzoom from '@panzoom/panzoom/dist/panzoom.es.js';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { isCapacitorNativePlatform } from '../client/config';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 
@@ -198,37 +199,39 @@ export function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
         alt={alt}
         draggable={false}
       />
-      <div className="media-photo-zoom-controls panzoom-exclude">
-        <button
-          type="button"
-          className="media-overlay"
-          aria-label={t('gallery.zoomIn')}
-          title={t('gallery.zoomIn')}
-          disabled={scale >= 4}
-          onClick={() => zoom.current?.zoomIn({ animate: false })}
-        >
-          <span aria-hidden="true">+</span>
-        </button>
-        <button
-          type="button"
-          className="media-overlay"
-          aria-label={t('gallery.zoomOut')}
-          title={t('gallery.zoomOut')}
-          disabled={scale <= 1}
-          onClick={() => zoom.current?.zoomOut({ animate: false })}
-        >
-          <span aria-hidden="true">−</span>
-        </button>
-        <button
-          type="button"
-          className="media-overlay"
-          aria-label={t('gallery.fit')}
-          title={t('gallery.fit')}
-          onClick={() => zoom.current?.reset({ animate: false })}
-        >
-          <EimirIcon name="expand" />
-        </button>
-      </div>
+      {!isCapacitorNativePlatform() && (
+        <div className="media-photo-zoom-controls panzoom-exclude">
+          <button
+            type="button"
+            className="media-overlay"
+            aria-label={t('gallery.zoomIn')}
+            title={t('gallery.zoomIn')}
+            disabled={scale >= 4}
+            onClick={() => zoom.current?.zoomIn({ animate: false })}
+          >
+            <span aria-hidden="true">+</span>
+          </button>
+          <button
+            type="button"
+            className="media-overlay"
+            aria-label={t('gallery.zoomOut')}
+            title={t('gallery.zoomOut')}
+            disabled={scale <= 1}
+            onClick={() => zoom.current?.zoomOut({ animate: false })}
+          >
+            <span aria-hidden="true">−</span>
+          </button>
+          <button
+            type="button"
+            className="media-overlay"
+            aria-label={t('gallery.fit')}
+            title={t('gallery.fit')}
+            onClick={() => zoom.current?.reset({ animate: false })}
+          >
+            <EimirIcon name="expand" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -136,10 +136,9 @@ export function MediaGallery({
     () => () => cancelPhotoPress(),
     [resourceScopeKey, itemIdentity, cancelPhotoPress],
   );
+  // Scroll frames preview a swipe; only a selection or completed swipe owns
+  // resize alignment. A layout change must not commit an intermediate slide.
   const carouselIndexRef = useRef(startingIndex);
-  useLayoutEffect(() => {
-    carouselIndexRef.current = carouselIndex;
-  }, [carouselIndex]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const imageFocusIndex =
     activeIndex ?? (renderPreviews ? null : carouselIndex);
@@ -282,11 +281,14 @@ export function MediaGallery({
       return;
     const observer = new ResizeObserver(() => {
       const slide = carouselSlides.current[carouselIndexRef.current];
-      if (slide) track.scrollLeft = slide.offsetLeft;
+      if (!slide) return;
+      cancelCarouselFeedback();
+      setCarouselIndex(carouselIndexRef.current);
+      track.scrollLeft = slide.offsetLeft;
     });
     observer.observe(track);
     return () => observer.disconnect();
-  }, [items.length]);
+  }, [items.length, cancelCarouselFeedback]);
 
   useEffect(
     () => () => {
@@ -425,6 +427,7 @@ export function MediaGallery({
     const index = Number(nearest.dataset.carouselIndex);
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
+    carouselIndexRef.current = index;
     setCarouselIndex(index);
     if (items[index]) onSettledMediaChange?.(items[index].id);
 
@@ -464,6 +467,7 @@ export function MediaGallery({
 
     const direction = delta < 0 ? -1 : 1;
     const nextIndex = (carouselIndex + direction + items.length) % items.length;
+    carouselIndexRef.current = nextIndex;
     const track = carouselTrack.current;
     if (!track) {
       setCarouselIndex(nextIndex);

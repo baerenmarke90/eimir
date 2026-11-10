@@ -1206,10 +1206,10 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
   await input.fill('  Ostsee   2026  ');
   await input.press('Enter');
   await expect(
-    page.getByRole('button', {
-      name: contextTags.remove.replace('{{tag}}', 'Ostsee 2026'),
+    page.getByRole('checkbox', {
+      name: /^(?:✓\s*)?Ostsee 2026$/,
     }),
-  ).toBeVisible();
+  ).toBeChecked();
   await expect(page).toHaveURL(/\/memories\/new$/);
   await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   for (const [name, width, dark, large] of [
@@ -1258,10 +1258,13 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
     .click();
   await showContextTags(page);
   await page
-    .getByRole('button', {
-      name: contextTags.remove.replace('{{tag}}', 'Ostsee 2026'),
+    .getByRole('checkbox', {
+      name: /^(?:✓\s*)?Ostsee 2026$/,
     })
     .click();
+  await expect(
+    page.locator('input[type="hidden"][name="tags"][value="Ostsee 2026"]'),
+  ).toHaveCount(0);
   await page.getByLabel(contextTags.newLabel).fill('Our tradition');
   const update = page.waitForRequest(
     (request) =>

@@ -1291,10 +1291,13 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
     .click();
   await showContextTags(page);
   await page
-    .getByRole('button', {
-      name: contextTags.remove.replace('{{tag}}', 'Ostsee'),
+    .getByRole('checkbox', {
+      name: /^(?:✓\s*)?Ostsee$/,
     })
     .click();
+  await expect(
+    page.locator('input[type="hidden"][name="tags"][value="Ostsee"]'),
+  ).toHaveCount(0);
   await page.getByLabel(contextTags.newLabel).fill('Our tradition');
   const update = page.waitForRequest(
     (request) =>

@@ -1026,6 +1026,7 @@
       },
       "monthly": {
         "title": "Your {{month}}",
+        "settingsTitle": "Your month",
         "allAction": "All moments",
         "allAriaLabel": "View all shared moments"
       },

@@ -115,6 +115,7 @@ const m5s5 = {
     },
     monthly: {
       title: 'Euer {{month}}',
+      settingsTitle: 'Euer Monat',
       allAction: 'Alle Momente',
       allAriaLabel: 'Alle gemeinsamen Momente ansehen',
     },

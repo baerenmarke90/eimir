@@ -1246,12 +1246,9 @@ test('Memory carousel keeps document and layout position stable across pointer a
 
   await expect(page.locator('.media-gallery-carousel-footer')).toHaveCount(0);
   await expect(page.locator('.media-gallery-carousel-dots')).toHaveCount(0);
-  expect(
-    await page
-      .locator('.media-gallery-carousel-content')
-      .first()
-      .evaluate((element) => getComputedStyle(element).objectFit),
-  ).toBe('cover');
+  await expect(
+    page.locator('.media-gallery-carousel-content').first(),
+  ).toHaveCSS('object-fit', 'contain');
 
   const ambientBackdrop = page
     .locator('.media-gallery-carousel-backdrop')

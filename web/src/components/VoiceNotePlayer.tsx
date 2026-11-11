@@ -1,7 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { audioPeaks, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import './VoiceNotes.css';
+
+export function VoiceNotePreview({ duration }: { duration?: number | null }) {
+  const { t } = useTranslation();
+  return (
+    <span className="voice-note-preview" aria-hidden="true">
+      <EimirIcon name="microphone" />
+      <span>{t('voiceNotes.title')}</span>
+      {duration != null ? (
+        <span className="voice-time">{voiceTime(duration)}</span>
+      ) : null}
+    </span>
+  );
+}
 
 export function VoiceWaveform({ peaks }: { peaks: readonly number[] }) {
   return (

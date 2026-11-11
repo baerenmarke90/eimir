@@ -4526,6 +4526,82 @@
         "title": "MagicLinkConsumeRequest",
         "type": "object"
       },
+      "MediaGalleryItem": {
+        "properties": {
+          "attachment": {
+            "$ref": "#/components/schemas/AttachmentSummary"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "title": "Effectivedate",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "parentType": {
+            "$ref": "#/components/schemas/MediaGalleryParentType"
+          }
+        },
+        "required": [
+          "parentType",
+          "parentId",
+          "effectiveDate",
+          "attachment"
+        ],
+        "title": "MediaGalleryItem",
+        "type": "object"
+      },
+      "MediaGalleryPage": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MediaGalleryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "totalCount": {
+            "minimum": 0.0,
+            "title": "Totalcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "totalCount",
+          "nextCursor",
+          "hasMore"
+        ],
+        "title": "MediaGalleryPage",
+        "type": "object"
+      },
+      "MediaGalleryParentType": {
+        "enum": [
+          "MEMORY",
+          "HEART_MOMENT",
+          "PLAN"
+        ],
+        "title": "MediaGalleryParentType",
+        "type": "string"
+      },
       "MediaType": {
         "enum": [
           "IMAGE",
@@ -26327,6 +26403,116 @@
         "summary": "Resolve Link Preview",
         "tags": [
           "link-previews"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/media": {
+      "get": {
+        "description": "Browse ready media bound to shared entries or to the caller's private entries.",
+        "operationId": "getMediaGallery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "visibility",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ContentVisibility",
+              "default": "SHARED"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaGalleryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Media Gallery",
+        "tags": [
+          "story"
         ]
       }
     },

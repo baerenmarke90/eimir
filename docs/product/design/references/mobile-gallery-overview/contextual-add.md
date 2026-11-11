@@ -254,3 +254,78 @@ and retaining or discarding a draft, with the Android runtime fixture in
 Compact Dark. The resize coverage includes 360, 390 and 430 px, the
 Compact/Expanded boundary, 320 px reflow and enlarged text. Expanded keeps
 the existing label and the privacy heading.
+
+## Private subpage creation and shared floating control follow-up
+
+The Product Owner extended the floating creation action to the private
+subpages and requested a larger, more angular control. The reviewed `main`
+baseline is `790105977ea83fb4ace70978770343e9845accdf`, which includes
+[PR #1743](https://github.com/baerenmarke90/eimir/pull/1743). The generated
+reference uses four actual Compact captures from that revision with synthetic
+content. It preserves the privacy heading, section tabs, active selection,
+item content and metadata, and bottom navigation.
+
+![Personal notes, gift ideas, private lists and partner notes with a rounded-square floating plus](reference-private-subpage-create.png)
+
+### Mobile interaction contract
+
+| Private subpage | Local action and result |
+| --- | --- |
+| Personal notes | The plus opens the existing personal note editor. Save shows the note. Back returns to the personal notes list. |
+| Gift ideas | The plus opens the existing gift idea editor. Save shows the idea. Back returns to the gift ideas list. |
+| Private lists | The plus opens the existing private list editor. Save shows the new list. Back returns to the private lists overview. |
+| Partner notes | The plus opens the existing private preference dialog after the partner and preferences are available. Save displays the new note on the page. Dismissal and save restore focus to the trigger. |
+
+- Product Reference v1 R5, the Settings and Privacy, Create/Edit and Detail
+  templates, and the existing short preference dialog govern the four flows.
+  The active section and authored content remain the focal points. Each
+  available local creation task has one primary action.
+- Compact uses the shared filled, icon-only plus in a 60 px rounded square
+  with a 16 px radius and a 32 px icon box. Use the existing dock offset,
+  safe areas, touch feedback and matching end-of-content clearance. The
+  localized accessible name identifies the local task. Expanded uses the
+  existing labeled heading action with its contextual icon.
+- Preserve the privacy heading, section navigation, empty and loaded content,
+  and existing loading, error, offline and save feedback. Partner notes use
+  the existing partner availability and owner-only write rules. The dock
+  action yields to an active modal or text field. Reduced motion preserves
+  the same placement, interaction and result.
+- The hub chooser continues to open its existing focused tasks. Checklist
+  item insertion remains attached to its input in the list edit form.
+
+### Reuse, business and verification
+
+Use the existing AddAction link and button, shared CSS safe-area positioning,
+canonical tokens, router destinations, focused editors and preference dialog.
+A second action, per-page geometry or a separate Capacitor control would
+duplicate the existing interaction. No provider or dependency is needed.
+
+No business/freemium impact. The same Free/Core tasks, owner-only boundaries
+and partner requirements apply. The change concerns placement and appearance.
+Cloud and Self-Hosted behavior, entitlements, managed resources, storage,
+retention and data lifecycle remain governed by the existing contracts.
+
+Exercise all four Compact entry points through save and result. Check return
+to each source list, the partner dialog's focus and existing retry behavior,
+single-action placement, both themes, 360/390/430 px, 320 px reflow with
+enlarged text, Expanded labels and reduced motion. Check that the larger
+shared control clears the dock and the last focusable item. Capture
+representative real-browser evidence.
+
+### Private subpage runtime evidence
+
+Chromium captures use synthetic content from implementation revision
+`54195d2296fc09debe6abb56eba16536c81d088e`.
+
+- [Personal Notes at 390 px in Dark](evidence/private-notes-floating-390-dark.png)
+- [Gift Ideas at 390 px in Dark](evidence/private-gifts-floating-390-dark.png)
+- [Private Lists at 390 px in Dark](evidence/private-lists-floating-390-dark.png)
+- [Partner Notes at 390 px in Light](evidence/private-partner-notes-floating-390-light.png)
+- [Personal Notes at 1280 px in Dark](evidence/private-notes-heading-1280-dark.png)
+
+The Compact Android runtime fixture exercises the three direct editor
+entries from an empty list through save, visible result and return to the
+now populated list. The Partner Notes journey exercises save, focus return,
+failed edit and retry in Compact and Expanded. The shared clearance check
+covers the last focusable action, both themes, smaller heights, enlarged
+text and reduced motion.

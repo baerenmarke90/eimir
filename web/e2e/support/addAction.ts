@@ -4,17 +4,21 @@ import type { EimirIconName } from '../../src/components/EimirIcon';
 export async function expectFloatingAddAction(action: Locator, dock: Locator) {
   await expect(action).toBeVisible();
   await expect(action).toHaveCSS('position', 'fixed');
-  await expect(action).toHaveCSS('inline-size', '52px');
-  await expect(action).toHaveCSS('block-size', '52px');
+  await expect(action).toHaveCSS('inline-size', '60px');
+  await expect(action).toHaveCSS('block-size', '60px');
+  await expect(action).toHaveCSS('border-radius', '16px');
   await expect(action.locator('.add-action-label')).toBeHidden();
-  await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
+  const plus = action.locator('.eimir-icon-hinzufuegen');
+  await expect(plus).toBeVisible();
+  await expect(plus).toHaveCSS('inline-size', '32px');
+  await expect(plus).toHaveCSS('block-size', '32px');
   const [button, navigation] = await Promise.all([
     action.boundingBox(),
     dock.boundingBox(),
   ]);
   if (!button || !navigation)
     throw new Error('The add action and bottom navigation must be visible.');
-  expect(button.width).toBeGreaterThanOrEqual(52);
+  expect(button.width).toBeGreaterThanOrEqual(60);
   expect(button.height).toBe(button.width);
   expect(navigation.y - (button.y + button.height)).toBeGreaterThanOrEqual(8);
   expect(button.x + button.width).toBeLessThan(navigation.x + navigation.width);

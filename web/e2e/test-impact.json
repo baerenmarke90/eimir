@@ -540,7 +540,7 @@
         "web/src/components/SettingsPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/MemoryCreatePage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/ProfilePage.tsx",
         "web/src/components/PrivatePartnerNotesPage.tsx",
         "web/src/components/AddAction.tsx",
         "web/src/components/MomentCreateMenu.tsx"
@@ -653,10 +653,12 @@
         "web/src/components/TodayPage.tsx"
       ]
     },
-    "shared-photos.spec.ts": {
+    "media-overview.spec.ts": {
       "roots": [
-        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/MediaOverviewPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/MoreOverviewPage.tsx"
       ]
@@ -682,7 +684,7 @@
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/MilestoneProductPage.tsx",
         "web/src/components/ChaptersOverviewPage.tsx",
-        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/MediaOverviewPage.tsx",
         "web/src/components/StoryYearsPage.tsx"
       ]
     },
@@ -872,7 +874,7 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/MoreOverviewPage.tsx",
-        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/MediaOverviewPage.tsx",
         "web/src/components/ChaptersOverviewPage.tsx",
         "web/src/components/StoryYearsPage.tsx"
       ]
@@ -920,7 +922,7 @@
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/StoryYearsPage.tsx",
         "web/src/components/MoreOverviewPage.tsx",
-        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/MediaOverviewPage.tsx",
         "web/src/components/MediaGallery.tsx",
         "web/src/components/ZoomablePhoto.tsx",
         "web/src/components/DeviceMediaPicker.tsx",

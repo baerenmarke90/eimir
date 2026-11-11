@@ -388,7 +388,7 @@ for (const view of [
         .locator('.more-destination-title-row strong')
         .allTextContents(),
     ).toEqual([
-      de.more.destinations.photos,
+      de.more.destinations.media,
       de.more.destinations.chapters,
       de.more.destinations.years,
       de.more.destinations.recaps,

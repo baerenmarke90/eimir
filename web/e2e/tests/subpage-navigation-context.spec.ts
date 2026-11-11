@@ -32,7 +32,7 @@ const photo = readFileSync(
 );
 
 for (const width of [390, 1280]) {
-  test(`More photo, chapter and year entries retain visible and browser Back at ${width}px`, async ({
+  test(`More media, chapter and year entries retain visible and browser Back at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -46,7 +46,7 @@ for (const width of [390, 1280]) {
       },
       { accountId: ACCOUNT_ID, spaceId: SPACE_ID },
     );
-    await page.route(`**${base}/photos*`, (route) =>
+    await page.route(`**${base}/media*`, (route) =>
       route.fulfill({
         json: { items: [], totalCount: 0, hasMore: false, nextCursor: null },
       }),
@@ -68,7 +68,7 @@ for (const width of [390, 1280]) {
       .click();
     const back = page.getByRole('button', { name: taskCopy.back, exact: true });
     for (const name of [
-      de.more.destinations.photos,
+      de.more.destinations.media,
       de.more.destinations.chapters,
       de.more.destinations.years,
     ]) {

@@ -90,7 +90,7 @@
   "more": {
     "yearsTitle": "Years",
     "destinations": {
-      "photos": "Photos",
+      "media": "Media",
       "chapters": "Chapters",
       "years": "Years",
       "recaps": "Recaps",
@@ -3989,25 +3989,30 @@
     "excluded": "This moment will no longer be suggested to you.",
     "personalHint": "Only your suggestions change. The memory is retained."
   },
-  "sharedPhotos": {
-    "browse": "Photos",
-    "eyebrow": "Remembered together",
-    "title": "Our photos",
-    "description": "From your memories and shared heart moments.",
-    "count_one": "{{count}} photo · Shared",
-    "count_other": "{{count}} photos · Shared",
-    "open": "Open photo {{index}} from {{date}}",
+  "mediaOverview": {
+    "title": "Media",
+    "description": "Photos, videos and voice notes from your entries.",
+    "filterLabel": "Visibility",
+    "count_one": "{{count}} media item",
+    "count_other": "{{count}} media items",
+    "open": {
+      "IMAGE": "Open photo {{index}} from {{date}}",
+      "VIDEO": "Open video {{index}} from {{date}}",
+      "AUDIO": "Open voice note {{index}} from {{date}}"
+    },
     "source": "To moment",
-    "loading": "Loading your photos …",
-    "empty": "Your photos come together here",
-    "emptyBody": "Images from your shared memories and heart moments appear here.",
-    "error": "Your photos could not be loaded",
-    "pageError": "More photos could not be loaded",
+    "planSource": "To plan",
+    "loading": "Loading media …",
+    "empty": "No shared media yet",
+    "emptyBody": "Media from your memories, shared heart moments and plans appear here.",
+    "privateEmpty": "No private media yet",
+    "privateEmptyBody": "Media from entries marked “Only for me” appear here.",
+    "pageError": "More media could not be loaded",
     "retry": "Try again",
-    "more": "Load more photos",
-    "loadingMore": "Loading more photos …",
+    "more": "Load more media",
+    "loadingMore": "Loading more media …",
     "offline": "You are offline",
-    "offlineBody": "Connect to the internet to load your photos."
+    "offlineBody": "Connect to the internet to load media."
   },
   "productTour": {
     "eyebrow": "Quick introduction",
@@ -4204,6 +4209,8 @@
   },
   "voiceNotes": {
     "title": "Voice note",
+    "show": "Reveal voice note",
+    "hide": "Hide voice note",
     "record": "Record",
     "choose": "Choose audio file",
     "recordingTitle": "Record a voice note",

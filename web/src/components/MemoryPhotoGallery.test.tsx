@@ -199,6 +199,7 @@ it('shows a chip only after confirmed persistence and permits removal', async ()
   const chip = await screen.findByRole('button', {
     name: /Liebe: 1 Reaktion.*entfernen/,
   });
+  expect(chip.textContent).toBe('❤️');
   fireEvent.click(chip);
   await waitFor(() =>
     expect(view.container.querySelector('.memory-photo-reactions')).toBeNull(),
@@ -209,6 +210,28 @@ it('shows a chip only after confirmed persistence and permits removal', async ()
     attachmentId: 'photo',
     photoReactionSet: { reaction: null },
   });
+});
+
+it('shows the total for matching reactions', async () => {
+  const { client, memory } = setup(vi.fn());
+  act(() => {
+    client.setQueryData(key, {
+      source: 'network',
+      value: {
+        ...memory,
+        attachments: [
+          {
+            ...memory.attachments[0]!,
+            reactions: [{ reaction: 'LOVE', count: 2, own: true }],
+          },
+        ],
+      },
+    });
+  });
+  const repeated = await screen.findByRole('button', {
+    name: /Liebe: 2 Reaktionen/,
+  });
+  expect(repeated.textContent).toBe('❤️2');
 });
 
 it('retains the previous server state on failure and ignores completion after a context change', async () => {

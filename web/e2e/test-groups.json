@@ -183,7 +183,7 @@
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 72
+      "baselineTests": 75
     },
     "private-token-contrast.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -345,10 +345,10 @@
       "baselineTests": 23,
       "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
-    "shared-photos.spec.ts": {
+    "media-overview.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3,
-      "reason": "Shared photo access, gallery navigation without duplicate controls, More origin return, cache ownership and responsive/accessibility evidence."
+      "baselineTests": 9,
+      "reason": "Media visibility, playback, gallery navigation, More origin return, cache ownership and responsive/accessibility evidence."
     },
     "app-icon-selection.spec.ts": {
       "disposition": "PR_CRITICAL",

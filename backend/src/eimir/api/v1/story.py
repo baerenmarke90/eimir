@@ -17,7 +17,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Response, status
 from pydantic import Field, RootModel
-from sqlalchemy import select
 
 from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, Tenant
@@ -286,22 +285,65 @@ def get_shared_photos(
     """
     response.headers["Cache-Control"] = "private, no-store"
     page = photo_service.read_shared_photos(session, authorization, cursor=cursor, limit=limit)
-    attachments = {
-        attachment.id: attachment
-        for attachment in session.scalars(
-            select(Attachment).where(Attachment.id.in_([row.attachment_id for row in page.items]))
-        )
-    }
     return SharedPhotoPage(
         items=[
             SharedPhoto(
+                parent_type=photo_service.PhotoParentType(row.parent_type),
+                parent_id=row.parent_id,
+                effective_date=row.effective_date,
+                attachment=_attachment_summary(row.attachment),
+            )
+            for row in page.items
+        ],
+        total_count=page.total_count,
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )
+
+
+class MediaGalleryItem(ApiModel):
+    parent_type: photo_service.MediaGalleryParentType
+    parent_id: UUID
+    effective_date: date
+    attachment: AttachmentSummary
+
+
+class MediaGalleryPage(ApiModel):
+    items: list[MediaGalleryItem]
+    total_count: int = Field(ge=0)
+    next_cursor: str | None
+    has_more: bool
+
+
+@router.get(
+    "/spaces/{spaceId}/media",
+    response_model=MediaGalleryPage,
+    operation_id="getMediaGallery",
+    responses=problem_responses(400, 401, 404, 422),
+)
+def get_media_gallery(
+    response: Response,
+    tenant: Tenant,
+    authorization: Authorization,
+    session: DbSession,
+    visibility: Annotated[ContentVisibility, Query()] = ContentVisibility.SHARED,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=photo_service.MAX_LIMIT)] = photo_service.DEFAULT_LIMIT,
+) -> MediaGalleryPage:
+    """Browse ready media bound to shared entries or to the caller's private entries."""
+    response.headers["Cache-Control"] = "private, no-store"
+    page = photo_service.read_media_gallery(
+        session, authorization, visibility=visibility, cursor=cursor, limit=limit
+    )
+    return MediaGalleryPage(
+        items=[
+            MediaGalleryItem(
                 parent_type=row.parent_type,
                 parent_id=row.parent_id,
                 effective_date=row.effective_date,
-                attachment=_attachment_summary(attachments[row.attachment_id]),
+                attachment=_attachment_summary(row.attachment),
             )
             for row in page.items
-            if row.attachment_id in attachments
         ],
         total_count=page.total_count,
         next_cursor=page.next_cursor,

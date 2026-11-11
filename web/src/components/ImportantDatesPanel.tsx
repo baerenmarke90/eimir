@@ -230,6 +230,7 @@ function ImportantDateEditorSheet({
     <div
       ref={backdropRef}
       className="focused-editor-backdrop"
+      data-create-entry={date ? undefined : true}
       role="presentation"
     >
       <section

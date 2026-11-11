@@ -725,8 +725,22 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   expect(addDayStyle.background).not.toBe(addDayStyle.color);
   expect(addDayStyle.width).toBeGreaterThanOrEqual(44);
   expect(addDayStyle.height).toBeGreaterThanOrEqual(44);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.evaluate(() => {
+    document.addEventListener('animationstart', ({ target, animationName }) => {
+      if (
+        target instanceof HTMLElement &&
+        target.matches('.important-date-editor')
+      )
+        target.dataset.e2eEntryAnimation = animationName;
+    });
+  });
   await addDay.click();
   editor = page.locator('.important-date-editor');
+  await expect(editor).toHaveAttribute(
+    'data-e2e-entry-animation',
+    'eimir-create-entry-rise',
+  );
   await editor.getByLabel(importantDates.dateLabel).fill('2026-12-10');
   await editor.getByLabel(importantDates.labelLabel).fill('Winter evening');
   await expect(editor.getByLabel(importantDates.personLabel)).toHaveValue('');
@@ -736,6 +750,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expect(editor).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText('Winter evening');
   await page.keyboard.press('Escape');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
   await capture(page, info, 'occasions-390-light');

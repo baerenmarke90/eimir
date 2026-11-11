@@ -231,3 +231,20 @@ draft handling, sheet dismissal and focus, shared floating size and
 clearance, and absence of a second floating action in child tasks. Review
 Compact at 360, 390 and 430 px, 320 px with enlarged text, Expanded,
 Light/Dark and reduced motion. Capture representative runtime evidence.
+
+### Private Area runtime evidence
+
+Chromium captures use synthetic fixtures from implementation revision
+`9947b71cfb1331aa382323360098facb9b5f05cb`.
+
+- Private overview at 390 px in [Light](evidence/contextual-private-390-light.png) and [Dark](evidence/contextual-private-390-dark.png).
+- The three private create destinations at 390 px in [Light](evidence/contextual-private-chooser-390-light.png) and [Dark](evidence/contextual-private-chooser-390-dark.png).
+- [Private overview in Expanded Web](evidence/contextual-private-1440-dark.png).
+- [Shared 52 px control on the Places overview](evidence/contextual-places-52px-390-dark.png).
+
+The Private Area browser journeys cover the three saves, their resulting
+items and focus on return to the overview. They exercise Escape, history Back,
+and retaining or discarding a draft, with the Android runtime fixture in
+Compact Dark. The resize coverage includes 360, 390 and 430 px, the
+Compact/Expanded boundary, 320 px reflow and enlarged text. Expanded keeps
+the existing label and the privacy heading.

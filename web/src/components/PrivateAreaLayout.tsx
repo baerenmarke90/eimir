@@ -19,53 +19,59 @@ export function PrivateAreaFrame({
   children,
   overviewAction,
   showNavigation = true,
+  editorFirst = false,
 }: {
   children: ReactNode;
   overviewAction?: ReactNode;
   showNavigation?: boolean;
+  editorFirst?: boolean;
 }) {
   const { t } = useTranslation();
+  const navigation = showNavigation ? (
+    <nav
+      className="private-area-nav"
+      aria-label={t('privateArea.navigation.aria')}
+    >
+      <NavLink to={PRIVATE_NOTES_PATH}>
+        {t('privateArea.navigation.notes')}
+      </NavLink>
+      <NavLink to={PRIVATE_GIFT_IDEAS_PATH}>
+        {t('privateArea.navigation.gifts')}
+      </NavLink>
+      <NavLink to={PRIVATE_COLLECTIONS_PATH}>
+        {t('privateArea.navigation.collections')}
+      </NavLink>
+      <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
+        {t('privateArea.partnerNotes.shortTitle')}
+      </NavLink>
+    </nav>
+  ) : null;
   return (
     <div className="page private-area-page">
-      <section
-        className="private-area-context"
-        aria-label={t('privateArea.privacyLabel')}
-      >
-        <div className="private-area-header-info">
-          <h1 className="private-area-title-row">
-            <EimirIcon name="nurfuer" className="private-area-lock-icon" />
-            {t('privateArea.eyebrow')}
-          </h1>
-          <p className="private-area-intro-text">
-            {t(
-              showNavigation
-                ? 'privateArea.intro'
-                : 'privateArea.entry.privacy',
-            )}
-          </p>
-        </div>
-        {overviewAction}
-      </section>
-      {showNavigation ? (
-        <nav
-          className="private-area-nav"
-          aria-label={t('privateArea.navigation.aria')}
+      {editorFirst ? null : (
+        <section
+          className="private-area-context"
+          aria-label={t('privateArea.privacyLabel')}
         >
-          <NavLink to={PRIVATE_NOTES_PATH}>
-            {t('privateArea.navigation.notes')}
-          </NavLink>
-          <NavLink to={PRIVATE_GIFT_IDEAS_PATH}>
-            {t('privateArea.navigation.gifts')}
-          </NavLink>
-          <NavLink to={PRIVATE_COLLECTIONS_PATH}>
-            {t('privateArea.navigation.collections')}
-          </NavLink>
-          <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
-            {t('privateArea.partnerNotes.shortTitle')}
-          </NavLink>
-        </nav>
-      ) : null}
+          <div className="private-area-header-info">
+            <h1 className="private-area-title-row">
+              <EimirIcon name="nurfuer" className="private-area-lock-icon" />
+              {t('privateArea.eyebrow')}
+            </h1>
+            <p className="private-area-intro-text">
+              {t(
+                showNavigation
+                  ? 'privateArea.intro'
+                  : 'privateArea.entry.privacy',
+              )}
+            </p>
+          </div>
+          {overviewAction}
+        </section>
+      )}
+      {!editorFirst && navigation}
       {children}
+      {editorFirst && navigation}
     </div>
   );
 }

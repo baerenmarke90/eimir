@@ -34,7 +34,7 @@ def test_annual_selection_is_stable_and_distributed_across_the_whole_year() -> N
     ]
     first = select_candidates(items, RecapKind.YEAR, "space:year", 0)
     assert first == select_candidates(list(reversed(items)), RecapKind.YEAR, "space:year", 0)
-    assert len(first) == 8 and len({v.occurred_on.month for v in first}) == 8
+    assert len(first) == 24 and len({v.occurred_on.month for v in first}) == 12
     assert first != select_candidates(items, RecapKind.YEAR, "space:year", 1)
 
 
@@ -177,11 +177,11 @@ def test_local_model_accepts_a_valid_bounded_narration(monkeypatch):  # type: ig
 def test_an_alternative_differs_when_distinct_source_kinds_have_no_ties() -> None:
     items = [
         Candidate(kind, UUID(int=index + 1), date(2026, 10, index + 1), 1)
-        for index, kind in enumerate(RecapSourceKind)
+        for index, kind in enumerate([*RecapSourceKind, *RecapSourceKind])
     ]
     baseline = select_candidates(items, RecapKind.MONTH, "space:month", 0)
     alternate = select_candidates(items, RecapKind.MONTH, "space:month", 1)
-    assert len(baseline) == len(alternate) == 3
+    assert len(baseline) == len(alternate) == 8
     assert baseline != alternate
 
 

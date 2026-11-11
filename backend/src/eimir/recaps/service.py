@@ -31,7 +31,7 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
-from eimir.recaps.composition import Candidate, period_bounds
+from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
     RecapKind,
@@ -193,6 +193,45 @@ def candidates(
         )
         for i in result
     ]
+
+
+def facts(
+    session: Session, context: AuthorizationContext, value: RecapEdition
+) -> dict[str, Any] | None:
+    """Counted shared entries of the frozen period; never an inferred relationship claim."""
+    source = _metadata(context)
+    within = (source.c.day <= value.through_on, source.c.through >= value.starts_on)
+    day = func.greatest(source.c.day, value.starts_on)
+    counts = {
+        kind: total
+        for kind, total in session.execute(
+            select(source.c.kind, func.count()).where(*within).group_by(source.c.kind)
+        )
+    }
+    if not counts:
+        return None
+    busiest = None
+    if value.kind == RecapKind.YEAR.value:
+        month = func.extract("month", day)
+        leading = session.execute(
+            select(month, func.count())
+            .where(*within)
+            .group_by(month)
+            .order_by(func.count().desc(), month)
+            .limit(2)
+        ).all()
+        # A tie or a single entry is not a meaningful "most active month".
+        if leading[0][1] > 1 and (len(leading) == 1 or leading[0][1] > leading[1][1]):
+            busiest = int(leading[0][0])
+    return {
+        "memories": counts.get(RecapSourceKind.MEMORY.value, 0),
+        "heart_moments": counts.get(RecapSourceKind.HEART_MOMENT.value, 0),
+        "milestones": counts.get(RecapSourceKind.MILESTONE.value, 0),
+        "chapters": counts.get(RecapSourceKind.CHAPTER.value, 0),
+        "plans": counts.get(RecapSourceKind.PLAN.value, 0),
+        "active_days": session.scalar(select(func.count(func.distinct(day))).where(*within)) or 0,
+        "busiest_month": busiest,
+    }
 
 
 def periods(session: Session, context: AuthorizationContext, today: date) -> list[dict[str, Any]]:
@@ -547,6 +586,7 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
             "headline": value.payload.headline if unchanged else None,
             "introduction": value.payload.introduction if unchanged else None,
             "sources": sources,
+            "facts": facts(session, context, value) if value.status == "READY" else None,
             "reflections": [
                 {
                     "id": n.id,
@@ -654,7 +694,11 @@ def replace_sources(
                         item["version"],
                     )
             break
-    if len(keys) > 12 or len(set(keys)) != len(keys) or any(key not in existing for key in keys):
+    if (
+        len(keys) > MANUAL_SELECTION_LIMIT
+        or len(set(keys)) != len(keys)
+        or any(key not in existing for key in keys)
+    ):
         raise ValidationError(
             "Only eligible shared period sources can be selected.", ErrorCode.VALIDATION_FAILED
         )

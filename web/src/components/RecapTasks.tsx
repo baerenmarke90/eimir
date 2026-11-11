@@ -7,7 +7,7 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
-import { recapDate } from '../client/recaps';
+import { RECAP_SELECTION_LIMIT, recapDate } from '../client/recaps';
 import { recapDetailPath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -137,7 +137,7 @@ export function RecapTasks({
           pending ||
           !selection.data ||
           base.savedAt !== null ||
-          keys.length > 12
+          keys.length > RECAP_SELECTION_LIMIT
         }
         onClick={() =>
           void perform(() =>
@@ -266,7 +266,9 @@ export function RecapTasks({
                     type="checkbox"
                     checked={keys.includes(item.key)}
                     disabled={
-                      pending || (!keys.includes(item.key) && keys.length >= 12)
+                      pending ||
+                      (!keys.includes(item.key) &&
+                        keys.length >= RECAP_SELECTION_LIMIT)
                     }
                     onChange={(event) =>
                       setKeys((current) =>

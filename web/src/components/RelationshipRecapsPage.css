@@ -137,7 +137,13 @@
   text-decoration: none;
 }
 .recap-archive {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-4);
   margin-block-start: var(--space-10);
+}
+.recap-archive > h2 {
+  grid-column: 1 / -1;
 }
 .recap-archive > h2,
 .recap-available h2 {
@@ -146,14 +152,11 @@
 }
 .recap-archive .recap-cover {
   display: grid;
-  grid-template-columns: 6rem minmax(0, 1fr);
-  gap: var(--space-4);
-  padding-block: var(--space-4);
-  border-block-end: 1px solid var(--color-border-subtle);
+  align-content: start;
+  gap: var(--space-3);
 }
 .recap-archive .recap-cover-art {
-  border-radius: var(--radius-medium);
-  align-self: start;
+  border-radius: var(--radius-card);
   aspect-ratio: 0.8;
 }
 .recap-archive .recap-cover-copy {
@@ -170,11 +173,8 @@
   display: none;
 }
 .recap-archive .recap-edition-mark {
-  inset-block-start: auto;
-  inset-block-end: var(--space-2);
-  inset-inline: var(--space-2);
-  text-align: center;
-  padding: var(--space-1);
+  inset-inline-end: var(--space-3);
+  inset-block-start: var(--space-3);
 }
 .recap-text-link,
 .recap-text-button {
@@ -299,7 +299,16 @@
   }
 }
 .recap-spread {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   min-block-size: 26rem;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-surface-raised);
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
 }
 .recap-spread h1 {
   font: var(--font-personal-heading);
@@ -311,16 +320,22 @@
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
 }
-.recap-reader-photo {
-  aspect-ratio: 1.15;
+.recap-scene-media,
+.recap-mosaic-cell {
   overflow: hidden;
-  border-radius: var(--radius-large);
-  margin-block: var(--space-6);
   background: var(--color-shared-surface);
 }
-.recap-reader-photo .story-media-preview,
-.recap-reader-photo .story-media-skeleton,
-.recap-reader-photo .story-media-placeholder {
+.recap-scene-media > *,
+.recap-mosaic-cell > * {
+  position: absolute;
+  inset: 0;
+}
+.recap-scene-media .story-media-preview,
+.recap-scene-media .story-media-skeleton,
+.recap-scene-media .story-media-placeholder,
+.recap-mosaic-cell .story-media-preview,
+.recap-mosaic-cell .story-media-skeleton,
+.recap-mosaic-cell .story-media-placeholder {
   display: block;
   inline-size: 100%;
   block-size: 100%;
@@ -349,23 +364,15 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-block: var(--space-6);
+  margin-block: var(--space-4) var(--space-2);
   font: var(--font-supporting-copy);
 }
-.recap-page-controls button {
-  min-inline-size: 52px;
-}
-@container product-content (max-width: 30rem) {
-  .recap-page-controls {
-    flex-wrap: wrap;
-  }
-  .recap-playback-center {
-    order: -1;
-    flex: 1 0 100%;
-  }
-  .recap-page-controls > button {
-    flex: 1;
-  }
+.recap-page-controls > button {
+  flex: none;
+  inline-size: 48px;
+  block-size: 48px;
+  padding: 0;
+  border-radius: var(--radius-pill);
 }
 .recap-reader-tools {
   display: flex;
@@ -455,9 +462,6 @@
     align-self: center;
     padding: var(--space-6);
   }
-  .recap-reader-photo {
-    max-block-size: 24rem;
-  }
   .recap-spread {
     min-block-size: 30rem;
   }
@@ -466,16 +470,16 @@
   .recap-spread {
     animation: recap-page-enter var(--duration-context) var(--easing-enter);
   }
-  .recap-reader-photo img {
+  .recap-scene-media img {
     animation: recap-photo-drift var(--recap-dwell) var(--easing-playback) both;
     animation-play-state: paused;
   }
-  .recap-reader[data-playing="true"] .recap-reader-photo img {
+  .recap-reader[data-playing="true"] .recap-scene-media img {
     animation-play-state: running;
   }
   @keyframes recap-photo-drift {
     to {
-      transform: scale(1.04);
+      transform: scale(1.08);
     }
   }
   @keyframes recap-page-enter {
@@ -528,4 +532,186 @@
   .recap-cover-featured .recap-cover-art {
     aspect-ratio: auto;
   }
+}
+
+/* Immersive reader: one full-height stage per typed scene (#1744). */
+.page.recap-reader {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100dvh;
+}
+.recap-reader .recap-progress {
+  margin-block: var(--space-3) var(--space-4);
+}
+.recap-scene-copy {
+  position: relative;
+  padding: var(--space-5);
+}
+.recap-scene-copy > :first-child {
+  margin-block-start: 0;
+}
+.recap-scene-copy > :last-child {
+  margin-block-end: 0;
+}
+.recap-mosaic {
+  flex: 1 1 14rem;
+  min-block-size: 14rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+.recap-mosaic[data-count="1"] {
+  grid-template-columns: 1fr;
+}
+.recap-mosaic[data-count="2"] {
+  grid-template-columns: 1fr 1fr;
+}
+.recap-mosaic[data-count="3"] > :first-child {
+  grid-row: span 2;
+}
+.recap-mosaic[data-count="4"] > :first-child {
+  grid-row: span 3;
+}
+.recap-mosaic-cell {
+  position: relative;
+  min-block-size: 0;
+}
+.recap-scene-media {
+  position: absolute;
+  inset: 0;
+}
+.recap-layout-photo {
+  justify-content: flex-end;
+  color: var(--color-text-inverse);
+  background: var(--color-media-scrim-strong);
+}
+.recap-layout-photo .recap-scene-copy {
+  padding-block-start: var(--space-12);
+  background: linear-gradient(
+    to top,
+    var(--color-media-scrim-strong) 35%,
+    var(--color-media-scrim-mid) 75%,
+    var(--color-media-scrim-clear)
+  );
+  pointer-events: none;
+}
+.recap-layout-photo h1 {
+  color: inherit;
+}
+.recap-layout-photo .recap-scene-copy a {
+  pointer-events: auto;
+  color: var(--color-text-inverse);
+}
+.recap-layout-photo .eyebrow,
+.recap-layout-photo .recap-original-text {
+  color: var(--color-text-inverse-muted);
+}
+.recap-layout-photo .recap-original-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.recap-layout-words,
+.recap-layout-title,
+.recap-scene-facts {
+  justify-content: center;
+  background: var(--color-shared-surface);
+}
+.recap-layout-words h1 {
+  quotes: auto;
+  font-size: clamp(1.75rem, 8vw, 2.5rem);
+  line-height: 1.2;
+}
+.recap-layout-words h1::before {
+  content: open-quote;
+}
+.recap-layout-words h1::after {
+  content: close-quote;
+}
+.recap-scene-emblem {
+  padding: var(--space-5) var(--space-5) 0;
+  color: var(--color-shared);
+}
+.recap-scene-emblem svg {
+  inline-size: 3rem;
+  block-size: 3rem;
+}
+.recap-facts {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  padding: 0;
+  list-style: none;
+}
+.recap-facts li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+.recap-facts strong {
+  min-inline-size: 2ch;
+  font: var(--font-personal-heading);
+  font-size: clamp(2.5rem, 13vw, 4rem);
+  line-height: 1;
+  color: var(--color-brand-strong);
+  font-variant-numeric: tabular-nums;
+}
+.recap-facts span,
+.recap-facts-busiest {
+  font: var(--font-section-heading);
+}
+.recap-gesture-hint {
+  display: none;
+  margin: 0;
+  text-align: center;
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+@media (pointer: coarse) {
+  .recap-gesture-hint {
+    display: block;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .recap-facts li {
+    animation: recap-page-enter var(--duration-context) var(--easing-enter) both;
+    animation-delay: calc(var(--recap-index) * var(--duration-feedback));
+  }
+}
+
+/* On photography the playback toggle sits on the picture like a video control. */
+.recap-mosaic {
+  position: relative;
+}
+.recap-playback-overlay {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  z-index: 2;
+  inline-size: 72px;
+  block-size: 72px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  color: var(--color-text-inverse);
+  background: var(--color-media-scrim-strong);
+  font-size: 1.75rem;
+  transition: opacity var(--duration-feedback) var(--easing-enter);
+}
+.recap-layout-photo > .recap-playback-overlay {
+  inset-block-start: 36%;
+}
+.recap-playback-overlay[data-playing="true"] {
+  opacity: 0;
+}
+.recap-playback-overlay[data-playing="true"]:hover,
+.recap-playback-overlay[data-playing="true"]:focus-visible {
+  opacity: 1;
+}
+.recap-page-controls[data-native="true"] {
+  justify-content: center;
+}
+.recap-gesture-hint[data-native="true"] {
+  display: block;
 }

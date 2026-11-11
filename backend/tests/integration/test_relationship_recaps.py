@@ -270,7 +270,9 @@ def test_year_uses_full_period_and_auto_prepare_queues_current_periods(client, s
     generate(session, context, annual)
     result = read(client, context, annual).json()
     assert result["startsOn"] == "2026-01-01"
-    assert len({item["occurredOn"][:7] for item in result["sources"]}) == 8
+    assert len({item["occurredOn"][:7] for item in result["sources"]}) == 10
+    assert result["facts"]["memories"] == 10 and result["facts"]["activeDays"] == 10
+    assert result["facts"]["busiestMonth"] is None
     assert request(client, context, month=12).status_code == 422
 
 

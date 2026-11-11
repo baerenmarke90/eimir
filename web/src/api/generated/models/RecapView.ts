@@ -27,6 +27,13 @@ import {
     RecapDraftViewToJSON,
     RecapDraftViewToJSONTyped,
 } from './RecapDraftView';
+import type { RecapFactsView } from './RecapFactsView';
+import {
+    RecapFactsViewFromJSON,
+    RecapFactsViewFromJSONTyped,
+    RecapFactsViewToJSON,
+    RecapFactsViewToJSONTyped,
+} from './RecapFactsView';
 import type { RecapSourceView } from './RecapSourceView';
 import {
     RecapSourceViewFromJSON,
@@ -102,6 +109,12 @@ export interface RecapView {
      * @memberof RecapView
      */
     ownDraft: RecapDraftView | null;
+    /**
+     * 
+     * @type {RecapFactsView}
+     * @memberof RecapView
+     */
+    facts?: RecapFactsView | null;
     /**
      * 
      * @type {Array<RecapReflectionView>}
@@ -210,6 +223,7 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'locale': json['locale'],
         'month': json['month'] == null ? undefined : json['month'],
         'ownDraft': RecapDraftViewFromJSON(json['ownDraft']),
+        'facts': json['facts'] == null ? undefined : RecapFactsViewFromJSON(json['facts']),
         'reflections': ((json['reflections'] as Array<any>).map(RecapReflectionViewFromJSON)),
         'savedAt': (json['savedAt'] == null ? null : new Date(json['savedAt'])),
         'sources': ((json['sources'] as Array<any>).map(RecapSourceViewFromJSON)),
@@ -243,6 +257,7 @@ export function RecapViewToJSONTyped(value?: RecapView | null, ignoreDiscriminat
         'locale': value['locale'],
         'month': value['month'],
         'ownDraft': RecapDraftViewToJSON(value['ownDraft']),
+        'facts': RecapFactsViewToJSON(value['facts']),
         'reflections': ((value['reflections'] as Array<any>).map(RecapReflectionViewToJSON)),
         'savedAt': value['savedAt'] == null ? value['savedAt'] : value['savedAt'].toISOString(),
         'sources': ((value['sources'] as Array<any>).map(RecapSourceViewToJSON)),

@@ -8840,6 +8840,57 @@
         "title": "RecapDraftView",
         "type": "object"
       },
+      "RecapFactsView": {
+        "description": "Counted shared entries of the edition period.",
+        "properties": {
+          "activeDays": {
+            "title": "Activedays",
+            "type": "integer"
+          },
+          "busiestMonth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Busiestmonth"
+          },
+          "chapters": {
+            "title": "Chapters",
+            "type": "integer"
+          },
+          "heartMoments": {
+            "title": "Heartmoments",
+            "type": "integer"
+          },
+          "memories": {
+            "title": "Memories",
+            "type": "integer"
+          },
+          "milestones": {
+            "title": "Milestones",
+            "type": "integer"
+          },
+          "plans": {
+            "title": "Plans",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "memories",
+          "heartMoments",
+          "milestones",
+          "chapters",
+          "plans",
+          "activeDays",
+          "busiestMonth"
+        ],
+        "title": "RecapFactsView",
+        "type": "object"
+      },
       "RecapKind": {
         "enum": [
           "MONTH",
@@ -9016,7 +9067,7 @@
             "items": {
               "type": "string"
             },
-            "maxItems": 12,
+            "maxItems": 24,
             "title": "Sourcekeys",
             "type": "array"
           }
@@ -9159,6 +9210,16 @@
       },
       "RecapView": {
         "properties": {
+          "facts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapFactsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "generatedAt": {
             "anyOf": [
               {

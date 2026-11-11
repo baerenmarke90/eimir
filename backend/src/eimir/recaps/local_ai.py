@@ -7,7 +7,7 @@ import re
 from ipaddress import ip_address
 from threading import BoundedSemaphore
 from time import monotonic
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 import httpx
@@ -23,23 +23,28 @@ class Narration(BaseModel):
     source_keys: list[str] = Field(min_length=1, max_length=8)
 
 
-def usable_narration(result: Narration, evidence: list[dict[str, Any]]) -> bool:
-    """Conservative editorial checks, not a claim of semantic fact verification."""
+def narration_problem(result: Narration, evidence: list[dict[str, Any]]) -> str | None:
+    """The first editorial rule a narration breaks, worded as feedback for one retry.
+
+    Conservative checks, not a claim of semantic fact verification.
+    """
     sources = {item["key"]: item for item in evidence}
     if len(set(result.source_keys)) != len(result.source_keys) or any(
         key not in sources for key in result.source_keys
     ):
-        return False
+        return "Cite each supplied source key at most once and no other key."
     prose = result.title + " " + result.introduction
     if not result.title.strip() or not result.introduction.strip():
-        return False
-    if len(result.title.split()) > 10 or len(result.introduction.split()) > 40:
-        return False
+        return "Title and introduction must both contain words."
+    if len(result.title.split()) > 10:
+        return "The title has more than 10 words."
+    if len(result.introduction.split()) > 40:
+        return "The introduction has more than 40 words."
     sentences = re.split(r"[.!?]+(?:\s+|$)", result.introduction.strip())
     if len([sentence for sentence in sentences if sentence.strip()]) > 2:
-        return False
+        return "The introduction has more than two sentences."
     if any(token in prose for token in ("http:", "https:", "<", ">", "\n")):
-        return False
+        return "Do not use URLs, markup or line breaks."
     # A source identifier or calendar envelope is not evidence for a factual
     # number in the prose. Only the cited original wording can supply it.
     originals = " ".join(
@@ -48,10 +53,16 @@ def usable_narration(result: Narration, evidence: list[dict[str, Any]]) -> bool:
         for field in ("title", "excerpt")
     )
     if not set(re.findall(r"\d+", prose)) <= set(re.findall(r"\d+", originals)):
-        return False
+        return "Use only numbers that appear in the wording of the cited sources."
     words = re.findall(r"\w+", result.introduction.casefold())
     phrases = [tuple(words[index : index + 4]) for index in range(len(words) - 3)]
-    return len(phrases) == len(set(phrases))
+    if len(phrases) != len(set(phrases)):
+        return "The introduction repeats a phrase."
+    return None
+
+
+def usable_narration(result: Narration, evidence: list[dict[str, Any]]) -> bool:
+    return narration_problem(result, evidence) is None
 
 
 def validate_local_url(value: str) -> str:
@@ -133,14 +144,30 @@ def compose(evidence: list[dict[str, Any]], locale: str, period: str) -> Narrati
             {"role": "user", "content": packet},
         ],
     }
-    output = query_structured(body)
-    if output is None:
-        return None
-    try:
-        result = Narration.model_validate_json(output["message"]["content"])
-        return result if usable_narration(result, evidence) else None
-    except (ValueError, KeyError, TypeError, ValidationError, RecursionError):
-        return None
+    # One retry carries the rejected rule back; transport failures are not retried.
+    for attempt in range(2):
+        output = query_structured(body)
+        if output is None:
+            return None
+        problem = "Return exactly the requested JSON schema."
+        try:
+            result = Narration.model_validate_json(output["message"]["content"])
+            problem = narration_problem(result, evidence) or ""
+            if not problem:
+                return result
+        except (ValueError, KeyError, TypeError, ValidationError, RecursionError):
+            pass
+        if attempt == 0:
+            # Only the fixed rule wording is fed back; the rejected draft is not echoed.
+            body["messages"] = [
+                *cast(list[dict[str, str]], body["messages"]),
+                {
+                    "role": "user",
+                    "content": f"Your previous answer was rejected: {problem} "
+                    "Answer again for the same sources and follow every rule.",
+                },
+            ]
+    return None
 
 
 _INFERENCE_SLOTS = BoundedSemaphore(2)

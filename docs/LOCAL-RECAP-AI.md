@@ -53,7 +53,8 @@ third-party reactions, inferred day-long emotions, superlatives and filler.
 The parser rejects overlong/blank/multiline copy, repeated four-word phrases,
 duplicate or unknown source references, and numeric claims absent from the cited
 original wording. Source dates and identifiers cannot justify numbers in prose.
-Rejected copy uses the complete rules fallback with no extra inference retry.
+Rejected copy gets one retry with the broken rule as feedback and otherwise
+uses the complete rules fallback.
 These checks constrain known failure modes; they are not semantic fact checking,
 and a short false claim can still pass. Assess real German model output on the
 operator's host. The model and hardware requirements have not changed.
@@ -136,6 +137,11 @@ a request: newest first, six per batch, continued every two minutes by one
 inference load for couples with a long history. The same runs retain a completed
 month or year seven days after it ends. Saved editions are not overwritten. Current periods
 are explicitly partial; annual selection uses the entire calendar interval.
+
+A rejected narration is retried once with the broken rule as feedback, so one
+job may spend up to twice `EIMIR_RECAP_AI_TIMEOUT_SECONDS` on inference. After a
+source edit, an unretained automatic proposal shows the factual template at once
+and is rewritten by one `recap.generate.v1` job delayed by ten minutes.
 
 ## Verification and rollback
 

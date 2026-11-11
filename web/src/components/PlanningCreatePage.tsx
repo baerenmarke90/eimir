@@ -113,9 +113,12 @@ export function PlanningCreatePage({
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { requestReturn } = useTaskOrigin();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
+  const [defaultPlannedDate] = useState(() =>
+    kind === 'plan' ? resolveOrigin(originKey)?.planningCreateDate : undefined,
+  );
   const headingRef = useRef<HTMLDivElement>(null);
   const discardRef = useRef<ShortTaskSheetHandle>(null);
   const referenceApis = useMemo(
@@ -479,6 +482,7 @@ export function PlanningCreatePage({
                 formId="planning-create-form"
                 disabled={pending || parentSaved}
                 idPrefix="planning-create-schedule"
+                defaultDate={defaultPlannedDate}
                 includeEnd
               />
               {chosenPlace ? (

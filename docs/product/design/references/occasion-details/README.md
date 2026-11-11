@@ -52,3 +52,15 @@ labels. The image illustrates hierarchy, density and placement.
 > Use case: ui-mockup. Edit image 1, the two dark eimir. Anlässe smartphone views. Use image 2 solely as the reference for the current four-destination navigation. Keep the phone framing, colors, arrangement, type, row contents, date line, and all bottom sheet elements. Correct the lower area of the left viewport. The dock contains exactly four equally spaced icon/label destinations “Wir”, “Momente”, “Planen”, “Mehr”. Planen is selected. The blue circular plus is separate, floating at the lower right immediately above the dock with an 18px gap and 18px right inset. Remove the central dock plus. Under “Vergangen”, place one subordinate “Dezember 2026” group label and one row with number “10”, sparkle icon, title “Winterabend”, and chevron. Leave the right viewport and the bottom sheet visually identical.
 
 </details>
+
+## Runtime evidence
+
+The Chromium journey uses synthetic records and a local date of February 28,
+2027 west of UTC. It verifies a leap-day anniversary, the relative day labels,
+the past group, private-date action availability, the relationship-setting
+return, and the new Plan's date-only save and return.
+
+- [Agenda in Compact Dark](evidence/agenda-390-dark.webp)
+- [Anniversary detail in Compact Dark](evidence/reader-390-dark.webp)
+- [Plan composer with its prefilled day](evidence/plan-composer-390-dark.webp)
+- [Anniversary detail in Expanded Light](evidence/reader-1280-light.webp)

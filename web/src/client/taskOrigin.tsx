@@ -34,12 +34,14 @@ export interface TaskOriginMetadata {
   /** Restores a Search origin's submitted query/type without ever putting it in the URL. */
   searchQuery?: string;
   searchKind?: string;
-  /** Restores the Plans/Wishes peer mode without publishing it in the URL. */
+  /** Restores the Planning peer mode without publishing it in the URL. */
   planningSegment?: 'plans' | 'wishes' | 'dates';
   planningWishStatus?: 'OPEN' | 'COMPLETED';
   planningPlanStatus?: 'OPEN' | 'COMPLETED';
   planningPlanSearch?: string;
   planningWishSearch?: string;
+  /** Date-only default for a new Plan started from a shared occasion. */
+  planningCreateDate?: string;
   /** Bounded, account/Space-scoped map return context; never persisted or logged. */
   memoryMap?: {
     placeId: string | null;
@@ -264,6 +266,7 @@ export function TaskOriginProvider({
         planningPlanStatus: snapshot.planningPlanStatus,
         planningPlanSearch: snapshot.planningPlanSearch,
         planningWishSearch: snapshot.planningWishSearch,
+        planningCreateDate: snapshot.planningCreateDate,
         memoryMap: snapshot.memoryMap,
         taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,
         historyIndex: Number.isInteger(currentState?.idx)

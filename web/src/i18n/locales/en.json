@@ -1692,6 +1692,9 @@
   },
   "importantDates": {
     "heading": "Occasions",
+    "past": "Past",
+    "editRelationshipStart": "Change relationship start date",
+    "createPlan": "Create plan",
     "intro": "Capture birthdays, anniversaries and other special days together or just for yourself.",
     "createTitle": "Special date",
     "editTitle": "Change special day",
@@ -1724,6 +1727,7 @@
     "linkedPerson": "For {{name}}",
     "partnerBirthdayLabel": "{{name}}'s birthday",
     "partnerBirthdayProfileSource": "From {{name}}'s profile",
+    "openBirthdayProfile": "View {{name}}'s profile",
     "edit": "Edit",
     "delete": "Delete",
     "deleteQuestion": "Really delete this special day?",

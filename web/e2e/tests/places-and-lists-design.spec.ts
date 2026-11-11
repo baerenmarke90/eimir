@@ -6,6 +6,7 @@ import navigation from '../../src/i18n/locales/navigation';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixture from '../fixtures/locales/de';
 import {
+  expectFloatingAddAction,
   expectInlineAddLayout,
   expectLabeledAddAction,
   expectOverviewActionPlacement,
@@ -226,20 +227,21 @@ async function openOverview(page: Page, kind: 'places' | 'collections') {
     name: kind === 'places' ? m5s3.place.create : m5s3.collection.create,
     exact: true,
   });
-  await expectLabeledAddAction(action, kind === 'places' ? 'orte' : 'listen');
-  const [heading, control, content] = await Promise.all([
-    page.locator('h1').boundingBox(),
-    action.boundingBox(),
-    page
-      .locator(
-        kind === 'places' ? '.planen-status-scope' : '.content-overview-list',
-      )
-      .boundingBox(),
-  ]);
-  if (!heading || !control || !content)
-    throw new Error('Overview heading, add action and content must be visible');
-  await expectOverviewActionPlacement(action);
-  expect(control.y + control.height).toBeLessThanOrEqual(content.y);
+  const dock = page.locator('.mobile-bottom-shell');
+  const icon = kind === 'places' ? 'orte' : 'listen';
+  if (await dock.isVisible()) {
+    await expectFloatingAddAction(action, dock);
+    await expect(action.locator(`.eimir-icon-${icon}`)).toBeHidden();
+  } else {
+    await expectLabeledAddAction(action, icon);
+    await expectOverviewActionPlacement(action);
+    const [control, scope] = await Promise.all([
+      action.boundingBox(),
+      page.locator('.planen-status-scope').boundingBox(),
+    ]);
+    if (!control || !scope) throw new Error('Missing overview controls');
+    expect(control.y + control.height).toBeLessThanOrEqual(scope.y);
+  }
 }
 
 for (const scenario of [
@@ -388,8 +390,19 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('h1')).toHaveText('Unser Volkspark');
   await page.getByRole('button', { name: taskBoundary.back }).click();
-  await page.getByRole('button', { name: m5s3.place.create }).click();
+  await page.getByRole('button', { name: m5s3.place.scopeALL }).click();
+  const createPlace = page.getByRole('button', {
+    name: m5s3.place.create,
+    exact: true,
+  });
+  await createPlace.press('Enter');
   dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(createPlace).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(createPlace).toBeFocused();
+  await createPlace.click();
   await dialog.getByLabel(m5s3.place.name, { exact: true }).fill('Unser Café');
   await captureScreenshot(page, testInfo, 'place-create-390-light.png');
   await dialog
@@ -398,6 +411,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(page.locator('h1')).toHaveText('Unser Café');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: taskBoundary.back }).click();
+  await expect(page).toHaveURL(/\/more\/places\?scope=ALL$/);
   await expect(page.getByRole('link', { name: /Unser Café/ })).toBeVisible();
 
   await openOverview(page, 'collections');
@@ -491,10 +505,15 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .last()
     .click();
   await page.locator('a[href="/more/collections"]').click();
-  await page
-    .getByRole('button', { name: m5s3.collection.create, exact: true })
-    .click();
+  await page.getByRole('button', { name: m5s3.collection.scope.ALL }).click();
+  const createList = page.getByRole('button', {
+    name: m5s3.collection.create,
+    exact: true,
+  });
+  await createList.click();
   dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(createList).toBeHidden();
   await dialog.getByLabel(m5s3.common.title, { exact: true }).fill('Draft');
   await dialog
     .getByRole('button', { name: de.common.cancel, exact: true })
@@ -511,10 +530,9 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await page
     .getByRole('button', { name: m5s3.common.discardConfirm, exact: true })
     .click();
-  await expect(page).toHaveURL(/\/more\/collections$/);
-  await page
-    .getByRole('button', { name: m5s3.collection.create, exact: true })
-    .click();
+  await expect(page).toHaveURL(/\/more\/collections\?scope=ALL$/);
+  await expect(createList).toBeFocused();
+  await createList.click();
   dialog = page.getByRole('dialog');
   await dialog
     .getByLabel(m5s3.common.title, { exact: true })
@@ -524,11 +542,8 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .click();
   await expect(page.locator('h1')).toHaveText('Unser Wochenende');
   await captureScreenshot(page, testInfo, 'list-created-390-light.png');
-  await page
-    .getByRole('link', { name: navigation.more, exact: true })
-    .last()
-    .click();
-  await page.locator('a[href="/more/collections"]').click();
+  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await expect(page).toHaveURL(/\/more\/collections\?scope=ALL$/);
   await expect(
     page.getByRole('link', { name: /Unser Wochenende/ }),
   ).toBeVisible();

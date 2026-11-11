@@ -156,6 +156,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 1
     },
+    "plan-files.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Plan-owned PDF create/edit, retry, browser download and native runtime viewer handoff."
+    },
     "plan-inline-place-create.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6

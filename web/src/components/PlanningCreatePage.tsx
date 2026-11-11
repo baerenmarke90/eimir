@@ -4,7 +4,12 @@ import { ComposerToolRow, ComposerTool, ComposerChip } from './PageComposer';
 import { PlanWishLink } from './PlanWishLink';
 import { planningIfMatch } from '../client/sharedPlanning';
 import './PagePlanComposer.css';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  onlineManager,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
@@ -12,6 +17,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
@@ -20,7 +26,7 @@ import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { assertOnlineWrite } from '../client/connectivity';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import {
   type CreateRequestAttempt,
   submitCreateRequest,
@@ -38,6 +44,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { usePlanFileDrafts } from '../client/usePlanFileDrafts';
 import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
@@ -49,6 +56,7 @@ import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { EimirIcon } from './EimirIcon';
+import { PlanFilesEditor } from './PlanFiles';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import {
   PlanScheduleFields,
@@ -69,6 +77,7 @@ interface PlanningCreateValues {
   readonly placeId?: string;
   readonly schedule?: PlanSchedule;
   readonly attachments?: AttachmentEntry[];
+  readonly fileAttachmentIds?: string[];
 }
 
 interface PlanningCreateSnapshot {
@@ -121,6 +130,20 @@ export function PlanningCreatePage({
     accountId: accountId ?? '',
   });
   const clearPhotos = photos.clear;
+  const files = usePlanFileDrafts({
+    apis: referenceApis,
+    apiBaseUrl: apiBaseUrl ?? '',
+    accessToken: accessToken ?? '',
+    spaceId,
+    accountId: accountId ?? '',
+    resourceKey: kind,
+  });
+  const clearFiles = files.clear;
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    isClientOnline,
+    () => true,
+  );
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [placeId, setPlaceId] = useState('');
@@ -128,6 +151,9 @@ export function PlanningCreatePage({
   const placeTrigger = useRef<HTMLButtonElement>(null);
   const listTrigger = useRef<HTMLButtonElement>(null);
   const [photoToolHost, setPhotoToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [fileToolHost, setFileToolHost] = useState<HTMLSpanElement | null>(
     null,
   );
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
@@ -170,10 +196,12 @@ export function PlanningCreatePage({
       tags.length ||
       enrichmentDirty ||
       photos.items.length ||
+      files.items.length ||
       wish,
   );
   const onClose = useCallback(() => {
     clearPhotos();
+    clearFiles();
     if (confirmedParent.current) {
       navigate(
         kind === 'plan'
@@ -184,7 +212,7 @@ export function PlanningCreatePage({
       return;
     }
     requestReturn(originKey, '/plan');
-  }, [originKey, requestReturn, clearPhotos, kind, navigate]);
+  }, [originKey, requestReturn, clearPhotos, clearFiles, kind, navigate]);
   const {
     showDiscardConfirm: showDiscard,
     keepEditing,
@@ -222,6 +250,9 @@ export function PlanningCreatePage({
           attachments: photos.entries,
           selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
         };
+      }
+      if (kind === 'plan' && files.readyIds.length) {
+        requestValues = { ...requestValues, fileAttachmentIds: files.readyIds };
       }
       assertOnlineWrite();
       const snapshot: PlanningCreateSnapshot = {
@@ -352,6 +383,8 @@ export function PlanningCreatePage({
       !title.trim() ||
       photos.hasPending ||
       photos.hasFailed ||
+      files.hasPending ||
+      files.hasFailed ||
       photos.entries.length !== photos.items.length
     )
       return;
@@ -415,7 +448,9 @@ export function PlanningCreatePage({
                 placePending ||
                 collectionPending ||
                 photos.hasPending ||
-                photos.hasFailed
+                photos.hasFailed ||
+                files.hasPending ||
+                files.hasFailed
               }
             >
               {pending
@@ -519,6 +554,13 @@ export function PlanningCreatePage({
                 placeholder={t('m5s3.common.description')}
               />
             </div>
+            <PlanFilesEditor
+              drafts={files}
+              toolHost={fileToolHost}
+              disabled={pending || parentSaved || !apiBaseUrl || !accessToken}
+              online={online}
+              onChange={() => setEnrichmentDirty(true)}
+            />
             <div className="composer-selected-chips">
               {lists.map((list) => (
                 <ComposerChip
@@ -606,6 +648,7 @@ export function PlanningCreatePage({
         ) : null}
         <ComposerToolRow>
           <span className="composer-tool-slot" ref={setPhotoToolHost} />
+          <span className="composer-tool-slot" ref={setFileToolHost} />
           <ComposerTool
             icon="orte"
             label={t('composer.place')}

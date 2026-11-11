@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PlanFileChanges } from './PlanFileChanges';
+import {
+    PlanFileChangesFromJSON,
+    PlanFileChangesFromJSONTyped,
+    PlanFileChangesToJSON,
+    PlanFileChangesToJSONTyped,
+} from './PlanFileChanges';
 import type { AttachmentEntry } from './AttachmentEntry';
 import {
     AttachmentEntryFromJSON,
@@ -76,6 +83,12 @@ export interface PlanUpdate {
     experiencedOn?: Date;
     /**
      * 
+     * @type {PlanFileChanges}
+     * @memberof PlanUpdate
+     */
+    fileAttachmentChanges?: PlanFileChanges;
+    /**
+     * 
      * @type {string}
      * @memberof PlanUpdate
      */
@@ -129,6 +142,7 @@ export function PlanUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
         'experiencedOn': json['experiencedOn'] == null ? undefined : (new Date(json['experiencedOn'])),
+        'fileAttachmentChanges': json['fileAttachmentChanges'] == null ? undefined : PlanFileChangesFromJSON(json['fileAttachmentChanges']),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
         'schedule': json['schedule'] === undefined ? undefined : json['schedule'] === null ? null : PlanScheduleFromJSON(json['schedule']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
@@ -154,6 +168,7 @@ export function PlanUpdateToJSONTyped(value?: PlanUpdate | null, ignoreDiscrimin
         'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],
         'experiencedOn': value['experiencedOn'] == null ? value['experiencedOn'] : value['experiencedOn'].toISOString().substring(0,10),
+        'fileAttachmentChanges': PlanFileChangesToJSON(value['fileAttachmentChanges']),
         'placeId': value['placeId'],
         'schedule': PlanScheduleToJSON(value['schedule']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],

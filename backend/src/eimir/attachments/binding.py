@@ -90,6 +90,24 @@ class PlanAttachment(IdMixin, Base):
     )
 
 
+class PlanFileAttachment(IdMixin, Base):
+    """One exclusively bound document in the shared Plan's file list."""
+
+    __tablename__ = "plan_file_attachments"
+
+    plan_id: Mapped[UUID] = mapped_column(
+        ForeignKey("plans.id", ondelete="CASCADE"), nullable=False
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("attachments.id", ondelete="CASCADE"), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_plan_file_attachments_attachment"),
+        Index("ix_plan_file_attachments_plan_id", "plan_id"),
+    )
+
+
 class HeartMomentAttachment(IdMixin, Base):
     """Supplemental media; the legacy HeartMoment FK retains position zero."""
 
@@ -178,6 +196,7 @@ def ensure_bindable(
     already_bound: bool = False,
     allow_submitted_video: bool = False,
     allow_audio: bool = False,
+    allow_documents: bool = False,
 ) -> Attachment:
     """Validate whether this attachment may be bound now.
 
@@ -192,6 +211,8 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.media_type == MediaType.AUDIO and not allow_audio:
         raise ValidationError("Audio requires a HeartMoment.", "AUDIO_PARENT_INVALID")
+    if attachment.media_type == MediaType.DOCUMENT and not allow_documents:
+        raise ValidationError("Documents require a Plan.", ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED)
     pending_video = (
         allow_submitted_video
         and attachment.media_type == MediaType.VIDEO.value
@@ -268,6 +289,12 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     plan_id = session.execute(
         select(PlanAttachment.plan_id).where(PlanAttachment.attachment_id == attachment_id)
     ).scalar_one_or_none()
+    if plan_id is not None:
+        return "PLAN", plan_id
+
+    plan_id = session.scalar(
+        select(PlanFileAttachment.plan_id).where(PlanFileAttachment.attachment_id == attachment_id)
+    )
     if plan_id is not None:
         return "PLAN", plan_id
 

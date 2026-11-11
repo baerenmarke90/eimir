@@ -19,7 +19,10 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from eimir.appearance import service as appearance_service
-from eimir.attachments.models import AttachmentStatus
+from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS
+from eimir.attachments.documents import display_name, is_pdf
+from eimir.attachments.limits import DOCUMENT_MAX_SIZE, PDF_MIME_TYPE
+from eimir.attachments.models import AttachmentStatus, MediaType
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
@@ -70,7 +73,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "milestones.json": ("milestones", "milestone_plans"),
     "comments.json": ("comments",),
     "wishes.json": ("wishes",),
-    "plans.json": ("plans", "plan_attachments", "plan_collections"),
+    "plans.json": ("plans", "plan_attachments", "plan_file_attachments", "plan_collections"),
     "places.json": (
         "places",
         "place_memories",
@@ -104,6 +107,7 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
     "reminder_preferences": ("reminder_id", "reminders"),
     "memory_attachments": ("memory_id", "memories"),
     "plan_attachments": ("plan_id", "plans"),
+    "plan_file_attachments": ("plan_id", "plans"),
     "heart_moment_attachments": ("heart_moment_id", "heart_moments"),
     "recap_sources": ("edition_id", "recap_editions"),
 }
@@ -166,6 +170,7 @@ INSERT_ORDER = (
     "chapter_heart_moments",
     "memory_attachments",
     "plan_attachments",
+    "plan_file_attachments",
     "heart_moment_attachments",
 )
 
@@ -505,7 +510,8 @@ def _media_rows(
     )
     attachment_ids.update(
         row["attachment_id"]
-        for row in rows.get("plan_attachments", []) + rows.get("heart_moment_attachments", [])
+        for table_name in ("plan_attachments", "plan_file_attachments", "heart_moment_attachments")
+        for row in rows.get(table_name, [])
         if isinstance(row.get("attachment_id"), UUID)
     )
     if not attachment_ids:
@@ -531,6 +537,11 @@ def _media_rows(
                 "capturedAt": _json_value((item.get("payload") or {}).get("captured_at")),
                 "orientation": (item.get("payload") or {}).get("orientation"),
                 "isSensitive": (item.get("payload") or {}).get("is_sensitive", False),
+                **(
+                    {"originalName": display_name(item["payload"]["original_name"])}
+                    if item["media_type"] == MediaType.DOCUMENT
+                    else {}
+                ),
             }
         )
     found = {UUID(item["sourceId"]) for item in result}
@@ -1461,8 +1472,44 @@ def _validate_media(
     for raw in tables.get("plan_attachments", []) + tables.get("heart_moment_attachments", []):
         row = _row_snake(raw)
         referenced.add(_uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID))
+
+    documents: set[UUID] = set()
+    plan_file_counts: dict[UUID, int] = {}
+    for raw in tables.get("plan_file_attachments", []):
+        row = _row_snake(raw)
+        plan_id = _uuid(row.get("plan_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        identifier = _uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        count = plan_file_counts.get(plan_id, 0) + 1
+        if identifier in referenced or identifier in documents or count > MAX_GALLERY_ATTACHMENTS:
+            raise TransferArchiveError(
+                "Transfer Plan file binding is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+        documents.add(identifier)
+        plan_file_counts[plan_id] = count
+    referenced.update(documents)
+
     indexed: set[UUID] = set()
     for item in media:
+        source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
+        is_document = item.get("mediaType") == MediaType.DOCUMENT
+        if is_document != (source_id in documents):
+            raise TransferArchiveError(
+                "Transfer Plan file binding is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+        if is_document:
+            size, name = item.get("size"), item.get("originalName")
+            if (
+                type(size) is not int
+                or not 0 < size <= DOCUMENT_MAX_SIZE
+                or archive_sizes.get(f"media/{source_id}/original") != size
+                or item.get("mimeType") != PDF_MIME_TYPE
+                or item.get("variants") != ["original"]
+                or not isinstance(name, str)
+                or not 0 < len(name) <= 255
+            ):
+                raise TransferArchiveError(
+                    "Transfer PDF metadata is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
         if "isSensitive" in item and type(item["isSensitive"]) is not bool:
             raise TransferArchiveError(
                 "Transfer media classification is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
@@ -1482,7 +1529,6 @@ def _validate_media(
                 raise TransferArchiveError(
                     "Invalid voice media.", ErrorCode.TRANSFER_RELATION_INVALID
                 )
-        source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
             raise TransferArchiveError(
@@ -1694,6 +1740,16 @@ def validate_import_bundle(
         media,
         {name: entry.file_size for name, entry in validated_zip.entries.items()},
     )
+    pdfs = [item for item in media if item.get("mediaType") == MediaType.DOCUMENT]
+    if pdfs:
+        with ZipFile(fileobj, mode="r") as archive:
+            for item in pdfs:
+                source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
+                with archive.open(f"media/{source_id}/original", "r") as source:
+                    if not is_pdf(source.read(DOCUMENT_MAX_SIZE + 1)):
+                        raise TransferArchiveError(
+                            "Transfer PDF content is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                        )
     _validate_experience_galleries(tables, media)
     media_ids = {_uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID) for item in media}
     _validate_domain_schema_and_links(
@@ -1982,7 +2038,11 @@ def apply_import_bundle(
                     "failed_at": None,
                     "uploaded_at": moment,
                     "payload": {
-                        "original_name": "eimir-transfer",
+                        "original_name": (
+                            display_name(item["originalName"])
+                            if item["mediaType"] == MediaType.DOCUMENT
+                            else "eimir-transfer"
+                        ),
                         "captured_at": item.get("capturedAt"),
                         "orientation": item.get("orientation"),
                         "is_sensitive": item.get("isSensitive", False),

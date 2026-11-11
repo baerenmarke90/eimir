@@ -35,6 +35,9 @@ IMAGE_MAX_SIZE = 25 * MEBIBYTE
 IMAGE_MAX_PIXELS = 40_000_000
 IMAGE_MAX_EDGE = 12_000
 
+PDF_MIME_TYPE = "application/pdf"
+DOCUMENT_MAX_SIZE = 25 * MEBIBYTE
+
 AUDIO_MAX_SIZE = 20 * MEBIBYTE
 AUDIO_MAX_DURATION_SECONDS = 180
 
@@ -72,6 +75,7 @@ RULES: dict[str, MediaRule] = {
         _image("image/webp"),
         _image("image/heic"),
         _image("image/heif"),
+        MediaRule(PDF_MIME_TYPE, MediaType.DOCUMENT, DOCUMENT_MAX_SIZE),
         *(
             MediaRule(
                 mime,

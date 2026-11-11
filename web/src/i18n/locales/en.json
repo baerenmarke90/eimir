@@ -4111,6 +4111,27 @@
     "zoomOut": "Zoom out",
     "fit": "Show whole photo"
   },
+  "planFiles": {
+    "heading": "Files",
+    "add": "Add file",
+    "tool": "File",
+    "pdfSize": "PDF · {{size}}",
+    "open": "Open",
+    "download": "Download",
+    "removeNamed": "Remove {{name}}",
+    "openNamed": "Open {{name}}",
+    "downloadNamed": "Download {{name}}",
+    "progress": "Uploading {{name}}",
+    "validating": "Checking PDF",
+    "invalidPdf": "Choose a valid PDF file.",
+    "tooLarge": "Each PDF can be up to 25 MiB.",
+    "uploadFailed": "The file couldn’t be uploaded.",
+    "openFailed": "The file couldn’t be opened.",
+    "downloadFailed": "The file couldn’t be downloaded.",
+    "noViewer": "This device has no app that can open PDFs.",
+    "offline": "Connect to open or add files.",
+    "capacity": "A plan can hold up to 20 PDF files."
+  },
   "calendarPlan": {
     "add": "Add to calendar",
     "download": "Download calendar file",

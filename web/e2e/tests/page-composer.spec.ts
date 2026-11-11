@@ -9,6 +9,7 @@ import {
   test,
 } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
+import planFiles from '../../src/i18n/locales/planFiles';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
@@ -643,7 +644,13 @@ for (const view of [
       {
         name: 'plan-empty-frame-9',
         path: '/plan/plans/new',
-        tools: [composer.photo, composer.place, composer.list, composer.tag],
+        tools: [
+          composer.photo,
+          planFiles.add,
+          composer.place,
+          composer.list,
+          composer.tag,
+        ],
       },
       {
         name: 'diary-edit-frame-2',
@@ -658,7 +665,13 @@ for (const view of [
       {
         name: 'plan-edit-frame-10',
         path: '/plan/plans/composer-plan',
-        tools: [composer.photo, composer.place, composer.list, composer.tag],
+        tools: [
+          composer.photo,
+          planFiles.add,
+          composer.place,
+          composer.list,
+          composer.tag,
+        ],
         edit: true,
       },
     ]) {

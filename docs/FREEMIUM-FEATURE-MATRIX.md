@@ -300,3 +300,9 @@ and Self-Hosted. The existing technical gallery safety limits (20 images,
 500 MiB combined) and managed storage quota apply; there is no paid image-count
 boundary. Existing cover-only Plans remain intact. All photos participate in
 shared-parent retention, cleanup and portable export/restore.
+
+Plan PDF attachments are Free/Core in Cloud and Self-Hosted. Each PDF is
+limited to 25 MiB, with the existing 20-item attachment safety bound applied
+to the Plan file list. PDF bytes count toward the managed Space storage
+allowance where applicable. Existing PDFs remain readable and portable after
+a downgrade.

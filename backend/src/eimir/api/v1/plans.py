@@ -32,10 +32,12 @@ from eimir.api.shared_achievements import (
 from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, OrderedAttachmentSummary
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
+from eimir.attachments.documents import display_name
 from eimir.attachments.models import MediaType
 from eimir.core.context_tags import ContextTags, unique_tags
 from eimir.engagement.gentle import record_manual_save
 from eimir.plans import service
+from eimir.plans.files import files_of_plan
 from eimir.plans.media import PhotoSelection, photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
 from eimir.relationship import configuration as relationship_configuration
@@ -115,6 +117,9 @@ class PlanCreate(ApiModel):
     selected_cover_attachment_id: UUID | None = None
     cover_attachment_id: UUID | SkipJsonSchema[None] = None
     cover_is_sensitive: StrictBool = False
+    file_attachment_ids: list[UUID] = Field(
+        default_factory=list, max_length=MAX_GALLERY_ATTACHMENTS
+    )
     attachments: (
         Annotated[list[AttachmentEntry], Field(max_length=MAX_GALLERY_ATTACHMENTS)]
         | SkipJsonSchema[None]
@@ -148,6 +153,20 @@ class PlanCreate(ApiModel):
         return value
 
 
+class PlanFileChanges(ApiModel):
+    """Apply the editor's additions and removals to the current Plan version."""
+
+    model_config = ConfigDict(extra="forbid")
+    add: list[UUID] = Field(default_factory=list, max_length=MAX_GALLERY_ATTACHMENTS)
+    remove: list[UUID] = Field(default_factory=list, max_length=MAX_GALLERY_ATTACHMENTS)
+
+    @model_validator(mode="after")
+    def _require_change(self) -> Self:
+        if not self.add and not self.remove:
+            raise ValueError("at least one file addition or removal is required")
+        return self
+
+
 class PlanUpdate(ApiModel):
     """Atomic content, image and optional schedule correction.
 
@@ -177,6 +196,7 @@ class PlanUpdate(ApiModel):
     selected_cover_attachment_id: UUID | None = None
     cover_attachment_id: UUID | None = None
     cover_is_sensitive: StrictBool | SkipJsonSchema[None] = None
+    file_attachment_changes: PlanFileChanges | SkipJsonSchema[None] = None
     attachments: (
         Annotated[list[AttachmentEntry], Field(max_length=MAX_GALLERY_ATTACHMENTS)]
         | SkipJsonSchema[None]
@@ -185,6 +205,11 @@ class PlanUpdate(ApiModel):
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
         _validate_gallery_fields(self)
+        if (
+            "file_attachment_changes" in self.model_fields_set
+            and self.file_attachment_changes is None
+        ):
+            raise ValueError("fileAttachmentChanges must not be null")
         if not self.model_fields_set:
             raise ValueError("at least one field must be supplied")
         if "title" in self.model_fields_set:
@@ -243,6 +268,12 @@ class WishToPlan(ApiModel):
         return value
 
 
+class PlanFileSummary(ApiModel):
+    id: UUID
+    name: str
+    size: int
+
+
 class PlanDetail(ApiModel):
     id: UUID
     space_id: UUID
@@ -255,6 +286,7 @@ class PlanDetail(ApiModel):
     selected_cover_attachment_id: UUID | None = None
     cover_attachment: AttachmentSummary | None = None
     attachments: list[OrderedAttachmentSummary] = Field(default_factory=list)
+    file_attachments: list[PlanFileSummary] = Field(default_factory=list)
     status: PlanStatus
     planned_on: date | None = None
     anticipation_enabled: bool = False
@@ -300,6 +332,7 @@ def _plan_detail(
     plan: Plan,
     creator: AuthorSummary | None = None,
     galleries: dict[UUID, list[BoundAttachment]] | None = None,
+    include_files: bool = True,
 ) -> PlanDetail:
     if creator is None:
         creator = resolve_author_summary(session, plan.owner_id, resource="Plan creator")
@@ -341,6 +374,13 @@ def _plan_detail(
         if cover
         else None,
         attachments=summaries,
+        file_attachments=[
+            PlanFileSummary(
+                id=file.id, name=display_name(file.payload.original_name), size=file.size
+            )
+            for file in (files_of_plan(session, plan.id) if include_files else [])
+            if file.size is not None
+        ],
         status=PlanStatus(plan.status),
         planned_on=plan.planned_on,
         anticipation_enabled=plan.anticipation_enabled,
@@ -401,6 +441,7 @@ def create_plan(
         cover_attachment_id=body.cover_attachment_id,
         cover_is_sensitive=body.cover_is_sensitive,
         photos=_photo_selection(body.attachments),
+        file_attachment_ids=body.file_attachment_ids,
         selected_cover_attachment_id=body.selected_cover_attachment_id,
         title=body.title,
         tags=body.tags,
@@ -452,6 +493,7 @@ def list_plans(
                 plan,
                 creator=creators.get(plan.owner_id),
                 galleries=galleries,
+                include_files=False,
             )
             for plan in page.items
         ],
@@ -506,6 +548,12 @@ def update_plan(
         cover_attachment_id=body.cover_attachment_id,
         cover_is_sensitive=body.cover_is_sensitive,
         photos=_photo_selection(body.attachments),
+        add_file_attachment_ids=body.file_attachment_changes.add
+        if body.file_attachment_changes
+        else None,
+        remove_file_attachment_ids=body.file_attachment_changes.remove
+        if body.file_attachment_changes
+        else None,
         selected_cover_attachment_id=body.selected_cover_attachment_id,
         schedule_values=_schedule_values(body.schedule) if body.schedule else None,
     )

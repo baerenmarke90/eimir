@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react';
+import type { MediaType } from '../api/generated/models/MediaType';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import type { VideoSource } from '../client/video';
@@ -21,7 +22,7 @@ export interface PhotoDraftGalleryItem {
   preview: ReactNode;
   isSensitive: boolean;
   draft?: AttachmentDraft;
-  mediaType?: 'IMAGE' | 'VIDEO' | 'AUDIO';
+  mediaType?: MediaType;
   status?: string;
   canRemove?: boolean;
   canEditSensitivity?: boolean;

@@ -311,6 +311,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .recap-spread h1 {
+  hyphens: auto;
   font: var(--font-personal-heading);
   letter-spacing: -0.025em;
   margin-block: var(--space-3) var(--space-4);
@@ -655,7 +656,7 @@
   font: var(--font-personal-heading);
   font-size: clamp(2.5rem, 13vw, 4rem);
   line-height: 1;
-  color: var(--color-brand-strong);
+  color: var(--color-shared);
   font-variant-numeric: tabular-nums;
 }
 .recap-facts span,

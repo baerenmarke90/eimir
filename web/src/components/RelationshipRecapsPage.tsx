@@ -97,7 +97,6 @@ function Cover({
   const hasPhoto = Boolean(source?.previewAttachmentId);
   const label = recapPeriodLabel(value, resolvedLocale());
   const detailPath = `${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`;
-  const playbackPath = `${detailPath}${value.kind === 'YEAR' ? '&' : '?'}play=1`;
   function openReader(event: MouseEvent<HTMLAnchorElement>, to: string) {
     if (
       event.ctrlKey ||
@@ -159,15 +158,6 @@ function Cover({
             : t('recaps.open')}
           <span aria-hidden="true"> →</span>
         </Link>
-        {featured && value.status === 'READY' && value.sources.length > 0 ? (
-          <Link
-            className="recap-text-link"
-            to={playbackPath}
-            onClick={(event) => openReader(event, playbackPath)}
-          >
-            {t('recaps.watchNow')}
-          </Link>
-        ) : null}
       </div>
     </article>
   );
@@ -579,6 +569,27 @@ function RecapReader({
     ),
     onAdvance: () => setPage(Math.min(page + 1, pageCount - 1), true),
   });
+  // Taps and arrow keys can arrive faster than a render commits, while this
+  // render still holds the previous page and route entry. The intended page is
+  // kept until it is committed and replayed once after the commit if needed.
+  const target = useRef<{ page: number; automatic: boolean } | null>(null);
+  const turnPage = useRef<(step: number, automatic?: boolean) => void>(
+    () => undefined,
+  );
+  useLayoutEffect(() => {
+    turnPage.current = (step, automatic = false) => {
+      const from = target.current?.page ?? page;
+      const next = Math.max(0, Math.min(pageCount - 1, from + step));
+      if (next === from) return;
+      target.current = { page: next, automatic };
+      setPage(next, automatic);
+    };
+    const pending = target.current;
+    if (!pending) return;
+    // One replay only: a target that cannot be reached must not loop.
+    target.current = null;
+    if (pending.page !== page) setPage(pending.page, pending.automatic);
+  });
   // Tap turns the page, a held finger pauses, a horizontal swipe turns it too.
   // The explicit controls below remain the complete non-gesture path.
   const gesture = useRef<{
@@ -628,19 +639,10 @@ function RecapReader({
       const frame = event.currentTarget.getBoundingClientRect();
       step = event.clientX < frame.left + frame.width * 0.3 ? -1 : 1;
     }
-    const next = Math.max(0, Math.min(pageCount - 1, page + step));
-    if (next !== page) setPage(next, started.resume);
+    if (step) turnPage.current(step, started.resume);
     if (started.resume) playback.play();
   };
   // Arrow keys turn pages while no task sheet or text field owns the keyboard.
-  // The committed page is read through a ref so a fast second key is never stale.
-  const turnPage = useRef<(step: number) => void>(() => undefined);
-  useLayoutEffect(() => {
-    turnPage.current = (step) => {
-      const next = Math.max(0, Math.min(pageCount - 1, page + step));
-      if (next !== page) setPage(next);
-    };
-  });
   useEffect(() => {
     if (task) return;
     const turn = (event: KeyboardEvent) => {

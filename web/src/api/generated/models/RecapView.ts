@@ -57,6 +57,12 @@ import {
 export interface RecapView {
     /**
      * 
+     * @type {RecapFactsView}
+     * @memberof RecapView
+     */
+    facts?: RecapFactsView | null;
+    /**
+     * 
      * @type {Date}
      * @memberof RecapView
      */
@@ -109,12 +115,6 @@ export interface RecapView {
      * @memberof RecapView
      */
     ownDraft: RecapDraftView | null;
-    /**
-     * 
-     * @type {RecapFactsView}
-     * @memberof RecapView
-     */
-    facts?: RecapFactsView | null;
     /**
      * 
      * @type {Array<RecapReflectionView>}
@@ -214,6 +214,7 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     }
     return {
         
+        'facts': json['facts'] == null ? undefined : RecapFactsViewFromJSON(json['facts']),
         'generatedAt': (json['generatedAt'] == null ? null : new Date(json['generatedAt'])),
         'headline': json['headline'],
         'id': json['id'],
@@ -223,7 +224,6 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'locale': json['locale'],
         'month': json['month'] == null ? undefined : json['month'],
         'ownDraft': RecapDraftViewFromJSON(json['ownDraft']),
-        'facts': json['facts'] == null ? undefined : RecapFactsViewFromJSON(json['facts']),
         'reflections': ((json['reflections'] as Array<any>).map(RecapReflectionViewFromJSON)),
         'savedAt': (json['savedAt'] == null ? null : new Date(json['savedAt'])),
         'sources': ((json['sources'] as Array<any>).map(RecapSourceViewFromJSON)),
@@ -248,6 +248,7 @@ export function RecapViewToJSONTyped(value?: RecapView | null, ignoreDiscriminat
 
     return {
         
+        'facts': RecapFactsViewToJSON(value['facts']),
         'generatedAt': value['generatedAt'] == null ? value['generatedAt'] : value['generatedAt'].toISOString(),
         'headline': value['headline'],
         'id': value['id'],
@@ -257,7 +258,6 @@ export function RecapViewToJSONTyped(value?: RecapView | null, ignoreDiscriminat
         'locale': value['locale'],
         'month': value['month'],
         'ownDraft': RecapDraftViewToJSON(value['ownDraft']),
-        'facts': RecapFactsViewToJSON(value['facts']),
         'reflections': ((value['reflections'] as Array<any>).map(RecapReflectionViewToJSON)),
         'savedAt': value['savedAt'] == null ? value['savedAt'] : value['savedAt'].toISOString(),
         'sources': ((value['sources'] as Array<any>).map(RecapSourceViewToJSON)),

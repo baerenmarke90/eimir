@@ -311,3 +311,21 @@ single-action placement, both themes, 360/390/430 px, 320 px reflow with
 enlarged text, Expanded labels and reduced motion. Check that the larger
 shared control clears the dock and the last focusable item. Capture
 representative real-browser evidence.
+
+### Private subpage runtime evidence
+
+Chromium captures use synthetic content from implementation revision
+`54195d2296fc09debe6abb56eba16536c81d088e`.
+
+- [Personal Notes at 390 px in Dark](evidence/private-notes-floating-390-dark.png)
+- [Gift Ideas at 390 px in Dark](evidence/private-gifts-floating-390-dark.png)
+- [Private Lists at 390 px in Dark](evidence/private-lists-floating-390-dark.png)
+- [Partner Notes at 390 px in Light](evidence/private-partner-notes-floating-390-light.png)
+- [Personal Notes at 1280 px in Dark](evidence/private-notes-heading-1280-dark.png)
+
+The Compact Android runtime fixture exercises the three direct editor
+entries from an empty list through save, visible result and return to the
+now populated list. The Partner Notes journey exercises save, focus return,
+failed edit and retry in Compact and Expanded. The shared clearance check
+covers the last focusable action, both themes, smaller heights, enlarged
+text and reduced motion.

@@ -83,3 +83,69 @@ reflow, 200 percent text, Light/Dark and reduced motion. It exercised direct
 planning destinations, the Moment sheet, result and filtered return, and the
 partner message entry with gestures disabled. The Capacitor platform check
 used the production Web shell with an Android runtime fixture.
+
+## List, Place, People and Chapter overview follow-up
+
+The Product Owner extended contextual creation to four more overviews after
+[PR #1741](https://github.com/baerenmarke90/eimir/pull/1741) merged. The reviewed
+`main` baseline is `f6b227c6e440d0c0e55b15774df35c3084b2675c`. The Compact
+reference uses fixture screenshots from that revision.
+
+![Four Compact overviews with the contextual floating plus](reference-more-contextual-add.png)
+
+The four panels retain the visible content and controls from the current app.
+The built-in ImageGen reference guides placement and hierarchy. The existing
+components, semantic tokens and authorized content govern the implementation.
+
+<details>
+<summary>ImageGen prompt</summary>
+
+> Use case: ui-mockup
+> Asset: one wide, flat product-design reference of four complete eimir. Compact app viewports, each modeled on 390 × 844 CSS pixels. Arrange four aligned equal-width screens side-by-side with narrow separators, plain background, no device frames, captions or marketing text. The first four attached screenshots are the exact baseline compositions: 1 Listen, 2 Orte, 3 Menschen, 4 Kapitel. The fifth screenshot (Momente) supplies only the style, size and placement of its round floating plus. Keep each of the four actual screen compositions recognizable, with original dark/light theme, back button, top title, text, icons, contents, row styles and comfortable negative space. Retain List scopes "Offen", "Erledigt", "Alle" and its Trash-TV row and counts. Retain Place scopes "Aktiv", "Archiviert", "Alle", Volkspark address, description and pin row. Retain portrait-led Menschen list, two separate portrait/name/relationship rows and birthday metadata. Retain Kapitel’s Momente eyebrow, its introduction, two chapter cards with dates and excerpts. Preserve the existing navigation bar of exactly four equally spaced labeled tabs "Wir", "Momente", "Planen", "Mehr", with Mehr selected in the first three screens and Momente in Kapitel. Move each existing create action out of the heading: add a single filled canonical-blue circle with a centered light plus symbol, 48 px in a 390 px app, at the bottom-right app gutter 12 px above the navigation, matching image 5. No visible caption on this plus, no additional controls, no center nav action. Let the headings and content close the gap left by the removed heading button while preserving their order and styling. Retain complete viewport top, all existing visible feature controls and bottom navigation. High-fidelity product UI reference, not a new brand or visual redesign.
+
+</details>
+
+### Mobile interaction contract
+
+| Overview | Existing content and navigation | Direct action and result |
+| --- | --- | --- |
+| Lists (`/more/collections`) | Back to More, status filters, list names, progress and item previews | Open the existing short List creation sheet. Save into the new List and retain the originating scope on return. |
+| Places (`/more/places`) | Back to More, active/archive filters, place names and address previews | Open the existing short Place creation sheet, with optional coordinates and map selection. Save into the new Place and retain the originating scope on return. |
+| People (`/more/people`) | Back to More, portraits, names, relationship and birthday context | Open the focused person editor and show the new profile on save. Retain photo viewing, draft handling and the People return path. |
+| Chapters (`/story/chapters`) | Back to Moments, chapter introduction, titles, dates and excerpts | Open the focused Chapter editor and show the new Chapter on save. Retain the Chapter collection and task origin. |
+
+The goal is to add the object named by the current overview in one tap. Shared
+plans and memories are easier to keep organized when the action is reachable
+and the visible content remains the focus. Product Reference v1 R2 and its
+Chapter experience apply to Chapters. R5 and the overview, list and focused
+task patterns apply to the three More destinations. Browsable rows and cards
+keep their existing order and visual roles. The plus is the sole dominant
+creation action and uses the existing 48 px target, localized accessible name
+and safe-area clearance above four docked navigation destinations.
+
+Sheets and focused editors disclose the fields after activation. They own
+validation, keyboard handling, close, Back, draft protection, failure and retry.
+The floating trigger yields to the modal or keyboard and returns on dismissal.
+List and Place filters, loaded content, empty states and error recovery stay
+with their existing owners. Authorized offline reads and unsaved write
+feedback retain their current behavior. Expanded keeps a labeled action with
+its contextual icon in the existing heading. Existing focus and press feedback
+apply with reduced-motion support. Portraits, names and chapter writing carry
+the relationship context. The action needs only its localized accessible name.
+
+### Reuse, business and verification
+
+Reuse PageHeader, AddAction, the measured shell clearance, native links and
+buttons, the existing short sheets and focused tasks, and their task origin
+mechanisms. A new menu, native control or component library would duplicate the
+established platform and React behavior. No new dependency or provider applies.
+
+No business/freemium impact. Shared Collections remain Core. Basic Place,
+RelatedPerson and Chapter creation retain the Free portions of their existing
+Mixed classifications. Existing Space access and ownership, managed resources,
+Cloud/Self-Hosted behavior, retention, downgrade and export contracts apply.
+
+Review 360, 390 and 430 px, dense and sparse content, both themes, Expanded,
+enlarged text, focus and reduced motion. Verify the named action, tap target,
+clearance, actual save/result/return and cancellation for all four overviews.
+Use the existing browser journeys and their affected feature ownership.

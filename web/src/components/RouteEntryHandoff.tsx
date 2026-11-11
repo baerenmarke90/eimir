@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { applyRouteEntryHandoff } from '../client/routeEntryHandoff';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
@@ -56,7 +56,7 @@ export function RouteEntryHandoff(): null {
   const previousPath = useRef<string | null>(null);
   const completedOriginEntry = useRef<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const state = location.state as {
       taskReturnKey?: unknown;
       taskOriginKey?: unknown;

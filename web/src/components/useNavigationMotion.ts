@@ -2,13 +2,25 @@ import { type RefObject, useLayoutEffect, useRef } from 'react';
 import { cssDurationMilliseconds } from '../client/cssDuration';
 import { PRIMARY_APP_ROUTES } from '../client/routes';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
-import './PrimaryTabSwipe.css';
 
 const EDGE_INSET = 24;
 const DIRECTION_SLOP = 10;
 const HORIZONTAL_BIAS = 1.25;
+const ENTRY_OPACITY = 0.92;
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+// Count only page-level loading states and the visible overview panel.
+const ROUTE_LOADING = [
+  ':scope > .ui-state-loading',
+  ':scope > .page > .ui-state-loading',
+  ':scope > .page > [role="tabpanel"]:not([hidden]) > .ui-state-loading',
+].join(', ');
 const BLOCKED_TARGETS =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .leaflet-container, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
+
+function swipeOpacity(distance: number): number {
+  const progress = Math.min(1, (2 * Math.abs(distance)) / window.innerWidth);
+  return 1 - progress * (1 - ENTRY_OPACITY);
+}
 
 function editingOrOverlayActive(): boolean {
   return Boolean(
@@ -59,21 +71,29 @@ interface Gesture {
   startedAt: number;
 }
 
-/** Keep both entry and snap-back motion bounded until completion or cancellation. */
-function animatePrimarySurface(
+function animateContent(
   surface: HTMLElement,
   owner: RefObject<(() => void) | null>,
-  frames: Keyframe[],
-  options: KeyframeAnimationOptions,
-): () => void {
+  opacity: number,
+  createEntry = false,
+): void {
   owner.current?.();
-  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-  const animation = surface.animate(frames, options);
-  surface.dataset.primaryTabAnimating = 'true';
+  const reducedMotion = window.matchMedia?.(REDUCED_MOTION);
+  if (reducedMotion?.matches || typeof surface.animate !== 'function') return;
+  const style = getComputedStyle(surface);
+  // A transform would make the main element the containing block of fixed
+  // controls, including the contextual add action and composer toolbar.
+  const animation = surface.animate([{ opacity }, { opacity: 1 }], {
+    duration: cssDurationMilliseconds(
+      style.getPropertyValue('--duration-transition'),
+    ),
+    easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
+  });
+  surface.dataset.navigationMotion = createEntry ? 'create' : 'content';
   const complete = () => {
     if (owner.current !== cancel) return;
     owner.current = null;
-    delete surface.dataset.primaryTabAnimating;
+    delete surface.dataset.navigationMotion;
     animation.onfinish = null;
     animation.oncancel = null;
     reducedMotion?.removeEventListener('change', motionChanged);
@@ -89,19 +109,22 @@ function animatePrimarySurface(
   animation.onfinish = complete;
   animation.oncancel = complete;
   reducedMotion?.addEventListener('change', motionChanged);
-  return cancel;
 }
 
-/** Shell-owned root navigation; content scrollers and task layers keep priority. */
-export function usePrimaryTabSwipe({
+/** Animate committed destinations and give direct feedback during a root swipe. */
+export function useNavigationMotion({
   surfaceRef,
   pathname,
   routeKey,
+  skipEntry = false,
+  createEntry = false,
   onNavigate,
 }: {
   surfaceRef: RefObject<HTMLElement | null>;
   pathname: string;
   routeKey: string;
+  skipEntry?: boolean;
+  createEntry?: boolean;
   onNavigate: (root: string) => void;
 }): void {
   const navigateRef = useRef(onNavigate);
@@ -109,88 +132,52 @@ export function usePrimaryTabSwipe({
   const currentRoute = useRef(routeKey);
   currentRoute.current = routeKey;
   const suppressClick = useRef(false);
-  const entry = useRef<{ to: string; offset: number; from: string } | null>(
-    null,
-  );
-  const previousRoute = useRef({ pathname, routeKey });
+  const previousPath = useRef(pathname);
   const mainMotionCleanup = useRef<(() => void) | null>(null);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
-    const previous = previousRoute.current;
-    previousRoute.current = { pathname, routeKey };
-    const pending = entry.current;
-    entry.current = null;
-
-    mainMotionCleanup.current?.();
-    const before = PRIMARY_APP_ROUTES.findIndex(
-      (route) => route.path === previous.pathname,
-    );
-    const after = PRIMARY_APP_ROUTES.findIndex(
-      (route) => route.path === pathname,
-    );
+    const changedPage = previousPath.current !== pathname;
+    previousPath.current = pathname;
     if (
       !surface ||
-      before < 0 ||
-      after < 0 ||
-      before === after ||
-      previous.routeKey === routeKey
+      !changedPage ||
+      skipEntry ||
+      window.matchMedia?.(REDUCED_MOTION).matches
     )
       return;
 
-    const reducedMotion = window.matchMedia?.(
-      '(prefers-reduced-motion: reduce)',
-    );
-    if (reducedMotion?.matches) return;
-    const direction = after > before ? 1 : -1;
-    const offset =
-      pending?.to === pathname && pending.from === previous.routeKey
-        ? `${pending.offset}px`
-        : direction > 0
-          ? 'var(--space-4)'
-          : 'calc(-1 * var(--space-4))';
-
-    // Animate the live content, never a document-level snapshot. The browser's
-    // View Transition overlay disables hit-testing until completion and blocks
-    // immediate consecutive swipes on Android/Chromium.
-    if (typeof surface.animate === 'function') {
-      const style = getComputedStyle(surface);
-      return animatePrimarySurface(
-        surface,
-        mainMotionCleanup,
-        [
-          { opacity: 0.92, transform: `translate3d(${offset}, 0, 0)` },
-          { opacity: 1, transform: 'none' },
-        ],
-        {
-          duration:
-            cssDurationMilliseconds(
-              style.getPropertyValue('--duration-transition'),
-            ) || 180,
-          easing: style.getPropertyValue('--easing-enter').trim() || 'ease-out',
-        },
-      );
+    const arrive = () => {
+      if (!surface.hasAttribute('data-primary-tab-dragging'))
+        animateContent(surface, mainMotionCleanup, ENTRY_OPACITY, createEntry);
+    };
+    let observer: MutationObserver | undefined;
+    // The destination and its loading status commit immediately. Its entry
+    // motion belongs to the first available content on that same route.
+    if (surface.querySelector(ROUTE_LOADING)) {
+      observer = new MutationObserver(() => {
+        if (
+          currentRoute.current !== routeKey ||
+          surface.querySelector(ROUTE_LOADING)
+        )
+          return;
+        observer?.disconnect();
+        arrive();
+      });
+      observer.observe(surface, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['hidden'],
+      });
+    } else {
+      arrive();
     }
-
-    // Fallback for older WebViews without the Web Animations API.
-    surface.style.setProperty('--primary-tab-entry-offset', offset);
-    surface.dataset.primaryTabEntry = 'true';
-    const complete = (event: Event) => {
-      if (event.type === 'change' || event.target === surface) {
-        delete surface.dataset.primaryTabEntry;
-        surface.style.removeProperty('--primary-tab-entry-offset');
-      }
-    };
-    surface.addEventListener('animationend', complete);
-    surface.addEventListener('animationcancel', complete);
-    reducedMotion?.addEventListener('change', complete);
     return () => {
-      complete(new Event('change'));
-      surface.removeEventListener('animationend', complete);
-      surface.removeEventListener('animationcancel', complete);
-      reducedMotion?.removeEventListener('change', complete);
+      observer?.disconnect();
+      mainMotionCleanup.current?.();
     };
-  }, [pathname, routeKey, surfaceRef]);
+  }, [createEntry, pathname, routeKey, skipEntry, surfaceRef]);
 
   // Bind ownership before the committed destination can receive another touch.
   useLayoutEffect(() => {
@@ -205,7 +192,7 @@ export function usePrimaryTabSwipe({
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
       delete surface.dataset.primaryTabDragging;
-      surface.style.removeProperty('--primary-tab-offset');
+      surface.style.removeProperty('--primary-tab-opacity');
     };
     const cancel = () => {
       gesture = null;
@@ -228,7 +215,6 @@ export function usePrimaryTabSwipe({
         contentOwnsGesture(event.target, surface)
       )
         return;
-      delete surface.dataset.primaryTabEntry;
       gesture = {
         id: touch.identifier,
         x: touch.clientX,
@@ -281,11 +267,11 @@ export function usePrimaryTabSwipe({
         frame = window.requestAnimationFrame(() => {
           frame = 0;
           if (!gesture) return;
-          // Keep the page live and draggable; do not capture an input-blocking
-          // snapshot while the user is navigating between roots.
-          const offset = Math.max(-24, Math.min(24, gesture.offset * 0.12));
           surface.dataset.primaryTabDragging = 'true';
-          surface.style.setProperty('--primary-tab-offset', `${offset}px`);
+          surface.style.setProperty(
+            '--primary-tab-opacity',
+            String(swipeOpacity(gesture.offset)),
+          );
         });
     };
     const end = (event: TouchEvent) => {
@@ -313,41 +299,16 @@ export function usePrimaryTabSwipe({
           !(elapsed >= 32 && Math.abs(dx) >= 32 && velocity > 0.5)) ||
         Math.abs(dx) < Math.abs(dy) * HORIZONTAL_BIAS
       ) {
-        if (
-          !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches &&
-          typeof surface.animate === 'function'
-        ) {
-          const style = getComputedStyle(surface);
-          animatePrimarySurface(
-            surface,
-            mainMotionCleanup,
-            [
-              {
-                transform: `translateX(${Math.max(-24, Math.min(24, current.offset * 0.12))}px)`,
-              },
-              { transform: 'none' },
-            ],
-            {
-              duration:
-                cssDurationMilliseconds(
-                  style.getPropertyValue('--duration-transition'),
-                ) || 180,
-              easing:
-                style.getPropertyValue('--easing-standard').trim() ||
-                'ease-out',
-            },
-          );
-        }
+        animateContent(
+          surface,
+          mainMotionCleanup,
+          swipeOpacity(current.offset),
+        );
         return;
       }
       const direction = dx < 0 ? 1 : -1;
       const destination = PRIMARY_APP_ROUTES[index + direction];
       if (!destination) return;
-      entry.current = {
-        to: destination.path,
-        offset: direction * 24,
-        from: routeKey,
-      };
       navigateRef.current(destination.path);
     };
     const click = (event: MouseEvent) => {

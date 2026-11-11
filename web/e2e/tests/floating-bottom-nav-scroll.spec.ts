@@ -1017,6 +1017,18 @@ test('native primary tab switching replaces root history but keeps nested task r
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 740 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.addInitScript(() => {
+    document.addEventListener('animationstart', ({ target, animationName }) => {
+      if (
+        animationName === 'short-task-sheet-exit' &&
+        target instanceof HTMLDialogElement &&
+        target.matches('.contextual-create-sheet')
+      ) {
+        for (const animation of target.getAnimations()) animation.pause();
+      }
+    });
+  });
   await installNativeAppLifecycle(page);
   await installApiMocks(page);
   await page.goto('/login');
@@ -1039,6 +1051,7 @@ test('native primary tab switching replaces root history but keeps nested task r
     .locator('a[href="/story/memories/new"]')
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/new$/);
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect(page.locator('.mobile-bottom-shell')).toHaveCount(0);
   await page.goBack();
   await expect(page).toHaveURL(/\/today$/);
@@ -1096,10 +1109,6 @@ async function expectPrimaryReadingSurface(page: Page) {
     // can disappear between hit-testing and the native touch sequence.
     await expect(page.locator('main .today-hero')).toBeVisible();
   }
-  await expect(page.locator('main')).not.toHaveAttribute(
-    'data-primary-tab-entry',
-    /.+/,
-  );
 }
 
 async function swipePrimary(page: Page, direction: 'next' | 'previous') {
@@ -1156,25 +1165,153 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
   );
 }
 
+async function pauseNavigationMotion(page: Page) {
+  await page.addInitScript(() => {
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (...args) {
+      const animation = animate.apply(this, args);
+      if (this.matches('main.product-main')) {
+        animation.pause();
+        animation.currentTime = 0;
+      }
+      return animation;
+    };
+  });
+}
+
 test.describe('primary tab touch navigation', () => {
   test.use({ hasTouch: true });
 
-  test('live primary motion stays clipped and interactive before its first frame completes', async ({
+  test('acknowledges a held tap and keeps the floating action anchored during entry', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await pauseNavigationMotion(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    const main = page.locator('main.product-main');
+    const nav = page.locator('.mobile-bottom-nav');
+    const before = await page.evaluate(() => performance.timeOrigin);
+    const tab = nav.locator('a[href="/plan"]');
+    const bounds = await tab.boundingBox();
+    if (!bounds) throw new Error('Missing Planning navigation tab.');
+    const restingColor = await tab.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+    const touch = await page.context().newCDPSession(page);
+    try {
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [
+          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
+        ],
+      });
+      await expect(tab).toHaveAttribute('data-control-pressed', '');
+      expect(
+        await tab.evaluate(
+          (element) => getComputedStyle(element).backgroundColor,
+        ),
+      ).not.toBe(restingColor);
+      await expect(page).toHaveURL(/\/today$/);
+    } finally {
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+      await touch.detach();
+    }
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect(main).toHaveAttribute('data-navigation-motion', 'content');
+
+    const floatingAction = main.locator('[data-floating-create]');
+    await expect(floatingAction).toHaveCount(1);
+    await page.screenshot({
+      path: testInfo.outputPath('shell-planning-tab-entry-390.png'),
+    });
+    const position = await floatingAction.evaluate((action) => {
+      const surface = action.closest('main');
+      const dock = document.querySelector('.mobile-bottom-shell');
+      if (!surface || !dock) throw new Error('Missing navigation surface.');
+      const during = action.getBoundingClientRect();
+      const entry = surface
+        .getAnimations()
+        .find(({ playState }) => playState === 'paused');
+      if (!entry) throw new Error('Missing live route entry animation.');
+      entry.finish();
+      const after = action.getBoundingClientRect();
+      return {
+        during: during.toJSON(),
+        after: after.toJSON(),
+        dockTop: dock.getBoundingClientRect().top,
+      };
+    });
+    expect(position.during.x).toBeCloseTo(position.after.x);
+    expect(position.during.y).toBeCloseTo(position.after.y);
+    expect(position.during.bottom).toBeLessThan(position.dockTop);
+    expect(await page.evaluate(() => performance.timeOrigin)).toBe(before);
+  });
+
+  test('reveals a cold destination once and reuses it on a warm visit', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await pauseNavigationMotion(page);
+    await installApiMocks(page);
+    const response = Promise.withResolvers<void>();
+    let reads = 0;
+    await page.route(`**/spaces/${SPACE_ID}/discover`, async (route) => {
+      reads++;
+      await response.promise;
+      await route.fallback();
+    });
+    await page.goto('/login');
+    await signIn(page);
+    const main = page.locator('main.product-main');
+    const nav = page.locator('.mobile-bottom-nav');
+    const story = nav.locator('a[href="/story"]');
+    const discover = page.locator('#momente-panel-discover');
+    try {
+      await story.tap();
+      await expect(story).toHaveAttribute('aria-current', 'page');
+      await expect(discover.locator('.ui-state-loading')).toBeVisible();
+      await expect(main).not.toHaveAttribute(
+        'data-navigation-motion',
+        'content',
+      );
+      await page.screenshot({
+        path: testInfo.outputPath('shell-story-cold-loading-390.png'),
+      });
+    } finally {
+      response.resolve();
+    }
+    await expect(discover.locator('.momente-hero-highlight')).toBeVisible();
+    await expect(main).toHaveAttribute('data-navigation-motion', 'content');
+    await page.screenshot({
+      path: testInfo.outputPath('shell-story-cold-arrival-390.png'),
+    });
+
+    // A same-page tab selection has its own feedback and does not replay entry.
+    await page
+      .getByRole('tab', { name: de.story.tabTimeline, exact: true })
+      .tap();
+    await expect(page).toHaveURL(/\/story\?tab=timeline$/);
+    await expect(main).not.toHaveAttribute('data-navigation-motion', 'content');
+    await nav.locator('a[href="/more"]').tap();
+    await story.tap();
+    await expect(discover.locator('.momente-hero-highlight')).toBeVisible();
+    await expect(main).toHaveAttribute('data-navigation-motion', 'content');
+    expect(reads).toBe(1);
+  });
+
+  test('live primary motion stays interactive before its first frame completes', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 844 });
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await page.addInitScript(() => {
-      const animate = Element.prototype.animate;
-      Element.prototype.animate = function (...args) {
-        const animation = animate.apply(this, args);
-        if (this.matches('main.product-main')) {
-          animation.pause();
-          animation.currentTime = 0;
-        }
-        return animation;
-      };
-    });
+    await pauseNavigationMotion(page);
     await installApiMocks(page);
     await page.goto('/login');
     await signIn(page);
@@ -1199,8 +1336,8 @@ test.describe('primary tab touch navigation', () => {
       for (const animation of main.getAnimations()) animation.finish();
     });
     await expect(page.locator('main')).not.toHaveAttribute(
-      'data-primary-tab-animating',
-      'true',
+      'data-navigation-motion',
+      'content',
     );
   });
 

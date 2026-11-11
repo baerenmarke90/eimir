@@ -7,14 +7,20 @@ The local model is unchanged; its editorial rework is Phase 2 of the issue.
 
 ## Design preflight
 
-Baseline main: `1ff8f25aa`. Reviewed: the recap library and reader, their tasks,
-the Wir monthly invitation, the focused-task shell mode, `useStoryPlayback`, the
-authorized media loader and [the previous contract](../../automatic-relationship-recaps.md).
+The initial demo reviewed `main@1ff8f25aa`. For the generated reference, the
+baseline was `main@e0c4d842f34688470580f6a581cb3adeda5914ae`. The review covered
+the More library at `/more/passport`, its Months and Years tabs, featured cover,
+archive, and context disclosures. It also covered the focused reader's Back and
+progress controls, canonical source links and return, selection, reflection,
+retention, and the Wir monthly invitation.
 
-**Outstanding gate:** the required generated Compact visual reference does not exist.
-No image-generation tool was available when this work started, and the Product Owner
-asked for a working demo to judge the direction. The reference must be added to the
-issue before this change is merged.
+![Generated Compact reference for the library, cover, photo and closing scenes](compact-reference.png)
+
+ImageGen created this synthetic design board for eimir. during merge preparation
+after the first demo. It uses the existing eimir. screens and synthetic lake
+imagery as guidance. The [generation prompts](prompt.txt) and the
+[project asset terms](../../../../../PROVENANCE.md#assets) record its provenance.
+The facts scene and the browser controls appear in the runtime evidence below.
 
 Product Reference v1 R2/R4/R5 governs. Reused: focused-task shell, `TaskBackButton`,
 `MemoryPreview` with the authorized media lifecycle, `ShortTaskSheet` tasks,
@@ -37,10 +43,11 @@ No new dependency or provider.
   the restored page after a source. Tap right/left, horizontal swipe and arrow keys
   turn pages without pausing; a held finger pauses. It ends on the closing scene and
   never loops. This supersedes the earlier rule that a source return stays paused.
-- **Toggle on the stage (PO, 2026-11-11):** the play/pause control sits centred on
-  the stage and fades while playing. On text-only scenes it covers part of the text
-  while paused; the PO accepted this. The closing scene keeps it in the control row
-  because its own actions occupy the stage.
+- **Toggle on the stage (PO, 2026-11-11):** the play/pause control sits centred
+  on the stage and fades while playing. Photo scenes centre it above the caption
+  so large text stays readable. On text-only scenes it covers part of the text
+  while paused, as accepted by the PO. The closing scene places it in the control
+  row because its own actions occupy the stage.
 - **Browser-only arrows (PO, 2026-11-11):** Previous/Next are painted only in the
   browser. The native app decides by runtime platform, not viewport, and keeps both
   controls for assistive technology.
@@ -72,14 +79,17 @@ the existing lake fixture. Captured from `web/e2e/tests/automatic-recaps.spec.ts
 | Native container | [cover](evidence/recaps-immersive-native-cover-390-light.png), [photo](evidence/recaps-immersive-native-photo-390-light.png) | | |
 | Large text | [390](evidence/recaps-immersive-large-text-390.png) | | |
 
-The native-container captures are browser-emulated. No Android device acceptance
-has been performed.
+The [360 px reader](evidence/recaps-playback-360-dark-large-reduced.png) shows
+Dark, 200% text and reduced motion. The browser-emulated native-container
+journey uses touch input to test two quick taps and a swipe. Android device
+acceptance is outside this evidence.
 
 ## Business/freemium and cross-cutting
 
 Business/freemium impact reviewed: unchanged row "Relationship passport and
 automatic recaps (#497, #1528)" — Premium composition, Free retained artifacts,
 capability `relationship.passport`. No tier, provider or Self-Hosted change.
-The contract change is additive and needs no migration. Facts are counted at read
-time from the same authorized shared metadata as the selection, so deleted or
-privately re-classified sources leave the counts immediately.
+The contract change is additive and needs no migration. One read-time query
+groups the same authorized shared metadata used by the selection by kind and
+day. Counts, active days and the leading month use the same read snapshot.
+Deleted or privately reclassified sources leave the counts on the next read.

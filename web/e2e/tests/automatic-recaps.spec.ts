@@ -497,6 +497,13 @@ test('Watch now advances automatically, resumes after a source, and finishes wit
     'data-playing',
     'true',
   );
+  await reader
+    .getByRole('button', { name: copy.pause, exact: true })
+    .press('Space');
+  await expect(reader).toHaveAttribute('data-playing', 'false');
+  await reader
+    .getByRole('button', { name: copy.play, exact: true })
+    .press('Enter');
   await advanceSpread(fixtureCopy.monthHeadline);
   await expect(page).toHaveURL(/page=1/);
   await page.getByRole('link', { name: new RegExp(copy.source) }).click();
@@ -555,20 +562,24 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
     .click();
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   // On a photo the toggle is an icon on the picture; large text must keep it
-  // inside the stage instead of wrapping a label.
-  const toggleStaysOnStage = await page
+  // inside the stage and above the caption.
+  const toggleClearsCaption = await page
     .locator('.recap-spread .recap-playback-overlay')
     .evaluate((button) => {
       const box = button.getBoundingClientRect();
-      const stage = button.closest('.recap-spread')!.getBoundingClientRect();
+      const spread = button.closest('.recap-spread')!;
+      const stage = spread.getBoundingClientRect();
+      const caption = spread
+        .querySelector('.recap-scene-copy')!
+        .getBoundingClientRect();
       return (
         box.left >= stage.left &&
         box.right <= stage.right &&
         box.top >= stage.top &&
-        box.bottom <= stage.bottom
+        box.bottom <= caption.top
       );
     });
-  expect(toggleStaysOnStage).toBe(true);
+  expect(toggleClearsCaption).toBe(true);
   const controlsDoNotOverlap = await page
     .locator('.recap-page-controls button')
     .evaluateAll((buttons) => {
@@ -1032,6 +1043,8 @@ test('the native app hides the page arrows and turns pages by touch', async ({
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const touch = await page.context().newCDPSession(page);
+  await touch.send('Emulation.setTouchEmulationEnabled', { enabled: true });
   const state = await setup(page, { dense: true, native: true });
   await page
     .getByRole('link', { name: new RegExp(copy.open) })
@@ -1045,6 +1058,7 @@ test('the native app hides the page arrows and turns pages by touch', async ({
       /sr-only/,
     );
   await expect(page.locator('.recap-gesture-hint')).toBeVisible();
+  await expect(stage.locator('.recap-mosaic img')).toHaveCount(4);
   for (const image of await stage.locator('img').all())
     await image.evaluate((img: HTMLImageElement) => img.decode());
   await captureScreenshot(
@@ -1053,8 +1067,20 @@ test('the native app hides the page arrows and turns pages by touch', async ({
     'recaps-immersive-native-cover-390-light.png',
   );
   const frame = (await stage.boundingBox())!;
-  await page.mouse.click(frame.x + frame.width * 0.85, frame.y + 60);
-  await page.mouse.click(frame.x + frame.width * 0.85, frame.y + 60);
+  const right = { x: frame.x + frame.width * 0.85, y: frame.y + 60 };
+  const left = { ...right, x: frame.x + frame.width * 0.15 };
+  const tapRight = async () => {
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [right],
+    });
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+  };
+  await tapRight();
+  await tapRight();
   await expect(stage.locator('h1')).toHaveText(fixtureCopy.photoTitle);
   await expect(stage.locator('.recap-playback-overlay')).toBeVisible();
   await stage.locator('img').evaluate((img: HTMLImageElement) => img.decode());
@@ -1063,5 +1089,19 @@ test('the native app hides the page arrows and turns pages by touch', async ({
     info,
     'recaps-immersive-native-photo-390-light.png',
   );
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [left],
+  });
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [right],
+  });
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  });
+  await touch.detach();
+  await expect(stage.locator('h1')).toHaveText(copy.factsTitle);
   expect(state.unexpected).toEqual([]);
 });

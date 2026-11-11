@@ -20,13 +20,6 @@ import {
     RecapReflectionViewToJSON,
     RecapReflectionViewToJSONTyped,
 } from './RecapReflectionView';
-import type { RecapDraftView } from './RecapDraftView';
-import {
-    RecapDraftViewFromJSON,
-    RecapDraftViewFromJSONTyped,
-    RecapDraftViewToJSON,
-    RecapDraftViewToJSONTyped,
-} from './RecapDraftView';
 import type { RecapFactsView } from './RecapFactsView';
 import {
     RecapFactsViewFromJSON,
@@ -34,6 +27,13 @@ import {
     RecapFactsViewToJSON,
     RecapFactsViewToJSONTyped,
 } from './RecapFactsView';
+import type { RecapDraftView } from './RecapDraftView';
+import {
+    RecapDraftViewFromJSON,
+    RecapDraftViewFromJSONTyped,
+    RecapDraftViewToJSON,
+    RecapDraftViewToJSONTyped,
+} from './RecapDraftView';
 import type { RecapSourceView } from './RecapSourceView';
 import {
     RecapSourceViewFromJSON,
@@ -214,7 +214,7 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     }
     return {
         
-        'facts': json['facts'] == null ? undefined : RecapFactsViewFromJSON(json['facts']),
+        'facts': json['facts'] === undefined ? undefined : json['facts'] === null ? null : RecapFactsViewFromJSON(json['facts']),
         'generatedAt': (json['generatedAt'] == null ? null : new Date(json['generatedAt'])),
         'headline': json['headline'],
         'id': json['id'],

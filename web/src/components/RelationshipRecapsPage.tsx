@@ -793,9 +793,16 @@ function RecapReader({
                     playback.pause();
                 }}
                 onKeyDownCapture={(event) => {
-                  // Turning a page keeps playing; any other key is a deliberate stop.
-                  if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')
-                    playback.pause();
+                  if (event.key === 'ArrowRight' || event.key === 'ArrowLeft')
+                    return;
+                  // Let the focused toggle own keyboard activation.
+                  if (
+                    (event.key === 'Enter' || event.key === ' ') &&
+                    event.target instanceof Element &&
+                    event.target.closest('.recap-playback-toggle')
+                  )
+                    return;
+                  playback.pause();
                 }}
                 aria-label={t('recaps.page', {
                   page: page + 1,

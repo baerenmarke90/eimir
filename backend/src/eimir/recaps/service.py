@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import date, timedelta
 from typing import Any
 from uuid import UUID
@@ -200,36 +201,37 @@ def facts(
 ) -> dict[str, Any] | None:
     """Counted shared entries of the frozen period; never an inferred relationship claim."""
     source = _metadata(context)
-    within = (source.c.day <= value.through_on, source.c.through >= value.starts_on)
-    day = func.greatest(source.c.day, value.starts_on)
-    counts = {
-        kind: total
-        for kind, total in session.execute(
-            select(source.c.kind, func.count()).where(*within).group_by(source.c.kind)
-        )
-    }
-    if not counts:
+    active_day = func.greatest(source.c.day, value.starts_on)
+    # Keep all facts on the same snapshot when sources change during the read.
+    entries = session.execute(
+        select(active_day, source.c.kind, func.count())
+        .where(source.c.day <= value.through_on, source.c.through >= value.starts_on)
+        .group_by(active_day, source.c.kind)
+    ).all()
+    if not entries:
         return None
+
+    counts: Counter[str] = Counter()
+    days: set[date] = set()
+    monthly_counts: Counter[int] = Counter()
+    for day, kind, count in entries:
+        counts[kind] += count
+        days.add(day)
+        monthly_counts[day.month] += count
+
     busiest = None
     if value.kind == RecapKind.YEAR.value:
-        month = func.extract("month", day)
-        leading = session.execute(
-            select(month, func.count())
-            .where(*within)
-            .group_by(month)
-            .order_by(func.count().desc(), month)
-            .limit(2)
-        ).all()
+        leading = monthly_counts.most_common(2)
         # A tie or a single entry is not a meaningful "most active month".
         if leading[0][1] > 1 and (len(leading) == 1 or leading[0][1] > leading[1][1]):
-            busiest = int(leading[0][0])
+            busiest = leading[0][0]
     return {
-        "memories": counts.get(RecapSourceKind.MEMORY.value, 0),
-        "heart_moments": counts.get(RecapSourceKind.HEART_MOMENT.value, 0),
-        "milestones": counts.get(RecapSourceKind.MILESTONE.value, 0),
-        "chapters": counts.get(RecapSourceKind.CHAPTER.value, 0),
-        "plans": counts.get(RecapSourceKind.PLAN.value, 0),
-        "active_days": session.scalar(select(func.count(func.distinct(day))).where(*within)) or 0,
+        "memories": counts[RecapSourceKind.MEMORY.value],
+        "heart_moments": counts[RecapSourceKind.HEART_MOMENT.value],
+        "milestones": counts[RecapSourceKind.MILESTONE.value],
+        "chapters": counts[RecapSourceKind.CHAPTER.value],
+        "plans": counts[RecapSourceKind.PLAN.value],
+        "active_days": len(days),
         "busiest_month": busiest,
     }
 

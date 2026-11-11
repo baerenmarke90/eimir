@@ -1,6 +1,7 @@
 
 # RecapFactsView
 
+Counted shared entries of the edition period.
 
 ## Properties
 

@@ -583,7 +583,9 @@
   inset: 0;
 }
 .recap-layout-photo {
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(min-content, 1fr) auto;
   color: var(--color-text-inverse);
   background: var(--color-media-scrim-strong);
 }
@@ -701,7 +703,10 @@
   transition: opacity var(--duration-feedback) var(--easing-enter);
 }
 .recap-layout-photo > .recap-playback-overlay {
-  inset-block-start: 36%;
+  position: relative;
+  inset: auto;
+  place-self: center;
+  transform: none;
 }
 .recap-playback-overlay[data-playing="true"] {
   opacity: 0;

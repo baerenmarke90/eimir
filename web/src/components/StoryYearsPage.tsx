@@ -26,6 +26,7 @@ import {
   storyRequest,
   type StoryFilters,
 } from '../client/storyProduct';
+import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -104,6 +105,17 @@ export function StoryYearsIndexPage({
         deserialize: StoryPageFromJSON,
       }),
     retry: false,
+  });
+
+  useWarmProductSeed({
+    queryKey: ['story-years', spaceId],
+    accountId,
+    spaceId,
+    kind: 'story',
+    resourceId: INDEX_RESOURCE_ID,
+    deserialize: StoryPageFromJSON,
+    toQueryData: (snapshot) => snapshot,
+    error: yearsQuery.error,
   });
 
   useEffect(() => {
@@ -240,6 +252,18 @@ export function StoryYearDetailPage({
         : undefined;
     },
     retry: false,
+  });
+
+  useWarmProductSeed({
+    queryKey: ['story-year', spaceId, cacheResourceId],
+    accountId,
+    spaceId,
+    kind: 'story',
+    resourceId: cacheResourceId,
+    deserialize: StoryPageFromJSON,
+    toQueryData: (snapshot) => ({ pages: [snapshot], pageParams: [null] }),
+    error: storyQuery.error,
+    enabled: year !== null,
   });
 
   const combinedStory = useMemo(() => {

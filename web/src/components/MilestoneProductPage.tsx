@@ -38,6 +38,7 @@ import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useStoryDeletion } from '../client/useStoryDeletion';
+import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import { ExpandableDescription } from './ExpandableDescription';
@@ -134,7 +135,7 @@ export function MilestoneProductPage({
   const createAttemptRef =
     useRef<CreateRequestAttempt<MilestoneCreateSnapshot> | null>(null);
 
-  const milestoneQuery = useQuery({
+  const milestoneRead = useQuery({
     queryKey,
     queryFn: async () => {
       if (!milestoneId) throw new Error('Missing Milestone route parameter.');
@@ -151,6 +152,28 @@ export function MilestoneProductPage({
     enabled: mode !== 'create' && Boolean(milestoneId),
     retry: false,
   });
+  useWarmProductSeed({
+    queryKey,
+    accountId: currentAccountId,
+    spaceId,
+    kind: 'milestone',
+    resourceId: milestoneId ?? '',
+    deserialize: (payload) => MilestoneDetailFromJSON(payload),
+    toQueryData: (snapshot) => snapshot,
+    error: milestoneRead.error,
+    enabled: mode === 'detail',
+  });
+  // A form must start from the server's current version, never a snapshot.
+  const milestoneQuery =
+    mode !== 'detail' && milestoneRead.data?.source === 'warm'
+      ? {
+          ...milestoneRead,
+          data: undefined,
+          isLoading: true,
+          isPending: true,
+          isSuccess: false,
+        }
+      : milestoneRead;
 
   useStoryViewReceipt({
     apis,

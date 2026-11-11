@@ -19,15 +19,18 @@ export function useWarmProductSeed<T, TData>({
   deserialize,
   toQueryData,
   error,
+  enabled = true,
 }: {
   queryKey: QueryKey;
   accountId: string;
   spaceId: string;
-  kind: 'story' | 'story-discover';
+  kind: 'story' | 'story-discover' | 'memory' | 'heartMoment' | 'milestone';
   resourceId: string;
   deserialize: (payload: unknown) => T;
   toQueryData: (snapshot: ProductReadResult<T>) => TData;
   error: unknown;
+  /** False while a form owns the data: a stale snapshot must not seed an edit. */
+  enabled?: boolean;
 }): void {
   const client = useQueryClient();
   const identity = JSON.stringify(queryKey);
@@ -36,6 +39,7 @@ export function useWarmProductSeed<T, TData>({
   const seeded = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!enabled || !resourceId) return;
     let live = true;
     void readWarmOverviewCache({
       accountId,
@@ -60,7 +64,7 @@ export function useWarmProductSeed<T, TData>({
     return () => {
       live = false;
     };
-  }, [client, accountId, spaceId, kind, resourceId, identity]);
+  }, [client, accountId, spaceId, kind, resourceId, identity, enabled]);
 
   const denied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(error),

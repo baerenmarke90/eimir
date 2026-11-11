@@ -69,6 +69,7 @@ import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
+import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import {
@@ -431,7 +432,7 @@ export function HeartMomentProductPage({
     }
   }, [mode, voiceImportKey, apiBaseUrl, currentAccountId, spaceId]);
 
-  const heartMomentQuery = useQuery({
+  const heartMomentRead = useQuery({
     queryKey,
     queryFn: async () => {
       if (!heartMomentId)
@@ -457,6 +458,28 @@ export function HeartMomentProductPage({
         : false,
     retry: false,
   });
+  useWarmProductSeed({
+    queryKey,
+    accountId: currentAccountId,
+    spaceId,
+    kind: 'heartMoment',
+    resourceId: heartMomentId ?? '',
+    deserialize: (payload) => HeartMomentDetailFromJSON(payload),
+    toQueryData: (snapshot) => snapshot,
+    error: heartMomentRead.error,
+    enabled: mode === 'detail',
+  });
+  // A form must start from the server's current version, never a snapshot.
+  const heartMomentQuery =
+    mode !== 'detail' && heartMomentRead.data?.source === 'warm'
+      ? {
+          ...heartMomentRead,
+          data: undefined,
+          isLoading: true,
+          isPending: true,
+          isSuccess: false,
+        }
+      : heartMomentRead;
 
   const loadedMediaScope = useRef('');
   const mediaScope = JSON.stringify([
@@ -497,7 +520,7 @@ export function HeartMomentProductPage({
     presented:
       mode === 'detail' &&
       heartMomentQuery.isSuccess &&
-      heartMomentQuery.data.value.visibility === 'SHARED',
+      heartMomentQuery.data?.value.visibility === 'SHARED',
   });
 
   const captureCreateOwnership = useTaskActivation(

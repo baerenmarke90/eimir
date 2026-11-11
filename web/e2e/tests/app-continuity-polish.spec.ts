@@ -306,6 +306,37 @@ test('a native cold start opens the remembered Space, Diary and photo before any
   await expect(page.locator('.product-shell')).toHaveCount(0);
 });
 
+test('a previously read entry reopens from its stored snapshot before the server responds', async ({
+  page,
+}) => {
+  await installMocks(page, { strict: true });
+  let holding = false;
+  let waiting = 0;
+  let release!: () => void;
+  const answered = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/**', async (route) => {
+    if (!holding) return route.fallback();
+    waiting++;
+    await answered;
+    return route.fallback();
+  });
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal');
+  const title = page.getByRole('heading', { name: 'Breakfast by the canal' });
+  await expect(title).toBeVisible();
+  // The snapshot is written after the first successful read.
+  await page.waitForTimeout(500);
+
+  holding = true;
+  await page.reload();
+  await expect(title).toBeVisible();
+  expect(waiting).toBeGreaterThan(0);
+  release();
+  await expect(title).toBeVisible();
+});
+
 async function installContext(page: Page) {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;

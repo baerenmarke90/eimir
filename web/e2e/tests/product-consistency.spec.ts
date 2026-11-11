@@ -321,6 +321,17 @@ for (const theme of ['light', 'dark'])
       await gate;
       await route.fallback();
     });
+    // A remembered Space opens at once; the startup screen covers a restored
+    // session whose Space is not known yet. Rewrite it before the app boots.
+    await page.addInitScript(() => {
+      const key = 'eimir-session-v1';
+      const stored = sessionStorage.getItem(key);
+      if (!stored) return;
+      sessionStorage.setItem(
+        key,
+        JSON.stringify({ ...JSON.parse(stored), spaceId: null }),
+      );
+    });
     await page.reload({ waitUntil: 'domcontentloaded' });
     const startup = page.locator('.branded-startup');
     await expect(startup).toBeVisible();

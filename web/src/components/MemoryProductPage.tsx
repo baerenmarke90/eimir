@@ -65,6 +65,7 @@ import { orderedPhotoKeys } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
@@ -233,7 +234,7 @@ export function MemoryProductPage({
     [contextKey],
   );
 
-  const memoryQuery = useQuery({
+  const memoryRead = useQuery({
     queryKey: memoryKey,
     queryFn: async () => {
       if (!memoryId) throw new Error('Missing Memory route parameter.');
@@ -257,6 +258,28 @@ export function MemoryProductPage({
         : false,
     retry: false,
   });
+  useWarmProductSeed({
+    queryKey: memoryKey,
+    accountId: currentAccountId,
+    spaceId,
+    kind: 'memory',
+    resourceId: memoryId ?? '',
+    deserialize: (payload) => MemoryDetailFromJSON(payload),
+    toQueryData: (snapshot) => snapshot,
+    error: memoryRead.error,
+    enabled: mode === 'detail',
+  });
+  // A form must start from the server's current version, never a snapshot.
+  const memoryQuery =
+    mode !== 'detail' && memoryRead.data?.source === 'warm'
+      ? {
+          ...memoryRead,
+          data: undefined,
+          isLoading: true,
+          isPending: true,
+          isSuccess: false,
+        }
+      : memoryRead;
   const editForm = useRef<HTMLFormElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const dateContextRef = useRef<ComposerDateContextHandle>(null);

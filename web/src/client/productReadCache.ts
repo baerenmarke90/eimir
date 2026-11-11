@@ -693,8 +693,8 @@ export function canPersistProductReadPayload(
   return (payload as { visibility?: unknown }).visibility === 'SHARED';
 }
 
-/** Only approved shared overviews and the Diary's own stored first views may
- * paint before their background read. Callers keep writes gated; a remembered
+/** Stored shared overviews, Diary views and read-mode details may paint
+ * before their background read. Callers keep writes gated; a remembered
  * Space may mount them while its membership read is still in flight.
  */
 export async function readWarmOverviewCache<T>({
@@ -706,12 +706,7 @@ export async function readWarmOverviewCache<T>({
 }: {
   accountId: string;
   spaceId: string;
-  kind:
-    | 'dashboard-overview'
-    | 'plans-overview'
-    | 'shared-list'
-    | 'story'
-    | 'story-discover';
+  kind: ProductCacheKind;
   resourceId: string;
   deserialize: (payload: unknown) => T;
 }): Promise<ProductReadResult<T> | undefined> {

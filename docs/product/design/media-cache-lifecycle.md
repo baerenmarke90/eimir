@@ -201,9 +201,15 @@ and its photo after about 1,090 ms; each stage scaled with network latency.
   marked `warm`, never `network`: they do not paginate, are not written back and
   do not show the offline notice. A denied read removes the painted snapshot.
 
+- **Read-mode details and Years.** A previously read Memory, shared Heart
+  Moment or Milestone and the Years views paint their persisted snapshot the
+  same way. Create and edit forms never start from a snapshot: outside read
+  mode a `warm` result is treated as still loading, so a form always begins
+  from the server's current version. Private Heart Moments remain unpersisted.
+
 The same measurement now shows shell, card and photo within about 260 ms,
-before any response arrives. Other screens keep their existing behavior; Today,
-Planning lists, Places, Chapters and Photos already paint stored overviews.
+before any response arrives. Today, Planning lists, Places, Chapters and Photos
+already paint stored overviews; other details keep their existing behavior.
 
 **Privacy consequence.** For the duration of the membership round trip, an
 Account removed from a Space can see that Space's stored shared snapshots and
@@ -216,7 +222,8 @@ and query invalidation are reused; no dependency, provider or new store.
 
 Evidence: `app-continuity-polish.spec.ts` holds every API response during a
 native cold start, sees the Diary card and its photo, then answers with an empty
-membership list and observes the Space closed. It also returns to a retained Diary card while
+membership list and observes the Space closed. It reopens a previously read
+Memory with every response held and sees its content. It also returns to a retained Diary card while
 its access check is held open, sees the photo with no second download, then
 answers the check with 404 and observes the stored bytes removed. The journey
 fails on the baseline. Unit regressions cover immediate delivery, the shared

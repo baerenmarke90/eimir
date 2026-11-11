@@ -24,8 +24,8 @@
     },
     "app-continuity-polish.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 8,
-      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention and persistent preview bytes across browser/native restoration."
+      "baselineTests": 9,
+      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention, persistent preview bytes across browser/native restoration, and stored photos shown before their concurrent access check with removal after a denial."
     },
     "media-url-continuity.spec.ts": {
       "disposition": "PR_CRITICAL",

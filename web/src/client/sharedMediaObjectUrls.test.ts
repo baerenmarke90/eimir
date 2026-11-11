@@ -116,7 +116,7 @@ it('expires and bounds idle images without revoking an active view', () => {
   active.dispose();
 });
 
-it('reauthorizes reentry before reusing URL/bytes and revokes the parent immediately', async () => {
+it('reuses URL/bytes on reentry while access is confirmed and revokes the parent immediately', async () => {
   const authorize = vi
     .fn()
     .mockResolvedValue({ method: 'STREAM', url: '/content' });
@@ -153,11 +153,11 @@ it('reauthorizes reentry before reusing URL/bytes and revokes the parent immedia
     'photo',
     { variant: 'thumbnail' },
   );
+  const returned = await pending;
   expect(authorize).toHaveBeenCalledTimes(2);
   expect(create).toHaveBeenCalledTimes(1);
-  release({ method: 'STREAM', url: '/content' });
-  const returned = await pending;
   expect(returned.url).toBe(first.url);
+  release({ method: 'STREAM', url: '/content' });
   expect(content).toHaveBeenCalledTimes(1);
   const lease = captureMediaCacheLease(apis.attachments, 'space', [
     'attachment',
@@ -191,7 +191,7 @@ it('does not retain oversized idle images', () => {
   next.dispose();
 });
 
-it('a denied fresh read revokes a previously retained parent image', async () => {
+it('a denied access check revokes the retained parent image it confirmed', async () => {
   const authorize = vi
     .fn()
     .mockResolvedValue({ method: 'STREAM', url: '/content' });
@@ -213,17 +213,16 @@ it('a denied fresh read revokes a previously retained parent image', async () =>
   );
   first.dispose();
   authorize.mockRejectedValueOnce(new ClientProblemError('permission', 403));
-  await expect(
-    loadAuthorizedStoryImageResource(
-      apis,
-      'space',
-      'MEMORY',
-      'memory',
-      'photo',
-      { variant: 'thumbnail' },
-    ),
-  ).rejects.toBeInstanceOf(ClientProblemError);
-  expect(revoke).toHaveBeenCalledWith(first.url);
+  const shown = await loadAuthorizedStoryImageResource(
+    apis,
+    'space',
+    'MEMORY',
+    'memory',
+    'photo',
+    { variant: 'thumbnail' },
+  );
+  expect(shown.url).toBe(first.url);
+  await vi.waitFor(() => expect(revoke).toHaveBeenCalledWith(first.url));
 });
 
 it('keeps ordinary app browsing beyond one minute and twenty-four previews stable', () => {

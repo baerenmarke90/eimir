@@ -142,3 +142,57 @@ journey through Wir/Moments tabs. Reuse avoids repeat binary transfer and URL
 creation without suppressing fresh parent authorization. Idle images can load
 again after eviction/expiry or privacy revocation; this is deliberate bounded
 ownership rather than an unlimited retention promise.
+
+## Stored photos appear before their access check — 2026-11-11
+
+Product Owner follow-up to #1517/#1603: the app still appeared to reload every
+image on each start. Baseline: `main@bc9f2dc494f3d989de357c8c7acf8da19889a424`.
+
+Measured cause: the bytes were already on the device, but the loader awaited a
+fresh read-access response before every cached delivery. Each image therefore
+waited for at least one network round trip on a cold start and on every return
+to a retained screen, which is indistinguishable from a download on a mobile
+network. A browser journey with the access check held open showed no image at
+all until that check completed.
+
+**Decision.** Bytes this login already holds, in the RAM or disk tier, are
+displayed immediately. Parent read-access is still requested for every such
+delivery, now concurrently instead of beforehand. This supersedes “checked
+before every cached delivery” and “disk hits still require fresh authorized
+read-access” above for stored bytes only.
+
+- Unchanged: Origin/Account/Space/parent/attachment/variant identities, epoch
+  and lease fencing, limits and ages, synchronous wipes on logout, login
+  replacement, Space change and membership loss. Nothing new is persisted.
+- An attachment with no stored bytes still waits for authorization; a denial
+  never downloads or reveals anything.
+- An explicit 401/403/404 from the concurrent check evicts all variants of that
+  parent from RAM and disk, revokes their display URLs and invalidates the
+  loaded queries, so the refreshed parent projection removes the item.
+  Concurrent views of one photo share a single check. A late denial for a
+  replaced login or revoked lease changes nothing.
+- An unavailable check (offline, server error) leaves the stored photo visible.
+  Shared text snapshots already behave this way through the approved read
+  cache; photos now match it. Sensitive-media reveal and the fresh-projection
+  preview proofs are untouched.
+
+**Privacy consequence.** After a partner deletes or hides content, a device that
+stored its photo earlier can show it until its access check answers, and while
+that device stays offline, bounded by the seven-day disk age. Previously the
+photo stayed hidden in both cases. The exposure is limited to the same signed-in
+Account, Space and device that was authorized when the bytes were stored.
+
+**Not changed by this step.** The startup screen still waits for the membership
+response and the Diary timeline still waits for its first network read.
+
+Business/freemium impact reviewed: none. Essential media reading stays
+non-paywallable and identical in Cloud and Self-Hosted; server requests per
+delivery are unchanged. Reuse review: the existing loader, byte tiers, URL pool
+and query invalidation are reused; no dependency, provider or new store.
+
+Evidence: `app-continuity-polish.spec.ts` returns to a retained Diary card while
+its access check is held open, sees the photo with no second download, then
+answers the check with 404 and observes the stored bytes removed. The journey
+fails on the baseline. Unit regressions cover immediate delivery, the shared
+check, 401/403/404 eviction, unavailable checks, absent bytes and isolation
+between logins. Physical-device and production-network acceptance remain open.

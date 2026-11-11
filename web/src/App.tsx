@@ -119,7 +119,10 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
-import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
+import {
+  loadAuthorizedStoryImageResource,
+  subscribeMediaAccessDenied,
+} from './client/storyMediaLoader';
 import { useAccountLanguage } from './client/useAccountLanguage';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
@@ -385,6 +388,14 @@ function AuthenticatedApp({
         }),
       ),
     [apiBaseUrl, tokens.accessToken],
+  );
+
+  useEffect(
+    () =>
+      subscribeMediaAccessDenied(() => {
+        void queryClient.invalidateQueries();
+      }),
+    [queryClient],
   );
 
   useEffect(() => {

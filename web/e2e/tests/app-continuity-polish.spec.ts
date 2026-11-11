@@ -153,6 +153,96 @@ for (const native of [false, true]) {
   });
 }
 
+test('a stored photo appears before its access check and leaves the device after a denial', async ({
+  page,
+}) => {
+  await installMocks(page, { strict: true });
+  let holding = false;
+  let held = 0;
+  let downloads = 0;
+  let release!: () => void;
+  const denied = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/attachments/att-canal-1/read-access', async (route) => {
+    if (!holding) return route.fallback();
+    held++;
+    await denied;
+    return route.fulfill({
+      status: 404,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({ status: 404, code: 'NOT_FOUND' }),
+    });
+  });
+  await page.route(
+    '**/attachments/att-canal-1/content?variant=thumbnail',
+    (route) => {
+      downloads++;
+      return route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/cabin-lake.jpg',
+            import.meta.url,
+          ),
+        ),
+      });
+    },
+  );
+  const storedPhotos = () =>
+    page.evaluate(
+      () =>
+        new Promise<number>((resolve, reject) => {
+          const open = indexedDB.open('eimir-authorized-media-v1');
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const db = open.result;
+            const tx = db.transaction('media', 'readonly');
+            const keys = tx.objectStore('media').getAllKeys();
+            keys.onsuccess = () =>
+              resolve(
+                keys.result.filter((key) => String(key).includes('att-canal-1'))
+                  .length,
+              );
+            tx.oncomplete = () => db.close();
+          };
+        }),
+    );
+  await signIn(page);
+  const card = page.locator(
+    'a.story-card-link[href="/story/memories/mem-canal"]',
+  );
+  await expect
+    .poll(() =>
+      card
+        .locator('img')
+        .first()
+        .evaluate((node: HTMLImageElement) => node.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await expect.poll(storedPhotos).toBeGreaterThan(0);
+  expect(downloads).toBe(1);
+
+  // Returning within the session renders retained cards without a new parent read.
+  holding = true;
+  await page.locator('a[href="/plan"]').first().click();
+  await expect(card).toHaveCount(0);
+  await page.goBack();
+  await expect
+    .poll(() =>
+      card
+        .locator('img')
+        .first()
+        .evaluate((node: HTMLImageElement) => node.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  expect(held).toBeGreaterThan(0);
+  expect(downloads).toBe(1);
+
+  release();
+  await expect.poll(storedPhotos).toBe(0);
+});
+
 async function installContext(page: Page) {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultProductContext(route)) return;

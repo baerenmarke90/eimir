@@ -264,6 +264,52 @@ export function consumeAuthorizedMediaPreview(
   }
 }
 
+const stored = new Map<string, Promise<Blob | undefined>>();
+
+/**
+ * Return bytes this login already holds, without any network request. The
+ * caller displays them at once and confirms parent access concurrently; a
+ * denial evicts them. Leases still fence other Accounts, Spaces and logins.
+ */
+export async function readStoredMediaBlob(
+  lease: CacheLease,
+  identity: readonly string[],
+): Promise<Blob | undefined> {
+  assertMediaCacheLease(lease);
+  prune();
+  const key = keyPrefix(lease, identity);
+  const hit = cached.get(key);
+  if (hit) {
+    cached.delete(key);
+    cached.set(key, hit);
+    return hit.blob;
+  }
+  const diskKey = durableKey(lease, identity);
+  const epoch = lease.durableEpoch;
+  if (!diskKey || !epoch) return undefined;
+  let read = stored.get(key);
+  if (!read) {
+    const created = readDurableMedia(diskKey, epoch)
+      .then((blob) => {
+        assertMediaCacheLease(lease);
+        if (blob && blob.size <= MEDIA_CACHE_MAX_BYTES && !cached.has(key)) {
+          cached.set(key, { blob, receivedAt: performance.now() });
+          cachedBytes += blob.size;
+          prune();
+        }
+        return blob;
+      })
+      .finally(() => {
+        if (stored.get(key) === created) stored.delete(key);
+      });
+    stored.set(key, created);
+    read = created;
+  }
+  const blob = await read;
+  assertMediaCacheLease(lease);
+  return blob;
+}
+
 /**
  * Reuse immutable bytes after the caller's authorization check. Identity must
  * include parent binding, attachment identity and original/thumbnail variant.

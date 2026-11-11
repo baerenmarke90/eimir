@@ -7,6 +7,7 @@ import {
   evictAuthorizedMedia,
   loadCachedMediaBlob,
   consumeAuthorizedMediaPreview,
+  readStoredMediaBlob,
 } from './authorizedMediaCache';
 import type { OwnedObjectUrl } from './objectUrlResource';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
@@ -24,6 +25,51 @@ type StoryMediaLoaderOptions = {
   signal?: AbortSignal;
   variant?: 'original' | 'thumbnail';
 };
+
+const DENIED = ['unauthorized', 'permission', 'notFound'];
+const confirmations = new Map<string, Promise<void>>();
+const denialListeners = new Set<() => void>();
+
+/** Projections refresh after a denial so a withdrawn item leaves the screen. */
+export function subscribeMediaAccessDenied(listener: () => void): () => void {
+  denialListeners.add(listener);
+  return () => {
+    denialListeners.delete(listener);
+  };
+}
+
+/**
+ * Stored bytes are already on screen; this is their access check. It outlives
+ * the requesting view, and one check serves every concurrent consumer.
+ */
+function confirmStoredMediaAccess(
+  key: string,
+  lease: ReturnType<typeof captureMediaCacheLease>,
+  parentIdentity: readonly string[],
+  requestDescriptor: () => Promise<unknown>,
+): void {
+  if (confirmations.has(key)) return;
+  const confirmation = requestDescriptor()
+    .then(
+      () => undefined,
+      async (error) => {
+        const problem = await normalizeClientError(error);
+        if (!DENIED.includes(clientProblemKind(problem))) return;
+        try {
+          assertMediaCacheLease(lease);
+        } catch {
+          // A late denial must not revoke a replacement session's media.
+          return;
+        }
+        evictAuthorizedMedia(lease, parentIdentity);
+        for (const listener of denialListeners) listener();
+      },
+    )
+    .finally(() => {
+      confirmations.delete(key);
+    });
+  confirmations.set(key, confirmation);
+}
 
 /**
  * Load media for timeline/story cards while preserving the attachment parent
@@ -68,6 +114,18 @@ async function loadAuthorizedStoryBlob(
       options.variant ?? 'original',
     ];
     if (!consumeAuthorizedMediaPreview(lease, identity)) {
+      // Bytes this login already holds appear without waiting for the network.
+      const storedBlob = await readStoredMediaBlob(lease, identity);
+      options.signal?.throwIfAborted();
+      if (storedBlob) {
+        confirmStoredMediaAccess(
+          JSON.stringify([lease.scope.id, spaceId, ...identity]),
+          lease,
+          parentIdentity,
+          () => requestDescriptor(),
+        );
+        return { blob: storedBlob, variant: options.variant ?? 'original' };
+      }
       descriptor = await requestDescriptor(options.signal);
     }
 
@@ -118,11 +176,7 @@ async function loadAuthorizedStoryBlob(
     return { blob, variant: options.variant ?? 'original' };
   } catch (error) {
     const problem = await normalizeClientError(error);
-    if (
-      ['unauthorized', 'permission', 'notFound'].includes(
-        clientProblemKind(problem),
-      )
-    ) {
+    if (DENIED.includes(clientProblemKind(problem))) {
       evictAuthorizedMedia(lease, parentIdentity);
     }
     throw error;

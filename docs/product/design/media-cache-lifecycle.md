@@ -143,95 +143,34 @@ creation without suppressing fresh parent authorization. Idle images can load
 again after eviction/expiry or privacy revocation; this is deliberate bounded
 ownership rather than an unlimited retention promise.
 
-## Stored photos appear before their access check — 2026-11-11
+## Parallel reads during session restoration — 2026-11-12
 
-Product Owner follow-up to #1517/#1603: the app still appeared to reload every
-image on each start. Baseline: `main@bc9f2dc494f3d989de357c8c7acf8da19889a424`.
+The Product Owner’s follow-up to #1517 and #1603 addressed the Diary and its
+photos appearing in separate network-bound stages after the membership response. On a restored
+Story route, the client now starts the active authorized network reads while
+membership and Account restoration run. Diary prepares Timeline and Discover;
+the Years index, selected year and read-mode Memory, Heart Moment and Milestone
+prepare their own first read. Create and edit routes use their existing reads.
 
-Measured cause: the bytes were already on the device, but the loader awaited a
-fresh read-access response before every cached delivery. Each image therefore
-waited for at least one network round trip on a cold start and on every return
-to a retained screen, which is indistinguishable from a download on a mobile
-network. A browser journey with the access check held open showed no image at
-all until that check completed.
+The public startup view remains until the active Space is authorized. A result
+belongs to its Account, Space and exact route, and the matching query can take
+it once. Abandoning the route or losing membership cancels unconsumed work.
+The existing product read-cache handles persistence and availability fallback
+after the Space is admitted. The warm overview exceptions in M2-D18 remain
+scoped to their approved surfaces.
 
-**Decision.** Bytes this login already holds, in the RAM or disk tier, are
-displayed immediately. Parent read-access is still requested for every such
-delivery, now concurrently instead of beforehand. This supersedes “checked
-before every cached delivery” and “disk hits still require fresh authorized
-read-access” above for stored bytes only.
+For a photo without a fresh projection proof, the loader starts its local byte
+lookup alongside the normal parent read-access request. Display still requires
+that request to succeed. A fresh projection can supply the existing preview
+proof. Cache misses still download through the authorized transport. A
+401/403/404 prevents display and evicts the parent’s variants and display
+URLs. The existing cache namespaces, retention limits and expiry apply.
 
-- Unchanged: Origin/Account/Space/parent/attachment/variant identities, epoch
-  and lease fencing, limits and ages, synchronous wipes on logout, login
-  replacement, Space change and membership loss. Nothing new is persisted.
-- An attachment with no stored bytes still waits for authorization; a denial
-  never downloads or reveals anything.
-- An explicit 401/403/404 from the concurrent check evicts all variants of that
-  parent from RAM and disk, revokes their display URLs and invalidates the
-  loaded queries, so the refreshed parent projection removes the item.
-  Concurrent views of one photo share a single check. A late denial for a
-  replaced login or revoked lease changes nothing.
-- An unavailable check (offline, server error) leaves the stored photo visible.
-  Shared text snapshots already behave this way through the approved read
-  cache; photos now match it. Sensitive-media reveal and the fresh-projection
-  preview proofs are untouched.
-
-**Privacy consequence.** After a partner deletes or hides content, a device that
-stored its photo earlier can show it until its access check answers, and while
-that device stays offline, bounded by the seven-day disk age. Previously the
-photo stayed hidden in both cases. The exposure is limited to the same signed-in
-Account, Space and device that was authorized when the bytes were stored.
-
-### Startup and Diary follow-up
-
-Product Owner follow-up the same day: not only photos, the whole start must
-build up at once. With every response delayed by 400 ms, a native cold start
-showed the shell after about 600 ms, the first Diary card after about 1,030 ms
-and its photo after about 1,090 ms; each stage scaled with network latency.
-
-- **Remembered Space.** A restored session whose stored Space was resolved from
-  an earlier authorized membership response opens that Space immediately while
-  `/auth/me` and the membership read run. An authoritative membership answer
-  always replaces the assumption: a lost membership leaves the Space, evicts its
-  media and returns to the existing gate. A transient failure (offline, server,
-  rate limit) keeps the remembered Space with its stored content; 401/403 ends
-  the session as before. A fresh sign-in is unaffected.
-- **Diary and Discover.** Their already persisted first-view snapshots paint
-  while the network read is in flight and are replaced by its result. They are
-  marked `warm`, never `network`: they do not paginate, are not written back and
-  do not show the offline notice. A denied read removes the painted snapshot.
-
-- **Read-mode details and Years.** A previously read Memory, shared Heart
-  Moment or Milestone and the Years views paint their persisted snapshot the
-  same way. Create and edit forms never start from a snapshot: outside read
-  mode a `warm` result is treated as still loading, so a form always begins
-  from the server's current version. Private Heart Moments remain unpersisted.
-
-The same measurement now shows shell, card and photo within about 260 ms,
-before any response arrives. Today, Planning lists, Places, Chapters and Photos
-already paint stored overviews; other details keep their existing behavior.
-
-**Privacy consequence.** For the duration of the membership round trip, an
-Account removed from a Space can see that Space's stored shared snapshots and
-photos on a device that held them. Previously the startup screen covered them.
-
-Business/freemium impact reviewed: none. Essential media reading stays
-non-paywallable and identical in Cloud and Self-Hosted; server requests per
-delivery are unchanged. Reuse review: the existing loader, byte tiers, URL pool
-and query invalidation are reused; no dependency, provider or new store.
-
-Evidence: `app-continuity-polish.spec.ts` holds every API response during a
-native cold start, sees the Diary card and its photo, then answers with an empty
-membership list and observes the Space closed. It reopens a previously read
-Memory with every response held and sees its content. It also returns to a retained Diary card while
-its access check is held open, sees the photo with no second download, then
-answers the check with 404 and observes the stored bytes removed. The journey
-fails on the baseline. Unit regressions cover immediate delivery, the shared
-check, 401/403/404 eviction, unavailable checks, absent bytes and isolation
-between logins. Physical-device and production-network acceptance remain open.
-
-Visual evidence with every API response left unanswered after a native cold
-start (synthetic fixture photos): [Compact light](evidence/instant-start/cold-start-unanswered-390-light.png),
-[Compact dark](evidence/instant-start/cold-start-unanswered-390-dark.png),
-[Expanded](evidence/instant-start/cold-start-unanswered-1280-light.png). The
-composition is unchanged; only the moment it appears differs.
+The browser tests hold the membership response until the Timeline, Discover
+or Memory read completes, verify the public startup view while it is held, and
+verify one read per projection after admission. The Diary reload reuses its
+photo bytes. A revoked membership keeps the Diary closed and removes stored
+photos. A separate journey verifies the photo stays hidden while parent access
+is pending and that a 404 evicts its bytes. Representative Compact and Expanded
+renders are in [the startup evidence folder](evidence/story-startup/). The
+native session lifecycle is simulated in Chromium.

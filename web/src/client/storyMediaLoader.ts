@@ -26,51 +26,6 @@ type StoryMediaLoaderOptions = {
   variant?: 'original' | 'thumbnail';
 };
 
-const DENIED = ['unauthorized', 'permission', 'notFound'];
-const confirmations = new Map<string, Promise<void>>();
-const denialListeners = new Set<() => void>();
-
-/** Projections refresh after a denial so a withdrawn item leaves the screen. */
-export function subscribeMediaAccessDenied(listener: () => void): () => void {
-  denialListeners.add(listener);
-  return () => {
-    denialListeners.delete(listener);
-  };
-}
-
-/**
- * Stored bytes are already on screen; this is their access check. It outlives
- * the requesting view, and one check serves every concurrent consumer.
- */
-function confirmStoredMediaAccess(
-  key: string,
-  lease: ReturnType<typeof captureMediaCacheLease>,
-  parentIdentity: readonly string[],
-  requestDescriptor: () => Promise<unknown>,
-): void {
-  if (confirmations.has(key)) return;
-  const confirmation = requestDescriptor()
-    .then(
-      () => undefined,
-      async (error) => {
-        const problem = await normalizeClientError(error);
-        if (!DENIED.includes(clientProblemKind(problem))) return;
-        try {
-          assertMediaCacheLease(lease);
-        } catch {
-          // A late denial must not revoke a replacement session's media.
-          return;
-        }
-        evictAuthorizedMedia(lease, parentIdentity);
-        for (const listener of denialListeners) listener();
-      },
-    )
-    .finally(() => {
-      confirmations.delete(key);
-    });
-  confirmations.set(key, confirmation);
-}
-
 /**
  * Load media for timeline/story cards while preserving the attachment parent
  * binding used by the read-access contract. Signed URLs are fetched directly;
@@ -113,21 +68,14 @@ async function loadAuthorizedStoryBlob(
       attachmentId,
       options.variant ?? 'original',
     ];
-    if (!consumeAuthorizedMediaPreview(lease, identity)) {
-      // Bytes this login already holds appear without waiting for the network.
-      const storedBlob = await readStoredMediaBlob(lease, identity);
-      options.signal?.throwIfAborted();
-      if (storedBlob) {
-        confirmStoredMediaAccess(
-          JSON.stringify([lease.scope.id, spaceId, ...identity]),
-          lease,
-          parentIdentity,
-          () => requestDescriptor(),
-        );
-        return { blob: storedBlob, variant: options.variant ?? 'original' };
-      }
-      descriptor = await requestDescriptor(options.signal);
-    }
+    const storedRead = consumeAuthorizedMediaPreview(lease, identity)
+      ? undefined
+      : readStoredMediaBlob(lease, identity);
+    if (storedRead)
+      [descriptor] = await Promise.all([
+        requestDescriptor(options.signal),
+        storedRead,
+      ]);
 
     // Every existing image consumer remains bounded when its source becomes a
     // video. Playback has a distinct grant path; image caches own posters only.
@@ -170,13 +118,18 @@ async function loadAuthorizedStoryBlob(
         }
       },
       options.signal,
+      storedRead,
     );
 
     assertMediaCacheLease(lease);
     return { blob, variant: options.variant ?? 'original' };
   } catch (error) {
     const problem = await normalizeClientError(error);
-    if (DENIED.includes(clientProblemKind(problem))) {
+    if (
+      ['unauthorized', 'permission', 'notFound'].includes(
+        clientProblemKind(problem),
+      )
+    ) {
       evictAuthorizedMedia(lease, parentIdentity);
     }
     throw error;

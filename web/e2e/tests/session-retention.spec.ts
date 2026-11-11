@@ -319,9 +319,11 @@ for (const rejected of [false, true]) {
       await expect(page.locator('.product-shell')).toHaveCount(0);
       return;
     }
-    // An unavailable refresh must retain credentials. The remembered Space
-    // stays open with its stored content instead of a blocking server state.
-    await expect(page.locator('.product-shell')).toBeVisible();
+    // Cold restoration has no verified membership cache. An unavailable
+    // refresh must retain credentials and expose a recoverable server state.
+    await expect(
+      page.getByText(de.states.server.title, { exact: true }),
+    ).toBeVisible();
     expect(
       await page.evaluate(
         (key) => JSON.parse(sessionStorage.getItem(key)!).tokens.refreshToken,

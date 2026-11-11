@@ -18,6 +18,36 @@ import {
 
 const fixture = localizedFixture.sharedExperience;
 const root = `/api/v1/spaces/${SPACE_ID}`;
+const canalCard = 'a.story-card-link[href="/story/memories/mem-canal"]';
+const canalThumbnail = '**/attachments/att-canal-1/content?variant=thumbnail';
+const canalPhoto = readFileSync(
+  new URL(
+    '../../../backend/demo_assets/images/cabin-lake.jpg',
+    import.meta.url,
+  ),
+);
+
+function countStoredCanalPhotos(page: Page) {
+  return page.evaluate(
+    () =>
+      new Promise<number>((resolve, reject) => {
+        const open = indexedDB.open('eimir-authorized-media-v1');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction('media', 'readonly');
+          const keys = tx.objectStore('media').getAllKeys();
+          keys.onsuccess = () =>
+            resolve(
+              keys.result.filter((key) => String(key).includes('att-canal-1'))
+                .length,
+            );
+          tx.oncomplete = () => db.close();
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
+}
 
 test('the alphabet includes later API pages before showing the wish list', async ({
   page,
@@ -92,46 +122,16 @@ for (const native of [false, true]) {
       if (path.endsWith('/attachments/att-canal-1/read-access')) grants++;
       return route.fallback();
     });
-    await page.route(
-      '**/attachments/att-canal-1/content?variant=thumbnail',
-      (route) => {
-        downloads++;
-        return route.fulfill({
-          contentType: 'image/jpeg',
-          body: readFileSync(
-            new URL(
-              '../../../backend/demo_assets/images/cabin-lake.jpg',
-              import.meta.url,
-            ),
-          ),
-        });
-      },
-    );
+    await page.route(canalThumbnail, (route) => {
+      downloads++;
+      return route.fulfill({ contentType: 'image/jpeg', body: canalPhoto });
+    });
     await signIn(page);
-    const image = page
-      .locator('a.story-card-link[href="/story/memories/mem-canal"] img')
-      .first();
+    const image = page.locator(canalCard).locator('img').first();
     await expect
       .poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth))
       .toBeGreaterThan(0);
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            new Promise<number>((resolve, reject) => {
-              const open = indexedDB.open('eimir-authorized-media-v1');
-              open.onerror = () => reject(open.error);
-              open.onsuccess = () => {
-                const db = open.result;
-                const tx = db.transaction('media', 'readonly');
-                const count = tx.objectStore('media').count();
-                count.onsuccess = () => resolve(count.result);
-                tx.oncomplete = () => db.close();
-              };
-            }),
-        ),
-      )
-      .toBeGreaterThan(0);
+    await expect.poll(() => countStoredCanalPhotos(page)).toBeGreaterThan(0);
     expect(downloads).toBe(1);
     const epoch = await page.evaluate(() =>
       localStorage.getItem('eimir-media-epoch-v1'),
@@ -149,15 +149,15 @@ for (const native of [false, true]) {
     ).toBe(epoch);
     expect(downloads).toBe(1);
     expect(storyReads).toBeGreaterThan(initialStoryReads);
-    // The stored Diary can paint before the fresh projection; its photo then
-    // confirms access with one concurrent check and never a second download.
-    expect(grants).toBeLessThanOrEqual(initialGrants + 1);
+    expect(grants).toBe(initialGrants);
   });
 }
 
-test('a stored photo appears before its access check and leaves the device after a denial', async ({
+test('a stored photo stays hidden while access is checked and is evicted after a denial', async ({
   page,
-}) => {
+}, info) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await installMocks(page, { strict: true });
   let holding = false;
   let held = 0;
@@ -176,44 +176,12 @@ test('a stored photo appears before its access check and leaves the device after
       body: JSON.stringify({ status: 404, code: 'NOT_FOUND' }),
     });
   });
-  await page.route(
-    '**/attachments/att-canal-1/content?variant=thumbnail',
-    (route) => {
-      downloads++;
-      return route.fulfill({
-        contentType: 'image/jpeg',
-        body: readFileSync(
-          new URL(
-            '../../../backend/demo_assets/images/cabin-lake.jpg',
-            import.meta.url,
-          ),
-        ),
-      });
-    },
-  );
-  const storedPhotos = () =>
-    page.evaluate(
-      () =>
-        new Promise<number>((resolve, reject) => {
-          const open = indexedDB.open('eimir-authorized-media-v1');
-          open.onerror = () => reject(open.error);
-          open.onsuccess = () => {
-            const db = open.result;
-            const tx = db.transaction('media', 'readonly');
-            const keys = tx.objectStore('media').getAllKeys();
-            keys.onsuccess = () =>
-              resolve(
-                keys.result.filter((key) => String(key).includes('att-canal-1'))
-                  .length,
-              );
-            tx.oncomplete = () => db.close();
-          };
-        }),
-    );
+  await page.route(canalThumbnail, (route) => {
+    downloads++;
+    return route.fulfill({ contentType: 'image/jpeg', body: canalPhoto });
+  });
   await signIn(page);
-  const card = page.locator(
-    'a.story-card-link[href="/story/memories/mem-canal"]',
-  );
+  const card = page.locator(canalCard);
   await expect
     .poll(() =>
       card
@@ -222,119 +190,133 @@ test('a stored photo appears before its access check and leaves the device after
         .evaluate((node: HTMLImageElement) => node.naturalWidth),
     )
     .toBeGreaterThan(0);
-  await expect.poll(storedPhotos).toBeGreaterThan(0);
+  await expect.poll(() => countStoredCanalPhotos(page)).toBeGreaterThan(0);
   expect(downloads).toBe(1);
+  await captureScreenshot(page, info, 'diary-expanded-dark.png');
 
   // Returning within the session renders retained cards without a new parent read.
   holding = true;
   await page.locator('a[href="/plan"]').first().click();
   await expect(card).toHaveCount(0);
   await page.goBack();
-  await expect
-    .poll(() =>
-      card
-        .locator('img')
-        .first()
-        .evaluate((node: HTMLImageElement) => node.naturalWidth),
-    )
-    .toBeGreaterThan(0);
-  expect(held).toBeGreaterThan(0);
-  expect(downloads).toBe(1);
+  await expect.poll(() => held).toBeGreaterThan(0);
+  await expect(card).toBeVisible();
+  await expect(card.locator('img')).toHaveCount(0);
 
   release();
-  await expect.poll(storedPhotos).toBe(0);
+  await expect.poll(() => countStoredCanalPhotos(page)).toBe(0);
+  await expect(card.locator('.story-media-placeholder')).toBeVisible();
+  expect(downloads).toBe(1);
+  await captureScreenshot(page, info, 'diary-access-denied-expanded-dark.png');
 });
 
-test('a native cold start opens the remembered Space, Diary and photo before any server response, then honours a lost membership', async ({
+test('a native Diary cold start prepares the content in parallel and displays it only with current membership', async ({
   page,
-}) => {
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await installNativeAppLifecycle(page);
   await installMocks(page, { strict: true });
-  let holding = false;
-  let waiting = 0;
-  let release!: () => void;
-  const answered = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  await page.route('**/api/v1/**', async (route) => {
-    if (!holding) return route.fallback();
-    waiting++;
-    await answered;
-    if (new URL(route.request().url()).pathname.endsWith('/auth/memberships'))
+  let membershipReply: Promise<boolean> | undefined;
+  const reads: string[] = [];
+  let downloads = 0;
+  await page.route('**/api/v1/auth/memberships', async (route) => {
+    if (membershipReply && !(await membershipReply))
       return route.fulfill({ json: [] });
     return route.fallback();
   });
+  const projection = /\/api\/v1\/spaces\/[^/]+\/(timeline|discover)(?:\?|$)/;
+  await page.route(projection, (route) => {
+    if (membershipReply) reads.push(new URL(route.request().url()).pathname);
+    return route.fallback();
+  });
+  await page.route(canalThumbnail, (route) => {
+    downloads++;
+    return route.fulfill({ contentType: 'image/jpeg', body: canalPhoto });
+  });
   await signIn(page);
-  const card = page.locator(
-    'a.story-card-link[href="/story/memories/mem-canal"]',
-  );
+  const card = page.locator(canalCard);
   const photoWidth = () =>
     card
       .locator('img')
       .first()
       .evaluate((node: HTMLImageElement) => node.naturalWidth);
   await expect.poll(photoWidth).toBeGreaterThan(0);
-  // The Diary snapshot and the photo are written after their first display.
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          new Promise<number>((resolve, reject) => {
-            const open = indexedDB.open('eimir-authorized-media-v1');
-            open.onerror = () => reject(open.error);
-            open.onsuccess = () => {
-              const db = open.result;
-              const tx = db.transaction('media', 'readonly');
-              const count = tx.objectStore('media').count();
-              count.onsuccess = () => resolve(count.result);
-              tx.oncomplete = () => db.close();
-            };
-          }),
+  await expect.poll(() => countStoredCanalPhotos(page)).toBeGreaterThan(0);
+  expect(downloads).toBe(1);
+
+  const restartWithMembership = async (authorized: boolean) => {
+    reads.length = 0;
+    let reply!: (value: boolean) => void;
+    membershipReply = new Promise<boolean>((resolve) => {
+      reply = resolve;
+    });
+    const responses = ['timeline', 'discover'].map((kind) =>
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === `${root}/${kind}` &&
+          response.ok(),
       ),
-    )
-    .toBeGreaterThan(0);
-  await page.waitForTimeout(500);
+    );
+    await page.evaluate(() => sessionStorage.removeItem('eimir-session-v1'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await Promise.all(responses);
+    await expect(page.locator('.branded-startup')).toBeVisible();
+    await expect(card).toHaveCount(0);
+    if (authorized)
+      await captureScreenshot(page, info, 'diary-startup-compact-light.png');
+    reply(authorized);
+  };
 
-  holding = true;
-  await page.evaluate(() => sessionStorage.removeItem('eimir-session-v1'));
-  await page.reload();
+  await restartWithMembership(true);
   await expect.poll(photoWidth).toBeGreaterThan(0);
-  expect(waiting).toBeGreaterThan(0);
+  expect(reads.sort()).toEqual([`${root}/discover`, `${root}/timeline`]);
+  expect(downloads).toBe(1);
+  await captureScreenshot(page, info, 'diary-restored-compact-light.png');
 
-  release();
+  await restartWithMembership(false);
+  await expect(page.locator('.branded-startup')).toHaveCount(0);
   await expect(card).toHaveCount(0);
   await expect(page.locator('.product-shell')).toHaveCount(0);
+  await expect.poll(() => countStoredCanalPhotos(page)).toBe(0);
+  expect(downloads).toBe(1);
 });
 
-test('a previously read entry reopens from its stored snapshot before the server responds', async ({
+test('a read-mode Memory refreshes its detail alongside the membership check', async ({
   page,
 }) => {
   await installMocks(page, { strict: true });
-  let holding = false;
-  let waiting = 0;
+  let restoring = false;
+  let reads = 0;
   let release!: () => void;
-  const answered = new Promise<void>((resolve) => {
+  const membership = new Promise<void>((resolve) => {
     release = resolve;
   });
-  await page.route('**/api/v1/**', async (route) => {
-    if (!holding) return route.fallback();
-    waiting++;
-    await answered;
+  await page.route('**/api/v1/auth/memberships', async (route) => {
+    if (restoring) await membership;
+    return route.fallback();
+  });
+  const detail = `${root}/memories/mem-canal`;
+  await page.route(`**${detail}`, (route) => {
+    if (restoring) reads++;
     return route.fallback();
   });
   await signIn(page);
-  await page.goto('/story/memories/mem-canal');
+  await page.locator(canalCard).click();
   const title = page.getByRole('heading', { name: 'Breakfast by the canal' });
   await expect(title).toBeVisible();
-  // The snapshot is written after the first successful read.
-  await page.waitForTimeout(500);
 
-  holding = true;
-  await page.reload();
-  await expect(title).toBeVisible();
-  expect(waiting).toBeGreaterThan(0);
+  restoring = true;
+  const prepared = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === detail && response.ok(),
+  );
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await prepared;
+  await expect(page.locator('.branded-startup')).toBeVisible();
+  await expect(title).toHaveCount(0);
   release();
   await expect(title).toBeVisible();
+  expect(reads).toBe(1);
 });
 
 async function installContext(page: Page) {

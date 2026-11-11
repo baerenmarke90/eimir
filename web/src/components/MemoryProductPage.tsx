@@ -65,7 +65,6 @@ import { orderedPhotoKeys } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
-import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
@@ -128,6 +127,7 @@ export function MemoryProductPage({
   spaceId,
   currentAccountId,
   loadMemoryImage,
+  startupRead,
 }: {
   mode: MemoryProductMode;
   apis: ReferenceApis;
@@ -135,6 +135,7 @@ export function MemoryProductPage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
+  startupRead?: () => Promise<MemoryDetail> | undefined;
   loadMemoryImage: (
     memoryId: string,
     attachmentId: string,
@@ -234,7 +235,7 @@ export function MemoryProductPage({
     [contextKey],
   );
 
-  const memoryRead = useQuery({
+  const memoryQuery = useQuery({
     queryKey: memoryKey,
     queryFn: async () => {
       if (!memoryId) throw new Error('Missing Memory route parameter.');
@@ -243,7 +244,8 @@ export function MemoryProductPage({
         spaceId,
         kind: 'memory',
         resourceId: memoryId,
-        load: () => apis.memories.getMemory({ spaceId, memoryId }),
+        load: () =>
+          startupRead?.() ?? apis.memories.getMemory({ spaceId, memoryId }),
         serialize: MemoryDetailToJSON,
         deserialize: (payload) => MemoryDetailFromJSON(payload),
       });
@@ -258,28 +260,6 @@ export function MemoryProductPage({
         : false,
     retry: false,
   });
-  useWarmProductSeed({
-    queryKey: memoryKey,
-    accountId: currentAccountId,
-    spaceId,
-    kind: 'memory',
-    resourceId: memoryId ?? '',
-    deserialize: (payload) => MemoryDetailFromJSON(payload),
-    toQueryData: (snapshot) => snapshot,
-    error: memoryRead.error,
-    enabled: mode === 'detail',
-  });
-  // A form must start from the server's current version, never a snapshot.
-  const memoryQuery =
-    mode !== 'detail' && memoryRead.data?.source === 'warm'
-      ? {
-          ...memoryRead,
-          data: undefined,
-          isLoading: true,
-          isPending: true,
-          isSuccess: false,
-        }
-      : memoryRead;
   const editForm = useRef<HTMLFormElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const dateContextRef = useRef<ComposerDateContextHandle>(null);

@@ -69,7 +69,6 @@ import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
-import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import {
@@ -190,6 +189,7 @@ export function HeartMomentProductPage({
   spaceId,
   currentAccountId,
   loadAttachment,
+  startupRead,
 }: {
   mode: HeartMomentProductMode;
   apis: ReferenceApis;
@@ -197,6 +197,7 @@ export function HeartMomentProductPage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
+  startupRead?: () => Promise<HeartMomentDetail> | undefined;
   loadAttachment: (
     heartMomentId: string,
     attachmentId: string,
@@ -432,7 +433,7 @@ export function HeartMomentProductPage({
     }
   }, [mode, voiceImportKey, apiBaseUrl, currentAccountId, spaceId]);
 
-  const heartMomentRead = useQuery({
+  const heartMomentQuery = useQuery({
     queryKey,
     queryFn: async () => {
       if (!heartMomentId)
@@ -443,6 +444,7 @@ export function HeartMomentProductPage({
         kind: 'heartMoment',
         resourceId: heartMomentId,
         load: () =>
+          startupRead?.() ??
           apis.heartMoments.getHeartMoment({ spaceId, heartMomentId }),
         serialize: HeartMomentDetailToJSON,
         deserialize: (payload) => HeartMomentDetailFromJSON(payload),
@@ -458,28 +460,6 @@ export function HeartMomentProductPage({
         : false,
     retry: false,
   });
-  useWarmProductSeed({
-    queryKey,
-    accountId: currentAccountId,
-    spaceId,
-    kind: 'heartMoment',
-    resourceId: heartMomentId ?? '',
-    deserialize: (payload) => HeartMomentDetailFromJSON(payload),
-    toQueryData: (snapshot) => snapshot,
-    error: heartMomentRead.error,
-    enabled: mode === 'detail',
-  });
-  // A form must start from the server's current version, never a snapshot.
-  const heartMomentQuery =
-    mode !== 'detail' && heartMomentRead.data?.source === 'warm'
-      ? {
-          ...heartMomentRead,
-          data: undefined,
-          isLoading: true,
-          isPending: true,
-          isSuccess: false,
-        }
-      : heartMomentRead;
 
   const loadedMediaScope = useRef('');
   const mediaScope = JSON.stringify([
@@ -520,7 +500,7 @@ export function HeartMomentProductPage({
     presented:
       mode === 'detail' &&
       heartMomentQuery.isSuccess &&
-      heartMomentQuery.data?.value.visibility === 'SHARED',
+      heartMomentQuery.data.value.visibility === 'SHARED',
   });
 
   const captureCreateOwnership = useTaskActivation(

@@ -63,7 +63,6 @@ import {
   milestoneDetailPath,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
-import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import {
   aggregateStoryPages,
   DEFAULT_STORY_FILTERS,
@@ -73,6 +72,7 @@ import {
   storyFiltersToSearch,
   storyRequest,
 } from '../client/storyProduct';
+import type { StoryStartupReads } from '../client/storyStartup';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
@@ -228,6 +228,7 @@ export function StoryProductPage({
   loadMemoryImage,
   profilesApi,
   dashboardApi,
+  startupReads,
 }: {
   apis: ReferenceApis;
   accountId: string;
@@ -239,6 +240,7 @@ export function StoryProductPage({
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   dashboardApi?: DashboardApi;
+  startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -320,6 +322,7 @@ export function StoryProductPage({
           kind: 'story',
           resourceId: cacheResourceId,
           load: () =>
+            startupReads?.takeTimeline() ??
             apis.story.getStoryTimeline(
               storyRequest(spaceId, effectiveFilters, null),
             ),
@@ -354,7 +357,9 @@ export function StoryProductPage({
         spaceId,
         kind: 'story-discover',
         resourceId: 'discover',
-        load: () => apis.story.getStoryDiscover({ spaceId }),
+        load: () =>
+          startupReads?.takeDiscover() ??
+          apis.story.getStoryDiscover({ spaceId }),
         serialize: DiscoverSelectionToJSON,
         deserialize: (payload) => DiscoverSelectionFromJSON(payload),
       });
@@ -384,27 +389,6 @@ export function StoryProductPage({
     refetchInterval:
       activeView === 'discover' && !renewing ? 15 * 60_000 : false,
     retry: false,
-  });
-
-  useWarmProductSeed({
-    queryKey: ['story', spaceId, cacheResourceId],
-    accountId,
-    spaceId,
-    kind: 'story',
-    resourceId: cacheResourceId,
-    deserialize: (payload) => StoryPageFromJSON(payload),
-    toQueryData: (snapshot) => ({ pages: [snapshot], pageParams: [null] }),
-    error: storyQuery.error,
-  });
-  useWarmProductSeed({
-    queryKey: authorSummaryQueryKeys.discover(spaceId, accountId),
-    accountId,
-    spaceId,
-    kind: 'story-discover',
-    resourceId: 'discover',
-    deserialize: (payload) => DiscoverSelectionFromJSON(payload),
-    toQueryData: (snapshot) => snapshot,
-    error: discoverQuery.error,
   });
 
   const [paginationGeneration, setPaginationGeneration] = useState(0);

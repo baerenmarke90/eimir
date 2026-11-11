@@ -1,10 +1,7 @@
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
 import type { ReferenceApis } from './referenceFlow';
-import {
-  loadAuthorizedStoryImage,
-  subscribeMediaAccessDenied,
-} from './storyMediaLoader';
+import { loadAuthorizedStoryImage } from './storyMediaLoader';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 import { ClientProblemError, classifyProblemStatus } from './problemDetails';
 
@@ -190,14 +187,23 @@ describe('loadAuthorizedStoryImage', () => {
   });
 
   it.each([401, 403, 404])(
-    'shows stored bytes at once and evicts all parent variants after a %s denial',
+    'evicts all parent variants after a %s authorization denial',
     async (status) => {
       const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
         storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
       const options = { createObjectUrl: () => 'blob:photo' };
-      const denied = vi.fn();
-      const unsubscribe = subscribeMediaAccessDenied(denied);
-      const load = () =>
+      await loadAuthorizedStoryImage(
+        apis,
+        'space',
+        'HEART_MOMENT',
+        'heart',
+        'photo',
+        options,
+      );
+      createAttachmentReadAccess.mockRejectedValueOnce(
+        new ClientProblemError(classifyProblemStatus(status), status),
+      );
+      await expect(
         loadAuthorizedStoryImage(
           apis,
           'space',
@@ -205,82 +211,44 @@ describe('loadAuthorizedStoryImage', () => {
           'heart',
           'photo',
           options,
-        );
-      await load();
-      createAttachmentReadAccess.mockRejectedValueOnce(
-        new ClientProblemError(classifyProblemStatus(status), status),
-      );
-      await expect(load()).resolves.toBe('blob:photo');
-      await vi.waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
-      unsubscribe();
+        ),
+      ).rejects.toBeInstanceOf(ClientProblemError);
       expect(getAttachmentContentRaw).toHaveBeenCalledTimes(1);
-      await load();
+      await loadAuthorizedStoryImage(
+        apis,
+        'space',
+        'HEART_MOMENT',
+        'heart',
+        'photo',
+        options,
+      );
       expect(getAttachmentContentRaw).toHaveBeenCalledTimes(2);
     },
   );
 
-  it('waits for authorization when this login holds no bytes', async () => {
-    const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
-      storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
-    createAttachmentReadAccess.mockRejectedValueOnce(
-      new ClientProblemError('permission', 403),
-    );
-    await expect(
-      loadAuthorizedStoryImage(apis, 'space', 'MEMORY', 'memory', 'photo', {
-        createObjectUrl: () => 'blob:photo',
-      }),
-    ).rejects.toBeInstanceOf(ClientProblemError);
-    expect(getAttachmentContentRaw).not.toHaveBeenCalled();
-  });
-
-  it('shares one access check between concurrent views of stored bytes', async () => {
-    const { apis, createAttachmentReadAccess } = storyApis({
-      descriptor: { method: 'STREAM', url: '/content' },
-    });
-    const options = { createObjectUrl: () => 'blob:photo' };
-    const load = () =>
-      loadAuthorizedStoryImage(
-        apis,
-        'space',
-        'MEMORY',
-        'memory',
-        'photo',
-        options,
-      );
-    await load();
-    let release!: (value: unknown) => void;
-    createAttachmentReadAccess.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          release = resolve;
-        }),
-    );
-    await Promise.all([load(), load(), load()]);
-    expect(createAttachmentReadAccess).toHaveBeenCalledTimes(2);
-    release({ method: 'STREAM', url: '/content' });
-  });
-
-  it('keeps stored bytes visible while the access check is unavailable', async () => {
+  it('does not use cached bytes as fallback when read authorization is unavailable', async () => {
     const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
       storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
     const options = { createObjectUrl: () => 'blob:photo' };
-    const denied = vi.fn();
-    const unsubscribe = subscribeMediaAccessDenied(denied);
-    const load = () =>
-      loadAuthorizedStoryImage(
-        apis,
-        'space',
-        'MEMORY',
-        'memory',
-        'photo',
-        options,
-      );
-    await load();
+    await loadAuthorizedStoryImage(
+      apis,
+      'space',
+      'MEMORY',
+      'memory',
+      'photo',
+      options,
+    );
     createAttachmentReadAccess.mockRejectedValueOnce(new TypeError('Offline'));
-    await expect(load()).resolves.toBe('blob:photo');
-    await expect(load()).resolves.toBe('blob:photo');
-    unsubscribe();
-    expect(denied).not.toHaveBeenCalled();
+    await expect(
+      loadAuthorizedStoryImage(
+        apis,
+        'space',
+        'MEMORY',
+        'memory',
+        'photo',
+        options,
+      ),
+    ).rejects.toThrow('Offline');
     expect(getAttachmentContentRaw).toHaveBeenCalledTimes(1);
   });
 

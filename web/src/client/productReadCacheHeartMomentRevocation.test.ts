@@ -7,7 +7,6 @@ import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
   type ProductReadCacheStorage,
-  type ProductReadResult,
 } from './productReadCache';
 
 /**
@@ -57,7 +56,7 @@ const HEART_MOMENT = 'heart-1';
 
 function loadHeartMoment(
   load: () => Promise<HeartMomentPayload>,
-): Promise<ProductReadResult<HeartMomentPayload>> {
+): Promise<{ value: HeartMomentPayload; source: 'network' | 'cache' }> {
   return loadProductWithReadCache<HeartMomentPayload>({
     accountId: ACCOUNT,
     spaceId: SPACE,

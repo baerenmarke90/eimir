@@ -149,3 +149,21 @@ Review 360, 390 and 430 px, dense and sparse content, both themes, Expanded,
 enlarged text, focus and reduced motion. Verify the named action, tap target,
 clearance, actual save/result/return and cancellation for all four overviews.
 Use the existing browser journeys and their affected feature ownership.
+
+### Follow-up runtime evidence
+
+Chromium captures from implementation revision
+`e95efe32e3eccc23d70bd48774316eb865dcf089` use synthetic fixture content.
+
+- [Lists at 360 px, Light](evidence/contextual-lists-360-light.png)
+- [Places at 390 px, Dark](evidence/contextual-places-390-dark.png)
+- [People at 390 px, Light](evidence/contextual-people-390-light.png)
+- [Chapters at 430 px, Light](evidence/contextual-chapters-430-light.png)
+- [Places in Expanded Web, Dark](evidence/contextual-places-1280-dark.png)
+- [Chapters in Expanded Web, Dark](evidence/contextual-chapters-1280-dark.png)
+
+The four affected suites passed 24 Chromium cases on this revision. Their
+journeys include saving and returning to the correct overview, filtered List
+and Place return, cancel and focus restoration, and modal priority for People
+photos. Compact checks include 320 px with enlarged text, Light/Dark and
+reduced motion. Expanded checks retain the visible names and motifs.

@@ -875,10 +875,16 @@
     },
     "media-planning-corrections.spec.ts": {
       "roots": [
+        "web/src/components/AddAction.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx",
+        "web/src/components/PlanWishLink.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PhotoSourcePicker.tsx",
+        "web/src/components/DeviceMediaPicker.tsx",
         "web/src/components/PhotoDraftGallery.tsx",
         "web/src/components/PhotoDraftSorting.tsx",
         "web/src/components/PhotoArrangeTask.tsx",

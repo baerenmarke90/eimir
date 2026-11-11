@@ -1,6 +1,7 @@
 import { focusManager } from '@tanstack/react-query';
 import { type ReactNode, useLayoutEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
+import type { MediaType } from '../api/generated/models/MediaType';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import './SensitiveMedia.css';
@@ -73,30 +74,27 @@ export function SensitiveMediaControl({
   className = '',
   overlay = false,
   iconOnly = false,
-  video = false,
+  mediaType = 'IMAGE',
 }: {
   revealed: boolean;
   onToggle: () => void;
   className?: string;
   overlay?: boolean;
   iconOnly?: boolean;
-  video?: boolean;
+  mediaType?: MediaType;
 }) {
   const { t } = useTranslation();
+  const labelPrefix = {
+    IMAGE: 'sensitiveMedia',
+    VIDEO: 'video',
+    AUDIO: 'voiceNotes',
+  }[mediaType];
   return (
     <button
       type="button"
       className={`sensitive-media-control ${overlay ? 'media-overlay' : 'secondary'}${iconOnly ? ' sensitive-media-control-icon' : ''}${revealed ? ' is-revealed' : ''} ${className}`}
       aria-pressed={revealed}
-      aria-label={t(
-        video
-          ? revealed
-            ? 'video.hide'
-            : 'video.show'
-          : revealed
-            ? 'sensitiveMedia.hide'
-            : 'sensitiveMedia.show',
-      )}
+      aria-label={t(`${labelPrefix}.${revealed ? 'hide' : 'show'}`)}
       onClick={onToggle}
     >
       {iconOnly ? (

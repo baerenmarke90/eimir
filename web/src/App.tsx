@@ -173,7 +173,7 @@ import {
   ServerAdminPage,
 } from './components/ServerAdminPage';
 import { SettingsPage } from './components/SettingsPage';
-import { SharedPhotosPage } from './components/SharedPhotosPage';
+import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
@@ -552,7 +552,7 @@ function AuthenticatedApp({
             <Route
               path={STORY_PHOTOS_ROUTE}
               element={
-                <SharedPhotosPage
+                <MediaOverviewPage
                   key={`${account.id}:${spaceId}`}
                   apis={apis}
                   accountId={account.id}

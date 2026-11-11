@@ -166,6 +166,11 @@ export function taskOriginPath(
       ? `${pathname}?scope=own`
       : pathname;
   }
+  if (pathname === STORY_PHOTOS_ROUTE) {
+    return new URLSearchParams(search).get('visibility') === 'private'
+      ? `${pathname}?visibility=private`
+      : pathname;
+  }
   if (pathname === MEMORY_MAP_ROUTE) {
     const input = new URLSearchParams(search);
     const safe = storyFiltersToSearch(parseStoryFilters(input));

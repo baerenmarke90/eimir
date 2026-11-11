@@ -722,7 +722,9 @@ test('source selection waits for video eligibility and preserves photo fallback 
     .click();
   await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: photoSources.more, exact: true }),
+    page
+      .locator('.composer-tool-row button')
+      .filter({ has: page.locator('.eimir-icon-foto') }),
   ).toBeFocused();
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);

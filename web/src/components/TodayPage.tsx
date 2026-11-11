@@ -1095,7 +1095,7 @@ export function TodayPage({
       : null;
   const recentActivities = activityItems
     .filter((item) => item.id !== currentSignalId)
-    .slice(0, 4);
+    .slice(0, 3);
 
   /*
    * Per-user module visibility (#817). This is presentation only: every

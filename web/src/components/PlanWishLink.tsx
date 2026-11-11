@@ -255,7 +255,7 @@ export function PlanWishLink({
           onClick={beginChoice}
         >
           <EimirIcon name="hinzufuegen" />
-          {t('memoryProduct.planning.add')}
+          {t('m5s3.plan.linkWish')}
         </button>
       ) : (
         <AddActionButton

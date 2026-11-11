@@ -492,10 +492,10 @@ for (const width of [390, 320] as const) {
         .locator('.composer-tool-row button')
         .filter({ has: page.locator('.eimir-icon-orte') });
       await expectLabeledComposerTool(places, 'orte');
-      await expect(page.locator('.composer-tool-row button')).toHaveCount(2);
+      await expect(page.locator('.composer-tool-row button')).toHaveCount(3);
       await expect(
         page.locator('.composer-tool-row .eimir-icon-foto'),
-      ).toHaveCount(0);
+      ).toHaveCount(1);
       const saveButton = page.getByRole('button', { name: de.memory.save });
       const form = page.locator('.immersive-create-form');
       const quickCreateTrigger = page.locator(
@@ -577,7 +577,7 @@ for (const width of [390, 320] as const) {
           name: photoSources.device,
           exact: true,
         }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expect(
         sourceSheet.getByRole('button', {
           name: photoSources.google,

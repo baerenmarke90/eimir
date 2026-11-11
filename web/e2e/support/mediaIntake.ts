@@ -93,12 +93,6 @@ export async function openComposerMediaSources(page: Page) {
         exact: true,
       }),
     )
-    .or(
-      page.getByRole('button', {
-        name: photoSources.more,
-        exact: true,
-      }),
-    )
     .first()
     .click();
   const sheet = page.getByRole('dialog', {

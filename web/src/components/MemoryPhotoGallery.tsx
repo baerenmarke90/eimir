@@ -263,6 +263,7 @@ export function MemoryPhotoGallery({
   return (
     <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
+        readingFrame
         presentation={memory.experienceKind ? 'default' : 'composer'}
         initialMediaId={memory.selectedCoverAttachmentId ?? undefined}
         items={photos.map(

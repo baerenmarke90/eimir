@@ -116,6 +116,7 @@ export function MediaGallery({
   dismissWithHistory = true,
   directSensitiveToggle = false,
   showInlineSensitiveControl = true,
+  readingFrame = false,
   presentation = 'default',
   countStyle = presentation === 'composer' ? 'fraction' : 'label',
   onPhotoLongPress,
@@ -145,6 +146,7 @@ export function MediaGallery({
   directSensitiveToggle?: boolean;
   /** Fullscreen reveal/hide remains available independently of the gallery control. */
   showInlineSensitiveControl?: boolean;
+  readingFrame?: boolean;
   presentation?: 'default' | 'composer';
   countStyle?: 'fraction' | 'label';
   onPhotoLongPress?: (id: string) => void;
@@ -774,7 +776,7 @@ export function MediaGallery({
         renderPreviews(openLightbox)
       ) : (
         <section
-          className="media-gallery-carousel"
+          className={`media-gallery-carousel${readingFrame ? ' media-gallery-reader' : ''}`}
           aria-label={t('gallery.aria')}
         >
           <div className="media-gallery-carousel-viewport">

@@ -615,3 +615,16 @@ that photo. The comment shortcut shares the media action area for photos and
 videos and can focus the existing inline reply. Comment textareas start at two
 lines and allow vertical resizing. Gallery position dots transition with the
 contextual motion role and settle immediately with reduced motion.
+
+The diary's dedicated external-source entry offers configured photo providers.
+The Photo tool in the composer bar and the gallery Add action offer the device
+and those same providers. Use one picker lifecycle and preserve native file
+admission, consent, cancellation and focus return.
+
+Use a thin rounded focus ring for shared title and text fields while preserving
+the existing focus color and forced-colors affordance. Composer thumbnail
+sorting supports pointer, held touch and keyboard interaction through the
+existing sortable controls. Keep attachment and selected-cover identities stable.
+Reading galleries use a taller, viewport-bounded frame and fit the complete
+authorized photograph. Thumbnail and editor cover treatments follow their own
+contracts.

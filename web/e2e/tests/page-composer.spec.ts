@@ -14,6 +14,7 @@ import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import mediaDrop from '../../src/i18n/locales/mediaDrop';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import photoReactions from '../../src/i18n/locales/photoReactions';
 import photoSources from '../../src/i18n/locales/photoSources';
@@ -549,6 +550,13 @@ async function fullScreenRoundTrip(page: Page, info: TestInfo, name: string) {
     exact: true,
   });
   if (await reveal.count()) await reveal.last().click();
+  await expect(
+    activeSlide.locator('.media-gallery-carousel-content'),
+  ).toHaveCSS('object-fit', 'contain');
+  expect(
+    (await carousel.locator('.media-gallery-carousel-viewport').boundingBox())
+      ?.height,
+  ).toBeGreaterThan(300);
   const expand = carousel.getByRole('button', {
     name: photoReactions.fullscreen,
     exact: true,
@@ -625,7 +633,7 @@ for (const view of [
       {
         name: 'diary-empty-frame-1',
         path: '/story/memories/new',
-        tools: [composer.place, composer.tag],
+        tools: [composer.photo, composer.place, composer.tag],
       },
       {
         name: 'heart-empty-frame-5',
@@ -640,7 +648,7 @@ for (const view of [
       {
         name: 'diary-edit-frame-2',
         path: '/story/memories/mem-canal/edit',
-        tools: [composer.place, composer.tag],
+        tools: [composer.photo, composer.place, composer.tag],
       },
       {
         name: 'heart-edit-frame-6',
@@ -1328,6 +1336,145 @@ for (const motion of ['no-preference', 'reduce'] as const) {
   });
 }
 
+test('Diary source entry offers external providers and the photo tool also offers the device', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const state = await installPageComposerFixture(page);
+  await signIn(page);
+  await page.goto('/story/memories/new');
+  const external = page.getByRole('button', {
+    name: photoSources.more,
+    exact: true,
+  });
+  await external.click();
+  const sheet = page.getByRole('dialog', {
+    name: photoSources.title,
+    exact: true,
+  });
+  await expect(
+    sheet.getByRole('button', { name: photoSources.immich, exact: true }),
+  ).toBeVisible();
+  await expect(
+    sheet.getByRole('button', { name: photoSources.device, exact: true }),
+  ).toHaveCount(0);
+  await capture(page, info, 'external-photo-source');
+  await page.keyboard.press('Escape');
+  await expect(external).toBeFocused();
+  const photoTool = tool(page, composer.photo);
+  await photoTool.click();
+  await expect(
+    sheet.getByRole('button', { name: photoSources.immich, exact: true }),
+  ).toBeVisible();
+  await expect(
+    sheet.getByRole('button', { name: photoSources.device, exact: true }),
+  ).toBeVisible();
+  await capture(page, info, 'toolbar-photo-sources');
+  await page.keyboard.press('Escape');
+  await expect(photoTool).toBeFocused();
+  const title = page.locator('input[name="title"]');
+  const body = page.locator('textarea[name="body"]');
+  for (const field of [title, body]) {
+    await field.focus();
+    await expect(field).toHaveCSS('outline-width', '2px');
+    expect(
+      await field.evaluate((node) =>
+        Number.parseFloat(getComputedStyle(node).borderTopLeftRadius),
+      ),
+    ).toBeGreaterThan(0);
+  }
+  await body.fill('A quiet evening at the lake.');
+  await expect(body).toHaveCSS('outline-style', 'solid');
+  await captureScreenshot(page, info, '1730-rounded-writing-focus.png');
+  expect(state.unexpected).toEqual([]);
+});
+
+for (const pointer of ['mouse', 'touch', 'keyboard'] as const) {
+  test(`Diary composer sorts photo thumbnails with ${pointer} drag and saves the new order`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const state = await installPageComposerFixture(page);
+    const memory = state.resources.get('memories/mem-canal');
+    if (!memory) throw new Error('The fixture must contain a Memory');
+    memory.selectedCoverAttachmentId = 'composer-photo-1';
+    await signIn(page);
+    await page.goto('/story/memories/mem-canal/edit');
+    await settleDraftPhotos(page);
+    const tiles = page.locator('.photo-draft-grid .photo-draft-tile');
+    await expect(tiles).toHaveCount(2);
+    const order = () =>
+      tiles.evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute('data-media-key')),
+      );
+    const before = await order();
+    await tiles.nth(1).scrollIntoViewIfNeeded();
+    const [source, target] = await Promise.all([
+      tiles.nth(1).boundingBox(),
+      tiles.first().boundingBox(),
+    ]);
+    if (!source || !target)
+      throw new Error('Both photo thumbnails must be visible');
+    const from = {
+      x: source.x + source.width / 2,
+      y: source.y + source.height / 2,
+    };
+    const to = {
+      x: target.x + target.width / 2,
+      y: target.y + target.height / 2,
+    };
+    if (pointer === 'mouse') {
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(to.x, to.y, { steps: 12 });
+      await page.mouse.up();
+    } else if (pointer === 'touch') {
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [from],
+      });
+      await expect(page.locator('[data-dnd-dragging="true"]')).toBeVisible();
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [to],
+      });
+      await expect(
+        page.locator('.photo-draft-item.is-drop-target'),
+      ).toBeVisible();
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+      await cdp.detach();
+    } else {
+      await tiles.nth(1).focus();
+      await page.keyboard.press('Space');
+      await expect(page.locator('[data-dnd-dragging="true"]')).toBeVisible();
+      for (let step = 0; step < Math.ceil((from.x - to.x) / 10); step++)
+        await page.keyboard.press('ArrowLeft');
+      await expect(
+        page.locator('.photo-draft-item.is-drop-target'),
+      ).toBeVisible();
+      await page.keyboard.press('Space');
+    }
+    await expect.poll(order).toEqual([...before].reverse());
+    await page
+      .getByRole('button', { name: memoryProduct.save, exact: true })
+      .click();
+    await expect(page).toHaveURL('/story/memories/mem-canal');
+    const saved = state.resources.get('memories/mem-canal');
+    expect(
+      (saved?.attachments as Array<{ id: string }>).map(({ id }) => id),
+    ).toEqual(['composer-photo-2', 'composer-photo-1']);
+    expect(saved?.selectedCoverAttachmentId).toBe('composer-photo-1');
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
 test('Diary reload restores authored words, selected media and draft context before one deliberate save', async ({
   page,
 }, info) => {
@@ -1417,7 +1564,7 @@ for (const [name, path] of [
   ['HeartMoment', '/story/heart-moments/new'],
   ['Plan', '/plan/plans/new'],
 ]) {
-  test(`${name} accepts photo drops on the writing area and rejects unsupported files without losing words`, async ({
+  test(`${name} accepts photo drops on writing and images and retains words`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1445,6 +1592,22 @@ for (const [name, path] of [
     await expect(page.locator('.photo-draft-tile')).toHaveCount(1);
     await expect(words).toHaveValue('Words retained while adding photographs.');
     await expect(page.locator('.media-drop-zone.is-dragging')).toHaveCount(0);
+    const second = await page.evaluateHandle(
+      (bytes) => {
+        const data = new DataTransfer();
+        data.items.add(
+          new File([Uint8Array.from(bytes)], 'another-lake.jpg', {
+            type: 'image/jpeg',
+          }),
+        );
+        return data;
+      },
+      [...photo],
+    );
+    await page
+      .locator('.media-gallery-carousel-slide.is-active')
+      .dispatchEvent('drop', { dataTransfer: second });
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     const invalid = await page.evaluateHandle(() => {
       const data = new DataTransfer();
       data.items.add(
@@ -1456,7 +1619,7 @@ for (const [name, path] of [
     await expect(page.getByRole('alert')).toContainText(
       mediaDrop.supportedPhotos,
     );
-    await expect(page.locator('.photo-draft-tile')).toHaveCount(1);
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     expect(state.unexpected).toEqual([]);
   });
 }

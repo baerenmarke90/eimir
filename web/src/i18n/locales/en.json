@@ -618,7 +618,7 @@
       }
     },
     "plan": {
-      "linkWish": "Add wish",
+      "linkWish": "Link a wish",
       "linkWishHelp": "The plan stays. Completing it also fulfils the wish. You can undo the plan later with “Back to wish”.",
       "chooseWish": "Choose an open wish",
       "confirmWishLink": "Link to plan",

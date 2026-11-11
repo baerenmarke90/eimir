@@ -178,17 +178,6 @@
   font: var(--font-composer-prose);
 }
 
-.page-composer-detail .media-gallery-carousel-viewport {
-  block-size: var(--composer-detail-media-height);
-  aspect-ratio: auto;
-  border-radius: var(--radius-sheet-top);
-}
-.page-composer-detail .media-gallery-carousel-content {
-  object-fit: cover;
-}
-.page-composer-detail .media-gallery-carousel-backdrop {
-  display: none;
-}
 .page-composer-detail
   .media-gallery-carousel
   button.media-gallery-carousel-nav {
@@ -209,11 +198,6 @@
 }
 .page-composer-detail .moment-metadata {
   margin-block: 0 var(--space-2);
-}
-@media (min-width: 840px) {
-  .page-composer-detail .media-gallery-carousel-viewport {
-    block-size: calc(var(--composer-detail-media-height) * 1.5);
-  }
 }
 
 @container product-content (max-width: 18rem) {

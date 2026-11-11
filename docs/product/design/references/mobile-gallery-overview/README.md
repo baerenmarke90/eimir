@@ -105,6 +105,10 @@ These Playwright captures use synthetic fixture accounts, content and media.
 | Revealed photo, position indicator and adjacent actions | [390 px Dark](evidence/gallery-390-dark.png) |
 | Compact reply after focusing from the media action | [390 px Dark](evidence/comment-390-dark.png) |
 | Today with gentle prompts enabled | [390 px Dark](evidence/wir-390-dark.png) |
+| Diary photo choices | [External entry](evidence/external-photo-source-390-dark.png), [Photo tool](evidence/toolbar-photo-sources-390-dark.png) |
+| Rounded writing focus | [390 px Dark](evidence/rounded-writing-focus-390-dark.png) |
+| Whole portrait in the Plan reader | [390 px Light](evidence/plan-portrait-fit-390-light.png) |
+| Three recent activities on Today | [390 px Dark](evidence/wir-activities-390-dark.png) |
 
 The browser journeys also exercise 320 px reflow, enlarged text, the named
 controls on photos and ready videos, native carousel swipes, fullscreen return,

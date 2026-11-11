@@ -17,6 +17,7 @@ import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
 import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import { Configuration } from '../client/apiConfiguration';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { ProfilesApi } from '../client/mediaApis';
 import { usePartnerNickname } from '../client/partnerNickname';
@@ -253,7 +254,12 @@ export function RelationshipSettingsSection({
           queryKey: ['space-profile', spaceId],
         });
       }
-      await invalidateDashboard(queryClient, spaceId);
+      await Promise.all([
+        invalidateDashboard(queryClient, spaceId),
+        queryClient.invalidateQueries({
+          queryKey: authorSummaryQueryKeys.space(spaceId),
+        }),
+      ]);
     },
   });
 

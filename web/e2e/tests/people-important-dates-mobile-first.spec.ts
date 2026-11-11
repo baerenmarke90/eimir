@@ -3,7 +3,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
+import m5s3 from '../../src/i18n/locales/m5s3';
 import people from '../../src/i18n/locales/people';
+import profiles from '../../src/i18n/locales/profiles';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   expectFloatingAddAction,
@@ -90,8 +92,26 @@ async function expectHorizontalReflow(page: Page): Promise<void> {
   expect(result.clippedControls).toEqual([]);
 }
 
-async function installPeopleApiMocks(page: Page): Promise<string[]> {
+async function installPeopleApiMocks(
+  page: Page,
+  {
+    now = new Date(),
+    relationshipStartedOn = '2023-06-17',
+    oneTimeDates = [],
+  }: {
+    now?: Date;
+    relationshipStartedOn?: string;
+    oneTimeDates?: { id: string; label: string; date: string }[];
+  } = {},
+): Promise<string[]> {
   const unexpectedRequests: string[] = [];
+  let relationshipProfile = {
+    spaceId: SPACE_ID,
+    version: 1,
+    relationshipStartedOn,
+    showRelationshipDuration: true,
+  };
+  let createdPlan: Record<string, unknown> | undefined;
   const avatar = readFileSync(
     new URL('../fixtures/recap-lake.webp', import.meta.url),
   );
@@ -148,6 +168,16 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       createdAt: TEST_NOW,
       updatedAt: TEST_NOW,
     },
+    ...oneTimeDates.map((date) => ({
+      ...date,
+      relatedPersonId: null,
+      repeats: 'NONE',
+      type: 'CUSTOM',
+      visibility: 'SHARED',
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    })),
   ];
 
   await page.route('**/api/v1/**', async (route) => {
@@ -193,9 +223,9 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       await fulfillJson({
         account: { id: ACCOUNT_ID, displayName: 'Lea Summer' },
         tokens: {
-          accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+          accessExpiresAt: new Date(now.getTime() + 3_600_000).toISOString(),
           accessToken: 'people-e2e-access-token',
-          refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+          refreshExpiresAt: new Date(now.getTime() + 86_400_000).toISOString(),
           refreshToken: 'people-e2e-refresh-token',
         },
       });
@@ -204,9 +234,9 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
 
     if (method === 'POST' && pathname === '/api/v1/auth/refresh') {
       await fulfillJson({
-        accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        accessExpiresAt: new Date(now.getTime() + 3_600_000).toISOString(),
         accessToken: 'people-e2e-refreshed-token',
-        refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        refreshExpiresAt: new Date(now.getTime() + 86_400_000).toISOString(),
         refreshToken: 'people-e2e-refresh-token-2',
       });
       return;
@@ -233,7 +263,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       await fulfillJson({
         id: SPACE_ID,
         createdAt: '2023-06-17T00:00:00Z',
-        relationshipStartedOn: '2023-06-17',
+        relationshipStartedOn: relationshipProfile.relationshipStartedOn,
         partners: [
           { id: ACCOUNT_ID, displayName: 'Lea Summer' },
           { id: PARTNER_ID, displayName: 'Alex Winter' },
@@ -268,14 +298,16 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
-      await fulfillJson({
-        spaceId: SPACE_ID,
-        version: 1,
-        relationshipStartedOn: '2023-06-17',
-        showRelationshipDuration: true,
-      });
-      return;
+    if (pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
+      if (method === 'GET') return fulfillJson(relationshipProfile);
+      if (method === 'PUT') {
+        relationshipProfile = {
+          ...relationshipProfile,
+          ...request.postDataJSON(),
+          version: relationshipProfile.version + 1,
+        };
+        return fulfillJson(relationshipProfile);
+      }
     }
 
     if (
@@ -445,6 +477,34 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
         mediaType: 'IMAGE',
       });
 
+    const plansPath = `/api/v1/spaces/${SPACE_ID}/plans`;
+    if (method === 'POST' && pathname === plansPath) {
+      const body = request.postDataJSON() as {
+        title: string;
+        schedule?: { plannedOn?: string };
+      };
+      createdPlan = {
+        id: 'occasion-plan',
+        spaceId: SPACE_ID,
+        title: body.title,
+        plannedOn: body.schedule?.plannedOn ?? null,
+        status: 'PLANNED',
+        capabilities: { canDelete: true, canEdit: true },
+        createdAt: TEST_NOW,
+        createdBy: ACCOUNT_ID,
+        updatedAt: TEST_NOW,
+        version: 1,
+      };
+      return fulfillJson(createdPlan, 201);
+    }
+    if (
+      method === 'GET' &&
+      pathname === `${plansPath}/occasion-plan` &&
+      createdPlan
+    ) {
+      return fulfillJson(createdPlan);
+    }
+
     if (
       method === 'GET' &&
       [
@@ -520,13 +580,17 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
   return unexpectedRequests;
 }
 
-async function signInAndOpenPeople(page: Page): Promise<void> {
+async function signIn(page: Page): Promise<void> {
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+}
+
+async function signInAndOpenPeople(page: Page): Promise<void> {
+  await signIn(page);
   await page.goto('/more/people');
   await expect(page.getByRole('heading', { name: people.title })).toBeVisible();
   await expect(
@@ -677,7 +741,13 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
   await page
     .getByRole('dialog')
-    .getByRole('button', { name: 'Lea Sommer', exact: true })
+    .getByRole('button', {
+      name: importantDates.openBirthdayProfile.replace(
+        '{{name}}',
+        'Lea Sommer',
+      ),
+      exact: true,
+    })
     .click();
   await expect(page).toHaveURL(/more\/people\/person-1$/);
   await page.locator('.task-back-control[data-page-back]').click();
@@ -780,6 +850,165 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await page.keyboard.press('Escape');
   await expect(anniversary).toBeFocused();
   expect(unknown).toEqual([]);
+});
+
+test.describe('Occasions in a timezone west of UTC', () => {
+  test.use({ timezoneId: 'America/Los_Angeles' });
+
+  test('uses the observed date for the agenda, reader, Plan, and source return', async ({
+    page,
+  }, info) => {
+    test.setTimeout(120_000);
+    const now = new Date('2027-03-01T03:30:00Z');
+    const unknown = await installPeopleApiMocks(page, {
+      now,
+      relationshipStartedOn: '2020-02-29',
+      oneTimeDates: [
+        { id: 'past-date', label: 'Winter evening', date: '2026-12-10' },
+        { id: 'tomorrow-date', label: 'Spring walk', date: '2027-03-01' },
+      ],
+    });
+    await page.clock.setFixedTime(now);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await signIn(page);
+    await page.locator('.mobile-bottom-nav a[href="/plan"]').click();
+    await page.getByRole('tab', { name: importantDates.heading }).click();
+
+    const anniversary = page.getByRole('button', {
+      name: new RegExp(importantDates.relationshipAnniversary),
+    });
+    const rows = page.locator('.occasions-panel .important-date-card');
+    await expect(rows.first()).toContainText(
+      importantDates.relationshipAnniversary,
+    );
+    await expect(anniversary).toContainText('Heute');
+    await expect(anniversary.locator('time')).toHaveAttribute(
+      'datetime',
+      '2027-02-28',
+    );
+    await expect(anniversary.locator('.important-date-marker-day')).toHaveText(
+      '28',
+    );
+    await expect(rows.nth(1)).toContainText('Morgen');
+    await expect(rows.nth(1).locator('.important-date-marker-day')).toHaveText(
+      '1',
+    );
+    await expect(rows.last()).toContainText('Winter evening');
+    await expect(page.locator('.occasions-past')).toContainText(
+      importantDates.past,
+    );
+    await expect(page.locator('.occasions-past')).toContainText(
+      'Dezember 2026',
+    );
+    await page.screenshot({
+      path: info.outputPath('planning-occasions-390-dark.png'),
+    });
+
+    const reader = page.getByRole('dialog');
+    await page.getByRole('button', { name: /Mara birthday/ }).click();
+    await expect(
+      reader.getByRole('button', { name: importantDates.createPlan }),
+    ).toHaveCount(0);
+    await expect(
+      reader.getByRole('button', { name: importantDates.edit, exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await page
+      .getByRole('button', { name: /Geburtstag von Alex Winter/ })
+      .click();
+    await expect(reader).toContainText(
+      importantDates.partnerBirthdayProfileSource.replace(
+        '{{name}}',
+        'Alex Winter',
+      ),
+    );
+    await page.keyboard.press('Escape');
+
+    await anniversary.click();
+    await expect(reader.locator('time')).toHaveAttribute(
+      'datetime',
+      '2027-02-28',
+    );
+    await expect(reader.locator('time')).toHaveText('So., 28. Februar 2027');
+    await expect(reader).toContainText(importantDates.repeats.ANNUALLY);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath('planning-occasion-reader-390-dark.png'),
+    });
+
+    const createPlan = reader.getByRole('button', {
+      name: importantDates.createPlan,
+    });
+    await createPlan.click();
+    await expect(page).toHaveURL(/\/plan\/plans\/new$/);
+    const planDay = page.locator('input[name="plannedDate"]');
+    await expect(planDay).toHaveValue('2027-02-28');
+    expect(
+      await page.evaluate(() => JSON.stringify(history.state)),
+    ).not.toContain('2027-02-28');
+    await page.screenshot({
+      path: info.outputPath('planning-occasion-create-390-dark.png'),
+    });
+    const back = page.getByRole('button', {
+      name: taskBoundary.back,
+      exact: true,
+    });
+    await back.click();
+    await expect(anniversary).toBeFocused();
+
+    await anniversary.click();
+    await createPlan.click();
+    const planTitle = 'Dinner together';
+    await page.getByLabel(m5s3.plan.intentionLabel).fill(planTitle);
+    const savedRequest = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith(`/spaces/${SPACE_ID}/plans`),
+    );
+    await page
+      .getByRole('button', { name: m5s3.common.save, exact: true })
+      .click();
+    expect((await savedRequest).postDataJSON().schedule).toEqual({
+      plannedOn: '2027-02-28',
+    });
+    await expect(page).toHaveURL(/\/plan\/plans\/occasion-plan$/);
+    await expect(
+      page.getByRole('heading', { name: planTitle, exact: true }),
+    ).toBeVisible();
+    await back.click();
+    await expect(anniversary).toBeFocused();
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.emulateMedia({ colorScheme: 'light' });
+    await anniversary.click();
+    await page.screenshot({
+      path: info.outputPath('planning-occasion-reader-1280-light.png'),
+    });
+    await reader
+      .getByRole('button', { name: importantDates.editRelationshipStart })
+      .click();
+    await expect(page).toHaveURL(/\/more\/settings\/relationship$/);
+    const relationshipDate = page.getByLabel(profiles.relationshipStartLabel, {
+      exact: true,
+    });
+    await expect(relationshipDate).toHaveValue('2020-02-29');
+    await relationshipDate.fill('2020-03-08');
+    await page
+      .getByRole('button', { name: profiles.relationshipSave, exact: true })
+      .click();
+    await expect(
+      page.getByText(profiles.relationshipSavedSubtle),
+    ).toBeVisible();
+    await back.click();
+    await expect(anniversary.locator('time')).toHaveAttribute(
+      'datetime',
+      '2027-03-08',
+    );
+    await expect(anniversary).toBeFocused();
+    expect(unknown).toEqual([]);
+  });
 });
 
 test('People creation and dirty edit return to the originating control', async ({

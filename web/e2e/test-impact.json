@@ -404,7 +404,11 @@
         "web/src/components/AvatarPhoto.tsx",
         "web/src/components/PlanningOccasions.tsx",
         "web/src/components/ImportantDatesPanel.tsx",
-        "web/src/components/SharedPlanningOverviewPage.tsx"
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/ProfilePageBase.tsx"
       ]
     },
     "perspective-game.spec.ts": {

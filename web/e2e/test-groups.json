@@ -149,7 +149,7 @@
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5,
+      "baselineTests": 6,
       "reason": "Feature-owned People overview/profile/gallery/edit/save/result/return, shared-only capture, independent planning occasions, dirty Back, full retained 200%/400% zoom, keyboard, small-height, Expanded Light/Dark, reflow and axe acceptance."
     },
     "partner-nickname.spec.ts": {

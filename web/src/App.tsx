@@ -104,6 +104,7 @@ import {
 } from './client/routes';
 import { createServerAdminApis } from './client/serverAdmin';
 import {
+  isRefreshTokenValid,
   clearStoredSession,
   isAccessTokenValid,
   loadStoredSession,
@@ -1304,6 +1305,23 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       !membershipsQuery.error &&
       resolveActiveSpaceId(membershipsQuery.data, spaceId),
   );
+  // The Space this login last entered was resolved from an authorized
+  // membership response. Open it at once on a later start; the membership read
+  // still runs and an authoritative answer always replaces this assumption.
+  const rememberedSpaceId =
+    tokens &&
+    account &&
+    spaceId &&
+    initialStoredSession?.spaceId === spaceId &&
+    initialStoredSession.account.id === account.id &&
+    membershipsQuery.data === undefined &&
+    isRefreshTokenValid(tokens) &&
+    (membershipsQuery.error === null ||
+      ['offline', 'server', 'rateLimit'].includes(
+        clientProblemKind(membershipsQuery.error),
+      ))
+      ? spaceId
+      : null;
   // Public legal text needs no session; it must stay readable while signed out.
   if (location.pathname === LEGAL_TERMS_ROUTE && !entryToken) {
     return (
@@ -1314,7 +1332,10 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     );
   }
 
-  if ((isRestoring && !restoredSpaceAuthorized) || isSigningOut) {
+  if (
+    (isRestoring && !restoredSpaceAuthorized && !rememberedSpaceId) ||
+    isSigningOut
+  ) {
     return (
       <BrandedStartup
         label={t(isSigningOut ? 'header.logout' : 'states.loading.title')}
@@ -1398,9 +1419,10 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       membershipsQuery.error,
     );
   if (
-    membershipsQuery.isPending ||
-    membershipErrorBlocksApp ||
-    memberships.length === 0
+    !rememberedSpaceId &&
+    (membershipsQuery.isPending ||
+      membershipErrorBlocksApp ||
+      memberships.length === 0)
   ) {
     if (
       !membershipsQuery.isPending &&
@@ -1449,7 +1471,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     );
   }
 
-  const activeSpaceId = resolveActiveSpaceId(memberships, spaceId);
+  const activeSpaceId =
+    rememberedSpaceId ?? resolveActiveSpaceId(memberships, spaceId);
   if (!activeSpaceId && memberships.length > 1) {
     if (spacesQuery.isPending || spacesQuery.error || !spacesQuery.data) {
       return (

@@ -63,6 +63,7 @@ import {
   milestoneDetailPath,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
+import { useWarmProductSeed } from '../client/useWarmProductSeed';
 import {
   aggregateStoryPages,
   DEFAULT_STORY_FILTERS,
@@ -383,6 +384,27 @@ export function StoryProductPage({
     refetchInterval:
       activeView === 'discover' && !renewing ? 15 * 60_000 : false,
     retry: false,
+  });
+
+  useWarmProductSeed({
+    queryKey: ['story', spaceId, cacheResourceId],
+    accountId,
+    spaceId,
+    kind: 'story',
+    resourceId: cacheResourceId,
+    deserialize: (payload) => StoryPageFromJSON(payload),
+    toQueryData: (snapshot) => ({ pages: [snapshot], pageParams: [null] }),
+    error: storyQuery.error,
+  });
+  useWarmProductSeed({
+    queryKey: authorSummaryQueryKeys.discover(spaceId, accountId),
+    accountId,
+    spaceId,
+    kind: 'story-discover',
+    resourceId: 'discover',
+    deserialize: (payload) => DiscoverSelectionFromJSON(payload),
+    toQueryData: (snapshot) => snapshot,
+    error: discoverQuery.error,
   });
 
   const [paginationGeneration, setPaginationGeneration] = useState(0);

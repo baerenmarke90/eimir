@@ -149,7 +149,9 @@ for (const native of [false, true]) {
     ).toBe(epoch);
     expect(downloads).toBe(1);
     expect(storyReads).toBeGreaterThan(initialStoryReads);
-    expect(grants).toBe(initialGrants);
+    // The stored Diary can paint before the fresh projection; its photo then
+    // confirms access with one concurrent check and never a second download.
+    expect(grants).toBeLessThanOrEqual(initialGrants + 1);
   });
 }
 
@@ -241,6 +243,67 @@ test('a stored photo appears before its access check and leaves the device after
 
   release();
   await expect.poll(storedPhotos).toBe(0);
+});
+
+test('a native cold start opens the remembered Space, Diary and photo before any server response, then honours a lost membership', async ({
+  page,
+}) => {
+  await installNativeAppLifecycle(page);
+  await installMocks(page, { strict: true });
+  let holding = false;
+  let waiting = 0;
+  let release!: () => void;
+  const answered = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/**', async (route) => {
+    if (!holding) return route.fallback();
+    waiting++;
+    await answered;
+    if (new URL(route.request().url()).pathname.endsWith('/auth/memberships'))
+      return route.fulfill({ json: [] });
+    return route.fallback();
+  });
+  await signIn(page);
+  const card = page.locator(
+    'a.story-card-link[href="/story/memories/mem-canal"]',
+  );
+  const photoWidth = () =>
+    card
+      .locator('img')
+      .first()
+      .evaluate((node: HTMLImageElement) => node.naturalWidth);
+  await expect.poll(photoWidth).toBeGreaterThan(0);
+  // The Diary snapshot and the photo are written after their first display.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<number>((resolve, reject) => {
+            const open = indexedDB.open('eimir-authorized-media-v1');
+            open.onerror = () => reject(open.error);
+            open.onsuccess = () => {
+              const db = open.result;
+              const tx = db.transaction('media', 'readonly');
+              const count = tx.objectStore('media').count();
+              count.onsuccess = () => resolve(count.result);
+              tx.oncomplete = () => db.close();
+            };
+          }),
+      ),
+    )
+    .toBeGreaterThan(0);
+  await page.waitForTimeout(500);
+
+  holding = true;
+  await page.evaluate(() => sessionStorage.removeItem('eimir-session-v1'));
+  await page.reload();
+  await expect.poll(photoWidth).toBeGreaterThan(0);
+  expect(waiting).toBeGreaterThan(0);
+
+  release();
+  await expect(card).toHaveCount(0);
+  await expect(page.locator('.product-shell')).toHaveCount(0);
 });
 
 async function installContext(page: Page) {

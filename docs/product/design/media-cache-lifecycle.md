@@ -182,15 +182,41 @@ that device stays offline, bounded by the seven-day disk age. Previously the
 photo stayed hidden in both cases. The exposure is limited to the same signed-in
 Account, Space and device that was authorized when the bytes were stored.
 
-**Not changed by this step.** The startup screen still waits for the membership
-response and the Diary timeline still waits for its first network read.
+### Startup and Diary follow-up
+
+Product Owner follow-up the same day: not only photos, the whole start must
+build up at once. With every response delayed by 400 ms, a native cold start
+showed the shell after about 600 ms, the first Diary card after about 1,030 ms
+and its photo after about 1,090 ms; each stage scaled with network latency.
+
+- **Remembered Space.** A restored session whose stored Space was resolved from
+  an earlier authorized membership response opens that Space immediately while
+  `/auth/me` and the membership read run. An authoritative membership answer
+  always replaces the assumption: a lost membership leaves the Space, evicts its
+  media and returns to the existing gate. A transient failure (offline, server,
+  rate limit) keeps the remembered Space with its stored content; 401/403 ends
+  the session as before. A fresh sign-in is unaffected.
+- **Diary and Discover.** Their already persisted first-view snapshots paint
+  while the network read is in flight and are replaced by its result. They are
+  marked `warm`, never `network`: they do not paginate, are not written back and
+  do not show the offline notice. A denied read removes the painted snapshot.
+
+The same measurement now shows shell, card and photo within about 260 ms,
+before any response arrives. Other screens keep their existing behavior; Today,
+Planning lists, Places, Chapters and Photos already paint stored overviews.
+
+**Privacy consequence.** For the duration of the membership round trip, an
+Account removed from a Space can see that Space's stored shared snapshots and
+photos on a device that held them. Previously the startup screen covered them.
 
 Business/freemium impact reviewed: none. Essential media reading stays
 non-paywallable and identical in Cloud and Self-Hosted; server requests per
 delivery are unchanged. Reuse review: the existing loader, byte tiers, URL pool
 and query invalidation are reused; no dependency, provider or new store.
 
-Evidence: `app-continuity-polish.spec.ts` returns to a retained Diary card while
+Evidence: `app-continuity-polish.spec.ts` holds every API response during a
+native cold start, sees the Diary card and its photo, then answers with an empty
+membership list and observes the Space closed. It also returns to a retained Diary card while
 its access check is held open, sees the photo with no second download, then
 answers the check with 404 and observes the stored bytes removed. The journey
 fails on the baseline. Unit regressions cover immediate delivery, the shared

@@ -14,7 +14,8 @@ export type ProductCacheKind =
   | 'dashboard-overview'
   | 'plans-overview'
   | 'shared-list';
-export type ProductReadSource = 'network' | 'cache';
+/** `warm` is a stored snapshot painted while its network read is in flight. */
+export type ProductReadSource = 'network' | 'cache' | 'warm';
 export type ProductCachePrivacyScope = 'SPACE_SHARED';
 
 interface ProductCacheContext {
@@ -692,8 +693,9 @@ export function canPersistProductReadPayload(
   return (payload as { visibility?: unknown }).visibility === 'SHARED';
 }
 
-/** Only approved shared overviews may paint before their background read.
- * Callers mount after Account and Space authorization and keep writes gated.
+/** Only approved shared overviews and the Diary's own stored first views may
+ * paint before their background read. Callers keep writes gated; a remembered
+ * Space may mount them while its membership read is still in flight.
  */
 export async function readWarmOverviewCache<T>({
   accountId,
@@ -704,7 +706,12 @@ export async function readWarmOverviewCache<T>({
 }: {
   accountId: string;
   spaceId: string;
-  kind: 'dashboard-overview' | 'plans-overview' | 'shared-list';
+  kind:
+    | 'dashboard-overview'
+    | 'plans-overview'
+    | 'shared-list'
+    | 'story'
+    | 'story-discover';
   resourceId: string;
   deserialize: (payload: unknown) => T;
 }): Promise<ProductReadResult<T> | undefined> {

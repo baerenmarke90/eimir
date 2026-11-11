@@ -82,7 +82,11 @@ export function useWarmOverviewQuery<T>({
       .getQueryCache()
       .find({ queryKey: keyRef.current, exact: true })?.meta
       ?.sharedOverviewCache as
-      | { identity: string; source?: 'cache' | 'network'; refreshedAt?: Date }
+      | {
+          identity: string;
+          source?: ProductReadResult<T>['source'];
+          refreshedAt?: Date;
+        }
       | undefined;
     return {
       accountId: accountId ?? '',

@@ -4606,7 +4606,8 @@
         "enum": [
           "IMAGE",
           "VIDEO",
-          "AUDIO"
+          "AUDIO",
+          "DOCUMENT"
         ],
         "title": "MediaType",
         "type": "string"
@@ -7609,6 +7610,15 @@
             "title": "Description",
             "type": "string"
           },
+          "fileAttachmentIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Fileattachmentids",
+            "type": "array"
+          },
           "placeId": {
             "format": "uuid",
             "title": "Placeid",
@@ -7713,6 +7723,13 @@
               }
             ],
             "title": "Experiencedon"
+          },
+          "fileAttachments": {
+            "items": {
+              "$ref": "#/components/schemas/PlanFileSummary"
+            },
+            "title": "Fileattachments",
+            "type": "array"
           },
           "id": {
             "format": "uuid",
@@ -7842,6 +7859,56 @@
           "capabilities"
         ],
         "title": "PlanDetail",
+        "type": "object"
+      },
+      "PlanFileChanges": {
+        "additionalProperties": false,
+        "description": "Apply the editor's additions and removals to the current Plan version.",
+        "properties": {
+          "add": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Add",
+            "type": "array"
+          },
+          "remove": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Remove",
+            "type": "array"
+          }
+        },
+        "title": "PlanFileChanges",
+        "type": "object"
+      },
+      "PlanFileSummary": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "size"
+        ],
+        "title": "PlanFileSummary",
         "type": "object"
       },
       "PlanPage": {
@@ -7975,6 +8042,10 @@
             "format": "date",
             "title": "Experiencedon",
             "type": "string"
+          },
+          "fileAttachmentChanges": {
+            "$ref": "#/components/schemas/PlanFileChanges",
+            "title": "Fileattachmentchanges"
           },
           "placeId": {
             "anyOf": [

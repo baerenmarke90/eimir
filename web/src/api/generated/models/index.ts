@@ -220,6 +220,8 @@ export * from './PlaceUpdate';
 export * from './PlanComplete';
 export * from './PlanCreate';
 export * from './PlanDetail';
+export * from './PlanFileChanges';
+export * from './PlanFileSummary';
 export * from './PlanPage';
 export * from './PlanReturnToWishResponse';
 export * from './PlanSchedule';

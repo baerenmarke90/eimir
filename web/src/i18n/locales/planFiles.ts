@@ -1,0 +1,21 @@
+export default {
+  heading: 'Dateien',
+  add: 'Datei hinzufügen',
+  tool: 'Datei',
+  open: 'Öffnen',
+  download: 'Herunterladen',
+  removeNamed: '{{name}} entfernen',
+  openNamed: '{{name}} öffnen',
+  downloadNamed: '{{name}} herunterladen',
+  progress: 'Upload von {{name}}',
+  validating: 'PDF wird geprüft',
+  invalidPdf: 'Wähle eine gültige PDF-Datei.',
+  tooLarge: 'Eine PDF-Datei darf höchstens 25 MiB groß sein.',
+  uploadFailed: 'Die Datei konnte nicht hochgeladen werden.',
+  openFailed: 'Die Datei konnte nicht geöffnet werden.',
+  downloadFailed: 'Die Datei konnte nicht heruntergeladen werden.',
+  noViewer: 'Auf diesem Gerät ist keine App zum Öffnen von PDFs verfügbar.',
+  offline:
+    'Stelle eine Verbindung her, um Dateien zu öffnen oder hinzuzufügen.',
+  capacity: 'Ein Plan kann bis zu 20 PDF-Dateien enthalten.',
+};

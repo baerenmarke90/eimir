@@ -291,6 +291,16 @@ export async function waitUntilAttachmentReady(
       attachment.status === 'DELETE_FAILED' ||
       attachment.status === 'DELETING'
     ) {
+      if (attachment.mediaType === MediaType.DOCUMENT) {
+        throw new ReferenceFlowError(
+          i18n.t(
+            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+              ? 'planFiles.tooLarge'
+              : 'planFiles.invalidPdf',
+          ),
+          attachment.failureCode ?? undefined,
+        );
+      }
       throw new ReferenceFlowError(
         i18n.t(
           attachment.mediaType === 'AUDIO'

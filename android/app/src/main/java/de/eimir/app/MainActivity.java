@@ -31,6 +31,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         registerPlugin(PlanCalendarPlugin.class);
+        registerPlugin(PlanFilesPlugin.class);
         registerPlugin(VoiceSharePlugin.class);
         registerPlugin(BackgroundMediaUploadsPlugin.class);
         super.onCreate(savedInstanceState);

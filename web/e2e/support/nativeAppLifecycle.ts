@@ -1,11 +1,26 @@
 import type { Page } from '@playwright/test';
 
 /** Synthetic plugin transport, deliberately independent of browser visibility. */
-export async function installNativeAppLifecycle(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+export async function installNativeAppLifecycle(
+  page: Page,
+  { planFiles = false } = {},
+): Promise<void> {
+  const install = (planFiles: boolean) => {
     const nativeWindow = window as unknown as {
       CapacitorCustomPlatform: { name: string };
       Capacitor: unknown;
+      CapacitorWebXMLHttpRequest?: {
+        constructor: typeof XMLHttpRequest;
+      } & Pick<
+        XMLHttpRequest,
+        | 'open'
+        | 'send'
+        | 'abort'
+        | 'setRequestHeader'
+        | 'getResponseHeader'
+        | 'getAllResponseHeaders'
+      >;
+      openedPlanPdf?: string;
     };
     const callbacks = new Map<
       string,
@@ -13,6 +28,16 @@ export async function installNativeAppLifecycle(page: Page): Promise<void> {
     >();
     let sequence = 0;
     nativeWindow.CapacitorCustomPlatform = { name: 'android' };
+    if (planFiles)
+      nativeWindow.CapacitorWebXMLHttpRequest = {
+        constructor: XMLHttpRequest,
+        open: XMLHttpRequest.prototype.open,
+        send: XMLHttpRequest.prototype.send,
+        abort: XMLHttpRequest.prototype.abort,
+        setRequestHeader: XMLHttpRequest.prototype.setRequestHeader,
+        getResponseHeader: XMLHttpRequest.prototype.getResponseHeader,
+        getAllResponseHeaders: XMLHttpRequest.prototype.getAllResponseHeaders,
+      };
     nativeWindow.Capacitor = {
       PluginHeaders: [
         {
@@ -30,6 +55,16 @@ export async function installNativeAppLifecycle(page: Page): Promise<void> {
             rtype: 'promise',
           })),
         },
+        ...(planFiles
+          ? [
+              {
+                name: 'PlanFiles',
+                methods: ['preparePdf', 'openPdf', 'discardPdf'].map(
+                  (name) => ({ name, rtype: 'promise' }),
+                ),
+              },
+            ]
+          : []),
       ],
       nativeCallback: (
         plugin: string,
@@ -46,7 +81,14 @@ export async function installNativeAppLifecycle(page: Page): Promise<void> {
       nativePromise: async (
         plugin: string,
         method: string,
-        options?: { callbackId?: string; value?: string },
+        options?: {
+          callbackId?: string;
+          value?: string;
+          url?: string;
+          authorization?: string;
+          name?: string;
+          fileId?: string;
+        },
       ) => {
         if (plugin === 'App' && method === 'getLaunchUrl') return {};
         if (plugin === 'App' && method === 'removeListener') {
@@ -60,6 +102,21 @@ export async function installNativeAppLifecycle(page: Page): Promise<void> {
           if (method === 'clear') sessionStorage.removeItem(key);
           return { value: sessionStorage.getItem(key) ?? undefined };
         }
+        if (planFiles && plugin === 'PlanFiles') {
+          if (method === 'preparePdf') {
+            if (
+              !options?.url?.endsWith('/content') ||
+              !options.authorization?.startsWith('Bearer ')
+            )
+              throw new Error('Expected an authorized PDF request');
+            return { status: 200, fileId: 'prepared-pdf' };
+          }
+          if (method === 'openPdf' && options?.fileId === 'prepared-pdf') {
+            nativeWindow.openedPlanPdf = options.name;
+            return {};
+          }
+          if (method === 'discardPdf') return {};
+        }
         throw new Error('Unexpected native promise');
       },
     };
@@ -69,7 +126,8 @@ export async function installNativeAppLifecycle(page: Page): Promise<void> {
         if (entry.event === 'appStateChange') entry.callback(state);
       }
     });
-  });
+  };
+  await page.addInitScript(install, planFiles);
 }
 
 export async function nativeAppState(

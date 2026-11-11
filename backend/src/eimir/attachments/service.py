@@ -23,8 +23,8 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
-from eimir.attachments import images
-from eimir.attachments.limits import MediaRule, is_supported, rule_for
+from eimir.attachments import documents, images
+from eimir.attachments.limits import PDF_MIME_TYPE, MediaRule, is_supported, rule_for
 from eimir.attachments.models import (
     Attachment,
     AttachmentPayload,
@@ -306,7 +306,11 @@ def finalize_upload(
         return locked
 
     store = get_media_store()
-    if locked.status == AttachmentStatus.PENDING.value and supports_signed_upload(store):
+    if (
+        locked.status == AttachmentStatus.PENDING.value
+        and locked.media_type != MediaType.DOCUMENT
+        and supports_signed_upload(store)
+    ):
         if not store.exists(storage_key_for(locked)):
             raise ConflictError(
                 "The upload has not been transferred.",
@@ -385,6 +389,10 @@ def get_attachment(
 
     attachment = _load_in_space(session, context, attachment_id)
     actual_parent = binding.parent_of(session, attachment.id)
+    if attachment.media_type == MediaType.DOCUMENT and (
+        actual_parent is None or actual_parent[0] != "PLAN"
+    ):
+        raise Attachment.privacy_absence.error()
     if actual_parent is None:
         if attachment.owner_id != context.account_id:
             raise Attachment.privacy_absence.error()
@@ -579,6 +587,17 @@ def validate(session: Session, attachment_id: UUID) -> None:
 
     if len(raw) > rule.max_size:
         _fail(attachment, ErrorCode.ATTACHMENT_TOO_LARGE)
+        return
+
+    if attachment.media_type == MediaType.DOCUMENT:
+        if not documents.is_pdf(raw):
+            _fail(attachment, ErrorCode.ATTACHMENT_VALIDATION_FAILED)
+            return
+        attachment.mime_type = PDF_MIME_TYPE
+        attachment.size = len(raw)
+        attachment.status = AttachmentStatus.READY.value
+        attachment.ready_at = now()
+        attachment.failure_code = None
         return
 
     from eimir.attachments import photo_locations

@@ -13,6 +13,7 @@ Name | Type
 `coverIsSensitive` | boolean
 `description` | string
 `experiencedOn` | Date
+`fileAttachmentChanges` | [PlanFileChanges](PlanFileChanges.md)
 `placeId` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
 `selectedCoverAttachmentId` | string
@@ -32,6 +33,7 @@ const example = {
   "coverIsSensitive": null,
   "description": null,
   "experiencedOn": null,
+  "fileAttachmentChanges": null,
   "placeId": null,
   "schedule": null,
   "selectedCoverAttachmentId": null,

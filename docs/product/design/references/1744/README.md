@@ -53,6 +53,14 @@ No new dependency or provider.
   controls for assistive technology.
 - **Library:** older editions form a two-column cover shelf; the featured cover has
   one action.
+- **Earlier periods arrive by themselves:** every month and year with shared
+  material is prepared without a request. The server requests the current periods
+  at once and earlier ones newest-first in batches of six, continued every two
+  minutes by one queued job per Space and by the six-hourly scan. A long history
+  therefore never occupies the worker or the single local inference slot. Until
+  its edition exists, a period is a quiet, non-interactive cover in the shelf;
+  the per-period "compile" buttons are gone. The library re-reads at a calm
+  cadence while such covers remain.
 
 ## States, motion and accessibility
 
@@ -77,6 +85,7 @@ the existing lake fixture. Captured from `web/e2e/tests/automatic-recaps.spec.ts
 | Milestone | [390](evidence/recaps-immersive-milestone-390-light.png) | | |
 | Closing | [390](evidence/recaps-immersive-closing-390-light.png) | | |
 | Native container | [cover](evidence/recaps-immersive-native-cover-390-light.png), [photo](evidence/recaps-immersive-native-photo-390-light.png) | | |
+| Library, periods in preparation | [390](evidence/recaps-immersive-library-preparing-390-light.png) | [390](evidence/recaps-immersive-library-preparing-390-dark.png) | |
 | Large text | [390](evidence/recaps-immersive-large-text-390.png) | | |
 
 The [360 px reader](evidence/recaps-playback-360-dark-large-reduced.png) shows
@@ -93,3 +102,7 @@ The contract change is additive and needs no migration. One read-time query
 groups the same authorized shared metadata used by the selection by kind and
 day. Counts, active days and the leading month use the same read snapshot.
 Deleted or privately reclassified sources leave the counts on the next read.
+Automatic preparation of earlier periods stays behind `relationship.passport`:
+it stops when the capability lapses and never changes what a retained edition
+shows. It adds no table, column or contract field; `periods` in the overview now
+lists only periods that still have no edition.

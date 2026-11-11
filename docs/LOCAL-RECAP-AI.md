@@ -130,7 +130,10 @@ source SHA and the running images before acceptance. See
 The worker automatically checks active Pro Spaces every six hours, prepares the
 current month/year and available most recent completed periods, and only queues
 changed periods once. Opening the library also schedules preparation without
-waiting for the next scan. Saved editions are not overwritten. Current periods
+waiting for the next scan. Earlier periods with shared material follow without
+a request: newest first, six per batch, continued every two minutes by one
+`recap.backfill.v1` job per Space until none is left. This bounds worker and
+inference load for couples with a long history. Saved editions are not overwritten. Current periods
 are explicitly partial; annual selection uses the entire calendar interval.
 
 ## Verification and rollback

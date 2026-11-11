@@ -145,8 +145,7 @@
 .recap-archive > h2 {
   grid-column: 1 / -1;
 }
-.recap-archive > h2,
-.recap-available h2 {
+.recap-archive > h2 {
   font: var(--font-section-heading);
   margin-block: 0 var(--space-4);
 }
@@ -188,25 +187,11 @@
   font: var(--font-ui-label);
   padding: var(--space-2) 0;
 }
-.recap-available {
-  margin-block: var(--space-8);
+.recap-cover-preparing .recap-cover-art {
+  background: var(--color-surface-subtle);
 }
-.recap-period-button {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  inline-size: 100%;
-  background: transparent;
-  color: var(--color-text);
-  padding: var(--space-4) 0;
-  border-block-end: 1px solid var(--color-border-subtle);
-  text-align: start;
-}
-.recap-period-button > span:last-child {
-  color: var(--color-link);
-  font: var(--font-supporting-copy);
+.recap-cover-preparing .recap-cover-words {
+  color: var(--color-text-secondary);
 }
 .recap-explanation {
   margin-block: var(--space-5);

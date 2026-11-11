@@ -284,6 +284,53 @@ def test_year_uses_full_period_and_auto_prepare_queues_current_periods(client, s
     assert request(client, context, month=12).status_code == 422
 
 
+def test_earlier_periods_are_prepared_in_bounded_batches_without_a_request(
+    client, session, context
+):  # type: ignore[no-untyped-def]
+    for year in (2024, 2025):
+        for month in range(1, 11):
+            memory(session, context, day=date(year, month, 10))
+
+    def count(kind):  # type: ignore[no-untyped-def]
+        return session.scalar(select(func.count()).select_from(Job).where(Job.kind == kind))
+
+    def editions():  # type: ignore[no-untyped-def]
+        return session.scalar(select(func.count()).select_from(RecapEdition))
+
+    def waiting():  # type: ignore[no-untyped-def]
+        overview = client.get(context["path"], headers=context["headers"]).json()
+        return [(item["kind"], item["year"], item["month"]) for item in overview["periods"]]
+
+    # 20 earlier months and the year 2024, plus the three periods prepared right away.
+    assert len(waiting()) == 21 + 3
+    assert client.post(f"{context['path']}/prepare", headers=context["headers"]).status_code == 202
+    # Current month, current year and the completed previous year, plus one batch.
+    assert editions() == 3 + service.BACKFILL_BATCH
+    left = waiting()
+    assert len(left) == 21 - service.BACKFILL_BATCH
+    # The newest earlier periods come first.
+    assert ("MONTH", 2025, 10) not in left and ("MONTH", 2024, 1) in left
+    assert count(service.BACKFILL_JOB) == 1
+
+    assert client.post(f"{context['path']}/prepare", headers=context["headers"]).status_code == 202
+    assert count(service.BACKFILL_JOB) == 1
+    payload = {"space_id": str(context["space"].id), "account_id": str(context["anna"].id)}
+    for _ in range(4):
+        jobs.backfill(session, payload)
+        session.flush()
+    assert waiting() == []
+    assert editions() == 3 + 21
+    assert count(service.GENERATE_JOB) == editions()
+    # Nothing is left, so the continuation does not reschedule itself again.
+    assert count(service.BACKFILL_JOB) == 1
+
+    context["grant"].status = EntitlementStatus.REVOKED.value
+    session.flush()
+    memory(session, context, day=date(2023, 5, 10))
+    jobs.backfill(session, payload)
+    assert editions() == 3 + 21
+
+
 def test_recap_transfer_retains_shared_words_and_only_the_exporters_private_draft(
     client, session, context, encryption
 ):  # type: ignore[no-untyped-def]

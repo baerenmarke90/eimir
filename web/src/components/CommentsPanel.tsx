@@ -359,16 +359,29 @@ function CommentsPanelContent({
   const headingId = `${parentKind}-comments-heading`;
   const formId = `${parentKind}-${parentId}-comment-form`;
   const trigger =
-    canComment && !offline && !composerOpen ? (
+    canComment &&
+    !offline &&
+    (!composerOpen || (inlineComposer && triggerContainer)) ? (
       <button
         ref={triggerRef}
         type="button"
         className={`comment-compose-trigger ${triggerContainer ? 'media-overlay' : 'tertiary'}${labelledComposer ? ' comment-compose-trigger-labelled' : ''}`}
         aria-controls={formId}
-        aria-expanded="false"
-        aria-label={t(labelledComposer ? 'comments.write' : 'comments.send')}
-        title={t(labelledComposer ? 'comments.write' : 'comments.send')}
-        onClick={() => setComposerOpen(true)}
+        aria-expanded={composerOpen}
+        aria-label={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        title={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        onClick={() => {
+          if (inlineComposer) inputRef.current?.focus();
+          else setComposerOpen(true);
+        }}
       >
         <svg
           viewBox="0 0 24 24"
@@ -582,7 +595,7 @@ function CommentsPanelContent({
             ref={inputRef}
             id={`${parentKind}-${parentId}-comment`}
             name="comment"
-            rows={3}
+            rows={2}
             maxLength={2000}
             required
             placeholder={t('comments.placeholder')}

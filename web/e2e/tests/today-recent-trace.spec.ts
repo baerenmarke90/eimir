@@ -88,7 +88,7 @@ const RECENT_SHARED_ITEMS = [
 ];
 
 // Activity chronology is independent of content occurrence dates and featured modules.
-const TRACE_TILE_COUNT = 4;
+const TRACE_TILE_COUNT = 3;
 const ACTIVITY_ITEMS = RECENT_SHARED_ITEMS.map((item, index) => ({
   id: `activity-${index}`,
   sourceEventId: `source-${index}`,
@@ -308,7 +308,9 @@ test('Today event trace keeps compact borderless composition and authoritative o
   expect(truncatedTitles).toHaveLength(0);
 
   await expect(tiles).toHaveText(
-    ACTIVITY_ITEMS.slice(0, 4).map((item) => new RegExp(item.target.title)),
+    ACTIVITY_ITEMS.slice(0, TRACE_TILE_COUNT).map(
+      (item) => new RegExp(item.target.title),
+    ),
   );
   await expect(tiles.first()).toContainText(
     m5s5.activityAction.COMMENT_CREATED,
@@ -433,6 +435,7 @@ test('Today and Activities show the same event titles and order in dark mode', a
   const traceTitles = await page
     .locator('.today-activity-trace .activity-card-target-title')
     .allTextContents();
+  expect(traceTitles).toHaveLength(TRACE_TILE_COUNT);
   await page.getByRole('link', { name: /Alle Aktivitäten ansehen/ }).click();
   await expect(page).toHaveURL(/\/today\/activity$/);
   await expect(page.locator('.activity-card-target-title')).toHaveCount(
@@ -441,7 +444,7 @@ test('Today and Activities show the same event titles and order in dark mode', a
   expect(
     (await page.locator('.activity-card-target-title').allTextContents()).slice(
       0,
-      4,
+      TRACE_TILE_COUNT,
     ),
   ).toEqual(traceTitles);
   const result = await new AxeBuilder({ page }).analyze();

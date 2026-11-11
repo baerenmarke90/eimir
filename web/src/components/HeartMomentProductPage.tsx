@@ -1749,6 +1749,7 @@ export function HeartMomentProductPage({
             {visualMedia.length ? (
               <section aria-label={t('heartMomentProduct.photoLabel')}>
                 <MediaGallery
+                  readingFrame
                   presentation="composer"
                   initialMediaId={
                     heartMoment.selectedCoverAttachmentId ?? undefined

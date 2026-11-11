@@ -8,6 +8,7 @@ import deFixture from '../fixtures/locales/de';
 import {
   expectInlineAddLayout,
   expectLabeledAddAction,
+  expectOverviewActionPlacement,
 } from '../support/addAction';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -237,8 +238,7 @@ async function openOverview(page: Page, kind: 'places' | 'collections') {
   ]);
   if (!heading || !control || !content)
     throw new Error('Overview heading, add action and content must be visible');
-  expect(control.x).toBeCloseTo(heading.x, 0);
-  expect(control.y).toBeGreaterThanOrEqual(heading.y + heading.height);
+  await expectOverviewActionPlacement(action);
   expect(control.y + control.height).toBeLessThanOrEqual(content.y);
 }
 
@@ -491,9 +491,8 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .last()
     .click();
   await page.locator('a[href="/more/collections"]').click();
-  await page.getByRole('button', { name: navigation.newContent }).click();
   await page
-    .getByText(navigation.quickCreateCollection, { exact: true })
+    .getByRole('button', { name: m5s3.collection.create, exact: true })
     .click();
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(m5s3.common.title, { exact: true }).fill('Draft');
@@ -513,9 +512,8 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .getByRole('button', { name: m5s3.common.discardConfirm, exact: true })
     .click();
   await expect(page).toHaveURL(/\/more\/collections$/);
-  await page.getByRole('button', { name: navigation.newContent }).click();
   await page
-    .getByText(navigation.quickCreateCollection, { exact: true })
+    .getByRole('button', { name: m5s3.collection.create, exact: true })
     .click();
   dialog = page.getByRole('dialog');
   await dialog

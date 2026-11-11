@@ -338,20 +338,23 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   await expect(page.locator('.planen-next-link')).toContainText(plans[0].title);
   expect(state.planReads).toEqual(['']);
   expect(state.wishReads).toEqual([]);
+  const planPreviews = page.locator('.planen-next-link, .planen-agenda-link');
   await page.locator('.planen-agenda-link').last().scrollIntoViewIfNeeded();
-  await expect(page.locator('[data-planning-key]')).toHaveCount(32);
+  await expect(planPreviews).toHaveCount(plans.length);
   expect(state.planReads).toEqual(['', '20']);
   await page.goto(`/plan/plans/${plans[0].id}`);
-  await expect(
-    page.getByRole('button', { name: memoryProduct.planning.add }),
-  ).toHaveCount(0);
+  const linkWish = page.getByRole('button', {
+    name: m5s3.plan.linkWish,
+    exact: true,
+  });
+  await expect(linkWish).toHaveCount(0);
   await page
     .getByRole('button', { name: m5s3.common.edit, exact: true })
     .click();
   await page
     .getByRole('textbox', { name: m5s3.common.title, exact: true })
     .fill(copy.edit);
-  await page.getByRole('button', { name: memoryProduct.planning.add }).click();
+  await linkWish.click();
   await page.getByRole('radio', { name: wishes[0].title, exact: true }).check();
   await captureScreenshot(
     page,
@@ -690,19 +693,23 @@ test.describe('integrated soft media choices', () => {
         const composer = page.locator('.page-composer');
         await expect(composer).toHaveCount(1);
         const diary = index < 2;
-        const entry = diary
-          ? composer.getByRole('button', { name: sources.more, exact: true })
-          : composer
-              .locator('.composer-tool-row')
-              .getByRole('button', { name: composerCopy.photo, exact: true });
+        const entry = composer
+          .locator('.composer-tool-row')
+          .getByRole('button', { name: composerCopy.photo, exact: true });
+        const external = composer.getByRole('button', {
+          name: sources.more,
+          exact: true,
+        });
+        await expectLabeledComposerTool(entry, 'foto');
         if (diary) {
           await expectMediaIntakeAction(
             composer.locator('.media-intake-device'),
             'foto',
           );
-          await expect(entry).toBeVisible();
-          await expect(entry.locator('.media-intake-pro')).toHaveCount(1);
-        } else await expectLabeledComposerTool(entry, 'foto');
+          await expect(external).toBeVisible();
+          await expect(external.locator('.media-intake-pro')).toHaveCount(1);
+          await expect(external).toHaveCSS('border-top-width', '0px');
+        }
         await expect(composer.locator('.media-action-group')).toHaveCount(1);
         await expect(composer.locator('.media-action-group-label')).toHaveCount(
           0,
@@ -714,9 +721,7 @@ test.describe('integrated soft media choices', () => {
           'background-color',
           'rgba(0, 0, 0, 0)',
         );
-        await expect(
-          composer.getByRole('button', { name: sources.more, exact: true }),
-        ).toHaveCount(diary ? 1 : 0);
+        await expect(external).toHaveCount(diary ? 1 : 0);
         for (const surface of [
           composer,
           composer.locator('.composer-writing-surface, .page-composer-writing'),
@@ -737,12 +742,10 @@ test.describe('integrated soft media choices', () => {
           await expect(prose).toHaveCSS('outline-style', 'solid');
           await expect(prose).toHaveCSS('outline-width', '2px');
         }
-        await entry.press('Enter');
         const sheet = page.getByRole('dialog', {
           name: sources.title,
           exact: true,
         });
-        await expect(sheet).toBeVisible();
         const device = sheet.getByRole('button', {
           name: sources.device,
           exact: true,
@@ -755,6 +758,18 @@ test.describe('integrated soft media choices', () => {
           name: sources.immich,
           exact: true,
         });
+        if (diary) {
+          await external.press('Enter');
+          await expect(sheet).toBeVisible();
+          await expect(google).toBeVisible();
+          await expect(immich).toBeVisible();
+          await expect(device).toHaveCount(0);
+          await page.keyboard.press('Escape');
+          await expect(sheet).toHaveCount(0);
+          await expect(external).toBeFocused();
+        }
+        await entry.press('Enter');
+        await expect(sheet).toBeVisible();
         for (const [action, icon] of [
           [device, 'foto'],
           [google, 'photo-library'],
@@ -808,7 +823,7 @@ test.describe('integrated soft media choices', () => {
           await prose.focus();
           await expect(prose).toHaveCSS('outline-style', 'solid');
           await expect(prose).toHaveCSS('outline-width', '2px');
-          await expect(entry).toHaveCSS('border-top-width', '1px');
+          await expect(external).toHaveCSS('border-top-width', '1px');
           await page.emulateMedia({ forcedColors: 'none' });
           await page.locator('.composer-header h1').click();
           expect(

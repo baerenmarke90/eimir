@@ -40,7 +40,7 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | ordinary state transition | `motion.duration.standard` | 180 ms | `--duration-transition` |
 | spatial/contextual enter | `motion.duration.emphasized` | 280 ms | `--duration-context` |
 | normal upper guardrail | `motion.duration.maximum` | 320 ms | no default alias; not a routine duration |
-| explicit map camera journey | `motion.duration.mapCamera` | 900 ms | `--duration-map-camera` |
+| explicit map camera journey | `motion.duration.mapCamera` | 1100 ms | `--duration-map-camera` |
 | map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |

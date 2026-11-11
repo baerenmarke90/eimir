@@ -325,7 +325,7 @@ for (const inline of [false, true]) {
     );
     const inlineControl = () =>
       view.container.querySelector(
-        '.media-gallery-carousel > .sensitive-media-control',
+        '.media-gallery-carousel-viewport > .sensitive-media-control',
       );
     expect(Boolean(inlineControl())).toBe(inline);
     if (inline)

@@ -13,9 +13,21 @@ import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MomentCreateMenu.css';
 
 const targets = [
-  { to: MEMORY_CREATE_ROUTE, label: 'memory', icon: 'erinnerungen' },
-  { to: HEART_MOMENT_CREATE_ROUTE, label: 'heartMoment', icon: 'denken' },
-  { to: MILESTONE_CREATE_ROUTE, label: 'milestone', icon: 'meilensteine' },
+  {
+    to: MEMORY_CREATE_ROUTE,
+    label: 'composer.diaryEntry',
+    icon: 'erinnerungen',
+  },
+  {
+    to: HEART_MOMENT_CREATE_ROUTE,
+    label: 'story.kind.heartMoment',
+    icon: 'denken',
+  },
+  {
+    to: MILESTONE_CREATE_ROUTE,
+    label: 'story.kind.milestone',
+    icon: 'meilensteine',
+  },
 ] as const satisfies readonly {
   to: string;
   label: string;
@@ -23,7 +35,7 @@ const targets = [
 }[];
 
 /** A bounded local entry into the existing moment capture tasks. */
-export function MomentCreateMenu() {
+export function MomentCreateMenu({ floating = false }: { floating?: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
@@ -38,6 +50,7 @@ export function MomentCreateMenu() {
       <AddActionButton
         ref={triggerRef}
         label={t('story.addMoment')}
+        floating={floating}
         data-task-item-key="moment-create"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -49,6 +62,7 @@ export function MomentCreateMenu() {
         id={id}
         open={open}
         title={t('story.addMoment')}
+        className="moment-create-sheet"
         onClose={() => setOpen(false)}
         initialFocusRef={firstTargetRef}
         restoreFocusRef={triggerRef}
@@ -81,7 +95,7 @@ export function MomentCreateMenu() {
               }}
             >
               <EimirIcon name={target.icon} />
-              <span>{t(`story.kind.${target.label}`)}</span>
+              <span>{t(target.label)}</span>
             </Link>
           ))}
         </div>

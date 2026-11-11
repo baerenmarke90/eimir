@@ -436,7 +436,8 @@ describe('TodayPage', () => {
     expect(html).toContain('new-space-experience');
     expect(html).not.toContain('new-space-mark');
     expect(html).toContain('Marie');
-    expect(html).toContain('href="/story/memories/new"');
+    expect(html).toContain('data-floating-create="true"');
+    expect(html).toContain(`aria-label="${de.story.addMoment}"`);
   });
 
   it('renders secondary upcoming items as calm agenda rows with title and date, not a card carousel', () => {
@@ -982,8 +983,8 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
     const trace = sectionHtml(html, 'today-section-recent');
-    expect(trace.match(/activity-result-wrapper/g)).toHaveLength(4);
-    for (let index = 0; index < 4; index++)
+    expect(trace.match(/activity-result-wrapper/g)).toHaveLength(3);
+    for (let index = 0; index < 3; index++)
       expect(trace).toContain(`Event target ${index}`);
     expect(trace.indexOf('Event target 0')).toBeLessThan(
       trace.indexOf('Event target 1'),
@@ -991,10 +992,8 @@ describe('TodayPage', () => {
     expect(trace.indexOf('Event target 1')).toBeLessThan(
       trace.indexOf('Event target 2'),
     );
-    expect(trace.indexOf('Event target 2')).toBeLessThan(
-      trace.indexOf('Event target 3'),
-    );
     expect(trace).toContain(m5s5.activityKind.COMMENT_CREATED);
+    expect(trace).not.toContain('Event target 3');
     expect(trace).not.toContain('Event target 4');
     expect(trace).not.toContain('Old domain-only content');
     expect(trace).toContain('href="/today/activity"');

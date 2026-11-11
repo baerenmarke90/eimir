@@ -117,7 +117,7 @@ const m5s3 = {
     },
   },
   plan: {
-    linkWish: 'Wunsch hinzufügen',
+    linkWish: 'Wunsch verknüpfen',
     linkWishHelp:
       'Der Plan bleibt bestehen. Wenn ihr ihn abschließt, wird auch der Wunsch erfüllt. Über „Zurück zum Wunsch“ könnt ihr den Plan später auflösen.',
     chooseWish: 'Offenen Wunsch auswählen',

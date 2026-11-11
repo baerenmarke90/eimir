@@ -11,6 +11,8 @@
         "web/src/components/MemoryPhotoGallery.tsx",
         "web/src/components/MediaGallery.tsx",
         "web/src/components/PhotoDraftGallery.tsx",
+        "web/src/components/PhotoSourcePicker.tsx",
+        "web/src/components/PhotoDraftSorting.tsx",
         "web/src/components/CollectionProductPage.tsx",
         "web/src/components/MemoryMapPage.tsx"
       ]
@@ -23,7 +25,8 @@
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/MilestoneProductPage.tsx",
-        "web/src/components/QuickCreateMenu.tsx"
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/components/AddAction.tsx"
       ]
     },
     "app-continuity-polish.spec.ts": {
@@ -164,7 +167,9 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx"
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/AddAction.tsx",
+        "web/src/components/MomentCreateMenu.tsx"
       ],
       "always": true
     },
@@ -176,7 +181,9 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/GamesProductArea.tsx",
-        "web/src/components/OurMomentsGamePage.tsx"
+        "web/src/components/OurMomentsGamePage.tsx",
+        "web/src/components/AddAction.tsx",
+        "web/src/components/MomentCreateMenu.tsx"
       ]
     },
     "heart-moment-create-product-reference.spec.ts": {
@@ -184,7 +191,8 @@
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/QuickCreateMenu.tsx",
-        "web/src/client/taskOrigin.tsx"
+        "web/src/client/taskOrigin.tsx",
+        "web/src/components/MomentCreateMenu.tsx"
       ]
     },
     "heart-moment-delete-ownership.spec.ts": {
@@ -363,7 +371,11 @@
       ]
     },
     "optional-product-tour.spec.ts": {
-      "roots": ["web/src/client/productTour.tsx"]
+      "roots": [
+        "web/src/client/productTour.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MomentCreateMenu.tsx"
+      ]
     },
     "partner-nickname.spec.ts": {
       "roots": [
@@ -468,7 +480,8 @@
         "web/src/components/WishProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/TodayPage.tsx"
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/AddAction.tsx"
       ]
     },
     "planning-reference.spec.ts": {
@@ -524,7 +537,9 @@
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
-        "web/src/components/PrivatePartnerNotesPage.tsx"
+        "web/src/components/PrivatePartnerNotesPage.tsx",
+        "web/src/components/AddAction.tsx",
+        "web/src/components/MomentCreateMenu.tsx"
       ],
       "always": true
     },
@@ -568,7 +583,14 @@
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx"
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MomentCreateMenu.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrivateNotesPage.tsx",
+        "web/src/components/GiftIdeasPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
       ],
       "always": true
     },
@@ -853,10 +875,16 @@
     },
     "media-planning-corrections.spec.ts": {
       "roots": [
+        "web/src/components/AddAction.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx",
+        "web/src/components/PlanWishLink.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PhotoSourcePicker.tsx",
+        "web/src/components/DeviceMediaPicker.tsx",
         "web/src/components/PhotoDraftGallery.tsx",
         "web/src/components/PhotoDraftSorting.tsx",
         "web/src/components/PhotoArrangeTask.tsx",

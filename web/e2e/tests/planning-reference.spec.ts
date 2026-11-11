@@ -6,7 +6,6 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
@@ -666,7 +665,7 @@ for (const [width, colorScheme] of [
     ).toBeVisible();
     expect(reads).toBe(0);
     const trigger = page.locator('.plan-wish-link').getByRole('button', {
-      name: memoryProduct.planning.add,
+      name: m5s3.plan.linkWish,
       exact: true,
     });
     await expect(trigger).toHaveCount(0);

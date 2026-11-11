@@ -1,3 +1,4 @@
+import { expectFloatingAddAction } from '../support/addAction';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -7,7 +8,6 @@ import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import composer from '../../src/i18n/locales/composer';
-import navigation from '../../src/i18n/locales/navigation';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureR3Evidence } from './r3-evidence';
 import { expectLabeledComposerTool } from '../support/addAction';
@@ -335,7 +335,7 @@ test('focused Wish creation omits the redundant fixed-audience banner', async ({
   await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
 });
 
-test('local add and Quick Create both open the focused task and browser Back returns to origin', async ({
+test('contextual Plan and Wish actions open directly and browser Back restores the active segment', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -348,13 +348,28 @@ test('local add and Quick Create both open the focused task and browser Back ret
   await page.goBack();
   await expect(page).toHaveURL(/\/plan$/);
 
-  await page.goto('/today');
-  await page.getByRole('button', { name: navigation.newContent }).click();
-  await page.getByText(navigation.quickCreateWish, { exact: true }).click();
+  await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+  const wishAction = page.getByRole('link', { name: m5s3.overview.addWish });
+  await expectFloatingAddAction(
+    wishAction,
+    page.locator('.mobile-bottom-shell'),
+  );
+  const search = page.getByRole('searchbox', {
+    name: m5s3.overview.searchWishes,
+  });
+  await search.focus();
+  await expect(wishAction).toBeHidden();
+  await search.blur();
+  await expect(wishAction).toBeVisible();
+  await wishAction.click();
   await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
   await expect(page.getByLabel(m5s3.wish.intentionLabel)).not.toBeFocused();
   await page.goBack();
-  await expect(page).toHaveURL(/\/today$/);
+  await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
+  await expect(
+    page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(wishAction).toBeVisible();
 });
 
 test('an undated Plan is valid while optional context remains available', async ({

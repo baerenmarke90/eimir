@@ -26,6 +26,7 @@ async function installMocks(
     partnerProfileAttachmentId = null,
     holdFirstGesture = false,
     failFirstGesture = false,
+    supportGesturesEnabled = true,
   }: {
     hasExtendedCapability?: boolean;
     thinkingOfYouAvailableAt?: string | null;
@@ -35,6 +36,7 @@ async function installMocks(
     partnerProfileAttachmentId?: string | null;
     holdFirstGesture?: boolean;
     failFirstGesture?: boolean;
+    supportGesturesEnabled?: boolean;
   } = {},
 ) {
   let entitlementGetCount = 0;
@@ -144,7 +146,7 @@ async function installMocks(
           loveNotesEnabled: false,
           sharedAchievementsEnabled: false,
           spaceId: SPACE_ID,
-          supportGesturesEnabled: true,
+          supportGesturesEnabled,
           version: 1,
           vibeCheckEnabled: false,
           vibeVisibilityMode: 'MUTUAL_REVEAL',
@@ -1029,6 +1031,35 @@ for (const [width, theme] of [
     expect(network.gestures()).toEqual([]);
   });
 }
+
+test('the named one-time entry opens from Wir with partner gestures disabled', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page, { supportGesturesEnabled: false });
+  await page.route('**/once-messages/status', (route) =>
+    route.fulfill({
+      json: {
+        ownEnabled: false,
+        partnerEnabled: false,
+        canSend: true,
+        ownDeviceIds: [],
+        recipientDevices: [],
+        receptionVersion: 0,
+        partner: { id: PARTNER_ID, displayName: 'Ben' },
+      },
+    }),
+  );
+  await signIn(page);
+  await expect(triggerLocator(page)).toHaveCount(0);
+  const entry = page.getByRole('link', { name: new RegExp(onceCopy.title) });
+  await entry.click();
+  await expect(page).toHaveURL('/today/only-you/new');
+  await expect(page.getByText(onceCopy.consent)).toBeVisible();
+  await page.locator('.task-back-control').click();
+  await expect(page).toHaveURL('/today');
+  await expect(entry).toBeFocused();
+});
 
 test('the one-time entry is independent of an unavailable extended-gesture entitlement read', async ({
   page,

@@ -6,6 +6,7 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import { dashboardItemPath } from '../client/m4Product';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { MemoryPreview } from './MemoryPreview';
+import { EimirIcon } from './EimirIcon';
 import { formatStoryDate } from './storyPresentation';
 
 /**
@@ -72,9 +73,6 @@ export function StoryRetrospective({
           </span>
         ) : null}
         <span className="momente-retrospective-copy">
-          <span className="momente-retrospective-kicker">
-            {t('m5s5.today.living.retrospectiveLabel')}
-          </span>
           <span
             className="momente-retrospective-title"
             data-long={title.length > 180 || undefined}
@@ -89,9 +87,10 @@ export function StoryRetrospective({
               {formatStoryDate(date, resolvedLocale())}
             </time>
           ) : null}
-          <span className="momente-retrospective-action">
-            {t('story.retrospectiveOpen')}
-          </span>
+          <EimirIcon
+            name="chevron-right"
+            className="momente-retrospective-chevron"
+          />
         </span>
       </Link>
     </section>

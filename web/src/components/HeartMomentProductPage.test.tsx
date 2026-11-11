@@ -612,7 +612,7 @@ describe('Quick Create Heart Moment continuity (#509)', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/today']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
-            <QuickCreateMenu variant="desktop" />
+            <QuickCreateMenu />
             <Routes>
               <Route path="/today" element={<p>Today origin</p>} />
               <Route

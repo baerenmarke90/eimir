@@ -307,9 +307,9 @@ describe('Story detail comment density (#1024)', () => {
 
 describe('compact navigation', () => {
   it('owns the bottom navigation grid in one stylesheet', () => {
-    expect(ruleBlock(shellCss, '.mobile-bottom-shell')).toContain(
-      'grid-template-columns: repeat(5, minmax(0, 1fr))',
-    );
+    expect(
+      ruleBlock(shellCss, '.mobile-bottom-shell .mobile-bottom-nav'),
+    ).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))');
 
     const pageStylesheets = [
       readSource('./components/M4ProductPages.css'),

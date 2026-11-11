@@ -17,7 +17,7 @@ The following contract applies to every reference, together with its specific co
 | --- | --- |
 | Compact is normative | Design one human task and one dominant action first. At 360/390/430 px preserve the same hierarchy and body size, with wrapping labels and content-driven heights |
 | D7 gutters | Approximately 16 px below approximately 390 px; 20 px at/above approximately 390 px through Compact, except a deliberate edge-to-edge composition |
-| Navigation | Stable labeled destinations: Wir, Momente, Planen, Mehr. The central plus is an action, not a fifth destination. Games remains under Mehr; Story/Chapter details belong to Momente even where a legacy URL uses another path |
+| Navigation | Stable labeled destinations: Wir, Momente, Planen, Mehr. The contextual Compact plus floats above the bar on eligible views. Games remains under Mehr; Story/Chapter details belong to Momente even where a legacy URL uses another path |
 | Thumb reach / keyboard | Important actions remain reachable with one hand; Web targets at least 44 × 44 CSS px, Android at least 48 × 48 dp. Reserve measured navigation height and safe-area clearance. A completion footer never obscures focused input or content |
 | Task boundary | Browsing/reading, capture/edit and confirmation are distinct. Focused capture replaces competing root chrome. Visible Back/Close and platform Back agree on task ownership |
 | Reading before editing | Personal content opens its canonical read detail; editing and destructive operations are deliberate contextual actions. Full-surface navigation has proper semantics and no nested interactive targets |

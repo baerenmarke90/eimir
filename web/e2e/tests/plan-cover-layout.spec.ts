@@ -176,7 +176,10 @@ async function expectPreviewCrop(image: Locator) {
   expect(value.contained).toBe(true);
 }
 
-async function expectGalleryImage(image: Locator, maxHeight: number) {
+async function expectGalleryImage(image: Locator) {
+  const viewportHeight = image.page().viewportSize()?.height;
+  if (!viewportHeight)
+    throw new Error('A viewport is required to check the photo frame');
   await expect(image).toBeVisible();
   await expect
     .poll(() =>
@@ -200,8 +203,11 @@ async function expectGalleryImage(image: Locator, maxHeight: number) {
         rect.bottom <= frame.bottom + 1,
     };
   });
-  expect(size.fit).toBe('cover');
-  expect(size.height).toBeLessThanOrEqual(maxHeight + 1);
+  expect(size.fit).toBe('contain');
+  expect(size.height).toBeGreaterThanOrEqual(
+    Math.min(300, viewportHeight * 0.55) - 1,
+  );
+  expect(size.height).toBeLessThanOrEqual(viewportHeight * 0.78 + 1);
   expect(size.contained).toBe(true);
 }
 
@@ -323,7 +329,6 @@ for (const scenario of [
     }
     await expectGalleryImage(
       page.locator('.plan-photo-gallery .media-gallery-carousel-content'),
-      Math.min(scenario.height * 0.6, scenario.largeText ? 896 : 448),
     );
     expect(state.reads).toContain('original');
     expect(
@@ -643,7 +648,6 @@ for (const view of [
         .locator('.media-gallery-carousel-slide:not(.is-clone)')
         .first()
         .locator('.media-gallery-carousel-content'),
-      540,
     );
     if (view.width < 600) {
       const track = gallery.locator('.media-gallery-carousel-track');

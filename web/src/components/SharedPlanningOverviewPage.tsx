@@ -302,6 +302,8 @@ export function SharedPlanningOverviewPage({
   );
   const [planSearch, setPlanSearch] = useState('');
   const [wishSearch, setWishSearch] = useState('');
+  const [occasionActionHost, setOccasionActionHost] =
+    useState<HTMLSpanElement | null>(null);
   const restoredOrigin = useRef<unknown>(null);
   function changeStatus(kind: PlanenSegment, status: PlanningScope) {
     if (kind === 'plans') setPlanStatus(status);
@@ -632,7 +634,32 @@ export function SharedPlanningOverviewPage({
 
   return (
     <div className="page planning-page planning-sanctuary planen-overview">
-      <PageHeader variant="root" title={t('m5s3.overview.title')} />
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('m5s3.overview.title')}
+        action={
+          activeSegment === 'dates' ? (
+            <span ref={setOccasionActionHost} />
+          ) : (
+            <AddActionLink
+              floating
+              label={t(
+                activeSegment === 'plans'
+                  ? 'm5s3.overview.addPlan'
+                  : 'm5s3.overview.addWish',
+              )}
+              {...planningLinkProps(
+                activeSegment === 'plans'
+                  ? PLAN_CREATE_ROUTE
+                  : WISH_CREATE_ROUTE,
+                activeSegment,
+                'planning-create',
+              )}
+            />
+          )
+        }
+      />
       <PlanenSegmentedControl
         active={activeSegment}
         onChange={changeSegment}
@@ -649,10 +676,6 @@ export function SharedPlanningOverviewPage({
         labelledBy={plansTabId}
         hidden={activeSegment !== 'plans'}
       >
-        <AddActionLink
-          label={t('m5s3.overview.addPlan')}
-          {...planningLinkProps(PLAN_CREATE_ROUTE, 'plans')}
-        />
         <PlanningSearch
           kind="plans"
           value={planSearch}
@@ -810,10 +833,6 @@ export function SharedPlanningOverviewPage({
         labelledBy={wishesTabId}
         hidden={activeSegment !== 'wishes'}
       >
-        <AddActionLink
-          label={t('m5s3.overview.addWish')}
-          {...planningLinkProps(WISH_CREATE_ROUTE, 'wishes')}
-        />
         <PlanningSearch
           kind="wishes"
           value={wishSearch}
@@ -916,6 +935,7 @@ export function SharedPlanningOverviewPage({
       >
         {activeSegment === 'dates' && peopleApi ? (
           <PlanningOccasions
+            createActionContainer={occasionActionHost}
             peopleApi={peopleApi}
             profilesApi={profilesApi}
             spaceId={spaceId}

@@ -542,6 +542,17 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       const box = await target.boundingBox();
       if (!box) throw new Error('Focused clearance action has no geometry.');
       expect(box.y + box.height).toBeLessThanOrEqual(bar.top - 1);
+      const add = page.locator('[data-floating-create]');
+      await expect(add).toBeVisible();
+      if (
+        await add.evaluate(
+          (element) => getComputedStyle(element).position === 'fixed',
+        )
+      ) {
+        const addBox = await add.boundingBox();
+        if (!addBox) throw new Error('Floating add action has no geometry.');
+        expect(box.y + box.height).toBeLessThanOrEqual(addBox.y - 1);
+      }
       await expectNoHorizontalOverflow(page);
       await page.screenshot({
         path: testInfo.outputPath(
@@ -1017,14 +1028,20 @@ test('native primary tab switching replaces root history but keeps nested task r
     await expect(page).toHaveURL(new RegExp(`${root}$`));
     expect(await page.evaluate(() => history.length)).toBe(historyLength);
   }
-  await page.locator('.mobile-quick-create .quick-create-trigger').click();
+  await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+  await nav.locator('a[href="/today"]').click();
+  await expect(page).toHaveURL(/\/today$/);
+  expect(await page.evaluate(() => history.length)).toBe(historyLength);
+  const moment = page.getByRole('button', { name: de.story.addMoment });
+  await moment.click();
   await page
-    .locator('.quick-create-mobile-item[href="/story/memories/new"]')
+    .locator('.moment-create-choice[href="/story/memories/new"]')
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/new$/);
   await expect(page.locator('.mobile-bottom-shell')).toHaveCount(0);
   await page.goBack();
-  await expect(page).toHaveURL(/\/more$/);
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(moment).toBeFocused();
   await expect(nav).toBeVisible();
 });
 
@@ -1322,13 +1339,12 @@ test.describe('primary tab touch navigation', () => {
       page.getByRole('tab', { name: m5s3.overview.segmentPlans }),
     ).toHaveAttribute('aria-selected', 'true');
     expect(await page.evaluate(() => history.length)).toBe(historyLength);
-    await page.locator('.mobile-quick-create .quick-create-trigger').click();
-    await page
-      .locator('.quick-create-mobile-item[href="/story/memories/new"]')
-      .click();
-    await expect(page).toHaveURL(/\/story\/memories\/new$/);
+    const addPlan = page.getByRole('link', { name: m5s3.overview.addPlan });
+    await addPlan.click();
+    await expect(page).toHaveURL(/\/plan\/plans\/new$/);
     await page.goBack();
     await expect(page).toHaveURL(/\/plan$/);
+    await expect(addPlan).toBeVisible();
   });
 
   test('native horizontal content scrolling and vertical document scrolling keep gesture ownership', async ({

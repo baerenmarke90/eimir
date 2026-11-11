@@ -253,7 +253,7 @@ describe('PlanningCreatePage', () => {
     });
     fireEvent.click(
       screen.getByRole('button', {
-        name: i18n.t('memoryProduct.planning.add'),
+        name: i18n.t('m5s3.plan.linkWish'),
       }),
     );
     fireEvent.click(await screen.findByRole('radio', { name: wish.title }));

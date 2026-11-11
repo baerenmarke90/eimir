@@ -537,7 +537,7 @@
         "web/src/components/SettingsPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/MemoryCreatePage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/ProfilePage.tsx",
         "web/src/components/PrivatePartnerNotesPage.tsx",
         "web/src/components/AddAction.tsx",
         "web/src/components/MomentCreateMenu.tsx"

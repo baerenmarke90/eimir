@@ -55,6 +55,43 @@ icons, author presentation and component tokens follow the repository.
 The reference guides placement. Runtime evidence and the Product Owner's
 requested changes determine acceptance.
 
+## Composer and reader follow-up
+
+The Product Owner extended #1740 on the same PR after reviewing the Diary
+composer and photo chooser on Android. Main remains
+`3f15be74bc3df6f7f376bd96a4912530cbdb7469`; the reviewed PR baseline is
+`e45d0aac02f7a7b8352e3a3ba2e5f0d457b96748`.
+
+- The separate Other photo source entry shows external providers. The toolbar
+  photo entry and gallery Add control offer both the device and configured
+  external sources, with the existing consent, draft admission and Back path.
+- The shared title and prose focus treatment is thin, rounded and legible in
+  both themes and forced colors. Borderless writing remains calm at rest.
+- Plan creation and its wish-selection sheet use the wish-specific label and
+  existing Wish-only query and save flow. Diary retains its two valid targets.
+- Restore direct photo thumbnail sorting in composers. Hold then drag on touch;
+  pointer and keyboard sorting use the existing library and stable attachment
+  identities. Preserve selected cover, thumbnail tap/scroll, accessibility,
+  cancelled drags, file drop and upload ownership.
+- Opened Diary, HeartMoment, Plan and other reading galleries use a taller
+  shared frame and fit the entire original photo. Existing thumbnails and
+  sensitive covers retain their composition. Check portrait and landscape,
+  small height, Light/Dark, reduced motion, enlarged text and fullscreen return.
+- Today shows the first three eligible activities, preserving the full Activities
+  destination and order.
+
+Reuse the shared source sheet, text controls, dnd-kit sensors and gallery.
+CSS fits the existing authorized image without adding a transform service.
+Provider access, commercial admission, upload limits and retention keep their
+existing contracts. No business/freemium impact.
+
+![Generated Composer and reader composition](reference-composer-followup.png)
+
+The built-in Imagegen prompt shows the external-only source sheet, a softly
+rounded focused text field, and a taller photo frame with the whole portrait
+visible. Its media and people are synthetic. The actual eimir. shell, consent
+copy, colors and product controls follow the existing app.
+
 ## Runtime evidence
 
 These Playwright captures use synthetic fixture accounts, content and media.

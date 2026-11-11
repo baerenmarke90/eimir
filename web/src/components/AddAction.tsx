@@ -8,6 +8,7 @@ type AddActionLabel = {
   icon?: EimirIconName;
   pendingLabel?: string;
   pending?: boolean;
+  floating?: boolean;
 };
 
 /** Shared content also supports existing task-origin links and file labels. */
@@ -16,10 +17,25 @@ export function AddActionContent({
   icon = 'hinzufuegen',
   pendingLabel,
   pending = false,
+  floating = false,
 }: AddActionLabel) {
+  const useFloatingPlus = floating && icon !== 'hinzufuegen';
   return (
     <>
-      <EimirIcon name={icon} className="button-icon" />
+      <EimirIcon
+        name={icon}
+        className={
+          useFloatingPlus
+            ? 'button-icon add-action-heading-icon'
+            : 'button-icon'
+        }
+      />
+      {useFloatingPlus ? (
+        <EimirIcon
+          name="hinzufuegen"
+          className="button-icon add-action-floating-icon"
+        />
+      ) : null}
       <span
         className="add-action-label"
         data-idle-label={pendingLabel ? label : undefined}
@@ -41,8 +57,7 @@ export function AddActionButton({
   className = '',
   floating = false,
   ...props
-}: Omit<ComponentProps<'button'>, 'children'> &
-  AddActionLabel & { floating?: boolean }) {
+}: Omit<ComponentProps<'button'>, 'children'> & AddActionLabel) {
   const visibleLabel = pending && pendingLabel ? pendingLabel : label;
   return (
     <button
@@ -60,6 +75,7 @@ export function AddActionButton({
         icon={icon}
         pendingLabel={pendingLabel}
         pending={pending}
+        floating={floating}
       />
     </button>
   );
@@ -73,7 +89,7 @@ export function AddActionLink({
   floating = false,
   ...props
 }: Omit<ComponentProps<typeof Link>, 'children'> &
-  Pick<AddActionLabel, 'label' | 'icon'> & { floating?: boolean }) {
+  Pick<AddActionLabel, 'label' | 'icon' | 'floating'>) {
   return (
     <Link
       {...props}
@@ -82,7 +98,7 @@ export function AddActionLink({
       aria-label={label}
       title={label}
     >
-      <AddActionContent label={label} icon={icon} />
+      <AddActionContent label={label} icon={icon} floating={floating} />
     </Link>
   );
 }

@@ -170,7 +170,9 @@ export function CollectionsOverviewPage({
         openingCreatedRef.current = true;
         createSheetRef.current?.closeForNavigation(() =>
           navigate(collectionDetailPath(created.id), {
-            state: location.state,
+            state: initialCreate
+              ? location.state
+              : { taskOriginKey: captureOrigin() },
             replace: initialCreate,
           }),
         );
@@ -185,6 +187,7 @@ export function CollectionsOverviewPage({
         title={t('m5s3.collection.overviewHeading')}
         action={
           <AddActionButton
+            floating
             label={t('m5s3.collection.create')}
             icon="listen"
             ref={createActionRef}

@@ -594,11 +594,13 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     page.getByText(people.visibility.PRIVATE, { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByText(LONG_DATE_LABEL)).toHaveCount(0);
-  await expectLabeledAddAction(
-    page.getByRole('link', { name: people.addPersonAction, exact: true }),
-  );
-  await expectOverviewActionPlacement(
-    page.getByRole('link', { name: people.addPersonAction, exact: true }),
+  const addPerson = page.getByRole('link', {
+    name: people.addPersonAction,
+    exact: true,
+  });
+  await expectFloatingAddAction(
+    addPerson,
+    page.locator('.mobile-bottom-shell'),
   );
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
@@ -611,11 +613,13 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     .click();
   const gallery = page.getByRole('dialog');
   await expect(gallery).toBeVisible();
+  await expect(addPerson).toBeHidden();
   await expect(gallery.locator('img')).toBeVisible();
   await expectNoWcagViolations(page);
   await capture(page, info, 'people-photo-390-light');
   await page.keyboard.press('Escape');
   await expect(gallery).toHaveCount(0);
+  await expect(addPerson).toBeVisible();
   await openPerson(page);
   await capture(page, info, 'person-profile-390-light');
   await openEditor(page);
@@ -752,21 +756,30 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   expect(unknown).toEqual([]);
 });
 
-test('Browser Back protects dirty person drafts and clean exits return without a loop', async ({
+test('People creation and dirty edit return to the originating control', async ({
   page,
 }, info) => {
   test.setTimeout(120_000);
   const unknown = await installPeopleApiMocks(page);
   await page.setViewportSize({ width: 360, height: 800 });
   await signInAndOpenPeople(page);
-  await page
-    .getByRole('link', { name: people.addPersonAction, exact: true })
-    .click();
+  const addPerson = page.getByRole('link', {
+    name: people.addPersonAction,
+    exact: true,
+  });
+  await expectFloatingAddAction(
+    addPerson,
+    page.locator('.mobile-bottom-shell'),
+  );
+  await addPerson.press('Enter');
   await expect(
     page.getByLabel(people.nameLabel, { exact: true }),
   ).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/more\/people$/);
+  await addPerson.click();
+  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await expect(addPerson).toBeFocused();
   await openPerson(page);
   await openEditor(page);
   await page
@@ -796,6 +809,19 @@ test('Browser Back protects dirty person drafts and clean exits return without a
   await expect(
     page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }),
   ).toBeFocused();
+  await addPerson.click();
+  await page.getByLabel(people.nameLabel, { exact: true }).fill('Nora Winter');
+  await page
+    .getByRole('button', { name: people.saveChanges, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/more\/people\/new-person$/);
+  await expect(
+    page.getByRole('heading', { name: 'Nora Winter', exact: true }),
+  ).toBeVisible();
+  await page.locator('.task-back-control[data-page-back]').click();
+  await expect(page).toHaveURL(/more\/people$/);
+  await expect(page.getByRole('link', { name: /Nora Winter/ })).toBeVisible();
+  await expect(addPerson).toBeFocused();
   expect(unknown).toEqual([]);
 });
 
@@ -808,6 +834,13 @@ test('People and occasions reflow at 1280 with 400 percent zoom', async ({
   await page.setViewportSize({ width: 1280, height: 1024 });
   const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
+  const addPerson = page.getByRole('link', {
+    name: people.addPersonAction,
+    exact: true,
+  });
+  await expectLabeledAddAction(addPerson);
+  await expectOverviewActionPlacement(addPerson);
+  await capture(page, info, 'people-overview-1280-dark');
   await page.locator('html').evaluate((el) => {
     el.style.zoom = '4';
   });
@@ -888,6 +921,11 @@ test('focused completion stays reachable at small height and Expanded preserves 
   await page.setViewportSize({ width: 430, height: 420 });
   const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
+  await expectFloatingAddAction(
+    page.getByRole('link', { name: people.addPersonAction, exact: true }),
+    page.locator('.mobile-bottom-shell'),
+  );
+  await capture(page, info, 'people-overview-430-dark');
   await openPerson(page);
   await openEditor(page);
   const save = page.getByRole('button', {

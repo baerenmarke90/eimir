@@ -283,7 +283,12 @@ export function RelatedPeoplePage({
   const listKey = ['related-people', spaceId];
   const origin = (
     location.state as {
-      peopleOrigin?: { to?: string; scrollY?: number; selectedId?: string };
+      peopleOrigin?: {
+        to?: string;
+        scrollY?: number;
+        selectedId?: string;
+        focusCreate?: boolean;
+      };
     } | null
   )?.peopleOrigin;
   const returnTo =
@@ -421,14 +426,14 @@ export function RelatedPeoplePage({
           top: Math.max(0, origin.scrollY),
           behavior: 'instant',
         });
+      const selectedId =
+        pendingFocus?.kind === 'item' ? pendingFocus.id : origin?.selectedId;
       const selector =
-        pendingFocus?.kind === 'create'
+        pendingFocus?.kind === 'create' || (!selectedId && origin?.focusCreate)
           ? '#people-add-person'
-          : pendingFocus?.kind === 'item'
-            ? `[data-person-link="${CSS.escape(pendingFocus.id)}"]`
-            : origin?.selectedId
-              ? `[data-person-link="${CSS.escape(origin.selectedId)}"]`
-              : null;
+          : selectedId
+            ? `[data-person-link="${CSS.escape(selectedId)}"]`
+            : null;
       if (selector)
         document
           .querySelector<HTMLElement>(selector)
@@ -442,6 +447,7 @@ export function RelatedPeoplePage({
     peopleQuery.isFetching,
     origin?.scrollY,
     origin?.selectedId,
+    origin?.focusCreate,
     pendingFocus,
   ]);
 
@@ -594,10 +600,30 @@ export function RelatedPeoplePage({
         title={t('people.title')}
         action={
           <AddActionLink
+            floating
             label={t('people.addPersonAction')}
             id="people-add-person"
             to="/more/people/new"
-            state={originState}
+            onClick={(event) => {
+              if (
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              )
+                return;
+              event.preventDefault();
+              void navigate('/more/people/new', {
+                state: {
+                  peopleOrigin: {
+                    to: '/more/people',
+                    scrollY: window.scrollY,
+                    focusCreate: true,
+                  },
+                },
+              });
+            }}
           />
         }
       />

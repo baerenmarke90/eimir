@@ -101,6 +101,7 @@ export function ChaptersOverviewPage({
         description={t('m5s3.chapter.intro')}
         action={
           <AddActionLink
+            floating
             label={t('m5s3.chapter.create')}
             ref={createActionRef}
             to={CHAPTER_CREATE_ROUTE}

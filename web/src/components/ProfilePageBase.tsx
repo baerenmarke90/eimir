@@ -659,6 +659,7 @@ export function PreferenceManager({
   intro,
   emptyTitle,
   emptyBody,
+  floatingAdd = false,
 }: {
   profilesApi: ProfilesApi;
   spaceId: string;
@@ -669,6 +670,7 @@ export function PreferenceManager({
   intro: string;
   emptyTitle: string;
   emptyBody: string;
+  floatingAdd?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -771,7 +773,9 @@ export function PreferenceManager({
           {intro ? <p className="profile-section-intro">{intro}</p> : null}
         </div>
         <AddActionButton
+          floating={floatingAdd}
           label={triggerButtonLabel}
+          aria-haspopup="dialog"
           onClick={(e) => {
             triggerElementRef.current = e.currentTarget;
             setEditing(null);
@@ -1006,6 +1010,7 @@ export function PrivatePartnerNotesSection({
     <div className="private-partner-notes-wrapper">
       {showPrivacyNotice ? <PrivatePartnerNotesPrivacyNotice /> : null}
       <PreferenceManager
+        floatingAdd
         profilesApi={profilesApi}
         spaceId={spaceId}
         accountId={partnerId}

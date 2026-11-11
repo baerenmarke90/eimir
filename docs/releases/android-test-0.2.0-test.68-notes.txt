@@ -1,0 +1,8 @@
+eimir. Android 0.2.0-test.68
+
+- Use the floating add button to create an item from Personal Notes, Gift Ideas, Private Lists or Partner Notes.
+- Browse shared or personal photos, videos and voice notes from More → Media. Photo reactions stay visible on the image, and the gallery position marker follows your swipe.
+- Find eight new love sayings in the Daily Quote rotation.
+- Watch monthly and yearly recaps as full-screen scenes with photos, memories and counted highlights.
+
+Install over test.67 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 68.

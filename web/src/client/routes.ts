@@ -22,6 +22,7 @@ export type AppRouteIcon =
   | 'people'
   | 'places'
   | 'collections'
+  | 'media'
   | 'chapter'
   | 'birthday'
   | 'private'

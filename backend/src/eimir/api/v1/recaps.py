@@ -17,6 +17,7 @@ from eimir.api.schema import ApiModel
 from eimir.core import clock
 from eimir.recaps import invalidation as _invalidation  # noqa: F401
 from eimir.recaps import service
+from eimir.recaps.composition import MANUAL_SELECTION_LIMIT
 from eimir.recaps.models import RecapEdition, RecapKind, RecapSourceKind
 
 
@@ -65,6 +66,18 @@ class RecapDraftView(ApiModel):
     version: int
 
 
+class RecapFactsView(ApiModel):
+    """Counted shared entries of the edition period."""
+
+    memories: int
+    heart_moments: int
+    milestones: int
+    chapters: int
+    plans: int
+    active_days: int
+    busiest_month: int | None
+
+
 class RecapView(RecapPeriod):
     id: UUID
     variant: int
@@ -80,6 +93,7 @@ class RecapView(RecapPeriod):
     headline: str | None
     introduction: str | None
     sources: list[RecapSourceView]
+    facts: RecapFactsView | None = None
     reflections: list[RecapReflectionView]
     own_draft: RecapDraftView | None
 
@@ -93,7 +107,7 @@ class RecapOverview(ApiModel):
 
 class RecapSelectionUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
-    source_keys: list[str] = Field(max_length=12)
+    source_keys: list[str] = Field(max_length=MANUAL_SELECTION_LIMIT)
 
 
 class RecapSelectionView(ApiModel):

@@ -1,5 +1,7 @@
 # Automatic relationship recaps with lean local inference
 
+> [#1744](references/1744/README.md) supersedes this contract's selection volume, reader presentation and the rule that a source return stays paused. Runtime, privacy, entitlement and model rules below remain in force.
+
 Owner: explicit PO approval in the 2026-10-30 workspace conversation, following #497. The approved automatic mobile prototype is the composition target. This decision supersedes the previous read-only/no-snapshot Passport boundary only for the additive recaps described here. Existing source history, relationship context, chapter organization and essential export remain Free.
 
 ## Baseline and visual preflight

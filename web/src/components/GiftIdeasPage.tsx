@@ -246,6 +246,7 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
         description={t('privateArea.gifts.intro')}
         action={
           <AddActionLink
+            floating
             label={t('privateArea.gifts.add')}
             to={`${PRIVATE_GIFT_IDEAS_PATH}/new`}
           />

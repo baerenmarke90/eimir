@@ -945,15 +945,29 @@ for (const state of [
   test(`Memory context stays above media and preserves reactions at ${state.width}px ${state.theme}`, async ({
     page,
   }, info) => {
+    const reducedMotion = state.width === 390 ? 'no-preference' : 'reduce';
     await page.setViewportSize({ width: state.width, height: 900 });
     await page.emulateMedia({
       colorScheme: state.theme,
-      reducedMotion: 'reduce',
+      reducedMotion,
     });
-    await page.addInitScript(
-      (theme) => localStorage.setItem('eimir.theme', theme),
-      state.theme,
-    );
+    await page.addInitScript((theme) => {
+      localStorage.setItem('eimir.theme', theme);
+      document.addEventListener('animationstart', (event) => {
+        if (
+          event.animationName === 'eimir-affectionate-pulse' &&
+          event.target instanceof Element &&
+          event.target.closest('.memory-photo-reactions')
+        ) {
+          const data = document.documentElement.dataset;
+          data.reactionPulses = String(Number(data.reactionPulses ?? 0) + 1);
+        }
+      });
+    }, state.theme);
+    const reactionPulses = () =>
+      page.evaluate(() =>
+        Number(document.documentElement.dataset.reactionPulses ?? 0),
+      );
     const { unexpectedRequests, writes } =
       await installApprovedMemoryDetail(page);
     await page.goto('/');
@@ -987,9 +1001,8 @@ for (const state of [
     ).toHaveCount(0);
     await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
     const placeBox = await place.boundingBox();
-    const mediaBox = await page
-      .locator('.media-gallery-carousel-viewport')
-      .boundingBox();
+    const frame = page.locator('.media-gallery-carousel-viewport');
+    const mediaBox = await frame.boundingBox();
     if (!placeBox || !mediaBox)
       throw new Error('Place and media bounds must be measurable');
     expect(placeBox.y + placeBox.height).toBeLessThanOrEqual(mediaBox.y);
@@ -1020,26 +1033,115 @@ for (const state of [
       path: info.outputPath('preset-picker.png'),
       fullPage: true,
     });
+    const beforeReaction = await geometry(page);
     await picker.getByRole('button', { name: 'Liebe', exact: true }).click();
+    const summary = frame.locator('.memory-photo-reactions');
     await expect(
-      page.getByRole('button', { name: /Liebe: 1 Reaktion.*entfernen/ }),
+      summary.getByRole('button', {
+        name: /Liebe: 1 Reaktion.*entfernen/,
+      }),
     ).toBeVisible();
+    await expect(picker).toHaveCount(0);
+    expectStableGeometry(beforeReaction, await geometry(page));
+    if (reducedMotion === 'reduce') {
+      expect(
+        await summary
+          .locator('.eimir-motion-pulse')
+          .evaluate((element) => getComputedStyle(element).animationName),
+      ).toBe('none');
+    } else {
+      await expect.poll(reactionPulses).toBe(1);
+    }
     expect(writes).toEqual([{ reaction: 'LOVE' }]);
-    await page.reload();
-    const chip = page.getByRole('button', {
-      name: /Liebe: 1 Reaktion.*entfernen/,
+
+    const openReaction = page.getByRole('button', {
+      name: photoReactions.open,
     });
+    const savedReaction = reducedMotion === 'no-preference' ? 'LAUGH' : 'LOVE';
+    const chip = summary.getByRole('button', {
+      name: new RegExp(
+        `${photoReactions.names[savedReaction]}: 1 Reaktion.*entfernen`,
+      ),
+    });
+    if (savedReaction === 'LAUGH') {
+      await openReaction.click();
+      const beforeChange = await geometry(page);
+      await picker
+        .getByRole('button', { name: photoReactions.names.LAUGH, exact: true })
+        .click();
+      await expect(chip).toBeVisible();
+      await expect(picker).toHaveCount(0);
+      await expect.poll(reactionPulses).toBe(2);
+      expectStableGeometry(beforeChange, await geometry(page));
+    }
+
+    await page.reload();
     await expect(chip).toBeVisible();
+    const chipStyle = await chip.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        boxShadow: style.boxShadow,
+        borderTopWidth: style.borderTopWidth,
+        outlineStyle: style.outlineStyle,
+      };
+    });
+    expect(chipStyle).toEqual({
+      boxShadow: 'none',
+      borderTopWidth: '0px',
+      outlineStyle: 'none',
+    });
+    await expect(chip.locator('.eimir-motion-pulse')).toHaveCount(0);
     await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
     await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
-    await chip.click();
-    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
-    expect(writes).toEqual([{ reaction: 'LOVE' }, { reaction: null }]);
     if (state.width === 320) {
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '200%';
       });
-      await page.getByRole('button', { name: photoReactions.open }).click();
+    }
+    const [savedFrame, chipBounds, reactionButton] = await Promise.all([
+      frame.boundingBox(),
+      chip.boundingBox(),
+      openReaction.boundingBox(),
+    ]);
+    if (!savedFrame || !chipBounds || !reactionButton) {
+      throw new Error('Saved reaction and frame must be measurable');
+    }
+    expect(chipBounds.x - savedFrame.x).toBeCloseTo(
+      savedFrame.x + savedFrame.width - reactionButton.x - reactionButton.width,
+      0,
+    );
+    expect(chipBounds.y + chipBounds.height).toBeCloseTo(
+      reactionButton.y + reactionButton.height,
+      0,
+    );
+    expect(chipBounds.y + chipBounds.height).toBeLessThan(
+      savedFrame.y + savedFrame.height,
+    );
+    expect(chipBounds.width).toBeGreaterThanOrEqual(44);
+    expect(chipBounds.height).toBeGreaterThanOrEqual(44);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.memory-media-context')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await chip.evaluate((element) =>
+      element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+    );
+    await nextFrame(page);
+    await page.screenshot({ path: info.outputPath('reaction-overlay.png') });
+    const beforeRemoval = await geometry(page);
+    await chip.click();
+    await expect(summary).toHaveCount(0);
+    expectStableGeometry(beforeRemoval, await geometry(page));
+    expect(writes).toEqual([
+      { reaction: 'LOVE' },
+      ...(savedReaction === 'LAUGH' ? [{ reaction: savedReaction }] : []),
+      { reaction: null },
+    ]);
+    if (state.width === 320) {
+      await openReaction.click();
       const enlarged = page.getByRole('group', { name: 'Reaktion auswählen' });
       await expect(enlarged.getByRole('button')).toHaveCount(6);
       for (const choice of await enlarged.getByRole('button').all()) {
@@ -1054,13 +1156,6 @@ for (const state of [
       ).toBe(true);
       await page.keyboard.press('Escape');
     }
-    expect(
-      (
-        await new AxeBuilder({ page })
-          .include('.memory-media-context')
-          .analyze()
-      ).violations,
-    ).toEqual([]);
     expect(unexpectedRequests).toEqual([]);
   });
 }
@@ -1395,6 +1490,7 @@ for (const width of [320, 390] as const) {
     try {
       await page.emulateMedia({
         colorScheme: width === 390 ? 'dark' : 'light',
+        reducedMotion: 'no-preference',
       });
       const { unexpectedRequests } = await installApiMocks(page);
       await page.goto('/today');
@@ -1420,19 +1516,36 @@ for (const width of [320, 390] as const) {
       await expectCarouselSettled(page, 0);
 
       const touchSteps = [
-        { direction: 'next', expected: 2 },
-        { direction: 'previous', expected: 1 },
-        { direction: 'previous', expected: 3 },
-        { direction: 'next', expected: 1 },
+        { direction: 'next', from: 1, expected: 2 },
+        { direction: 'previous', from: 2, expected: 1 },
+        { direction: 'previous', from: 1, expected: 3 },
+        { direction: 'next', from: 3, expected: 1 },
       ] as const;
 
       for (const step of touchSteps) {
         const before = await geometry(page);
         const drag = await swipeCarousel(page, step.direction);
-        expect(
-          Math.abs(drag.midScrollLeft - drag.startScrollLeft),
-        ).toBeGreaterThan(drag.viewportWidth * 0.2);
+        const progress =
+          Math.abs(drag.midScrollLeft - drag.startScrollLeft) /
+          drag.viewportWidth;
+        expect(progress).toBeGreaterThan(0.2);
         expect(drag.visibleSlides).toBeGreaterThanOrEqual(2);
+        if (!drag.position) throw new Error('Position markers did not render');
+        const { dots, markers } = drag.position;
+        const from = dots[step.from - 1];
+        const to = dots[step.expected - 1];
+        if (from === undefined || to === undefined)
+          throw new Error('Position dots did not render');
+        const markerCenter = markers.reduce(
+          (center, marker) => center + marker.center * marker.opacity,
+          0,
+        );
+        expect(
+          Math.abs(markerCenter - (from + (to - from) * progress)),
+        ).toBeLessThanOrEqual(2);
+        expect(markers.filter(({ opacity }) => opacity > 0)).toHaveLength(
+          Math.abs(step.expected - step.from) === 1 ? 1 : 2,
+        );
         await expect(
           page.locator('.media-gallery-carousel-counter'),
         ).toHaveText(inlineCounterLabel(step.expected, 3));

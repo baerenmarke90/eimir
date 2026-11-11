@@ -2,6 +2,10 @@ import composer from '../../src/i18n/locales/composer';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -898,6 +902,15 @@ for (const view of [
       name: profiles.addNoteShort,
       exact: true,
     });
+    if (view.width === 390) {
+      await expect(page.locator('[data-floating-create]')).toHaveCount(1);
+      await expectFloatingAddAction(
+        trigger,
+        page.locator('.mobile-bottom-shell'),
+      );
+    } else {
+      await expectLabeledAddAction(trigger);
+    }
     await trigger.click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
@@ -910,6 +923,7 @@ for (const view of [
       descriptionId,
     );
     await expect(dialog.getByLabel(profiles.categoryLabel)).toBeFocused();
+    if (view.width === 390) await expect(trigger).toBeHidden();
     await expectNoWcagViolations(page);
     await page.screenshot({
       path: info.outputPath(
@@ -924,6 +938,7 @@ for (const view of [
       .getByRole('button', { name: profiles.create, exact: true })
       .click();
     await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
     const saved = page.getByRole('button', { name: /A birthday idea/ });
     await expect(saved).toContainText('A quiet cabin by the lake');
     expect(writes[0]).toMatchObject({
@@ -1034,9 +1049,12 @@ for (const view of [
       page.getByText('Book the cabin for autumn', { exact: true }),
     ).toHaveCount(0);
     await expect(page.locator('.private-partner-notes-panel')).toHaveCount(0);
-    await page
-      .getByRole('button', { name: profiles.addPreferenceShort, exact: true })
-      .click();
+    const preferenceTrigger = page.getByRole('button', {
+      name: profiles.addPreferenceShort,
+      exact: true,
+    });
+    await expectLabeledAddAction(preferenceTrigger);
+    await preferenceTrigger.click();
     // Shared SELF_PROFILE preferences must never inherit the owner-only promise.
     await expect(dialog).not.toHaveAttribute('aria-describedby');
     await expect(dialog.getByRole('note')).toHaveCount(0);

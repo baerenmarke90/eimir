@@ -17,7 +17,7 @@ const de = {
   more: {
     yearsTitle: 'Jahre',
     destinations: {
-      photos: 'Fotos',
+      media: 'Medien',
       chapters: 'Kapitel',
       years: 'Jahre',
       recaps: 'Rückblicke',

@@ -10,6 +10,10 @@ from uuid import UUID
 
 from eimir.recaps.models import RecapKind, RecapSourceKind
 
+# Bounded editorial volume: enough material for a story, never the whole archive.
+HIGHLIGHT_LIMITS = {RecapKind.MONTH: 8, RecapKind.YEAR: 24}
+MANUAL_SELECTION_LIMIT = 24
+
 
 @dataclass(frozen=True)
 class Candidate:
@@ -43,7 +47,7 @@ def select_candidates(
     candidates: list[Candidate], kind: RecapKind, seed: str, variant: int
 ) -> list[Candidate]:
     """Time/kind diversity wins over event volume; variants are stable per period."""
-    limit = 3 if kind == RecapKind.MONTH else 8
+    limit = HIGHLIGHT_LIMITS[kind]
     selected: list[Candidate] = []
     remaining = {item.key: item for item in candidates}
     if variant and len(remaining) > limit:

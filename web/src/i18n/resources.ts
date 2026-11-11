@@ -42,7 +42,7 @@ import relationshipComponents from './locales/relationshipComponents';
 import relationshipReflections from './locales/relationshipReflections';
 import sensitiveMedia from './locales/sensitiveMedia';
 import serverAdmin from './locales/serverAdmin';
-import sharedPhotos from './locales/sharedPhotos';
+import mediaOverview from './locales/mediaOverview';
 import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
@@ -103,7 +103,7 @@ export const germanResources = {
   ...storyProducts,
   contextTags,
   composer,
-  sharedPhotos,
+  mediaOverview,
   photoSources,
   photoPlaces,
   photoReactions,

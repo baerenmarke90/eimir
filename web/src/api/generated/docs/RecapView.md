@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`facts` | [RecapFactsView](RecapFactsView.md)
 `generatedAt` | Date
 `headline` | string
 `id` | string
@@ -33,6 +34,7 @@ import type { RecapView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "facts": null,
   "generatedAt": null,
   "headline": null,
   "id": null,

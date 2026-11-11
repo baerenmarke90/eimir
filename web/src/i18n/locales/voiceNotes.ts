@@ -1,5 +1,7 @@
 export default {
   title: 'Sprachnachricht',
+  show: 'Sprachnachricht anzeigen',
+  hide: 'Sprachnachricht ausblenden',
   record: 'Aufnehmen',
   choose: 'Audiodatei wählen',
   recordingTitle: 'Sprachnachricht aufnehmen',

@@ -1,13 +1,9 @@
-.moment-create {
-  margin-block-end: var(--space-4);
-}
-
-.moment-create-choices {
+.contextual-create-choices {
   display: grid;
   gap: var(--space-2);
 }
 
-.moment-create-choice {
+.contextual-create-choice {
   display: flex;
   min-height: var(--touch-target-web);
   align-items: center;
@@ -21,21 +17,18 @@
   overflow-wrap: anywhere;
 }
 
-.moment-create-choice > .eimir-icon {
+.contextual-create-choice > .eimir-icon {
   width: var(--space-6);
   height: var(--space-6);
   flex: 0 0 var(--space-6);
-}
-
-.moment-create-choice > .eimir-icon {
   color: var(--color-shared);
 }
 
-.moment-create-choice:focus-visible {
+.contextual-create-choice:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
-.moment-create-choice:hover {
+.contextual-create-choice:hover {
   background: var(--color-surface-subtle);
 }

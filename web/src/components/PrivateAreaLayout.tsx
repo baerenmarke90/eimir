@@ -2,6 +2,7 @@ import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
+  PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
@@ -16,9 +17,11 @@ import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 export function PrivateAreaFrame({
   children,
+  overviewAction,
   showNavigation = true,
 }: {
   children: ReactNode;
+  overviewAction?: ReactNode;
   showNavigation?: boolean;
 }) {
   const { t } = useTranslation();
@@ -41,6 +44,7 @@ export function PrivateAreaFrame({
             )}
           </p>
         </div>
+        {overviewAction}
       </section>
       {showNavigation ? (
         <nav
@@ -79,7 +83,13 @@ export function usePrivateAreaTaskContext(fallbackPath: string) {
     [fallbackPath, requestReturn, taskOriginKey],
   );
 
-  return { navigationState, origin, returnToOrigin, taskOriginKey };
+  return {
+    navigationState,
+    origin,
+    fromOverview: origin?.to === PRIVATE_AREA_ROOT_PATH,
+    returnToOrigin,
+    taskOriginKey,
+  };
 }
 
 export function usePrivateTaskEditorLifecycle({
@@ -117,15 +127,17 @@ export function PrivateAreaDetailBack({
   fallbackLabel: string;
 }) {
   const { t } = useTranslation();
-  const { origin, returnToOrigin } = usePrivateAreaTaskContext(fallbackPath);
+  const { origin, fromOverview, returnToOrigin } =
+    usePrivateAreaTaskContext(fallbackPath);
   if (!origin) {
     return <TaskBackLink to={fallbackPath}>{fallbackLabel}</TaskBackLink>;
   }
+  const backLabel = fromOverview
+    ? 'privateArea.backToHub'
+    : 'privateArea.backToOrigin';
   return (
     <TaskBackButton type="button" onClick={returnToOrigin}>
-      {origin.to === '/search'
-        ? t('privateArea.backToSearch')
-        : t('privateArea.backToOrigin')}
+      {origin.to === '/search' ? t('privateArea.backToSearch') : t(backLabel)}
     </TaskBackButton>
   );
 }

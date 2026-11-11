@@ -4,6 +4,8 @@ import type { EimirIconName } from '../../src/components/EimirIcon';
 export async function expectFloatingAddAction(action: Locator, dock: Locator) {
   await expect(action).toBeVisible();
   await expect(action).toHaveCSS('position', 'fixed');
+  await expect(action).toHaveCSS('inline-size', '52px');
+  await expect(action).toHaveCSS('block-size', '52px');
   await expect(action.locator('.add-action-label')).toBeHidden();
   await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
   const [button, navigation] = await Promise.all([
@@ -12,7 +14,7 @@ export async function expectFloatingAddAction(action: Locator, dock: Locator) {
   ]);
   if (!button || !navigation)
     throw new Error('The add action and bottom navigation must be visible.');
-  expect(button.width).toBeGreaterThanOrEqual(48);
+  expect(button.width).toBeGreaterThanOrEqual(52);
   expect(button.height).toBe(button.width);
   expect(navigation.y - (button.y + button.height)).toBeGreaterThanOrEqual(8);
   expect(button.x + button.width).toBeLessThan(navigation.x + navigation.width);

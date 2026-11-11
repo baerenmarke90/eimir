@@ -55,7 +55,7 @@
     );
     --shell-content-bottom-clearance: calc(
       var(--shell-floating-create-bottom) +
-      var(--touch-target-comfortable) +
+      var(--touch-target-floating-create) +
       var(--space-4)
     );
   }

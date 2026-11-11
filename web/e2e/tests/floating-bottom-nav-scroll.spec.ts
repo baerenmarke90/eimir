@@ -1035,7 +1035,8 @@ test('native primary tab switching replaces root history but keeps nested task r
   const moment = page.getByRole('button', { name: de.story.addMoment });
   await moment.click();
   await page
-    .locator('.moment-create-choice[href="/story/memories/new"]')
+    .getByRole('dialog', { name: de.story.addMoment })
+    .locator('a[href="/story/memories/new"]')
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/new$/);
   await expect(page.locator('.mobile-bottom-shell')).toHaveCount(0);

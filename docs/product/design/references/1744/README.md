@@ -62,6 +62,19 @@ No new dependency or provider.
   the per-period "compile" buttons are gone. The library re-reads at a calm
   cadence while such covers remain.
 
+- **Automatic retention (PO, 2026-11-11):** a completed month or year is retained
+  by the server seven days after it ends; the manual "keep edition" step and its
+  confirmation sheet are gone. The grace week lets late entries and a changed
+  selection still count. An automatic proposal that still describes a partial
+  period is recomposed over the whole period first; a selection the couple made
+  is kept as it is. Only the default variant of a period without a retained
+  edition is finalised, and only while the Space holds `relationship.passport`.
+  After retention the selection and generated wording are frozen, while own words
+  can still be drafted, shared and withdrawn. This supersedes the earlier rule
+  that a retained edition accepts no new words. Covers of completed periods read
+  "completed period"; the "kept" mark remains only on earlier manual snapshots of
+  a running period. `POST .../save` stays in the contract for older clients.
+
 ## States, motion and accessibility
 
 Reduced motion keeps the reader paused on open and removes scene, drift and stagger
@@ -86,6 +99,7 @@ the existing lake fixture. Captured from `web/e2e/tests/automatic-recaps.spec.ts
 | Closing | [390](evidence/recaps-immersive-closing-390-light.png) | | |
 | Native container | [cover](evidence/recaps-immersive-native-cover-390-light.png), [photo](evidence/recaps-immersive-native-photo-390-light.png) | | |
 | Library, periods in preparation | [390](evidence/recaps-immersive-library-preparing-390-light.png) | [390](evidence/recaps-immersive-library-preparing-390-dark.png) | |
+| Retained edition, closing scene | [390](evidence/recaps-immersive-retained-closing-390-light.png) | | |
 | Large text | [390](evidence/recaps-immersive-large-text-390.png) | | |
 
 The [360 px reader](evidence/recaps-playback-360-dark-large-reduced.png) shows
@@ -106,3 +120,9 @@ Automatic preparation of earlier periods stays behind `relationship.passport`:
 it stops when the capability lapses and never changes what a retained edition
 shows. It adds no table, column or contract field; `periods` in the overview now
 lists only periods that still have no edition.
+
+Automatic retention changes no tier: the matrix already keeps every created
+edition readable after expiry. It replaces a manual Pro action with a scheduled
+one and lets words be added to retained editions under the existing rules (new
+words need the capability; own existing words stay editable and withdrawable).
+The matrix row records this.

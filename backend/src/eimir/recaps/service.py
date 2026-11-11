@@ -52,6 +52,9 @@ BACKFILL_JOB = "recap.backfill.v1"
 # never monopolizes the worker or the single local inference slot.
 BACKFILL_BATCH = 6
 BACKFILL_DELAY = timedelta(minutes=2)
+# A completed period stays open for late entries and curation for one week (#1744).
+FINALISE_AFTER = timedelta(days=7)
+FINALISE_BATCH = 50
 MODELS: dict[RecapSourceKind, Any] = {
     RecapSourceKind.MEMORY: Memory,
     RecapSourceKind.HEART_MOMENT: HeartMoment,
@@ -459,10 +462,63 @@ def prepare_current(session: Session, context: AuthorizationContext) -> int:
     earlier = unprepared(session, context, today)
     for item in earlier[:BACKFILL_BATCH]:
         request_period(session, context, item["kind"], item["year"], item["month"])
+    finalise_completed(session, context, today)
     remaining = max(len(earlier) - BACKFILL_BATCH, 0)
     if remaining:
         schedule_backfill(session, context)
     return remaining
+
+
+def finalise_completed(session: Session, context: AuthorizationContext, today: date) -> int:
+    """Retain completed periods once their grace week has passed; no manual step.
+
+    Only the default variant of a period without a retained edition is finalised.
+    A stale automatic proposal is first recomposed over the whole period, while a
+    curated selection is kept exactly as the couple left it.
+    """
+    session.execute(select(func.pg_advisory_xact_lock(context.space_id.int & ((1 << 63) - 1))))
+    live = session.scalars(
+        select(RecapEdition)
+        .where(
+            RecapEdition.space_id == context.space_id,
+            RecapEdition.saved_at.is_(None),
+            RecapEdition.variant == 0,
+            RecapEdition.status == "READY",
+            RecapEdition.starts_on <= today - FINALISE_AFTER,
+        )
+        .order_by(RecapEdition.year, RecapEdition.month, RecapEdition.id)
+        .limit(FINALISE_BATCH)
+        .with_for_update()
+    ).all()
+    taken = {
+        (kind, year, month)
+        for kind, year, month in session.execute(
+            select(RecapEdition.kind, RecapEdition.year, RecapEdition.month).where(
+                RecapEdition.space_id == context.space_id,
+                RecapEdition.saved_at.is_not(None),
+                RecapEdition.variant == 0,
+            )
+        )
+    }
+    finalised = 0
+    for value in live:
+        kind = RecapKind(value.kind)
+        _, through, partial = period_bounds(kind, value.year, value.month, today)
+        if (
+            partial
+            or through > today - FINALISE_AFTER
+            or (value.kind, value.year, value.month) in taken
+        ):
+            continue
+        if value.is_partial or value.through_on != through:
+            if not value.customized:
+                request_period(session, context, kind, value.year, value.month)
+                continue
+            # The couple's own selection stands; only the frozen period is completed.
+            value.through_on, value.is_partial = through, False
+        value.saved_at = clock.now()
+        finalised += 1
+    return finalised
 
 
 def schedule_backfill(session: Session, context: AuthorizationContext) -> None:
@@ -800,10 +856,6 @@ def write_reflection(
         )
         .with_for_update()
     )
-    if value.saved_at:
-        raise ConflictError(
-            "Saved reflections may be withdrawn but not rewritten.", ErrorCode.VERSION_CONFLICT
-        )
     if existing is None:
         ensure_capability(session, context.space_id, CAPABILITY)
         if expected_version != 0:

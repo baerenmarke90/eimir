@@ -365,10 +365,6 @@ async function setup(
         );
         month.version++;
       }
-      if (path.endsWith('/save')) {
-        month.savedAt = '2026-10-30T12:00:00Z';
-        month.version++;
-      }
       return route.fulfill({ json: month });
     }
     if (path.endsWith('/entitlements'))
@@ -409,6 +405,14 @@ async function setup(
     },
     writes: () => writes,
     prepares: () => prepares,
+    finalise: () => {
+      Object.assign(month, {
+        savedAt: '2026-11-08T03:00:00Z',
+        isPartial: false,
+        throughOn: '2026-10-31',
+        version: month.version + 1,
+      });
+    },
     finishEarlier: () => {
       earlierReady = true;
     },
@@ -773,7 +777,7 @@ for (const [width, theme] of [
   });
 }
 
-test('selection, private draft, explicit sharing, save and withdrawal keep confirmed state', async ({
+test('selection, private draft, explicit sharing, automatic retention and withdrawal keep confirmed state', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -806,12 +810,16 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
   await expect(page.locator('blockquote')).toContainText(
     fixtureCopy.reflection,
   );
-  await page.getByRole('button', { name: copy.save, exact: true }).click();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: copy.saveConfirm })
-    .click();
+  // Nothing has to be kept by hand: the server retains a completed period.
+  state.finalise();
+  await page.reload();
   await expect(page.getByText(copy.savedHelp)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.edit, exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: copy.ownWords, exact: true }).first(),
+  ).toBeVisible();
   await captureScreenshot(page, info, 'recaps-saved-reflections.png', {
     fullPage: true,
   });
@@ -821,7 +829,7 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
     .getByRole('button', { name: copy.withdraw, exact: true })
     .click();
   await expect(page.locator('blockquote')).toHaveCount(0);
-  expect(state.writes()).toBe(6);
+  expect(state.writes()).toBe(5);
 });
 
 test('Free reads retained editions without preparing or exposing composition', async ({

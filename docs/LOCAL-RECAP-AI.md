@@ -133,14 +133,16 @@ changed periods once. Opening the library also schedules preparation without
 waiting for the next scan. Earlier periods with shared material follow without
 a request: newest first, six per batch, continued every two minutes by one
 `recap.backfill.v1` job per Space until none is left. This bounds worker and
-inference load for couples with a long history. Saved editions are not overwritten. Current periods
+inference load for couples with a long history. The same runs retain a completed
+month or year seven days after it ends. Saved editions are not overwritten. Current periods
 are explicitly partial; annual selection uses the entire calendar interval.
 
 ## Verification and rollback
 
 Check API/worker readiness through Arcane; open More → Relationship passport,
 read monthly and yearly editions, follow a source and return, save a private
-draft, deliberately share words and retain an edition. The model can be stopped
+draft and deliberately share words. A completed period shows as retained once
+its grace week has passed. The model can be stopped
 to verify fallback independently. `ollama ps` should show no retained loaded model
 after generation. Logs contain operation/status metadata rather than prompts.
 

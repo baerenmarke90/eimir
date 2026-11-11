@@ -137,7 +137,9 @@ function Cover({
       <div className="recap-cover-copy">
         <div className="recap-cover-kicker">
           <span>{label}</span>
-          {value.savedAt ? <span>{t('recaps.saved')}</span> : null}
+          {value.savedAt && value.isPartial ? (
+            <span>{t('recaps.saved')}</span>
+          ) : null}
         </div>
         <h2 lang={value.headline ? value.locale : undefined}>
           {value.status === 'EMPTY'
@@ -440,9 +442,7 @@ function RecapReader({
   const location = useLocation();
   const navigate = useNavigate();
   const { requestReturn, captureOrigin, resolveOrigin } = useTaskOrigin();
-  const [task, setTask] = useState<'selection' | 'reflection' | 'save' | null>(
-    null,
-  );
+  const [task, setTask] = useState<'selection' | 'reflection' | null>(null);
   const started = useRef(Date.now());
   const key = ['relationship-recap', props.account.id, props.spaceId, recapId];
   const query = useQuery({
@@ -993,7 +993,7 @@ function RecapReader({
                         <p>{value.ownDraft.text}</p>
                       </div>
                     ) : null}
-                    {!value.savedAt && (capability.data || value.ownDraft) ? (
+                    {capability.data || value.ownDraft ? (
                       <button
                         type="button"
                         onClick={() => setTask('reflection')}
@@ -1016,14 +1016,6 @@ function RecapReader({
                       <p className="recap-period-note">
                         {t('recaps.savedHelp')}
                       </p>
-                    ) : capability.data ? (
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => setTask('save')}
-                      >
-                        {t('recaps.save')}
-                      </button>
                     ) : null}
                   </div>
                 )}
@@ -1063,15 +1055,17 @@ function RecapReader({
                   {t('recaps.gestureHint')}
                 </p>
               ) : null}
-              {!value.savedAt && capability.data ? (
+              {capability.data ? (
                 <div className="recap-reader-tools">
-                  <button
-                    type="button"
-                    className="recap-text-button"
-                    onClick={() => setTask('selection')}
-                  >
-                    {t('recaps.edit')}
-                  </button>
+                  {value.savedAt ? null : (
+                    <button
+                      type="button"
+                      className="recap-text-button"
+                      onClick={() => setTask('selection')}
+                    >
+                      {t('recaps.edit')}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="recap-text-button"

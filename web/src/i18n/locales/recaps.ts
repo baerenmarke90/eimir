@@ -111,14 +111,8 @@ export default {
   withdrawn: 'Deine geteilten Worte wurden zurückgezogen.',
   draftSaved: 'Dein privater Entwurf ist gespeichert.',
   shared: 'Deine Worte sind jetzt gemeinsam sichtbar.',
-  save: 'Ausgabe aufbewahren',
-  saveTitle: 'Diesen Rückblick aufbewahren?',
-  saveBody:
-    'Die Auswahl und eure geteilten Worte bleiben in dieser Ausgabe festgehalten. Private Entwürfe bleiben privat. Gelöschte oder privat gestellte Originale werden auch hier ausgeblendet. Eigene geteilte Worte könnt ihr weiterhin zurückziehen.',
-  saveConfirm: 'Jetzt aufbewahren',
-  saveSuccess: 'Diese Ausgabe ist aufbewahrt.',
   savedHelp:
-    'Diese Ausgabe bleibt erhalten. Die Sichtbarkeit ihrer Originale gilt weiterhin.',
+    'Dieser Rückblick ist abgeschlossen und bleibt euch erhalten. Eigene Worte könnt ihr weiterhin ergänzen. Die Sichtbarkeit seiner Originale gilt weiterhin.',
   cancel: 'Abbrechen',
   discardTitle: 'Änderungen verwerfen?',
   discardBody: 'Dein noch nicht gespeicherter Entwurf geht dabei verloren.',

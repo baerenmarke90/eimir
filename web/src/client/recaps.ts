@@ -98,3 +98,75 @@ export function monthlyRecapInvitation(
         (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
     )[0];
 }
+
+/** Mirrors the server's bounded manual selection. */
+export const RECAP_SELECTION_LIMIT = 24;
+
+export type RecapScene =
+  | { type: 'cover'; key: string }
+  | {
+      type: 'facts';
+      key: string;
+      lines: RecapFactLine[];
+      busiestMonth: number | null;
+    }
+  | {
+      type: 'highlight';
+      key: string;
+      source: RecapSourceView;
+      layout: 'photo' | 'words' | 'title';
+    }
+  | { type: 'closing'; key: string };
+
+export type RecapFactLine = {
+  kind: 'MEMORY' | 'HEART_MOMENT' | 'MILESTONE' | 'CHAPTER' | 'PLAN' | 'DAYS';
+  count: number;
+};
+
+/** Counted lines worth a scene of their own; a near-empty period shows none. */
+export function recapFactLines(value: RecapView): RecapFactLine[] {
+  const facts = value.facts;
+  if (!facts) return [];
+  const kinds: RecapFactLine[] = [
+    { kind: 'MEMORY' as const, count: facts.memories },
+    { kind: 'HEART_MOMENT' as const, count: facts.heartMoments },
+    { kind: 'PLAN' as const, count: facts.plans },
+    { kind: 'MILESTONE' as const, count: facts.milestones },
+    { kind: 'CHAPTER' as const, count: facts.chapters },
+  ].filter((line) => line.count > 0);
+  if (kinds.reduce((sum, line) => sum + line.count, 0) < 3) return [];
+  const lines = kinds.sort((a, b) => b.count - a.count).slice(0, 3);
+  return facts.activeDays > 1
+    ? [...lines, { kind: 'DAYS', count: facts.activeDays }]
+    : lines;
+}
+
+/** One ordered scene list drives pages, progress and playback. */
+export function recapScenes(value: RecapView): RecapScene[] {
+  const lines = recapFactLines(value);
+  return [
+    { type: 'cover', key: 'cover' },
+    ...(lines.length
+      ? [
+          {
+            type: 'facts' as const,
+            key: 'facts',
+            lines,
+            busiestMonth: value.facts?.busiestMonth ?? null,
+          },
+        ]
+      : []),
+    ...value.sources.map((source) => ({
+      type: 'highlight' as const,
+      key: source.key,
+      source,
+      layout:
+        source.available && source.previewAttachmentId
+          ? ('photo' as const)
+          : source.available && source.kind === 'HEART_MOMENT'
+            ? ('words' as const)
+            : ('title' as const),
+    })),
+    { type: 'closing', key: 'reflections' },
+  ];
+}

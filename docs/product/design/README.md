@@ -90,6 +90,8 @@ The [final audit #946](https://github.com/baerenmarke90/eimir/issues/946) applie
 
 [Relationship surfaces and saved-memory map (#1546)](references/1546/README.md) records the clarified Wir scope, games, calendar handoff, Pro map, implemented weekly AI and the completed Discover/capture/navigation follow-up.
 
+[Immersive relationship recaps (#1744)](references/1744/README.md) records the content-volume and reader rework, the photo-memory playback corrections and its evidence; the generated visual reference is still outstanding.
+
 [Journal, map and relationship-surface polish (#1570)](references/journal-map-polish/README.md)
 records the PO follow-up to #1568, generated preflight and exact implementation evidence.
 

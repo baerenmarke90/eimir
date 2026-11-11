@@ -10,6 +10,7 @@ import { recapDetailPath } from '../../src/client/routes';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
 const fixtureCopy = fixtures.recaps;
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import {
   ACCOUNT_ID,
   SPACE_ID,
@@ -21,6 +22,16 @@ import {
 const BASE = `/api/v1/spaces/${SPACE_ID}/recaps`;
 const PHOTO = readFileSync(
   fileURLToPath(new URL('../fixtures/recap-lake.webp', import.meta.url)),
+);
+const VARIANTS = Object.fromEntries(
+  ['dusk', 'warm', 'detail', 'mono'].map((name) => [
+    `recap-photo-${name}`,
+    readFileSync(
+      fileURLToPath(
+        new URL(`../fixtures/recap-lake-${name}.webp`, import.meta.url),
+      ),
+    ),
+  ]),
 );
 const source = (id: string, title: string, kind = 'MEMORY') => ({
   key: `${kind}:${id}`,
@@ -64,6 +75,90 @@ const initial = (id = 'october', year = false) => ({
   }[],
   ownDraft: null as { text: string; version: number } | null,
 });
+/** A full month: eight mixed highlights and server-counted facts. */
+function denseSources() {
+  const copy = fixtureCopy.dense;
+  const entry = (
+    id: string,
+    kind: string,
+    day: string,
+    title: string,
+    excerpt: string | null,
+    photo: string | null,
+  ) => ({
+    key: `${kind}:${id}`,
+    id,
+    kind,
+    occurredOn: `2026-10-${day}`,
+    version: 1,
+    title,
+    excerpt,
+    previewAttachmentId: photo,
+    previewIsSensitive: false,
+    available: true,
+  });
+  return [
+    entry(
+      'mem-canal',
+      'MEMORY',
+      '03',
+      fixtureCopy.photoTitle,
+      fixtureCopy.excerpt,
+      'recap-photo',
+    ),
+    entry(
+      'heart-coffee',
+      'HEART_MOMENT',
+      '06',
+      fixtureCopy.wordsTitle,
+      fixtureCopy.wordsTitle,
+      null,
+    ),
+    entry(
+      'plan-market',
+      'PLAN',
+      '10',
+      copy.market,
+      copy.marketText,
+      'recap-photo-warm',
+    ),
+    entry(
+      'mem-breakfast',
+      'MEMORY',
+      '12',
+      copy.breakfast,
+      copy.breakfastText,
+      'recap-photo-detail',
+    ),
+    entry('mile-key', 'MILESTONE', '15', copy.key, copy.keyText, null),
+    entry(
+      'mem-jetty',
+      'MEMORY',
+      '17',
+      copy.jetty,
+      copy.jettyText,
+      'recap-photo-dusk',
+    ),
+    entry('heart-thanks', 'HEART_MOMENT', '22', copy.thanks, copy.thanks, null),
+    entry(
+      'chapter-autumn',
+      'CHAPTER',
+      '01',
+      copy.chapter,
+      copy.chapterText,
+      null,
+    ),
+  ];
+}
+const DENSE_FACTS = {
+  memories: 11,
+  heartMoments: 6,
+  milestones: 1,
+  chapters: 1,
+  plans: 3,
+  activeDays: 14,
+  busiestMonth: null,
+};
 async function setup(
   page: Page,
   options: {
@@ -73,6 +168,8 @@ async function setup(
     pending?: boolean;
     start?: 'wir' | 'library';
     hideMonthly?: boolean;
+    dense?: boolean;
+    native?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -82,9 +179,17 @@ async function setup(
       localStorage.setItem(`eimir:product-tour:v1:${account}:${space}`, 'seen'),
     { account: ACCOUNT_ID, space: SPACE_ID },
   );
+  if (options.native) await installNativeAppLifecycle(page);
   const unexpected = await installMocks(page);
   const month = initial();
   const year = initial('year', true);
+  if (options.dense)
+    Object.assign(month, {
+      sources: denseSources(),
+      facts: DENSE_FACTS,
+      headline: fixtureCopy.dense.headline,
+      introduction: fixtureCopy.dense.introduction,
+    });
   if (options.empty) {
     month.sources = [];
     month.status = 'EMPTY';
@@ -268,7 +373,10 @@ async function setup(
         },
       });
     if (path.includes('/attachments/') && path.endsWith('/content'))
-      return route.fulfill({ contentType: 'image/webp', body: PHOTO });
+      return route.fulfill({
+        contentType: 'image/webp',
+        body: VARIANTS[path.split('/attachments/')[1].split('/')[0]] ?? PHOTO,
+      });
     return route.fallback();
   });
   await signIn(page);
@@ -362,7 +470,7 @@ for (const [width, theme] of [
   });
 }
 
-test('Watch now advances automatically, pauses for a source, and finishes without looping', async ({
+test('Watch now advances automatically, resumes after a source, and finishes without looping', async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -389,6 +497,13 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
     'data-playing',
     'true',
   );
+  await reader
+    .getByRole('button', { name: copy.pause, exact: true })
+    .press('Space');
+  await expect(reader).toHaveAttribute('data-playing', 'false');
+  await reader
+    .getByRole('button', { name: copy.play, exact: true })
+    .press('Enter');
   await advanceSpread(fixtureCopy.monthHeadline);
   await expect(page).toHaveURL(/page=1/);
   await page.getByRole('link', { name: new RegExp(copy.source) }).click();
@@ -397,16 +512,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
     .first()
     .click();
   await expect(page).toHaveURL(/\/more\/passport\/october\?page=1/);
-  await expect(
-    page.getByRole('button', { name: copy.play, exact: true }),
-  ).toBeVisible();
-  await page.clock.fastForward(90001);
-  await expect(page).toHaveURL(/page=1/);
-  await page.getByRole('button', { name: copy.play, exact: true }).click();
-  await expect(page.locator('.recap-reader')).toHaveAttribute(
-    'data-playing',
-    'true',
-  );
+  // Like a photo memory, playback resumes on the restored page after a source.
   await advanceSpread(fixtureCopy.photoTitle);
   await expect(page).toHaveURL(/page=2/);
   await expect(
@@ -455,18 +561,25 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
     .getByRole('button', { name: taskSheets.close, exact: true })
     .click();
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-  const controlLines = await page
-    .locator('.recap-playback-toggle')
+  // On a photo the toggle is an icon on the picture; large text must keep it
+  // inside the stage and above the caption.
+  const toggleClearsCaption = await page
+    .locator('.recap-spread .recap-playback-overlay')
     .evaluate((button) => {
-      const label = [...button.childNodes].find(
-        (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+      const box = button.getBoundingClientRect();
+      const spread = button.closest('.recap-spread')!;
+      const stage = spread.getBoundingClientRect();
+      const caption = spread
+        .querySelector('.recap-scene-copy')!
+        .getBoundingClientRect();
+      return (
+        box.left >= stage.left &&
+        box.right <= stage.right &&
+        box.top >= stage.top &&
+        box.bottom <= caption.top
       );
-      if (!label) return 0;
-      const range = document.createRange();
-      range.selectNodeContents(label);
-      return range.getClientRects().length;
     });
-  expect(controlLines).toBe(1);
+  expect(toggleClearsCaption).toBe(true);
   const controlsDoNotOverlap = await page
     .locator('.recap-page-controls button')
     .evaluateAll((buttons) => {
@@ -596,7 +709,7 @@ for (const [width, theme] of [
     await expect
       .poll(() =>
         page
-          .locator('.recap-reader-photo img')
+          .locator('.recap-scene-media img')
           .evaluate(
             (img: HTMLImageElement) =>
               img.complete && img.naturalWidth === 1536,
@@ -604,11 +717,11 @@ for (const [width, theme] of [
       )
       .toBe(true);
     await page
-      .locator('.recap-reader-photo img')
+      .locator('.recap-scene-media img')
       .evaluate((img: HTMLImageElement) => img.decode());
     // Capture decoded media before the full-page frame; Chromium lazily paints blob images.
     await page
-      .locator('.recap-reader-photo')
+      .locator('.recap-scene-media')
       .screenshot({ path: info.outputPath('decoded-photo.png') });
     await captureScreenshot(page, info, `recaps-reader-${width}-${theme}.png`, {
       fullPage: true,
@@ -707,7 +820,7 @@ test('empty periods do not invent shared events', async ({ page }) => {
     .first()
     .click();
   await expect(page.getByText(copy.emptyBody)).toBeVisible();
-  await expect(page.locator('.recap-reader-photo')).toHaveCount(0);
+  await expect(page.locator('.recap-scene-media')).toHaveCount(0);
   await expect(
     page.getByText(
       copy.page.replace('{{page}}', '1').replace('{{count}}', '2'),
@@ -798,4 +911,197 @@ test('opening a monthly invitation consumes that edition on return', async ({
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+});
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`a dense month reads as typed scenes with counted facts and gestures at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { dense: true });
+    const featured = page.locator('.recap-cover-featured');
+    await expect(featured.locator('img')).toBeVisible();
+    await featured
+      .locator('img')
+      .evaluate((img: HTMLImageElement) => img.decode());
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-immersive-library-${width}-${theme}.png`,
+      {
+        fullPage: true,
+      },
+    );
+    await page
+      .getByRole('link', { name: new RegExp(copy.open) })
+      .first()
+      .click();
+    const stage = page.locator('.recap-spread');
+    const heading = stage.locator('h1');
+    const settle = async () => {
+      for (const image of await stage.locator('img').all())
+        await image.evaluate((img: HTMLImageElement) => img.decode());
+    };
+    const shot = async (name: string) => {
+      await settle();
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-immersive-${name}-${width}-${theme}.png`,
+      );
+    };
+    await expect(heading).toHaveText(fixtureCopy.dense.headline);
+    await expect(stage.locator('.recap-mosaic-cell')).toHaveCount(4);
+    await expect(stage.locator('.recap-mosaic img')).toHaveCount(4);
+    // On photography the toggle sits on the picture, not in the control row.
+    await expect(
+      stage.locator('.recap-mosaic .recap-playback-overlay'),
+    ).toBeVisible();
+    await expect(
+      page.locator('.recap-page-controls .recap-playback-toggle'),
+    ).toHaveCount(0);
+    await shot('cover');
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await next.click();
+    await expect(heading).toHaveText(copy.factsTitle);
+    await expect(stage.locator('.recap-facts li')).toHaveCount(4);
+    await expect(stage.locator('.recap-facts li').first()).toContainText('11');
+    await shot('facts');
+    // A tap on the right of the stage turns the page; a tap on the left returns.
+    const frame = (await stage.boundingBox())!;
+    await page.mouse.click(frame.x + frame.width * 0.8, frame.y + 200);
+    await expect(heading).toHaveText(fixtureCopy.photoTitle);
+    await expect(stage.locator('img')).toBeVisible();
+    await shot('photo');
+    await page.mouse.click(frame.x + frame.width * 0.1, frame.y + 200);
+    await expect(heading).toHaveText(copy.factsTitle);
+    await page.mouse.click(frame.x + frame.width * 0.8, frame.y + 200);
+    await expect(heading).toHaveText(fixtureCopy.photoTitle);
+    await page.keyboard.press('ArrowRight');
+    await expect(heading).toHaveText(fixtureCopy.wordsTitle);
+    await shot('words');
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.market);
+    await expect(stage.locator('img')).toBeVisible();
+    await shot('plan');
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.breakfast);
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.key);
+    await shot('milestone');
+    for (const title of [
+      fixtureCopy.dense.jetty,
+      fixtureCopy.dense.thanks,
+      fixtureCopy.dense.chapter,
+      copy.finishTitle,
+    ]) {
+      await next.click();
+      await expect(heading).toHaveText(title);
+    }
+    await expect(page).toHaveURL(/page=10/);
+    await shot('closing');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+    if (width !== 390) return;
+    // Large text keeps a photo scene readable and inside the viewport.
+    for (let step = 0; step < 3; step++)
+      await page
+        .getByRole('button', { name: copy.previous, exact: true })
+        .click();
+    await expect(heading).toHaveText(fixtureCopy.dense.jetty);
+    await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await settle();
+    await captureScreenshot(stage, info, 'recaps-immersive-large-text-390.png');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
+test('the native app hides the page arrows and turns pages by touch', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const touch = await page.context().newCDPSession(page);
+  await touch.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  const state = await setup(page, { dense: true, native: true });
+  await page
+    .getByRole('link', { name: new RegExp(copy.open) })
+    .first()
+    .click();
+  const stage = page.locator('.recap-spread');
+  await expect(stage.locator('h1')).toHaveText(fixtureCopy.dense.headline);
+  // Assistive technology keeps the explicit path; nothing is painted.
+  for (const name of [copy.previous, copy.next])
+    await expect(page.getByRole('button', { name, exact: true })).toHaveClass(
+      /sr-only/,
+    );
+  await expect(page.locator('.recap-gesture-hint')).toBeVisible();
+  await expect(stage.locator('.recap-mosaic img')).toHaveCount(4);
+  for (const image of await stage.locator('img').all())
+    await image.evaluate((img: HTMLImageElement) => img.decode());
+  await captureScreenshot(
+    page,
+    info,
+    'recaps-immersive-native-cover-390-light.png',
+  );
+  const frame = (await stage.boundingBox())!;
+  const right = { x: frame.x + frame.width * 0.85, y: frame.y + 60 };
+  const left = { ...right, x: frame.x + frame.width * 0.15 };
+  const tapRight = async () => {
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [right],
+    });
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+  };
+  await tapRight();
+  await tapRight();
+  await expect(stage.locator('h1')).toHaveText(fixtureCopy.photoTitle);
+  await expect(stage.locator('.recap-playback-overlay')).toBeVisible();
+  await stage.locator('img').evaluate((img: HTMLImageElement) => img.decode());
+  await captureScreenshot(
+    page,
+    info,
+    'recaps-immersive-native-photo-390-light.png',
+  );
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [left],
+  });
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [right],
+  });
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  });
+  await touch.detach();
+  await expect(stage.locator('h1')).toHaveText(copy.factsTitle);
+  expect(state.unexpected).toEqual([]);
 });

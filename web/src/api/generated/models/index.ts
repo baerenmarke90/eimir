@@ -255,6 +255,7 @@ export * from './QuoteSourceView';
 export * from './ReadDescriptor';
 export * from './Readiness';
 export * from './RecapDraftView';
+export * from './RecapFactsView';
 export * from './RecapKind';
 export * from './RecapOverview';
 export * from './RecapPeriod';

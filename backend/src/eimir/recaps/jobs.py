@@ -26,6 +26,7 @@ from eimir.relationship.service import require_membership
 SCAN_JOB = "recap.scan.v1"
 SCAN_INTERVAL = timedelta(hours=6)
 SCAN_LOCK = 8_150_228
+EVIDENCE_LIMIT = 8
 
 
 def authorized_context(
@@ -75,6 +76,10 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
         for item in material
         if (item["title"] or "").strip() or (item["excerpt"] or "").strip()
     ]
+    # The wording model reads a bounded, evenly spread sample of a longer selection.
+    if len(evidence) > EVIDENCE_LIMIT:
+        step = len(evidence) / EVIDENCE_LIMIT
+        evidence = [evidence[int(index * step)] for index in range(EVIDENCE_LIMIT)]
     versions = {item["key"]: item["version"] for item in material}
     locale, period = value.locale, f"{value.starts_on.isoformat()}/{value.through_on.isoformat()}"
 

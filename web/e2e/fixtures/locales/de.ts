@@ -129,6 +129,23 @@ const de = {
     wordsTitle: 'Deine Nachricht am Morgen',
     previousHeadline: 'Ein Tag nur für uns.',
     reflection: 'Das möchte ich für uns behalten.',
+    dense: {
+      headline: 'Ein Oktober am Wasser.',
+      introduction:
+        'Der See, der Herbstmarkt und ein Frühstück auf dem Balkon. Dazwischen Worte, die ihr euch geschrieben habt.',
+      market: 'Herbstmarkt in der Altstadt',
+      marketText: 'Maronen, Lichterketten und viel zu viel Apfelpunsch.',
+      breakfast: 'Sonntagsfrühstück auf dem Balkon',
+      breakfastText: 'Decke, Kaffee, Zeitung. Bis mittags.',
+      key: 'Unser erster gemeinsamer Schlüssel',
+      keyText: 'Zwei Schlüssel, ein Anhänger. Ab jetzt beide an einem Brett.',
+      jetty: 'Abendlicht am Steg',
+      jettyText: 'Noch einmal zurück, weil das Licht so schön war.',
+      thanks: 'Danke, dass du gewartet hast.',
+      chapter: 'Unser Herbst',
+      chapterText:
+        'Alles, was zwischen den ersten bunten Blättern und dem ersten Frost passiert.',
+    },
   },
   placesAndLists: {
     placeDescription: 'Unser Platz im Grünen.',

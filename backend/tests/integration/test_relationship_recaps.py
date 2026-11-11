@@ -141,6 +141,9 @@ def test_shared_period_never_includes_owner_only_or_foreign_material(client, ses
     generate(session, context, proposed)
     result = read(client, context, proposed).json()
     assert {source["id"] for source in result["sources"]} == {str(shared.id)}
+    assert result["facts"]["memories"] == 1
+    assert result["facts"]["heartMoments"] == 0
+    assert result["facts"]["activeDays"] == 1
     assert "Secret private note" not in str(result)
     selection = client.get(
         f"{context['path']}/{proposed['id']}/selection", headers=context["headers"]
@@ -229,6 +232,7 @@ def test_changed_or_withdrawn_source_scrubs_derived_prose(client, session, conte
     assert stored.payload.headline is None
     result = read(client, context, proposed, partner=True).json()
     assert result["headline"] is None and result["introduction"] is None
+    assert result["facts"] is None
     assert result["sources"][0]["available"] is False
     assert result["sources"][0]["title"] is None
     assert "Formerly shared words" not in str(result)
@@ -270,7 +274,13 @@ def test_year_uses_full_period_and_auto_prepare_queues_current_periods(client, s
     generate(session, context, annual)
     result = read(client, context, annual).json()
     assert result["startsOn"] == "2026-01-01"
-    assert len({item["occurredOn"][:7] for item in result["sources"]}) == 8
+    assert len({item["occurredOn"][:7] for item in result["sources"]}) == 10
+    assert result["facts"]["memories"] == 10 and result["facts"]["activeDays"] == 10
+    assert result["facts"]["busiestMonth"] is None
+    memory(session, context, day=date(2026, 10, 10))
+    facts = read(client, context, annual, partner=True).json()["facts"]
+    assert facts["memories"] == 11 and facts["activeDays"] == 10
+    assert facts["busiestMonth"] == 10
     assert request(client, context, month=12).status_code == 422
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import date, timedelta
 from typing import Any
 from uuid import UUID
@@ -31,7 +32,7 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
-from eimir.recaps.composition import Candidate, period_bounds
+from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
     RecapKind,
@@ -193,6 +194,46 @@ def candidates(
         )
         for i in result
     ]
+
+
+def facts(
+    session: Session, context: AuthorizationContext, value: RecapEdition
+) -> dict[str, Any] | None:
+    """Counted shared entries of the frozen period; never an inferred relationship claim."""
+    source = _metadata(context)
+    active_day = func.greatest(source.c.day, value.starts_on)
+    # Keep all facts on the same snapshot when sources change during the read.
+    entries = session.execute(
+        select(active_day, source.c.kind, func.count())
+        .where(source.c.day <= value.through_on, source.c.through >= value.starts_on)
+        .group_by(active_day, source.c.kind)
+    ).all()
+    if not entries:
+        return None
+
+    counts: Counter[str] = Counter()
+    days: set[date] = set()
+    monthly_counts: Counter[int] = Counter()
+    for day, kind, count in entries:
+        counts[kind] += count
+        days.add(day)
+        monthly_counts[day.month] += count
+
+    busiest = None
+    if value.kind == RecapKind.YEAR.value:
+        leading = monthly_counts.most_common(2)
+        # A tie or a single entry is not a meaningful "most active month".
+        if leading[0][1] > 1 and (len(leading) == 1 or leading[0][1] > leading[1][1]):
+            busiest = leading[0][0]
+    return {
+        "memories": counts[RecapSourceKind.MEMORY.value],
+        "heart_moments": counts[RecapSourceKind.HEART_MOMENT.value],
+        "milestones": counts[RecapSourceKind.MILESTONE.value],
+        "chapters": counts[RecapSourceKind.CHAPTER.value],
+        "plans": counts[RecapSourceKind.PLAN.value],
+        "active_days": len(days),
+        "busiest_month": busiest,
+    }
 
 
 def periods(session: Session, context: AuthorizationContext, today: date) -> list[dict[str, Any]]:
@@ -547,6 +588,7 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
             "headline": value.payload.headline if unchanged else None,
             "introduction": value.payload.introduction if unchanged else None,
             "sources": sources,
+            "facts": facts(session, context, value) if value.status == "READY" else None,
             "reflections": [
                 {
                     "id": n.id,
@@ -654,7 +696,11 @@ def replace_sources(
                         item["version"],
                     )
             break
-    if len(keys) > 12 or len(set(keys)) != len(keys) or any(key not in existing for key in keys):
+    if (
+        len(keys) > MANUAL_SELECTION_LIMIT
+        or len(set(keys)) != len(keys)
+        or any(key not in existing for key in keys)
+    ):
         raise ValidationError(
             "Only eligible shared period sources can be selected.", ErrorCode.VALIDATION_FAILED
         )

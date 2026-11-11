@@ -1,13 +1,13 @@
-import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -517,14 +517,19 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
   );
   await expect(
     page.getByRole('heading', { name: m5s3.planStory.readHeading }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.completedBody)).toHaveCount(0);
   await expect(
     page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole('button', { name: m5s3.planStory.memoryAction }),
-  ).toBeVisible();
+  for (const action of [
+    m5s3.planStory.memoryAction,
+    m5s3.planStory.heartMomentAction,
+    m5s3.planStory.milestoneAction,
+  ])
+    await expect(
+      page.getByRole('button', { name: action, exact: true }),
+    ).toHaveCount(0);
 });
 
 test('Later dismisses the continuation and restores focus to stable Plan navigation', async ({
@@ -922,15 +927,20 @@ test('a completion conflict is recovered from a fresh read without celebration o
   );
   await expect(
     page.getByRole('heading', { name: m5s3.planStory.readHeading }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.completedBody)).toHaveCount(0);
   await expect(pendingStatus(page)).toHaveCount(0);
   await expect(
     page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole('button', { name: m5s3.planStory.memoryAction }),
-  ).toBeVisible();
+  for (const action of [
+    m5s3.planStory.memoryAction,
+    m5s3.planStory.heartMomentAction,
+    m5s3.planStory.milestoneAction,
+  ])
+    await expect(
+      page.getByRole('button', { name: action, exact: true }),
+    ).toHaveCount(0);
   expect(state.planReads).toBeGreaterThan(readsBeforeConflict);
   expect(state.completionCalls).toBe(1);
   await savePlanCompletionEvidence(

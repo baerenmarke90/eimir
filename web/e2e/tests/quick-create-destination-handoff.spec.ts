@@ -4,7 +4,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import photoPlaces from '../../src/i18n/locales/photoPlaces';
+import composer from '../../src/i18n/locales/composer';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -365,7 +365,9 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
     await expect(
-      page.getByRole('button', { name: photoPlaces.add, exact: true }),
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
     ).not.toBeFocused();
   });
 
@@ -443,7 +445,7 @@ test.describe('Quick Create -> Wish / Plan: open the focused task without forcin
   });
 });
 
-async function expectMemoryAuthoredContentBeforeMedia(page: Page) {
+async function expectMemoryMediaBeforeAuthoredContent(page: Page) {
   const title = page.getByLabel(de.memory.titleLabelOptional);
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   const media = page.locator('.immersive-create-media');
@@ -452,9 +454,11 @@ async function expectMemoryAuthoredContentBeforeMedia(page: Page) {
   await expect(title).toBeEnabled();
   await expect(title).not.toBeFocused();
   await expect(media).toBeVisible();
+  await expect(media).toBeInViewport();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
-  // #1715 keeps compact date context above the authored title and prose.
-  // Protect their visible order before media, not the first input's type.
+  // #1730 places the media entry before title and prose while keeping route
+  // entry at the top and all authored fields reachable without autofocus.
   const [titleBox, bodyBox, mediaBox] = await Promise.all([
     title.boundingBox(),
     body.boundingBox(),
@@ -462,8 +466,8 @@ async function expectMemoryAuthoredContentBeforeMedia(page: Page) {
   ]);
   if (!titleBox || !bodyBox || !mediaBox)
     throw new Error('The Memory authored fields and media must be rendered.');
+  expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(titleBox.y);
   expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(bodyBox.y);
-  expect(bodyBox.y + bodyBox.height).toBeLessThanOrEqual(mediaBox.y);
 }
 
 test.describe('Quick Create -> dedicated /new routes: land at the correct start position', () => {
@@ -527,7 +531,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       await assertNothingUnexpectedlyFocused(page);
 
       if (destination.primaryFieldSelector === '#body') {
-        await expectMemoryAuthoredContentBeforeMedia(page);
+        await expectMemoryMediaBeforeAuthoredContent(page);
       }
     });
   }
@@ -671,9 +675,9 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await expect(body).toBeEnabled();
     await expect(body).not.toBeFocused();
     await assertNothingUnexpectedlyFocused(page);
-    await expectMemoryAuthoredContentBeforeMedia(page);
+    await expectMemoryMediaBeforeAuthoredContent(page);
     await page.screenshot({
-      path: info.outputPath('memory-title-first-390-light.png'),
+      path: info.outputPath('memory-media-first-390-light.png'),
       fullPage: true,
     });
   });

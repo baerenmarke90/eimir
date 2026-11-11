@@ -93,6 +93,9 @@ function PhotoActions({
         aria-controls="memory-photo-reaction-picker"
       >
         <EimirIcon name="smile-plus" />
+        <span className="memory-photo-react-label">
+          {t('photoReactions.react')}
+        </span>
       </button>
       {popover.isOpen ? (
         <fieldset
@@ -165,7 +168,13 @@ export function MemoryPhotoGallery({
   );
   const photos = [...memory.attachments]
     .filter(isGalleryAttachment)
-    .sort((a, b) => a.position - b.position);
+    .sort((a, b) =>
+      !memory.experienceKind && a.id === memory.selectedCoverAttachmentId
+        ? -1
+        : !memory.experienceKind && b.id === memory.selectedCoverAttachmentId
+          ? 1
+          : a.position - b.position,
+    );
   const mutation = useMutation({
     retry: false,
     networkMode: 'always',
@@ -257,6 +266,7 @@ export function MemoryPhotoGallery({
   return (
     <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
+        presentation={memory.experienceKind ? 'default' : 'composer'}
         initialMediaId={memory.selectedCoverAttachmentId ?? undefined}
         items={photos.map(
           ({

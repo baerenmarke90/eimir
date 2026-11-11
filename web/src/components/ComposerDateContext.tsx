@@ -163,7 +163,24 @@ export function ComposerDateContext({
       return value;
     }
   }
-  const dateSummary = `${summary(date)}${through ? ` – ${summary(through)}` : ''}`;
+  let dateSummary = summary(date);
+  if (date && through) {
+    try {
+      const start = dateInputValueToApiDate(date);
+      const end = dateInputValueToApiDate(through);
+      const first = new Intl.DateTimeFormat(resolvedLocale(), {
+        day: 'numeric',
+        month: 'long',
+        ...(start.getUTCFullYear() === end.getUTCFullYear()
+          ? {}
+          : { year: 'numeric' }),
+        timeZone: 'UTC',
+      }).format(start);
+      dateSummary = `${first} – ${summary(through)}`;
+    } catch {
+      dateSummary = `${summary(date)} – ${summary(through)}`;
+    }
+  }
   const startError = error || (focusTarget === 'start' ? localError : '');
   const rangeError = endError || (focusTarget === 'end' ? localError : '');
   const visibleError = startError || rangeError;

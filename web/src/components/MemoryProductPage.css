@@ -64,10 +64,10 @@
   letter-spacing: var(--tracking-memory-detail-heading);
 }
 
-body:has(.memory-product-page) {
+body:has(.memory-product-page:not(.page-composer-detail)) {
   background: var(--memory-detail-background);
 }
-.product-shell:has(.memory-product-page) {
+.product-shell:has(.memory-product-page:not(.page-composer-detail)) {
   --color-background: var(--memory-detail-background);
 }
 .memory-product-page .comments-panel {
@@ -346,4 +346,19 @@ body:has(.memory-product-page) {
 
 .memory-product-page .memory-provenance-footer p {
   color: var(--color-text-secondary);
+}
+
+.memory-product-page.page-composer-detail .composer-header h1 {
+  font: var(--font-action-label);
+}
+.memory-product-page.page-composer-detail .memory-detail-body {
+  font: var(--font-composer-prose);
+}
+.memory-product-page.page-composer-detail .drop-cap-letter {
+  float: none;
+  color: var(--composer-accent);
+  font-size: 1.3em;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
 }

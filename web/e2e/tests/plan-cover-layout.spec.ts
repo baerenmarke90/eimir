@@ -1,25 +1,27 @@
-import {
-  selectDraftMedia,
-  dragDraftMedia,
-  expectInlineDraftActions,
-} from '../support/mediaDraft';
-import { fulfillDefaultProductContext } from '../support/productContext';
-import photoSources from '../../src/i18n/locales/photoSources';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, type Locator, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import copy from '../../src/i18n/locales/m5s3';
 import photoCopy from '../../src/i18n/locales/photoReactions';
 import storyCopy from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  expectInlineDraftActions,
+  expectQuietComposerMedia,
+  selectDraftMedia,
+} from '../support/mediaDraft';
+import { openComposerMediaSources } from '../support/mediaIntake';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -30,6 +32,14 @@ const galleryCounter = (index: number, count: number) =>
   storyCopy.gallery.counter
     .replace('{{index}}', String(index))
     .replace('{{count}}', String(count));
+const inlineGalleryCounter = (index: number, count: number) =>
+  `${index} / ${count}`;
+
+async function closePlanEditor(page: Page) {
+  const close = page.locator('.composer-header .task-back-control');
+  await expect(close).toHaveAccessibleName(taskBoundary.close);
+  await close.click();
+}
 const dimensions = {
   portrait: [800, 1200],
   landscape: [1600, 900],
@@ -190,7 +200,7 @@ async function expectGalleryImage(image: Locator, maxHeight: number) {
         rect.bottom <= frame.bottom + 1,
     };
   });
-  expect(size.fit).toBe('contain');
+  expect(size.fit).toBe('cover');
   expect(size.height).toBeLessThanOrEqual(maxHeight + 1);
   expect(size.contained).toBe(true);
 }
@@ -345,9 +355,7 @@ for (const scenario of [
       .getByRole('checkbox')
       .setChecked(!scenario.sensitive);
     await expectInlineDraftActions(page);
-    await page
-      .getByRole('button', { name: de.common.cancel, exact: true })
-      .click();
+    await closePlanEditor(page);
     await page
       .getByRole('button', { name: copy.common.discardConfirm, exact: true })
       .click();
@@ -530,11 +538,25 @@ for (const view of [
         content: 'html { font-size: 200% !important; }',
       });
     await page.locator('#planning-create-title').fill(TITLE);
+    await openComposerMediaSources(page);
+    const photoNames = ['portrait.png', 'landscape.png', 'square.png'];
+    const importedAttachmentIds = Promise.all(
+      photoNames.map((name) =>
+        page
+          .waitForResponse(
+            (response) =>
+              response.request().method() === 'POST' &&
+              new URL(response.url()).pathname === `${BASE}/attachments` &&
+              response.request().postDataJSON().originalName === name &&
+              response.status() === 201,
+          )
+          .then(
+            async (response) => (await response.json()).attachment.id as string,
+          ),
+      ),
+    );
     await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page
-      .locator('#plan-photos')
+      .locator('#plan-photos-source')
       .setInputFiles([
         imageFile('portrait'),
         imageFile('landscape'),
@@ -546,6 +568,12 @@ for (const view of [
       exact: true,
     });
     await expect(drafts).toHaveCount(3);
+    const initialKeys = await drafts.evaluateAll((tiles) =>
+      tiles.map((tile) => tile.getAttribute('data-media-key')),
+    );
+    expect(initialKeys.every((key) => key !== null)).toBe(true);
+    // Latest PO correction removes composer arrangement/reset rows without a replacement.
+    await expectQuietComposerMedia(page);
     const save = page.locator('.composer-header button[type=submit]');
     expect(
       await save.evaluate((button: HTMLButtonElement) => button.form?.id),
@@ -558,7 +586,7 @@ for (const view of [
       .and(page.locator('.photo-draft-tile'))
       .click();
     await page
-      .locator('.photo-draft-inspector')
+      .locator('.photo-draft-stage')
       .getByRole('button', { name: de.common.retry, exact: true })
       .click();
     await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
@@ -567,6 +595,17 @@ for (const view of [
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(3);
     await expect(save).toBeEnabled();
+    expect(
+      await drafts.evaluateAll((tiles) =>
+        tiles.map((tile) => tile.getAttribute('data-media-key')),
+      ),
+    ).toEqual(initialKeys);
+    await expect(inspector.locator('.photo-draft-stage-cover')).toHaveText(
+      experiences.cover,
+    );
+    await expect(
+      drafts.first().locator('.photo-draft-cover-star'),
+    ).toBeVisible();
     await captureScreenshot(
       page,
       info,
@@ -583,7 +622,13 @@ for (const view of [
     await save.click();
     await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN}$`));
     expect(state.counts()).toEqual({ creates: 1, uploads: 4, patches: 0 });
-    expect(state.payloads[0].map((photo) => photo.position)).toEqual([0, 1, 2]);
+    expect(state.payloads[0]).toEqual(
+      (await importedAttachmentIds).map((attachmentId, position) => ({
+        attachmentId,
+        position,
+        isSensitive: false,
+      })),
+    );
     await page.reload();
     if (view.large)
       await page.addStyleTag({
@@ -591,7 +636,7 @@ for (const view of [
       });
     const gallery = page.locator('.plan-photo-gallery');
     await expect(gallery.locator('.media-gallery-carousel-counter')).toHaveText(
-      galleryCounter(1, 3),
+      inlineGalleryCounter(1, 3),
     );
     await expectGalleryImage(
       gallery
@@ -607,12 +652,24 @@ for (const view of [
       );
       const box = await track.boundingBox();
       if (!box) throw new Error('Missing gallery track');
+      const start = {
+        x: box.x + box.width * 0.82,
+        y: box.y + box.height * 0.3,
+      };
+      const initialTarget = await track.evaluate((element, point) => {
+        const target = document.elementFromPoint(point.x, point.y);
+        return {
+          onTrack: target !== null && element.contains(target),
+          overlay: Boolean(target?.closest('.media-overlay')),
+        };
+      }, start);
+      expect(initialTarget).toEqual({ onTrack: true, overlay: false });
       const touch = await page.context().newCDPSession(page);
       try {
-        const y = box.y + box.height / 2;
+        const y = start.y;
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
-          touchPoints: [{ x: box.x + box.width * 0.82, y }],
+          touchPoints: [start],
         });
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
@@ -639,7 +696,7 @@ for (const view of [
       }
       await expect(
         gallery.locator('.media-gallery-carousel-counter'),
-      ).toHaveText(galleryCounter(2, 3));
+      ).toHaveText(inlineGalleryCounter(2, 3));
     }
     await gallery.getByRole('button', { name: photoCopy.fullscreen }).click();
     const viewer = page.getByRole('dialog', {
@@ -669,22 +726,35 @@ for (const view of [
       .click();
     const original = state.payloads[0].map((photo) => photo.attachmentId);
     async function changeDraft() {
+      await expectQuietComposerMedia(page);
+      const originalKeys = await drafts.evaluateAll((tiles) =>
+        tiles.map((tile) => tile.getAttribute('data-media-key')),
+      );
       await drafts.first().click();
-      await dragDraftMedia(page, 0, 1);
-      await expectInlineDraftActions(page);
-      await drafts.first().click();
+      await expect(drafts.first()).toHaveAttribute('aria-pressed', 'true');
+      await expect(inspector.locator('.photo-draft-stage-cover')).toHaveText(
+        experiences.cover,
+      );
       await inspector.getByRole('checkbox').check();
+      await expectQuietComposerMedia(page);
       await expectInlineDraftActions(page);
       await drafts.last().click();
       await inspector
         .getByRole('button', { name: de.memory.photoRemove, exact: true })
         .click();
+      await expect(drafts).toHaveCount(2);
+      expect(
+        await drafts.evaluateAll((tiles) =>
+          tiles.map((tile) => tile.getAttribute('data-media-key')),
+        ),
+      ).toEqual(originalKeys.slice(0, 2));
+      await expect(
+        drafts.first().locator('.photo-draft-cover-star'),
+      ).toBeVisible();
       await expectInlineDraftActions(page);
     }
     await changeDraft();
-    await page
-      .getByRole('button', { name: de.common.cancel, exact: true })
-      .click();
+    await closePlanEditor(page);
     await page
       .getByRole('button', { name: copy.common.discardConfirm, exact: true })
       .click();
@@ -703,8 +773,8 @@ for (const view of [
     ).toBeVisible();
     expect(state.counts().patches).toBe(1);
     expect(state.payloads[1]).toEqual([
-      { attachmentId: original[1], position: 0, isSensitive: true },
-      { attachmentId: original[0], position: 1, isSensitive: false },
+      { attachmentId: original[0], position: 0, isSensitive: true },
+      { attachmentId: original[1], position: 1, isSensitive: false },
     ]);
     await page.reload();
     await expect(
@@ -714,7 +784,7 @@ for (const view of [
         .locator('.sensitive-media-cover'),
     ).toBeVisible();
     await expect(gallery.locator('.media-gallery-carousel-counter')).toHaveText(
-      galleryCounter(1, 2),
+      inlineGalleryCounter(1, 2),
     );
     expect(
       await page.evaluate(

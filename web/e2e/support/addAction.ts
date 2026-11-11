@@ -1,6 +1,26 @@
 import { expect, type Locator } from '@playwright/test';
 import type { EimirIconName } from '../../src/components/EimirIcon';
 
+/** The approved composer tools replace Add pills while keeping visible labels and targets. */
+export async function expectLabeledComposerTool(
+  action: Locator,
+  iconName: EimirIconName,
+) {
+  await expect(action).toBeVisible();
+  await expect(action).toHaveAttribute('type', 'button');
+  const label = action.locator('span').last();
+  await expect(label).toBeVisible();
+  await expect(action).toHaveAccessibleName(await label.innerText());
+  const box = await action.boundingBox();
+  expect(box?.width).toBeGreaterThanOrEqual(48);
+  expect(box?.height).toBeGreaterThanOrEqual(48);
+  await expect(action.locator(`.eimir-icon-${iconName}`)).toBeVisible();
+  await expect(action.locator(`.eimir-icon-${iconName}`)).toHaveAttribute(
+    'aria-hidden',
+    'true',
+  );
+}
+
 /** Rendered geometry catches local surface overrides that component tests miss. */
 export async function expectLabeledAddAction(
   action: Locator,

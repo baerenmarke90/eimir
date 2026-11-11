@@ -66,11 +66,13 @@ async function expectHiddenGeometry(input: Locator): Promise<void> {
 }
 
 async function expectKeyboardFilePicker(page: Page): Promise<void> {
-  const trigger = page.getByRole('button', {
-    name: photoSources.addMedia,
-    exact: true,
-  });
-  const input = page.locator('input[type="file"]').last();
+  const trigger = page
+    .locator('.composer-tool-row button')
+    .filter({ has: page.locator('.eimir-icon-foto') })
+    .or(page.getByRole('button', { name: photoSources.more, exact: true }))
+    .or(page.getByRole('button', { name: photoSources.addMedia, exact: true }))
+    .first();
+  const input = page.locator('input[type="file"]').first();
   const nativeInput = await input.elementHandle();
   if (!nativeInput) throw new Error('The persistent native input is missing.');
   await expect(input).toHaveCount(1);
@@ -84,7 +86,7 @@ async function expectKeyboardFilePicker(page: Page): Promise<void> {
   for (const key of ['Enter', 'Space']) {
     await trigger.press(key);
     const sheet = page.getByRole('dialog', {
-      name: photoSources.addMedia,
+      name: photoSources.title,
       exact: true,
     });
     await expect(sheet).toBeVisible();

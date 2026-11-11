@@ -34,11 +34,13 @@ export function VoiceWaveform({ peaks }: { peaks: readonly number[] }) {
 export function VoiceNotePlayer({
   src,
   title,
+  defaultTitle = false,
   speaker,
   duration: knownDuration,
 }: {
   src: string;
   title?: string;
+  defaultTitle?: boolean;
   speaker?: string;
   duration?: number | null;
 }) {
@@ -106,7 +108,14 @@ export function VoiceNotePlayer({
       className="voice-player"
       aria-label={title || t('voiceNotes.title')}
     >
-      {title ? <h3 className="voice-player-title">{title}</h3> : null}
+      {title ? (
+        <h3
+          className="voice-player-title"
+          data-default-title={defaultTitle || undefined}
+        >
+          {title}
+        </h3>
+      ) : null}
       {speaker ? (
         <p className="voice-speaker">
           {t('voiceNotes.speakerLabel', { name: speaker })}

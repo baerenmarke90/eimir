@@ -78,11 +78,19 @@ describe('PlanProductPage', () => {
       html.indexOf('</section>', html.indexOf('planning-facts')),
     );
     expect(facts).toContain('planen-detail-schedule');
-    expect(facts).toContain('href="/plan/places/place-berlin"');
+    expect(facts).not.toContain('href=');
     expect(facts).toContain('Volkspark');
     expect(html).not.toContain(
       i18n.t('m5s3.overview.createdBy', { name: 'Ben' }),
     );
+  });
+
+  it('links a located Place directly to the in-app memory map', () => {
+    const html = renderPlan(basePlan({ placeId: 'river' }), [
+      { id: 'river', name: 'Riverside', latitude: 50.1, longitude: 8.2 },
+    ]);
+    expect(html).toContain('href="/story/map?place=50.1%3A8.2"');
+    expect(html).toContain('Riverside');
   });
 
   it('presents a timed end as one range instead of a separate technical subfact', () => {
@@ -138,13 +146,13 @@ describe('PlanProductPage', () => {
       }),
     );
 
-    expect(html).toContain(i18n.t('m5s3.plan.completedTitle'));
+    expect(html).toContain(i18n.t('m5s3.plan.status.COMPLETED'));
     expect(html).not.toContain(i18n.t('m5s3.plan.completedBody'));
     expect(html).toContain('14.09.2026');
-    expect(html).toContain('plan-story-saved');
+    expect(html).not.toContain('plan-story-saved');
     expect(html).not.toContain(i18n.t('m5s3.plan.sharedAchievementTitle'));
-    expect(html).toContain(i18n.t('m5s3.planStory.memoryAction'));
-    expect(html).toContain(i18n.t('m5s3.planStory.milestoneAction'));
+    expect(html).not.toContain(i18n.t('m5s3.planStory.memoryAction'));
+    expect(html).not.toContain(i18n.t('m5s3.planStory.milestoneAction'));
     expect(html).not.toContain('planen-complete-cta');
     expect(html).not.toContain(i18n.t('m5s3.plan.lifecycleHeading'));
   });

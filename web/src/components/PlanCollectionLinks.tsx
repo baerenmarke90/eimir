@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { PlanningDiscardConfirmation } from './PlanningEditorLifecycle';
+import { AddActionButton } from './AddAction';
+import { CollectionProductPage } from './CollectionProductPage';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { ComposerChip } from './PageComposer';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
@@ -10,9 +14,7 @@ import {
 } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { collectionDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CollectionChoicePicker } from './CollectionChoicePicker';
@@ -38,8 +40,9 @@ export function PlanCollectionLinks({
   plan,
   disabled,
   editing = false,
-  onNavigate,
+  renderTrigger,
 }: {
+  renderTrigger?: (open: () => void) => ReactNode;
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
@@ -49,9 +52,21 @@ export function PlanCollectionLinks({
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
   const inFlight = useRef(false);
+  const [selectedList, setSelectedList] = useState<string | null>(null);
+  const [listPending, setListPending] = useState(false);
+  const [listDirty, setListDirty] = useState(false);
+  const [confirmListDiscard, setConfirmListDiscard] = useState(false);
+  const [discardListConfirmed, setDiscardListConfirmed] = useState(false);
+  const listContent = useRef<HTMLDivElement>(null);
+  const listTrigger = useRef<HTMLButtonElement>(null);
+  const listSheet = useRef<ShortTaskSheetHandle>(null);
+  const openChoices = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!discardListConfirmed || listDirty || listPending) return;
+    setDiscardListConfirmed(false);
+    listSheet.current?.requestClose();
+  }, [discardListConfirmed, listDirty, listPending]);
   const canManage = editing && plan.capabilities.canEdit;
   const capture = useTaskActivation(canManage);
   const mutationKey = ['plan-write', spaceId, plan.id] as const;
@@ -128,19 +143,6 @@ export function PlanCollectionLinks({
     });
   }
   const pending = disabled || mutation.isPending;
-  function openDestination(path: string) {
-    const follow = () =>
-      void navigate(path, {
-        state: {
-          taskOriginKey: captureOrigin({
-            selectedKey: plan.id,
-            planningSegment: 'plans',
-          }),
-        },
-      });
-    if (onNavigate) onNavigate(follow);
-    else follow();
-  }
   if (!canManage && !linked.isPending && !linked.error && !lists.length)
     return null;
   return (
@@ -148,7 +150,9 @@ export function PlanCollectionLinks({
       className="planen-section plan-collection-links"
       aria-labelledby="plan-lists-heading"
     >
-      <h2 id="plan-lists-heading">{t('m5s3.collection.planHeading')}</h2>
+      <h2 id="plan-lists-heading" className={editing ? 'sr-only' : undefined}>
+        {t('m5s3.collection.planHeading')}
+      </h2>
       {linked.isPending ? (
         <p role="status">{t('states.loading.title')}</p>
       ) : null}
@@ -161,40 +165,46 @@ export function PlanCollectionLinks({
       {!linked.isPending && !linked.error && !lists.length ? (
         <p className="muted">{t('m5s3.collection.planEmpty')}</p>
       ) : null}
-      <ul className="content-overview-list">
+      <ul
+        className={
+          editing
+            ? 'composer-selected-chips plan-collection-chips'
+            : 'content-overview-list'
+        }
+      >
         {lists.map((list) => (
           <li key={list.id} className="plan-collection-row">
-            <Link
-              className="content-overview-row"
-              to={collectionDetailPath(list.id)}
-              onClick={(event) => {
-                if (
-                  event.button ||
-                  event.metaKey ||
-                  event.ctrlKey ||
-                  event.altKey ||
-                  event.shiftKey
-                )
-                  return;
-                event.preventDefault();
-                openDestination(collectionDetailPath(list.id));
-              }}
-            >
-              <span className="content-overview-icon">
-                <DestinationIcon icon="collections" />
-              </span>
-              <span className="content-overview-copy">
-                <strong>{list.title}</strong>
-                <span className="muted">
-                  {t('m5s3.collection.progress', {
-                    count: list.items.length,
-                    completed: list.items.filter((item) => item.completed)
-                      .length,
-                  })}
+            {editing ? (
+              <ComposerChip icon="listen" onClick={() => openChoices.current()}>
+                {list.title}
+              </ComposerChip>
+            ) : (
+              <button
+                type="button"
+                className="content-overview-row tertiary"
+                disabled={disabled}
+                onClick={(event) => {
+                  listTrigger.current = event.currentTarget;
+                  setListDirty(false);
+                  setSelectedList(list.id);
+                }}
+              >
+                <span className="content-overview-icon">
+                  <DestinationIcon icon="collections" />
                 </span>
-              </span>
-              <ContentChevron />
-            </Link>
+                <span className="content-overview-copy">
+                  <strong>{list.title}</strong>
+                  <span className="muted">
+                    {t('composer.listProgress', {
+                      count: list.items.length,
+                      completed: list.items.filter((item) => item.completed)
+                        .length,
+                    })}
+                  </span>
+                </span>
+                <ContentChevron />
+              </button>
+            )}
             {canManage ? (
               <ListEntryIconButton
                 icon="unlink"
@@ -213,6 +223,26 @@ export function PlanCollectionLinks({
           spaceId={spaceId}
           excludedIds={lists.map((list) => list.id)}
           disabled={pending || linked.isPending || Boolean(linked.error)}
+          renderTrigger={(open) => {
+            const beginChoice = () => {
+              listTrigger.current =
+                document.activeElement instanceof HTMLButtonElement
+                  ? document.activeElement
+                  : null;
+              open();
+            };
+            openChoices.current = beginChoice;
+            return renderTrigger ? (
+              renderTrigger(beginChoice)
+            ) : (
+              <AddActionButton
+                label={t('m5s3.collection.create')}
+                icon="listen"
+                disabled={pending || linked.isPending || Boolean(linked.error)}
+                onClick={beginChoice}
+              />
+            );
+          }}
           onChoose={(items) =>
             mutate(
               items.map((item) => item.id),
@@ -221,6 +251,64 @@ export function PlanCollectionLinks({
           }
         />
       ) : null}
+      <ShortTaskSheet
+        ref={listSheet}
+        open={selectedList !== null}
+        title={
+          lists.find((list) => list.id === selectedList)?.title ??
+          t('m5s3.collection.planHeading')
+        }
+        restoreFocusRef={listTrigger}
+        isCloseBlocked={listPending}
+        isDirty={listDirty}
+        onDiscardRequested={() => setConfirmListDiscard(true)}
+        onClose={() => {
+          setSelectedList(null);
+          setListDirty(false);
+          setConfirmListDiscard(false);
+          setDiscardListConfirmed(false);
+          void client.invalidateQueries({ queryKey: key });
+        }}
+        footer={
+          <button
+            type="button"
+            disabled={listPending}
+            onClick={() => listSheet.current?.requestClose()}
+          >
+            {t('experiences.finish')}
+          </button>
+        }
+      >
+        {confirmListDiscard ? (
+          <PlanningDiscardConfirmation
+            onKeepEditing={() => {
+              setConfirmListDiscard(false);
+              listContent.current
+                ?.querySelector<HTMLInputElement>('input[name="title"]')
+                ?.focus();
+            }}
+            onDiscard={() => {
+              setListDirty(false);
+              setDiscardListConfirmed(true);
+            }}
+          />
+        ) : null}
+        <div ref={listContent}>
+          {selectedList ? (
+            <CollectionProductPage
+              apis={apis}
+              spaceId={spaceId}
+              collectionId={selectedList}
+              embedded
+              onPendingChange={setListPending}
+              onDirtyChange={(dirty) => {
+                setListDirty(dirty);
+                if (!dirty) setConfirmListDiscard(false);
+              }}
+            />
+          ) : null}
+        </div>
+      </ShortTaskSheet>
       {mutation.error ? <ProblemState error={mutation.error} /> : null}
     </section>
   );

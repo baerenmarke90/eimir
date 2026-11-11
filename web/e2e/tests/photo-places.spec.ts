@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import experiences from '../../src/i18n/locales/experiences';
+import composer from '../../src/i18n/locales/composer';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
@@ -11,6 +12,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localeFixture from '../fixtures/locales/de';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { openComposerPlace } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -29,35 +31,73 @@ const PHOTO = fs.readFileSync(
 );
 const PLACE_ID = '66666666-6666-4666-8666-666666666666';
 
-test('the saved Place discloses its address, opens the pinned map and retains the moment', async ({
+function readPlaceLink(
+  page: Page,
+  name = localeFixture.photoPlaces.resolvedName,
+) {
+  return page
+    .locator('.moment-metadata')
+    .getByRole('link', { name, exact: true });
+}
+
+async function openPlaceEditor(page: Page) {
+  const picker = page.getByRole('dialog', {
+    name: photoPlaceCopy.add,
+    exact: true,
+  });
+  if (!(await picker.isVisible())) await openComposerPlace(page);
+  await expect(picker).toBeVisible();
+  return picker;
+}
+
+async function finishPlaceEditor(page: Page) {
+  const picker = page.getByRole('dialog', {
+    name: photoPlaceCopy.add,
+    exact: true,
+  });
+  await picker
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
+  await expect(picker).toHaveCount(0);
+}
+
+async function openPlaceActions(page: Page) {
+  const picker = await openPlaceEditor(page);
+  await picker
+    .getByRole('button', {
+      name: photoPlaceCopy.actions.replace(
+        '{{name}}',
+        localeFixture.photoPlaces.resolvedName,
+      ),
+      exact: true,
+    })
+    .click();
+  const actions = page.getByRole('dialog', {
+    name: localeFixture.photoPlaces.resolvedName,
+    exact: true,
+  });
+  await expect(actions).toBeVisible();
+  return actions;
+}
+
+test('the saved Place opens the pinned map directly, restores the moment and retains its address in the editor', async ({
   page,
 }) => {
   const state = await installPhotoPlaces(page);
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  const place = page.getByRole('button', {
-    name: localeFixture.photoPlaces.resolvedName,
-    exact: true,
-  });
+  const place = readPlaceLink(page);
   await expect(place).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: photoPlaceCopy.add }),
   ).toHaveCount(0);
   await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
+  await expect(place).toHaveAttribute(
+    'href',
+    '/story/map?place=52.516667%3A13.4',
+  );
   await place.click();
-  const sheet = page.getByRole('dialog', {
-    name: localeFixture.photoPlaces.resolvedName,
-  });
-  await expect(sheet).toBeVisible();
-  const address = sheet.getByRole('link', {
-    name: photoPlaceCopy.mapAddress.replace(
-      '{{address}}',
-      localeFixture.photoPlaces.resolvedAddress,
-    ),
-  });
-  await expect(address).toBeVisible();
-  await address.click();
   await expect(page).toHaveURL(/\/story\/map\?place=52.516667%3A13.4$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.memory-map-marker')).toHaveCount(1);
@@ -72,12 +112,28 @@ test('the saved Place discloses its address, opens the pinned map and retains th
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   await expect(place).toBeVisible();
+  await expect(place).toBeFocused();
   await expect(
     page.getByRole('heading', {
       name: localeFixture.photoPlaces.title,
       exact: true,
     }),
   ).toBeVisible();
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  const picker = await openPlaceEditor(page);
+  await expect(
+    picker
+      .locator('.ordered-moment-places > ol')
+      .getByText(localeFixture.photoPlaces.resolvedAddress, { exact: true }),
+  ).toBeVisible();
+  await finishPlaceEditor(page);
+  await page
+    .locator('.composer-header')
+    .getByRole('link', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   expect(state.writes).toEqual([]);
   expect(state.unexpected).toEqual([]);
 });
@@ -91,39 +147,40 @@ test('a pending photo location becomes a readable address without another upload
   await expect(
     page.getByText(photoPlaceCopy.locationFallback, { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: photoPlaceCopy.locationFallback, exact: true })
-    .click();
   await expect(
-    page.getByRole('dialog', { name: photoPlaceCopy.locationFallback }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('link', {
-      name: photoPlaceCopy.mapAddress.replace(
-        '{{address}}',
-        photoPlaceCopy.locationFallback,
-      ),
-    }),
+    readPlaceLink(page, photoPlaceCopy.locationFallback),
   ).toHaveAttribute('href', '/story/map?place=52.516667%3A13.4');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   state.resolvePlace();
+  const place = readPlaceLink(page);
+  await expect(place).toBeVisible();
+  await expect(place).toHaveAttribute(
+    'href',
+    '/story/map?place=52.516667%3A13.4',
+  );
+  await place.click();
+  await expect(page).toHaveURL(/\/story\/map\?place=52.516667%3A13.4$/);
   await expect(
-    page.getByRole('dialog', { name: localeFixture.photoPlaces.resolvedName }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('link', {
-      name: photoPlaceCopy.mapAddress.replace(
-        '{{address}}',
-        localeFixture.photoPlaces.resolvedAddress,
-      ),
-    }),
-  ).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(
-    page.getByRole('button', {
+    page.getByRole('heading', {
       name: localeFixture.photoPlaces.resolvedName,
       exact: true,
     }),
-  ).toBeFocused();
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect(place).toBeFocused();
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  const picker = await openPlaceEditor(page);
+  await expect(
+    picker
+      .locator('.ordered-moment-places > ol')
+      .getByText(localeFixture.photoPlaces.resolvedAddress, { exact: true }),
+  ).toBeVisible();
+  await finishPlaceEditor(page);
   expect(state.writes).toEqual([]);
   expect(state.unexpected).toEqual([]);
 });
@@ -136,21 +193,8 @@ test('canonical Place correction returns to the originating saved moment', async
   const state = await installPhotoPlaces(page);
   await signIn(page);
   await page.goto('/story/memories/mem-canal/edit');
-  await expect(
-    page.getByRole('button', { name: photoPlaceCopy.add }),
-  ).toHaveCount(1);
-  await page
-    .getByRole('button', {
-      name: photoPlaceCopy.actions.replace(
-        '{{name}}',
-        localeFixture.photoPlaces.resolvedName,
-      ),
-    })
-    .click();
-  await page
-    .getByRole('dialog')
-    .getByRole('link', { name: photoPlaceCopy.edit })
-    .click();
+  const actions = await openPlaceActions(page);
+  await actions.getByRole('link', { name: photoPlaceCopy.edit }).click();
   await expect(
     page.getByRole('heading', {
       name: localeFixture.photoPlaces.resolvedName,
@@ -194,24 +238,17 @@ test('leaving the Memory editor for a Place requires a deliberate decision about
   const body = page.locator('#memory-edit-body');
   await body.fill('An unsaved personal memory');
   const openPlace = async () => {
-    await page
-      .getByRole('button', {
-        name: photoPlaceCopy.actions.replace(
-          '{{name}}',
-          localeFixture.photoPlaces.resolvedName,
-        ),
-      })
-      .click();
-    await page
-      .getByRole('dialog')
-      .getByRole('link', { name: photoPlaceCopy.edit })
-      .click();
+    const actions = await openPlaceActions(page);
+    await actions.getByRole('link', { name: photoPlaceCopy.edit }).click();
     await expect(
       page.getByRole('dialog', { name: taskBoundary.discardTitle }),
     ).toBeVisible();
   };
   await openPlace();
   await page.getByRole('button', { name: taskBoundary.keepEditing }).click();
+  await expect(
+    page.getByRole('dialog', { name: taskBoundary.discardTitle }),
+  ).toHaveCount(0);
   await expect(body).toHaveValue('An unsaved personal memory');
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await openPlace();
@@ -365,6 +402,12 @@ async function installPhotoPlaces(page: Page, pending = false) {
       });
       return;
     }
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/places`) {
+      await route.fulfill({
+        json: { items: [place], nextCursor: null, hasMore: false },
+      });
+      return;
+    }
     if (
       (method === 'GET' || method === 'PATCH') &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-canal`
@@ -499,10 +542,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page
         .getByRole('heading', { name: photoPlaceCopy.title, exact: true })
         .focus();
-      const destination = page.locator('.memory-planning-destination');
-      await expect(destination).toContainText(
-        memoryProduct.planning.linkedPlan,
-      );
+      const destination = page
+        .locator('.memory-planning-links')
+        .getByRole('link', {
+          name: new RegExp(localeFixture.photoPlaces.title),
+        });
+      await expect(destination).toContainText(composer.viewLinkedPlan);
       await expect(destination).toContainText(localeFixture.photoPlaces.title);
       await expect(destination).toHaveAttribute(
         'href',
@@ -528,18 +573,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .getByRole('link', { name: memoryProduct.edit, exact: true })
         .click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
-      await expect(
-        page.getByRole('button', { name: photoPlaceCopy.add }),
-      ).toHaveCount(1);
-      await page
-        .getByRole('button', {
-          name: photoPlaceCopy.actions.replace(
-            '{{name}}',
-            localeFixture.photoPlaces.resolvedName,
-          ),
-        })
-        .click();
-      const dialog = page.getByRole('dialog');
+      const dialog = await openPlaceActions(page);
       await expect(
         dialog.getByRole('link', { name: photoPlaceCopy.maps }),
       ).toHaveAttribute('href', '/story/map?place=52.516667%3A13.4');
@@ -551,6 +585,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
           { fullPage: true },
         );
       await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      const picker = page.getByRole('dialog', {
+        name: photoPlaceCopy.add,
+        exact: true,
+      });
+      await expect(picker).toBeVisible();
       const remove = page.getByRole('button', {
         name: experiences.removePlace.replace(
           '{{name}}',
@@ -560,7 +600,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       });
       await expect(remove.locator('svg')).toHaveCount(1);
       const row = page
-        .locator('.ordered-moment-places li')
+        .locator('.ordered-moment-places > ol > li')
         .filter({ hasText: localeFixture.photoPlaces.resolvedName });
       const rowBounds = await row.boundingBox(),
         removeBounds = await remove.boundingBox();
@@ -579,9 +619,18 @@ for (const colorScheme of ['light', 'dark'] as const) {
       expect(state.writes).toEqual([]);
       await remove.click();
       await expect(
-        page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
+        picker
+          .locator('.ordered-moment-places > ol')
+          .getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);
+      await expect(
+        picker.locator('.moment-place-choices').getByRole('button', {
+          name: new RegExp(localeFixture.photoPlaces.resolvedName),
+        }),
+      ).toBeVisible();
       expect(state.writes).toEqual([]);
+      await finishPlaceEditor(page);
+      await expect(page.locator('.composer-place-context')).toHaveCount(0);
       await page
         .getByRole('button', { name: memoryProduct.save, exact: true })
         .click();
@@ -598,8 +647,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);
       await expect(
-        page.getByRole('button', { name: photoPlaceCopy.add }),
+        page
+          .locator('.composer-tool-row')
+          .getByRole('button', { name: composer.place, exact: true }),
       ).toBeVisible();
+      const reopened = await openPlaceEditor(page);
+      await expect(
+        reopened.locator('.ordered-moment-places > ol > li'),
+      ).toHaveCount(0);
+      await expect(
+        reopened.locator('.moment-place-choices').getByRole('button', {
+          name: new RegExp(localeFixture.photoPlaces.resolvedName),
+        }),
+      ).toBeVisible();
+      await finishPlaceEditor(page);
       expect(state.writes).toEqual(['save']);
       expect(external).toEqual([]);
       expect(state.unexpected).toEqual([]);

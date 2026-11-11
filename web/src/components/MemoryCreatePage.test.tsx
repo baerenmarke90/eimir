@@ -7,8 +7,10 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryPlanningRelationsApi } from '../api/generated/apis/MemoryPlanningRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import { i18n } from '../i18n';
@@ -138,7 +140,7 @@ function submit() {
   fireEvent.submit(form);
 }
 function showTags() {
-  fireEvent.click(screen.getByRole('button', { name: contextTags.add }));
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('composer.tag') }));
 }
 beforeEach(() => {
   vi.clearAllMocks();
@@ -163,7 +165,7 @@ const verifyButton = () =>
 const requestOf = (call: number) => fixture.create.mock.calls[call]?.[0];
 
 describe('Memory capture mutation ownership', () => {
-  it('keeps Save disabled and sends no request for a completely empty capture', () => {
+  it('keeps empty Save operable for validation without sending a request', () => {
     setup();
     expect(titleInput().closest('details')).toBeNull();
     expect(titleInput().required).toBe(false);
@@ -177,7 +179,7 @@ describe('Memory capture mutation ownership', () => {
     }) as HTMLButtonElement;
     expect(save.form?.id).toBe('memory-create-form');
     expect(save.closest('form')).toBeNull();
-    expect(save.disabled).toBe(true);
+    expect(save.disabled).toBe(false);
     submit();
     expect(fixture.create).not.toHaveBeenCalled();
     enterTitle();
@@ -189,7 +191,7 @@ describe('Memory capture mutation ownership', () => {
       .mockResolvedValueOnce(confirmed);
     setup();
     showTags();
-    fireEvent.click(screen.getByText(contextTags.suggestions));
+    expect(screen.getByText(contextTags.suggestions)).toBeTruthy();
     const tag = screen.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
     }) as HTMLInputElement;
@@ -202,7 +204,10 @@ describe('Memory capture mutation ownership', () => {
       screen
         .getByRole('button', { name: de.memory.save })
         .hasAttribute('disabled'),
-    ).toBe(true);
+    ).toBe(false);
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
     enterTitle();
     submit();
     await screen.findByText(taskBoundary.uncertainTitle);
@@ -243,6 +248,42 @@ describe('Memory capture mutation ownership', () => {
     ).toEqual({ value: confirmed, source: 'network' });
     expect(fixture.clear).toHaveBeenCalledTimes(1);
     expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+  it('retries a failed staged Plan association against the confirmed Memory without creating twice', async () => {
+    vi.spyOn(PlansApi.prototype, 'listPlans').mockResolvedValue({
+      items: [{ id: 'plan-staged', title: 'Our next outing' }],
+    } as never);
+    const link = vi
+      .spyOn(MemoryPlanningRelationsApi.prototype, 'linkMemoryPlan')
+      .mockRejectedValueOnce({ status: 503 })
+      .mockResolvedValueOnce(undefined);
+    fixture.create.mockResolvedValue(confirmed);
+    setup();
+    enterTitle();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('memoryProduct.planning.add'),
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Our next outing' }),
+    );
+    submit();
+    const notice = await screen.findByText(i18n.t('composer.linkRecovery'));
+    expect(fixture.create).toHaveBeenCalledTimes(1);
+    expect(titleInput().closest('fieldset')?.disabled).toBe(true);
+    fireEvent.click(
+      within(notice.parentElement!).getByRole('button', {
+        name: i18n.t('common.retry'),
+      }),
+    );
+    await screen.findByText('Actual result destination');
+    expect(fixture.create).toHaveBeenCalledTimes(1);
+    expect(link).toHaveBeenCalledTimes(2);
+    expect(link.mock.calls.map(([request]) => request.memoryId)).toEqual([
+      confirmed.id,
+      confirmed.id,
+    ]);
   });
   it('reports a local date error without locking or sending, then saves after correction', async () => {
     fixture.create.mockResolvedValue(confirmed);
@@ -642,6 +683,9 @@ describe('Confirmed Plan handoff to Memory capture', () => {
       <Harness client={client} entryState={entryState} onSaved={vi.fn()} />,
     );
     await screen.findByText(place.name);
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('composer.place') }),
+    );
     expect(screen.getByText(place.address!)).toBeTruthy();
     fireEvent.click(
       screen.getByRole('button', {
@@ -652,7 +696,10 @@ describe('Confirmed Plan handoff to Memory capture', () => {
       await client.invalidateQueries({ queryKey: ['plan-capture-place'] });
     });
     expect(read).toHaveBeenCalledTimes(2);
-    expect(screen.queryByText(place.name)).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+    );
+    await waitFor(() => expect(screen.queryByText(place.name)).toBeNull());
   });
   it('saves the source Place through the normal Memory create command', async () => {
     const place = {

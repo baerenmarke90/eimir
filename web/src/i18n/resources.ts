@@ -2,6 +2,7 @@ import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import calendarPlan from './locales/calendarPlan';
 import contextTags from './locales/contextTags';
+import composer from './locales/composer';
 import coupleExperiences from './locales/coupleExperiences';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
@@ -99,6 +100,7 @@ export const germanResources = {
   ...snackbar,
   ...storyProducts,
   contextTags,
+  composer,
   sharedPhotos,
   photoSources,
   photoPlaces,

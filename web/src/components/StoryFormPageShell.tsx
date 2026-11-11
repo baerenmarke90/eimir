@@ -36,6 +36,7 @@ export function StoryEditorPageShell({
   headerClassName,
   headerAction,
   quiet = false,
+  pageComposer = quiet,
   sectionLabelledBy,
   sectionHeading,
   children,
@@ -47,13 +48,14 @@ export function StoryEditorPageShell({
   headerClassName?: string;
   headerAction?: ReactNode;
   quiet?: boolean;
+  pageComposer?: boolean;
   sectionLabelledBy: string;
   sectionHeading: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div
-      className={`page page-reading create-page product-editor-page free-composer${quiet ? ' quiet-composer' : ''}`}
+      className={`page page-reading create-page product-editor-page free-composer${quiet ? ' quiet-composer' : ''}${pageComposer ? ' page-composer' : ''}`}
     >
       <PageHeader
         before={before}

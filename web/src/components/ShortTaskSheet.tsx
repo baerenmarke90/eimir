@@ -598,6 +598,8 @@ export function ShortTaskSheet({
       }}
       onCancel={(event) => {
         event.preventDefault();
+        // Native cancel still propagates through React's parent portal tree.
+        event.stopPropagation();
         requestClose();
       }}
       onAnimationEnd={(event) => {

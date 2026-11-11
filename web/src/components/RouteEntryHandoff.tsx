@@ -54,6 +54,7 @@ export function RouteEntryHandoff(): null {
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
   const previousPath = useRef<string | null>(null);
+  const completedOriginEntry = useRef<string | null>(null);
 
   useEffect(() => {
     const state = location.state as {
@@ -74,8 +75,12 @@ export function RouteEntryHandoff(): null {
       origin.to === taskOriginPath(location.pathname, location.search)
     ) {
       if (location.pathname === '/story') return undefined;
+      const entry = `${location.key}:${String(state?.taskReturnKey)}`;
+      if (completedOriginEntry.current === entry) return undefined;
       const frame = window.requestAnimationFrame(() => {
+        if (!resolveOrigin(state?.taskReturnKey)) return;
         window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
+        completedOriginEntry.current = entry;
         if (origin.focusTarget === 'quick-create') {
           Array.from(
             document.querySelectorAll<HTMLElement>('.quick-create-trigger'),

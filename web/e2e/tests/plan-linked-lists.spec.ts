@@ -1,20 +1,22 @@
-import memoryCopy from '../../src/i18n/locales/memoryProduct';
-import fixtures from '../fixtures/locales/de';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import copy from '../../src/i18n/locales/m5s3';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
+import copy from '../../src/i18n/locales/m5s3';
+import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import fixtures from '../fixtures/locales/de';
+import { closeHeartAudience, showHeartAudience } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
-import { showHeartAudience } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -23,7 +25,11 @@ const planId = '44444444-4444-4444-8444-444444444444';
 const placeId = '55555555-5555-4555-8555-555555555555';
 const stamp = '2026-11-09T10:00:00Z';
 
-async function fixture(page: Page, withStory = false) {
+async function fixture(
+  page: Page,
+  withStory = false,
+  completeBeforeCapture = false,
+) {
   await page.addInitScript(
     ({ accountId, spaceId }) => {
       localStorage.setItem(
@@ -54,8 +60,8 @@ async function fixture(page: Page, withStory = false) {
     spaceId: SPACE_ID,
     title: fixtures.planLinkedLists.title,
     description: fixtures.planLinkedLists.description,
-    status: 'COMPLETED',
-    experiencedOn: '2026-11-08',
+    status: completeBeforeCapture ? 'IDEA' : 'COMPLETED',
+    experiencedOn: completeBeforeCapture ? null : '2026-11-08',
     plannedOn: null,
     plannedStart: null,
     plannedEnd: null,
@@ -178,6 +184,15 @@ async function fixture(page: Page, withStory = false) {
     const url = new URL(request.url());
     const method = request.method();
     const path = url.pathname;
+    if (path === `${base}/plans/${planId}/complete` && method === 'POST') {
+      expect(request.postDataJSON()).toEqual({ experiencedOn: '2026-11-08' });
+      Object.assign(plan, {
+        status: 'COMPLETED',
+        experiencedOn: '2026-11-08',
+        version: plan.version + 1,
+      });
+      return route.fulfill({ json: plan });
+    }
     if (path === `${base}/plans/${planId}/story`) {
       const items = [...sourceResources].flatMap(([key, source]) => {
         if (
@@ -397,6 +412,37 @@ async function fixture(page: Page, withStory = false) {
   await expect(
     page.getByRole('heading', { name: plan.title, exact: true }),
   ).toBeVisible();
+  if (completeBeforeCapture) {
+    await page
+      .getByRole('button', { name: copy.plan.complete, exact: true })
+      .click();
+    const completion = page.getByRole('dialog', {
+      name: copy.plan.completeDateTitle,
+      exact: true,
+    });
+    await completion
+      .getByLabel(copy.plan.experiencedOn, { exact: true })
+      .fill('2026-11-08');
+    await completion
+      .getByRole('button', { name: copy.plan.complete, exact: true })
+      .click();
+    await expect(completion).toHaveCount(0);
+    await expect(
+      page.getByRole('button', {
+        name: copy.planStory.memoryAction,
+        exact: true,
+      }),
+    ).toBeVisible();
+  } else {
+    for (const action of [
+      copy.planStory.memoryAction,
+      copy.planStory.heartMomentAction,
+      copy.planStory.milestoneAction,
+    ])
+      await expect(
+        page.getByRole('button', { name: action, exact: true }),
+      ).toHaveCount(0);
+  }
   return {
     unexpected,
     calls,
@@ -407,6 +453,29 @@ async function fixture(page: Page, withStory = false) {
     storySources,
     sourcePlans,
   };
+}
+
+function listTool(page: Page) {
+  return page
+    .locator('.composer-tool-row')
+    .getByRole('button', { name: composer.list, exact: true });
+}
+
+async function closePlanEditor(page: Page) {
+  const close = page.locator('.composer-header .task-back-control');
+  await expect(close).toHaveAccessibleName(taskBoundary.close);
+  await close.click();
+}
+
+async function closeHeartEditor(page: Page) {
+  const back = page.locator('.composer-header .task-back-control');
+  await expect(back).toHaveAccessibleName(taskBoundary.back);
+  await expect(back).toHaveAttribute('href', /\/heart-moments\/[^/]+$/);
+  await back.click();
+}
+
+function linkedList(page: Page, title: string) {
+  return page.locator('.plan-collection-row').filter({ hasText: title });
 }
 
 async function noOverflow(page: Page) {
@@ -448,9 +517,7 @@ for (const view of [
     const state = await fixture(page);
     if (view.large)
       await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-    await expect(
-      page.getByRole('button', { name: copy.collection.create, exact: true }),
-    ).toHaveCount(0);
+    await expect(listTool(page)).toHaveCount(0);
     await expect(
       page.getByRole('heading', { name: copy.collection.planHeading }),
     ).toHaveCount(0);
@@ -463,10 +530,7 @@ for (const view of [
     await page
       .getByRole('button', { name: de.common.edit, exact: true })
       .click();
-    await page
-      .locator('#plan-edit-section')
-      .getByRole('button', { name: copy.collection.create, exact: true })
-      .click();
+    await listTool(page).click();
     const dialog = page.getByRole('dialog', { name: copy.collection.choose });
     await expect(dialog).toBeVisible();
     const choices = dialog.getByRole('checkbox');
@@ -493,14 +557,12 @@ for (const view of [
       .getByRole('button', { name: copy.collection.link, exact: true })
       .click();
     await expect(dialog).not.toBeVisible();
+    await expect(listTool(page)).toBeFocused();
     await expect(
-      page.getByRole('button', { name: copy.collection.create, exact: true }),
-    ).toBeFocused();
-    await expect(
-      page.getByRole('link', { name: /Alles fürs Picknick/ }),
+      linkedList(page, 'Alles fürs Picknick').getByRole('button').first(),
     ).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /Zeit zu zweit/ }),
+      linkedList(page, 'Zeit zu zweit').getByRole('button').first(),
     ).toBeVisible();
     expect(state.calls.links).toEqual(['list-a', 'list-z']);
     await captureScreenshot(
@@ -509,15 +571,11 @@ for (const view of [
       `plan-lists-edit-${view.width}-${view.theme}.png`,
       { fullPage: true },
     );
-    await page
-      .getByRole('button', { name: de.common.cancel, exact: true })
-      .click();
+    await closePlanEditor(page);
     await expect(
       page.getByRole('button', { name: de.common.edit, exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: copy.collection.create, exact: true }),
-    ).toHaveCount(0);
+    await expect(listTool(page)).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: /Verknüpfung zu/ }),
     ).toHaveCount(0);
@@ -529,9 +587,19 @@ for (const view of [
       `plan-lists-${view.width}-${view.theme}.png`,
       { fullPage: true },
     );
-    await page.getByRole('link', { name: /Alles fürs Picknick/ }).click();
+    await linkedList(page, 'Alles fürs Picknick')
+      .getByRole('button')
+      .first()
+      .click();
+    const listSheet = page.getByRole('dialog', {
+      name: 'Alles fürs Picknick',
+      exact: true,
+    });
     await expect(
-      page.getByRole('heading', { name: 'Alles fürs Picknick', exact: true }),
+      listSheet.getByRole('heading', {
+        name: 'Alles fürs Picknick',
+        exact: true,
+      }),
     ).toBeVisible();
     await page
       .getByRole('button', {
@@ -543,18 +611,19 @@ for (const view of [
         name: copy.collection.markOpen.replace('{{title}}', 'Picknickdecke'),
       }),
     ).toBeVisible();
-    await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+    await listSheet
+      .getByRole('button', { name: experiences.finish, exact: true })
       .click();
+    await expect(listSheet).toHaveCount(0);
     await expect(
       page.getByRole('heading', { name: state.plan.title, exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: /Alles fürs Picknick/ }),
-    ).toContainText('1 erledigt');
-    await expect(
-      page.getByRole('button', { name: copy.collection.create, exact: true }),
-    ).toHaveCount(0);
+    await expect(linkedList(page, 'Alles fürs Picknick')).toContainText(
+      composer.listProgress
+        .replace('{{completed}}', '1')
+        .replace('{{count}}', '1'),
+    );
+    await expect(listTool(page)).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: /Verknüpfung zu/ }),
     ).toHaveCount(0);
@@ -569,9 +638,7 @@ for (const view of [
         ),
       })
       .click();
-    await expect(
-      page.getByRole('link', { name: /Alles fürs Picknick/ }),
-    ).toHaveCount(0);
+    await expect(linkedList(page, 'Alles fürs Picknick')).toHaveCount(0);
     expect(state.lists).toHaveLength(3);
     await page
       .getByRole('button', { name: copy.common.saveChanges, exact: true })
@@ -580,14 +647,12 @@ for (const view of [
       page.getByRole('button', { name: de.common.edit, exact: true }),
     ).toBeVisible();
     expect(state.calls.planUpdates).toHaveLength(1);
-    await expect(
-      page.getByRole('button', { name: copy.collection.create, exact: true }),
-    ).toHaveCount(0);
+    await expect(listTool(page)).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: /Verknüpfung zu/ }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole('link', { name: /Zeit zu zweit/ }),
+      linkedList(page, 'Zeit zu zweit').getByRole('button').first(),
     ).toBeVisible();
     await noOverflow(page);
     await page.goto('/more/collections?scope=COMPLETED');
@@ -658,28 +723,47 @@ test('completed-list scope survives detail return and reopened items leave that 
 test('Memory continuation saves the canonical source Place and returns to the completed Plan', async ({
   page,
 }, testInfo) => {
-  const state = await fixture(page);
+  const state = await fixture(page, false, true);
   await page
     .getByRole('button', { name: copy.planStory.memoryAction, exact: true })
     .click();
+  const selectedPlace = page.getByRole('button', {
+    name: composer.editPlace.replace('{{name}}', state.place.name),
+    exact: true,
+  });
+  await expect(selectedPlace).toBeVisible();
+  await selectedPlace.click();
+  const places = page.getByRole('dialog');
   await expect(
-    page.getByText(state.place.address, { exact: true }),
+    places
+      .locator('.ordered-moment-places > ol')
+      .getByText(state.place.address, { exact: true }),
   ).toBeVisible();
+  await places
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
+  await expect(places).toHaveCount(0);
   await expect(page.getByLabel(de.memory.bodyLabel)).toHaveValue(
     state.plan.description,
   );
   await page
     .getByLabel(de.memory.bodyLabel)
     .fill(fixtures.planLinkedLists.savedMemoryBody);
+  await expect(page.getByLabel(de.memory.bodyLabel)).toHaveValue(
+    fixtures.planLinkedLists.savedMemoryBody,
+  );
   await captureScreenshot(page, testInfo, 'memory-source-place.png', {
     fullPage: true,
   });
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(/\/story\/memories\/memory-new$/);
   expect(state.calls.memory?.placeIds).toEqual([placeId]);
-  await expect(
-    page.getByText(fixtures.planLinkedLists.savedMemoryBody, { exact: true }),
-  ).toBeVisible();
+  expect(state.calls.memory?.body).toBe(
+    fixtures.planLinkedLists.savedMemoryBody,
+  );
+  await expect(page.locator('.memory-detail-body')).toHaveText(
+    fixtures.planLinkedLists.savedMemoryBody,
+  );
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .click();
@@ -695,23 +779,25 @@ test('Memory continuation saves the canonical source Place and returns to the co
 test('private HeartMoment continuation saves a protected location snapshot', async ({
   page,
 }, testInfo) => {
-  const state = await fixture(page);
+  const state = await fixture(page, false, true);
   await page
     .getByRole('button', {
       name: copy.planStory.heartMomentAction,
       exact: true,
     })
     .click();
-  await expect(
-    page.getByRole('button', { name: state.place.name, exact: true }),
-  ).toBeVisible();
+  await expect(page.locator('.composer-place-context')).toBeVisible();
+  await expect(page.locator('.composer-place-context')).toContainText(
+    state.place.name,
+  );
   await showHeartAudience(page);
   await page
     .getByRole('radio', {
       name: storyCopy.heartMomentProduct.visibilityPrivate,
       exact: true,
     })
-    .check();
+    .click();
+  await closeHeartAudience(page);
   await captureScreenshot(page, testInfo, 'heart-source-place-private.png', {
     fullPage: true,
   });
@@ -781,6 +867,31 @@ for (const view of [
             ? memoryCopy.planning.heading
             : copy.planStory.plansHeading,
       });
+      if (source.kind === 'HEART_MOMENT') {
+        await expect(reverse).toHaveCount(0);
+        await page
+          .getByRole('link', {
+            name: storyCopy.heartMomentProduct.edit,
+            exact: true,
+          })
+          .click();
+        await expect(reverse).toContainText(state.plan.title);
+        await noOverflow(page);
+        await captureScreenshot(
+          page,
+          testInfo,
+          `heart-plan-backlink-${view.width}-${view.theme}.png`,
+          { fullPage: true },
+        );
+        await closeHeartEditor(page);
+        await expect(reverse).toHaveCount(0);
+        await page
+          .getByRole('button', { name: taskBoundary.back, exact: true })
+          .click();
+        await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
+        await expect(context.getByRole('link')).toHaveCount(3);
+        continue;
+      }
       await expect(
         reverse.getByRole('link', { name: new RegExp(state.plan.title) }),
       ).toBeVisible();
@@ -812,7 +923,7 @@ for (const view of [
 test('shared HeartMoment capture retains its Plan in both directions', async ({
   page,
 }) => {
-  const state = await fixture(page);
+  const state = await fixture(page, false, true);
   state.calls.failSourceLinks = true;
   await page
     .getByRole('button', {
@@ -830,6 +941,7 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
     })
     .click();
   await expect(page).toHaveURL(/\/story\/heart-moments\/heart-new$/);
+  const handoff = page.locator('.story-planning-handoff');
   const reverse = page.getByRole('region', {
     name: copy.planStory.plansHeading,
   });
@@ -837,18 +949,27 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
     page.getByText(fixtures.planLinkedLists.savedHeartText, { exact: true }),
   ).toBeVisible();
   await expect(
-    reverse.getByRole('button', { name: de.common.retry, exact: true }),
+    handoff.getByRole('button', { name: de.common.retry, exact: true }),
   ).toBeVisible();
   expect(state.calls.sourceLinks).toEqual([]);
   state.calls.failSourceLinks = false;
-  await reverse
+  await expect(reverse).toHaveCount(0);
+  await handoff
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(
-    reverse.getByRole('link', { name: new RegExp(state.plan.title) }),
-  ).toBeVisible();
+    handoff.getByRole('button', { name: de.common.retry, exact: true }),
+  ).toHaveCount(0);
   expect(state.calls.sourceLinks).toEqual(['heart-moments/heart-new']);
-  await reverse.getByRole('link').click();
+  await page
+    .getByRole('link', { name: storyCopy.heartMomentProduct.edit, exact: true })
+    .click();
+  await expect(reverse).toContainText(state.plan.title);
+  await closeHeartEditor(page);
+  await expect(reverse).toHaveCount(0);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
   await expect(
     page
       .getByRole('region', { name: copy.planStory.linksHeading })
@@ -862,7 +983,7 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
 test('a confirmed source link refreshes the Plan after returning during the pending write', async ({
   page,
 }) => {
-  const state = await fixture(page);
+  const state = await fixture(page, false, true);
   let release!: () => void;
   let admitted = false;
   const pending = new Promise<void>((resolve) => {
@@ -915,7 +1036,7 @@ test('a confirmed source link refreshes the Plan after returning during the pend
 test('Milestone capture retains its Plan and existing Milestones can unlink and relink in Edit', async ({
   page,
 }) => {
-  const state = await fixture(page);
+  const state = await fixture(page, false, true);
   await page
     .getByRole('button', { name: copy.planStory.milestoneAction, exact: true })
     .click();
@@ -973,7 +1094,7 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
   expect(state.unexpected).toEqual([]);
 });
 
-test('Plan field drafts survive list navigation and in-context list creation', async ({
+test('Plan field drafts survive guarded exit, bounded list choice and in-context list creation', async ({
   page,
 }) => {
   const state = await fixture(page);
@@ -982,10 +1103,7 @@ test('Plan field drafts survive list navigation and in-context list creation', a
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   const description = page.getByLabel(copy.common.description, { exact: true });
   await description.fill(fixtures.planLinkedLists.unsavedPlanDescription);
-  await page
-    .locator('#plan-edit-section')
-    .getByRole('link', { name: /Alles fürs Picknick/ })
-    .click();
+  await closePlanEditor(page);
   const discard = page.getByRole('alertdialog', {
     name: copy.common.discardTitle,
   });
@@ -994,9 +1112,19 @@ test('Plan field drafts survive list navigation and in-context list creation', a
   await expect(description).toHaveValue(
     fixtures.planLinkedLists.unsavedPlanDescription,
   );
-  await page
-    .getByRole('button', { name: copy.collection.create, exact: true })
+  await linkedList(page, 'Alles fürs Picknick')
+    .getByRole('button')
+    .first()
     .click();
+  await expect(
+    page.getByRole('dialog', { name: copy.collection.choose }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(description).toHaveValue(
+    fixtures.planLinkedLists.unsavedPlanDescription,
+  );
+  await listTool(page).click();
   await page
     .getByRole('dialog', { name: copy.collection.choose })
     .getByRole('button', { name: copy.collection.createNew })
@@ -1047,9 +1175,7 @@ test('Plan creation keeps its draft while creating a list and retries a partial 
   await page
     .getByLabel(copy.plan.intentionLabel)
     .fill(fixtures.planLinkedLists.newPlanTitle);
-  await page
-    .getByRole('button', { name: copy.collection.create, exact: true })
-    .click();
+  await listTool(page).click();
   const dialog = page.getByRole('dialog', { name: copy.collection.choose });
   await dialog
     .getByRole('button', { name: copy.collection.createNew, exact: true })
@@ -1090,9 +1216,9 @@ test('Plan creation keeps its draft while creating a list and retries a partial 
     .click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
   await expect(
-    page.getByRole('link', {
-      name: new RegExp(fixtures.planLinkedLists.newListTitle),
-    }),
+    linkedList(page, fixtures.planLinkedLists.newListTitle)
+      .getByRole('button')
+      .first(),
   ).toBeVisible();
   expect(state.calls.creates).toHaveLength(1);
   expect(state.calls.links).toEqual(['list-new']);

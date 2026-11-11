@@ -4,7 +4,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useMemo, useRef, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
@@ -24,7 +24,7 @@ import { MomentPlaceActionsMenu } from './MomentPlaceActionsMenu';
 import { MomentMapLink } from './MomentMapLink';
 import { MomentPlacePicker } from './MomentPlacePicker';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { ShortTaskSheet } from './ShortTaskSheet';
 import './MomentPlaces.css';
 import './MomentMetadata.css';
 
@@ -41,7 +41,16 @@ export function MomentPlaces({
   onNavigate,
   orderedIds,
   inline = false,
+  renderTrigger,
+  renderSelection,
+  showSelection = true,
 }: {
+  renderTrigger?: (open: () => void) => ReactNode;
+  renderSelection?: (
+    places: readonly PlaceDetail[],
+    open: () => void,
+  ) => ReactNode;
+  showSelection?: boolean;
   apiBaseUrl: string;
   accessToken: string;
   accountId: string;
@@ -62,9 +71,6 @@ export function MomentPlaces({
   const [addingPending, setAddingPending] = useState(false);
   const addTrigger = useRef<HTMLButtonElement>(null);
   const [removed, setRemoved] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selectedTrigger = useRef<HTMLButtonElement>(null);
-  const selectedSheet = useRef<ShortTaskSheetHandle>(null);
   const isPlaceholder = (name: string) =>
     name === t('photoPlaces.initialName') || name === 'Photo location';
   const readableName = (place: PlaceDetail) =>
@@ -177,22 +183,47 @@ export function MomentPlaces({
         {t('photoPlaces.title')}
       </h2>
       {canManage && !denied && !query.isPending ? (
-        <AddActionButton
-          label={t('photoPlaces.add')}
-          icon="orte"
-          ref={addTrigger}
-          aria-haspopup="dialog"
-          disabled={offline || query.isPending}
-          onClick={() => setAdding(true)}
-        />
+        renderTrigger ? (
+          renderTrigger(() => setAdding(true))
+        ) : (
+          <AddActionButton
+            label={t('photoPlaces.add')}
+            icon="orte"
+            ref={addTrigger}
+            aria-haspopup="dialog"
+            disabled={offline || query.isPending}
+            onClick={() => setAdding(true)}
+          />
+        )
       ) : null}
+      {renderSelection?.(items, () => setAdding(true))}
       <ShortTaskSheet
         open={adding && canManage && !denied}
         title={t('photoPlaces.add')}
-        isCloseBlocked={addingPending}
+        isCloseBlocked={addingPending || mutation.isPending}
         onClose={() => setAdding(false)}
         restoreFocusRef={addTrigger}
       >
+        {adding && canManage && !denied && !showSelection ? (
+          <ul>
+            {items.map((place) => (
+              <li key={place.id}>
+                <span>{readableName(place)}</span>
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={mutation.isPending || offline}
+                  aria-label={t('experiences.removePlace', {
+                    name: readableName(place),
+                  })}
+                  onClick={() => mutation.mutate(place.id)}
+                >
+                  <EimirIcon name="trash" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {adding && canManage && !denied ? (
           <MomentPlacePicker
             api={api}
@@ -234,89 +265,86 @@ export function MomentPlaces({
           </button>
         </>
       ) : null}
-      <ul>
-        {items.map((place) => {
-          const destination = photoPlaceMapUrl(place.latitude, place.longitude);
-          const name = readableName(place);
-          const context = (
-            <>
-              {destination ? (
-                <MomentMapLink
-                  className="moment-place-address"
-                  to={destination}
-                  onNavigate={
-                    inline
-                      ? (proceed) =>
-                          selectedSheet.current?.closeForNavigation(proceed)
-                      : onNavigate
-                  }
-                  ariaLabel={t('photoPlaces.mapAddress', {
-                    address: place.address || name,
-                  })}
-                >
-                  {place.address || t('photoPlaces.viewMap')}
-                </MomentMapLink>
-              ) : place.address ? (
-                <span>{place.address}</span>
-              ) : null}
-              {place.geocodingSource === 'openstreetmap' ? (
-                <a
-                  className="moment-place-attribution"
-                  href="https://www.openstreetmap.org/copyright"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  referrerPolicy="no-referrer"
-                >
-                  © OpenStreetMap
-                </a>
-              ) : null}
-            </>
-          );
-          return inline ? (
-            <li key={place.id}>
-              <button
-                type="button"
-                className="tertiary moment-place-summary"
-                aria-haspopup="dialog"
-                onClick={(event) => {
-                  selectedTrigger.current = event.currentTarget;
-                  setSelectedId(place.id);
-                }}
-              >
-                <EimirIcon name="orte" />
-                <span>{name}</span>
-              </button>
-              <ShortTaskSheet
-                ref={selectedId === place.id ? selectedSheet : undefined}
-                open={selectedId === place.id}
-                title={name}
-                onClose={() => setSelectedId(null)}
-                restoreFocusRef={selectedTrigger}
-              >
-                {context}
-              </ShortTaskSheet>
-            </li>
-          ) : (
-            <li key={place.id}>
-              <EimirIcon name="orte" className="moment-place-pin" />
-              <div className="moment-place-context">
-                <strong>{name}</strong>
-                {context}
-              </div>
-              {canManage ? (
-                <MomentPlaceActionsMenu
-                  place={{ ...place, name }}
-                  disabled={mutation.isPending}
-                  offline={offline}
-                  restoreFocusRef={heading}
-                  onNavigate={onNavigate}
-                  onRemove={() => mutation.mutateAsync(place.id)}
-                />
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+      {showSelection ? (
+        <ul>
+          {items.map((place) => {
+            const destination = photoPlaceMapUrl(
+              place.latitude,
+              place.longitude,
+            );
+            const name = readableName(place);
+            const context = (
+              <>
+                {destination ? (
+                  <MomentMapLink
+                    className="moment-place-address"
+                    to={destination}
+                    returnFocusKey={`${kind}:${targetId}:${place.id}`}
+                    onNavigate={onNavigate}
+                    ariaLabel={t('photoPlaces.mapAddress', {
+                      address: place.address || name,
+                    })}
+                  >
+                    {place.address || t('photoPlaces.viewMap')}
+                  </MomentMapLink>
+                ) : place.address ? (
+                  <span>{place.address}</span>
+                ) : null}
+                {place.geocodingSource === 'openstreetmap' ? (
+                  <a
+                    className="moment-place-attribution"
+                    href="https://www.openstreetmap.org/copyright"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    referrerPolicy="no-referrer"
+                  >
+                    © OpenStreetMap
+                  </a>
+                ) : null}
+              </>
+            );
+            return inline ? (
+              <li key={place.id}>
+                {destination ? (
+                  <MomentMapLink
+                    className="moment-place-summary"
+                    to={destination}
+                    returnFocusKey={`${kind}:${targetId}:${place.id}`}
+                    onNavigate={onNavigate}
+                    ariaLabel={name}
+                  >
+                    <EimirIcon name="orte" />
+                    <span>{name}</span>
+                  </MomentMapLink>
+                ) : (
+                  <span className="moment-place-summary">
+                    <EimirIcon name="orte" />
+                    <span>{name}</span>
+                  </span>
+                )}
+              </li>
+            ) : (
+              <li key={place.id}>
+                <EimirIcon name="orte" className="moment-place-pin" />
+                <div className="moment-place-context">
+                  <strong>{name}</strong>
+                  {context}
+                </div>
+                {canManage ? (
+                  <MomentPlaceActionsMenu
+                    place={{ ...place, name }}
+                    disabled={mutation.isPending}
+                    offline={offline}
+                    restoreFocusRef={heading}
+                    onNavigate={onNavigate}
+                    onRemove={() => mutation.mutateAsync(place.id)}
+                  />
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       {query.hasNextPage ? (
         <AutoLoadMore
           query={query}

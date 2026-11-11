@@ -91,8 +91,8 @@ async function openPlan(
                   name: 'Riverside park',
                   address: '12 River Lane',
                   description: null,
-                  latitude: null,
-                  longitude: null,
+                  latitude: 49.1,
+                  longitude: 7.2,
                   creator: plan.creator,
                   createdBy: ACCOUNT_ID,
                   createdAt: plan.createdAt,
@@ -104,6 +104,20 @@ async function openPlan(
             : [],
           hasMore: false,
           nextCursor: null,
+        },
+      });
+    if (path === `${base}/wishes/wish-outside` && method === 'GET')
+      return route.fulfill({
+        json: {
+          id: 'wish-outside',
+          spaceId: SPACE_ID,
+          title: 'Spend more time outside',
+          description: '',
+          status: 'OPEN',
+          version: 1,
+          createdAt: plan.createdAt,
+          updatedAt: plan.updatedAt,
+          capabilities: CAPABILITIES,
         },
       });
     if (path === `${base}/plans/${PLAN_ID}` && method === 'GET')
@@ -174,7 +188,7 @@ async function openPlan(
   await page.goto('/plan');
   await page.locator('.planen-next-link').click();
   await expect(
-    page.getByRole('heading', { name: plan.title, level: 1 }),
+    page.getByRole('heading', { name: plan.title, level: 2 }),
   ).toBeVisible();
   await expect(
     page.getByText('I can bring a blanket.', { exact: true }),
@@ -218,9 +232,11 @@ for (const scenario of scenarios) {
     expect(state.calls.previews).toEqual([DESCRIPTION_URL]);
 
     const panel = page.locator('.comments-panel');
-    await panel.getByRole('button', { name: copy.write }).click();
-    await expect(panel.getByRole('textbox')).toBeFocused();
-    await panel.getByRole('textbox').fill(`We can bring lunch. ${COMMENT_URL}`);
+    const reply = panel.locator('form.comment-form').getByRole('textbox');
+    await expect(reply).not.toBeFocused();
+    await reply.click();
+    await expect(reply).toBeFocused();
+    await reply.fill(`We can bring lunch. ${COMMENT_URL}`);
     await captureScreenshot(
       page,
       testInfo,
@@ -338,8 +354,8 @@ test('a failed Plan reply keeps its draft and retries the same create identity',
 }) => {
   const state = await openPlan(page, { failCreate: true });
   const panel = page.locator('.comments-panel');
-  await panel.getByRole('button', { name: copy.write }).click();
-  const field = panel.getByRole('textbox');
+  const field = panel.locator('form.comment-form').getByRole('textbox');
+  await field.click();
   await field.fill('Preserved after failure.');
   await panel.getByRole('button', { name: copy.send, exact: true }).click();
   await expect(field).toHaveValue('Preserved after failure.');
@@ -363,6 +379,14 @@ test('Plan read capability keeps conversation readable without offering a forbid
     page.locator('.comments-panel').getByText('I can bring a blanket.'),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: copy.write })).toHaveCount(0);
+  await expect(page.locator('.comments-panel form.comment-form')).toHaveCount(
+    0,
+  );
+  await expect(
+    page
+      .locator('.comments-panel')
+      .getByRole('button', { name: copy.send, exact: true }),
+  ).toHaveCount(0);
   expect(state.calls.creates).toEqual([]);
   expect(state.unknown).toEqual([]);
 });
@@ -372,17 +396,18 @@ test('Plan editing preserves a started reply and offline mode cannot submit it',
 }) => {
   const state = await openPlan(page);
   const panel = page.locator('.comments-panel');
-  await panel.getByRole('button', { name: copy.write }).click();
-  await panel
-    .getByRole('textbox')
-    .fill('Keep this thought while checking our schedule.');
+  const reply = panel.locator('form.comment-form').getByRole('textbox');
+  await reply.click();
+  await reply.fill('Keep this thought while checking our schedule.');
   await page
     .locator('.page-heading')
     .getByRole('button', { name: copy.edit, exact: true })
     .click();
   await expect(panel).toBeHidden();
-  await page.getByRole('button', { name: copy.cancel, exact: true }).click();
-  await expect(panel.getByRole('textbox')).toHaveValue(
+  await page
+    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .click();
+  await expect(reply).toHaveValue(
     'Keep this thought while checking our schedule.',
   );
   await page.evaluate(() => {
@@ -404,7 +429,7 @@ test('Plan editing preserves a started reply and offline mode cannot submit it',
     });
     window.dispatchEvent(new Event('online'));
   });
-  await expect(panel.getByRole('textbox')).toHaveValue(
+  await expect(reply).toHaveValue(
     'Keep this thought while checking our schedule.',
   );
   expect(state.calls.creates).toEqual([]);
@@ -445,16 +470,14 @@ for (const [width, theme] of [
       };
     });
     expect(style.underline).toBe('none');
-    expect(style.padding).toBeGreaterThan(0);
+    expect(style.padding).toBe(0);
     expect(style.height).toBeGreaterThanOrEqual(44);
     const place = page.getByRole('link', { name: /Riverside park/ });
-    await expect(place).toHaveAttribute('href', '/plan/places/place-park');
-    await expect(place).toContainText('12 River Lane');
+    await expect(place).toHaveAttribute('href', '/story/map?place=49.1%3A7.2');
+    await expect(place).toHaveText('Riverside park');
     await expect(place).not.toContainText(m5s3.common.place);
-    const wish = page.getByRole('link', {
-      name: m5s3.plan.openWish,
-      exact: true,
-    });
+    const wish = page.locator('a.plan-wish-source');
+    await expect(wish).toContainText(m5s3.plan.openWish);
     await expect(wish).toHaveAttribute('href', '/plan/wishes/wish-outside');
     for (const control of [place, wish]) {
       const box = await control.boundingBox();
@@ -462,7 +485,12 @@ for (const [width, theme] of [
       const padding = await control.evaluate((element) =>
         parseFloat(getComputedStyle(element).paddingInlineStart),
       );
-      expect(padding).toBeGreaterThan(0);
+      if (control === place) {
+        await expect(control).toHaveCSS('text-decoration-line', 'underline');
+        await expect(control).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        await expect(control).toHaveCSS('border-top-width', '0px');
+        await expect(control).toHaveCSS('box-shadow', 'none');
+      } else expect(padding).toBeGreaterThan(0);
     }
     await less.scrollIntoViewIfNeeded();
     await captureScreenshot(

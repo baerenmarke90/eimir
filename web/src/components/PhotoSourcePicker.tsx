@@ -131,6 +131,7 @@ export function PhotoSourcePicker({
   disabled = false,
   devicePicker,
   unified = false,
+  renderTrigger,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -145,6 +146,7 @@ export function PhotoSourcePicker({
     blocked?: boolean,
   ) => ReactNode;
   unified?: boolean;
+  renderTrigger?: (open: () => void) => ReactNode;
 }) {
   const { t } = useTranslation();
   const { apiRef, availability } = usePhotoSources({
@@ -370,15 +372,24 @@ export function PhotoSourcePicker({
     return null;
   const canImport = Boolean(availability?.enabled && availability.canImport);
   const activeTask = task.current;
+  const openChooser = () => {
+    if (disabled || remaining <= 0) return;
+    if (document.activeElement instanceof HTMLButtonElement)
+      trigger.current = document.activeElement;
+    setMessage('');
+    setOpen(true);
+  };
   return (
     <>
       <div className="photo-source-actions">
         {unified
           ? devicePicker?.(close, deviceTarget, busy || remaining <= 0)
           : devicePicker?.(() => {})}
-        {unified ||
-        (availability &&
-          (availability.enabled || availability.immichConnected)) ? (
+        {renderTrigger ? (
+          renderTrigger(openChooser)
+        ) : unified ||
+          (availability &&
+            (availability.enabled || availability.immichConnected)) ? (
           <MediaIntakeButton
             ref={trigger}
             label={t(unified ? 'photoSources.addMedia' : 'photoSources.more')}
@@ -400,7 +411,7 @@ export function PhotoSourcePicker({
       </div>
       <ShortTaskSheet
         open={open}
-        title={t(unified ? 'photoSources.addMedia' : 'photoSources.title')}
+        title={t('photoSources.title')}
         closeLabel={t('taskSheets.close')}
         onClose={close}
         restoreFocusRef={trigger}
@@ -425,6 +436,9 @@ export function PhotoSourcePicker({
           </div>
         }
       >
+        {!view ? (
+          <p className="field-help">{t('photoSources.consent')}</p>
+        ) : null}
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
         {view && activeTask ? (
           <>

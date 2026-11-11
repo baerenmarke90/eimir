@@ -8,6 +8,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import composer from '../../src/i18n/locales/composer';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -325,7 +326,8 @@ async function openPlanCreateForm(page: Page) {
 
 async function openPlaceChoice(page: Page) {
   await planCreateForm(page)
-    .getByRole('button', { name: placeCopy.add, exact: true })
+    .locator('.composer-tool-row')
+    .getByRole('button', { name: composer.place, exact: true })
     .click();
   return page.getByRole('dialog', { name: m5s3.common.place, exact: true });
 }
@@ -342,7 +344,7 @@ async function selectNewPlace(page: Page) {
     .getByRole('button', { name: 'Colmar, Alsace', exact: true })
     .click();
   await map
-    .getByRole('button', { name: m5s3.map.confirm, exact: true })
+    .getByRole('button', { name: placeCopy.saveSharedPlace, exact: true })
     .click();
   return picker;
 }

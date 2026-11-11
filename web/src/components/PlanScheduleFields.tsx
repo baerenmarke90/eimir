@@ -101,6 +101,14 @@ export function PlanScheduleFields({
     setCrossDay(false);
   }
 
+  function unschedule() {
+    const input = dateRef.current;
+    if (!input) return;
+    // Follow the native date-change path so the owning editor admits the draft.
+    input.valueAsDate = null;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
   useEffect(() => {
     restoreDefaults();
   }, [restoreDefaults]);
@@ -157,6 +165,16 @@ export function PlanScheduleFields({
 
   const fields = (
     <>
+      {compact ? (
+        <button
+          type="button"
+          className="tertiary planning-schedule-unschedule"
+          disabled={disabled}
+          onClick={unschedule}
+        >
+          {t('m5s3.plan.unschedule')}
+        </button>
+      ) : null}
       <label htmlFor={`${idPrefix}-date`}>{t('m5s3.plan.plannedDate')}</label>
       <NativeDateInput
         form={formId}

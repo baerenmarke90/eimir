@@ -38,6 +38,21 @@
   --tracking-section-heading: 0em;
   --font-reading-body: 400 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-reading-body: 0em;
+  --font-composer-title: 600 1.6875rem / 1.2 "Literata", "Georgia", serif;
+  --tracking-composer-title: 0em;
+  --font-composer-lead: 600 1.5625rem / 1.2 "Literata", "Georgia", serif;
+  --tracking-composer-lead: 0em;
+  --font-composer-prose:
+    400 1.0625rem / 1.55 "Instrument Sans", "Arial", sans-serif;
+  --tracking-composer-prose: 0em;
+  --font-composer-context:
+    400 0.9375rem / 1.4 "Instrument Sans", "Arial", sans-serif;
+  --tracking-composer-context: 0em;
+  --composer-detail-media-height: 15rem;
+  --composer-media-height: 13.375rem;
+  --composer-media-compact-height: 11rem;
+  --composer-thumbnail-size: 3.5rem;
+  --composer-intake-height: 10.75rem;
   --font-supporting-copy:
     400 0.875rem / 1.45 "Instrument Sans", "Arial", sans-serif;
   --tracking-supporting-copy: 0em;

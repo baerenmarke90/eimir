@@ -15,6 +15,7 @@ export const EIMIR_ICON_NAMES = [
   'geteilt',
   'nurfuer',
   'foto',
+  'microphone',
   'photo-library',
   'tag',
   'video',
@@ -59,6 +60,13 @@ export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  microphone: (
+    <>
+      {' '}
+      <rect x="9" y="2" width="6" height="12" rx="3" />{' '}
+      <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />{' '}
+    </>
+  ),
   trash: (
     <>
       <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />

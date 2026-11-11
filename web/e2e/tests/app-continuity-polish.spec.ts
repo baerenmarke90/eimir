@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localizedFixture from '../fixtures/locales/de';
 import {
   CAPABILITIES,
@@ -350,7 +351,10 @@ test('opening a current partner comment consumes only that event and moves it in
   );
   await signal.getByRole('link').click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-  await page.locator('.shell-detail-back').click();
+  await page
+    .locator('.composer-header')
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(signal).toHaveCount(0);
   await expect(

@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "page-composer.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 26,
+      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, fullscreen privacy and continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. The final PO contract verifies persistent stage controls, no redundant editor rows, independent preview/cover identity, original input order, failed-upload retry and canonical save."
+    },
     "moments-local-create.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,

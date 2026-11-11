@@ -6,6 +6,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
@@ -383,7 +384,7 @@ test('clicking the focal Plan navigates from the Planning overview to the read-f
 
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
-    page.getByRole('heading', { name: PLAN_TITLE, level: 1 }),
+    page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: taskBoundary.back }),
@@ -545,7 +546,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       colorScheme,
     );
     await expect(
-      page.getByRole('heading', { name: PLAN_TITLE, level: 1 }),
+      page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
     ).toBeVisible();
 
     const result = await new AxeBuilder({ page })
@@ -664,8 +665,8 @@ for (const [width, colorScheme] of [
       page.getByRole('heading', { name: PLAN_TITLE, exact: true }),
     ).toBeVisible();
     expect(reads).toBe(0);
-    const trigger = page.getByRole('button', {
-      name: m5s3.plan.linkWish,
+    const trigger = page.locator('.plan-wish-link').getByRole('button', {
+      name: memoryProduct.planning.add,
       exact: true,
     });
     await expect(trigger).toHaveCount(0);

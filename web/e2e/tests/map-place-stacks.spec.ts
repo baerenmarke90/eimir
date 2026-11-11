@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import mapCopy from '../../src/i18n/locales/memoryMap';
+import { storyDetailBack } from '../support/memoryDiary';
 import {
   captureScreenshot,
   installMocks,
@@ -360,7 +361,7 @@ for (const [width, theme, motion] of [
     ).toEqual([]);
     await track.getByRole('link', { name: /Breakfast by the canal/ }).click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-    await page.locator('.shell-detail-back').click();
+    await storyDetailBack(page).click();
     await expect(fullscreen).toBeVisible();
     await expect(track.locator('[aria-current="true"]')).toContainText(
       'Breakfast by the canal',

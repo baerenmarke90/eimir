@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import copy from '../../src/i18n/locales/storyProducts';
 import voice from '../../src/i18n/locales/voiceNotes';
-import { showHeartAudience } from '../support/memoryDiary';
+import { closeHeartAudience, showHeartAudience } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -146,27 +147,48 @@ async function setup(page: Page, failSave = false) {
   ).toBeVisible();
   return { unknown, saves: () => saves };
 }
+async function openVoiceTask(page: Page) {
+  const sheet = page.getByRole('dialog', { name: voice.title, exact: true });
+  if (!(await sheet.isVisible()))
+    await page
+      .locator('.composer-tool-row')
+      .getByRole('button', { name: composer.voice, exact: true })
+      .click();
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+async function closeVoiceTask(page: Page) {
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
+
 async function importFile(page: Page) {
-  await page.getByRole('button', { name: voice.title, exact: true }).click();
+  await openVoiceTask(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: voice.choose, exact: true }).click();
   await (await chooser).setFiles(input.pathname);
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await openVoiceTask(page);
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toBeVisible();
+  await closeVoiceTask(page);
   await expect(
     page.getByRole('button', {
       name: copy.heartMomentProduct.save,
       exact: true,
     }),
   ).toBeEnabled();
+  await openVoiceTask(page);
 }
 async function saveAndPlay(page: Page) {
+  await openVoiceTask(page);
   await page
     .getByRole('textbox', { name: voice.audioTitle })
     .fill('Dein Gute-Nacht-Gruß');
   await page.getByRole('textbox', { name: voice.speaker }).fill('Alex');
+  await closeVoiceTask(page);
   await page
     .getByRole('button', { name: copy.heartMomentProduct.save, exact: true })
     .click();
@@ -266,7 +288,7 @@ test('encodes a synthetic microphone stream with the real browser MediaRecorder,
   });
   await page.setViewportSize({ width: 390, height: 900 });
   await setup(page);
-  await page.getByRole('button', { name: voice.title, exact: true }).click();
+  await openVoiceTask(page);
   await captureScreenshot(page, info, 'voice-source-choice-390.png');
   await page.getByRole('button', { name: voice.record, exact: true }).click();
   await expect(
@@ -279,6 +301,7 @@ test('encodes a synthetic microphone stream with the real browser MediaRecorder,
   await captureScreenshot(page, info, 'voice-recording-390.png');
   await page.getByRole('button', { name: voice.stop, exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await openVoiceTask(page);
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toBeVisible();
@@ -300,7 +323,7 @@ test('permission denial retains the thought and allows file import', async ({
       throw new DOMException('Denied', 'NotAllowedError');
     };
   });
-  await page.getByRole('button', { name: voice.title, exact: true }).click();
+  await openVoiceTask(page);
   await page.getByRole('button', { name: voice.record, exact: true }).click();
   await expect(
     page.getByRole('dialog').getByText(voice.permission),
@@ -329,30 +352,37 @@ test('failed Save retains voice, labels and audience for the deliberate retry', 
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
+  await closeVoiceTask(page);
   await showHeartAudience(page);
   await page
     .getByRole('radio', {
       name: new RegExp(copy.heartMomentProduct.visibilityPrivate),
     })
-    .check();
+    .click();
+  await closeHeartAudience(page);
+  await openVoiceTask(page);
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
+  await closeVoiceTask(page);
   const save = page.getByRole('button', {
     name: copy.heartMomentProduct.save,
     exact: true,
   });
   await save.click();
   await expect(page).toHaveURL(/heart-moments\/new$/);
+  await openVoiceTask(page);
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Keep my voice');
+  await closeVoiceTask(page);
   await showHeartAudience(page);
   await expect(
     page.getByRole('radio', {
       name: new RegExp(copy.heartMomentProduct.visibilityPrivate),
     }),
   ).toBeChecked();
+  await closeHeartAudience(page);
   await expect(save).toBeEnabled();
   await save.click();
   await expect(page).toHaveURL(/heart-moments\/voice-heart$/);
@@ -381,16 +411,20 @@ test('preserves saved audio while editing and leaves unchanged edits without a d
       .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
       .click();
   await edit();
+  await openVoiceTask(page);
   await expect(
     page.getByRole('textbox', { name: voice.audioTitle }),
   ).toHaveValue('Dein Gute-Nacht-Gruß');
+  await closeVoiceTask(page);
   await page.locator('.task-back-control[data-page-back]').click();
   await expect(page).toHaveURL(/heart-moments\/voice-heart$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await edit();
+  await openVoiceTask(page);
   await page
     .getByRole('textbox', { name: voice.audioTitle })
     .fill('A voice to keep');
+  await closeVoiceTask(page);
   await page
     .getByRole('textbox', {
       name: copy.heartMomentProduct.textLabel,

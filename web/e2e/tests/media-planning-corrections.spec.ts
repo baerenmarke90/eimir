@@ -1,17 +1,20 @@
-import { expectMediaIntakeAction } from '../support/mediaIntake';
-import sources from '../../src/i18n/locales/photoSources';
-import taskSheets from '../../src/i18n/locales/taskSheets';
-import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
-import storyProducts from '../../src/i18n/locales/storyProducts';
-import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composerCopy from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import sources from '../../src/i18n/locales/photoSources';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtureCopy from '../fixtures/locales/de';
+import { expectLabeledComposerTool } from '../support/addAction';
+import { swipeCarousel } from '../support/mediaCarouselGesture';
+import { expectQuietComposerMedia } from '../support/mediaDraft';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -89,6 +92,7 @@ async function setup(page: Page, failNextWish = false) {
     planSaveMatch: '',
     mediaWrites: 0,
     bound: [] as string[],
+    allocatedByName: {} as Record<string, string>,
     cover: null as string | null,
     failNextWish,
   };
@@ -191,6 +195,12 @@ async function setup(page: Page, failNextWish = false) {
     }
     if (p === `${root}/attachments` && method === 'POST') {
       const attachmentId = id(200 + ++state.mediaWrites);
+      const originalName = request.postDataJSON().originalName;
+      if (typeof originalName !== 'string')
+        throw new Error(
+          'Canonical media admission requires its original filename.',
+        );
+      state.allocatedByName[originalName] = attachmentId;
       const a = {
         id: attachmentId,
         mediaType: 'IMAGE',
@@ -333,7 +343,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   expect(state.planReads).toEqual(['', '20']);
   await page.goto(`/plan/plans/${plans[0].id}`);
   await expect(
-    page.getByRole('button', { name: m5s3.plan.linkWish }),
+    page.getByRole('button', { name: memoryProduct.planning.add }),
   ).toHaveCount(0);
   await page
     .getByRole('button', { name: m5s3.common.edit, exact: true })
@@ -341,7 +351,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   await page
     .getByRole('textbox', { name: m5s3.common.title, exact: true })
     .fill(copy.edit);
-  await page.getByRole('button', { name: m5s3.plan.linkWish }).click();
+  await page.getByRole('button', { name: memoryProduct.planning.add }).click();
   await page.getByRole('radio', { name: wishes[0].title, exact: true }).check();
   await captureScreenshot(
     page,
@@ -478,10 +488,10 @@ test('real local codec worker reduces transfer bytes without dropping the audio 
 test.describe('free composer media preservation', () => {
   test.use({ hasTouch: true });
   for (const scenario of [
-    { width: 390, theme: 'dark', touch: true },
-    { width: 1280, theme: 'light', touch: false },
+    { width: 390, theme: 'dark' },
+    { width: 1280, theme: 'light' },
   ] as const) {
-    test(`draft gallery keeps zoom, sorting, privacy and cover through save at ${scenario.width}`, async ({
+    test(`draft gallery keeps zoom, selection, privacy and cover through save at ${scenario.width}`, async ({
       page,
     }, info) => {
       await page.setViewportSize({ width: scenario.width, height: 900 });
@@ -502,13 +512,16 @@ test.describe('free composer media preservation', () => {
       await expect.poll(() => state.mediaWrites).toBe(2);
       const tiles = page.locator('.photo-draft-grid .photo-draft-tile');
       await expect(tiles).toHaveCount(2);
+      const inputKeys = await tiles.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('data-media-key')),
+      );
+      expect(inputKeys.every(Boolean)).toBe(true);
+      await expectQuietComposerMedia(page);
       await expect(tiles.first()).toHaveAccessibleName(
         new RegExp(de.memory.photoReady),
       );
       await tiles.nth(1).click();
-      const selected = page.locator('.photo-draft-frame').filter({
-        has: page.locator('.photo-draft-tile[aria-pressed="true"]'),
-      });
+      const selected = page.locator('.photo-draft-stage');
       const chosenKey = await tiles.nth(1).getAttribute('data-media-key');
       if (!chosenKey)
         throw new Error('The selected draft identity is unavailable.');
@@ -535,7 +548,12 @@ test.describe('free composer media preservation', () => {
       await expect(selected.getByRole('checkbox')).toBeChecked();
       expect(await privacyGeometry()).toEqual(before);
       await privacy.locator('input').uncheck();
-      await page.locator('.photo-draft-gallery .media-gallery-expand').click();
+      await page.locator('.photo-draft-stage').evaluate((stage) => {
+        stage.scrollIntoView({ block: 'center', behavior: 'instant' });
+      });
+      await page
+        .locator('.photo-draft-stage .media-gallery-carousel-slide.is-active')
+        .click();
       const dialog = page.getByRole('dialog', {
         name: storyProducts.gallery.dialogAria,
       });
@@ -565,53 +583,23 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: storyProducts.gallery.close })
         .click();
       await expect(dialog).toHaveCount(0);
-      await tiles.nth(1).scrollIntoViewIfNeeded();
-      const from = await tiles.nth(1).boundingBox(),
-        to = await tiles.first().boundingBox();
-      if (!from || !to)
-        throw new Error('The draft sorting targets are unavailable.');
-      const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
-      const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
-      if (scenario.touch) {
-        const client = await page.context().newCDPSession(page);
-        try {
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchStart',
-            touchPoints: [start],
-          });
-          await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchMove',
-            touchPoints: [end],
-          });
-          await nextFrame(page);
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchEnd',
-            touchPoints: [],
-          });
-        } finally {
-          await client.detach();
-        }
-      } else {
-        await page.mouse.move(start.x, start.y);
-        await page.mouse.down();
-        await page.mouse.move(end.x, end.y, { steps: 8 });
-        await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
-        await page.mouse.up();
-      }
-      await expect(tiles.first()).toHaveAttribute('data-media-key', chosenKey);
-      await page
-        .getByRole('button', { name: experiences.arrange, exact: true })
-        .click();
-      const arrange = page.getByRole('dialog', { name: experiences.arrange });
-      await arrange
-        .getByRole('button', { name: experiences.last, exact: true })
-        .click();
-      await arrange
-        .getByRole('button', { name: experiences.finish, exact: true })
-        .click();
-      await expect(arrange).toHaveCount(0);
+      // Latest PO correction removes composer arrangement/reset rows. The native
+      // thumbnail selects the preview without changing cover identity or import order.
+      await expectQuietComposerMedia(page);
+      expect(
+        await tiles.evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('data-media-key')),
+        ),
+      ).toEqual(inputKeys);
+      await tiles.first().click();
+      await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
       await expect(tiles.nth(1)).toHaveAttribute('data-media-key', chosenKey);
+      await expect(
+        tiles.nth(1).locator('.photo-draft-cover-star'),
+      ).toBeVisible();
+      await expect(
+        tiles.first().locator('.photo-draft-cover-star'),
+      ).toHaveCount(0);
       await expect(prose).toHaveValue(copy.description);
       await expect
         .poll(() =>
@@ -645,7 +633,11 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: memoryProduct.save, exact: true })
         .click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-      expect(state.bound).toHaveLength(2);
+      expect(state.bound).toEqual(
+        ['first-photo.jpg', 'second-photo.jpg'].map(
+          (name) => state.allocatedByName[name],
+        ),
+      );
       expect(state.cover).toBe(state.bound[1]);
     });
   }
@@ -695,18 +687,28 @@ test.describe('integrated soft media choices', () => {
           await page.evaluate(() => {
             document.documentElement.style.fontSize = '200%';
           });
-        const composer = page.locator('.composer-content');
+        const composer = page.locator('.page-composer');
         await expect(composer).toHaveCount(1);
-        const entry = composer.getByRole('button', {
-          name: sources.addMedia,
-          exact: true,
-        });
-        await expectMediaIntakeAction(entry, 'foto');
+        const diary = index < 2;
+        const entry = diary
+          ? composer.getByRole('button', { name: sources.more, exact: true })
+          : composer
+              .locator('.composer-tool-row')
+              .getByRole('button', { name: composerCopy.photo, exact: true });
+        if (diary) {
+          await expectMediaIntakeAction(
+            composer.locator('.media-intake-device'),
+            'foto',
+          );
+          await expect(entry).toBeVisible();
+          await expect(entry.locator('.media-intake-pro')).toHaveCount(1);
+        } else await expectLabeledComposerTool(entry, 'foto');
         await expect(composer.locator('.media-action-group')).toHaveCount(1);
+        await expect(composer.locator('.media-action-group-label')).toHaveCount(
+          0,
+        );
         await expect(
-          composer.locator(
-            '.media-action-group-label, .media-intake-description, .media-intake-pro',
-          ),
+          composer.getByText(de.memory.photoFormats, { exact: true }),
         ).toHaveCount(0);
         await expect(composer.locator('.media-action-group')).toHaveCSS(
           'background-color',
@@ -714,10 +716,10 @@ test.describe('integrated soft media choices', () => {
         );
         await expect(
           composer.getByRole('button', { name: sources.more, exact: true }),
-        ).toHaveCount(0);
+        ).toHaveCount(diary ? 1 : 0);
         for (const surface of [
           composer,
-          composer.locator('.composer-writing-surface'),
+          composer.locator('.composer-writing-surface, .page-composer-writing'),
           entry,
         ])
           await expect(surface).toHaveCSS('border-top-width', '0px');
@@ -737,7 +739,7 @@ test.describe('integrated soft media choices', () => {
         }
         await entry.press('Enter');
         const sheet = page.getByRole('dialog', {
-          name: sources.addMedia,
+          name: sources.title,
           exact: true,
         });
         await expect(sheet).toBeVisible();
@@ -802,8 +804,11 @@ test.describe('integrated soft media choices', () => {
         if (index === 0) {
           await expect(prose).toHaveValue(copy.description);
           await page.emulateMedia({ forcedColors: 'active' });
-          for (const control of [prose, entry])
-            await expect(control).toHaveCSS('border-top-width', '1px');
+          await expect(prose).toHaveCSS('border-top-width', '0px');
+          await prose.focus();
+          await expect(prose).toHaveCSS('outline-style', 'solid');
+          await expect(prose).toHaveCSS('outline-width', '2px');
+          await expect(entry).toHaveCSS('border-top-width', '1px');
           await page.emulateMedia({ forcedColors: 'none' });
           await page.locator('.composer-header h1').click();
           expect(

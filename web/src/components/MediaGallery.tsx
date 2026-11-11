@@ -115,6 +115,9 @@ export function MediaGallery({
   renderCaption,
   dismissWithHistory = true,
   directSensitiveToggle = false,
+  showInlineSensitiveControl = true,
+  presentation = 'default',
+  countStyle = presentation === 'composer' ? 'fraction' : 'label',
   onPhotoLongPress,
   renderPhotoActions,
   renderPhotoReactions,
@@ -140,6 +143,10 @@ export function MediaGallery({
   ) => ReactNode;
   dismissWithHistory?: boolean;
   directSensitiveToggle?: boolean;
+  /** Fullscreen reveal/hide remains available independently of this inline row. */
+  showInlineSensitiveControl?: boolean;
+  presentation?: 'default' | 'composer';
+  countStyle?: 'fraction' | 'label';
   onPhotoLongPress?: (id: string) => void;
   renderPhotoActions?: (
     item: GalleryMediaItem,
@@ -517,10 +524,10 @@ export function MediaGallery({
   }
 
   function changeCarousel(delta: number) {
-    if (items.length < 2) return;
+    if (items.length < 2 || delta === 0) return;
 
     const direction = delta < 0 ? -1 : 1;
-    const nextIndex = (carouselIndex + direction + items.length) % items.length;
+    const nextIndex = (carouselIndex + delta + items.length) % items.length;
     carouselIndexRef.current = nextIndex;
     carouselScrollTarget.current = nextIndex;
     const track = carouselTrack.current;
@@ -871,13 +878,15 @@ export function MediaGallery({
                       if (
                         directSensitiveToggle &&
                         item.isSensitive === true &&
-                        (item.mediaType !== MediaType.VIDEO ||
+                        ((presentation !== 'composer' &&
+                          item.mediaType !== MediaType.VIDEO) ||
                           !reveals.isRevealed(item.id))
                       )
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
                     aria-pressed={
+                      presentation !== 'composer' &&
                       directSensitiveToggle &&
                       item.isSensitive === true &&
                       item.mediaType !== MediaType.VIDEO
@@ -887,7 +896,8 @@ export function MediaGallery({
                     aria-label={
                       directSensitiveToggle &&
                       item.isSensitive === true &&
-                      (item.mediaType !== MediaType.VIDEO ||
+                      ((presentation !== 'composer' &&
+                        item.mediaType !== MediaType.VIDEO) ||
                         !reveals.isRevealed(item.id))
                         ? t(
                             reveals.isRevealed(item.id)
@@ -933,16 +943,31 @@ export function MediaGallery({
               ) : null}
             </div>
 
+            {presentation === 'composer' && items.length === 1 ? (
+              <span className="media-gallery-carousel-counter media-overlay">
+                {t(
+                  countStyle === 'label'
+                    ? 'gallery.counter'
+                    : 'gallery.fraction',
+                  { index: 1, count: 1 },
+                )}
+              </span>
+            ) : null}
             {items.length > 1 ? (
               <>
                 <span
                   className="media-gallery-carousel-counter media-overlay"
                   aria-live="polite"
                 >
-                  {t('gallery.counter', {
-                    index: carouselIndex + 1,
-                    count: items.length,
-                  })}
+                  {t(
+                    countStyle === 'label'
+                      ? 'gallery.counter'
+                      : 'gallery.fraction',
+                    {
+                      index: carouselIndex + 1,
+                      count: items.length,
+                    },
+                  )}
                 </span>
                 <button
                   type="button"
@@ -983,15 +1008,41 @@ export function MediaGallery({
                 )
               : null}
           </div>
-          {items[carouselIndex]?.isSensitive === true &&
+          {showInlineSensitiveControl &&
+          items[carouselIndex]?.isSensitive === true &&
           (!directSensitiveToggle ||
-            (items[carouselIndex]?.mediaType === MediaType.VIDEO &&
+            ((presentation === 'composer' ||
+              items[carouselIndex]?.mediaType === MediaType.VIDEO) &&
               reveals.isRevealed(items[carouselIndex]!.id))) ? (
             <SensitiveMediaControl
               video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}
               onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
             />
+          ) : null}
+          {presentation === 'composer' && items.length > 1 ? (
+            <nav
+              className="media-gallery-position"
+              aria-label={t('gallery.aria')}
+            >
+              {items.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={t('gallery.selectItem', {
+                    index: index + 1,
+                    count: items.length,
+                  })}
+                  aria-current={index === carouselIndex ? 'true' : undefined}
+                  onClick={() => {
+                    carouselScrollTarget.current = null;
+                    changeCarousel(index - carouselIndex);
+                  }}
+                >
+                  <span />
+                </button>
+              ))}
+            </nav>
           ) : null}
           {items[carouselIndex]
             ? renderPhotoReactions?.(items[carouselIndex]!)

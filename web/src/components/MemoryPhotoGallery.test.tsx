@@ -112,7 +112,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('tap toggles the photo and long press opens only the fixed picker without revealing it', async () => {
+it('reveals on tap, conceals through the explicit control, and preserves the six-reaction long press', async () => {
   const save = vi.fn();
   const { view } = setup(save);
   await waitFor(() =>
@@ -122,14 +122,16 @@ it('tap toggles the photo and long press opens only the fixed picker without rev
   );
   const photo = screen.getByRole('button', { name: 'Bild anzeigen' });
   fireEvent.click(photo, { detail: 1 });
-  expect(photo.getAttribute('aria-pressed')).toBe('true');
-  fireEvent.click(photo, { detail: 1 });
+  expect(view.container.querySelector('.sensitive-media-blurred')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Wieder verbergen' }));
   vi.useFakeTimers();
   fireEvent.pointerDown(photo, { button: 0, clientX: 100, clientY: 100 });
   act(() => vi.advanceTimersByTime(450));
   fireEvent.pointerUp(photo);
   fireEvent.click(photo, { detail: 1 });
-  expect(photo.getAttribute('aria-pressed')).toBe('false');
+  expect(
+    view.container.querySelector('.sensitive-media-blurred img'),
+  ).not.toBeNull();
   const picker = screen.getByRole('group', { name: 'Reaktion auswählen' });
   expect(picker.querySelectorAll('button')).toHaveLength(6);
   expect(save).not.toHaveBeenCalled();

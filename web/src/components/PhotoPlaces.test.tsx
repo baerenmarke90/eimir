@@ -293,7 +293,7 @@ it('keeps a saved location readable without add or management controls in readin
   ).toBeNull();
 });
 
-it('keeps all ordered Places beside the date while disclosing map context on demand', async () => {
+it('keeps ordered Places beside the date as direct internal map links', async () => {
   const places = ['Riverbank', 'Old town'].map(
     (name, index) =>
       ({
@@ -326,7 +326,7 @@ it('keeps all ordered Places beside the date while disclosing map context on dem
       />
     </div>,
   );
-  await screen.findByRole('button', { name: 'Old town' });
+  await screen.findByRole('link', { name: 'Old town' });
   const names = Array.from(
     container.querySelectorAll('.moment-place-summary'),
   ).map((button) => button.textContent);
@@ -335,10 +335,12 @@ it('keeps all ordered Places beside the date while disclosing map context on dem
     container.querySelector('.moment-metadata > .moment-places-inline'),
   ).not.toBeNull();
   expect(screen.queryByRole('link', { name: /Old town address/ })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Old town' }));
-  expect(await screen.findByRole('dialog', { name: 'Old town' })).toBeTruthy();
-  expect(
-    screen.getByRole('link', { name: /Old town address/ }).getAttribute('href'),
-  ).toContain('49.23');
-  expect(screen.getByRole('link', { name: '© OpenStreetMap' })).toBeTruthy();
+  const destination = screen
+    .getByRole('link', { name: 'Old town' })
+    .getAttribute('href');
+  expect(destination).toContain('/map?');
+  expect(destination).toContain('49.23');
+  expect(destination).not.toMatch(/^https?:/);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByRole('link', { name: '© OpenStreetMap' })).toBeNull();
 });

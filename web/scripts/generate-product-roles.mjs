@@ -101,6 +101,18 @@ typography('utility-heading', 'heading2', 'ui', value('font.weight.semibold'));
 typography('memory-detail-heading', 'memoryDetailHeading');
 typography('section-heading', 'heading3');
 typography('reading-body', 'body');
+typography('composer-title', 'composerTitle', 'display');
+typography('composer-lead', 'composerLead', 'display');
+typography('composer-prose', 'composerProse');
+typography('composer-context', 'composerContext');
+for (const [name, source] of Object.entries({
+  'composer-detail-media-height': 'detailMediaHeight',
+  'composer-media-height': 'mediaHeight',
+  'composer-media-compact-height': 'mediaCompactHeight',
+  'composer-thumbnail-size': 'thumbnailSize',
+  'composer-intake-height': 'intakeHeight',
+}))
+  declare(name, rem(`composer.${source}`));
 typography('supporting-copy', 'bodySmall');
 typography('navigation-label', 'meta', 'ui', value('font.weight.semibold'));
 typography('action-label', 'body', 'ui', value('font.weight.semibold'));

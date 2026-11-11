@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import { storyDetailBack } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -82,7 +83,7 @@ for (const [width, theme] of [
         exact: true,
       }),
     ).toBeVisible();
-    await page.locator('.shell-detail-back').click();
+    await storyDetailBack(page).click();
     await expect(image).toBeVisible();
     await expect(image).toHaveAttribute('src', src ?? '');
     await expect.poll(() => reads).toBeGreaterThan(firstReads);
@@ -137,7 +138,7 @@ test('Diary thumbnail survives a normal ninety-second detail visit without decod
     page.getByRole('heading', { name: 'Breakfast by the canal', exact: true }),
   ).toBeVisible();
   await page.clock.fastForward(90_000);
-  await page.locator('.shell-detail-back').click();
+  await storyDetailBack(page).click();
   await expect(image).toHaveAttribute('src', source ?? '');
   expect(downloads).toBe(1);
 });

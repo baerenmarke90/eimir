@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
@@ -9,16 +10,21 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { expectNaturalTextReflow } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import {
   closeComposerDate,
   expectReadableComposerHeader,
   showComposerDate,
   showMemoryDetails,
 } from '../support/memoryDiary';
-import { expectNaturalTextReflow } from '../support/addAction';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import {
+  fulfillEmptyMomentPlaces,
+  fulfillUnconfiguredPhotoSources,
+} from '../support/photoSources';
+import { fulfillDefaultProductContext } from '../support/productContext';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -82,7 +88,11 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     uploadRequests: 0,
     timelineRequests: [] as string[],
     unexpected: [] as string[],
-    saved: null as ReturnType<typeof memory> | null,
+    saved: null as
+      | (ReturnType<typeof memory> & {
+          selectedCoverAttachmentId?: string | null;
+        })
+      | null,
     releaseCreate: () => {},
   };
   const createGate = new Promise<void>((resolve) => {
@@ -110,6 +120,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
@@ -382,14 +394,15 @@ async function fillMemory(page: Page, withPhoto = false) {
     .fill(TITLE);
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(BODY);
   if (withPhoto) {
+    const sources = await openComposerMediaSources(page);
     await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page.locator('#memory-create-images').setInputFiles({
-      name: 'river.jpg',
-      mimeType: 'image/jpeg',
-      buffer: await readFile(PHOTO),
-    });
+      .locator('.media-device-choice--chooser input[type=file]')
+      .setInputFiles({
+        name: 'river.jpg',
+        mimeType: 'image/jpeg',
+        buffer: await readFile(PHOTO),
+      });
+    await expect(sources).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toBeVisible();
@@ -550,7 +563,7 @@ test('content and photo save opens the confirmed canonical Memory and returns to
     page.getByRole('heading', { name: TITLE, exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('status').filter({ hasText: taskBoundary.saved }),
+    page.getByRole('status').filter({ hasText: composer.saved }),
   ).toBeVisible();
   expect(api.createRequests).toBe(1);
   expect(api.bindRequests).toBe(0);
@@ -589,14 +602,15 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
   await expect(
     page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue('');
+  const sources = await openComposerMediaSources(page);
   await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
-  await page.locator('#memory-create-images').setInputFiles({
-    name: 'river.jpg',
-    mimeType: 'image/jpeg',
-    buffer: await readFile(PHOTO),
-  });
+    .locator('.media-device-choice--chooser input[type=file]')
+    .setInputFiles({
+      name: 'river.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await readFile(PHOTO),
+    });
+  await expect(sources).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toBeVisible();
@@ -990,7 +1004,7 @@ test('confirmed create is still a success when a subsequent Timeline refresh fai
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   await expect(
-    page.getByRole('status').filter({ hasText: taskBoundary.saved }),
+    page.getByRole('status').filter({ hasText: composer.saved }),
   ).toBeVisible();
   expect(api.createRequests).toBe(1);
 });
@@ -1150,14 +1164,15 @@ test('failed uploads retain authored content and can retry before the first crea
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
+  const sources = await openComposerMediaSources(page);
   await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
-  await page.locator('#memory-create-images').setInputFiles({
-    name: 'river.jpg',
-    mimeType: 'image/jpeg',
-    buffer: await readFile(PHOTO),
-  });
+    .locator('.media-device-choice--chooser input[type=file]')
+    .setInputFiles({
+      name: 'river.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await readFile(PHOTO),
+    });
+  await expect(sources).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
   ).toBeVisible();
@@ -1172,7 +1187,7 @@ test('failed uploads retain authored content and can retry before the first crea
     .getByRole('button', { name: new RegExp(de.memory.photoFailed) })
     .click();
   await page
-    .locator('.photo-draft-inspector')
+    .locator('.photo-draft-stage')
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
@@ -1397,7 +1412,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await expectReadableComposerHeader(page);
   await expectNaturalTextReflow(
     page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .getByRole('button', { name: photoSources.more, exact: true })
       .locator('.media-intake-label'),
     2,
   );

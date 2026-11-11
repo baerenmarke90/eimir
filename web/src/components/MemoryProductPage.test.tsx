@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -263,45 +264,45 @@ describe('Memory detail edit action (#1014)', () => {
     }
   });
 
-  it('replaces the oversized text button with a compact icon-only edit link', async () => {
+  it('keeps Edit as a labeled text action in the compact type header', async () => {
     renderDetail();
     const editLink = await screen.findByRole('link', {
       name: memoryProduct.edit,
     });
     expect(editLink.getAttribute('href')).toBe('/story/memories/memory-1/edit');
     // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe('');
+    expect(editLink.textContent?.trim()).toBe(memoryProduct.edit);
     expect(editLink.className).not.toContain('button-link');
     expect(editLink.className).not.toContain('secondary-link');
   });
 
-  it('keeps the localized date directly below an authored title', async () => {
+  it('keeps the short date above content and an authored display title after media', async () => {
     renderDetail('Our afternoon outside');
-    const title = await screen.findByRole('heading', {
+    await screen.findByRole('heading', {
       name: 'Our afternoon outside',
+      level: 2,
+    });
+    const type = screen.getByRole('heading', {
+      name: i18n.t('composer.diaryEntry'),
       level: 1,
     });
-    const header = title.closest('header');
-    expect(header?.querySelector('time')?.textContent).toBe(
-      '15. September 2025',
-    );
-    expect(header?.querySelector('time')?.getAttribute('datetime')).toBe(
-      '2025-09-15',
-    );
-    expect(header?.querySelector('.eyebrow')).toBeNull();
+    const date = document.querySelector('time');
+    expect(date?.textContent).toBe('15. September 2025');
+    expect(date?.getAttribute('datetime')).toBe('2025-09-15');
+    expect(type.closest('header')?.querySelector('.eyebrow')).toBeNull();
   });
 
-  it('shows the date once as the heading for the generated fallback title', async () => {
+  it('shows a generated title date once in the context row', async () => {
     renderDetail('Erinnerung vom 15.09.2025');
-    const title = await screen.findByRole('heading', {
-      name: '15. September 2025',
+    await screen.findByRole('heading', {
+      name: i18n.t('composer.diaryEntry'),
       level: 1,
     });
-    expect(title.querySelector('time')?.getAttribute('datetime')).toBe(
+    expect(document.querySelectorAll('time')).toHaveLength(1);
+    expect(document.querySelector('time')?.getAttribute('datetime')).toBe(
       '2025-09-15',
     );
-    expect(title.querySelector('.moment-date svg')).not.toBeNull();
-    expect(title.closest('header')?.querySelectorAll('time')).toHaveLength(1);
+    expect(document.querySelector('.moment-date svg')).not.toBeNull();
     expect(screen.queryByText('Erinnerung vom 15.09.2025')).toBeNull();
   });
 });

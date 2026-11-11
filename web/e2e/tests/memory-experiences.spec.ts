@@ -5,15 +5,16 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
-import photoSources from '../../src/i18n/locales/photoSources';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import {
-  dragDraftMedia,
   expectInlineDraftActions,
+  expectQuietComposerMedia,
 } from '../support/mediaDraft';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import { closeComposerDate, showComposerDate } from '../support/memoryDiary';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
@@ -26,13 +27,6 @@ const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const MEMORY_ID = '44444444-4444-4444-8444-444444444444';
 const TEST_NOW = '2026-09-16T10:00:00Z';
-const EVIDENCE_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  '..',
-  'docs/product/design/references/moment-media-controls/evidence',
-);
 const CABIN_FIXTURE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
@@ -348,9 +342,9 @@ for (const [width, colorScheme] of [
   [320, 'dark'],
   [390, 'dark'],
 ] as const) {
-  test(`period, independent cover and arrange-save-return at ${width} ${colorScheme}`, async ({
+  test(`period, independent cover and original-order save-return at ${width} ${colorScheme}`, async ({
     page,
-  }) => {
+  }, info) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     await openMemoryCreate(page);
@@ -368,29 +362,60 @@ for (const [width, colorScheme] of [
     // The native date editor keeps calendar dates rather than timezone instants.
     await date.fill('2026-12-31');
     await closeComposerDate(page);
-    await page.getByRole('button', { name: photoSources.addMedia }).click();
-    const input = page.locator('#memory-create-images');
+    await openComposerMediaSources(page);
+    const input = page.locator('#memory-create-images-source');
     await expect(input).toBeAttached();
     await expect(input).toBeEnabled();
+    const photoNames = [
+      'first.jpg',
+      'second.jpg',
+      'third.jpg',
+      ...(width === 390 && colorScheme === 'dark'
+        ? Array.from({ length: 17 }, (_, index) => `extra-${index}.jpg`)
+        : []),
+    ];
+    const importedAttachmentIds = Promise.all(
+      photoNames.map((name) =>
+        page
+          .waitForResponse(
+            (response) =>
+              response.request().method() === 'POST' &&
+              response.url().endsWith(`/spaces/${SPACE_ID}/attachments`) &&
+              response.request().postDataJSON().originalName === name &&
+              response.status() === 201,
+          )
+          .then(
+            async (response) => (await response.json()).attachment.id as string,
+          ),
+      ),
+    );
     await input.setInputFiles(
-      [
-        'first.jpg',
-        'second.jpg',
-        'third.jpg',
-        ...(width === 390 && colorScheme === 'dark'
-          ? Array.from({ length: 17 }, (_, index) => `extra-${index}.jpg`)
-          : []),
-      ].map((name) => ({
+      photoNames.map((name) => ({
         name,
         mimeType: 'image/jpeg',
         buffer: readFileSync(CABIN_FIXTURE),
       })),
     );
     const gallery = page.locator('.photo-draft-gallery');
-    const visibleCount = width === 390 && colorScheme === 'dark' ? 6 : 3;
+    const count = width === 390 && colorScheme === 'dark' ? 20 : 3;
+    const visibleCount = Math.min(count, 6);
     await expect(
       gallery.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(visibleCount);
+    const originalKeys = await gallery
+      .locator('.photo-draft-tile')
+      .evaluateAll((tiles) =>
+        tiles.map((tile) => tile.getAttribute('data-media-key')),
+      );
+    expect(originalKeys.every((key) => key !== null)).toBe(true);
+    // Latest PO correction removes composer arrangement/reset rows without a replacement.
+    await expectQuietComposerMedia(page);
+    const selectedKey = await gallery
+      .locator('.photo-draft-tile')
+      .nth(1)
+      .getAttribute('data-media-key');
+    if (!selectedKey)
+      throw new Error('The selected cover identity is unavailable.');
     await gallery.locator('.photo-draft-tile').nth(1).click();
     const actions = page.getByRole('group', {
       name: de.memory.photoSelected,
@@ -401,7 +426,7 @@ for (const [width, colorScheme] of [
       .click();
     await expectInlineDraftActions(page);
     if (width === 390 && colorScheme === 'light') {
-      // A quick swipe on the photo scrolls before the hold-to-drag activates.
+      // A vertical swipe on the photo strip keeps native page scrolling.
       await page.setViewportSize({ width, height: 600 });
       const session = await page.context().newCDPSession(page);
       await session.send('Emulation.setTouchEmulationEnabled', {
@@ -410,13 +435,16 @@ for (const [width, colorScheme] of [
       await gallery
         .locator('.photo-draft-tile')
         .first()
-        .scrollIntoViewIfNeeded();
+        .evaluate((element) =>
+          element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+        );
       const frame = await gallery
         .locator('.photo-draft-tile')
         .first()
         .boundingBox();
       if (!frame) throw new Error('Missing photo scroll geometry');
       const scrollBefore = await page.evaluate(() => window.scrollY);
+      expect(scrollBefore).toBeGreaterThan(0);
       const point = {
         x: frame.x + frame.width / 2,
         y: frame.y + frame.height / 2,
@@ -452,51 +480,58 @@ for (const [width, colorScheme] of [
       await expect(
         gallery.locator('.photo-draft-tile').first(),
       ).toHaveAttribute('aria-label', /first.jpg/);
-      await dragDraftMedia(page, 0, 2);
-      await expect(gallery.locator('.photo-draft-tile').last()).toHaveAttribute(
-        'aria-label',
-        /first.jpg/,
-      );
-      await dragDraftMedia(page, 2, 1, 'touch');
-      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
-        'aria-label',
-        /first.jpg/,
-      );
-      await dragDraftMedia(page, 1, 0, 'touch', true);
-      await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
-        'aria-label',
-        /first.jpg/,
-      );
-      await dragDraftMedia(page, 1, 0, 'touch');
-      await expect(
-        gallery.locator('.photo-draft-tile').first(),
-      ).toHaveAttribute('aria-label', /first.jpg/);
     }
-    await dragDraftMedia(page, 2, 0);
     await expectInlineDraftActions(page);
     await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
       'aria-label',
-      /third.jpg/,
+      /first.jpg/,
     );
+    expect(
+      await gallery
+        .locator('.photo-draft-tile')
+        .evaluateAll((tiles) =>
+          tiles.map((tile) => tile.getAttribute('data-media-key')),
+        ),
+    ).toEqual(originalKeys);
+    // Cover and preview selection preserve the original imported order.
+    const selectedTile = gallery.locator(
+      '.photo-draft-tile[aria-pressed="true"]',
+    );
+    await expect(selectedTile).toHaveCount(1);
+    await expect(selectedTile).toHaveAttribute('data-media-key', selectedKey);
+    await expect(selectedTile).toHaveAttribute('aria-label', /second.jpg/);
     await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
       'aria-pressed',
-      'true',
+      'false',
     );
-    const selectedColor = await gallery
-      .locator('.photo-draft-tile')
-      .first()
-      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    await expect(selectedTile.locator('.photo-draft-cover-star')).toBeVisible();
+    const selectedColor = await selectedTile.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
     const otherColor = await gallery
       .locator('.photo-draft-tile')
-      .nth(1)
+      .first()
       .evaluate((element) => getComputedStyle(element).backgroundColor);
     expect(selectedColor).not.toBe(otherColor);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, `arrange-${width}-${colorScheme}.png`),
+      path: info.outputPath(`original-order-${width}-${colorScheme}.png`),
     });
-    await expect(gallery.locator('.photo-draft-number').first()).toHaveText(
-      '1',
+    await expect(
+      gallery.locator('.photo-draft-tile').first(),
+    ).toHaveAccessibleName(
+      de.memory.photoSelectItem
+        .replace('{{position}}', '1')
+        .replace('{{count}}', String(count))
+        .replace('{{name}}', 'first.jpg')
+        .replace('{{status}}', de.memory.photoReady),
+    );
+    const counter = actions.locator('.media-gallery-carousel-counter');
+    await expect(counter).toBeVisible();
+    await expect(counter).toHaveText(
+      storyProducts.gallery.counter
+        .replace('{{index}}', '2')
+        .replace('{{count}}', String(count)),
     );
     const binding = page.waitForRequest(
       (request) =>
@@ -507,16 +542,26 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: de.memory.save, exact: true })
       .click();
     const saved = (await binding).postDataJSON();
+    expect(
+      saved.attachments.map(
+        (item: { attachmentId: string }) => item.attachmentId,
+      ),
+    ).toEqual(await importedAttachmentIds);
+    expect(
+      saved.attachments.map((item: { position: number }) => item.position),
+    ).toEqual(photoNames.map((_, index) => index));
     expect(saved.selectedCoverAttachmentId).toBe(
-      saved.attachments[2].attachmentId,
+      saved.attachments[1].attachmentId,
     );
+    expect(saved.happenedOn).toBe('2026-12-31');
+    expect(saved.happenedUntil).toBe('2027-01-03');
     await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
     await expect(
       page.getByRole('button', { name: taskBoundary.back, exact: true }),
     ).toHaveCount(1);
     await expect(page.getByText(/31.*2026.*3.*2027/).first()).toBeVisible();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, `saved-${width}-${colorScheme}.png`),
+      path: info.outputPath(`saved-${width}-${colorScheme}.png`),
     });
     expect(
       await page.evaluate(

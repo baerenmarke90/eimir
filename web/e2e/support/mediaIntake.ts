@@ -15,9 +15,17 @@ export async function expectMediaIntakeAction(
   await expect(action).toHaveAccessibleName(await label.innerText());
   await expect(action).toHaveAttribute('type', 'button');
   await expect(action).toHaveCSS('border-top-width', '0px');
-  await expect(action).toHaveCSS('justify-content', 'flex-start');
+  const device = await action.evaluate((element) =>
+    element.classList.contains('media-intake-device'),
+  );
+  await expect(action).toHaveCSS(
+    'justify-content',
+    device ? 'center' : 'flex-start',
+  );
   const geometry = await action.evaluate((element) => {
-    const parent = element.parentElement;
+    let parent = element.parentElement;
+    while (parent && getComputedStyle(parent).display === 'contents')
+      parent = parent.parentElement;
     if (!parent) throw new Error('The source choice is detached.');
     const style = getComputedStyle(element);
     const parentStyle = getComputedStyle(parent);
@@ -30,12 +38,25 @@ export async function expectMediaIntakeAction(
           : '--color-surface',
       )
       .trim();
-    const expected = /^#[a-f\d]{6}$/i.test(token)
+    let expected = /^#[a-f\d]{6}$/i.test(token)
       ? `rgb(${[1, 3, 5].map((start) => Number.parseInt(token.slice(start, start + 2), 16)).join(', ')})`
       : token;
+    if (
+      element.closest('.photo-source-sheet') &&
+      document.querySelector('.heart-emotion-page')
+    ) {
+      const sample = document.createElement('span');
+      sample.style.backgroundColor =
+        'color-mix(in srgb, var(--active-heart-emotion-accent) 8%, var(--active-heart-emotion-surface))';
+      element.append(sample);
+      expected = getComputedStyle(sample).backgroundColor;
+      sample.remove();
+    }
     return {
       width: bounds.width,
       height: bounds.height,
+      parentClass: parent.className,
+      parentDisplay: parentStyle.display,
       parentWidth:
         parent.clientWidth -
         parseFloat(parentStyle.paddingInlineStart) -
@@ -48,7 +69,11 @@ export async function expectMediaIntakeAction(
   expect(geometry.height).toBeGreaterThanOrEqual(48);
   if (geometry.entry)
     expect(geometry.width).toBeLessThanOrEqual(geometry.parentWidth);
-  else expect(Math.abs(geometry.width - geometry.parentWidth)).toBeLessThan(1);
+  else
+    expect(
+      Math.abs(geometry.width - geometry.parentWidth),
+      JSON.stringify(geometry),
+    ).toBeLessThan(1);
   expect(geometry.background).toBe(geometry.expected);
   const icon = action.locator(`.media-intake-icon .eimir-icon-${iconName}`);
   await expect(icon).toBeVisible();
@@ -58,11 +83,26 @@ export async function expectMediaIntakeAction(
 
 /** The combined Core entry owns the modal; source buttons stay in its sheet. */
 export async function openComposerMediaSources(page: Page) {
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
+  const tool = page
+    .locator('.composer-tool-row button')
+    .filter({ has: page.locator('.eimir-icon-foto') });
+  await tool
+    .or(
+      page.getByRole('button', {
+        name: photoSources.addMedia,
+        exact: true,
+      }),
+    )
+    .or(
+      page.getByRole('button', {
+        name: photoSources.more,
+        exact: true,
+      }),
+    )
+    .first()
     .click();
   const sheet = page.getByRole('dialog', {
-    name: photoSources.addMedia,
+    name: new RegExp(`^(${photoSources.title}|${photoSources.addMedia})$`),
     exact: true,
   });
   await expect(sheet).toBeVisible();

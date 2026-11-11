@@ -263,6 +263,7 @@ describe('DailyQuoteCard', () => {
   });
 
   it('shows an anonymous proverb without an attribution footer', async () => {
+    const text = 'Good things take time.';
     renderCard({
       quoteResult: {
         ...quote,
@@ -275,12 +276,12 @@ describe('DailyQuoteCard', () => {
           rightsClassification: 'PUBLIC_DOMAIN',
           sourceDisplay: null,
           sourceId: 'poetic_wisdom',
-          text: 'Aller Anfang ist schwer.',
+          text,
         },
       },
     });
 
-    const saying = await screen.findByText('„Aller Anfang ist schwer.“');
+    const saying = await screen.findByText(`„${text}“`);
     expect(saying.closest('blockquote')?.querySelector('footer')).toBeNull();
   });
 

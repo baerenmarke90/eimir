@@ -600,3 +600,18 @@ Both partners may classify shared Memory photos under #1674, while private
 HeartMoment and authored experience-answer permissions stay unchanged. Disabled
 operations cannot mutate or silently omit failed media. Preserve wrapping,
 Light/Dark contrast, reduced-motion feedback, upload identity and task safety.
+
+### Product Owner correction #1740
+
+Overview creation on Moments, Planning, Places, Lists and People belongs at the
+trailing edge of its page heading, with trailing-aligned wrapping at narrow widths
+and enlarged text. Planning follows the active segment. Reuse labeled AddAction
+controls and their existing task/focus ownership.
+
+Gallery photo sensitivity and reactions use accessible icon-only controls over
+photography. A persistent sensitivity toggle keeps its target through
+reveal/conceal. Where the covered photo itself reveals, hiding returns focus to
+that photo. The comment shortcut shares the media action area for photos and
+videos and can focus the existing inline reply. Comment textareas start at two
+lines and allow vertical resizing. Gallery position dots transition with the
+contextual motion role and settle immediately with reduced motion.

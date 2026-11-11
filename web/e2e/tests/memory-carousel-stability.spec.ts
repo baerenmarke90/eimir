@@ -1727,7 +1727,10 @@ test('photo overlay controls remain separate, readable and operable in fullscree
     largePrivacy.x + largePrivacy.width < largeClose.x ||
       largePrivacy.y >= largeClose.y + largeClose.height,
   ).toBe(true);
-  expect(largePrivacy.width).toBeGreaterThan(largePrivacy.height);
+  expect(largePrivacy.width).toBeGreaterThanOrEqual(44);
+  expect(largePrivacy.height).toBeGreaterThanOrEqual(44);
+  await expect(privacy).toHaveText('');
+  await expect(privacy.locator('.eimir-icon-eye-off')).toBeVisible();
   expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
     largeStage.y + largeStage.height,
   );

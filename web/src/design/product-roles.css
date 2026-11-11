@@ -99,7 +99,7 @@
   --control-pressed-brightness: 0.96;
   --duration-transition: 180ms;
   --duration-context: 280ms;
-  --duration-map-camera: 900ms;
+  --duration-map-camera: 1100ms;
   --duration-map-stack: 600ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);

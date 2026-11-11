@@ -38,7 +38,9 @@ describe('StoryRetrospective #601 / #452', () => {
     const html = renderCard(candidate());
     expect(html).toContain('aria-labelledby="momente-retrospective-heading"');
     expect(html).toContain(de.story.retrospectiveHeading);
-    expect(html).toContain(m5s5.today.living.retrospectiveLabel);
+    expect(html).not.toContain(m5s5.today.living.retrospectiveLabel);
+    expect(html).not.toContain(de.story.retrospectiveOpen);
+    expect(html).toContain('momente-retrospective-chevron');
     expect(html).toContain('href="/story/memories/lake-memory"');
     expect(html).toContain('momente-retrospective-media');
     expect(html).toContain('data-media-deferred="true"');

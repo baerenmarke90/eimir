@@ -423,7 +423,9 @@ export function MemoryMapPage({
     <div className="page memory-map-page">
       <PageHeader
         variant="root"
+        className="content-overview-heading"
         title={t('story.timelineTitle')}
+        action={<MomentCreateMenu />}
         before={
           hasOrigin ? (
             <TaskBackButton
@@ -433,7 +435,6 @@ export function MemoryMapPage({
         }
       />
       <StoryViewTabs activeView="map" onSelect={setView} />
-      <MomentCreateMenu />
       <div
         id="momente-panel-map"
         role="tabpanel"

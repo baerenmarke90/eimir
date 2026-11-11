@@ -54,3 +54,22 @@ icons, author presentation and component tokens follow the repository.
 
 The reference guides placement. Runtime evidence and the Product Owner's
 requested changes determine acceptance.
+
+## Runtime evidence
+
+These Playwright captures use synthetic fixture accounts, content and media.
+
+| Surface | Browser capture |
+| --- | --- |
+| Moments title and action | [360 px Light](evidence/moments-360-light.png), [1280 px Dark](evidence/moments-1280-dark.png) |
+| Contextual Planning and Places actions | [Planning 390 px Light](evidence/planning-390-light.png), [Places 390 px Dark](evidence/places-390-dark.png) |
+| Lists and People actions | [Lists 390 px Dark](evidence/lists-390-dark.png), [People 390 px Light](evidence/people-390-light.png) |
+| Moments retrospective link | [390 px Light](evidence/retrospective-390-light.png) |
+| Revealed photo, position indicator and adjacent actions | [390 px Dark](evidence/gallery-390-dark.png) |
+| Compact reply after focusing from the media action | [390 px Dark](evidence/comment-390-dark.png) |
+| Today with gentle prompts enabled | [390 px Dark](evidence/wir-390-dark.png) |
+
+The browser journeys also exercise 320 px reflow, enlarged text, the named
+controls on photos and ready videos, native carousel swipes, fullscreen return,
+background concealment, map interruption, reduced motion and draft retention.
+PR validation records the tested source revision and the broader CI result.

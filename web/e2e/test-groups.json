@@ -14,8 +14,8 @@
   "specs": {
     "page-composer.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 26,
-      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, fullscreen privacy and continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. The final PO contract verifies persistent stage controls, no redundant editor rows, independent preview/cover identity, original input order, failed-upload retry and canonical save."
+      "baselineTests": 28,
+      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, fullscreen privacy and continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. The PO contract verifies persistent stage controls, independent preview/cover identity, original input order, failed-upload retry and canonical save. Gallery acceptance includes icon-only photo controls, position feedback and compact replies reachable from photo and video."
     },
     "moments-local-create.spec.ts": {
       "disposition": "PR_CRITICAL",

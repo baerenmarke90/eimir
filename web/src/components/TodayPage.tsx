@@ -89,7 +89,6 @@ import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
-import { GentleSuggestionCard } from './GentleSuggestionCard';
 import { MemoryPreview } from './MemoryPreview';
 import {
   MonthlyRecapInvitation,
@@ -1480,20 +1479,6 @@ export function TodayPage({
               }
             />
           </TodayModuleSection>
-        ) : null}
-
-        {!livingModule &&
-        !isSparse &&
-        !dashboardQuery.isCached &&
-        !dashboardQuery.error &&
-        relationshipSignalVisible &&
-        account ? (
-          <GentleSuggestionCard
-            account={account}
-            spaceId={spaceId}
-            api={apis.notifications}
-            featuredMemoryIds={[...featuredIds]}
-          />
         ) : null}
 
         {activityQuery.error && relationshipSignalVisible ? (

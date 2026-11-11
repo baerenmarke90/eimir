@@ -1224,6 +1224,110 @@ test('saved galleries retain sensitive reveal, swipe, fullscreen zoom and the sa
   expect(state.unexpected).toEqual([]);
 });
 
+for (const motion of ['no-preference', 'reduce'] as const) {
+  test(`gallery icon actions and position feedback retain keyboard privacy and compact replies with ${motion}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: motion });
+    const state = await installPageComposerFixture(page);
+    await signIn(page);
+    await page.goto('/story/memories/mem-canal');
+    const carousel = page.locator('.media-gallery-carousel').first();
+    const react = carousel.getByRole('button', {
+      name: photoReactions.open,
+      exact: true,
+    });
+    const commentAction = carousel.getByRole('button', {
+      name: storyProducts.comments.write,
+      exact: true,
+    });
+    await expect(react).toHaveText('');
+    const [reactBounds, commentBounds] = await Promise.all([
+      react.boundingBox(),
+      commentAction.boundingBox(),
+    ]);
+    if (!reactBounds || !commentBounds)
+      throw new Error('Gallery actions must be visible');
+    expect(reactBounds.y).toBeCloseTo(commentBounds.y, 0);
+    expect(reactBounds.x - commentBounds.x - commentBounds.width).toBeCloseTo(
+      8,
+      0,
+    );
+    const positions = page.locator('.media-gallery-position');
+    await positions.getByRole('button').nth(1).click();
+    await expect(positions.getByRole('button').nth(1)).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    const transition = await positions
+      .locator('button > span')
+      .first()
+      .evaluate((node) => getComputedStyle(node).transitionDuration);
+    expect(transition).toBe(motion === 'reduce' ? '0s' : '0.28s, 0.28s');
+    const active = carousel.locator('.media-gallery-carousel-slide.is-active');
+    const reveal = carousel.getByRole('button', {
+      name: sensitiveMedia.show,
+      exact: true,
+    });
+    await reveal.click();
+    const hide = carousel.getByRole('button', {
+      name: sensitiveMedia.hide,
+      exact: true,
+    });
+    await expect(hide).toBeVisible();
+    await expect(active).toBeFocused();
+    await expect(hide).toHaveText('');
+    const [photoBounds, hideBounds] = await Promise.all([
+      carousel.boundingBox(),
+      hide.boundingBox(),
+    ]);
+    if (!photoBounds || !hideBounds)
+      throw new Error('Photo and hide action must be visible');
+    expect(hideBounds.x).toBeGreaterThanOrEqual(photoBounds.x);
+    expect(hideBounds.y).toBeGreaterThanOrEqual(photoBounds.y);
+    expect(hideBounds.x + hideBounds.width).toBeLessThanOrEqual(
+      photoBounds.x + photoBounds.width,
+    );
+    expect(hideBounds.y + hideBounds.height).toBeLessThanOrEqual(
+      photoBounds.y + photoBounds.height,
+    );
+    await capture(page, info, `gallery-icon-actions-${motion}`);
+    await hide.click();
+    await expect(active).toBeFocused();
+    await expect(active.locator('.sensitive-media-cover')).toBeVisible();
+    const input = page.locator('.comment-form-compact textarea');
+    await expect(input).toHaveAttribute('rows', '2');
+    await commentAction.click();
+    await expect(input).toBeFocused();
+    if (motion === 'no-preference')
+      await capture(page, info, 'gallery-compact-reply');
+    await input.fill('A thought we keep while browsing');
+    await positions.getByRole('button').first().click();
+    await expect(input).toHaveValue('A thought we keep while browsing');
+    await noOverflow(page);
+    const memory = state.resources.get('memories/mem-canal');
+    if (!memory) throw new Error('The fixture must contain a Memory');
+    const photos = memory.attachments as Array<Record<string, unknown>>;
+    memory.attachments = [
+      {
+        ...photos[0],
+        mediaType: 'VIDEO',
+        mimeType: 'video/mp4',
+        durationSeconds: 4,
+      },
+      photos[1],
+    ];
+    await page.reload();
+    await expect(commentAction).toBeVisible();
+    await expect(carousel.locator('.is-active .video-poster')).toBeVisible();
+    await expect(react).toHaveCount(0);
+    await commentAction.click();
+    await expect(input).toBeFocused();
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
 test('Diary reload restores authored words, selected media and draft context before one deliberate save', async ({
   page,
 }, info) => {

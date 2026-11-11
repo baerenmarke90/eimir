@@ -6,7 +6,10 @@ import mapCopy from '../../src/i18n/locales/memoryMap';
 import navigation from '../../src/i18n/locales/navigation';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
-import { expectLabeledAddAction } from '../support/addAction';
+import {
+  expectLabeledAddAction,
+  expectOverviewActionPlacement,
+} from '../support/addAction';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -274,6 +277,7 @@ test('local creation reflows accessibly in Compact and Expanded, Light/Dark and 
     await captureScreenshot(page, info, `moments-local-${width}-${theme}.png`);
     const trigger = page.getByRole('button', { name: de.story.addMoment });
     await expectLabeledAddAction(trigger);
+    await expectOverviewActionPlacement(trigger, true);
     await trigger.click();
     const sheet = page.getByRole('dialog', { name: de.story.addMoment });
     await expect(sheet.getByRole('link').first()).toBeFocused();

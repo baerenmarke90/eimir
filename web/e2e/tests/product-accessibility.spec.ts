@@ -2328,8 +2328,8 @@ for (const view of [
       .click();
     await expect(
       page.getByRole('heading', { name: gentleCopy.writingTitle }),
-    ).toBeVisible();
-    await expect(page.locator('.gentle-suggestion')).toHaveCount(1);
+    ).toHaveCount(0);
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
     if (view.large)
       await expect(page.locator('html')).toHaveCSS('font-size', '32px');
     await expectNoHorizontalOverflow(page);
@@ -2341,41 +2341,22 @@ for (const view of [
     expect(requests).toEqual([]);
   });
 
-  test(`gentle prompts: quiet dismissal and blank composer retain saved consent at ${view.width} ${view.scheme}`, async ({
+  test(`gentle prompts: Wir stays quiet with saved consent at ${view.width} ${view.scheme}`, async ({
     page,
   }) => {
     const requests = await prepareGentlePrompts(page, true);
+    const receipts = requests.gentleState.receipts;
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
     await expect(
       page.getByRole('heading', { name: gentleCopy.writingTitle }),
-    ).toBeVisible();
-    await expect(page.locator('.gentle-suggestion')).toHaveCount(1);
-    if (view.large)
-      await expect(page.locator('html')).toHaveCSS('font-size', '32px');
-    await page
-      .getByRole('button', { name: gentleCopy.dismiss, exact: true })
-      .click();
-    await expect(
-      page.getByText(gentleCopy.dismissed, { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(gentleCopy.dismissed, { exact: true }),
-    ).toBeFocused();
+    ).toHaveCount(0);
     await page.reload();
     await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
-    // A separate server occasion is offered after this dismissal's day.
-    requests.gentleState.dismissed = false;
-    requests.gentleState.occasion += 1;
-    await page.reload();
-    const before = requests.gentleState.receipts;
-    await page
-      .getByRole('button', { name: gentleCopy.write, exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/story\/memories\/new$/);
-    await expect(page.locator('input[name="title"]')).toHaveValue('');
-    await expect(page.locator('textarea')).toHaveValue('');
-    expect(requests.gentleState.receipts - before).toBeLessThanOrEqual(1);
-    await page.goto('/today');
-    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
+    expect(requests.gentleState.receipts).toBe(receipts);
+    await page.goto('/more/settings/notifications');
+    await expect(
+      page.getByRole('switch', { name: gentleCopy.label, exact: true }),
+    ).toHaveAttribute('aria-checked', 'true');
     expect(requests).toEqual([]);
   });
 }

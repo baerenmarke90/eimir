@@ -1,6 +1,35 @@
 import { expect, type Locator } from '@playwright/test';
 import type { EimirIconName } from '../../src/components/EimirIcon';
 
+/** Overview creation stays at the trailing edge and wraps without overlapping its title. */
+export async function expectOverviewActionPlacement(
+  action: Locator,
+  sameRow = false,
+) {
+  const geometry = await action.evaluate((element) => {
+    const header = element.closest('.content-overview-heading');
+    const title = header?.querySelector('h1');
+    if (!header || !title)
+      throw new Error('The action must belong to its overview heading.');
+    return {
+      header: header.getBoundingClientRect().toJSON(),
+      title: title.getBoundingClientRect().toJSON(),
+      action: element.getBoundingClientRect().toJSON(),
+    };
+  });
+  expect(geometry.action.right).toBeCloseTo(geometry.header.right, 0);
+  expect(geometry.action.left).toBeGreaterThanOrEqual(geometry.header.left);
+  if (
+    geometry.action.top < geometry.title.bottom &&
+    geometry.title.top < geometry.action.bottom
+  ) {
+    expect(geometry.action.left).toBeGreaterThanOrEqual(geometry.title.right);
+  } else {
+    expect(sameRow).toBe(false);
+    expect(geometry.action.top).toBeGreaterThanOrEqual(geometry.title.bottom);
+  }
+}
+
 /** The approved composer tools replace Add pills while keeping visible labels and targets. */
 export async function expectLabeledComposerTool(
   action: Locator,

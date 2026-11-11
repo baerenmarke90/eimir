@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
@@ -547,6 +548,7 @@ export interface PartnerBirthdayProjection {
 }
 
 export function ImportantDatesPanel({
+  createActionContainer,
   peopleApi,
   spaceId,
   people,
@@ -556,6 +558,7 @@ export function ImportantDatesPanel({
   sourcesPending = false,
   sourcesUnavailable = false,
 }: {
+  createActionContainer?: HTMLElement | null;
   peopleApi: PeopleApi;
   spaceId: string;
   people: RelatedPersonView[];
@@ -888,24 +891,29 @@ export function ImportantDatesPanel({
       deleteMutation.reset();
     });
   };
+  const createAction = (
+    <AddActionButton
+      ref={createActionRef}
+      label={t('importantDates.create')}
+      className="occasions-add"
+      onClick={() => {
+        readerReturnRef.current = createActionRef.current;
+        setEditing(null);
+        setIsCreating(true);
+        saveMutation.reset();
+        deleteMutation.reset();
+        setSavedMessage(null);
+      }}
+    />
+  );
   return (
     <section
       className="important-dates-section occasions-panel"
       aria-label={t('importantDates.heading')}
     >
-      <AddActionButton
-        ref={createActionRef}
-        label={t('importantDates.create')}
-        className="occasions-add"
-        onClick={() => {
-          readerReturnRef.current = createActionRef.current;
-          setEditing(null);
-          setIsCreating(true);
-          saveMutation.reset();
-          deleteMutation.reset();
-          setSavedMessage(null);
-        }}
-      />
+      {createActionContainer
+        ? createPortal(createAction, createActionContainer)
+        : createAction}
       {savedMessage ? (
         <p className="people-saved" role="status">
           {savedMessage}

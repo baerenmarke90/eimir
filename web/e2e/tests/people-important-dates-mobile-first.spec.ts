@@ -5,7 +5,10 @@ import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import people from '../../src/i18n/locales/people';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import { expectLabeledAddAction } from '../support/addAction';
+import {
+  expectLabeledAddAction,
+  expectOverviewActionPlacement,
+} from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
@@ -589,16 +592,8 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expectLabeledAddAction(
     page.getByRole('link', { name: people.addPersonAction, exact: true }),
   );
-  const [headingBounds, addBounds] = await Promise.all([
-    page
-      .getByRole('heading', { name: people.title, exact: true })
-      .boundingBox(),
-    page.getByRole('link', { name: people.addPersonAction }).boundingBox(),
-  ]);
-  if (!headingBounds || !addBounds)
-    throw new Error('The People heading and add action must be visible.');
-  expect(addBounds.y).toBeGreaterThanOrEqual(
-    headingBounds.y + headingBounds.height,
+  await expectOverviewActionPlacement(
+    page.getByRole('link', { name: people.addPersonAction, exact: true }),
   );
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
@@ -716,6 +711,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
       height: bounds.height,
     };
   });
+  await expectOverviewActionPlacement(addDay);
   expect(addDayStyle.background).not.toBe('rgba(0, 0, 0, 0)');
   expect(addDayStyle.background).not.toBe(addDayStyle.color);
   expect(addDayStyle.width).toBeGreaterThanOrEqual(44);

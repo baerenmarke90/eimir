@@ -130,20 +130,6 @@
   inline-size: var(--space-3);
   background: var(--composer-accent, var(--color-link-text));
 }
-.memory-photo-react-label {
-  display: none;
-}
-.page-composer-detail .memory-photo-react {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  inline-size: auto;
-  padding-inline: var(--space-3);
-}
-.page-composer-detail .memory-photo-react-label {
-  display: inline;
-  font: var(--font-supporting-copy);
-}
 .page-composer-detail .description-disclosure {
   color: var(--composer-accent);
   background: transparent;
@@ -217,15 +203,6 @@
   overflow: visible;
   clip-path: none;
   border-radius: var(--radius-pill);
-}
-.page-composer-detail .memory-photo-gallery .memory-photo-react {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  inline-size: auto;
-  inset-inline-start: var(--space-3);
-  inset-inline-end: auto;
-  padding-inline: var(--space-3);
 }
 .memory-product-page.page-composer-detail {
   gap: var(--space-3);

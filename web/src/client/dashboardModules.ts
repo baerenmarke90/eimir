@@ -37,7 +37,7 @@ export type DashboardModuleKey =
 
 export interface DashboardModuleCatalogEntry {
   key: DashboardModuleKey;
-  /** i18n key for the module's Settings-facing (and Today-facing) label. */
+  /** i18n key for the module's label in Settings, without interpolation. */
   labelKey: string;
 }
 
@@ -61,7 +61,7 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
     },
     { key: 'retrospective', labelKey: 'm5s5.today.living.retrospectiveLabel' },
     { key: 'relationship_signal', labelKey: 'm5s5.today.living.kicker' },
-    { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.title' },
+    { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.settingsTitle' },
     { key: 'recent_shared', labelKey: 'm5s5.dashboard.recentTitle' },
     {
       key: 'shared_story_summary',

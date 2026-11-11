@@ -711,6 +711,17 @@ describe('DashboardSettingsPanel', () => {
       }
     });
 
+    it('names the month module consistently in the list and its controls', () => {
+      renderPanel(vi.fn());
+
+      const label = 'Euer Monat';
+      expect(screen.getByText(label, { selector: 'label' })).not.toBeNull();
+      expect(screen.getByRole('checkbox', { name: label })).not.toBeNull();
+      expect(
+        screen.getByRole('button', { name: `${label} verschieben` }),
+      ).not.toBeNull();
+    });
+
     it('omits the temporarily retired story statistics control', () => {
       renderPanel(vi.fn());
       expect(

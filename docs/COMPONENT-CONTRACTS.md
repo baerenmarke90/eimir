@@ -93,10 +93,13 @@ ActionState     = idle | submitting | success | error
   lifecycle. Selected values keep their existing edit/selection meaning.
   Preserve native semantics, refs, focus, pending/disabled behavior and link
   state. Labels wrap; inline rows wrap before compressing input or text. Local
-  CSS may arrange the action but cannot redefine its surface, spacing, radius
-  or hide its label. Product Owner correction #1697 supersedes #1693's
-  icon-only circular interpretation. Existing selection choices, Back, Close,
-  overflow and the global shell plus retain their distinct interaction roles.
+  CSS may arrange the action but cannot redefine its shared presentation.
+  Product Owner correction #1697 supersedes #1693's icon-only circular
+  interpretation for heading and inline actions. The #1740 follow-up adds a
+  shared Compact floating variant with a filled 48 px circular plus, localized
+  accessible name and room above the docked navigation. Expanded renders that
+  action with its label in the page heading. Selection choices, Back, Close and
+  overflow retain their distinct interaction roles.
 - Product Owner correction #1726 defines a narrow media-intake exception:
   its approved chat refinement uses one soft composer entry which opens the
   existing source sheet. Device/external choices live in that sheet, with Pro
@@ -600,3 +603,31 @@ Both partners may classify shared Memory photos under #1674, while private
 HeartMoment and authored experience-answer permissions stay unchanged. Disabled
 operations cannot mutate or silently omit failed media. Preserve wrapping,
 Light/Dark contrast, reduced-motion feedback, upload identity and task safety.
+
+### Product Owner correction #1740
+
+Overview creation on Moments, Planning, Places, Lists and People belongs at the
+trailing edge of its page heading, with trailing-aligned wrapping at narrow widths
+and enlarged text. Planning follows the active segment. Reuse labeled AddAction
+controls and their existing task/focus ownership.
+
+Gallery photo sensitivity and reactions use accessible icon-only controls over
+photography. A persistent sensitivity toggle keeps its target through
+reveal/conceal. Where the covered photo itself reveals, hiding returns focus to
+that photo. The comment shortcut shares the media action area for photos and
+videos and can focus the existing inline reply. Comment textareas start at two
+lines and allow vertical resizing. Gallery position dots transition with the
+contextual motion role and settle immediately with reduced motion.
+
+The diary's dedicated external-source entry offers configured photo providers.
+The Photo tool in the composer bar and the gallery Add action offer the device
+and those same providers. Use one picker lifecycle and preserve native file
+admission, consent, cancellation and focus return.
+
+Use a thin rounded focus ring for shared title and text fields while preserving
+the existing focus color and forced-colors affordance. Composer thumbnail
+sorting supports pointer, held touch and keyboard interaction through the
+existing sortable controls. Keep attachment and selected-cover identities stable.
+Reading galleries use a taller, viewport-bounded frame and fit the complete
+authorized photograph. Thumbnail and editor cover treatments follow their own
+contracts.

@@ -69,7 +69,6 @@ async function expectKeyboardFilePicker(page: Page): Promise<void> {
   const trigger = page
     .locator('.composer-tool-row button')
     .filter({ has: page.locator('.eimir-icon-foto') })
-    .or(page.getByRole('button', { name: photoSources.more, exact: true }))
     .or(page.getByRole('button', { name: photoSources.addMedia, exact: true }))
     .first();
   const input = page.locator('input[type="file"]').first();

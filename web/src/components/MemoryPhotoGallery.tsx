@@ -93,9 +93,6 @@ function PhotoActions({
         aria-controls="memory-photo-reaction-picker"
       >
         <EimirIcon name="smile-plus" />
-        <span className="memory-photo-react-label">
-          {t('photoReactions.react')}
-        </span>
       </button>
       {popover.isOpen ? (
         <fieldset
@@ -266,6 +263,7 @@ export function MemoryPhotoGallery({
   return (
     <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
+        readingFrame
         presentation={memory.experienceKind ? 'default' : 'composer'}
         initialMediaId={memory.selectedCoverAttachmentId ?? undefined}
         items={photos.map(
@@ -312,25 +310,27 @@ export function MemoryPhotoGallery({
                 }))
         }
         renderPhotoActions={(item, openFullScreen, revealed) =>
-          item.status && item.status !== 'READY' ? null : item.mediaType ===
-            'IMAGE' ? (
+          item.status && item.status !== 'READY' ? null : (
             <>
               <span className="media-comment-action" ref={commentTriggerRef} />
-              <PhotoActions
-                key={`${scope}:${item.id}`}
-                request={request.id === item.id ? request.sequence : 0}
-                onRequestHandled={clearRequest}
-                reactions={
-                  photos.find((photo) => photo.id === item.id)?.reactions ?? []
-                }
-                disabled={offline}
-                saving={mutation.isPending}
-                onReact={(reaction) => react(item.id, reaction)}
-                openFullScreen={openFullScreen}
-                revealed={revealed}
-              />
+              {item.mediaType === 'IMAGE' ? (
+                <PhotoActions
+                  key={`${scope}:${item.id}`}
+                  request={request.id === item.id ? request.sequence : 0}
+                  onRequestHandled={clearRequest}
+                  reactions={
+                    photos.find((photo) => photo.id === item.id)?.reactions ??
+                    []
+                  }
+                  disabled={offline}
+                  saving={mutation.isPending}
+                  onReact={(reaction) => react(item.id, reaction)}
+                  openFullScreen={openFullScreen}
+                  revealed={revealed}
+                />
+              ) : null}
             </>
-          ) : null
+          )
         }
         renderPhotoReactions={(item) => {
           const reactions =

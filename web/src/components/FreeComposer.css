@@ -85,11 +85,6 @@
   resize: vertical;
 }
 
-.free-composer :is(input, textarea):focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
 .free-composer :is(input, textarea)::placeholder {
   color: var(--color-text-muted);
   font-family: var(--font-ui);
@@ -421,7 +416,7 @@
   margin: 0;
   padding: var(--space-2) 0;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--radius-medium);
   background: transparent;
   box-shadow: none;
   font: var(--font-reading-body);

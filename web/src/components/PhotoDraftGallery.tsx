@@ -116,6 +116,7 @@ export function PhotoDraftGallery({
   const hasPreview =
     Boolean(addAction) ||
     items.some((item) => item.loadMedia || item.draft?.previewUrl);
+  const reorderable = Boolean(onOrderChange && items.length > 1);
   function removeItem(item: PhotoDraftGalleryItem) {
     const position = items.indexOf(item);
     if (item.key === selected.key)
@@ -297,7 +298,7 @@ export function PhotoDraftGallery({
       <PhotoDraftSorting
         onAnnounce={setAnnouncement}
         onMove={(key, target) => {
-          if (!disabled) {
+          if (!disabled && items[target]?.key !== key) {
             setSelectedKey(key);
             setAnnouncement(
               t('memory.photoMoved', {
@@ -326,9 +327,7 @@ export function PhotoDraftGallery({
               id={item.key}
               index={position}
               disabled={disabled}
-              reorderable={Boolean(
-                !addAction && onOrderChange && items.length > 1,
-              )}
+              reorderable={reorderable}
             >
               <fieldset
                 className="photo-draft-frame"
@@ -350,6 +349,9 @@ export function PhotoDraftGallery({
                   data-media-key={item.key}
                   disabled={disabled}
                   aria-pressed={item.key === selected.key}
+                  aria-description={
+                    reorderable ? t('experiences.keyboardHelp') : undefined
+                  }
                   aria-label={
                     t(
                       isVideo(item)

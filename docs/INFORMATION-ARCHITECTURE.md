@@ -62,9 +62,9 @@ their route IDs are not.
 
 - **Android app:** renders the Web shell below (Capacitor wrapper). The retired Compose client's at-every-size Bottom Navigation is recorded in the historical
   `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
-- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with icon and text label.
+- **Web, Compact/Medium windows below 840 px:** Bottom Navigation with four icon-and-label destinations. The contextual add action floats separately on Wir, Moments discovery/diary and Planning.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
-- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header; Expanded retains horizontal primary navigation and creation. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
+- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation, with the cross-area shortcut in the browser header. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
 - Order remains identical on all platforms.
 - Current area is recognizable through color, icon, and text state.
 

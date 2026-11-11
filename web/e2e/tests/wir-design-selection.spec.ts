@@ -423,7 +423,9 @@ for (const [width, theme, reduced] of [
       await expect(page.locator('.today-content')).toBeVisible();
       const overlay = page.getByRole(width < 840 ? 'dialog' : 'menu');
       const control = page.locator(
-        '.product-shell .quick-create-trigger:visible',
+        width < 840
+          ? '[data-floating-create]'
+          : '.shell-primary-action .quick-create-trigger',
       );
       const state = await control.evaluate((node) => {
         const css = getComputedStyle(node);
@@ -437,6 +439,15 @@ for (const [width, theme, reduced] of [
       if (width < 840) expect(state.radius).toBe('50%');
       const bounds = await control.boundingBox();
       if (!bounds) throw new Error('Create control is not laid out');
+      if (width < 840) {
+        const reveal = page.locator(
+          '.today-moment-media .sensitive-media-preview-control',
+        );
+        await expect(reveal).toBeVisible();
+        const revealBounds = await reveal.boundingBox();
+        if (!revealBounds) throw new Error('Photo reveal is not laid out');
+        expect(revealBounds.x + revealBounds.width).toBeLessThan(bounds.x);
+      }
       const session = await context.newCDPSession(page);
       const contact = {
         x: bounds.x + bounds.width / 2,

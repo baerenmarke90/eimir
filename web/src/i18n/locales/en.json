@@ -618,7 +618,7 @@
       }
     },
     "plan": {
-      "linkWish": "Add wish",
+      "linkWish": "Link a wish",
       "linkWishHelp": "The plan stays. Completing it also fulfils the wish. You can undo the plan later with “Back to wish”.",
       "chooseWish": "Choose an open wish",
       "confirmWishLink": "Link to plan",
@@ -4015,7 +4015,7 @@
     },
     "create": {
       "title": "Capture something",
-      "body": "Use the plus to start a moment, wish or plan directly."
+      "body": "Use the plus in Moments to capture a diary entry, heart moment or milestone."
     }
   },
   "photoReactions": {

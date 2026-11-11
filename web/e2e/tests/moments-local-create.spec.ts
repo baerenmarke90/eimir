@@ -1,12 +1,16 @@
+import composer from '../../src/i18n/locales/composer';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import mapCopy from '../../src/i18n/locales/memoryMap';
-import navigation from '../../src/i18n/locales/navigation';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
-import { expectLabeledAddAction } from '../support/addAction';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+  expectOverviewActionPlacement,
+} from '../support/addAction';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -92,7 +96,7 @@ async function choose(page: Page, label: string) {
 for (const target of [
   {
     resource: 'memories',
-    label: de.story.kind.memory,
+    label: composer.diaryEntry,
     field: de.memory.bodyLabel,
     save: de.memory.save,
   },
@@ -140,7 +144,7 @@ for (const target of [
   });
 }
 
-test('choice dismissal restores focus and the global plus retains all destinations', async ({
+test('the contextual choice closes and restores focus for Escape and Back', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -156,19 +160,7 @@ test('choice dismissal restores focus and the global plus retains all destinatio
   await expect(page).toHaveURL('/story?tab=timeline');
   await expect(trigger).toBeFocused();
   expect(created).toEqual([]);
-  await page
-    .getByRole('button', { name: navigation.newContent, exact: true })
-    .click();
-  const global = page.getByRole('dialog', {
-    name: navigation.quickCreateTitle,
-  });
-  await expect(global.getByRole('link')).toHaveCount(9);
-  await expect(
-    global.getByRole('link', { name: navigation.quickCreateWish, exact: true }),
-  ).toBeVisible();
-  await expect(
-    global.getByRole('link', { name: navigation.quickCreatePlan, exact: true }),
-  ).toBeVisible();
+  await expect(page.locator('.mobile-bottom-shell button')).toHaveCount(0);
 });
 
 test('discovery and selected map place survive opening and cancelling capture', async ({
@@ -178,7 +170,7 @@ test('discovery and selected map place survive opening and cancelling capture', 
   await setup(page);
   for (const origin of ['/story?tab=discover', '/story/map?place=49%3A7']) {
     await page.goto(origin);
-    await choose(page, de.story.kind.memory);
+    await choose(page, composer.diaryEntry);
     await page.locator('.task-back-control').click();
     await expect(page).toHaveURL(origin);
     await expect(
@@ -197,7 +189,7 @@ test('a dirty local capture keeps its draft before deliberate discard and return
   await page.setViewportSize({ width: 390, height: 844 });
   const created = await setup(page);
   await page.goto(ORIGIN);
-  await choose(page, de.story.kind.memory);
+  await choose(page, composer.diaryEntry);
   const narrative = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await narrative.fill('A draft worth keeping');
   await page.locator('.task-back-control').click();
@@ -273,7 +265,15 @@ test('local creation reflows accessibly in Compact and Expanded, Light/Dark and 
     await expect(page.locator('.story-timeline').first()).toBeVisible();
     await captureScreenshot(page, info, `moments-local-${width}-${theme}.png`);
     const trigger = page.getByRole('button', { name: de.story.addMoment });
-    await expectLabeledAddAction(trigger);
+    if (width < 840) {
+      await expectFloatingAddAction(
+        trigger,
+        page.locator('.mobile-bottom-shell'),
+      );
+    } else {
+      await expectLabeledAddAction(trigger);
+      await expectOverviewActionPlacement(trigger, true);
+    }
     await trigger.click();
     const sheet = page.getByRole('dialog', { name: de.story.addMoment });
     await expect(sheet.getByRole('link').first()).toBeFocused();
@@ -325,7 +325,11 @@ test('the local label and three types follow the active English locale', async (
   await page.getByRole('button', { name: en.login.submit }).click();
   await page.getByRole('button', { name: en.story.addMoment }).click();
   const sheet = page.getByRole('dialog', { name: en.story.addMoment });
-  for (const label of Object.values(en.story.kind))
+  for (const label of [
+    en.composer.diaryEntry,
+    en.story.kind.heartMoment,
+    en.story.kind.milestone,
+  ])
     await expect(
       sheet.getByRole('link', { name: label, exact: true }),
     ).toBeVisible();

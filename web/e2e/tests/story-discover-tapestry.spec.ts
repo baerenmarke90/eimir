@@ -468,9 +468,14 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 
-  await page.screenshot({
+  await retrospective.evaluate((card) =>
+    card.scrollIntoView({ block: 'center', behavior: 'instant' }),
+  );
+  await expect(
+    retrospective.locator('.momente-retrospective-chevron'),
+  ).toBeVisible();
+  await retrospective.screenshot({
     path: testInfo.outputPath('story-601-retrospective-390-light.png'),
-    fullPage: true,
   });
 });
 

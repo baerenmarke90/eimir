@@ -20,6 +20,7 @@ export function PlanningOccasions({
   accountId,
   apiBaseUrl,
   accessToken,
+  createActionContainer,
 }: {
   peopleApi: PeopleApi;
   profilesApi?: ProfilesApi;
@@ -27,6 +28,7 @@ export function PlanningOccasions({
   accountId?: string;
   apiBaseUrl?: string;
   accessToken?: string;
+  createActionContainer?: HTMLElement | null;
 }) {
   const { t } = useTranslation();
   const spacesApi = useMemo(
@@ -133,6 +135,7 @@ export function PlanningOccasions({
         <UiState kind="loading" title={t('importantDates.loading')} />
       ) : null}
       <ImportantDatesPanel
+        createActionContainer={createActionContainer}
         peopleApi={peopleApi}
         spaceId={spaceId}
         people={people.data ?? []}

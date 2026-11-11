@@ -201,20 +201,24 @@ export function AttachmentDraftPicker({
                 unified
                 renderTrigger={
                   presentation !== 'default'
-                    ? (open) => {
+                    ? (open, openExternal) => {
                         openSource.current = open;
-                        if (mediaTrigger) return mediaTrigger(open);
-                        return presentation === 'diary' && !populated ? (
-                          <MediaIntakeButton
-                            label={t('photoSources.more')}
-                            icon="photo-library"
-                            variant="source"
-                            proLabel={t('photoSources.pro')}
-                            className="photo-source-trigger"
-                            disabled={disabled}
-                            onClick={open}
-                          />
-                        ) : null;
+                        return (
+                          <>
+                            {mediaTrigger?.(open)}
+                            {presentation === 'diary' && !populated ? (
+                              <MediaIntakeButton
+                                label={t('photoSources.more')}
+                                icon="photo-library"
+                                variant="source"
+                                proLabel={t('photoSources.pro')}
+                                className="photo-source-trigger"
+                                disabled={disabled}
+                                onClick={openExternal}
+                              />
+                            ) : null}
+                          </>
+                        );
                       }
                     : undefined
                 }

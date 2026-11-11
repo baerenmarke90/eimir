@@ -81,13 +81,18 @@ export function RouteEntryHandoff(): null {
         if (!resolveOrigin(state?.taskReturnKey)) return;
         window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
         completedOriginEntry.current = entry;
-        if (origin.focusTarget === 'quick-create') {
-          Array.from(
-            document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
-          )
-            .find((element) => element.getClientRects().length > 0)
-            ?.focus({ preventScroll: true });
-        }
+        const target = origin.selectedKey
+          ? Array.from(
+              document.querySelectorAll<HTMLElement>('[data-task-item-key]'),
+            ).find(
+              (element) => element.dataset.taskItemKey === origin.selectedKey,
+            )
+          : origin.focusTarget === 'quick-create'
+            ? Array.from(
+                document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
+              ).find((element) => element.getClientRects().length > 0)
+            : null;
+        target?.focus({ preventScroll: true });
       });
       return () => window.cancelAnimationFrame(frame);
     }

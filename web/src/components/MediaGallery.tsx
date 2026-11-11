@@ -116,6 +116,7 @@ export function MediaGallery({
   dismissWithHistory = true,
   directSensitiveToggle = false,
   showInlineSensitiveControl = true,
+  readingFrame = false,
   presentation = 'default',
   countStyle = presentation === 'composer' ? 'fraction' : 'label',
   onPhotoLongPress,
@@ -143,8 +144,9 @@ export function MediaGallery({
   ) => ReactNode;
   dismissWithHistory?: boolean;
   directSensitiveToggle?: boolean;
-  /** Fullscreen reveal/hide remains available independently of this inline row. */
+  /** Fullscreen reveal/hide remains available independently of the gallery control. */
   showInlineSensitiveControl?: boolean;
+  readingFrame?: boolean;
   presentation?: 'default' | 'composer';
   countStyle?: 'fraction' | 'label';
   onPhotoLongPress?: (id: string) => void;
@@ -763,6 +765,10 @@ export function MediaGallery({
   }
 
   const activeItem = activeIndex === null ? null : items[activeIndex];
+  const carouselItem = items[carouselIndex];
+  const carouselRevealed = carouselItem
+    ? reveals.isRevealed(carouselItem.id)
+    : false;
 
   return (
     <>
@@ -770,7 +776,7 @@ export function MediaGallery({
         renderPreviews(openLightbox)
       ) : (
         <section
-          className="media-gallery-carousel"
+          className={`media-gallery-carousel${readingFrame ? ' media-gallery-reader' : ''}`}
           aria-label={t('gallery.aria')}
         >
           <div className="media-gallery-carousel-viewport">
@@ -878,32 +884,16 @@ export function MediaGallery({
                       if (
                         directSensitiveToggle &&
                         item.isSensitive === true &&
-                        ((presentation !== 'composer' &&
-                          item.mediaType !== MediaType.VIDEO) ||
-                          !reveals.isRevealed(item.id))
+                        !reveals.isRevealed(item.id)
                       )
                         reveals.toggle(item.id);
                       else openLightbox(index);
                     }}
-                    aria-pressed={
-                      presentation !== 'composer' &&
-                      directSensitiveToggle &&
-                      item.isSensitive === true &&
-                      item.mediaType !== MediaType.VIDEO
-                        ? reveals.isRevealed(item.id)
-                        : undefined
-                    }
                     aria-label={
                       directSensitiveToggle &&
                       item.isSensitive === true &&
-                      ((presentation !== 'composer' &&
-                        item.mediaType !== MediaType.VIDEO) ||
-                        !reveals.isRevealed(item.id))
-                        ? t(
-                            reveals.isRevealed(item.id)
-                              ? 'sensitiveMedia.hide'
-                              : 'sensitiveMedia.show',
-                          )
+                      !reveals.isRevealed(item.id)
+                        ? t('sensitiveMedia.show')
                         : (item.isSensitive !== false &&
                           !reveals.isRevealed(item.id)
                             ? t('sensitiveMedia.label') + '. '
@@ -989,35 +979,40 @@ export function MediaGallery({
                 </button>
               </>
             ) : null}
-            {directSensitiveToggle &&
-            items[carouselIndex]?.isSensitive === true &&
-            reveals.isRevealed(items[carouselIndex]!.id) ? (
-              <div
-                className="media-gallery-privacy-indicator"
-                aria-hidden="true"
-              >
-                <SensitiveMediaCover />
-              </div>
+            {carouselItem?.isSensitive === true &&
+            carouselItem.mediaType === MediaType.IMAGE &&
+            ((showInlineSensitiveControl && !directSensitiveToggle) ||
+              carouselRevealed) ? (
+              <SensitiveMediaControl
+                overlay
+                iconOnly
+                className="media-gallery-sensitive-control"
+                revealed={carouselRevealed}
+                onToggle={() => {
+                  if (directSensitiveToggle || !showInlineSensitiveControl)
+                    carouselSlides.current[carouselIndex]?.focus({
+                      preventScroll: true,
+                    });
+                  reveals.toggle(carouselItem.id);
+                }}
+              />
             ) : null}
-            {items[carouselIndex]
+            {carouselItem
               ? renderPhotoActions?.(
-                  items[carouselIndex]!,
+                  carouselItem,
                   () => openLightbox(carouselIndex),
-                  items[carouselIndex]?.isSensitive === false ||
-                    reveals.isRevealed(items[carouselIndex]!.id),
+                  carouselItem.isSensitive === false || carouselRevealed,
                 )
               : null}
           </div>
           {showInlineSensitiveControl &&
-          items[carouselIndex]?.isSensitive === true &&
-          (!directSensitiveToggle ||
-            ((presentation === 'composer' ||
-              items[carouselIndex]?.mediaType === MediaType.VIDEO) &&
-              reveals.isRevealed(items[carouselIndex]!.id))) ? (
+          carouselItem?.isSensitive === true &&
+          carouselItem.mediaType === MediaType.VIDEO &&
+          (!directSensitiveToggle || carouselRevealed) ? (
             <SensitiveMediaControl
-              video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
-              revealed={reveals.isRevealed(items[carouselIndex]!.id)}
-              onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
+              video
+              revealed={carouselRevealed}
+              onToggle={() => reveals.toggle(carouselItem.id)}
             />
           ) : null}
           {presentation === 'composer' && items.length > 1 ? (
@@ -1044,9 +1039,7 @@ export function MediaGallery({
               ))}
             </nav>
           ) : null}
-          {items[carouselIndex]
-            ? renderPhotoReactions?.(items[carouselIndex]!)
-            : null}
+          {carouselItem ? renderPhotoReactions?.(carouselItem) : null}
         </section>
       )}
 
@@ -1157,6 +1150,7 @@ export function MediaGallery({
                     {activeItem.isSensitive === true ? (
                       <SensitiveMediaControl
                         overlay
+                        iconOnly={activeItem.mediaType === MediaType.IMAGE}
                         video={activeItem.mediaType === MediaType.VIDEO}
                         revealed={reveals.isRevealed(activeItem.id)}
                         onToggle={() => reveals.toggle(activeItem.id)}

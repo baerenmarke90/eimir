@@ -18,8 +18,8 @@
     },
     "page-composer.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 26,
-      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, fullscreen privacy and continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. The final PO contract verifies persistent stage controls, no redundant editor rows, independent preview/cover identity, original input order, failed-upload retry and canonical save."
+      "baselineTests": 32,
+      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, fullscreen privacy and continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. The PO contract verifies persistent stage controls, independent preview/cover identity, original input order, failed-upload retry and canonical save. Gallery acceptance includes icon-only photo controls, position feedback and compact replies reachable from photo and video."
     },
     "moments-local-create.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -93,7 +93,8 @@
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 9
+      "baselineTests": 10,
+      "reason": "Docked navigation, icon-only local creation, native modal access and runtime-specific Expanded browser shortcut."
     },
     "heart-moment-create-product-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -213,7 +214,8 @@
     },
     "quick-create-destination-handoff.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 18
+      "baselineTests": 18,
+      "reason": "Focused creation from contextual Compact actions and the Expanded browser shortcut, with scroll, focus, saved result and return continuity."
     },
     "r1-memory-capture-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -344,7 +346,7 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 22,
+      "baselineTests": 23,
       "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
     "shared-photos.spec.ts": {
@@ -478,7 +480,7 @@
     "media-planning-corrections.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 9,
-      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
+      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, both photo-source entries, draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
     },
     "planning-search-private-profile.spec.ts": {
       "disposition": "FULL_REGRESSION",

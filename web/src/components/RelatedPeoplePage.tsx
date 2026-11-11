@@ -590,6 +590,7 @@ export function RelatedPeoplePage({
   return (
     <div className="page people-overview">
       <PageHeader
+        className="content-overview-heading"
         title={t('people.title')}
         action={
           <AddActionLink

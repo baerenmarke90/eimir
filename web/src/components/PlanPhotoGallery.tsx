@@ -51,6 +51,7 @@ export function PlanPhotoGallery({
   return (
     <div className="plan-photo-gallery photo-gallery">
       <MediaGallery
+        readingFrame
         presentation="composer"
         initialMediaId={plan.selectedCoverAttachmentId ?? undefined}
         items={photos.map(({ id, mediaType, isSensitive }) => ({

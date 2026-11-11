@@ -9,6 +9,7 @@ export function TaskOriginLink({
   className,
   ariaLabel,
   children,
+  selectedKey,
   previewControls = false,
   onFollow,
 }: {
@@ -16,6 +17,7 @@ export function TaskOriginLink({
   className?: string;
   ariaLabel?: string;
   children: ReactNode;
+  selectedKey?: string;
   previewControls?: boolean;
   onFollow?: () => void;
 }) {
@@ -30,7 +32,9 @@ export function TaskOriginLink({
       event.altKey
     )
       return;
-    const taskOriginKey = captureOrigin();
+    const taskOriginKey = captureOrigin(
+      selectedKey ? { selectedKey } : undefined,
+    );
     onFollow?.();
     if (!taskOriginKey) return;
     event.preventDefault();
@@ -42,6 +46,7 @@ export function TaskOriginLink({
       to={to}
       className={className}
       aria-label={ariaLabel}
+      data-task-item-key={selectedKey}
       onClick={followWithOrigin}
     >
       {children}

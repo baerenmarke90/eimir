@@ -1246,12 +1246,9 @@ test('Memory carousel keeps document and layout position stable across pointer a
 
   await expect(page.locator('.media-gallery-carousel-footer')).toHaveCount(0);
   await expect(page.locator('.media-gallery-carousel-dots')).toHaveCount(0);
-  expect(
-    await page
-      .locator('.media-gallery-carousel-content')
-      .first()
-      .evaluate((element) => getComputedStyle(element).objectFit),
-  ).toBe('cover');
+  await expect(
+    page.locator('.media-gallery-carousel-content').first(),
+  ).toHaveCSS('object-fit', 'contain');
 
   const ambientBackdrop = page
     .locator('.media-gallery-carousel-backdrop')
@@ -1727,7 +1724,10 @@ test('photo overlay controls remain separate, readable and operable in fullscree
     largePrivacy.x + largePrivacy.width < largeClose.x ||
       largePrivacy.y >= largeClose.y + largeClose.height,
   ).toBe(true);
-  expect(largePrivacy.width).toBeGreaterThan(largePrivacy.height);
+  expect(largePrivacy.width).toBeGreaterThanOrEqual(44);
+  expect(largePrivacy.height).toBeGreaterThanOrEqual(44);
+  await expect(privacy).toHaveText('');
+  await expect(privacy.locator('.eimir-icon-eye-off')).toBeVisible();
   expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
     largeStage.y + largeStage.height,
   );

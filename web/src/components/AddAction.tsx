@@ -39,8 +39,10 @@ export function AddActionButton({
   pending = false,
   disabled,
   className = '',
+  floating = false,
   ...props
-}: Omit<ComponentProps<'button'>, 'children'> & AddActionLabel) {
+}: Omit<ComponentProps<'button'>, 'children'> &
+  AddActionLabel & { floating?: boolean }) {
   const visibleLabel = pending && pendingLabel ? pendingLabel : label;
   return (
     <button
@@ -48,6 +50,7 @@ export function AddActionButton({
       {...props}
       disabled={disabled || pending}
       className={`add-action ${className}`}
+      data-floating-create={floating || undefined}
       aria-label={visibleLabel}
       aria-busy={pending || undefined}
       title={visibleLabel}
@@ -67,13 +70,15 @@ export function AddActionLink({
   label,
   icon,
   className = '',
+  floating = false,
   ...props
 }: Omit<ComponentProps<typeof Link>, 'children'> &
-  Pick<AddActionLabel, 'label' | 'icon'>) {
+  Pick<AddActionLabel, 'label' | 'icon'> & { floating?: boolean }) {
   return (
     <Link
       {...props}
       className={`button-link add-action ${className}`}
+      data-floating-create={floating || undefined}
       aria-label={label}
       title={label}
     >

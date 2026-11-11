@@ -49,6 +49,7 @@ import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { TaskBackButton } from './TaskBackButton';
+import { TaskOriginLink } from './TodayDestinationLink';
 import { VoiceNotePlayer, VoiceWaveform } from './VoiceNotePlayer';
 import './OnceMessages.css';
 
@@ -69,6 +70,20 @@ function EnvelopeIcon() {
 export function OnceIncomingSignal() {
   const environment = useOnceEnvironment();
   return environment ? <IncomingSignal environment={environment} /> : null;
+}
+
+export function OnceComposeEntry() {
+  const { t } = useTranslation();
+  const environment = useOnceEnvironment();
+  return environment ? (
+    <TaskOriginLink
+      to={ONCE_CREATE_ROUTE}
+      className="today-section-link once-compose-entry"
+      selectedKey="once-compose"
+    >
+      {t('onceMessages.title')} <ProMark label="Pro" />
+    </TaskOriginLink>
+  ) : null;
 }
 
 function IncomingSignal({ environment }: { environment: OnceEnvironment }) {

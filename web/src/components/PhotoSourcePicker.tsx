@@ -146,16 +146,17 @@ export function PhotoSourcePicker({
     blocked?: boolean,
   ) => ReactNode;
   unified?: boolean;
-  renderTrigger?: (open: () => void) => ReactNode;
+  renderTrigger?: (open: () => void, openExternal: () => void) => ReactNode;
 }) {
   const { t } = useTranslation();
-  const { apiRef, availability } = usePhotoSources({
+  const { apiRef, availability, loading } = usePhotoSources({
     apiBaseUrl,
     accessToken,
     accountId,
     spaceId,
   });
   const [open, setOpen] = useState(false);
+  const [externalOnly, setExternalOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [view, setView] = useState<PhotoSelectionView | null>(null);
@@ -372,11 +373,12 @@ export function PhotoSourcePicker({
     return null;
   const canImport = Boolean(availability?.enabled && availability.canImport);
   const activeTask = task.current;
-  const openChooser = () => {
+  const openChooser = (external = false) => {
     if (disabled || remaining <= 0) return;
     if (document.activeElement instanceof HTMLButtonElement)
       trigger.current = document.activeElement;
     setMessage('');
+    setExternalOnly(external);
     setOpen(true);
   };
   return (
@@ -386,7 +388,10 @@ export function PhotoSourcePicker({
           ? devicePicker?.(close, deviceTarget, busy || remaining <= 0)
           : devicePicker?.(() => {})}
         {renderTrigger ? (
-          renderTrigger(openChooser)
+          renderTrigger(
+            () => openChooser(),
+            () => openChooser(true),
+          )
         ) : unified ||
           (availability &&
             (availability.enabled || availability.immichConnected)) ? (
@@ -402,10 +407,7 @@ export function PhotoSourcePicker({
             aria-haspopup="dialog"
             aria-expanded={open}
             disabled={disabled || remaining <= 0}
-            onClick={() => {
-              setMessage('');
-              setOpen(true);
-            }}
+            onClick={() => openChooser()}
           />
         ) : null}
       </div>
@@ -496,8 +498,17 @@ export function PhotoSourcePicker({
           </>
         ) : (
           <>
-            {unified ? (
+            {unified && !externalOnly ? (
               <div className="photo-source-device-slot" ref={setDeviceTarget} />
+            ) : null}
+            {externalOnly &&
+            !availability?.enabled &&
+            !availability?.immichConnected ? (
+              <p role="status">
+                {t(
+                  loading ? 'states.loading.title' : 'photoSources.unavailable',
+                )}
+              </p>
             ) : null}
             {canImport && availability?.googleAvailable ? (
               <MediaIntakeButton

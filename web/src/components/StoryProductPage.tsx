@@ -810,9 +810,13 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      <PageHeader variant="root" title={t('story.timelineTitle')} />
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('story.timelineTitle')}
+        action={<MomentCreateMenu floating />}
+      />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
-      <MomentCreateMenu />
 
       <div
         id="momente-panel-discover"

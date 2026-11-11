@@ -144,7 +144,7 @@ describe('AppShell', () => {
     expect(renderShell('/story')).not.toContain('shell-detail-context');
   });
 
-  it('offers global quick-create triggers for expanded and compact shells', () => {
+  it('keeps the existing browser shortcut in the expanded header', () => {
     const html = renderShell('/story');
     const quickCreateButtons =
       html.match(/<button\b[^>]*quick-create-trigger[^>]*>/g) ?? [];
@@ -155,10 +155,9 @@ describe('AppShell', () => {
     expect(html.slice(0, html.indexOf('</header>'))).toContain(
       'shell-primary-action',
     );
-    expect(html).toContain('mobile-quick-create');
-    expect(quickCreateButtons).toHaveLength(2);
+    expect(html).not.toContain('mobile-quick-create');
+    expect(quickCreateButtons).toHaveLength(1);
     expect(menuIds.every(Boolean)).toBe(true);
-    expect(new Set(menuIds).size).toBe(2);
     expect(html).toContain(`>${navigation.newContent}<`);
     expect(html).toContain('aria-haspopup="menu"');
     expect(html).toContain('aria-expanded="false"');
@@ -367,20 +366,7 @@ describe('AppShell', () => {
     expect(navContent).toContain('href="/more"');
     expect(navContent).toContain(`>${navigation.more}<`);
 
-    // Quick Create is a button action sibling inside the bottom shell, not a nav link.
-    expect(navContent).not.toContain('quick-create-trigger');
-
-    const quickCreateSlot = bottomShell.slice(
-      bottomShell.indexOf('mobile-quick-create'),
-    );
-    expect(quickCreateSlot).toContain('<button');
-    expect(quickCreateSlot).toContain('quick-create-trigger');
-    expect(quickCreateSlot).toContain(`aria-label="${navigation.newContent}"`);
-    expect(quickCreateSlot).toContain('aria-haspopup="dialog"');
-
-    // No standalone FAB outside the mobile-bottom-shell.
-    const htmlBeforeShell = html.slice(0, shellIndex);
-    expect(htmlBeforeShell).not.toContain('mobile-quick-create');
+    expect(bottomShell).not.toContain('quick-create-trigger');
   });
 
   it('keeps focused create tasks free of normal shell navigation', () => {

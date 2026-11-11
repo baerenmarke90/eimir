@@ -196,7 +196,9 @@ ideas, private lists and partner notes. No private records appear in it.
   control uses a filled icon-only plus, a localized accessible name and a
   52 px circular target shared by contextual floating actions. Reserve
   matching clearance above the measured four-tab dock. Expanded uses a
-  labeled action in the existing heading.
+  labeled action in the existing heading. In the private area the Expanded
+  header omits the global shortcut to keep shared creation out of the private
+  context.
 - Open the shared short task sheet and offer personal note, gift idea and
   private list creation. Each choice opens its existing focused task.
   Partner notes remain accessible from their overview card and use their

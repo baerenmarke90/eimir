@@ -489,6 +489,9 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   } else {
     await expectLabeledAddAction(create);
     await expect(create).not.toHaveCSS('position', 'fixed');
+    await expect(
+      page.getByRole('button', { name: navigation.newContent, exact: true }),
+    ).toHaveCount(0);
   }
 
   await expectNoHorizontalOverflow(page);

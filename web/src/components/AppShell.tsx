@@ -321,7 +321,7 @@ function AuthenticatedAppShell({
               <PrimaryNavigationLinks />
             </nav>
             <div className="header-actions">
-              {!isCapacitorNative() ? (
+              {!isPrivateArea && !isCapacitorNative() ? (
                 <div className="shell-primary-action">
                   <QuickCreateMenu />
                 </div>

@@ -332,10 +332,11 @@ test('focused Wish creation omits the redundant fixed-audience banner', async ({
 
   await expect(page.getByText(m5s3.wish.sharedBody)).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
-  await expect(page.locator('#main-content')).toHaveCSS(
-    'animation-name',
-    'none',
-  );
+  expect(
+    await page
+      .locator('#main-content')
+      .evaluate((main) => main.getAnimations().length),
+  ).toBe(0);
   await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
 });
 
@@ -351,19 +352,19 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
   const main = page.locator('#main-content');
   await main.evaluate((element) => {
     let entries = 0;
-    element.addEventListener('animationstart', (event) => {
-      if (
-        event.target !== element ||
-        event.animationName !== 'eimir-create-entry-fade'
-      )
-        return;
+    const animate = element.animate.bind(element);
+    element.animate = (...args) => {
+      const animation = animate(...args);
+      if (!location.pathname.endsWith('/new')) return animation;
       entries += 1;
       element.setAttribute('data-e2e-create-entries', String(entries));
       // Hold the first entry open to check the viewport tools and rapid Back.
       if (entries === 1) {
-        for (const animation of element.getAnimations()) animation.pause();
+        animation.pause();
+        animation.currentTime = 0;
       }
-    });
+      return animation;
+    };
   });
   await page.getByRole('link', { name: m5s3.overview.addPlan }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/new$/);
@@ -378,7 +379,9 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
   ).toBeCloseTo(0);
   await page.goBack();
   await expect(page).toHaveURL(/\/plan$/);
-  await expect(main).toHaveCSS('animation-name', 'none');
+  await expect
+    .poll(() => main.evaluate((element) => element.getAnimations().length))
+    .toBe(0);
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   const wishAction = page.getByRole('link', { name: m5s3.overview.addWish });
@@ -397,7 +400,9 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
   await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
   await expect(page.getByLabel(m5s3.wish.intentionLabel)).not.toBeFocused();
   await expect(main).toHaveAttribute('data-e2e-create-entries', '2');
-  await expect(main).toHaveCSS('animation-name', 'none');
+  await expect
+    .poll(() => main.evaluate((element) => element.getAnimations().length))
+    .toBe(0);
   await page.goBack();
   await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
   await expect(
@@ -409,7 +414,9 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
   await wishAction.click();
   await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
   await expect(page.getByLabel(m5s3.wish.intentionLabel)).toBeEditable();
-  await expect(main).toHaveCSS('animation-name', 'none');
+  expect(await main.evaluate((element) => element.getAnimations().length)).toBe(
+    0,
+  );
   await expect(main).toHaveAttribute('data-e2e-create-entries', '2');
 });
 

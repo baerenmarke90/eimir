@@ -73,14 +73,17 @@ export function ContextualCreateMenu({
                 )
                   return;
                 event.preventDefault();
-                sheetRef.current?.closeForNavigation(() => {
-                  const taskOriginKey = captureOrigin({
-                    selectedKey: taskItemKey,
-                  });
-                  void navigate(target.to, {
-                    state: taskOriginKey ? { taskOriginKey } : undefined,
-                  });
-                });
+                sheetRef.current?.closeForNavigation(
+                  () => {
+                    const taskOriginKey = captureOrigin({
+                      selectedKey: taskItemKey,
+                    });
+                    void navigate(target.to, {
+                      state: taskOriginKey ? { taskOriginKey } : undefined,
+                    });
+                  },
+                  { animateExit: false },
+                );
               }}
             >
               <EimirIcon name={target.icon} />

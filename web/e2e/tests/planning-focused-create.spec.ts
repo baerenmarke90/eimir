@@ -371,16 +371,15 @@ test('focused Wish creation saves optional prose and opens its reader', async ({
       .locator('#main-content')
       .evaluate((main) => main.getAnimations().length),
   ).toBe(0);
-  const title = 'Nordlichter sehen';
-  const opening =
-    'Eine kleine Hütte am See mieten und die Thermoskanne einpacken.';
-  const ending = 'Am nächsten Morgen gemeinsam am See frühstücken.';
+  const title = 'See the northern lights';
+  const opening = 'Rent a small cabin by the lake and pack a thermos.';
+  const ending = 'Have breakfast together by the lake the next morning.';
   const description = [
     opening,
-    'Abends lassen wir die Lichter in der Hütte aus.',
-    'Wir laufen ans Wasser und suchen einen freien Blick nach Norden.',
-    'Wenn Wolken kommen, bleiben wir noch auf einen Tee draußen.',
-    'Die Kamera darf mit, aber wir wollen zuerst einfach schauen.',
+    'Leave the cabin lights off after sunset.',
+    'Walk down to the water for a clear view to the north.',
+    'Stay outside for another cup of tea if clouds roll in.',
+    'Bring the camera and take some time to look up first.',
     ending,
   ].join('\n\n');
   const titleField = page.getByLabel(m5s3.wish.intentionLabel);

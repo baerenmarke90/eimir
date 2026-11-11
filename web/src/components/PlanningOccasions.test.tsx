@@ -72,9 +72,12 @@ it('uses both authoritative account profiles and the shared start date for occas
   expect(
     await screen.findByRole('button', { name: /Geburtstag von Sam/ }),
   ).toBeTruthy();
+  const anniversary = await screen.findByRole('button', {
+    name: new RegExp(i18n.t('importantDates.relationshipAnniversary')),
+  });
   expect(
-    await screen.findByRole('button', { name: /Euer Jahrestag/ }),
-  ).toBeTruthy();
+    anniversary.querySelector('svg.eimir-icon-wir.eimir-icon-filled'),
+  ).not.toBeNull();
   expect(profiles).toHaveBeenCalledWith({ spaceId: 'space', accountId: 'own' });
   expect(screen.queryByText(i18n.t('importantDates.emptyTitle'))).toBeNull();
 });

@@ -1,4 +1,5 @@
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { expectFloatingAddAction } from '../support/addAction';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import copy from '../../src/i18n/locales/wirDesign';
@@ -427,16 +428,16 @@ for (const [width, theme, reduced] of [
           ? '[data-floating-create]'
           : '.shell-primary-action .quick-create-trigger',
       );
-      const state = await control.evaluate((node) => {
-        const css = getComputedStyle(node);
-        return {
-          highlight: css.webkitTapHighlightColor,
-          radius: css.borderRadius,
-          transform: css.transform,
-        };
-      });
-      expect(state.highlight).toBe('rgba(0, 0, 0, 0)');
-      if (width < 840) expect(state.radius).toBe('50%');
+      await expect(control).toHaveCSS(
+        '-webkit-tap-highlight-color',
+        'rgba(0, 0, 0, 0)',
+      );
+      if (width < 840) {
+        await expectFloatingAddAction(
+          control,
+          page.locator('.mobile-bottom-shell'),
+        );
+      }
       const bounds = await control.boundingBox();
       if (!bounds) throw new Error('Create control is not laid out');
       if (width < 840) {

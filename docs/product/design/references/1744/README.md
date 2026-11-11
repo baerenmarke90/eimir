@@ -82,6 +82,16 @@ No new dependency or provider.
   one rewrite is queued ten minutes later, so several edits cost one inference.
   Retained and curated editions keep the factual template.
 
+- **Model (PO, 2026-11-11):** the default wording model is `qwen3.5:4b-q4_K_M`
+  (Apache-2.0, about 3.3 GB download) instead of `qwen3:1.7b-q4_K_M`; the
+  optional container's memory ceiling rises from 4 GiB to 6 GiB. The Product
+  Owner chose it from a desk review of current small models and decided against
+  a benchmark. An exploratory run on an 8 GB development machine could not load
+  it without swapping and produced no usable timing or German-quality result;
+  the model's fit, latency and wording on the operator host are therefore
+  unverified. The prompt, validator and complete rules fallback are unchanged,
+  and operators keep `EIMIR_RECAP_AI_MODEL` to select another model.
+
 ## States, motion and accessibility
 
 Reduced motion keeps the reader paused on open and removes scene, drift and stagger

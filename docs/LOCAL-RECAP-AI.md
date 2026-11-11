@@ -9,13 +9,13 @@ vector database, Redis, Celery, GPU toolkit or Python ML environment.
 
 The canonical `compose.yaml` contains the optional `recap-ai` profile. The service
 uses upstream Ollama 0.40.12, pinned to its multi-platform registry digest. CPU
-execution is limited to two cores and 4 GiB maximum container memory. This is a
+execution is limited to two cores and 6 GiB maximum container memory. This is a
 resource ceiling, not a measured RAM requirement or throughput promise. The
 standard upstream image includes acceleration libraries; no GPU device/runtime
-is enabled or required. The Qwen3 1.7B Q4_K_M model download is approximately
-1.4 GB, in addition to runtime image/cache storage.
+is enabled or required. The Qwen3.5 4B Q4_K_M model download is approximately
+3.3 GB, in addition to runtime image/cache storage.
 
-Ollama is MIT; Qwen3 is Apache-2.0. Model/runtime artifacts are third-party
+Ollama is MIT; Qwen3.5 is Apache-2.0. Model/runtime artifacts are third-party
 operator downloads rather than part of the application images. Preserve their
 notices if redistributing. Sources and the current reuse decision are recorded
 in [the design contract](product/design/automatic-relationship-recaps.md).
@@ -32,7 +32,7 @@ Settings on **both API and worker**:
 
 ```dotenv
 EIMIR_RECAP_AI_URL=http://recap-ai:11434
-EIMIR_RECAP_AI_MODEL=qwen3:1.7b-q4_K_M
+EIMIR_RECAP_AI_MODEL=qwen3.5:4b-q4_K_M
 EIMIR_RECAP_AI_TIMEOUT_SECONDS=90
 ```
 
@@ -68,7 +68,7 @@ Use the normal release identity/environment first; do not bypass its guard:
 
 ```bash
 docker compose --profile self-hosted --profile recap-ai up -d recap-ai
-docker compose --profile recap-ai exec -T recap-ai ollama pull qwen3:1.7b-q4_K_M
+docker compose --profile recap-ai exec -T recap-ai ollama pull qwen3.5:4b-q4_K_M
 docker compose --profile recap-ai exec -T recap-ai ollama list
 # Set the three settings above in the existing operator environment.
 docker compose --profile self-hosted --profile recap-ai up -d
@@ -97,14 +97,14 @@ On the main Arcane project's existing Environment add:
 
 ```dotenv
 EIMIR_RECAP_AI_URL=http://eimir-test-recap-ai:11434
-EIMIR_RECAP_AI_MODEL=qwen3:1.7b-q4_K_M
+EIMIR_RECAP_AI_MODEL=qwen3.5:4b-q4_K_M
 EIMIR_RECAP_AI_TIMEOUT_SECONDS=90
 ```
 
 Deploy the AI project, open its `recap-ai` service console and run:
 
 ```bash
-ollama pull qwen3:1.7b-q4_K_M
+ollama pull qwen3.5:4b-q4_K_M
 ollama list
 ollama ps
 ```
@@ -115,7 +115,7 @@ From a host shell with the AI project's Compose file:
 docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json config --quiet
 docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json pull
 docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json up -d
-docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json exec -T recap-ai ollama pull qwen3:1.7b-q4_K_M
+docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json exec -T recap-ai ollama pull qwen3.5:4b-q4_K_M
 docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json exec -T recap-ai ollama list
 docker compose -p eimir-test-recap-ai -f arcane-ki.compose.json ps
 ```
@@ -142,6 +142,17 @@ A rejected narration is retried once with the broken rule as feedback, so one
 job may spend up to twice `EIMIR_RECAP_AI_TIMEOUT_SECONDS` on inference. After a
 source edit, an unretained automatic proposal shows the factual template at once
 and is rewritten by one `recap.generate.v1` job delayed by ten minutes.
+
+### Upgrading from the Qwen3 1.7B default
+
+A deployment that sets `EIMIR_RECAP_AI_MODEL` explicitly keeps its model. One
+that relied on the default now asks for `qwen3.5:4b-q4_K_M`: pull that model
+into the existing volume and recreate `recap-ai` so the 6 GiB ceiling applies.
+Until the model is present, generation uses the complete rules fallback; no
+recap becomes unavailable. To stay on the smaller model, set
+`EIMIR_RECAP_AI_MODEL=qwen3:1.7b-q4_K_M`. The new default was chosen by Product
+Owner decision from a desk review (#1744); its latency and German wording on a
+two-core host are not measured, so check one generated recap after the switch.
 
 ## Verification and rollback
 

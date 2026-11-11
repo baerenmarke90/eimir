@@ -237,7 +237,7 @@ class Settings(IdentityCompatibleSettings):
 
     # Optional local-only recap wording. Selection and complete fallback stay in Core.
     recap_ai_url: str = ""
-    recap_ai_model: str = "qwen3:1.7b-q4_K_M"
+    recap_ai_model: str = "qwen3.5:4b-q4_K_M"
     recap_ai_timeout_seconds: float = Field(default=45, ge=1, le=120)
 
     @field_validator("recap_ai_url")

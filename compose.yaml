@@ -48,7 +48,7 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_ACCOUNT_DELETION_JOURNAL_PATH: *account-deletion-journal-path
   EIMIR_ACCOUNT_DELETION_INSTANCE_ID: "${EIMIR_ACCOUNT_DELETION_INSTANCE_ID:-${SBS_ACCOUNT_DELETION_INSTANCE_ID:-}}"
   EIMIR_RECAP_AI_URL: "${EIMIR_RECAP_AI_URL:-}"
-  EIMIR_RECAP_AI_MODEL: "${EIMIR_RECAP_AI_MODEL:-qwen3:1.7b-q4_K_M}"
+  EIMIR_RECAP_AI_MODEL: "${EIMIR_RECAP_AI_MODEL:-qwen3.5:4b-q4_K_M}"
   EIMIR_RECAP_AI_TIMEOUT_SECONDS: "${EIMIR_RECAP_AI_TIMEOUT_SECONDS:-90}"
   EIMIR_PHOTO_SOURCES_ENABLED: "${EIMIR_PHOTO_SOURCES_ENABLED:-true}"
   EIMIR_AUDIO_UPLOAD_ENABLED: "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}"
@@ -212,7 +212,7 @@ services:
     image: ollama/ollama:0.40.12@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b
     restart: unless-stopped
     cpus: 2
-    mem_limit: 4g
+    mem_limit: 6g
     environment:
       OLLAMA_NO_CLOUD: "1"
       OLLAMA_NUM_PARALLEL: "1"

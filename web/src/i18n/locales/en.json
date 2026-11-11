@@ -907,7 +907,6 @@
       },
       "emptyScope": "No lists in this selection.",
       "planHeading": "Shared lists",
-      "planEmpty": "Link a list that belongs with this Plan.",
       "choose": "Link lists",
       "link": "Link selection",
       "unlink": "Remove the link to “{{title}}”",

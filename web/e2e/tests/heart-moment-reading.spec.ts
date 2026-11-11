@@ -1,8 +1,11 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import contextTags from '../../src/i18n/locales/contextTags';
+import experiences from '../../src/i18n/locales/experiences';
 import copy from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { showContextTags } from '../support/memoryDiary';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -125,6 +128,50 @@ const PHOTO = readFileSync(
     import.meta.url,
   ),
 );
+const PROCESSING_VIDEO = {
+  id: 'heart-reading-video',
+  status: 'PROCESSING',
+  mediaType: 'VIDEO',
+  mimeType: 'video/mp4',
+  size: 270000,
+  hasThumbnail: false,
+  isSensitive: false,
+};
+
+async function expectFeelingControls(page: Page) {
+  const media = page.locator('.media-processing-state');
+  await expect(media).toBeVisible();
+  const tint = await media.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
+  const defaultTint = rgb(
+    await page
+      .locator('html')
+      .evaluate((element) =>
+        getComputedStyle(element)
+          .getPropertyValue('--color-surface-subtle')
+          .trim(),
+      ),
+  );
+  expect(tint).not.toBe(defaultTint);
+  for (const selector of [
+    '.media-gallery-carousel-viewport',
+    '.memory-tag-summary li',
+    '.comment-form-compact textarea',
+    '.comment-compose-actions > button[type="submit"]',
+    '.mobile-bottom-nav [aria-current="page"]',
+  ]) {
+    await expect(page.locator(selector)).toHaveCSS('background-color', tint);
+  }
+  const action = await page
+    .locator('.heart-emotion-badge--detail')
+    .evaluate((element) => getComputedStyle(element).color);
+  await expect(media.getByRole('progressbar')).toHaveCSS(
+    'accent-color',
+    action,
+  );
+  return defaultTint;
+}
 
 async function expectOriginalPhoto(page: Page) {
   // Compare the photo at rest, outside the existing native button hover feedback.
@@ -370,6 +417,7 @@ test('all six native feelings color the complete HeartMoment page through create
     let creates = 0;
     let updates = 0;
     let saved: Record<string, unknown> | null = null;
+    let withProcessingVideo = false;
     await page.route(
       `**/api/v1/spaces/${SPACE_ID}/heart-moments`,
       async (route) => {
@@ -398,7 +446,12 @@ test('all six native feelings color the complete HeartMoment page through create
         saved = { ...saved, ...route.request().postDataJSON(), version: 2 };
       }
       expect(saved).not.toBeNull();
-      return route.fulfill({ json: saved });
+      return route.fulfill({
+        json: {
+          ...saved,
+          attachment: withProcessingVideo ? PROCESSING_VIDEO : null,
+        },
+      });
     });
     await page.route(`**${path}/comments*`, (route) =>
       route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
@@ -421,6 +474,14 @@ test('all six native feelings color the complete HeartMoment page through create
       createColors.add(await chooseFeeling(page, emotion));
     expect(createColors.size).toBe(6);
     await chooseFeeling(page, 'GRATEFUL');
+    await showContextTags(page);
+    await page
+      .getByLabel(contextTags.newLabel, { exact: true })
+      .fill('Evening');
+    await page
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.screenshot({
       path: info.outputPath(`heart-feeling-create-390-${theme}.png`),
       fullPage: true,
@@ -439,6 +500,7 @@ test('all six native feelings color the complete HeartMoment page through create
     for (const emotion of EMOTIONS)
       editColors.add(await chooseFeeling(page, emotion));
     expect(editColors.size).toBe(6);
+    await chooseFeeling(page, 'APPRECIATED');
     await expect(
       page.getByRole('textbox', {
         name: copy.heartMomentProduct.textLabel,
@@ -452,18 +514,33 @@ test('all six native feelings color the complete HeartMoment page through create
     await page
       .getByRole('button', { name: copy.heartMomentProduct.save, exact: true })
       .click();
-    await expectFeelingSurface(page, 'HAPPY', true);
+    await expectFeelingSurface(page, 'APPRECIATED', true);
     expect(updates).toBe(1);
+    withProcessingVideo = true;
     await page.reload();
-    await expectFeelingSurface(page, 'HAPPY', true);
+    await expectFeelingSurface(page, 'APPRECIATED', true);
     await expect(page.locator('.heart-moment-detail-emotion')).toContainText(
-      copy.heartEmotion.HAPPY,
+      copy.heartEmotion.APPRECIATED,
     );
+    const defaultTint = await expectFeelingControls(page);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.screenshot({
       path: info.outputPath(`heart-feeling-reading-1440-${theme}.png`),
       fullPage: true,
     });
+    await page.setViewportSize({ width: 390, height: 900 });
+    const momentsTab = page.locator('.mobile-bottom-nav [aria-current="page"]');
+    await momentsTab.click();
+    await expect(page).toHaveURL(/\/story(?:\?.*)?$/);
+    await expect(page.locator('.heart-emotion-page')).toHaveCount(0);
+    await expect(momentsTab).toHaveCSS('background-color', defaultTint);
     expect(unknown).toEqual([]);
     await context.close();
   }

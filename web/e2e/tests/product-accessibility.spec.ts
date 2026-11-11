@@ -1,3 +1,4 @@
+import composer from '../../src/i18n/locales/composer';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -1073,7 +1074,7 @@ test('compact sign-in is keyboard operable, wraps German copy, and is axe-clean'
   await expectNoWcagViolations(page);
 });
 
-test('compact authenticated shell keeps global quick create reachable and accessible', async ({
+test('compact Wir keeps the contextual moment action reachable and accessible', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 });
@@ -1107,35 +1108,25 @@ test('compact authenticated shell keeps global quick create reachable and access
     }),
   ).toBeVisible();
 
-  const quickCreate = page.getByRole('button', {
-    name: navigation.newContent,
-  });
+  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
   await expect(quickCreate).toBeVisible();
   await quickCreate.focus();
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
 
-  const sheetDialog = page.getByRole('dialog', {
-    name: navigation.quickCreateTitle,
-  });
+  const sheetDialog = page.getByRole('dialog', { name: de.story.addMoment });
   await expect(sheetDialog).toBeVisible();
-
-  const closeButton = page.getByRole('button', {
-    name: navigation.closeMenu,
+  const diaryTarget = sheetDialog.getByRole('link', {
+    name: composer.diaryEntry,
   });
-  await expect(closeButton).toBeFocused();
-
-  const memoryTarget = page.getByRole('link', {
-    name: navigation.quickCreateMemory,
-  });
-  await expect(memoryTarget).toBeVisible();
+  await expect(diaryTarget).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(memoryTarget).toBeFocused();
   await expect(
-    page.getByRole('link', { name: navigation.quickCreateWish }),
-  ).toBeVisible();
+    sheetDialog.getByRole('link', { name: de.story.kind.heartMoment }),
+  ).toBeFocused();
   await expect(
-    page.getByRole('link', { name: navigation.quickCreatePrivateNote }),
+    sheetDialog.getByRole('link', { name: de.story.kind.milestone }),
   ).toBeVisible();
+  await expect(sheetDialog.getByRole('link')).toHaveCount(3);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1161,9 +1152,7 @@ test('authenticated shell removes decorative motion when reduced motion is prefe
     .evaluate((element) => getComputedStyle(element).animationName);
   expect(mainAnimation).toBe('none');
 
-  const quickCreate = page.getByRole('button', {
-    name: navigation.newContent,
-  });
+  const quickCreate = page.getByRole('button', { name: de.story.addMoment });
   const quickCreateTransition = await quickCreate.evaluate(
     (element) => getComputedStyle(element).transitionDuration,
   );
@@ -2102,11 +2091,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(box.height).toBeGreaterThanOrEqual(44);
       }
       await expect(
-        page.getByRole('button', { name: navigation.newContent }),
-      ).toHaveCount(1);
+        page.getByRole('button', { name: de.story.addMoment }),
+      ).toBeVisible();
       await expect(
         page.getByRole('button', { name: navigation.newContent }),
-      ).toBeVisible();
+      ).toHaveCount(width >= 840 ? 1 : 0);
       await expectNoHorizontalOverflow(page);
       const inHeader = await navigationRegion.evaluate((element) =>
         Boolean(element.closest('header')),

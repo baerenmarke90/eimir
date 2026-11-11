@@ -1,6 +1,24 @@
 import { expect, type Locator } from '@playwright/test';
 import type { EimirIconName } from '../../src/components/EimirIcon';
 
+export async function expectFloatingAddAction(action: Locator, dock: Locator) {
+  await expect(action).toBeVisible();
+  await expect(action).toHaveCSS('position', 'fixed');
+  await expect(action.locator('.add-action-label')).toBeHidden();
+  await expect(action.locator('.eimir-icon-hinzufuegen')).toBeVisible();
+  const [button, navigation] = await Promise.all([
+    action.boundingBox(),
+    dock.boundingBox(),
+  ]);
+  if (!button || !navigation)
+    throw new Error('The add action and bottom navigation must be visible.');
+  expect(button.width).toBeGreaterThanOrEqual(48);
+  expect(button.height).toBe(button.width);
+  expect(navigation.y - (button.y + button.height)).toBeGreaterThanOrEqual(8);
+  expect(button.x + button.width).toBeLessThan(navigation.x + navigation.width);
+  await expect(dock.locator('[data-floating-create]')).toHaveCount(0);
+}
+
 /** Overview creation stays at the trailing edge and wraps without overlapping its title. */
 export async function expectOverviewActionPlacement(
   action: Locator,

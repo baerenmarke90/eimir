@@ -586,10 +586,12 @@ for (const exit of ['button', 'browser'] as const) {
     const unexpected = await installApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-    await page.locator('.quick-create-trigger:visible').click();
+    await page
+      .getByRole('button', { name: de.story.addMoment, exact: true })
+      .click();
     await page
       .getByRole('link', {
-        name: navigation.quickCreateHeartMoment,
+        name: de.story.kind.heartMoment,
         exact: true,
       })
       .click();
@@ -622,7 +624,9 @@ for (const exit of ['button', 'browser'] as const) {
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(page.locator('dialog[open]')).toHaveCount(0);
-    await expect(page.locator('.quick-create-trigger:visible')).toBeFocused();
+    await expect(
+      page.getByRole('button', { name: de.story.addMoment, exact: true }),
+    ).toBeFocused();
     await page.screenshot({
       path: info.outputPath(`shell-heart-origin-${exit}.png`),
       fullPage: true,
@@ -1380,7 +1384,7 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   await expect(page).toHaveURL(/\/story$/);
 });
 
-test('Quick Create Heart Moment returns from a saved tag-only result to Today (#509)', async ({
+test('A contextual Heart Moment returns from a saved tag-only result to Today (#509)', async ({
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
@@ -1398,10 +1402,10 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
 
     await page
-      .getByRole('button', { name: navigation.newContent, exact: true })
+      .getByRole('button', { name: de.story.addMoment, exact: true })
       .click();
     await expect(
-      page.getByRole('dialog', { name: navigation.quickCreateTitle }),
+      page.getByRole('dialog', { name: de.story.addMoment }),
     ).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath('shell-heart-quick-create-sheet-390.png'),
@@ -1409,7 +1413,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     });
     await page
       .getByRole('link', {
-        name: navigation.quickCreateHeartMoment,
+        name: de.story.kind.heartMoment,
         exact: true,
       })
       .click();
@@ -1423,11 +1427,11 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await page
-      .getByRole('button', { name: navigation.newContent, exact: true })
+      .getByRole('button', { name: de.story.addMoment, exact: true })
       .click();
     await page
       .getByRole('link', {
-        name: navigation.quickCreateHeartMoment,
+        name: de.story.kind.heartMoment,
         exact: true,
       })
       .click();
@@ -1471,7 +1475,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(
-      page.getByRole('button', { name: navigation.newContent, exact: true }),
+      page.getByRole('button', { name: de.story.addMoment, exact: true }),
     ).toBeFocused();
   } finally {
     await context.close();

@@ -89,7 +89,8 @@
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 9
+      "baselineTests": 10,
+      "reason": "Docked navigation, icon-only local creation, native modal access and runtime-specific Expanded browser shortcut."
     },
     "heart-moment-create-product-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -209,7 +210,8 @@
     },
     "quick-create-destination-handoff.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 18
+      "baselineTests": 18,
+      "reason": "Focused creation from contextual Compact actions and the Expanded browser shortcut, with scroll, focus, saved result and return continuity."
     },
     "r1-memory-capture-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -340,7 +342,7 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 22,
+      "baselineTests": 23,
       "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
     "shared-photos.spec.ts": {

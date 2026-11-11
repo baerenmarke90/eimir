@@ -643,6 +643,7 @@ export function SharedPlanningOverviewPage({
             <span ref={setOccasionActionHost} />
           ) : (
             <AddActionLink
+              floating
               label={t(
                 activeSegment === 'plans'
                   ? 'm5s3.overview.addPlan'
@@ -653,6 +654,7 @@ export function SharedPlanningOverviewPage({
                   ? PLAN_CREATE_ROUTE
                   : WISH_CREATE_ROUTE,
                 activeSegment,
+                'planning-create',
               )}
             />
           )

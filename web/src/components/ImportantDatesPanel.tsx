@@ -895,6 +895,8 @@ export function ImportantDatesPanel({
     <AddActionButton
       ref={createActionRef}
       label={t('importantDates.create')}
+      floating={Boolean(createActionContainer)}
+      aria-haspopup="dialog"
       className="occasions-add"
       onClick={() => {
         readerReturnRef.current = createActionRef.current;

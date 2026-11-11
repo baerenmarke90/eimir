@@ -43,6 +43,7 @@ import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { isCapacitorNative } from '../pwa';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
@@ -320,9 +321,11 @@ function AuthenticatedAppShell({
               <PrimaryNavigationLinks />
             </nav>
             <div className="header-actions">
-              <div className="shell-primary-action">
-                <QuickCreateMenu variant="desktop" />
-              </div>
+              {!isCapacitorNative() ? (
+                <div className="shell-primary-action">
+                  <QuickCreateMenu />
+                </div>
+              ) : null}
               <span
                 className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
               >
@@ -388,9 +391,6 @@ function AuthenticatedAppShell({
             >
               <PrimaryNavigationLinks />
             </nav>
-            <div className="mobile-quick-create">
-              <QuickCreateMenu variant="mobile" />
-            </div>
           </div>
         ) : null}
 

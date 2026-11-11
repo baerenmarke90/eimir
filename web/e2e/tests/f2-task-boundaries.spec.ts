@@ -5,7 +5,6 @@ import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import navigation from '../../src/i18n/locales/navigation';
 import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
@@ -363,16 +362,12 @@ async function signIn(page: Page, destination = ORIGIN) {
 
 async function openMemory(page: Page) {
   await page
-    .getByRole('button', { name: navigation.newContent, exact: true })
+    .getByRole('button', { name: de.story.addMoment, exact: true })
     .click();
-  const target = page
-    .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
-    .or(
-      page.getByRole('menuitem', {
-        name: navigation.quickCreateMemory,
-        exact: true,
-      }),
-    );
+  const target = page.getByRole('link', {
+    name: composer.diaryEntry,
+    exact: true,
+  });
   await target.evaluate(async (node) => {
     const sheet = node.closest('dialog');
     if (sheet)
@@ -436,7 +431,7 @@ async function expectNoOverflow(page: Page) {
 
 test.use({ viewport: { width: 390, height: 844 }, locale: 'de-DE' });
 
-test('Quick Create cancellation and Browser Back return to its trigger', async ({
+test('Moment choice cancellation and Browser Back return to its trigger', async ({
   page,
 }, testInfo) => {
   const historySteps: unknown[] = [];
@@ -456,7 +451,7 @@ test('Quick Create cancellation and Browser Back return to its trigger', async (
   const api = await installProductApi(page);
   await signIn(page);
   const trigger = page.getByRole('button', {
-    name: navigation.newContent,
+    name: de.story.addMoment,
     exact: true,
   });
   await recordHistory('before open');
@@ -490,7 +485,7 @@ test('Quick Create cancellation and Browser Back return to its trigger', async (
   expect(api.unexpected).toEqual([]);
 });
 
-test('Quick Create native modality prevents background focus and activation', async ({
+test('Moment choice native modality prevents background focus and activation', async ({
   page,
 }, testInfo) => {
   await installProductApi(page);
@@ -498,7 +493,7 @@ test('Quick Create native modality prevents background focus and activation', as
   const originUrl = page.url();
   const backgroundMore = page.locator('.mobile-bottom-nav a[href="/more"]');
   await page
-    .getByRole('button', { name: navigation.newContent, exact: true })
+    .getByRole('button', { name: de.story.addMoment, exact: true })
     .click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -539,13 +534,22 @@ test('Quick Create native modality prevents background focus and activation', as
   const dialogBounds = await dialog.boundingBox();
   if (!backgroundBounds || !dialogBounds)
     throw new Error('The modal or background More destination is missing.');
-  // The dock remains behind the modal backdrop, below the floating sheet.
+  // The docked sheet covers the More destination. Its surface receives
+  // the physical click without activating the inert navigation behind it.
+  const clickX = backgroundBounds.x + backgroundBounds.width - 2;
   const clickY = backgroundBounds.y + backgroundBounds.height / 2;
-  expect(clickY).toBeGreaterThan(dialogBounds.y + dialogBounds.height);
-  await page.mouse.click(
-    backgroundBounds.x + backgroundBounds.width / 2,
-    clickY,
-  );
+  expect(clickY).toBeGreaterThan(dialogBounds.y);
+  expect(clickY).toBeLessThan(dialogBounds.y + dialogBounds.height);
+  expect(
+    await page.evaluate(
+      ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('dialog')),
+      { x: clickX, y: clickY },
+    ),
+  ).toBe(true);
+  await page.mouse.click(clickX, clickY);
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(originUrl);
+  await page.mouse.click(4, dialogBounds.y / 2);
   await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(originUrl);
 });
@@ -1393,7 +1397,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await expect(diaryOptions).not.toBeVisible();
   await page.setViewportSize({ width: 320, height: 480 });
   await page
-    .getByRole('button', { name: navigation.newContent, exact: true })
+    .getByRole('button', { name: de.story.addMoment, exact: true })
     .click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toBeVisible();
@@ -1407,7 +1411,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   expect(bounds?.height).toBeLessThanOrEqual(480);
   expect(bounds?.width).toBeLessThanOrEqual(320);
   await sheet
-    .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
+    .getByRole('link', { name: composer.diaryEntry, exact: true })
     .click();
   await expectReadableComposerHeader(page);
   await expectNaturalTextReflow(
@@ -1501,9 +1505,9 @@ for (const width of [320, 360, 390, 430, 1280]) {
       });
       await page.keyboard.press('Escape');
       await page
-        .getByRole('button', { name: navigation.newContent, exact: true })
+        .getByRole('button', { name: de.story.addMoment, exact: true })
         .click();
-      const choices = page.getByRole(width >= 840 ? 'menu' : 'dialog');
+      const choices = page.getByRole('dialog', { name: de.story.addMoment });
       await expect(choices).toBeVisible();
       await page.screenshot({
         path: testInfo.outputPath(
@@ -1511,8 +1515,8 @@ for (const width of [320, 360, 390, 430, 1280]) {
         ),
       });
       await choices
-        .getByRole(width >= 840 ? 'menuitem' : 'link', {
-          name: navigation.quickCreateMemory,
+        .getByRole('link', {
+          name: composer.diaryEntry,
           exact: true,
         })
         .click();

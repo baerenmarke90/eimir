@@ -6,6 +6,7 @@ import importantDates from '../../src/i18n/locales/importantDates';
 import people from '../../src/i18n/locales/people';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
+  expectFloatingAddAction,
   expectLabeledAddAction,
   expectOverviewActionPlacement,
 } from '../support/addAction';
@@ -569,9 +570,13 @@ async function openDates(page: Page) {
   await expect(
     page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }),
   ).toBeVisible();
-  await expectLabeledAddAction(
-    page.getByRole('button', { name: importantDates.create, exact: true }),
-  );
+  const addDay = page.getByRole('button', {
+    name: importantDates.create,
+    exact: true,
+  });
+  const dock = page.locator('.mobile-bottom-shell');
+  if (await dock.isVisible()) await expectFloatingAddAction(addDay, dock);
+  else await expectLabeledAddAction(addDay);
 }
 
 test('People opens profiles and whole photos, saves the actual result and hands birthdays to Planning', async ({
@@ -711,7 +716,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
       height: bounds.height,
     };
   });
-  await expectOverviewActionPlacement(addDay);
+  await expectFloatingAddAction(addDay, page.locator('.mobile-bottom-shell'));
   expect(addDayStyle.background).not.toBe('rgba(0, 0, 0, 0)');
   expect(addDayStyle.background).not.toBe(addDayStyle.color);
   expect(addDayStyle.width).toBeGreaterThanOrEqual(44);

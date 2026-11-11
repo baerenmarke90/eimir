@@ -436,7 +436,8 @@ describe('TodayPage', () => {
     expect(html).toContain('new-space-experience');
     expect(html).not.toContain('new-space-mark');
     expect(html).toContain('Marie');
-    expect(html).toContain('href="/story/memories/new"');
+    expect(html).toContain('data-floating-create="true"');
+    expect(html).toContain(`aria-label="${de.story.addMoment}"`);
   });
 
   it('renders secondary upcoming items as calm agenda rows with title and date, not a card carousel', () => {

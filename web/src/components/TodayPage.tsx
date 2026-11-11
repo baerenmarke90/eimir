@@ -90,11 +90,12 @@ import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import {
   MonthlyRecapInvitation,
   useMonthlyRecapInvitation,
 } from './MonthlyRecapInvitation';
-import { OnceIncomingSignal } from './OnceMessages';
+import { OnceComposeEntry, OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
@@ -1325,6 +1326,7 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
+        {partner ? <OnceComposeEntry /> : null}
         {dailyVibe}
         <OnceIncomingSignal />
       </>
@@ -1638,7 +1640,12 @@ export function TodayPage({
 
       {contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          <PageHeader variant="root" title={t('navigation.today')} />
+          <PageHeader
+            variant="root"
+            className="content-overview-heading"
+            title={t('navigation.today')}
+            action={<MomentCreateMenu floating />}
+          />
 
           {orderedModuleKeys.map((key) => (
             <Fragment key={key}>{moduleContent[key]}</Fragment>
@@ -1655,14 +1662,6 @@ export function TodayPage({
               <p className="new-space-body">
                 {t('m5s5.dashboard.newSpaceIntro')}
               </p>
-              <div className="new-space-actions">
-                <Link
-                  className="button-link primary new-space-cta"
-                  to="/story/memories/new"
-                >
-                  {t('m5s5.dashboard.newSpaceAction')}
-                </Link>
-              </div>
             </div>
           ) : null}
         </div>

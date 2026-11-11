@@ -1,3 +1,7 @@
+import composer from '../../src/i18n/locales/composer';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import { expectFloatingAddAction } from '../support/addAction';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
@@ -273,7 +277,7 @@ async function waitForGamesHub(page: Page): Promise<void> {
 }
 
 test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
-  test('shell composition: four destinations + centered Quick Create before Planen in one docked shell', async ({
+  test('four equal docked destinations and a separate contextual plus', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -298,33 +302,10 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       navigation.more,
     ]);
 
-    const trigger = floatingShell.locator(
-      '.mobile-quick-create button.quick-create-trigger',
-    );
-    await expect(trigger).toBeVisible();
-    await expect(trigger).toHaveAttribute('aria-label', navigation.newContent);
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    await expectFloatingAddAction(trigger, floatingShell);
+    await expect(floatingShell.getByRole('button')).toHaveCount(0);
     await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
-    await expect(trigger).toHaveAttribute('type', 'button');
-
-    const oldFab = page.locator('body > .mobile-quick-create');
-    await expect(oldFab).toHaveCount(0);
-
-    // Keep the accepted product order: Wir · Momente · + · Planen · Mehr.
-    const momenteBox = await links.nth(1).boundingBox();
-    const triggerBox = await trigger.boundingBox();
-    const planenBox = await links.nth(2).boundingBox();
-    expect(momenteBox).not.toBeNull();
-    expect(triggerBox).not.toBeNull();
-    expect(planenBox).not.toBeNull();
-
-    if (momenteBox && triggerBox && planenBox) {
-      expect(momenteBox.x + momenteBox.width).toBeLessThanOrEqual(
-        triggerBox.x + 5,
-      );
-      expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(
-        planenBox.x + 5,
-      );
-    }
 
     const shellBox = await floatingShell.boundingBox();
     expect(shellBox).not.toBeNull();
@@ -339,29 +320,28 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       const links = Array.from(
         element.querySelectorAll('.mobile-bottom-nav .shell-nav-link'),
       );
-      const trigger = element.querySelector(
-        '.mobile-quick-create .quick-create-trigger',
-      );
-      if (links.length !== 4 || !trigger)
-        throw new Error('Missing bottom navigation controls');
+      if (links.length !== 4)
+        throw new Error('Missing bottom navigation destinations');
       return {
         height: element.getBoundingClientRect().height,
         linkHeights: links.map((link) => link.getBoundingClientRect().height),
         fontSizes: links.map((link) =>
           Number.parseFloat(getComputedStyle(link).fontSize),
         ),
-        triggerHeight: trigger.getBoundingClientRect().height,
+        linkWidths: links.map((link) => link.getBoundingClientRect().width),
       };
     });
     expect(dockSize.height).toBeGreaterThanOrEqual(70);
     expect(Math.min(...dockSize.linkHeights)).toBeGreaterThanOrEqual(56);
     expect(Math.min(...dockSize.fontSizes)).toBeGreaterThanOrEqual(12);
-    expect(dockSize.triggerHeight).toBeGreaterThanOrEqual(52);
+    expect(
+      Math.max(...dockSize.linkWidths) - Math.min(...dockSize.linkWidths),
+    ).toBeLessThan(1);
 
     await expectNoHorizontalOverflow(page);
   });
 
-  test('Quick Create mobile floating panel opens with fully rounded corners, clear nav separation and accessibility', async ({
+  test('the Moment choice takes the native modal layer and keeps focus, dismissal and accessibility', async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -370,11 +350,11 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    const trigger = page.locator('.mobile-bottom-shell .quick-create-trigger');
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
     await trigger.click();
 
     const dialog = page.getByRole('dialog', {
-      name: navigation.quickCreateTitle,
+      name: de.story.addMoment,
     });
     const settleDialogMotion = async () => {
       await dialog.evaluate(async (element) => {
@@ -419,8 +399,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
     expect(radii.topLeft).toBeGreaterThanOrEqual(16);
     expect(radii.topRight).toBeGreaterThanOrEqual(16);
-    expect(radii.bottomLeft).toBeGreaterThanOrEqual(16);
-    expect(radii.bottomRight).toBeGreaterThanOrEqual(16);
+    expect(radii.bottomLeft).toBe(0);
+    expect(radii.bottomRight).toBe(0);
 
     const sheetBox = await dialog.boundingBox();
     const navBox = await page.locator('.mobile-bottom-shell').boundingBox();
@@ -428,25 +408,21 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(navBox).not.toBeNull();
     if (!sheetBox || !navBox) throw new Error('Missing bounding boxes');
 
-    expect(sheetBox.x).toBeGreaterThan(0);
-    expect(sheetBox.x + sheetBox.width).toBeLessThan(390);
-    expect(navBox.y - (sheetBox.y + sheetBox.height)).toBeGreaterThanOrEqual(8);
+    expect(sheetBox.x).toBeCloseTo(0);
+    expect(sheetBox.x + sheetBox.width).toBeCloseTo(390);
+    expect(sheetBox.y).toBeLessThan(navBox.y);
+    expect(sheetBox.y + sheetBox.height).toBeCloseTo(844);
+    await expect(trigger).toBeHidden();
 
-    for (const item of [
-      navigation.quickCreateMemory,
-      navigation.quickCreateHeartMoment,
-      navigation.quickCreateMilestone,
-      navigation.quickCreateWish,
-      navigation.quickCreatePlan,
-      navigation.quickCreateForMe,
-      navigation.quickCreatePrivateNote,
-      navigation.quickCreateGiftIdea,
-    ]) {
-      await expect(dialog.getByText(item, { exact: true })).toBeVisible();
-    }
+    const momentChoices = dialog.getByRole('link');
+    await expect(momentChoices).toHaveText([
+      composer.diaryEntry,
+      de.story.kind.heartMoment,
+      de.story.kind.milestone,
+    ]);
 
     const axeResultsLight = await new AxeBuilder({ page })
-      .include('.quick-create-mobile-sheet')
+      .include('.moment-create-sheet')
       .analyze();
     expect(axeResultsLight.violations).toEqual([]);
 
@@ -463,7 +439,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
     await page.waitForTimeout(250);
     const axeResultsDark = await new AxeBuilder({ page })
-      .include('.quick-create-mobile-sheet')
+      .include('.moment-create-sheet')
       .analyze();
     expect(axeResultsDark.violations).toEqual([]);
 
@@ -480,10 +456,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
 
     const closeButton = dialog.getByRole('button', {
-      name: navigation.closeMenu,
+      name: taskSheets.close,
     });
+    await expect(momentChoices.first()).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(closeButton).toBeFocused();
-    await expect(closeButton).toHaveAttribute('title', navigation.closeMenu);
+    await expect(closeButton).toHaveAttribute('title', taskSheets.close);
     await expect(closeButton).toHaveText('');
 
     const closeBox = await closeButton.boundingBox();
@@ -509,7 +487,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(headerBox.height).toBeLessThan(44);
 
     await page.keyboard.press('Shift+Tab');
-    const lastItem = dialog.locator('a[href="/more/private/gift-ideas/new"]');
+    const lastItem = momentChoices.last();
     // Native dialog traversal may visit browser chrome at the boundary. It
     // must never focus the inactive page; returning enters the modal again.
     const backwardFocus = await dialog.evaluate((element) => ({
@@ -597,7 +575,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(trigger).toBeFocused();
   });
 
-  test('Quick Create sheet stays bounded at 360px and 430px Compact widths', async ({
+  test('Moment choice stays bounded at 360px and 430px Compact widths', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 780 });
@@ -608,13 +586,11 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
 
     for (const width of [360, 430]) {
       await page.setViewportSize({ width, height: 844 });
-      const trigger = page.locator(
-        '.mobile-bottom-shell .quick-create-trigger',
-      );
+      const trigger = page.getByRole('button', { name: de.story.addMoment });
       await trigger.click();
 
       const dialog = page.getByRole('dialog', {
-        name: navigation.quickCreateTitle,
+        name: de.story.addMoment,
       });
       await expect(dialog).toBeVisible();
 
@@ -625,15 +601,16 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(width);
       await expectNoHorizontalOverflow(page);
 
-      await dialog.getByRole('button', { name: navigation.closeMenu }).click();
+      await dialog.getByRole('button', { name: taskSheets.close }).click();
       await expect(dialog).toHaveCount(0);
       await expect(trigger).toBeFocused();
     }
   });
 
-  test('Quick Create floating panel in constrained height and 320px reflow maintains reachability and separation', async ({
+  test('Moment choice remains reachable at constrained height and 320px reflow', async ({
     page,
   }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await installApiMocks(page);
 
     await page.setViewportSize({ width: 390, height: 500 });
@@ -641,14 +618,13 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    const trigger = page.locator('.mobile-bottom-shell .quick-create-trigger');
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
     await trigger.click();
 
     const dialog = page.getByRole('dialog', {
-      name: navigation.quickCreateTitle,
+      name: de.story.addMoment,
     });
     await expect(dialog).toBeVisible();
-    await page.waitForTimeout(250);
 
     const smallSheetBox = await dialog.boundingBox();
     const smallNavBox = await page
@@ -661,18 +637,17 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     }
 
     expect(smallSheetBox.y).toBeGreaterThanOrEqual(0);
-    expect(
-      smallNavBox.y - (smallSheetBox.y + smallSheetBox.height),
-    ).toBeGreaterThanOrEqual(8);
+    expect(smallSheetBox.y).toBeLessThan(smallNavBox.y);
+    expect(smallSheetBox.y + smallSheetBox.height).toBeCloseTo(500);
 
-    const giftIdeaItem = dialog.getByText(navigation.quickCreateGiftIdea, {
-      exact: true,
+    const lastChoice = dialog.getByRole('link', {
+      name: de.story.kind.milestone,
     });
-    await giftIdeaItem.scrollIntoViewIfNeeded();
-    await expect(giftIdeaItem).toBeVisible();
+    await lastChoice.scrollIntoViewIfNeeded();
+    await expect(lastChoice).toBeInViewport();
 
     const closeButton = dialog.getByRole('button', {
-      name: navigation.closeMenu,
+      name: taskSheets.close,
     });
     await closeButton.click();
     await expect(dialog).toHaveCount(0);
@@ -680,13 +655,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.setViewportSize({ width: 320, height: 600 });
     await trigger.click();
     await expect(dialog).toBeVisible();
-    await page.waitForTimeout(250);
 
     await expectNoHorizontalOverflow(page);
     const reflowSheetBox = await dialog.boundingBox();
     expect(reflowSheetBox).not.toBeNull();
     if (!reflowSheetBox) throw new Error('Missing bounding boxes');
-    expect(reflowSheetBox.x).toBeGreaterThan(0);
+    expect(reflowSheetBox.x).toBeGreaterThanOrEqual(0);
     expect(reflowSheetBox.x + reflowSheetBox.width).toBeLessThanOrEqual(320);
 
     // The browser owns ::backdrop; click the actual area outside the dialog.
@@ -962,25 +936,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       navigation.more,
     ]);
 
-    const trigger = floatingShell.locator(
-      '.mobile-quick-create button.quick-create-trigger',
-    );
-    await expect(trigger).toBeVisible();
-
-    const momenteBox = await links.nth(1).boundingBox();
-    const triggerBox = await trigger.boundingBox();
-    const planenBox = await links.nth(2).boundingBox();
-    expect(momenteBox).not.toBeNull();
-    expect(triggerBox).not.toBeNull();
-    expect(planenBox).not.toBeNull();
-    if (momenteBox && triggerBox && planenBox) {
-      expect(momenteBox.x + momenteBox.width).toBeLessThanOrEqual(
-        triggerBox.x + 1,
-      );
-      expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(
-        planenBox.x + 1,
-      );
-    }
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    await expectFloatingAddAction(trigger, floatingShell);
 
     await page.goto('/story/memories/new');
     await page.locator('html').evaluate((element) => {
@@ -1011,17 +968,37 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.locator('html').evaluate((element) => {
       element.style.zoom = '2';
     });
-    const zoomTrigger = page.locator(
-      '.mobile-bottom-shell .quick-create-trigger',
-    );
+    const zoomTrigger = page.getByRole('button', { name: de.story.addMoment });
     await zoomTrigger.click();
     const zoomDialog = page.getByRole('dialog', {
-      name: navigation.quickCreateTitle,
+      name: de.story.addMoment,
     });
     await expect(zoomDialog).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.keyboard.press('Escape');
     await expect(zoomDialog).toHaveCount(0);
+  });
+
+  test('the expanded browser shortcut is absent in the Capacitor runtime', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await installNativeAppLifecycle(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.waitForURL('**/today');
+    await expect(
+      page.getByRole('button', { name: navigation.newContent }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: de.story.addMoment }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectFloatingAddAction(
+      page.getByRole('button', { name: de.story.addMoment }),
+      page.locator('.mobile-bottom-shell'),
+    );
   });
 
   test('captures required visual evidence matrix', async ({

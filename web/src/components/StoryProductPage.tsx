@@ -814,7 +814,7 @@ export function StoryProductPage({
         variant="root"
         className="content-overview-heading"
         title={t('story.timelineTitle')}
-        action={<MomentCreateMenu />}
+        action={<MomentCreateMenu floating />}
       />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
 

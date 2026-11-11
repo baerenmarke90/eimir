@@ -93,10 +93,13 @@ ActionState     = idle | submitting | success | error
   lifecycle. Selected values keep their existing edit/selection meaning.
   Preserve native semantics, refs, focus, pending/disabled behavior and link
   state. Labels wrap; inline rows wrap before compressing input or text. Local
-  CSS may arrange the action but cannot redefine its surface, spacing, radius
-  or hide its label. Product Owner correction #1697 supersedes #1693's
-  icon-only circular interpretation. Existing selection choices, Back, Close,
-  overflow and the global shell plus retain their distinct interaction roles.
+  CSS may arrange the action but cannot redefine its shared presentation.
+  Product Owner correction #1697 supersedes #1693's icon-only circular
+  interpretation for heading and inline actions. The #1740 follow-up adds a
+  shared Compact floating variant with a filled 48 px circular plus, localized
+  accessible name and room above the docked navigation. Expanded renders that
+  action with its label in the page heading. Selection choices, Back, Close and
+  overflow retain their distinct interaction roles.
 - Product Owner correction #1726 defines a narrow media-intake exception:
   its approved chat refinement uses one soft composer entry which opens the
   existing source sheet. Device/external choices live in that sheet, with Pro

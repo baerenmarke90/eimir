@@ -84,7 +84,11 @@ export function ProductTourProvider({
   const isInvite = !seen && location.pathname === appRoutePath('more');
   const step = stepIndex === null ? null : STEPS[stepIndex];
   const expectedPath =
-    step === 'create' ? appRoutePath('plan') : step ? appRoutePath(step) : null;
+    step === 'create'
+      ? appRoutePath('story')
+      : step
+        ? appRoutePath(step)
+        : null;
   const isTourVisible = Boolean(step && location.pathname === expectedPath);
 
   useEffect(() => {
@@ -122,17 +126,16 @@ export function ProductTourProvider({
     }
     setStepIndex(nextIndex);
     const nextStep = STEPS[nextIndex];
-    if (nextStep !== 'create') void navigate(appRoutePath(nextStep));
+    void navigate(appRoutePath(nextStep === 'create' ? 'story' : nextStep));
   }
 
-  function openQuickCreate(): void {
+  function openMomentCreate(): void {
     setStepIndex(null);
     setSeen(true);
     rememberSeen(key);
-    const selector = window.matchMedia('(max-width: 839px)').matches
-      ? '.mobile-quick-create .quick-create-trigger'
-      : '.shell-primary-action .quick-create-trigger';
-    document.querySelector<HTMLButtonElement>(selector)?.click();
+    document
+      .querySelector<HTMLButtonElement>('[data-task-item-key="moment-create"]')
+      ?.click();
   }
 
   return (
@@ -167,7 +170,7 @@ export function ProductTourProvider({
               type="button"
               className="button primary"
               onClick={
-                isInvite ? replay : step === 'create' ? openQuickCreate : next
+                isInvite ? replay : step === 'create' ? openMomentCreate : next
               }
             >
               {t(

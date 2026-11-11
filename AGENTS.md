@@ -242,10 +242,13 @@ as in Planning. The Product Owner correction #1724 uses photo, photo-library,
 Place, list and tag motifs for the corresponding enrichment actions. This includes
 People, important days, authored tags, media and inline insertion controls.
 The Product Owner correction #1697 supersedes #1693's icon-only circular
-interpretation. The later #1726 correction uses one soft media entry inside
+interpretation for inline and heading actions. The #1740 contextual creation
+follow-up uses an icon-only circular variant above Compact navigation with
+the same localized accessible name and 48 px target. The later #1726 correction
+uses one soft media entry inside
 composers and shared full-width device/external choices in its source sheet;
 see the Button contract for this narrow exception. Keep native task/link/input lifecycles; local CSS may arrange
-the action but must not replace its surface, radius, spacing or visible label.
+the action but must not replace its shared presentation.
 
 Reusable visual values must use semantic design tokens instead of repeated component-level literals.
 

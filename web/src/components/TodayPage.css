@@ -613,11 +613,6 @@
   font-size: 1rem;
 }
 
-.new-space-cta {
-  padding: var(--space-3) var(--space-5);
-  font-size: 1.1rem;
-}
-
 @media (max-width: 599px) {
   /*
    * Compact is the normative R4 composition. The page owns no top gap of
@@ -626,6 +621,15 @@
    */
   .today-page {
     padding-top: 0;
+  }
+}
+
+@media (max-width: 839px) {
+  /* Keep the photo's reveal control clear of the floating create action. */
+  .today-moment-media
+    .sensitive-media-preview
+    > .sensitive-media-preview-control {
+    inset-inline: var(--space-2) auto;
   }
 }
 

@@ -498,9 +498,7 @@ for (const width of [390, 320] as const) {
       ).toHaveCount(1);
       const saveButton = page.getByRole('button', { name: de.memory.save });
       const form = page.locator('.immersive-create-form');
-      const quickCreateTrigger = page.locator(
-        '.mobile-quick-create .quick-create-trigger',
-      );
+      await expect(page.locator('[data-floating-create]')).toHaveCount(0);
       await expect(saveButton).toHaveCount(1);
       await expect(saveButton).toHaveAttribute('type', 'submit');
       expect(
@@ -612,20 +610,6 @@ for (const width of [390, 320] as const) {
       await closeComposerDate(page);
       await title.tap();
       await expectComposerDate(page, '2025-12-24');
-
-      // 7. Floating global Quick Create does not collide with optional Places.
-      if (await quickCreateTrigger.isVisible()) {
-        const fabBox = await quickCreateTrigger.boundingBox();
-        if (fabBox) {
-          const overlapsHorizontally =
-            placesBox.x < fabBox.x + fabBox.width &&
-            placesBox.x + placesBox.width > fabBox.x;
-          const overlapsVertically =
-            placesBox.y < fabBox.y + fabBox.height &&
-            placesBox.y + placesBox.height > fabBox.y;
-          expect(overlapsHorizontally && overlapsVertically).toBe(false);
-        }
-      }
 
       await expectNoHorizontalOverflow(page);
       await page.screenshot({

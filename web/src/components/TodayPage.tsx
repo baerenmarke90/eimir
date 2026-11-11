@@ -1584,10 +1584,9 @@ export function TodayPage({
         {sharedStorySummaryVisible &&
         dashboardQuery.data?.sharedStorySummary ? (
           <SharedStorySummary
-            summary={dashboardQuery.data?.sharedStorySummary}
+            summary={dashboardQuery.data.sharedStorySummary}
             showEmpty
             includeEmptyCategories={false}
-            relationshipDuration={dashboardQuery.data.relationshipDuration}
           />
         ) : null}
       </>

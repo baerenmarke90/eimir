@@ -1467,9 +1467,10 @@ for (const pointer of ['mouse', 'touch', 'keyboard'] as const) {
       .click();
     await expect(page).toHaveURL('/story/memories/mem-canal');
     const saved = state.resources.get('memories/mem-canal');
-    expect(
-      (saved?.attachments as Array<{ id: string }>).map(({ id }) => id),
-    ).toEqual(['composer-photo-2', 'composer-photo-1']);
+    expect(saved?.attachments).toMatchObject([
+      { id: 'composer-photo-2' },
+      { id: 'composer-photo-1' },
+    ]);
     expect(saved?.selectedCoverAttachmentId).toBe('composer-photo-1');
     expect(state.unexpected).toEqual([]);
   });

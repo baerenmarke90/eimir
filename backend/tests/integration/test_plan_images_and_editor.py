@@ -71,6 +71,9 @@ def _upload_pdf(client, couple, session, token, data=None):  # type: ignore[no-u
     assert uploaded.status_code == 204, uploaded.text
     finalized = client.post(f"{url}/finalize", json={}, headers=headers)
     assert finalized.status_code == 202, finalized.text
+    metadata = client.get(url, headers=headers)
+    assert metadata.status_code == 200, metadata.text
+    assert metadata.json()["status"] == "PROCESSING"
     validate(session, UUID(identifier))
     session.flush()
     return identifier, url
@@ -79,6 +82,11 @@ def _upload_pdf(client, couple, session, token, data=None):  # type: ignore[no-u
 def test_plan_pdfs_follow_plan_access_and_versioned_edits(client, couple, session):  # type: ignore[no-untyped-def]
     token_a, token_b = couple["token_a"], couple["token_b"]
     pdf, file_url = _upload_pdf(client, couple, session, token_a)
+    metadata = client.get(file_url, headers=auth(token_a))
+    assert metadata.status_code == 200, metadata.text
+    assert metadata.json()["status"] == AttachmentStatus.READY.value
+    assert client.get(file_url, headers=auth(token_b)).status_code == 404
+    assert client.get(f"{file_url}/content", headers=auth(token_a)).status_code == 404
     assert client.get(f"{file_url}/content", headers=auth(token_b)).status_code == 404
     body = {"title": "Train journey", "fileAttachmentIds": [pdf]}
     assert client.post(path(couple), json=body, headers=auth(token_b)).status_code == 404

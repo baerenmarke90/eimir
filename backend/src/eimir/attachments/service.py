@@ -379,20 +379,16 @@ def get_attachment(
     context: AuthorizationContext,
     attachment_id: UUID | str,
 ) -> Attachment:
-    """Read metadata under the same two-stage rule as attachment content.
+    """Read metadata under the two-stage attachment privacy rule.
 
     A bound attachment is readable by anyone who may read its parent. An
-    unbound attachment is readable only by its owner during the binding window.
-    Applying a weaker rule here would make the metadata endpoint a bypass.
+    unbound attachment is readable only by its owner, including when the
+    owner polls PDF validation before binding the file to a Plan.
     """
     from eimir.attachments import binding
 
     attachment = _load_in_space(session, context, attachment_id)
     actual_parent = binding.parent_of(session, attachment.id)
-    if attachment.media_type == MediaType.DOCUMENT and (
-        actual_parent is None or actual_parent[0] != "PLAN"
-    ):
-        raise Attachment.privacy_absence.error()
     if actual_parent is None:
         if attachment.owner_id != context.account_id:
             raise Attachment.privacy_absence.error()
@@ -420,10 +416,13 @@ def authorize_read(
     from eimir.attachments import binding
 
     attachment = _load_in_space(session, context, attachment_id)
+    actual_parent = binding.parent_of(session, attachment.id)
+    if attachment.media_type == MediaType.DOCUMENT and (
+        actual_parent is None or actual_parent[0] != "PLAN"
+    ):
+        raise Attachment.privacy_absence.error()
     if attachment.status != AttachmentStatus.READY.value:
         raise _not_ready()
-
-    actual_parent = binding.parent_of(session, attachment.id)
 
     if actual_parent is None:
         # Unbound: owner only and only during the binding window (M2-D20/D24).

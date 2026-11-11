@@ -2,6 +2,7 @@ export default {
   heading: 'Dateien',
   add: 'Datei hinzufügen',
   tool: 'Datei',
+  pdfSize: 'PDF · {{size}}',
   open: 'Öffnen',
   download: 'Herunterladen',
   removeNamed: '{{name}} entfernen',

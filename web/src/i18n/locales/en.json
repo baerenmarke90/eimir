@@ -4115,6 +4115,7 @@
     "heading": "Files",
     "add": "Add file",
     "tool": "File",
+    "pdfSize": "PDF · {{size}}",
     "open": "Open",
     "download": "Download",
     "removeNamed": "Remove {{name}}",

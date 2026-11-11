@@ -22,7 +22,7 @@ function FileRow({
   size: number;
   children: ReactNode;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const megabytes = size >= 1_000_000;
   const formattedSize = new Intl.NumberFormat(i18n.resolvedLanguage, {
     style: 'unit',
@@ -34,7 +34,7 @@ function FileRow({
       <EimirIcon name="paperclip" />
       <div className="plan-file-description">
         <span>{name}</span>
-        <small>PDF · {formattedSize}</small>
+        <small>{t('planFiles.pdfSize', { size: formattedSize })}</small>
       </div>
       {children}
     </li>

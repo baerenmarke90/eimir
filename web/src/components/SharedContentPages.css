@@ -322,7 +322,7 @@
   overflow-wrap: anywhere;
 }
 
-.shared-content-page .page-heading-action button {
+.shared-content-page .page-heading-action button:not(.add-action) {
   width: auto;
   max-width: 100%;
 }

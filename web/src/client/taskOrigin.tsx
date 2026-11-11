@@ -16,6 +16,7 @@ import {
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PASSPORT_ROUTE,
   MORE_PLACES_ROUTE,
+  MORE_PRIVATE_ROUTE,
   PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
   WISH_SELECTION_ROUTE,
@@ -86,6 +87,11 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
+  // The private overview contains only destinations. Private lists, records
+  // and query data stay outside the task origin.
+  if (pathname === MORE_PRIVATE_ROUTE || pathname === `${MORE_PRIVATE_ROUTE}/`)
+    return MORE_PRIVATE_ROUTE;
+
   const planningDetail = /^\/plan\/(plans|wishes)\/(?!new$)[^/]+$/.test(
     pathname,
   );

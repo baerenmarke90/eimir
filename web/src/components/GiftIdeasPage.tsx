@@ -338,6 +338,7 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -368,7 +369,11 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
-            {t('privateArea.gifts.detailBack')}
+            {t(
+              fromOverview
+                ? 'privateArea.backToHub'
+                : 'privateArea.gifts.detailBack',
+            )}
           </TaskBackButton>
         }
         title={t('privateArea.gifts.createTitle')}

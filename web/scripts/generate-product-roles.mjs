@@ -160,6 +160,10 @@ declare('border-divider-width', value('border.hairline'));
 declare('composer-max', value('layout.composerMax'));
 declare('touch-target-web', value('size.touchTarget.webMinimum'));
 declare('touch-target-comfortable', value('size.control.comfortable'));
+declare(
+  'touch-target-floating-create',
+  value('size.touchTarget.floatingCreate'),
+);
 declare('icon-size-standard', value('size.icon.standard'));
 declare('add-action-icon', value('size.icon.medium'));
 declare('media-action-icon', value('size.icon.medium'));

@@ -79,8 +79,8 @@ button.add-action:disabled {
     );
     inset-block-end: var(--shell-floating-create-bottom);
     box-sizing: border-box;
-    inline-size: var(--touch-target-comfortable);
-    block-size: var(--touch-target-comfortable);
+    inline-size: var(--touch-target-floating-create);
+    block-size: var(--touch-target-floating-create);
     padding: 0;
     border-radius: 50%;
     box-shadow: var(--shadow-soft);

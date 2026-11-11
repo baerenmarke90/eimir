@@ -183,7 +183,15 @@ describe('task origin privacy and lifetime', () => {
     expect(taskOriginPath('/story/memories/memory-1', '?body=private')).toBe(
       '/story/memories/memory-1',
     );
-    expect(taskOriginPath('/more/private', '')).toBeNull();
+    expect(taskOriginPath('/more/private', '?title=private')).toBe(
+      '/more/private',
+    );
+    expect(taskOriginPath('/more/private/', '')).toBe('/more/private');
+    expect(taskOriginPath('/more/private/notes', '')).toBeNull();
+    expect(taskOriginPath('/more/private/notes/note-1', '')).toBeNull();
+    expect(taskOriginPath('/more/private/gift-ideas/gift-1', '')).toBeNull();
+    expect(taskOriginPath('/more/private/collections/list-1', '')).toBeNull();
+    expect(taskOriginPath('/more/private/partner-notes', '')).toBeNull();
     expect(taskOriginPath('/plan/plans/plan-1', '?title=private')).toBe(
       '/plan/plans/plan-1',
     );

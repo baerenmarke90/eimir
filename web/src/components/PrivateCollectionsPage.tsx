@@ -230,6 +230,7 @@ export function PrivateCollectionCreatePage({
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -260,7 +261,11 @@ export function PrivateCollectionCreatePage({
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
-            {t('privateArea.collections.detailBack')}
+            {t(
+              fromOverview
+                ? 'privateArea.backToHub'
+                : 'privateArea.collections.detailBack',
+            )}
           </TaskBackButton>
         }
         title={t('privateArea.collections.createTitle')}

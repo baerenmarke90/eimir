@@ -96,10 +96,11 @@ ActionState     = idle | submitting | success | error
   CSS may arrange the action but cannot redefine its shared presentation.
   Product Owner correction #1697 supersedes #1693's icon-only circular
   interpretation for heading and inline actions. The #1740 follow-up adds a
-  shared Compact floating variant with a filled 48 px circular plus, localized
-  accessible name and room above the docked navigation. Lists, Places, People
-  and Chapters use it for their overview creation action. Expanded renders the
-  localized label and the contextual icon in the existing page heading.
+  shared Compact floating variant with a filled 52 px circular plus, localized
+  accessible name and room above the docked navigation. Lists, Places, People,
+  Chapters and the Private Area use it for their overview creation action.
+  Expanded renders the localized label and the contextual icon in the existing
+  page heading.
   Selection choices, Back, Close and overflow retain their distinct roles.
 - Product Owner correction #1726 defines a narrow media-intake exception:
   its approved chat refinement uses one soft composer entry which opens the

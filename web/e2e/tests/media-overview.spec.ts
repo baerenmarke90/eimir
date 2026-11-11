@@ -14,6 +14,8 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const SPACE = '22222222-2222-4222-8222-222222222222';
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
+const PRIVATE_HEART_TEXT = 'A private heart moment';
+const PLAN_TITLE = 'A shared plan';
 const author = { id: ACCOUNT, displayName: 'Lea Sommer' };
 const assets = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -241,7 +243,7 @@ async function mocks(
       return json({
         id: privateVoice.parentId,
         spaceId: SPACE,
-        text: 'Ein privater Herzmoment',
+        text: PRIVATE_HEART_TEXT,
         emotion: 'LOVED',
         happenedOn: privateVoice.effectiveDate,
         visibility: 'PRIVATE',
@@ -257,7 +259,7 @@ async function mocks(
       return json({
         id: plan.parentId,
         spaceId: SPACE,
-        title: 'Ein gemeinsamer Plan',
+        title: PLAN_TITLE,
         status: 'IDEA',
         author,
         authorId: ACCOUNT,
@@ -793,9 +795,7 @@ test('media overview opens retained video and returns from a saved Plan photo', 
   await planTile.click();
   await viewer.getByRole('button', { name: mediaOverview.planSource }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/media-plan$/);
-  await expect(
-    page.getByRole('heading', { name: 'Ein gemeinsamer Plan' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: PLAN_TITLE })).toBeVisible();
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .first()
@@ -845,7 +845,7 @@ test('media overview keeps the private filter on return and requires authorizati
     .toBeGreaterThan(0);
   await viewer.getByRole('button', { name: mediaOverview.source }).click();
   await expect(page).toHaveURL(/\/story\/heart-moments\/private-heart$/);
-  await expect(page.getByText('Ein privater Herzmoment')).toBeVisible();
+  await expect(page.getByText(PRIVATE_HEART_TEXT)).toBeVisible();
   await page
     .getByRole('button', { name: taskBoundary.back, exact: true })
     .first()

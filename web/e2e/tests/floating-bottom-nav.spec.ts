@@ -422,7 +422,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     ]);
 
     const axeResultsLight = await new AxeBuilder({ page })
-      .include('.moment-create-sheet')
+      .include('.contextual-create-sheet')
       .analyze();
     expect(axeResultsLight.violations).toEqual([]);
 
@@ -439,7 +439,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
     await page.waitForTimeout(250);
     const axeResultsDark = await new AxeBuilder({ page })
-      .include('.moment-create-sheet')
+      .include('.contextual-create-sheet')
       .analyze();
     expect(axeResultsDark.violations).toEqual([]);
 

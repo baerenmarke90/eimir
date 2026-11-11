@@ -1,0 +1,7 @@
+eimir. Android 0.2.0-test.67
+
+- Open the floating plus on the For Me overview to add a personal note, gift idea or private list.
+- After saving, view the new item and return directly to For Me.
+- Floating plus buttons have a slightly larger touch target across the app.
+
+Install over test.66 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 67.

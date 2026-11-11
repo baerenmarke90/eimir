@@ -528,6 +528,7 @@
     },
     "private-area-reference.spec.ts": {
       "roots": [
+        "web/src/components/AppShell.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/M4ProductPages.tsx"
       ]

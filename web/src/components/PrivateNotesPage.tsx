@@ -241,6 +241,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
   );
   const {
     captureOwnership,
+    fromOverview,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -275,7 +276,11 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
-            {t('privateArea.notes.detailBack')}
+            {t(
+              fromOverview
+                ? 'privateArea.backToHub'
+                : 'privateArea.notes.detailBack',
+            )}
           </TaskBackButton>
         }
         title={t('privateArea.notes.createTitle')}

@@ -214,10 +214,6 @@
   max-inline-size: 100%;
 }
 
-.content-overview-heading .moment-create {
-  margin: 0;
-}
-
 .page-heading h1,
 .page-heading-title-container {
   margin-bottom: var(--space-2);

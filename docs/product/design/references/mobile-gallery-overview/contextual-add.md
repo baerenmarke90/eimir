@@ -167,3 +167,90 @@ journeys include saving and returning to the correct overview, filtered List
 and Place return, cancel and focus restoration, and modal priority for People
 photos. Compact checks include 320 px with enlarged text, Light/Dark and
 reduced motion. Expanded checks retain the visible names and motifs.
+
+## Private Area overview and floating target follow-up
+
+The Product Owner extended contextual creation to the Private Area overview
+and requested a slightly larger floating control. The reviewed `main` baseline
+is `1ff8f25aac55b88b5f5a7bbbd0690b95077b45c9`, which includes [PR #1742](https://github.com/baerenmarke90/eimir/pull/1742).
+The Compact reference uses the actual Dark overview at 390 px and the existing
+Moments choice sheet for its interaction geometry. The overview presents its
+privacy label and the four existing destinations for personal notes, gift
+ideas, private lists and partner notes. No private records appear in it.
+
+![Private Area overview and private creation choices at Compact width](reference-private-contextual-add.png)
+
+<details>
+<summary>ImageGen composition instructions</summary>
+
+The prompt used the 390 px Dark private overview and the existing Moment
+choice sheet. It requested two full 390 × 900 Compact viewports, retaining
+the actual Vault colors, lock, localized privacy copy, four browse cards and
+four-tab navigation. The first panel shows the filled 52 px circular plus
+at the trailing gutter, 12 px above the dock. The second shows the same
+overview dimmed behind the bottom sheet, with three localized action rows
+for a personal note, gift idea and private list. The reference shows no
+authored private content.
+
+</details>
+
+### Mobile interaction contract
+
+- Product Reference v1 R5 and the overview, short task and focused task
+  patterns apply. Keep the privacy heading and four destination cards as
+  the focal point. Add one primary control to the overview. The Compact
+  control uses a filled icon-only plus, a localized accessible name and a
+  52 px circular target shared by contextual floating actions. Reserve
+  matching clearance above the measured four-tab dock. Expanded uses a
+  labeled action in the existing heading. In the private area the Expanded
+  header omits the global shortcut to keep shared creation out of the private
+  context.
+- Open the shared short task sheet and offer personal note, gift idea and
+  private list creation. Each choice opens its existing focused task.
+  Partner notes remain accessible from their overview card and use their
+  existing editor. The child views retain their local actions.
+- Give initial focus to the first choice and restore focus to the trigger
+  on dismissal with Escape or system Back. Save shows the created item.
+  Closing a focused task or returning from its result uses the overview
+  origin and existing draft protection.
+- The overview and chooser present navigation only. The existing tasks
+  own loading, empty and error states, offline behavior and save feedback.
+  Keep the sheet, press and focus feedback and reduced-motion behavior.
+  The owner-only scope applies throughout the flow. The chooser has no
+  shared destinations or private previews.
+
+### Reuse, business and verification
+
+Reuse the Moment choice sheet pattern, the semantic AddAction control and
+shared shell clearance, router links and existing private task origins. A
+global creation menu would mix visibility scopes. A local duplicate sheet
+would repeat the focus, dismissal and origin logic. The platform, React and
+existing components cover the interaction without an additional dependency.
+
+No business/freemium impact. Personal notes, gift ideas and private lists
+remain Free/Core, and private isolation remains non-paywallable. Existing
+ownership, Cloud and Self-Hosted behavior, resource use, retention, export
+and downgrade semantics apply.
+
+Verify the three open, save, result and return journeys, cancellation and
+draft handling, sheet dismissal and focus, shared floating size and
+clearance, and absence of a second floating action in child tasks. Review
+Compact at 360, 390 and 430 px, 320 px with enlarged text, Expanded,
+Light/Dark and reduced motion. Capture representative runtime evidence.
+
+### Private Area runtime evidence
+
+Chromium captures use synthetic fixtures from implementation revision
+`9947b71cfb1331aa382323360098facb9b5f05cb`.
+
+- Private overview at 390 px in [Light](evidence/contextual-private-390-light.png) and [Dark](evidence/contextual-private-390-dark.png).
+- The three private create destinations at 390 px in [Light](evidence/contextual-private-chooser-390-light.png) and [Dark](evidence/contextual-private-chooser-390-dark.png).
+- [Private overview in Expanded Web](evidence/contextual-private-1440-dark.png).
+- [Shared 52 px control on the Places overview](evidence/contextual-places-52px-390-dark.png).
+
+The Private Area browser journeys cover the three saves, their resulting
+items and focus on return to the overview. They exercise Escape, history Back,
+and retaining or discarding a draft, with the Android runtime fixture in
+Compact Dark. The resize coverage includes 360, 390 and 430 px, the
+Compact/Expanded boundary, 320 px reflow and enlarged text. Expanded keeps
+the existing label and the privacy heading.

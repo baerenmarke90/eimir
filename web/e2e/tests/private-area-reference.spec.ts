@@ -1,6 +1,11 @@
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -8,6 +13,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { writeFile } from 'node:fs/promises';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -17,6 +23,12 @@ const PRIVATE_NOTE_ID = '44444444-4444-4444-8444-444444444444';
 const PRIVATE_COLLECTION_ID = '55555555-5555-4555-8555-555555555555';
 const PRIVATE_ITEM_ID = '66666666-6666-4666-8666-666666666666';
 const TEST_NOW = '2026-09-01T10:00:00Z';
+
+const privateCreateCases = [
+  { kind: 'notes', copy: privateArea.notes },
+  { kind: 'gift-ideas', copy: privateArea.gifts },
+  { kind: 'collections', copy: privateArea.collections },
+] as const;
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
@@ -468,8 +480,32 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   );
   await expect(cards.nth(3)).toContainText(privateArea.partnerNotes.title);
 
+  const create = context.getByRole('button', {
+    name: privateArea.createAction,
+    exact: true,
+  });
+  if ((page.viewportSize()?.width ?? 0) < 840) {
+    await expectFloatingAddAction(create, page.locator('.mobile-bottom-shell'));
+  } else {
+    await expectLabeledAddAction(create);
+    await expect(create).not.toHaveCSS('position', 'fixed');
+    await expect(
+      page.getByRole('button', { name: navigation.newContent, exact: true }),
+    ).toHaveCount(0);
+  }
+
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
+}
+
+async function openPrivateCreateChoices(page: Page) {
+  await page
+    .getByRole('button', { name: privateArea.createAction, exact: true })
+    .click();
+  return page.getByRole('dialog', {
+    name: privateArea.createAction,
+    exact: true,
+  });
 }
 
 for (const theme of ['light', 'dark'] as const) {
@@ -493,6 +529,8 @@ for (const theme of ['light', 'dark'] as const) {
       { width: 360, largeText: false },
       { width: 390, largeText: false },
       { width: 430, largeText: false },
+      { width: 839, largeText: false },
+      { width: 840, largeText: false },
       { width: 1440, largeText: false },
       { width: 360, largeText: true },
     ]) {
@@ -553,6 +591,7 @@ for (const theme of ['light', 'dark'] as const) {
 
     await page.locator('.private-area-destination-card').first().click();
     await expect(page).toHaveURL(/\/more\/private\/notes$/);
+    await expect(page.locator('[data-floating-create]')).toHaveCount(0);
     await expect(
       page.getByText(privateArea.notes.emptyTitle, { exact: true }),
     ).toBeVisible();
@@ -576,6 +615,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       window.localStorage.setItem('eimir.theme', 'system');
     });
     await page.setViewportSize({ width: 390, height: 844 });
+    if (colorScheme === 'dark') await installNativeAppLifecycle(page);
 
     const unexpectedRequests = await signInAndOpenPrivateArea(page);
     await expect(page.locator('html')).toHaveAttribute(
@@ -588,6 +628,59 @@ for (const colorScheme of ['light', 'dark'] as const) {
       path: testInfo.outputPath(`private-area-390-${colorScheme}.png`),
       fullPage: true,
     });
+
+    const create = page.getByRole('button', { name: privateArea.createAction });
+    const chooser = await openPrivateCreateChoices(page);
+    await expect(chooser.getByRole('link')).toHaveText(
+      privateCreateCases.map(({ copy }) => copy.add),
+    );
+    for (const { kind, copy } of privateCreateCases) {
+      await expect(
+        chooser.getByRole('link', { name: copy.add }),
+      ).toHaveAttribute('href', `/more/private/${kind}/new`);
+    }
+    await expect(chooser.getByRole('link').first()).toBeFocused();
+    await expect(
+      page.locator('.private-area-context [data-floating-create]'),
+    ).toBeHidden();
+    await expect(chooser).toHaveCSS('opacity', '1');
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-area-create-390-${colorScheme}.png`),
+      animations: 'disabled',
+    });
+
+    if (colorScheme === 'dark') {
+      await page.goBack();
+    } else {
+      await page.keyboard.press('Escape');
+    }
+    await expect(chooser).toHaveCount(0);
+    await expect(create).toBeFocused();
+    await expect(page).toHaveURL(/\/more\/private$/);
+
+    if (colorScheme === 'dark') {
+      await openPrivateCreateChoices(page);
+      await chooser.getByRole('link', { name: privateArea.notes.add }).click();
+      const title = page.getByLabel(privateArea.notes.titleLabel, {
+        exact: true,
+      });
+      await title.fill('Unsaved private note');
+      const back = page.getByRole('button', { name: privateArea.backToHub });
+      await back.click();
+      const discard = page.getByRole('alertdialog', {
+        name: taskBoundary.discardTitle,
+      });
+      await discard
+        .getByRole('button', { name: taskBoundary.keepEditing })
+        .click();
+      await expect(title).toHaveValue('Unsaved private note');
+      await back.click();
+      await discard.getByRole('button', { name: taskBoundary.discard }).click();
+      await expect(page).toHaveURL(/\/more\/private$/);
+      await expect(create).toBeFocused();
+    }
     expect(unexpectedRequests).toEqual([]);
   });
 }
@@ -648,6 +741,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
       path: testInfo.outputPath(`private-area-1440-${colorScheme}.png`),
       fullPage: true,
     });
+    const chooser = await openPrivateCreateChoices(page);
+    await expect(chooser.getByRole('link')).toHaveText(
+      privateCreateCases.map(({ copy }) => copy.add),
+    );
+    await expect(chooser).toHaveCSS('opacity', '1');
+    await expectNoWcagViolations(page);
+    await page.keyboard.press('Escape');
+    await expect(chooser).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: privateArea.createAction }),
+    ).toBeFocused();
     expect(unexpectedRequests).toEqual([]);
   });
 }
@@ -1838,12 +1942,6 @@ for (const view of [
   }
 }
 
-const privateCreateCases = [
-  { kind: 'notes', copy: privateArea.notes },
-  { kind: 'gift-ideas', copy: privateArea.gifts },
-  { kind: 'collections', copy: privateArea.collections },
-] as const;
-
 async function installHeldPrivateCreate(page: Page, kind: string) {
   const endpoint = `/api/v1/spaces/${SPACE_ID}/private/${kind}`;
   const id = '77777777-7777-4777-8777-777777777777';
@@ -1919,8 +2017,8 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
 }
 
 for (const view of [
-  { name: '390-light', width: 390, scheme: 'light' },
-  { name: '1280-dark', width: 1280, scheme: 'dark' },
+  { name: '390-light', width: 390, scheme: 'light', fromOverview: true },
+  { name: '1280-dark', width: 1280, scheme: 'dark', fromOverview: false },
 ] as const) {
   for (const definition of privateCreateCases) {
     test(`private ${definition.kind} create preserves result and return at ${view.name}`, async ({
@@ -1936,12 +2034,26 @@ for (const view of [
       );
       const unexpected = await signInAndOpenPrivateArea(page);
       const fixture = await installHeldPrivateCreate(page, definition.kind);
-      await page
-        .getByRole('link', { name: definition.copy.title, exact: false })
-        .click();
-      await page
-        .getByRole('link', { name: definition.copy.add, exact: true })
-        .click();
+      if (view.fromOverview) {
+        const chooser = await openPrivateCreateChoices(page);
+        await chooser
+          .getByRole('link', { name: definition.copy.add, exact: true })
+          .click();
+        await expect(
+          page.getByRole('button', { name: privateArea.backToHub }),
+        ).toBeVisible();
+      } else {
+        await page
+          .getByRole('link', { name: definition.copy.title, exact: false })
+          .click();
+        await page
+          .getByRole('link', { name: definition.copy.add, exact: true })
+          .click();
+      }
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}/new$`),
+      );
+      await expect(page.locator('[data-floating-create]')).toHaveCount(0);
       const title = `Personal ${definition.kind} plan`;
       await page
         .getByLabel(definition.copy.titleLabel, { exact: true })
@@ -1969,9 +2081,20 @@ for (const view of [
         fullPage: true,
         animations: 'disabled',
       });
-      await page
-        .getByRole('link', { name: definition.copy.detailBack, exact: true })
-        .click();
+      if (view.fromOverview) {
+        await page.getByRole('button', { name: privateArea.backToHub }).click();
+        await expect(page).toHaveURL(/\/more\/private$/);
+        await expect(
+          page.getByRole('button', { name: privateArea.createAction }),
+        ).toBeFocused();
+        await page
+          .getByRole('link', { name: definition.copy.title, exact: true })
+          .click();
+      } else {
+        await page
+          .getByRole('link', { name: definition.copy.detailBack, exact: true })
+          .click();
+      }
       await expect(page).toHaveURL(
         new RegExp(`/more/private/${definition.kind}$`),
       );

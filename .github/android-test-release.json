@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "d64c52a357c770f0db555153b46b83fa307951c5",
-  "versionName": "0.2.0-test.64",
-  "versionCode": 64,
-  "previousVersionName": "0.2.0-test.63",
-  "notesFile": "docs/releases/android-test-0.2.0-test.64-notes.txt"
+  "sourceRevision": "7dfb25cc7e06887b6406f8b362333a16adbb7af2",
+  "versionName": "0.2.0-test.65",
+  "versionCode": 65,
+  "previousVersionName": "0.2.0-test.64",
+  "notesFile": "docs/releases/android-test-0.2.0-test.65-notes.txt"
 }

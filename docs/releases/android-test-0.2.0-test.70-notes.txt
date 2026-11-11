@@ -1,0 +1,8 @@
+eimir. Android 0.2.0-test.70
+
+- Find upcoming birthdays, anniversaries and other occasions in a clearer agenda with Today and Tomorrow labels and separate past entries.
+- Open an occasion to see its date and recurrence. Start a plan from a shared occasion with the date already filled in.
+- Switch mobile tabs with smoother transitions and quicker touch feedback. The navigation bar and add button stay in place, and Back returns to where you started after opening a moment editor.
+
+The product changes come from main at bc9f2dc494f3d989de357c8c7acf8da19889a424.
+Install over test.69 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 70.

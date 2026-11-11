@@ -220,8 +220,8 @@
   min-width: 0;
   white-space: normal;
 }
-.occasions-panel {
-  padding-top: var(--space-2);
+.important-dates-section.occasions-panel {
+  padding-top: 0;
   gap: var(--space-4);
 }
 .occasions-add {
@@ -232,26 +232,53 @@
   padding: 0;
   margin: 0;
 }
-.occasions-list h2 {
+.occasions-month > :is(h2, h3),
+.occasions-past > h2 {
   font-size: 1rem;
   color: var(--color-text-secondary);
-  margin: var(--space-6) 0 var(--space-3);
+  margin: 0 0 var(--space-2);
+}
+.occasions-month + .occasions-month {
+  margin-top: var(--space-5);
+}
+.occasions-past > h2 {
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+.occasions-month > h3 {
+  font-size: 0.9rem;
 }
 .occasions-list .important-date-card {
-  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
-  padding-inline: 0;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  min-height: 60px;
+  padding: var(--space-2) 0;
 }
 .occasions-list .important-date-marker {
-  width: 3.25rem;
+  width: 100%;
+  min-height: 2.75rem;
   box-shadow: none;
+}
+.occasion-reader-sheet .short-task-sheet-title {
+  margin-bottom: var(--space-2);
 }
 .occasion-reader {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-2);
 }
-.occasion-reader-date {
-  font-size: 1.6rem;
-  font-weight: 600;
+.occasion-reader .occasion-reader-date,
+.occasion-reader-source {
+  margin: 0;
+  font: var(--font-reading-body);
+  color: var(--color-text-secondary);
+}
+.occasion-reader button {
+  min-height: 48px;
+}
+.occasion-reader button.tertiary {
+  justify-self: start;
+  padding-inline: 0;
+  text-align: start;
+  color: var(--color-brand-text);
 }
 
 .people-birthday-options:not([open]) > :not(summary) {
@@ -297,10 +324,6 @@
   width: var(--space-5);
   height: var(--space-5);
 }
-.occasion-reader-meta {
-  font: var(--font-reading-body);
-}
-
 .people-birthday-options > summary::after {
   content: "+";
   margin-inline-start: auto;

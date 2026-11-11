@@ -54,7 +54,7 @@ import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
-import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
+import { useNavigationMotion } from './useNavigationMotion';
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
@@ -223,44 +223,13 @@ function AuthenticatedAppShell({
   const mainRef = useRef<HTMLElement>(null);
   const pathname = location.pathname.replace(/\/$/, '');
   const navigationType = useNavigationType();
-  const previousPath = useRef(pathname);
-  useLayoutEffect(() => {
-    const changedPage = previousPath.current !== pathname;
-    previousPath.current = pathname;
-    const main = mainRef.current;
-    if (
-      !main ||
-      !changedPage ||
-      navigationType !== 'PUSH' ||
-      !pathname.endsWith('/new') ||
-      pathname === COLLECTION_CREATE_ROUTE ||
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    )
-      return;
-
-    // Keep the live form and its fixed tools interactive during the handoff.
-    const settle = (event: AnimationEvent) => {
-      if (
-        event.target === main &&
-        event.animationName === 'eimir-create-entry-fade'
-      )
-        clear();
-    };
-    const clear = () => {
-      delete main.dataset.createEntry;
-      main.removeEventListener('animationend', settle);
-      main.removeEventListener('animationcancel', settle);
-    };
-    main.dataset.createEntry = 'true';
-    main.addEventListener('animationend', settle);
-    main.addEventListener('animationcancel', settle);
-    return clear;
-  }, [navigationType, pathname]);
   const { navigatePrimary } = usePrimaryNavigation();
-  usePrimaryTabSwipe({
+  useNavigationMotion({
     surfaceRef: mainRef,
-    pathname: location.pathname,
+    pathname,
     routeKey: location.key,
+    skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
+    createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
     onNavigate: navigatePrimary,
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');

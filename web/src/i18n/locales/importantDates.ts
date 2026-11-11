@@ -1,6 +1,9 @@
 const importantDates = {
   heading: 'Anlässe',
   relationshipAnniversary: 'Euer Jahrestag',
+  past: 'Vergangen',
+  editRelationshipStart: 'Beziehungsbeginn ändern',
+  createPlan: 'Plan erstellen',
   intro:
     'Geburtstage, Jahrestage und andere besondere Tage könnt ihr hier gemeinsam oder nur für euch festhalten.',
   createTitle: 'Besonderer Tag',
@@ -39,6 +42,7 @@ const importantDates = {
   linkedPerson: 'Für {{name}}',
   partnerBirthdayLabel: 'Geburtstag von {{name}}',
   partnerBirthdayProfileSource: 'Aus dem Profil von {{name}}',
+  openBirthdayProfile: 'Profil von {{name}} ansehen',
   edit: 'Bearbeiten',
   delete: 'Löschen',
   deleteQuestion: 'Diesen besonderen Tag wirklich löschen?',

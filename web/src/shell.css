@@ -598,6 +598,7 @@
 
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+  --primary-tab-opacity: 1;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
@@ -606,12 +607,11 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .product-main[data-create-entry] {
-    animation: eimir-create-entry-fade var(--duration-transition)
-      var(--easing-standard);
+  .product-main[data-primary-tab-dragging] {
+    opacity: var(--primary-tab-opacity);
   }
 
-  .product-main[data-create-entry]
+  .product-main[data-navigation-motion="create"]
     :is(.page-composer-writing, .composer-writing-surface) {
     animation: eimir-create-entry-rise var(--duration-transition)
       var(--easing-standard);
@@ -667,10 +667,11 @@
 }
 
 /* Persistent destinations respond at contact, including touch without hover. */
-.shell-nav-link:active,
-.mobile-bottom-nav .shell-nav-link:active {
+.shell-nav-link:is(:active, [data-control-pressed]),
+.mobile-bottom-nav .shell-nav-link:is(:active, [data-control-pressed]) {
   background: var(--color-brand-surface);
   color: var(--color-brand-text);
+  transition: none;
 }
 
 .shell-nav-link {

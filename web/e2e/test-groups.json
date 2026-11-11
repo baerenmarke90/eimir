@@ -88,8 +88,8 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 18,
-      "reason": "Persistent navigation clearance, canonical default-root selection with independent nested-task return, browser history/native tab replacement and native touch swipe ownership (#1682)."
+      "baselineTests": 21,
+      "reason": "Persistent navigation clearance, root and nested-task history, touch ownership, stable floating actions during entry, and continuity across delayed and cached reads."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -153,7 +153,7 @@
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5,
+      "baselineTests": 6,
       "reason": "Feature-owned People overview/profile/gallery/edit/save/result/return, shared-only capture, independent planning occasions, dirty Back, full retained 200%/400% zoom, keyboard, small-height, Expanded Light/Dark, reflow and axe acceptance."
     },
     "partner-nickname.spec.ts": {
@@ -175,7 +175,8 @@
     },
     "planning-focused-create.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8
+      "baselineTests": 8,
+      "reason": "Focused Plan and Wish creation, draft safety, live route entry, and Back to the active Planning segment."
     },
     "planning-reference.spec.ts": {
       "disposition": "FULL_REGRESSION",

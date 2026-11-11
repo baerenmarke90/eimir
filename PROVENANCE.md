@@ -112,12 +112,19 @@ repository's existing authorized assets. No predecessor assets were consulted.
 
 ## Daily Saying catalog
 
-`backend/src/eimir/quotes/german_sayings.json` contains an eimir. selection
-of German public-domain literary excerpts, aphorisms and traditional sayings.
+`backend/src/eimir/quotes/daily_sayings.json` contains an eimir. selection
+of German public-domain literary excerpts, aphorisms and traditional sayings
+with English translations of the same entries.
 Each collection records the edition or digital source and its rights basis.
 The original texts are in the public domain in Germany under §§ 64 and 69
 UrhG. The authors of the added literary texts died by 1934. Traditional
 sayings are documented in 19th-century printed collections.
+
+The English versions are catalog translations from the German source texts.
+These new English translations are contributed under
+[CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
+The catalog retains the original author, work and source edition. The English
+card identifies attributed texts as translations.
 
 - **Poetry.** The original texts and bibliographic fields were selected from
   the [TextGrid Poetry Corpus](https://github.com/linhd-postdata/textgrid-poetry/tree/33a990cbf8e078edf3615f9ff35c4239065270b1),

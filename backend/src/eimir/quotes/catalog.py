@@ -1,8 +1,9 @@
 """Curated, code-owned catalog of daily quotes, categories, and sources.
 
 This catalog is closed, curated, and legally auditable (#1151):
-- All entries are strictly Public Domain (historical literature, philosophy, and
+- Source texts are Public Domain (historical literature, philosophy, and
   documented traditional sayings with public-domain source editions).
+- Catalog translations of public-domain texts carry their own rights metadata.
 - No unverified modern quote databases.
 - No arbitrary web scraping.
 - No AI-generated or invented quotes.
@@ -120,30 +121,42 @@ SOURCES: tuple[QuoteSource, ...] = (
 SOURCE_MAP: dict[str, QuoteSource] = {source.id: source for source in SOURCES}
 
 
-def _load_german_sayings() -> tuple[DailyQuote, ...]:
-    resource = files("eimir.quotes").joinpath("german_sayings.json")
+def _load_localized_sayings() -> tuple[DailyQuote, ...]:
+    resource = files("eimir.quotes").joinpath("daily_sayings.json")
     data = json.loads(resource.read_text(encoding="utf-8"))
     sayings = []
     for entry in data["entries"]:
         collection = data["collections"][entry["collection"]]
         author = collection["author_display"]
-        sayings.append(
-            DailyQuote(
-                id=entry["id"],
-                text=entry["text"],
-                author_display=author,
-                source_display=collection.get("source_display"),
-                source_id=collection["source_id"],
-                category_ids=tuple(entry["category_ids"]),
-                locale="de",
-                rights_classification=RightsClassification.PUBLIC_DOMAIN,
-                attribution_required=bool(author),
-                original_work=entry["work"],
-                source_edition=f"{collection['source_edition']} {collection['source_url']}",
-                publication_year=collection.get("publication_year"),
-                rights_basis=collection["rights_basis"],
+        for locale, text in entry["texts"].items():
+            translation = data["translations"].get(locale)
+            rights = RightsClassification.PUBLIC_DOMAIN
+            rights_basis = collection["rights_basis"]
+            source_display = collection.get("source_display")
+            translator = None
+            if translation is not None:
+                rights = RightsClassification.EDITORIAL_CURATED
+                rights_basis = f"{rights_basis} {translation['rights_basis']}"
+                source_display = translation["source_display"] if author else None
+                translator = translation["translator"]
+            sayings.append(
+                DailyQuote(
+                    id=f"saying-{locale}-{entry['id']}",
+                    text=text,
+                    author_display=author,
+                    source_display=source_display,
+                    source_id=collection["source_id"],
+                    category_ids=tuple(entry["category_ids"]),
+                    locale=locale,
+                    rights_classification=rights,
+                    attribution_required=bool(author),
+                    original_work=entry["work"],
+                    source_edition=f"{collection['source_edition']} {collection['source_url']}",
+                    publication_year=collection.get("publication_year"),
+                    translator=translator,
+                    rights_basis=rights_basis,
+                )
             )
-        )
     return tuple(sayings)
 
 
@@ -781,7 +794,7 @@ QUOTES: tuple[DailyQuote, ...] = (
         translator=None,
         rights_basis="Public Domain (Henry David Thoreau died 1862, p.m.a. > 70 years)",
     ),
-    *_load_german_sayings(),
+    *_load_localized_sayings(),
 )
 
 QUOTE_MAP: dict[str, DailyQuote] = {quote.id: quote for quote in QUOTES}

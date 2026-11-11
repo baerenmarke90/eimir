@@ -71,7 +71,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "eimir.i18n" = ["locales/*.json"]
-"eimir.quotes" = ["german_sayings.json"]
+"eimir.quotes" = ["daily_sayings.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

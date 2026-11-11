@@ -229,3 +229,9 @@ answers the check with 404 and observes the stored bytes removed. The journey
 fails on the baseline. Unit regressions cover immediate delivery, the shared
 check, 401/403/404 eviction, unavailable checks, absent bytes and isolation
 between logins. Physical-device and production-network acceptance remain open.
+
+Visual evidence with every API response left unanswered after a native cold
+start (synthetic fixture photos): [Compact light](evidence/instant-start/cold-start-unanswered-390-light.png),
+[Compact dark](evidence/instant-start/cold-start-unanswered-390-dark.png),
+[Expanded](evidence/instant-start/cold-start-unanswered-1280-light.png). The
+composition is unchanged; only the moment it appears differs.

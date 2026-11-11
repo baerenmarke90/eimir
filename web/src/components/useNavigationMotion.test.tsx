@@ -9,7 +9,7 @@ import {
 import { useLayoutEffect, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
-import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
+import { useNavigationMotion } from './useNavigationMotion';
 import { usePullToRefresh } from './usePullToRefresh';
 
 type Point = { clientX: number; clientY: number; identifier: number };
@@ -53,7 +53,7 @@ function Harness({
   dirty?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
-  usePrimaryTabSwipe({ surfaceRef: ref, pathname, routeKey, onNavigate });
+  useNavigationMotion({ surfaceRef: ref, pathname, routeKey, onNavigate });
   usePullToRefresh({ enabled: true, blocked: false, onRefresh });
   useDocumentLeaveGuard(dirty);
   return (
@@ -103,7 +103,7 @@ describe('primary tab swipe ownership', () => {
     const onNavigate = vi.fn();
     function CommitProbe({ pathname }: { pathname: string }) {
       const ref = useRef<HTMLElement>(null);
-      usePrimaryTabSwipe({
+      useNavigationMotion({
         surfaceRef: ref,
         pathname,
         routeKey: pathname,
@@ -139,20 +139,20 @@ describe('primary tab swipe ownership', () => {
     );
     expect(animate).toHaveBeenCalledTimes(1);
     expect(animate.mock.calls[0]?.[1]).toMatchObject({ duration: 180 });
-    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
+    expect(surface.getAttribute('data-navigation-motion')).toBe('content');
     // No screenshot overlay owns input: the immediate next swipe uses the
     // same live main element and cancels its previous entrance animation.
     act(() => swipe(screen.getByTestId('reading')));
     expect(cancel).toHaveBeenCalled();
-    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
+    expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
     expect(navigate).toHaveBeenCalledExactlyOnceWith('/more');
     view.rerender(
       <Harness pathname="/more" routeKey="third" onNavigate={navigate} />,
     );
     expect(animate).toHaveBeenCalledTimes(2);
-    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
+    expect(surface.getAttribute('data-navigation-motion')).toBe('content');
     view.unmount();
-    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
+    expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
   });
 
   it('releases motion bounds on completion without letting an older animation clear its replacement', () => {
@@ -177,14 +177,14 @@ describe('primary tab swipe ownership', () => {
     act(() =>
       oldComplete?.call(first, new Event('finish') as AnimationPlaybackEvent),
     );
-    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
+    expect(surface.getAttribute('data-navigation-motion')).toBe('content');
     act(() =>
       second.onfinish?.call(
         second,
         new Event('finish') as AnimationPlaybackEvent,
       ),
     );
-    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
+    expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
     expect(second.onfinish).toBeNull();
     expect(second.oncancel).toBeNull();
   });
@@ -467,7 +467,7 @@ describe('primary tab swipe ownership', () => {
     });
     act(() => swipe(screen.getByTestId('reading'), 200, 225));
     expect(navigate).not.toHaveBeenCalled();
-    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
+    expect(surface.getAttribute('data-navigation-motion')).toBe('content');
     const changed = media.addEventListener.mock.calls.find(
       ([type]) => type === 'change',
     )?.[1];
@@ -475,7 +475,7 @@ describe('primary tab swipe ownership', () => {
     media.matches = true;
     act(() => changed());
     expect(animation.cancel).toHaveBeenCalled();
-    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
+    expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
     expect(media.removeEventListener).toHaveBeenCalledWith('change', changed);
   });
 
@@ -494,7 +494,7 @@ describe('primary tab swipe ownership', () => {
     expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/plan');
     expect(oldNavigate).not.toHaveBeenCalled();
     expect(
-      screen.getByTestId('surface').hasAttribute('data-primary-tab-entry'),
+      screen.getByTestId('surface').hasAttribute('data-navigation-motion'),
     ).toBe(false);
   });
 });

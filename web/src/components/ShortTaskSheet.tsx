@@ -17,7 +17,10 @@ import { useOverlayPresence } from './useOverlayPresence';
 import './ShortTaskSheet.css';
 
 export interface ShortTaskSheetHandle {
-  closeForNavigation: (navigate: () => void) => void;
+  closeForNavigation: (
+    navigate: () => void,
+    options?: { animateExit?: boolean },
+  ) => void;
   requestClose: () => boolean;
 }
 
@@ -125,7 +128,10 @@ export function ShortTaskSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const navigatingRef = useRef(false);
-  const pendingNavigationRef = useRef<(() => void) | null>(null);
+  const pendingNavigationRef = useRef<{
+    navigate: () => void;
+    animateExit: boolean;
+  } | null>(null);
   const implicitRestoreFocusRef = useRef<HTMLElement | null>(null);
   const wasPresentRef = useRef(false);
   const dragIdentifierRef = useRef<number | null>(null);
@@ -164,7 +170,14 @@ export function ShortTaskSheet({
   }
 
   const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');
-  const { present, presenceState, completeExit } = useOverlayPresence(open);
+  const {
+    present: retainedPresence,
+    presenceState,
+    completeExit,
+  } = useOverlayPresence(open);
+  const present =
+    retainedPresence &&
+    (open || pendingNavigationRef.current?.animateExit !== false);
 
   useLayoutEffect(() => {
     if (present && !wasPresentRef.current && typeof document !== 'undefined') {
@@ -420,13 +433,13 @@ export function ShortTaskSheet({
 
   useImperativeHandle(ref, () => ({
     requestClose,
-    closeForNavigation(navigate) {
+    closeForNavigation(navigate, { animateExit = true } = {}) {
       closeConfirmed(() => {
         // Auth/Space teardown may have ended this task during history removal.
         const dialog = dialogRef.current;
         if (!dialog?.isConnected) return;
         navigatingRef.current = true;
-        pendingNavigationRef.current = navigate;
+        pendingNavigationRef.current = { navigate, animateExit };
         onClose();
       });
     },
@@ -564,14 +577,15 @@ export function ShortTaskSheet({
 
   useEffect(() => {
     if (present) return;
-    const navigate = pendingNavigationRef.current;
-    if (!navigate) return;
+    const handoff = pendingNavigationRef.current;
+    if (!handoff) return;
     pendingNavigationRef.current = null;
+    if (!handoff.animateExit) completeExit();
     // React runs passive cleanup for the prior presentation before setup
     // effects for this closed state, so native modality and scroll ownership
     // are already released before the destination can assign focus.
-    navigate();
-  }, [present]);
+    handoff.navigate();
+  }, [completeExit, present]);
 
   useModalLifecycle({
     active: present,

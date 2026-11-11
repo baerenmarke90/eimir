@@ -181,9 +181,10 @@ def test_pro_space_receives_deterministic_daily_quote_and_metadata(
     assert quote is not None
     assert quote["id"]
     assert len(quote["text"]) > 0
-    assert len(quote["authorDisplay"]) > 0
     assert quote["rightsClassification"] == "PUBLIC_DOMAIN"
-    assert quote["attributionRequired"] is True
+    assert quote["attributionRequired"] is bool(quote["authorDisplay"])
+    if not quote["attributionRequired"]:
+        assert quote["sourceDisplay"] is None
     assert isinstance(quote["categoryIds"], list)
     assert quote["sourceId"] in {s.id for s in catalog.get_sources()}
 

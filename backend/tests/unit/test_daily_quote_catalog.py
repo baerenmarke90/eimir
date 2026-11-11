@@ -32,14 +32,18 @@ def test_all_curated_quotes_have_complete_rights_and_attribution_metadata() -> N
     for quote in quotes:
         assert quote.id.strip()
         assert quote.text.strip()
-        assert quote.author_display.strip()
+        if quote.attribution_required:
+            assert quote.author_display.strip()
+        else:
+            assert quote.author_display == ""
+            assert quote.source_display is None
+            assert quote.source_id == "poetic_wisdom"
         assert quote.source_id in valid_sources
         assert len(quote.category_ids) >= 1
         for cat_id in quote.category_ids:
             assert cat_id in valid_categories
         assert quote.locale in ("de", "en")
         assert quote.rights_classification == RightsClassification.PUBLIC_DOMAIN
-        assert quote.attribution_required is True
         assert quote.active is True
 
 
@@ -51,7 +55,10 @@ def test_quote_provenance_and_auditability() -> None:
         assert quote.source_edition.strip(), f"Missing source_edition for quote {quote.id}"
         assert quote.rights_basis.strip(), f"Missing rights_basis for quote {quote.id}"
         assert "Public Domain" in quote.rights_basis
-        assert "p.m.a. > 70 years" in quote.rights_basis
+        if quote.attribution_required:
+            assert "p.m.a. > 70 years" in quote.rights_basis
+        else:
+            assert "traditional" in quote.rights_basis
 
         # Ancient / foreign translated works must document a deceased translator (>70y p.m.a.)
         if quote.translator is not None:
@@ -73,8 +80,10 @@ def test_unverified_and_copyrighted_authors_are_excluded() -> None:
 
 def test_get_quotes_filters_by_locale() -> None:
     de_quotes = catalog.get_quotes(locale="de")
-    assert len(de_quotes) > 0
+    assert len(de_quotes) >= 1_000
     assert all(q.locale == "de" for q in de_quotes)
+    assert sum("love" in q.category_ids for q in de_quotes) >= 500
+    assert any(not q.attribution_required for q in de_quotes)
 
     en_quotes = catalog.get_quotes(locale="en")
     assert len(en_quotes) > 0

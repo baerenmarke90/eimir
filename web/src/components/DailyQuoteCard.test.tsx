@@ -207,7 +207,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('sr-only'),
+        .classList.contains('today-section-title'),
     ).toBe(true);
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
@@ -219,7 +219,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('keeps the quotation and accessible heading without a decorative symbol', async () => {
+  it('shows the saying and its visible section heading without a decorative symbol', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -235,7 +235,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('sr-only'),
+        .classList.contains('today-section-title'),
     ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
     expect(
@@ -260,6 +260,28 @@ describe('DailyQuoteCard', () => {
 
     expect(await screen.findByText(dailyQuote.discovery)).toBeTruthy();
     expect(screen.queryByText(dailyQuote.empty)).toBeNull();
+  });
+
+  it('shows an anonymous proverb without an attribution footer', async () => {
+    renderCard({
+      quoteResult: {
+        ...quote,
+        quote: {
+          attributionRequired: false,
+          authorDisplay: '',
+          categoryIds: ['motivation'],
+          id: 'saying-de-simrock-001',
+          locale: 'de',
+          rightsClassification: 'PUBLIC_DOMAIN',
+          sourceDisplay: null,
+          sourceId: 'poetic_wisdom',
+          text: 'Aller Anfang ist schwer.',
+        },
+      },
+    });
+
+    const saying = await screen.findByText('„Aller Anfang ist schwer.“');
+    expect(saying.closest('blockquote')?.querySelector('footer')).toBeNull();
   });
 
   it('renders the neutral no-quote state without error styling or retry', async () => {

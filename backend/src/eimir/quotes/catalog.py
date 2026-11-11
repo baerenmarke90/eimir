@@ -6,14 +6,16 @@ This catalog is closed, curated, and legally auditable (#1151):
 - No unverified modern quote databases.
 - No arbitrary web scraping.
 - No AI-generated or invented quotes.
-- Exact provenance, bibliographic edition, publication year, translator, and rights basis
-  preserved internally for every entry while exposing a stable public view.
+- Source editions and rights bases are retained internally. Authored texts show credit.
+- Traditional sayings can be displayed without an author or a citation.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from enum import StrEnum
+from importlib.resources import files
 
 
 class RightsClassification(StrEnum):
@@ -110,12 +112,39 @@ SOURCES: tuple[QuoteSource, ...] = (
     QuoteSource(
         id="poetic_wisdom",
         name="Poesie & Lebensweisheiten",
-        description="Klassische Aphorismen und poetische Reflexionen (Gemeinfrei / Public Domain).",
+        description="Gemeinfreie Aphorismen, poetische Gedanken und traditionelle Sprichwörter.",
         rights_classification=RightsClassification.PUBLIC_DOMAIN,
     ),
 )
 
 SOURCE_MAP: dict[str, QuoteSource] = {source.id: source for source in SOURCES}
+
+
+def _load_german_sayings() -> tuple[DailyQuote, ...]:
+    resource = files("eimir.quotes").joinpath("german_sayings.json")
+    data = json.loads(resource.read_text(encoding="utf-8"))
+    sayings = []
+    for entry in data["entries"]:
+        collection = data["collections"][entry["collection"]]
+        author = collection["author_display"]
+        sayings.append(
+            DailyQuote(
+                id=entry["id"],
+                text=entry["text"],
+                author_display=author,
+                source_display=collection.get("source_display"),
+                source_id=collection["source_id"],
+                category_ids=tuple(entry["category_ids"]),
+                locale="de",
+                rights_classification=RightsClassification.PUBLIC_DOMAIN,
+                attribution_required=bool(author),
+                original_work=entry["work"],
+                source_edition=f"{collection['source_edition']} {collection['source_url']}",
+                publication_year=collection.get("publication_year"),
+                rights_basis=collection["rights_basis"],
+            )
+        )
+    return tuple(sayings)
 
 
 # --- V1 Curated Public Domain Quotes Catalog ---
@@ -752,6 +781,7 @@ QUOTES: tuple[DailyQuote, ...] = (
         translator=None,
         rights_basis="Public Domain (Henry David Thoreau died 1862, p.m.a. > 70 years)",
     ),
+    *_load_german_sayings(),
 )
 
 QUOTE_MAP: dict[str, DailyQuote] = {quote.id: quote for quote in QUOTES}

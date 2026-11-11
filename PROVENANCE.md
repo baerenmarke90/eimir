@@ -110,6 +110,43 @@ image-generation tool on 2026-10-28 from an actual eimir. browser render at
 evidence. Companion browser screenshots use synthetic test identities and the
 repository's existing authorized assets. No predecessor assets were consulted.
 
+## Daily Saying catalog
+
+`backend/src/eimir/quotes/german_sayings.json` contains an eimir. selection
+of German public-domain literary excerpts, aphorisms and traditional sayings.
+Each collection records the edition or digital source and its rights basis.
+The original texts are in the public domain in Germany under §§ 64 and 69
+UrhG. The authors of the added literary texts died by 1934. Traditional
+sayings are documented in 19th-century printed collections.
+
+- **Poetry.** The original texts and bibliographic fields were selected from
+  the [TextGrid Poetry Corpus](https://github.com/linhd-postdata/textgrid-poetry/tree/33a990cbf8e078edf3615f9ff35c4239065270b1),
+  a conversion of the [TextGrid Digital Library](https://textgrid.de/ueber-textgrid/die-digitale-bibliothek/)
+  based on Editura's digitization. The extracted metadata and adaptations of
+  that data retain the [CC BY 3.0 DE](https://creativecommons.org/licenses/by/3.0/de/)
+  terms and credit to TextGrid and Editura. Each collection links to its
+  pinned source. The selection extracts short passages and normalizes whitespace.
+- **Aphorisms.** Johann Wolfgang von Goethe,
+  [*Maximen und Reflexionen*](https://hdl.handle.net/11858/00-1734-0000-0006-5ED3-4),
+  from the TextGrid Digital Library under the same terms as above.
+  Marie von Ebner-Eschenbach, *Gesammelte Schriften*, vol. 1
+  (Gebrüder Paetel, 1893), [Project Gutenberg #77889](https://www.gutenberg.org/ebooks/77889).
+  Christian Morgenstern, *Stufen* (R. Piper & Co., 1922),
+  [Project Gutenberg #15898](https://www.gutenberg.org/ebooks/15898).
+  Friedrich Nietzsche, *Menschliches, Allzumenschliches*, vol. 1 (1878),
+  [Project Gutenberg #7207](https://www.gutenberg.org/ebooks/7207).
+  The Project Gutenberg excerpts contain text from the original works.
+- **Traditional sayings.** Karl Simrock (ed.),
+  [*Die deutschen Sprichwörter*](https://openlibrary.org/books/OL20517562M/Die_deutschen_Sprichw%C3%B6rter_gesammelt)
+  (H. L. Brönner, 1846).
+  The catalog uses original proverb wording with corrected transcription and
+  occasional spelling normalization.
+
+The licensing terms above apply to the supplied source data independently of
+the application license. Source and rights metadata stay in the repository.
+The card shows author credit for attributed texts. Traditional sayings can
+appear by themselves.
+
 ## Contributors
 
 | Name | Role | Period |

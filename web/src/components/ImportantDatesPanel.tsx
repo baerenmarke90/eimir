@@ -70,7 +70,7 @@ function OccasionTitle({
       >
         <EimirIcon
           name={icon}
-          variant={icon === 'wir' ? 'filled' : 'duotone'}
+          variant={icon === 'wir' ? 'outline' : 'duotone'}
         />
       </span>
       <span>{label}</span>

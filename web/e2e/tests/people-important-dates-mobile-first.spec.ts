@@ -763,11 +763,22 @@ test('People opens profiles and whole photos, saves the actual result and hands 
       }),
     ).toBeVisible();
   }
-  await expect(
-    page.getByRole('button', {
-      name: new RegExp(importantDates.relationshipAnniversary),
-    }),
-  ).toBeVisible();
+  const anniversary = page.getByRole('button', {
+    name: new RegExp(importantDates.relationshipAnniversary),
+  });
+  const outline = 'svg.eimir-icon-wir.eimir-icon-outline';
+  const wirTab = page.locator(`.mobile-bottom-nav a[href="/today"] ${outline}`);
+  await expect(anniversary.locator(outline)).toBeVisible();
+  expect(await anniversary.locator(outline).innerHTML()).toBe(
+    await wirTab.innerHTML(),
+  );
+  await anniversary.screenshot({
+    path: info.outputPath('anniversary-wir-outline.png'),
+  });
+  await anniversary.click();
+  await expect(page.getByRole('dialog').locator(outline)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(anniversary).toBeFocused();
   expect(unknown).toEqual([]);
 });
 

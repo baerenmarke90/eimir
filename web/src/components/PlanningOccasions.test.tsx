@@ -76,7 +76,7 @@ it('uses both authoritative account profiles and the shared start date for occas
     name: new RegExp(i18n.t('importantDates.relationshipAnniversary')),
   });
   expect(
-    anniversary.querySelector('svg.eimir-icon-wir.eimir-icon-filled'),
+    anniversary.querySelector('svg.eimir-icon-wir.eimir-icon-outline'),
   ).not.toBeNull();
   expect(profiles).toHaveBeenCalledWith({ spaceId: 'space', accountId: 'own' });
   expect(screen.queryByText(i18n.t('importantDates.emptyTitle'))).toBeNull();

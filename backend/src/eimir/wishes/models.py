@@ -56,13 +56,14 @@ def wish_status_type() -> SqlEnum:
 class WishPayload(ProtectedPayload):
     """Protected content of a wish.
 
-    Wish titles and authored context tags live behind the
+    Wish titles, descriptions, and authored context tags live behind the
     ``ProtectedPayload`` boundary. Per M3-D13, authored content belongs neither in
     logs nor event payloads, and status, ordering, and authorization must not
     depend on their plaintext.
     """
 
     title: str
+    description: str | None = Field(default=None, exclude_if=lambda value: value is None)
     tags: ContextTags = Field(default_factory=list)
 
 

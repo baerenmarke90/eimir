@@ -2,7 +2,11 @@ import './FreeComposer.css';
 import './PagePlanComposer.css';
 import './PageComposerDetail.css';
 import { createPortal } from 'react-dom';
-import { ComposerToolRow, ComposerTool } from './PageComposer';
+import {
+  ComposerDescriptionField,
+  ComposerTool,
+  ComposerToolRow,
+} from './PageComposer';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { MomentMapLink } from './MomentMapLink';
 import { photoPlaceMapUrl } from '../client/photoPlaces';
@@ -24,10 +28,8 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
-import { Configuration } from '../client/apiConfiguration';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { invalidateDashboard } from '../client/dashboardQueries';
@@ -171,18 +173,6 @@ export function PlanProductPage({
     onlineManager.subscribe,
     isClientOnline,
     () => true,
-  );
-  const linkPreviewsApi = useMemo(
-    () =>
-      new LinkPreviewsApi(
-        new Configuration({
-          basePath: apiBaseUrl ?? '',
-          headers: accessToken
-            ? { Authorization: `Bearer ${accessToken}` }
-            : undefined,
-        }),
-      ),
-    [apiBaseUrl, accessToken],
   );
   const [anticipation, setAnticipation] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState('');
@@ -756,21 +746,11 @@ export function PlanProductPage({
                     setEditDirty(true);
                   }}
                 />
-                <label className="sr-only" htmlFor="plan-edit-description">
-                  {t('m5s3.common.description')}
-                </label>
-                <textarea
+                <ComposerDescriptionField
                   form="plan-edit-form"
                   id="plan-edit-description"
-                  name="description"
-                  className="page-composer-prose"
-                  onInput={(event) => {
-                    event.currentTarget.style.height = 'auto';
-                    event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`;
-                  }}
                   rows={4}
                   defaultValue={plan.description ?? ''}
-                  placeholder={t('m5s3.common.description')}
                 />
               </div>
             </fieldset>
@@ -949,7 +929,7 @@ export function PlanProductPage({
           <div className="planen-section planen-section-content">
             <ExpandableDescription
               text={plan.description}
-              previewApi={linkPreviewsApi}
+              previewApi={apis.linkPreviews}
               spaceId={spaceId}
               scope={JSON.stringify([apiBaseUrl, accountId, plan.id])}
               offline={!online}
@@ -1015,7 +995,7 @@ export function PlanProductPage({
             inlineComposer
             key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
             commentsApi={apis.comments ?? mediaApis.comments}
-            linkPreviewsApi={linkPreviewsApi}
+            linkPreviewsApi={apis.linkPreviews}
             spaceId={spaceId}
             parentKind="plan"
             parentId={plan.id}

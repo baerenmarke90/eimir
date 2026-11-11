@@ -219,7 +219,12 @@ def test_source_rename_or_deletion_requires_review_instead_of_reusing_consent(
     current = start(client, actors)
     source = actors["sources"][0]
     wishes.update_wish(
-        session, actors["a"], source.id, expected_version=source.version, title="Changed idea"
+        session,
+        actors["a"],
+        source.id,
+        expected_version=source.version,
+        changed_fields=frozenset({"title"}),
+        title="Changed idea",
     )
     read = client.get(path(actors), headers=headers(actors)).json()
     assert read["resultState"] == "NEEDS_IDEAS" and read["commonWishIds"] == []

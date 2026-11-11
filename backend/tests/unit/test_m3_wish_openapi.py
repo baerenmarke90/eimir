@@ -104,13 +104,16 @@ def test_direct_completion_has_no_request_body() -> None:
 
 def test_create_requires_only_a_title() -> None:
     schema = _components()["WishCreate"]
-    assert set(schema["properties"]) == {"title", "tags"}
+    assert set(schema["properties"]) == {"title", "description", "tags"}
+    assert schema["properties"]["description"]["type"] == "string"
     assert schema["required"] == ["title"]
 
 
-def test_update_offers_authored_title_and_tags_only() -> None:
+def test_update_offers_authored_content_only() -> None:
     """There is no field through which PATCH could set the status."""
-    assert set(_components()["WishUpdate"]["properties"]) == {"title", "tags"}
+    properties = _components()["WishUpdate"]["properties"]
+    assert set(properties) == {"title", "description", "tags"}
+    assert {item["type"] for item in properties["description"]["anyOf"]} == {"string", "null"}
 
 
 def test_detail_exposes_status_and_attribution_read_only() -> None:
@@ -119,9 +122,13 @@ def test_detail_exposes_status_and_attribution_read_only() -> None:
     assert set(_components()["WishStatus"]["enum"]) == {"OPEN", "PLANNED", "COMPLETED"}
 
 
-def test_detail_carries_no_wish_body() -> None:
-    """A Wish has only a title in M3; `body` belongs to the Plan."""
-    assert "body" not in _components()["WishDetail"]["properties"]
+def test_detail_carries_an_optional_description() -> None:
+    schema = _components()["WishDetail"]
+    assert "description" not in schema["required"]
+    assert {item["type"] for item in schema["properties"]["description"]["anyOf"]} == {
+        "string",
+        "null",
+    }
 
 
 def test_list_filters_by_status_and_not_by_free_text() -> None:

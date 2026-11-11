@@ -1,19 +1,29 @@
 import './FreeComposer.css';
+import './PageComposerDetail.css';
 import { TaskBackButton } from './TaskBackButton';
 import { MemoryTagChoices } from './MemoryTagChoices';
 import { ContextTagList } from './ContextTagList';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import {
+  onlineManager,
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import type { WishUpdate } from '../api/generated/models/WishUpdate';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { isClientOnline } from '../client/connectivity';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -29,7 +39,9 @@ import {
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { ExpandableDescription } from './ExpandableDescription';
 import { ListEntryIconButton } from './ListEntryActions';
+import { ComposerDescriptionField } from './PageComposer';
 import { PageHeader } from './PageHeader';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
@@ -47,9 +59,13 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 }
 
 export function WishProductPage({
+  accountId,
+  apiBaseUrl,
   apis,
   spaceId,
 }: {
+  accountId?: string;
+  apiBaseUrl?: string;
   apis: SharedPlanningApis;
   spaceId: string;
 }) {
@@ -62,7 +78,14 @@ export function WishProductPage({
   const originKey = taskState?.taskOriginKey;
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [editSnapshot, setEditingWish] = useState<WishDetail | null>(null);
+  const editingWish =
+    editSnapshot &&
+    editSnapshot.id === wishId &&
+    editSnapshot.spaceId === spaceId
+      ? editSnapshot
+      : null;
+  const isEditing = editingWish !== null;
   const [editTags, setEditTags] = useState<string[]>([]);
   const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [dismissedCompletion, setDismissedCompletion] =
@@ -70,6 +93,11 @@ export function WishProductPage({
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   const backLinkRef = useRef<HTMLButtonElement>(null);
   const key = authorSummaryQueryKeys.wishDetail(spaceId, wishId);
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    isClientOnline,
+    () => true,
+  );
 
   const wishWriteKey = ['wish-write', spaceId, wishId] as const;
   const otherWritePending =
@@ -82,7 +110,7 @@ export function WishProductPage({
 
   useEffect(() => {
     if (!completion.confirmedResult) return;
-    setIsEditing(false);
+    setEditingWish(null);
     setConfirmDelete(false);
   }, [completion.confirmedResult]);
 
@@ -111,21 +139,13 @@ export function WishProductPage({
 
   const updateMutation = useMutation({
     mutationKey: wishWriteKey,
-    mutationFn: ({
-      wish,
-      title,
-      tags,
-    }: {
-      wish: WishDetail;
-      title: string;
-      tags: string[];
-    }) =>
+    mutationFn: ({ wish, update }: { wish: WishDetail; update: WishUpdate }) =>
       apiCall(() =>
         apis.wishes.updateWish({
           spaceId,
           wishId: wish.id,
           ifMatch: planningIfMatch(wish),
-          wishUpdate: { title, tags },
+          wishUpdate: update,
         }),
       ),
     onSuccess: async (wish) => {
@@ -136,7 +156,7 @@ export function WishProductPage({
       await queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'wishes', spaceId],
       });
-      setIsEditing(false);
+      setEditingWish(null);
       setConfirmDelete(false);
     },
   });
@@ -240,16 +260,24 @@ export function WishProductPage({
   }
   const wish = wishQuery.data;
   if (!wish) return null;
+  const visibleDescription = isEditing ? undefined : wish.description;
+
   function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!wish || isWishWritePending()) return;
+    if (!editingWish || isWishWritePending()) return;
     const tags = tagEditor.current?.commitDraft();
     if (!tags) return;
     const data = new FormData(event.currentTarget);
+    const description = String(data.get('description') ?? '').trim() || null;
     updateMutation.mutate({
-      wish,
-      title: String(data.get('title')).trim(),
-      tags,
+      wish: editingWish,
+      update: {
+        title: String(data.get('title')).trim(),
+        tags,
+        ...(description !== (editingWish.description ?? null)
+          ? { description }
+          : {}),
+      },
     });
   }
 
@@ -292,7 +320,7 @@ export function WishProductPage({
   }
 
   return (
-    <div className="page planning-page wish-detail">
+    <div className="page planning-page wish-detail page-composer-detail">
       {isEditing ? (
         <form
           id="wish-edit-form"
@@ -303,6 +331,7 @@ export function WishProductPage({
         />
       ) : null}
       <PageHeader
+        className={visibleDescription ? 'wish-description-heading' : undefined}
         before={
           <TaskBackButton
             type="button"
@@ -322,14 +351,14 @@ export function WishProductPage({
         eyebrow={t('m5s3.wish.detailEyebrow')}
         title={wish.title}
         titleEditor={
-          isEditing ? (
+          editingWish ? (
             <input
               form="wish-edit-form"
               className="composer-authored-title"
               name="title"
               required
               maxLength={200}
-              defaultValue={wish.title}
+              defaultValue={editingWish.title}
               readOnly={writesPending}
               aria-label={t('m5s3.common.title')}
             />
@@ -345,7 +374,7 @@ export function WishProductPage({
               onClick={() => {
                 if (!isWishWritePending()) {
                   setEditTags(wish.tags ?? []);
-                  setIsEditing(true);
+                  setEditingWish(wish);
                 }
               }}
               disabled={writesPending}
@@ -360,6 +389,17 @@ export function WishProductPage({
         </p>
       ) : null}
 
+      {visibleDescription ? (
+        <div className="page-reading planen-section planen-section-content">
+          <ExpandableDescription
+            text={visibleDescription}
+            previewApi={apis.linkPreviews}
+            spaceId={spaceId}
+            scope={JSON.stringify([apiBaseUrl, accountId, wish.id])}
+            offline={!online}
+          />
+        </div>
+      ) : null}
       {!isEditing ? <ContextTagList tags={wish.tags} /> : null}
       <div className="planning-detail-grid">
         {wish.status === 'COMPLETED' && showCompletionContinuation ? (
@@ -396,7 +436,7 @@ export function WishProductPage({
           </section>
         ) : null}
 
-        {isEditing ? (
+        {editingWish ? (
           <section className="planning-subsection">
             <h2>{t('m5s3.common.edit')}</h2>
             <MemoryTagChoices
@@ -408,6 +448,13 @@ export function WishProductPage({
               disabled={writesPending}
             />
             <div className="form-grid free-composer">
+              <ComposerDescriptionField
+                form="wish-edit-form"
+                id="wish-edit-description"
+                rows={4}
+                defaultValue={editingWish.description ?? ''}
+                readOnly={writesPending}
+              />
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button
                   form="wish-edit-form"
@@ -422,7 +469,7 @@ export function WishProductPage({
                   type="button"
                   className="tertiary"
                   onClick={() => {
-                    setIsEditing(false);
+                    setEditingWish(null);
                     setConfirmDelete(false);
                   }}
                 >
@@ -432,7 +479,17 @@ export function WishProductPage({
               {updateMutation.error ? (
                 <ProblemState
                   error={updateMutation.error}
-                  onRetry={() => void wishQuery.refetch()}
+                  onRetry={() => {
+                    void wishQuery.refetch().then(({ data, error }) => {
+                      if (data && !error) {
+                        setEditingWish((current) =>
+                          current === editingWish
+                            ? { ...editingWish, version: data.version }
+                            : current,
+                        );
+                      }
+                    });
+                  }}
                 />
               ) : null}
             </div>

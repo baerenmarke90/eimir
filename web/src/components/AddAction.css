@@ -58,9 +58,12 @@ button.add-action:disabled {
   color: var(--color-text-muted);
 }
 
+.add-action .add-action-floating-icon {
+  display: none;
+}
+
 @media (max-width: 839px) {
-  .page-heading.content-overview-heading
-    .page-heading-action:has([data-floating-create]) {
+  .page-heading > .page-heading-action:has(.add-action[data-floating-create]) {
     display: contents;
   }
 
@@ -83,11 +86,16 @@ button.add-action:disabled {
     box-shadow: var(--shadow-soft);
   }
 
-  [data-floating-create] .add-action-label {
+  [data-floating-create] :is(.add-action-label, .add-action-heading-icon) {
     display: none;
   }
 
-  body:has(dialog[open]) [data-floating-create],
+  .add-action[data-floating-create] .add-action-floating-icon {
+    display: block;
+  }
+
+  body:has(dialog[open], [role="dialog"][aria-modal="true"])
+    [data-floating-create],
   .product-main:has(
       :is(
           input:not([type]),

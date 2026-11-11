@@ -5,6 +5,10 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import de from '../../src/i18n/locales/de';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
+  expectFloatingAddAction,
+  expectLabeledAddAction,
+} from '../support/addAction';
+import {
   ACCOUNT_ID,
   SPACE_ID,
   ME,
@@ -251,7 +255,16 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
   const { state, unexpected } = await installChapters(page, []);
   await signIn(page);
   await page.goto('/story/chapters');
-  await page.getByRole('link', { name: m5s3.chapter.create }).click();
+  const addChapter = page.getByRole('link', {
+    name: m5s3.chapter.create,
+    exact: true,
+  });
+  await expectFloatingAddAction(
+    addChapter,
+    page.locator('.mobile-bottom-shell'),
+  );
+  await addChapter.press('Enter');
+  await expect(page).toHaveURL(/\/plan\/chapters\/new$/);
   await titleField(page).fill(content.chapterExperience.createdTitle);
   await page
     .getByLabel(m5s3.common.description, { exact: true })
@@ -271,6 +284,13 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
     }),
   ).toBeVisible();
   expect(state.createCalls).toBe(1);
+  await back(page).click();
+  await expect(page).toHaveURL(/\/story\/chapters$/);
+  await page
+    .getByRole('link', {
+      name: new RegExp(content.chapterExperience.createdTitle),
+    })
+    .click();
   await addMemory(page);
   await page.getByRole('link', { name: /Breakfast by the canal/ }).click();
   await expect(
@@ -464,6 +484,13 @@ for (const viewport of [
         name: new RegExp(content.chapterExperience.summerTitle),
       }),
     ).toBeVisible();
+    const addChapter = page.getByRole('link', {
+      name: m5s3.chapter.create,
+      exact: true,
+    });
+    const dock = page.locator('.mobile-bottom-shell');
+    if (await dock.isVisible()) await expectFloatingAddAction(addChapter, dock);
+    else await expectLabeledAddAction(addChapter);
     const prefix = `story-chapter-${viewport.width}-${viewport.theme}${viewport.large ? '-large-reduced' : ''}`;
     await expectNoHorizontalOverflow(page);
     await captureScreenshot(page, testInfo, `${prefix}-overview.png`, {
@@ -477,6 +504,7 @@ for (const viewport of [
     await expect(
       page.getByRole('link', { name: /Breakfast by the canal/ }),
     ).toBeVisible();
+    await expect(page.locator('[data-floating-create]')).toHaveCount(0);
     await expect(
       page.getByText(m5s3.chapter.noPlace, { exact: true }),
     ).toHaveCount(0);

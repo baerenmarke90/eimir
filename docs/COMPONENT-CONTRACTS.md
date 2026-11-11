@@ -97,9 +97,10 @@ ActionState     = idle | submitting | success | error
   Product Owner correction #1697 supersedes #1693's icon-only circular
   interpretation for heading and inline actions. The #1740 follow-up adds a
   shared Compact floating variant with a filled 48 px circular plus, localized
-  accessible name and room above the docked navigation. Expanded renders that
-  action with its label in the page heading. Selection choices, Back, Close and
-  overflow retain their distinct interaction roles.
+  accessible name and room above the docked navigation. Lists, Places, People
+  and Chapters use it for their overview creation action. Expanded renders the
+  localized label and the contextual icon in the existing page heading.
+  Selection choices, Back, Close and overflow retain their distinct roles.
 - Product Owner correction #1726 defines a narrow media-intake exception:
   its approved chat refinement uses one soft composer entry which opens the
   existing source sheet. Device/external choices live in that sheet, with Pro
@@ -606,10 +607,12 @@ Light/Dark contrast, reduced-motion feedback, upload identity and task safety.
 
 ### Product Owner correction #1740
 
-Overview creation on Moments, Planning, Places, Lists and People belongs at the
-trailing edge of its page heading, with trailing-aligned wrapping at narrow widths
-and enlarged text. Planning follows the active segment. Reuse labeled AddAction
-controls and their existing task/focus ownership.
+Expanded overview creation on Moments, Planning, Places, Lists and People uses
+the trailing edge of its page heading, with trailing-aligned wrapping when
+needed. Eligible Compact overviews use the floating variant in the Button
+contract. The Moments map keeps its labeled heading action. Planning follows the
+active segment. Reuse AddAction controls and their existing task and focus
+ownership.
 
 Gallery photo sensitivity and reactions use accessible icon-only controls over
 photography. A persistent sensitivity toggle keeps its target through

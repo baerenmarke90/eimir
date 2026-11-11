@@ -205,6 +205,7 @@ export function PlacesOverviewPage({
         title={t('m5s3.place.heading')}
         action={
           <AddActionButton
+            floating
             label={t('m5s3.place.create')}
             icon="orte"
             ref={createActionRef}

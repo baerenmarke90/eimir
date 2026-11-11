@@ -1,0 +1,6 @@
+eimir. Android 0.2.0-test.66
+
+- Add a list, place, person or chapter directly from its overview with the floating plus.
+- Return to the same List or Place filter after saving. In People, the plus is available again when you return from the photo viewer or editor.
+
+Install over test.65 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 66.

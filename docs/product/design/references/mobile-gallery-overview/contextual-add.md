@@ -167,3 +167,65 @@ journeys include saving and returning to the correct overview, filtered List
 and Place return, cancel and focus restoration, and modal priority for People
 photos. Compact checks include 320 px with enlarged text, Light/Dark and
 reduced motion. Expanded checks retain the visible names and motifs.
+
+## Private Area overview and floating target follow-up
+
+The Product Owner extended contextual creation to the Private Area overview
+and requested a slightly larger floating control. The reviewed `main` baseline
+is `1ff8f25aac55b88b5f5a7bbbd0690b95077b45c9`, which includes [PR #1742](https://github.com/baerenmarke90/eimir/pull/1742).
+The Compact reference uses the actual Dark overview at 390 px and the existing
+Moments choice sheet for its interaction geometry. The overview presents its
+privacy label and the four existing destinations for personal notes, gift
+ideas, private lists and partner notes. No private records appear in it.
+
+![Private Area overview and private creation choices at Compact width](reference-private-contextual-add.png)
+
+<details>
+<summary>ImageGen prompt</summary>
+
+> Use case: ui-mockup
+> Asset: one wide eimir. product reference with two complete Compact viewports in two columns, each based on 390 × 900 CSS pixels. Image 1 is the exact current "Für mich" overview and supplies both panels' content, burgundy-black theme, margins and icon grammar. Image 2 supplies the existing short task sheet geometry, structure and three action rows only. In both panels preserve the back chevron, lock with "Für mich", existing privacy copy "Dein Partner kann diese Inhalte in eimir. nicht öffnen.", and the four destination cards in this order: "Notizen für mich", "Geschenkideen", "Meine Listen", "Notizen über meinen Partner". Preserve their icons, type, corner radius, layout and readable hierarchy. Show no authored private content. In the left panel retain four docked tabs "Wir", "Momente", "Planen", "Mehr" with Mehr selected. Add a single 52 CSS px filled circular canonical blue plus at the trailing app gutter with a 12 px gap above the dock. Use a centered white plus and no visible caption. In the right panel show this action opened as the existing compact bottom sheet. Dim the overview behind it and cover the dock and floating plus with the sheet. Use title "Privaten Eintrag hinzufügen", native-looking rounded top corners and three distinct icon-and-label rows "Notiz für mich hinzufügen", "Geschenkidee hinzufügen", "Liste hinzufügen", with note, gift and list motifs. Match the private page's dark theme with restrained, readable colors and preserve the actual underlying page structure. No other additions, annotation, device bezel or marketing text. Keep both entire viewports visible.
+
+</details>
+
+### Mobile interaction contract
+
+- Product Reference v1 R5 and the overview, short task and focused task
+  patterns apply. Keep the privacy heading and four destination cards as
+  the focal point. Add one primary control to the overview. The Compact
+  control uses a filled icon-only plus, a localized accessible name and a
+  52 px circular target shared by contextual floating actions. Reserve
+  matching clearance above the measured four-tab dock. Expanded uses a
+  labeled action in the existing heading.
+- Open the shared short task sheet and offer personal note, gift idea and
+  private list creation. Each choice opens its existing focused task.
+  Partner notes remain accessible from their overview card and use their
+  existing editor. The child views retain their local actions.
+- Give initial focus to the first choice and restore focus to the trigger
+  on dismissal with Escape or system Back. Save shows the created item.
+  Closing a focused task or returning from its result uses the overview
+  origin and existing draft protection.
+- The overview and chooser present navigation only. The existing tasks
+  own loading, empty and error states, offline behavior and save feedback.
+  Keep the sheet, press and focus feedback and reduced-motion behavior.
+  The owner-only scope applies throughout the flow. The chooser has no
+  shared destinations or private previews.
+
+### Reuse, business and verification
+
+Reuse the Moment choice sheet pattern, the semantic AddAction control and
+shared shell clearance, router links and existing private task origins. A
+global creation menu would mix visibility scopes. A local duplicate sheet
+would repeat the focus, dismissal and origin logic. The platform, React and
+existing components cover the interaction without an additional dependency.
+
+No business/freemium impact. Personal notes, gift ideas and private lists
+remain Free/Core, and private isolation remains non-paywallable. Existing
+ownership, Cloud and Self-Hosted behavior, resource use, retention, export
+and downgrade semantics apply.
+
+Verify the three open, save, result and return journeys, cancellation and
+draft handling, sheet dismissal and focus, shared floating size and
+clearance, and absence of a second floating action in child tasks. Review
+Compact at 360, 390 and 430 px, 320 px with enlarged text, Expanded,
+Light/Dark and reduced motion. Capture representative runtime evidence.

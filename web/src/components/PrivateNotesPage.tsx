@@ -150,6 +150,7 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
         description={t('privateArea.notes.intro')}
         action={
           <AddActionLink
+            floating
             label={t('privateArea.notes.add')}
             to={`${PRIVATE_NOTES_PATH}/new`}
           />

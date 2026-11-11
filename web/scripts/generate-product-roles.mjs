@@ -153,6 +153,7 @@ declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
+declare('radius-floating-create', value('radius.large'));
 declare('border-surface-width', value('border.surfaceFrame'));
 declare('border-control-width', value('border.controlFrame'));
 declare('border-authored-width', value('border.authoredFrame'));
@@ -165,6 +166,7 @@ declare(
   value('size.touchTarget.floatingCreate'),
 );
 declare('icon-size-standard', value('size.icon.standard'));
+declare('icon-size-large', value('size.icon.large'));
 declare('add-action-icon', value('size.icon.medium'));
 declare('media-action-icon', value('size.icon.medium'));
 declare('media-action-inset', value('spacing.2'));

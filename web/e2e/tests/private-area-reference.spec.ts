@@ -591,7 +591,10 @@ for (const theme of ['light', 'dark'] as const) {
 
     await page.locator('.private-area-destination-card').first().click();
     await expect(page).toHaveURL(/\/more\/private\/notes$/);
-    await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+    await expectFloatingAddAction(
+      page.getByRole('link', { name: privateArea.notes.add, exact: true }),
+      page.locator('.mobile-bottom-shell'),
+    );
     await expect(
       page.getByText(privateArea.notes.emptyTitle, { exact: true }),
     ).toBeVisible();
@@ -2016,9 +2019,14 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
   return { endpoint, id, writes, release, settled };
 }
 
-for (const view of [
+const privateEditorViews = [
   { name: '390-light', width: 390, scheme: 'light', fromOverview: true },
   { name: '1280-dark', width: 1280, scheme: 'dark', fromOverview: false },
+] as const;
+
+for (const view of [
+  ...privateEditorViews,
+  { name: '390-dark', width: 390, scheme: 'dark', fromOverview: false },
 ] as const) {
   for (const definition of privateCreateCases) {
     test(`private ${definition.kind} create preserves result and return at ${view.name}`, async ({
@@ -2032,8 +2040,15 @@ for (const view of [
       await page.addInitScript(() =>
         localStorage.setItem('eimir.theme', 'system'),
       );
+      const compactListEntry = view.width === 390 && !view.fromOverview;
+      if (compactListEntry) await installNativeAppLifecycle(page);
       const unexpected = await signInAndOpenPrivateArea(page);
       const fixture = await installHeldPrivateCreate(page, definition.kind);
+      const add = page.getByRole('link', {
+        name: definition.copy.add,
+        exact: true,
+      });
+      const dock = page.locator('.mobile-bottom-shell');
       if (view.fromOverview) {
         const chooser = await openPrivateCreateChoices(page);
         await chooser
@@ -2046,9 +2061,19 @@ for (const view of [
         await page
           .getByRole('link', { name: definition.copy.title, exact: false })
           .click();
-        await page
-          .getByRole('link', { name: definition.copy.add, exact: true })
-          .click();
+        await expect(
+          page.getByText(definition.copy.emptyTitle, { exact: true }),
+        ).toBeVisible();
+        if (compactListEntry) {
+          await expect(page.locator('[data-floating-create]')).toHaveCount(1);
+          await expectFloatingAddAction(add, dock);
+        } else {
+          await expectLabeledAddAction(
+            add,
+            definition.kind === 'collections' ? 'listen' : undefined,
+          );
+        }
+        await add.click();
       }
       await expect(page).toHaveURL(
         new RegExp(`/more/private/${definition.kind}/new$`),
@@ -2072,6 +2097,7 @@ for (const view of [
       await expect(
         page.getByRole('heading', { name: title, exact: true }),
       ).toBeVisible();
+      await expect(page.locator('[data-floating-create]')).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       await expectNoWcagViolations(page);
       await page.screenshot({
@@ -2101,11 +2127,26 @@ for (const view of [
       await expect(
         page.getByRole('link', { name: new RegExp(title) }),
       ).toBeVisible();
+      if (!view.fromOverview) {
+        if (compactListEntry) await expectFloatingAddAction(add, dock);
+        await expectNoHorizontalOverflow(page);
+        await expectNoWcagViolations(page);
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `private-area-subpage-${definition.kind}-${view.name}.png`,
+          ),
+          animations: 'disabled',
+        });
+      }
       expect(fixture.writes).toHaveLength(1);
       expect(fixture.writes[0].title).toBe(title);
       expect(unexpected).toEqual([]);
     });
+  }
+}
 
+for (const view of privateEditorViews) {
+  for (const definition of privateCreateCases) {
     test(`private ${definition.kind} create cannot redirect a replacement task at ${view.name}`, async ({
       page,
     }, testInfo) => {

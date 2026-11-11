@@ -77,6 +77,7 @@
   --radius-media: 1rem;
   --radius-content: 1.25rem;
   --radius-sheet-top: 1.5rem;
+  --radius-floating-create: 16px;
   --border-surface-width: 0px;
   --border-control-width: 0px;
   --border-authored-width: 1px;
@@ -84,8 +85,9 @@
   --composer-max: 680px;
   --touch-target-web: 44px;
   --touch-target-comfortable: 48px;
-  --touch-target-floating-create: 52px;
+  --touch-target-floating-create: 60px;
   --icon-size-standard: 24px;
+  --icon-size-large: 32px;
   --add-action-icon: 20px;
   --media-action-icon: 20px;
   --media-action-inset: 8px;

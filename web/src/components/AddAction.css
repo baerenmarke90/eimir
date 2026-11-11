@@ -68,7 +68,7 @@ button.add-action:disabled {
   }
 
   :is(button, a).add-action[data-floating-create] {
-    --add-action-icon: var(--icon-size-standard);
+    --add-action-icon: var(--icon-size-large);
 
     position: fixed;
     z-index: 51;
@@ -82,7 +82,7 @@ button.add-action:disabled {
     inline-size: var(--touch-target-floating-create);
     block-size: var(--touch-target-floating-create);
     padding: 0;
-    border-radius: 50%;
+    border-radius: var(--radius-floating-create);
     box-shadow: var(--shadow-soft);
   }
 

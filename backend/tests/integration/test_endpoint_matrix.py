@@ -528,6 +528,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/media"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/discover/renew"),

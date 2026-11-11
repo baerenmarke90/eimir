@@ -1,8 +1,8 @@
 """Curated, code-owned catalog of daily quotes, categories, and sources.
 
 This catalog is closed, curated, and legally auditable (#1151):
-- All entries are strictly Public Domain (historical classical literature and philosophy,
-  author and any translator died >70 years p.m.a.).
+- All entries are strictly Public Domain (historical literature, philosophy, and
+  documented traditional sayings with public-domain source editions).
 - No unverified modern quote databases.
 - No arbitrary web scraping.
 - No AI-generated or invented quotes.
@@ -253,6 +253,90 @@ QUOTES: tuple[DailyQuote, ...] = (
         publication_year=1907,
         translator=None,
         rights_basis="Public Domain (Rainer Maria Rilke died 1926, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-de-love-008",
+        text="Alte Liebe rostet nicht.",
+        author_display="Deutsches Sprichwort",
+        source_display="Die deutschen Sprichwörter",
+        source_id="poetic_wisdom",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Traditional German proverb (Simrock no. 6474)",
+        source_edition=(
+            "Karl Simrock (ed.): Die deutschen Sprichwörter, "
+            "H. L. Brönner, Frankfurt am Main 1846, no. 6474; "
+            "https://archive.org/details/diedeutschenspr00simrgoog"
+        ),
+        publication_year=1846,
+        rights_basis=(
+            "Public Domain (traditional anonymous proverb documented in 1846; "
+            "editor Karl Simrock died 1876, p.m.a. > 70 years)"
+        ),
+    ),
+    DailyQuote(
+        id="quote-de-love-009",
+        text="Was sich liebt, das neckt sich.",
+        author_display="Deutsches Sprichwort",
+        source_display="Die deutschen Sprichwörter",
+        source_id="poetic_wisdom",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Traditional German proverb (Simrock no. 6416)",
+        source_edition=(
+            "Karl Simrock (ed.): Die deutschen Sprichwörter, "
+            "H. L. Brönner, Frankfurt am Main 1846, no. 6416; "
+            "https://archive.org/details/diedeutschenspr00simrgoog"
+        ),
+        publication_year=1846,
+        rights_basis=(
+            "Public Domain (traditional anonymous proverb documented in 1846; "
+            "editor Karl Simrock died 1876, p.m.a. > 70 years)"
+        ),
+    ),
+    DailyQuote(
+        id="quote-de-love-010",
+        text="Ich hab\u2019 dich geliebet und liebe dich noch!",
+        author_display="Heinrich Heine",
+        source_display="Buch der Lieder",
+        source_id="poetic_wisdom",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Buch der Lieder (Lyrisches Intermezzo XLV, first line)",
+        source_edition=(
+            "Heinrich Heine: Buch der Lieder, Hoffmann und Campe, Hamburg 1827, p. 150; "
+            "https://de.wikisource.org/wiki/Ich_hab%E2%80%99_dich_geliebet_und_liebe_dich_noch%21"
+        ),
+        publication_year=1827,
+        rights_basis="Public Domain (Heinrich Heine died 1856, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-de-love-011",
+        text="Dû bist mîn, ich bin dîn.",
+        author_display="Unbekannt",
+        source_display="Tegernseer Liebesgruß",
+        source_id="poetic_wisdom",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Tegernsee love greeting (BSB Clm 19411, fol. 114v, first line)",
+        source_edition=(
+            "Des Minnesangs Frühling, ed. Karl Lachmann and Moriz Haupt, Leipzig 1857, "
+            "normalized Middle High German opening; "
+            "https://de.wikisource.org/wiki/D%C3%BB_bist_m%C3%AEn,_ich_bin_d%C3%AEn"
+        ),
+        publication_year=1857,
+        rights_basis=(
+            "Public Domain (anonymous late 12th-century text; "
+            "editors Lachmann and Haupt died 1851 and 1874, p.m.a. > 70 years)"
+        ),
     ),
     # German (de) - Philosophy & Stoicism
     DailyQuote(
@@ -525,6 +609,85 @@ QUOTES: tuple[DailyQuote, ...] = (
         publication_year=1865,
         translator=None,
         rights_basis="Public Domain (Charles Dickens died 1870, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-en-love-005",
+        text="How do I love thee? Let me count the ways.",
+        author_display="Elizabeth Barrett Browning",
+        source_display="Sonnets from the Portuguese",
+        source_id="poetic_wisdom",
+        category_ids=("love",),
+        locale="en",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Sonnets from the Portuguese (Sonnet 43, first line)",
+        source_edition=(
+            "Elizabeth Barrett Browning: Sonnets from the Portuguese, "
+            "Caradoc Press, London 1906; Project Gutenberg eBook 2002; "
+            "https://www.gutenberg.org/cache/epub/2002/pg2002-images.html"
+        ),
+        publication_year=1906,
+        rights_basis="Public Domain (Elizabeth Barrett Browning died 1861, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-en-love-006",
+        text="Love is not love which alters when it alteration finds.",
+        author_display="William Shakespeare",
+        source_display="Sonnet 116",
+        source_id="poetic_wisdom",
+        category_ids=("love",),
+        locale="en",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Shakespeare's Sonnets (Sonnet 116, lines 2-3)",
+        source_edition=(
+            "William Shakespeare: Shake-speares Sonnets, London 1609; "
+            "https://www.gutenberg.org/files/1041/1041-h/1041-h.htm; "
+            "excerpt joined and final punctuation supplied"
+        ),
+        publication_year=1609,
+        rights_basis="Public Domain (William Shakespeare died 1616, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-en-love-007",
+        text="Love conquers all; and we must yield to Love.",
+        author_display="Virgil",
+        source_display="Eclogue 10",
+        source_id="classic_literature",
+        category_ids=("love",),
+        locale="en",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Eclogues (Eclogue 10, line 69)",
+        source_edition=(
+            "The Works of Virgil, translated by John Dryden, London 1697, "
+            "Pastoral 10, line 99; "
+            "https://en.wikisource.org/wiki/The_Works_of_Virgil_(Dryden)/Pastorals_(Dryden)/Book_10"
+        ),
+        publication_year=1697,
+        translator="John Dryden (died 1700)",
+        rights_basis=(
+            "Public Domain (Virgil died 19 BCE; translator John Dryden died 1700, "
+            "p.m.a. > 70 years)"
+        ),
+    ),
+    DailyQuote(
+        id="quote-en-love-008",
+        text="If I loved you less, I might be able to talk about it more.",
+        author_display="Jane Austen",
+        source_display="Emma",
+        source_id="classic_literature",
+        category_ids=("love",),
+        locale="en",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Emma (Volume III, Chapter 13)",
+        source_edition=(
+            "Jane Austen: Emma, John Murray, London 1815; Project Gutenberg eBook 158, "
+            "Chapter 49; https://www.gutenberg.org/cache/epub/158/pg158-images.html"
+        ),
+        publication_year=1815,
+        rights_basis="Public Domain (Jane Austen died 1817, p.m.a. > 70 years)",
     ),
     DailyQuote(
         id="quote-en-phil-001",

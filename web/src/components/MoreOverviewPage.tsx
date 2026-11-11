@@ -54,8 +54,8 @@ const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
 const MOMENT_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: STORY_PHOTOS_ROUTE,
-    icon: 'story',
-    titleKey: 'more.destinations.photos',
+    icon: 'media',
+    titleKey: 'more.destinations.media',
   },
   {
     path: STORY_CHAPTERS_ROUTE,

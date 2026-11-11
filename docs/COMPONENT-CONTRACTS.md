@@ -622,8 +622,9 @@ photography. A persistent sensitivity toggle keeps its target through
 reveal/conceal. Where the covered photo itself reveals, hiding returns focus to
 that photo. The comment shortcut shares the media action area for photos and
 videos and can focus the existing inline reply. Comment textareas start at two
-lines and allow vertical resizing. Gallery position dots transition with the
-contextual motion role and settle immediately with reduced motion.
+lines and allow vertical resizing. The gallery position marker follows the
+native scroll offset. It crossfades across wrapped rows and at the ends of the
+circular gallery. With reduced motion, the selected dot updates immediately.
 
 The diary's dedicated external-source entry offers configured photo providers.
 The Photo tool in the composer bar and the gallery Add action offer the device

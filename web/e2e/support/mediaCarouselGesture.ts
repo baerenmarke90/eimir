@@ -18,6 +18,10 @@ export async function swipeCarousel(
   midScrollLeft: number;
   viewportWidth: number;
   visibleSlides: number;
+  position: {
+    dots: number[];
+    markers: { center: number; opacity: number }[];
+  } | null;
 }> {
   const track = page.locator(
     surface === 'inline'
@@ -70,10 +74,30 @@ export async function swipeCarousel(
         const rect = slide.getBoundingClientRect();
         return rect.right > viewport.left + 1 && rect.left < viewport.right - 1;
       }).length;
+      const positions = element
+        .closest('.media-gallery-carousel')
+        ?.querySelector('.media-gallery-position');
+      const center = (node: Element) => {
+        const rect = node.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      };
+      const position = positions
+        ? {
+            dots: Array.from(positions.querySelectorAll('button'), center),
+            markers: Array.from(
+              positions.querySelectorAll('.media-gallery-position-marker'),
+              (marker) => ({
+                center: center(marker),
+                opacity: Number(getComputedStyle(marker).opacity),
+              }),
+            ),
+          }
+        : null;
       return {
         scrollLeft: element.scrollLeft,
         viewportWidth: element.clientWidth,
         visibleSlides,
+        position,
       };
     });
 
@@ -91,6 +115,7 @@ export async function swipeCarousel(
       midScrollLeft: midState.scrollLeft,
       viewportWidth: midState.viewportWidth,
       visibleSlides: midState.visibleSlides,
+      position: midState.position,
     };
   } finally {
     await client.detach();

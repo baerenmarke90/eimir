@@ -1220,7 +1220,7 @@ test('saved galleries retain sensitive reveal, swipe, fullscreen zoom and the sa
       await choices
         .getByRole('button', { name: photoReactions.names.LOVE, exact: true })
         .click();
-      await expect(page.locator('.memory-photo-reactions')).toContainText('1');
+      await expect(page.locator('.memory-photo-reactions')).toHaveText('❤️');
     }
     await capture(page, info, `${name}-gallery-return`);
     await swipeCarousel(page, 'previous');
@@ -1268,11 +1268,36 @@ for (const motion of ['no-preference', 'reduce'] as const) {
       'aria-current',
       'true',
     );
-    const transition = await positions
+    const marker = positions.locator('.media-gallery-position-marker').first();
+    const [inactiveDot, selectedDot] = await positions
       .locator('button > span')
-      .first()
-      .evaluate((node) => getComputedStyle(node).transitionDuration);
-    expect(transition).toBe(motion === 'reduce' ? '0s' : '0.28s, 0.28s');
+      .evaluateAll((dots) =>
+        dots.map((dot) => dot.getBoundingClientRect().width),
+      );
+    if (inactiveDot === undefined || selectedDot === undefined)
+      throw new Error('Position dots did not render');
+    if (motion === 'reduce') {
+      await expect(marker).toBeHidden();
+      expect(selectedDot).toBeGreaterThan(inactiveDot);
+    } else {
+      expect(selectedDot).toBe(inactiveDot);
+      await expect(marker).toBeVisible();
+      await expect
+        .poll(() =>
+          marker.evaluate((node) => {
+            const active = node.parentElement?.querySelector(
+              'button[aria-current]',
+            );
+            if (!active) return Number.POSITIVE_INFINITY;
+            const pill = node.getBoundingClientRect();
+            const button = active.getBoundingClientRect();
+            return Math.abs(
+              pill.x + pill.width / 2 - (button.x + button.width / 2),
+            );
+          }),
+        )
+        .toBeLessThanOrEqual(1);
+    }
     const active = carousel.locator('.media-gallery-carousel-slide.is-active');
     const reveal = carousel.getByRole('button', {
       name: sensitiveMedia.show,

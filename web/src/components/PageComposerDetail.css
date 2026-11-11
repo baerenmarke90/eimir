@@ -104,32 +104,6 @@
   inset-block-end: auto;
   inset-inline-end: var(--space-3);
 }
-.media-gallery-position {
-  display: flex;
-  flex-wrap: wrap;
-  max-inline-size: 100%;
-  align-items: center;
-  justify-content: center;
-}
-.media-gallery-position > button {
-  display: grid;
-  place-items: center;
-  min-block-size: var(--touch-target-web);
-  min-inline-size: var(--touch-target-web);
-  padding: var(--space-1);
-  background: transparent;
-}
-.media-gallery-position > button > span {
-  display: block;
-  inline-size: var(--space-1);
-  block-size: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--color-border);
-}
-.media-gallery-position > button[aria-current] > span {
-  inline-size: var(--space-3);
-  background: var(--composer-accent, var(--color-link-text));
-}
 .page-composer-detail .description-disclosure {
   color: var(--composer-accent);
   background: transparent;

@@ -27,6 +27,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { PlanFileSummary } from './PlanFileSummary';
+import {
+    PlanFileSummaryFromJSON,
+    PlanFileSummaryFromJSONTyped,
+    PlanFileSummaryToJSON,
+    PlanFileSummaryToJSONTyped,
+} from './PlanFileSummary';
 import type { OrderedAttachmentSummary } from './OrderedAttachmentSummary';
 import {
     OrderedAttachmentSummaryFromJSON,
@@ -109,6 +116,12 @@ export interface PlanDetail {
      * @memberof PlanDetail
      */
     experiencedOn: Date | null;
+    /**
+     * 
+     * @type {Array<PlanFileSummary>}
+     * @memberof PlanDetail
+     */
+    fileAttachments?: Array<PlanFileSummary>;
     /**
      * 
      * @type {string}
@@ -233,6 +246,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'creator': AuthorSummaryFromJSON(json['creator']),
         'description': json['description'],
         'experiencedOn': (json['experiencedOn'] == null ? null : new Date(json['experiencedOn'])),
+        'fileAttachments': json['fileAttachments'] == null ? undefined : ((json['fileAttachments'] as Array<any>).map(PlanFileSummaryFromJSON)),
         'id': json['id'],
         'placeId': json['placeId'],
         'plannedEnd': (json['plannedEnd'] == null ? null : new Date(json['plannedEnd'])),
@@ -269,6 +283,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
         'creator': AuthorSummaryToJSON(value['creator']),
         'description': value['description'],
         'experiencedOn': value['experiencedOn'] == null ? value['experiencedOn'] : value['experiencedOn'].toISOString().substring(0,10),
+        'fileAttachments': value['fileAttachments'] == null ? undefined : ((value['fileAttachments'] as Array<any>).map(PlanFileSummaryToJSON)),
         'id': value['id'],
         'placeId': value['placeId'],
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),

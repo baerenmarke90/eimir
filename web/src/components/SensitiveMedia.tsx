@@ -84,6 +84,7 @@ export function SensitiveMediaControl({
   mediaType?: MediaType;
 }) {
   const { t } = useTranslation();
+  if (mediaType === 'DOCUMENT') return null;
   const labelPrefix = {
     IMAGE: 'sensitiveMedia',
     VIDEO: 'video',

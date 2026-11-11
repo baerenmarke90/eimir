@@ -907,7 +907,6 @@
       },
       "emptyScope": "No lists in this selection.",
       "planHeading": "Shared lists",
-      "planEmpty": "Link a list that belongs with this Plan.",
       "choose": "Link lists",
       "link": "Link selection",
       "unlink": "Remove the link to “{{title}}”",
@@ -952,7 +951,9 @@
       "recentEmpty": "No shared entries yet.",
       "storySummaryKicker": "Already part of you",
       "storySummaryTitle": "Your story",
-      "storySummaryIntro": "Follow individual traces and keep exploring here.",
+      "storySummaryIntro": "Your little moments and big ones have a home here.",
+      "storySummaryTotalLabel_one": "memory",
+      "storySummaryTotalLabel_other": "memories",
       "storySummarySettingsTitle": "Your story in numbers",
       "storySummaryMemories": "Moments",
       "storySummaryMemoriesCount_one": "{{count}} moment",
@@ -964,17 +965,7 @@
       "storySummaryMilestonesCount_one": "{{count}} milestone",
       "storySummaryMilestonesCount_other": "{{count}} milestones",
       "itemFallback": "Shared entry",
-      "anniversaryTitle": "Your anniversary",
-      "storySummarySharedMemories_one": "shared memory",
-      "storySummarySharedMemories_other": "shared memories",
-      "storySummaryMemoriesInPeriod_one": "memory in {{period}}",
-      "storySummaryMemoriesInPeriod_other": "memories in {{period}}",
-      "storySummaryPeriodYears_one": "{{formattedCount}} year",
-      "storySummaryPeriodYears_other": "{{formattedCount}} years",
-      "storySummaryPeriodMonths_one": "{{formattedCount}} month",
-      "storySummaryPeriodMonths_other": "{{formattedCount}} months",
-      "storySummaryPeriodDays_one": "{{formattedCount}} day",
-      "storySummaryPeriodDays_other": "{{formattedCount}} days"
+      "anniversaryTitle": "Your anniversary"
     },
     "today": {
       "roles": {
@@ -1034,6 +1025,7 @@
       },
       "monthly": {
         "title": "Your {{month}}",
+        "settingsTitle": "Your month",
         "allAction": "All moments",
         "allAriaLabel": "View all shared moments"
       },
@@ -4110,6 +4102,27 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "fit": "Show whole photo"
+  },
+  "planFiles": {
+    "heading": "Files",
+    "add": "Add file",
+    "tool": "File",
+    "pdfSize": "PDF · {{size}}",
+    "open": "Open",
+    "download": "Download",
+    "removeNamed": "Remove {{name}}",
+    "openNamed": "Open {{name}}",
+    "downloadNamed": "Download {{name}}",
+    "progress": "Uploading {{name}}",
+    "validating": "Checking PDF",
+    "invalidPdf": "Choose a valid PDF file.",
+    "tooLarge": "Each PDF can be up to 25 MiB.",
+    "uploadFailed": "The file couldn’t be uploaded.",
+    "openFailed": "The file couldn’t be opened.",
+    "downloadFailed": "The file couldn’t be downloaded.",
+    "noViewer": "This device has no app that can open PDFs.",
+    "offline": "Connect to open or add files.",
+    "capacity": "A plan can hold up to 20 PDF files."
   },
   "calendarPlan": {
     "add": "Add to calendar",

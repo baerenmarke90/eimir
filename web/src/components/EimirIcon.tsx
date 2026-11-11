@@ -15,6 +15,9 @@ export const EIMIR_ICON_NAMES = [
   'geteilt',
   'nurfuer',
   'foto',
+  'paperclip',
+  'external-link',
+  'download',
   'microphone',
   'photo-library',
   'tag',
@@ -60,6 +63,15 @@ export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  paperclip: (
+    <path d="m20 10-8.6 8.6a5 5 0 0 1-7.1-7.1l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-2.8-2.8l8.1-8.1" />
+  ),
+  'external-link': (
+    <path d="M13 5h6v6m0-6-8 8m6 0v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h5" />
+  ),
+  download: (
+    <path d="M12 4v11m-4-4 4 4 4-4M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" />
+  ),
   microphone: (
     <>
       {' '}

@@ -395,7 +395,6 @@ const m5s3 = {
     scope: { OPEN: 'Offen', COMPLETED: 'Erledigt', ALL: 'Alle' },
     emptyScope: 'Keine Listen in dieser Auswahl.',
     planHeading: 'Gemeinsame Listen',
-    planEmpty: 'Verknüpft eine Liste, die zu diesem Plan gehört.',
     planSavedLinkFailed:
       'Dein Plan ist gespeichert. Die Listen konnten noch nicht verknüpft werden. Versuche es erneut.',
     choose: 'Listen verknüpfen',

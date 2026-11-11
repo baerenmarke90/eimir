@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.69
+
+- Share PDFs as attachments in plans.
+- See a refreshed story card on Wir and the correct month label in the Wir layout settings.
+- Edit plan titles with the full letterforms visible and without the empty list hint.
+- See the outlined eimir. symbol for your anniversary and consistent colors throughout Heart Moments.
+- Open creation forms with a smoother transition. Private forms have visible fields and a muted red add button.
+
+The product changes come from main at 6e51e7c0de170c214ea5755f7e12f01618498409.
+Install over test.68 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 69.

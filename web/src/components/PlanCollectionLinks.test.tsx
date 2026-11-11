@@ -280,7 +280,6 @@ describe('Plan-linked canonical lists', () => {
         }),
       ).toBeNull(),
     );
-    expect(screen.queryByText(i18n.t('m5s3.collection.planEmpty'))).toBeNull();
     expect(
       screen.queryByRole('button', { name: i18n.t('m5s3.collection.create') }),
     ).toBeNull();
@@ -292,6 +291,10 @@ describe('Plan-linked canonical lists', () => {
       name: i18n.t('m5s3.collection.create'),
     });
     await waitFor(() => expect(trigger.hasAttribute('disabled')).toBe(false));
+    const lists = screen.getByRole('region', {
+      name: i18n.t('m5s3.collection.planHeading'),
+    });
+    expect(within(lists).queryByRole('paragraph')).toBeNull();
     fireEvent.click(trigger);
     const checks = await screen.findAllByRole('checkbox');
     expect(checks.map((input) => input.closest('label')?.textContent)).toEqual([

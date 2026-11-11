@@ -48,6 +48,7 @@ export interface AttachmentDraftOptions {
   uploadAttachmentFn?: typeof uploadMemoryDraftAttachment;
   /** Avatars do not participate in selected-photo place enrichment. */
   preserveMetadata?: boolean;
+  createPreviews?: boolean;
   /**
    * Caller-computed remaining capacity (`MAX_MEMORY_ATTACHMENTS -
    * alreadyBoundAttachmentCount`). Files beyond this never start a server
@@ -150,6 +151,7 @@ export function useAttachmentDrafts({
   fetchApi = fetch,
   uploadAttachmentFn = uploadMemoryDraftAttachment,
   preserveMetadata = true,
+  createPreviews = true,
   maxAttachments = Number.POSITIVE_INFINITY,
 }: AttachmentDraftOptions) {
   const accountSpace = formatAttachmentDraftContextKey(accountId, spaceId);
@@ -390,9 +392,10 @@ export function useAttachmentDrafts({
         const unavailable =
           selectedPhotoUnavailable(file) &&
           !(file.type.startsWith('video/') && attachmentId);
-        const previewResource = unavailable
-          ? undefined
-          : createOwnedObjectUrl(file);
+        const previewResource =
+          unavailable || !createPreviews
+            ? undefined
+            : createOwnedObjectUrl(file);
         const previewUrl = previewResource?.url ?? '';
         if (previewResource) previewUrls.current.set(id, previewResource);
         draftCount.current += 1;
@@ -425,7 +428,7 @@ export function useAttachmentDrafts({
       }
       return restoredIds;
     },
-    [enqueue, maxAttachments],
+    [createPreviews, enqueue, maxAttachments],
   );
 
   const addFiles = useCallback(

@@ -56,6 +56,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { usePlanFileDrafts } from '../client/usePlanFileDrafts';
 import { planPhotos, usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
@@ -64,6 +65,7 @@ import { ExpandableDescription } from './ExpandableDescription';
 import { ComposerHeader } from './StoryFormPageShell';
 import { ComposerDateContext } from './ComposerDateContext';
 import { PlanCalendarAction } from './PlanCalendarAction';
+import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
@@ -138,6 +140,9 @@ export function PlanProductPage({
   const [photoToolHost, setPhotoToolHost] = useState<HTMLSpanElement | null>(
     null,
   );
+  const [fileToolHost, setFileToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
   const [listToolHost, setListToolHost] = useState<HTMLSpanElement | null>(
     null,
@@ -149,6 +154,7 @@ export function PlanProductPage({
   const [editingPlan, setEditingPlan] = useState<PlanDetail | null>(null);
   const [editDirty, setEditDirty] = useState(false);
   const [photosChanged, setPhotosChanged] = useState(false);
+  const [removedFileIds, setRemovedFileIds] = useState<string[]>([]);
   const mediaApis = useMemo(
     () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
     [apiBaseUrl, accessToken],
@@ -203,6 +209,20 @@ export function PlanProductPage({
     staleTime: 30_000,
     retry: false,
   });
+  const savedFiles = (planQuery.data?.fileAttachments ?? []).filter(
+    (file) => !removedFileIds.includes(file.id),
+  );
+  const files = usePlanFileDrafts(
+    {
+      apis: mediaApis,
+      apiBaseUrl: apiBaseUrl ?? '',
+      accessToken: accessToken ?? '',
+      spaceId,
+      accountId: accountId ?? '',
+      resourceKey: planId,
+    },
+    savedFiles.length,
+  );
   const linkedPlaceId = planQuery.data?.placeId;
   const listedPlace = placesQuery.data?.find(
     (place) => place.id === linkedPlaceId,
@@ -260,6 +280,8 @@ export function PlanProductPage({
       if (!intent.ownsRead?.()) return;
       await commitPlan(data);
       photos.clear();
+      files.clear();
+      setRemovedFileIds([]);
       setIsEditing(false);
       setConfirmDelete(false);
       showSaved();
@@ -281,6 +303,8 @@ export function PlanProductPage({
     onEscape: () => Boolean(document.querySelector('dialog[open]')),
     onClose: () => {
       photos.clear();
+      files.clear();
+      setRemovedFileIds([]);
       setIsEditing(false);
       setConfirmDelete(false);
     },
@@ -366,6 +390,8 @@ export function PlanProductPage({
       placePending ||
       photos.hasPending ||
       photos.hasFailed ||
+      files.hasPending ||
+      files.hasFailed ||
       photos.entries.length !== photos.items.length
     )
       return;
@@ -399,6 +425,14 @@ export function PlanProductPage({
           ? {
               attachments: photos.entries,
               selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
+            }
+          : {}),
+        ...(files.readyIds.length || removedFileIds.length
+          ? {
+              fileAttachmentChanges: {
+                add: files.readyIds,
+                remove: removedFileIds,
+              },
             }
           : {}),
       },
@@ -461,7 +495,13 @@ export function PlanProductPage({
                   ? t('m5s3.common.saving')
                   : t('m5s3.common.saveChanges')
               }
-              disabled={writesPending || photos.hasPending || photos.hasFailed}
+              disabled={
+                writesPending ||
+                photos.hasPending ||
+                photos.hasFailed ||
+                files.hasPending ||
+                files.hasFailed
+              }
               data-saveable={Boolean(editTitleValue.trim())}
             >
               {updateMutation.isPending
@@ -498,6 +538,7 @@ export function PlanProductPage({
                   setEditDirty(false);
                   photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
                   setPhotosChanged(false);
+                  setRemovedFileIds([]);
                   setAnticipation(plan.anticipationEnabled ?? false);
                   setSelectedPlaceId(plan.placeId ?? '');
                 }}
@@ -511,7 +552,7 @@ export function PlanProductPage({
       {!isEditing && saved ? (
         <p className="composer-saved-status" role="status">
           <EimirIcon name="check" />
-          {t('taskBoundary.saved')}
+          {t('composer.saved')}
         </p>
       ) : null}
       {!isEditing ? (
@@ -733,6 +774,18 @@ export function PlanProductPage({
                 />
               </div>
             </fieldset>
+            <PlanFilesEditor
+              drafts={files}
+              savedFiles={savedFiles}
+              toolHost={fileToolHost}
+              disabled={writesPending || !apiBaseUrl || !accessToken}
+              online={online}
+              onChange={() => setEditDirty(true)}
+              removeSaved={(id) => {
+                setRemovedFileIds((ids) => [...ids, id]);
+                setEditDirty(true);
+              }}
+            />
             <PlanCollectionLinks
               apis={apis}
               spaceId={spaceId}
@@ -904,6 +957,17 @@ export function PlanProductPage({
           </div>
         ) : null}
 
+        {!isEditing && accessToken ? (
+          <PlanFilesList
+            key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+            attachments={mediaApis.attachments}
+            files={plan.fileAttachments ?? []}
+            apiBaseUrl={apiBaseUrl ?? ''}
+            accessToken={accessToken}
+            spaceId={spaceId}
+            online={online}
+          />
+        ) : null}
         {!isEditing ? (
           <ContextTagList tags={plan.tags} presentation="composer" />
         ) : null}
@@ -1075,6 +1139,7 @@ export function PlanProductPage({
         <>
           <ComposerToolRow>
             <span className="composer-tool-slot" ref={setPhotoToolHost} />
+            <span className="composer-tool-slot" ref={setFileToolHost} />
             <ComposerTool
               ref={placeTrigger}
               icon="orte"

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { i18n } from '../i18n';
 import { onTestFinished } from 'vitest';
+import { i18n } from '../i18n';
 import m5s5 from '../i18n/locales/m5s5';
 import {
   SharedStorySummary,
@@ -52,7 +52,7 @@ describe('SharedStorySummary', () => {
 
     expect(html).toContain('<ul');
     expect(html).toContain('<li');
-    expect(html).toContain('5</strong> gemeinsame Erinnerungen');
+    expect(html).toContain('5</strong> Erinnerungen');
     expect(html).not.toContain('button');
 
     const metricMatches = html.match(/shared-story-summary-metric/g);
@@ -138,49 +138,30 @@ describe('SharedStorySummary', () => {
 });
 
 describe('story composition', () => {
-  const summary = { memories: 28, heartMoments: 9, milestones: 5 };
   it.each([
-    ['de', 0, '0 Tagen'],
-    ['de', 1, '1 Tag'],
-    ['de', 2, '2 Tagen'],
-    ['de', 31, '1 Monat'],
-    ['de', 120, '4 Monaten'],
-    ['de', 365, '1 Jahr'],
-    ['de', 1096, '3 Jahren'],
-    ['en', 1, '1 day'],
-    ['en', 2, '2 days'],
-    ['en', 31, '1 month'],
-    ['en', 120, '4 months'],
-    ['en', 365, '1 year'],
-    ['en', 1096, '3 years'],
-  ])(
-    'uses snapshot calendar arithmetic and localized periods: %s %s',
-    (locale, daysTogether, period) => {
-      const previous = i18n.language;
-      void i18n.changeLanguage(locale);
-      onTestFinished(() => {
-        void i18n.changeLanguage(previous);
-      });
-      const html = renderToStaticMarkup(
-        <MemoryRouter>
-          <SharedStorySummary
-            summary={summary}
-            relationshipDuration={{
-              startedOn: new Date('2023-01-01T00:00:00Z'),
-              daysTogether,
-              displayMode: 'DAYS',
-            }}
-          />
-        </MemoryRouter>,
-      );
-      expect(html).toContain(
-        `42</strong> ${locale === 'de' ? 'Erinnerungen' : 'memories'} in ${period}`,
-      );
-      expect(html).toContain('style="flex-grow:28"');
-      expect(html).toContain('style="flex-grow:9"');
-      expect(html).toContain('style="flex-grow:5"');
-    },
-  );
+    ['de', m5s5.dashboard.storySummaryIntro, 'Erinnerungen'],
+    ['en', 'Your little moments and big ones have a home here.', 'memories'],
+  ])('introduces the shared count in %s', async (locale, intro, label) => {
+    const previous = i18n.language;
+    onTestFinished(async () => {
+      await i18n.changeLanguage(previous);
+    });
+    await i18n.changeLanguage(locale);
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <SharedStorySummary
+          summary={{ memories: 29, heartMoments: 9, milestones: 5 }}
+        />
+      </MemoryRouter>,
+    );
+    expect(html).toContain(intro);
+    const total = `43</strong> ${label}`;
+    expect(html).toContain(total);
+    expect(html.indexOf(intro)).toBeLessThan(html.indexOf(total));
+    expect(html).toContain('style="flex-grow:29"');
+    expect(html).toContain('style="flex-grow:9"');
+    expect(html).toContain('style="flex-grow:5"');
+  });
 
   it('keeps the explicit empty preview and the live opt-in distinct', () => {
     const preview = renderToStaticMarkup(
@@ -193,21 +174,22 @@ describe('story composition', () => {
     );
     expect(preview.match(/shared-story-summary-metric/g)).toHaveLength(3);
     expect(preview).not.toContain('shared-story-summary-bar');
+    expect(preview).not.toContain(m5s5.dashboard.storySummaryIntro);
     const live = renderToStaticMarkup(
       <MemoryRouter>
         <SharedStorySummary
-          summary={{ memories: 2, heartMoments: 0, milestones: 0 }}
+          summary={{ memories: 1, heartMoments: 0, milestones: 0 }}
           showEmpty
           includeEmptyCategories={false}
         />
       </MemoryRouter>,
     );
-    expect(live).toContain('2</strong> gemeinsame Erinnerungen');
+    expect(live).toContain('1</strong> Erinnerung</p>');
     expect(live.match(/shared-story-summary-metric/g)).toHaveLength(1);
     expect(live).not.toContain('type=HEART_MOMENT');
     expect(live).not.toContain('type=MILESTONE');
   });
-  it('formats totals and uses the period-free fallback for unavailable duration', () => {
+  it('formats large totals for the selected locale', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <SharedStorySummary
@@ -215,7 +197,7 @@ describe('story composition', () => {
         />
       </MemoryRouter>,
     );
-    expect(html).toContain('1.248</strong> gemeinsame Erinnerungen');
+    expect(html).toContain('1.248</strong> Erinnerungen');
     expect(html).toContain('aria-label="1234 Momente"');
   });
 });

@@ -9,6 +9,7 @@ import {
   test,
 } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
+import planFiles from '../../src/i18n/locales/planFiles';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
@@ -643,7 +644,13 @@ for (const view of [
       {
         name: 'plan-empty-frame-9',
         path: '/plan/plans/new',
-        tools: [composer.photo, composer.place, composer.list, composer.tag],
+        tools: [
+          composer.photo,
+          planFiles.add,
+          composer.place,
+          composer.list,
+          composer.tag,
+        ],
       },
       {
         name: 'diary-edit-frame-2',
@@ -658,7 +665,13 @@ for (const view of [
       {
         name: 'plan-edit-frame-10',
         path: '/plan/plans/composer-plan',
-        tools: [composer.photo, composer.place, composer.list, composer.tag],
+        tools: [
+          composer.photo,
+          planFiles.add,
+          composer.place,
+          composer.list,
+          composer.tag,
+        ],
         edit: true,
       },
     ]) {
@@ -1744,6 +1757,32 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
   await page
     .getByRole('button', { name: m5s3.common.edit, exact: true })
     .click();
+  const editedTitle = 'Evening walk';
+  const titleInput = page.locator('#plan-edit-title');
+  await titleInput.fill(editedTitle);
+  const descenderClearance = await titleInput.evaluate(
+    async (input: HTMLInputElement) => {
+      await document.fonts.ready;
+      const style = getComputedStyle(input);
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas text metrics are unavailable');
+      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      const metrics = context.measureText(input.value);
+      const fontHeight =
+        metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+      const lineHeight =
+        style.lineHeight === 'normal'
+          ? fontHeight
+          : Number.parseFloat(style.lineHeight);
+      return (
+        metrics.fontBoundingBoxDescent +
+        (lineHeight - fontHeight) / 2 -
+        metrics.actualBoundingBoxDescent
+      );
+    },
+  );
+  expect(descenderClearance).toBeGreaterThanOrEqual(0);
   const sources = await openComposerMediaSources(page);
   await capture(page, info, 'plan-photo-source-sheet');
   await page.keyboard.press('Escape');
@@ -1770,6 +1809,9 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
     .getByRole('button', { name: m5s3.common.saveChanges, exact: true })
     .click();
   await expect(page).toHaveURL(/\/plan\/plans\/composer-plan$/);
+  await expect(
+    page.getByRole('heading', { name: editedTitle, exact: true }),
+  ).toBeVisible();
   expect(
     state.calls.find(
       (call) =>

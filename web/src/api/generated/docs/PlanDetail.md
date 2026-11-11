@@ -15,6 +15,7 @@ Name | Type
 `creator` | [AuthorSummary](AuthorSummary.md)
 `description` | string
 `experiencedOn` | Date
+`fileAttachments` | [Array&lt;PlanFileSummary&gt;](PlanFileSummary.md)
 `id` | string
 `placeId` | string
 `plannedEnd` | Date
@@ -45,6 +46,7 @@ const example = {
   "creator": null,
   "description": null,
   "experiencedOn": null,
+  "fileAttachments": null,
   "id": null,
   "placeId": null,
   "plannedEnd": null,

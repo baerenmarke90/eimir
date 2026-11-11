@@ -181,10 +181,16 @@ ideas, private lists and partner notes. No private records appear in it.
 ![Private Area overview and private creation choices at Compact width](reference-private-contextual-add.png)
 
 <details>
-<summary>ImageGen prompt</summary>
+<summary>ImageGen composition instructions</summary>
 
-> Use case: ui-mockup
-> Asset: one wide eimir. product reference with two complete Compact viewports in two columns, each based on 390 × 900 CSS pixels. Image 1 is the exact current "Für mich" overview and supplies both panels' content, burgundy-black theme, margins and icon grammar. Image 2 supplies the existing short task sheet geometry, structure and three action rows only. In both panels preserve the back chevron, lock with "Für mich", existing privacy copy "Dein Partner kann diese Inhalte in eimir. nicht öffnen.", and the four destination cards in this order: "Notizen für mich", "Geschenkideen", "Meine Listen", "Notizen über meinen Partner". Preserve their icons, type, corner radius, layout and readable hierarchy. Show no authored private content. In the left panel retain four docked tabs "Wir", "Momente", "Planen", "Mehr" with Mehr selected. Add a single 52 CSS px filled circular canonical blue plus at the trailing app gutter with a 12 px gap above the dock. Use a centered white plus and no visible caption. In the right panel show this action opened as the existing compact bottom sheet. Dim the overview behind it and cover the dock and floating plus with the sheet. Use title "Privaten Eintrag hinzufügen", native-looking rounded top corners and three distinct icon-and-label rows "Notiz für mich hinzufügen", "Geschenkidee hinzufügen", "Liste hinzufügen", with note, gift and list motifs. Match the private page's dark theme with restrained, readable colors and preserve the actual underlying page structure. No other additions, annotation, device bezel or marketing text. Keep both entire viewports visible.
+The prompt used the 390 px Dark private overview and the existing Moment
+choice sheet. It requested two full 390 × 900 Compact viewports, retaining
+the actual Vault colors, lock, localized privacy copy, four browse cards and
+four-tab navigation. The first panel shows the filled 52 px circular plus
+at the trailing gutter, 12 px above the dock. The second shows the same
+overview dimmed behind the bottom sheet, with three localized action rows
+for a personal note, gift idea and private list. The reference shows no
+authored private content.
 
 </details>
 

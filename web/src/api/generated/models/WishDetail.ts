@@ -70,6 +70,12 @@ export interface WishDetail {
      * @type {string}
      * @memberof WishDetail
      */
+    description?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof WishDetail
+     */
     id: string;
     /**
      * 
@@ -142,6 +148,7 @@ export function WishDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
+        'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
         'id': json['id'],
         'spaceId': json['spaceId'],
         'status': WishStatusFromJSON(json['status']),
@@ -167,6 +174,7 @@ export function WishDetailToJSONTyped(value?: WishDetail | null, ignoreDiscrimin
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
+        'description': value['description'],
         'id': value['id'],
         'spaceId': value['spaceId'],
         'status': WishStatusToJSON(value['status']),

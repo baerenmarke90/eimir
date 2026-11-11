@@ -13736,6 +13736,10 @@
         "additionalProperties": false,
         "description": "A wish is created from authored title and optional shared context labels.\n\n``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make\n``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.\nA request supplying those fields is rejected rather than silently stripped,\nso the client cannot believe it successfully set them.",
         "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
           "tags": {
             "items": {
               "maxLength": 40,
@@ -13774,6 +13778,17 @@
           },
           "creator": {
             "$ref": "#/components/schemas/AuthorSummary"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
           },
           "id": {
             "format": "uuid",
@@ -14126,8 +14141,19 @@
       },
       "WishUpdate": {
         "additionalProperties": false,
-        "description": "Wish title correction.\n\nThere is deliberately no ``status`` field. Wish status is controlled only\nby explicit lifecycle commands; an arbitrary status PATCH would provide a\nway around those transitions.",
+        "description": "Wish content correction. Explicit null clears the description.\n\nThere is deliberately no ``status`` field. Wish status is controlled only\nby explicit lifecycle commands; an arbitrary status PATCH would provide a\nway around those transitions.",
         "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
           "tags": {
             "items": {
               "maxLength": 40,

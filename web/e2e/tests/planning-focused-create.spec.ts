@@ -8,6 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import composer from '../../src/i18n/locales/composer';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureR3Evidence } from './r3-evidence';
 import { expectLabeledComposerTool } from '../support/addAction';
@@ -29,6 +30,31 @@ async function installPlanningMocks(
 ): Promise<MockCalls> {
   const calls: MockCalls = { wishCreates: 0, planCreates: 0 };
   let failFirstPlanSave = options.failFirstPlanSave ?? false;
+  const wishesPath = `/api/v1/spaces/${SPACE_ID}/wishes`;
+  let wishContent: {
+    title: string;
+    description?: string | null;
+    tags?: string[];
+  } | null = null;
+  let wishVersion = 1;
+
+  function wishResponse() {
+    return wishContent
+      ? {
+          capabilities: { canDelete: true, canEdit: true, canComment: false },
+          createdAt: TEST_NOW,
+          createdBy: ACCOUNT_ID,
+          creator: { accountId: ACCOUNT_ID, displayName: 'Anna' },
+          description: null,
+          id: 'wish-created',
+          spaceId: SPACE_ID,
+          status: 'OPEN',
+          updatedAt: TEST_NOW,
+          version: wishVersion,
+          ...wishContent,
+        }
+      : null;
+  }
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -148,8 +174,13 @@ async function installPlanningMocks(
       await fulfillJson({ unreadCount: 0 });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/wishes`) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+    if (method === 'GET' && pathname === wishesPath) {
+      const wish = wishResponse();
+      await fulfillJson({
+        hasMore: false,
+        items: wish ? [wish] : [],
+        nextCursor: null,
+      });
       return;
     }
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/plans`) {
@@ -180,24 +211,23 @@ async function installPlanningMocks(
       });
       return;
     }
-    if (method === 'POST' && pathname === `/api/v1/spaces/${SPACE_ID}/wishes`) {
+    if (method === 'POST' && pathname === wishesPath) {
       calls.wishCreates += 1;
-      const body = request.postDataJSON() as { title: string };
-      await fulfillJson(
-        {
-          capabilities: { canDelete: true, canEdit: true },
-          createdAt: TEST_NOW,
-          createdBy: ACCOUNT_ID,
-          creator: { accountId: ACCOUNT_ID, displayName: 'Anna' },
-          id: 'wish-created',
-          spaceId: SPACE_ID,
-          status: 'OPEN',
-          title: body.title,
-          updatedAt: TEST_NOW,
-          version: 1,
-        },
-        201,
-      );
+      wishContent = request.postDataJSON();
+      await fulfillJson(wishResponse(), 201);
+      return;
+    }
+    if (
+      wishContent &&
+      pathname === `${wishesPath}/wish-created` &&
+      (method === 'GET' || method === 'PATCH')
+    ) {
+      if (method === 'PATCH') {
+        expect(request.headers()['if-match']).toBe(String(wishVersion));
+        wishContent = { ...wishContent, ...request.postDataJSON() };
+        wishVersion += 1;
+      }
+      await fulfillJson(wishResponse());
       return;
     }
     if (method === 'POST' && pathname === `/api/v1/spaces/${SPACE_ID}/plans`) {
@@ -322,13 +352,17 @@ for (const scenario of [
   });
 }
 
-test('focused Wish creation omits the redundant fixed-audience banner', async ({
+test('focused Wish creation saves optional prose and opens its reader', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await installPlanningMocks(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const calls = await installPlanningMocks(page);
   await signIn(page);
-  await page.goto('/plan/wishes/new');
+  await page.goto('/plan');
+  const wishes = page.getByRole('tab', { name: m5s3.overview.segmentWishes });
+  await wishes.click();
+  await page.getByRole('link', { name: m5s3.overview.addWish }).click();
 
   await expect(page.getByText(m5s3.wish.sharedBody)).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
@@ -337,7 +371,71 @@ test('focused Wish creation omits the redundant fixed-audience banner', async ({
       .locator('#main-content')
       .evaluate((main) => main.getAnimations().length),
   ).toBe(0);
+  const title = 'Nordlichter sehen';
+  const opening =
+    'Eine kleine Hütte am See mieten und die Thermoskanne einpacken.';
+  const ending = 'Am nächsten Morgen gemeinsam am See frühstücken.';
+  const description = [
+    opening,
+    'Abends lassen wir die Lichter in der Hütte aus.',
+    'Wir laufen ans Wasser und suchen einen freien Blick nach Norden.',
+    'Wenn Wolken kommen, bleiben wir noch auf einen Tee draußen.',
+    'Die Kamera darf mit, aber wir wollen zuerst einfach schauen.',
+    ending,
+  ].join('\n\n');
+  const titleField = page.getByLabel(m5s3.wish.intentionLabel);
+  const descriptionField = page.getByLabel(m5s3.common.description);
+  await expect(titleField).not.toBeFocused();
+  await expect(descriptionField).toBeEditable();
+  const emptyHeight = await descriptionField.evaluate(
+    (field) => field.clientHeight,
+  );
+  await titleField.fill(title);
+  await descriptionField.fill(description);
+  expect(
+    await descriptionField.evaluate((field) => field.clientHeight),
+  ).toBeGreaterThan(emptyHeight);
+  await page
+    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .click();
+  await page.getByRole('button', { name: taskBoundary.keepEditing }).click();
+  await expect(descriptionField).toHaveValue(description);
   await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
+
+  await page
+    .getByRole('button', { name: m5s3.common.save, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/plan\/wishes\/wish-created$/);
+  expect(calls.wishCreates).toBe(1);
+  const prose = page.locator('.wish-detail .authored-text');
+  await expect(prose).toContainText(opening);
+  await expect(prose).not.toContainText(ending);
+  const more = page.getByRole('button', {
+    name: storyProducts.descriptionDisclosure.more,
+  });
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+  await captureR3Evidence(page, testInfo, 'wish-description-390-light.png');
+  await more.click();
+  await expect(prose).toContainText(ending);
+  await page
+    .getByRole('button', { name: storyProducts.descriptionDisclosure.less })
+    .click();
+  await expect(prose).not.toContainText(ending);
+
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(wishes).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('link', { name: new RegExp(title) }).click();
+  await expect(prose).toContainText(opening);
+
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  const editDescription = page.locator('#wish-edit-description');
+  await expect(editDescription).toHaveValue(description);
+  await editDescription.fill('');
+  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
+  await expect(editDescription).toHaveCount(0);
+  await expect(prose).toHaveCount(0);
 });
 
 test('contextual Plan and Wish actions open directly and browser Back restores the active segment', async ({

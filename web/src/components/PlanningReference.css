@@ -267,18 +267,21 @@
   margin: 0;
 }
 
-/* Detail: authored Plan prose, without a redundant section heading. */
+/* Authored prose shared by the Plan and Wish detail pages. */
 .planen-section {
   display: grid;
   gap: var(--space-3);
 }
 
 .planen-section-content {
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  padding: clamp(var(--space-4), 3vw, var(--space-5));
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
   background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
+}
+
+.planen-section-content .authored-text {
+  font: var(--font-composer-prose);
+  color: var(--color-text);
 }
 
 .planen-section p {
@@ -835,6 +838,11 @@
 /* Long localized Wish actions must reflow at 320 px with 200 % text. */
 .wish-detail {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.wish-detail .wish-description-heading {
+  margin-block-end: 0;
+  padding-block-end: 0;
 }
 
 .wish-detail > * {

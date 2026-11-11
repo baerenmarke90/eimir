@@ -85,6 +85,10 @@ def _normalize_title(value: str) -> str:
     return cleaned
 
 
+def _normalize_description(value: str | None) -> str | None:
+    return (value or "").strip() or None
+
+
 def _flush(session: Session) -> None:
     try:
         session.flush()
@@ -104,7 +108,7 @@ def _ensure_expected_version(wish: Wish, expected_version: int) -> None:
 
 
 def record_event(session: Session, wish: Wish, actor_id: UUID, event_type: EventType) -> None:
-    """Record an event without the wish title.
+    """Record an event without authored Wish content.
 
     M3-D13: titles do not belong in the outbox, logs, or analytics. Only IDs,
     actor, version, and event type leave this boundary.
@@ -128,6 +132,7 @@ def create_wish(
     context: AuthorizationContext,
     *,
     title: str,
+    description: str | None = None,
     tags: list[str] | None = None,
 ) -> Wish:
     """Create a wish in the ``OPEN`` state.
@@ -141,7 +146,11 @@ def create_wish(
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
         status=WishStatus.OPEN.value,
-        payload=WishPayload(title=_normalize_title(title), tags=tags or []),
+        payload=WishPayload(
+            title=_normalize_title(title),
+            description=_normalize_description(description),
+            tags=tags or [],
+        ),
     )
     session.add(wish)
     _flush(session)
@@ -156,6 +165,7 @@ def create_wish_once(
     *,
     idempotency_key: UUID | None,
     title: str,
+    description: str | None = None,
     tags: list[str] | None = None,
 ) -> WishCreateResult:
     """Create a Wish, or return the one an earlier request with this identity created.
@@ -166,12 +176,18 @@ def create_wish_once(
     retry from adding the same wish to the shared list twice.
     """
     if idempotency_key is None:
-        wish = create_wish(session, context, title=title, tags=tags)
+        wish = create_wish(session, context, title=title, description=description, tags=tags)
         return WishCreateResult(wish, created=True)
 
     normalized_title = _normalize_title(title)
+    normalized_description = _normalize_description(description)
     request_fingerprint = create_receipts.fingerprint(
-        _RECEIPT_RESOURCE_TYPE, {"title": normalized_title, **({"tags": tags} if tags else {})}
+        _RECEIPT_RESOURCE_TYPE,
+        {
+            "title": normalized_title,
+            **({"description": normalized_description} if normalized_description else {}),
+            **({"tags": tags} if tags else {}),
+        },
     )
     receipt_id = create_receipts.claim(
         session,
@@ -195,7 +211,9 @@ def create_wish_once(
         )
         return WishCreateResult(wish, created=False)
 
-    wish = create_wish(session, context, title=normalized_title, tags=tags)
+    wish = create_wish(
+        session, context, title=normalized_title, description=normalized_description, tags=tags
+    )
     create_receipts.attach(session, receipt_id, wish.id)
     return WishCreateResult(wish, created=True)
 
@@ -214,10 +232,12 @@ def update_wish(
     wish_id: UUID | str,
     *,
     expected_version: int,
+    changed_fields: frozenset[str],
     title: str | None = None,
+    description: str | None = None,
     tags: list[str] | None = None,
 ) -> Wish:
-    """Correct the title and nothing else.
+    """Correct authored Wish content.
 
     This is a versioned content update and does not change status (M3-D02).
     ``createdBy``, ``spaceId``, and ``status`` are not function parameters, so
@@ -229,6 +249,9 @@ def update_wish(
     wish.payload = wish.payload.model_copy(
         update={
             "title": _normalize_title(title) if title is not None else wish.payload.title,
+            "description": _normalize_description(description)
+            if "description" in changed_fields
+            else wish.payload.description,
             "tags": tags if tags is not None else wish.payload.tags,
         }
     )

@@ -1,3 +1,6 @@
+import { createPortal } from 'react-dom';
+import { ComposerTool, ComposerToolRow } from './PageComposer';
+import { EimirIcon } from './EimirIcon';
 import { loadVideoSource } from '../client/video';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
@@ -137,6 +140,12 @@ export function MemoryProductPage({
     signal?: AbortSignal,
   ) => Promise<ObjectUrlSource>;
 }) {
+  const [placeToolHost, setPlaceToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
+  const [placeContextHost, setPlaceContextHost] =
+    useState<HTMLSpanElement | null>(null);
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
@@ -482,7 +491,7 @@ export function MemoryProductPage({
       editorLifecycle.closeConfirmed(() =>
         navigate(memoryDetailPath(memory.id), {
           replace: true,
-          state: { taskOriginKey: originKey },
+          state: { taskOriginKey: originKey, memorySaved: true },
         }),
       );
     },
@@ -797,184 +806,247 @@ export function MemoryProductPage({
                   </div>
                 </>
               )}
+              {!memory.experienceKind ? (
+                <span
+                  ref={setPlaceContextHost}
+                  className="composer-context-row"
+                />
+              ) : null}
             </div>
             <div
               className={
-                !memory.experienceKind ? 'composer-writing-surface' : undefined
+                !memory.experienceKind ? 'composer-content' : undefined
               }
             >
+              <AttachmentDraftPicker
+                presentation={!memory.experienceKind ? 'diary' : 'default'}
+                pageWideDrop={!memory.experienceKind}
+                hasMedia={photoItems.length > 0}
+                sourceContext={{
+                  apiBaseUrl,
+                  accessToken,
+                  accountId: currentAccountId,
+                  spaceId,
+                  remaining: Math.max(
+                    0,
+                    MAX_MEMORY_ATTACHMENTS -
+                      keptBoundAttachmentCount -
+                      attachments.items.length,
+                  ),
+                  beginSelection: attachments.beginSelection,
+                }}
+                id="memory-edit-images"
+                videoContext={{ apis, accountId: currentAccountId, spaceId }}
+                disabled={updateMutation.isPending}
+                attachments={attachments}
+                gallery={(addAction) => (
+                  <PhotoDraftGallery
+                    addAction={!memory.experienceKind ? addAction : undefined}
+                    key={photoOrderScope}
+                    resourceScopeKey={photoOrderScope}
+                    selectedCoverKey={selectedCoverKey}
+                    onSelectCover={(key) =>
+                      setCoverDraft({ scope: photoOrderScope, key })
+                    }
+                    onOrderChange={(keys) =>
+                      setPhotoOrder({ scope: photoOrderScope, keys })
+                    }
+                    disabled={updateMutation.isPending}
+                    items={photoItems.map((item, index) => ({
+                      key: item.key,
+                      name:
+                        item.draft?.file.name ??
+                        t('m5s3.planImage.photoNumber', { number: index + 1 }),
+                      draft: item.draft,
+                      loadMedia: item.photo
+                        ? (signal) =>
+                            loadMemoryImage(memory.id, item.photo!.id, signal)
+                        : undefined,
+                      loadPoster: item.photo
+                        ? (signal) =>
+                            loadAuthorizedStoryImageResource(
+                              apis,
+                              spaceId,
+                              'MEMORY',
+                              memory.id,
+                              item.photo!.id,
+                              { signal, variant: 'thumbnail' },
+                            )
+                        : undefined,
+                      loadPlayback: item.photo
+                        ? (signal) =>
+                            loadVideoSource(
+                              apis,
+                              spaceId,
+                              'MEMORY',
+                              memory.id,
+                              item.photo!.id,
+                              signal,
+                            )
+                        : undefined,
+                      mediaType: item.photo?.mediaType,
+                      status: item.photo?.status,
+                      canRemove: !item.photo || memory.capabilities.canDelete,
+                      canEditSensitivity:
+                        !item.photo ||
+                        (item.photo.canEditSensitivity ??
+                          memory.capabilities.canDelete),
+                      isSensitive: item.photo
+                        ? (sensitiveValues[item.photo.id] ??
+                          item.photo.isSensitive ??
+                          true)
+                        : item.draft?.isSensitive === true,
+                      preview:
+                        item.photo && item.photo.status !== 'READY' ? (
+                          <MediaProcessingState
+                            status={item.photo.status}
+                            compact
+                          />
+                        ) : item.photo ? (
+                          <MemoryPreview
+                            memoryId={memory.id}
+                            attachmentId={item.photo.id}
+                            isSensitive={
+                              sensitiveValues[item.photo.id] ??
+                              item.photo.isSensitive
+                            }
+                            loadImage={loadMemoryImage}
+                          />
+                        ) : item.draft ? (
+                          <DraftMediaPreview
+                            draft={item.draft}
+                            blurSensitivePreview={!memory.experienceKind}
+                            context={{
+                              apis,
+                              accountId: currentAccountId,
+                              spaceId,
+                            }}
+                          />
+                        ) : null,
+                    }))}
+                    onSensitive={(key, value) => {
+                      const item = photoItems.find((item) => item.key === key);
+                      if (
+                        item?.photo &&
+                        (item.photo.canEditSensitivity ??
+                          memory.capabilities.canDelete)
+                      )
+                        setSensitiveDraft((current) => ({
+                          key: sensitiveDraftKey,
+                          values: {
+                            ...(current.key === sensitiveDraftKey
+                              ? current.values
+                              : {}),
+                            [item.photo.id]: value,
+                          },
+                        }));
+                      else if (item?.draft)
+                        attachments.setSensitive(item.draft.id, value);
+                    }}
+                    removeLabel={(key) =>
+                      photoItems.find((item) => item.key === key)?.photo
+                        ? t('memoryProduct.markPhotoForRemoval')
+                        : t('memory.photoRemove')
+                    }
+                    onRemove={(key) => {
+                      const item = photoItems.find((item) => item.key === key);
+                      if (item?.photo) toggleAttachmentRemoval(item.photo.id);
+                      else if (item?.draft) attachments.remove(item.draft.id);
+                    }}
+                    onRetry={(key) => {
+                      const draft = photoItems.find(
+                        (item) => item.key === key,
+                      )?.draft;
+                      if (draft) attachments.retry(draft);
+                    }}
+                  />
+                )}
+                showItems={false}
+                multiple
+              />{' '}
               <div
-                className="field-group"
-                hidden={Boolean(memory.experienceKind)}
+                className={
+                  !memory.experienceKind
+                    ? 'composer-writing-surface'
+                    : undefined
+                }
               >
-                <label htmlFor="memory-edit-title">
-                  {t('memory.titleLabel')}
-                </label>
-                <input
-                  id="memory-edit-title"
-                  name="title"
-                  required
-                  maxLength={200}
-                  defaultValue={memory.title}
-                />
-              </div>
-              <div className="field-group">
-                <label htmlFor="memory-edit-body">
-                  {t('memory.bodyLabel')}
-                </label>
-                <textarea
-                  id="memory-edit-body"
-                  name="body"
-                  rows={6}
-                  required={Boolean(memory.experienceKind)}
-                  maxLength={memory.experienceKind ? 2000 : undefined}
-                  defaultValue={memory.body}
-                />
+                <div
+                  className="field-group"
+                  hidden={Boolean(memory.experienceKind)}
+                >
+                  <label htmlFor="memory-edit-title">
+                    {t('memory.titleLabel')}
+                  </label>
+                  <input
+                    id="memory-edit-title"
+                    name="title"
+                    required
+                    maxLength={200}
+                    defaultValue={memory.title}
+                  />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="memory-edit-body">
+                    {t('memory.bodyLabel')}
+                  </label>
+                  <textarea
+                    id="memory-edit-body"
+                    name="body"
+                    rows={6}
+                    required={Boolean(memory.experienceKind)}
+                    maxLength={memory.experienceKind ? 2000 : undefined}
+                    defaultValue={memory.body}
+                  />
+                </div>
               </div>
             </div>
-            <AttachmentDraftPicker
-              sourceContext={{
-                apiBaseUrl,
-                accessToken,
-                accountId: currentAccountId,
-                spaceId,
-                remaining: Math.max(
-                  0,
-                  MAX_MEMORY_ATTACHMENTS -
-                    keptBoundAttachmentCount -
-                    attachments.items.length,
-                ),
-                beginSelection: attachments.beginSelection,
-              }}
-              id="memory-edit-images"
-              videoContext={{ apis, accountId: currentAccountId, spaceId }}
-              disabled={updateMutation.isPending}
-              attachments={attachments}
-              gallery={
-                <PhotoDraftGallery
-                  key={photoOrderScope}
-                  resourceScopeKey={photoOrderScope}
-                  selectedCoverKey={selectedCoverKey}
-                  onSelectCover={(key) =>
-                    setCoverDraft({ scope: photoOrderScope, key })
-                  }
-                  onOrderChange={(keys) =>
-                    setPhotoOrder({ scope: photoOrderScope, keys })
-                  }
-                  disabled={updateMutation.isPending}
-                  items={photoItems.map((item, index) => ({
-                    key: item.key,
-                    name:
-                      item.draft?.file.name ??
-                      t('m5s3.planImage.photoNumber', { number: index + 1 }),
-                    draft: item.draft,
-                    loadMedia: item.photo
-                      ? (signal) =>
-                          loadMemoryImage(memory.id, item.photo!.id, signal)
-                      : undefined,
-                    loadPoster: item.photo
-                      ? (signal) =>
-                          loadAuthorizedStoryImageResource(
-                            apis,
-                            spaceId,
-                            'MEMORY',
-                            memory.id,
-                            item.photo!.id,
-                            { signal, variant: 'thumbnail' },
-                          )
-                      : undefined,
-                    loadPlayback: item.photo
-                      ? (signal) =>
-                          loadVideoSource(
-                            apis,
-                            spaceId,
-                            'MEMORY',
-                            memory.id,
-                            item.photo!.id,
-                            signal,
-                          )
-                      : undefined,
-                    mediaType: item.photo?.mediaType,
-                    status: item.photo?.status,
-                    canRemove: !item.photo || memory.capabilities.canDelete,
-                    canEditSensitivity:
-                      !item.photo ||
-                      (item.photo.canEditSensitivity ??
-                        memory.capabilities.canDelete),
-                    isSensitive: item.photo
-                      ? (sensitiveValues[item.photo.id] ??
-                        item.photo.isSensitive ??
-                        true)
-                      : item.draft?.isSensitive === true,
-                    preview:
-                      item.photo && item.photo.status !== 'READY' ? (
-                        <MediaProcessingState
-                          status={item.photo.status}
-                          compact
-                        />
-                      ) : item.photo ? (
-                        <MemoryPreview
-                          memoryId={memory.id}
-                          attachmentId={item.photo.id}
-                          isSensitive={
-                            sensitiveValues[item.photo.id] ??
-                            item.photo.isSensitive
-                          }
-                          loadImage={loadMemoryImage}
-                        />
-                      ) : item.draft ? (
-                        <DraftMediaPreview
-                          draft={item.draft}
-                          context={{
-                            apis,
-                            accountId: currentAccountId,
-                            spaceId,
-                          }}
-                        />
-                      ) : null,
-                  }))}
-                  onSensitive={(key, value) => {
-                    const item = photoItems.find((item) => item.key === key);
-                    if (
-                      item?.photo &&
-                      (item.photo.canEditSensitivity ??
-                        memory.capabilities.canDelete)
-                    )
-                      setSensitiveDraft((current) => ({
-                        key: sensitiveDraftKey,
-                        values: {
-                          ...(current.key === sensitiveDraftKey
-                            ? current.values
-                            : {}),
-                          [item.photo.id]: value,
-                        },
-                      }));
-                    else if (item?.draft)
-                      attachments.setSensitive(item.draft.id, value);
-                  }}
-                  removeLabel={(key) =>
-                    photoItems.find((item) => item.key === key)?.photo
-                      ? t('memoryProduct.markPhotoForRemoval')
-                      : t('memory.photoRemove')
-                  }
-                  onRemove={(key) => {
-                    const item = photoItems.find((item) => item.key === key);
-                    if (item?.photo) toggleAttachmentRemoval(item.photo.id);
-                    else if (item?.draft) attachments.remove(item.draft.id);
-                  }}
-                  onRetry={(key) => {
-                    const draft = photoItems.find(
-                      (item) => item.key === key,
-                    )?.draft;
-                    if (draft) attachments.retry(draft);
-                  }}
-                />
-              }
-              showItems={false}
-              multiple
-            />
 
             <MemoryPlacesDraftField
+              presentation={!memory.experienceKind ? 'composer' : 'default'}
+              renderTrigger={
+                !memory.experienceKind
+                  ? (open) =>
+                      placeToolHost
+                        ? createPortal(
+                            <ComposerTool
+                              icon="orte"
+                              label={t('composer.place')}
+                              active={Boolean(
+                                (placesDraft?.scope === photoOrderScope
+                                  ? placesDraft.value
+                                  : memory.placeIds
+                                )?.length,
+                              )}
+                              disabled={updateMutation.isPending}
+                              onClick={open}
+                            />,
+                            placeToolHost,
+                          )
+                        : null
+                  : undefined
+              }
+              renderSelection={
+                !memory.experienceKind
+                  ? (selected, open) =>
+                      selected.length && placeContextHost
+                        ? createPortal(
+                            <button
+                              type="button"
+                              className="tertiary composer-place-context"
+                              onClick={open}
+                            >
+                              <EimirIcon name="orte" />
+                              {selected[0].name}
+                              {selected.length > 1
+                                ? ` +${selected.length - 1}`
+                                : ''}
+                            </button>,
+                            placeContextHost,
+                          )
+                        : null
+                  : undefined
+              }
               memoryId={memory.id}
               order={memory.placeIds ?? []}
               apiBaseUrl={apiBaseUrl}
@@ -1000,6 +1072,24 @@ export function MemoryProductPage({
               }}
             />
             <MemoryTagChoices
+              presentation={!memory.experienceKind ? 'composer' : 'default'}
+              renderTrigger={
+                !memory.experienceKind
+                  ? (open) =>
+                      tagToolHost
+                        ? createPortal(
+                            <ComposerTool
+                              icon="tag"
+                              label={t('composer.tag')}
+                              active={selectedTags.length > 0}
+                              disabled={updateMutation.isPending}
+                              onClick={open}
+                            />,
+                            tagToolHost,
+                          )
+                        : null
+                  : undefined
+              }
               discloseEmpty={!memory.experienceKind}
               parentId={memory.id}
               editorRef={tagEditorRef}
@@ -1037,8 +1127,15 @@ export function MemoryProductPage({
                   memory.capabilities.canEdit && !updateMutation.isPending
                 }
                 editing
+                presentation="composer"
                 offline={offline}
               />
+            ) : null}
+            {!memory.experienceKind ? (
+              <ComposerToolRow>
+                <span className="composer-tool-slot" ref={setPlaceToolHost} />
+                <span className="composer-tool-slot" ref={setTagToolHost} />
+              </ComposerToolRow>
             ) : null}
             {memory.experienceKind ? (
               <div className="form-actions">
@@ -1181,16 +1278,85 @@ export function MemoryProductPage({
     />
   );
 
+  const mediaContext = (
+    <div className="memory-media-context">
+      {memory.experienceKind &&
+      memory.experienceAnswers?.some(
+        (answer) => (answer.attachments?.length ?? 0) > 0,
+      ) ? (
+        <section aria-label={t('coupleExperiences.sharedGallery')}>
+          <h2>{t('coupleExperiences.sharedGallery')}</h2>
+          <div className="experience-shared-gallery">
+            {memory.experienceAnswers
+              .filter((answer) => (answer.attachments?.length ?? 0) > 0)
+              .map((answer, index) => (
+                <MemoryPhotoGallery
+                  key={answer.id}
+                  memory={{
+                    ...memory,
+                    id: answer.id,
+                    authorId: answer.author.id,
+                    author: answer.author,
+                    body: answer.body,
+                    version: answer.version,
+                    capabilities: answer.capabilities,
+                    attachments: answer.attachments ?? [],
+                  }}
+                  apis={apis}
+                  accountId={currentAccountId}
+                  offline={offline}
+                  projectionMemoryId={memory.id}
+                  commentTriggerRef={index === 0 ? setCommentHost : undefined}
+                  loadImage={(attachmentId, signal) =>
+                    loadMemoryImage(answer.id, attachmentId, signal)
+                  }
+                  scope={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${answer.id}`}
+                />
+              ))}
+          </div>
+        </section>
+      ) : null}
+      {(!memory.experienceKind || !memory.experienceAnswers?.length) &&
+      boundAttachments.length > 0 ? (
+        <section aria-label={t('memory.photoLabel')}>
+          <MemoryPhotoGallery
+            commentTriggerRef={setCommentHost}
+            key={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
+            memory={memory}
+            apis={apis}
+            accountId={currentAccountId}
+            offline={offline}
+            loadImage={(attachmentId, signal) =>
+              loadMemoryImage(memory.id, attachmentId, signal)
+            }
+            scope={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
+          />
+        </section>
+      ) : null}
+    </div>
+  );
+
   return (
     <StoryDetailPageShell
-      title={hasAuthoredTitle ? memory.title : dateContext}
+      before={
+        !memory.experienceKind ? (
+          <TaskBackButton inline onClick={() => requestReturn(originKey)} />
+        ) : undefined
+      }
+      title={
+        !memory.experienceKind
+          ? t('composer.diaryEntry')
+          : hasAuthoredTitle
+            ? memory.title
+            : dateContext
+      }
       titleContext={
-        !hasAuthoredTitle ? (
+        memory.experienceKind && !hasAuthoredTitle ? (
           <div className="moment-metadata">{placeContext}</div>
         ) : undefined
       }
       metadata={
-        hasAuthoredTitle ? (
+        !memory.experienceKind || hasAuthoredTitle ? (
           <div className="moment-metadata">
             {dateContext}
             {placeContext}
@@ -1204,6 +1370,7 @@ export function MemoryProductPage({
         memory.capabilities.canEdit &&
         !offline ? (
           <StoryDetailEditLink
+            text={!memory.experienceKind}
             to={memoryEditPath(memory.id)}
             label={t('memoryProduct.edit')}
             state={{ taskOriginKey: originKey }}
@@ -1221,7 +1388,9 @@ export function MemoryProductPage({
               {t(
                 taskState.photosUnconfirmed
                   ? 'taskBoundary.photosUnconfirmed'
-                  : 'taskBoundary.saved',
+                  : !memory.experienceKind
+                    ? 'composer.saved'
+                    : 'taskBoundary.saved',
               )}
             </div>
           ) : null}
@@ -1233,7 +1402,7 @@ export function MemoryProductPage({
           ) : null}
         </>
       }
-      pageClassName="memory-product-page"
+      pageClassName={`memory-product-page${!memory.experienceKind ? ' page-composer-detail' : ''}`}
       containerClassName="memory-detail-container"
       articleClassName="memory-detail-card"
     >
@@ -1256,6 +1425,10 @@ export function MemoryProductPage({
         >
           {t('coupleExperiences.addOwnAnswer')}
         </TaskOriginLink>
+      ) : null}
+      {!memory.experienceKind ? mediaContext : null}
+      {!memory.experienceKind && hasAuthoredTitle ? (
+        <h2 className="detail-content-title">{memory.title}</h2>
       ) : null}
       {(!memory.experienceKind || !memory.experienceAnswers?.length) &&
       memory.body.trim() ? (
@@ -1299,6 +1472,7 @@ export function MemoryProductPage({
           <ul className="memory-tag-summary">
             {memory.tags.map((tag) => (
               <li key={tag}>
+                {!memory.experienceKind ? <EimirIcon name="tag" /> : null}
                 {(MEMORY_TAGS as readonly string[]).includes(tag)
                   ? t(`memory.tagLabels.${tag}`)
                   : tag}
@@ -1308,61 +1482,7 @@ export function MemoryProductPage({
         </section>
       ) : null}
 
-      <div className="memory-media-context">
-        {memory.experienceKind &&
-        memory.experienceAnswers?.some(
-          (answer) => (answer.attachments?.length ?? 0) > 0,
-        ) ? (
-          <section aria-label={t('coupleExperiences.sharedGallery')}>
-            <h2>{t('coupleExperiences.sharedGallery')}</h2>
-            <div className="experience-shared-gallery">
-              {memory.experienceAnswers
-                .filter((answer) => (answer.attachments?.length ?? 0) > 0)
-                .map((answer, index) => (
-                  <MemoryPhotoGallery
-                    key={answer.id}
-                    memory={{
-                      ...memory,
-                      id: answer.id,
-                      authorId: answer.author.id,
-                      author: answer.author,
-                      body: answer.body,
-                      version: answer.version,
-                      capabilities: answer.capabilities,
-                      attachments: answer.attachments ?? [],
-                    }}
-                    apis={apis}
-                    accountId={currentAccountId}
-                    offline={offline}
-                    projectionMemoryId={memory.id}
-                    commentTriggerRef={index === 0 ? setCommentHost : undefined}
-                    loadImage={(attachmentId, signal) =>
-                      loadMemoryImage(answer.id, attachmentId, signal)
-                    }
-                    scope={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${answer.id}`}
-                  />
-                ))}
-            </div>
-          </section>
-        ) : null}
-        {(!memory.experienceKind || !memory.experienceAnswers?.length) &&
-        boundAttachments.length > 0 ? (
-          <section aria-label={t('memory.photoLabel')}>
-            <MemoryPhotoGallery
-              commentTriggerRef={setCommentHost}
-              key={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
-              memory={memory}
-              apis={apis}
-              accountId={currentAccountId}
-              offline={offline}
-              loadImage={(attachmentId, signal) =>
-                loadMemoryImage(memory.id, attachmentId, signal)
-              }
-              scope={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
-            />
-          </section>
-        ) : null}
-      </div>
+      {memory.experienceKind ? mediaContext : null}
       {!memory.experienceKind ? (
         <MemoryPlanningLinks
           apiBaseUrl={apiBaseUrl}
@@ -1371,6 +1491,7 @@ export function MemoryProductPage({
           spaceId={spaceId}
           memoryId={memory.id}
           canManage={memory.capabilities.canEdit}
+          presentation="detail"
           offline={offline}
           initialPlanId={(() => {
             const candidate = (
@@ -1403,6 +1524,7 @@ export function MemoryProductPage({
         />
       ) : null}
       <CommentsPanel
+        inlineComposer={!memory.experienceKind}
         triggerContainer={commentHost}
         commentsApi={apis.comments}
         spaceId={spaceId}

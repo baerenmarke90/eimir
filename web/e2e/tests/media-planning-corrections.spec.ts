@@ -1,14 +1,20 @@
-import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
-import storyProducts from '../../src/i18n/locales/storyProducts';
-import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composerCopy from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import sources from '../../src/i18n/locales/photoSources';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtureCopy from '../fixtures/locales/de';
+import { expectLabeledComposerTool } from '../support/addAction';
+import { swipeCarousel } from '../support/mediaCarouselGesture';
+import { expectQuietComposerMedia } from '../support/mediaDraft';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -86,6 +92,7 @@ async function setup(page: Page, failNextWish = false) {
     planSaveMatch: '',
     mediaWrites: 0,
     bound: [] as string[],
+    allocatedByName: {} as Record<string, string>,
     cover: null as string | null,
     failNextWish,
   };
@@ -188,6 +195,12 @@ async function setup(page: Page, failNextWish = false) {
     }
     if (p === `${root}/attachments` && method === 'POST') {
       const attachmentId = id(200 + ++state.mediaWrites);
+      const originalName = request.postDataJSON().originalName;
+      if (typeof originalName !== 'string')
+        throw new Error(
+          'Canonical media admission requires its original filename.',
+        );
+      state.allocatedByName[originalName] = attachmentId;
       const a = {
         id: attachmentId,
         mediaType: 'IMAGE',
@@ -330,7 +343,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   expect(state.planReads).toEqual(['', '20']);
   await page.goto(`/plan/plans/${plans[0].id}`);
   await expect(
-    page.getByRole('button', { name: m5s3.plan.linkWish }),
+    page.getByRole('button', { name: memoryProduct.planning.add }),
   ).toHaveCount(0);
   await page
     .getByRole('button', { name: m5s3.common.edit, exact: true })
@@ -338,7 +351,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   await page
     .getByRole('textbox', { name: m5s3.common.title, exact: true })
     .fill(copy.edit);
-  await page.getByRole('button', { name: m5s3.plan.linkWish }).click();
+  await page.getByRole('button', { name: memoryProduct.planning.add }).click();
   await page.getByRole('radio', { name: wishes[0].title, exact: true }).check();
   await captureScreenshot(
     page,
@@ -475,10 +488,10 @@ test('real local codec worker reduces transfer bytes without dropping the audio 
 test.describe('free composer media preservation', () => {
   test.use({ hasTouch: true });
   for (const scenario of [
-    { width: 390, theme: 'dark', touch: true },
-    { width: 1280, theme: 'light', touch: false },
+    { width: 390, theme: 'dark' },
+    { width: 1280, theme: 'light' },
   ] as const) {
-    test(`draft gallery keeps zoom, sorting, privacy and cover through save at ${scenario.width}`, async ({
+    test(`draft gallery keeps zoom, selection, privacy and cover through save at ${scenario.width}`, async ({
       page,
     }, info) => {
       await page.setViewportSize({ width: scenario.width, height: 900 });
@@ -499,13 +512,16 @@ test.describe('free composer media preservation', () => {
       await expect.poll(() => state.mediaWrites).toBe(2);
       const tiles = page.locator('.photo-draft-grid .photo-draft-tile');
       await expect(tiles).toHaveCount(2);
+      const inputKeys = await tiles.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('data-media-key')),
+      );
+      expect(inputKeys.every(Boolean)).toBe(true);
+      await expectQuietComposerMedia(page);
       await expect(tiles.first()).toHaveAccessibleName(
         new RegExp(de.memory.photoReady),
       );
       await tiles.nth(1).click();
-      const selected = page.locator('.photo-draft-frame').filter({
-        has: page.locator('.photo-draft-tile[aria-pressed="true"]'),
-      });
+      const selected = page.locator('.photo-draft-stage');
       const chosenKey = await tiles.nth(1).getAttribute('data-media-key');
       if (!chosenKey)
         throw new Error('The selected draft identity is unavailable.');
@@ -532,7 +548,12 @@ test.describe('free composer media preservation', () => {
       await expect(selected.getByRole('checkbox')).toBeChecked();
       expect(await privacyGeometry()).toEqual(before);
       await privacy.locator('input').uncheck();
-      await page.locator('.photo-draft-gallery .media-gallery-expand').click();
+      await page.locator('.photo-draft-stage').evaluate((stage) => {
+        stage.scrollIntoView({ block: 'center', behavior: 'instant' });
+      });
+      await page
+        .locator('.photo-draft-stage .media-gallery-carousel-slide.is-active')
+        .click();
       const dialog = page.getByRole('dialog', {
         name: storyProducts.gallery.dialogAria,
       });
@@ -562,53 +583,23 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: storyProducts.gallery.close })
         .click();
       await expect(dialog).toHaveCount(0);
-      await tiles.nth(1).scrollIntoViewIfNeeded();
-      const from = await tiles.nth(1).boundingBox(),
-        to = await tiles.first().boundingBox();
-      if (!from || !to)
-        throw new Error('The draft sorting targets are unavailable.');
-      const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
-      const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
-      if (scenario.touch) {
-        const client = await page.context().newCDPSession(page);
-        try {
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchStart',
-            touchPoints: [start],
-          });
-          await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchMove',
-            touchPoints: [end],
-          });
-          await nextFrame(page);
-          await client.send('Input.dispatchTouchEvent', {
-            type: 'touchEnd',
-            touchPoints: [],
-          });
-        } finally {
-          await client.detach();
-        }
-      } else {
-        await page.mouse.move(start.x, start.y);
-        await page.mouse.down();
-        await page.mouse.move(end.x, end.y, { steps: 8 });
-        await expect(tiles.nth(1)).toHaveCSS('cursor', 'grabbing');
-        await page.mouse.up();
-      }
-      await expect(tiles.first()).toHaveAttribute('data-media-key', chosenKey);
-      await page
-        .getByRole('button', { name: experiences.arrange, exact: true })
-        .click();
-      const arrange = page.getByRole('dialog', { name: experiences.arrange });
-      await arrange
-        .getByRole('button', { name: experiences.last, exact: true })
-        .click();
-      await arrange
-        .getByRole('button', { name: experiences.finish, exact: true })
-        .click();
-      await expect(arrange).toHaveCount(0);
+      // Latest PO correction removes composer arrangement/reset rows. The native
+      // thumbnail selects the preview without changing cover identity or import order.
+      await expectQuietComposerMedia(page);
+      expect(
+        await tiles.evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('data-media-key')),
+        ),
+      ).toEqual(inputKeys);
+      await tiles.first().click();
+      await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
       await expect(tiles.nth(1)).toHaveAttribute('data-media-key', chosenKey);
+      await expect(
+        tiles.nth(1).locator('.photo-draft-cover-star'),
+      ).toBeVisible();
+      await expect(
+        tiles.first().locator('.photo-draft-cover-star'),
+      ).toHaveCount(0);
       await expect(prose).toHaveValue(copy.description);
       await expect
         .poll(() =>
@@ -642,8 +633,199 @@ test.describe('free composer media preservation', () => {
         .getByRole('button', { name: memoryProduct.save, exact: true })
         .click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-      expect(state.bound).toHaveLength(2);
+      expect(state.bound).toEqual(
+        ['first-photo.jpg', 'second-photo.jpg'].map(
+          (name) => state.allocatedByName[name],
+        ),
+      );
       expect(state.cover).toBe(state.bound[1]);
+    });
+  }
+});
+
+test.describe('integrated soft media choices', () => {
+  for (const scenario of [
+    { width: 360, theme: 'light', large: false },
+    { width: 390, theme: 'dark', large: false },
+    { width: 430, theme: 'light', large: false },
+    { width: 1280, theme: 'dark', large: false },
+    { width: 320, theme: 'light', large: true },
+  ] as const) {
+    test(`writing and media share one accessible composer at ${scenario.width} ${scenario.theme}`, async ({
+      page,
+    }, info) => {
+      test.setTimeout(60_000);
+      await page.setViewportSize({ width: scenario.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: scenario.theme,
+        reducedMotion: 'reduce',
+      });
+      const { plans } = await setup(page);
+      await page.route(`**/api/v1/spaces/${SPACE_ID}/photo-sources`, (route) =>
+        route.fulfill({
+          json: {
+            enabled: true,
+            canImport: true,
+            googleAvailable: true,
+            immichConnected: true,
+          },
+        }),
+      );
+      await signIn(page);
+      for (const [index, route] of [
+        '/story/memories/new',
+        '/story/memories/mem-canal/edit',
+        '/plan/plans/new',
+        `/plan/plans/${plans[0].id}`,
+      ].entries()) {
+        await page.goto(route);
+        if (index === 3)
+          await page
+            .getByRole('button', { name: m5s3.common.edit, exact: true })
+            .click();
+        if (scenario.large)
+          await page.evaluate(() => {
+            document.documentElement.style.fontSize = '200%';
+          });
+        const composer = page.locator('.page-composer');
+        await expect(composer).toHaveCount(1);
+        const diary = index < 2;
+        const entry = diary
+          ? composer.getByRole('button', { name: sources.more, exact: true })
+          : composer
+              .locator('.composer-tool-row')
+              .getByRole('button', { name: composerCopy.photo, exact: true });
+        if (diary) {
+          await expectMediaIntakeAction(
+            composer.locator('.media-intake-device'),
+            'foto',
+          );
+          await expect(entry).toBeVisible();
+          await expect(entry.locator('.media-intake-pro')).toHaveCount(1);
+        } else await expectLabeledComposerTool(entry, 'foto');
+        await expect(composer.locator('.media-action-group')).toHaveCount(1);
+        await expect(composer.locator('.media-action-group-label')).toHaveCount(
+          0,
+        );
+        await expect(
+          composer.getByText(de.memory.photoFormats, { exact: true }),
+        ).toHaveCount(0);
+        await expect(composer.locator('.media-action-group')).toHaveCSS(
+          'background-color',
+          'rgba(0, 0, 0, 0)',
+        );
+        await expect(
+          composer.getByRole('button', { name: sources.more, exact: true }),
+        ).toHaveCount(diary ? 1 : 0);
+        for (const surface of [
+          composer,
+          composer.locator('.composer-writing-surface, .page-composer-writing'),
+          entry,
+        ])
+          await expect(surface).toHaveCSS('border-top-width', '0px');
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth + 1,
+          ),
+        ).toBe(true);
+        const prose = composer.getByRole('textbox', {
+          name: de.memory.bodyLabel,
+          exact: true,
+        });
+        if (index === 0) {
+          await prose.fill(copy.description);
+          await expect(prose).toHaveCSS('outline-style', 'solid');
+          await expect(prose).toHaveCSS('outline-width', '2px');
+        }
+        await entry.press('Enter');
+        const sheet = page.getByRole('dialog', {
+          name: sources.title,
+          exact: true,
+        });
+        await expect(sheet).toBeVisible();
+        const device = sheet.getByRole('button', {
+          name: sources.device,
+          exact: true,
+        });
+        const google = sheet.getByRole('button', {
+          name: sources.google,
+          exact: true,
+        });
+        const immich = sheet.getByRole('button', {
+          name: sources.immich,
+          exact: true,
+        });
+        for (const [action, icon] of [
+          [device, 'foto'],
+          [google, 'photo-library'],
+          [immich, 'photo-library'],
+        ] as const)
+          await expectMediaIntakeAction(action, icon);
+        await expect(device.locator('.media-intake-pro')).toHaveCount(0);
+        await expect(google.locator('.media-intake-pro')).toHaveCount(1);
+        await expect(immich.locator('.media-intake-pro')).toHaveCount(1);
+        expect(
+          await sheet.evaluate(
+            (element) => element.scrollWidth <= element.clientWidth + 1,
+          ),
+        ).toBe(true);
+        if (index === 0) {
+          await page.keyboard.press('Tab');
+          await expect(sheet.locator('.short-task-sheet-body')).toBeFocused();
+          await page.keyboard.press('Tab');
+          await expect(device).toBeFocused();
+          await expect(device).toHaveCSS('outline-style', 'solid');
+          const chooser = page.waitForEvent('filechooser');
+          await device.press('Enter');
+          await (await chooser).setFiles([]);
+          await expect(sheet).toBeVisible();
+          await expect(device).toBeFocused();
+          const axe = await new AxeBuilder({ page })
+            .include('.photo-source-sheet')
+            .analyze();
+          expect(axe.violations).toEqual([]);
+          await captureScreenshot(
+            page,
+            info,
+            `shell-unified-source-choice-${scenario.width}-${scenario.theme}.png`,
+            { fullPage: true },
+          );
+          await page.emulateMedia({ forcedColors: 'active' });
+          for (const action of [device, google, immich])
+            await expect(action).toHaveCSS('border-top-width', '1px');
+          await page.emulateMedia({ forcedColors: 'none' });
+        }
+        await sheet
+          .getByRole('button', { name: taskSheets.close, exact: true })
+          .last()
+          .click();
+        await expect(sheet).toHaveCount(0);
+        await expect(entry).toBeFocused();
+        if (index === 0) {
+          await expect(prose).toHaveValue(copy.description);
+          await page.emulateMedia({ forcedColors: 'active' });
+          await expect(prose).toHaveCSS('border-top-width', '0px');
+          await prose.focus();
+          await expect(prose).toHaveCSS('outline-style', 'solid');
+          await expect(prose).toHaveCSS('outline-width', '2px');
+          await expect(entry).toHaveCSS('border-top-width', '1px');
+          await page.emulateMedia({ forcedColors: 'none' });
+          await page.locator('.composer-header h1').click();
+          expect(
+            (await new AxeBuilder({ page }).include('.free-composer').analyze())
+              .violations,
+          ).toEqual([]);
+        }
+        const surface = ['', '-memory-edit', '-plan-create', '-plan-edit'][
+          index
+        ];
+        await captureScreenshot(
+          page,
+          info,
+          `shell-soft-composer${surface}-${scenario.width}-${scenario.theme}.png`,
+          { fullPage: true },
+        );
+      }
     });
   }
 });

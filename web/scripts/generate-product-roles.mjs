@@ -58,6 +58,37 @@ function typography(name, source, familyName = 'ui', weight) {
   declare(`tracking-${name}`, type.letterSpacing);
 }
 
+typography('media-caption', 'mediaCaption');
+typography('story-summary', 'storySummary', 'display');
+typography('story-total', 'storyTotal', 'display');
+typography('story-category', 'storyCategory');
+for (const [name, role] of [
+  ['media-mosaic-gap', 'mediaMosaicGap'],
+  ['story-summary-inset', 'storySummaryInset'],
+  ['story-category-gap', 'storyCategoryGap'],
+  ['story-bar-gap', 'storyBarGap'],
+])
+  declare(`space-${name}`, rem(`spacing.${role}`));
+const storyColors = [
+  ['memory', 'storyMemory'],
+  ['heart-moment', 'storyHeartMoment'],
+  ['milestone', 'storyMilestone'],
+  ['surface', 'storySurface'],
+];
+function storyColorDeclarations(scheme, indent = '  ') {
+  return storyColors
+    .map(
+      ([name, role]) =>
+        `${indent}--color-story-${name}: ${value(`color.scheme.${scheme}.${role}`).toLowerCase()};`,
+    )
+    .join('\n');
+}
+for (const [name, role] of storyColors) {
+  declare(
+    `color-story-${name}`,
+    value(`color.scheme.light.${role}`).toLowerCase(),
+  );
+}
 typography('page-heading', 'heading1', 'display');
 typography(
   'personal-heading',
@@ -70,6 +101,18 @@ typography('utility-heading', 'heading2', 'ui', value('font.weight.semibold'));
 typography('memory-detail-heading', 'memoryDetailHeading');
 typography('section-heading', 'heading3');
 typography('reading-body', 'body');
+typography('composer-title', 'composerTitle', 'display');
+typography('composer-lead', 'composerLead', 'display');
+typography('composer-prose', 'composerProse');
+typography('composer-context', 'composerContext');
+for (const [name, source] of Object.entries({
+  'composer-detail-media-height': 'detailMediaHeight',
+  'composer-media-height': 'mediaHeight',
+  'composer-media-compact-height': 'mediaCompactHeight',
+  'composer-thumbnail-size': 'thumbnailSize',
+  'composer-intake-height': 'intakeHeight',
+}))
+  declare(name, rem(`composer.${source}`));
 typography('supporting-copy', 'bodySmall');
 typography('navigation-label', 'meta', 'ui', value('font.weight.semibold'));
 typography('action-label', 'body', 'ui', value('font.weight.semibold'));
@@ -187,6 +230,7 @@ ${declarations.join('\n')}
 }
 
 :root[data-theme="dark"] {
+${storyColorDeclarations('dark')}
   --color-link-text: ${darkLink};
   --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
   --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
@@ -197,6 +241,7 @@ ${declarations.join('\n')}
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+${storyColorDeclarations('dark', '    ')}
     --color-link-text: ${darkLink};
     --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
     --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};

@@ -12,9 +12,11 @@ import { useVideoTransfer } from '../client/backgroundVideoUploads';
 export function DraftMediaPreview({
   draft,
   context,
+  blurSensitivePreview = false,
 }: {
   draft: AttachmentDraft;
   context?: VideoCaptureContext;
+  blurSensitivePreview?: boolean;
 }) {
   const { t } = useTranslation();
   const video = draft.file.type.startsWith('video/');
@@ -60,7 +62,14 @@ export function DraftMediaPreview({
         <EimirIcon name="foto" />
       </span>
     );
-  if (draft.isSensitive) return <SensitiveMediaCover />;
+  if (draft.isSensitive)
+    return (
+      <SensitiveMediaCover>
+        {blurSensitivePreview && !video && draft.previewUrl ? (
+          <img src={draft.previewUrl} alt="" />
+        ) : null}
+      </SensitiveMediaCover>
+    );
   if (video && transfer)
     return (
       <MediaProcessingState

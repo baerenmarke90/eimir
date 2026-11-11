@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
@@ -153,8 +159,10 @@ export function HeartEmotionPicker({
   idPrefix = 'heart-emotion',
   className = '',
   compact = false,
+  onChange,
 }: {
   compact?: boolean;
+  onChange?: (emotion: HeartEmotionValue) => void;
   name?: string;
   defaultValue?: HeartEmotionValue;
   legend: string;
@@ -166,10 +174,13 @@ export function HeartEmotionPicker({
   const fieldset = useRef<HTMLFieldSetElement>(null);
   useEffect(() => {
     const form = fieldset.current?.closest('form');
-    const reset = () => setSelected(defaultValue);
+    const reset = () => {
+      setSelected(defaultValue);
+      onChange?.(defaultValue);
+    };
     form?.addEventListener('reset', reset);
     return () => form?.removeEventListener('reset', reset);
-  }, [defaultValue]);
+  }, [defaultValue, onChange]);
   const choices = (
     <fieldset
       ref={fieldset}
@@ -193,7 +204,10 @@ export function HeartEmotionPicker({
                 name={name}
                 value={emotion}
                 defaultChecked={emotion === defaultValue}
-                onChange={() => setSelected(emotion)}
+                onChange={() => {
+                  setSelected(emotion);
+                  onChange?.(emotion);
+                }}
               />
               <span className="heart-emotion-choice-visual">
                 <span className="heart-emotion-icon" aria-hidden="true">
@@ -225,5 +239,89 @@ export function HeartEmotionPicker({
     </details>
   ) : (
     choices
+  );
+}
+
+/** Feeling color follows the active surface and releases browser chrome on exit. */
+export function HeartEmotionSurface({
+  emotion,
+  children,
+  className = '',
+}: {
+  emotion: HeartEmotionValue;
+  children: ReactNode;
+  className?: string;
+}) {
+  const surface = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = surface.current;
+    const meta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"]',
+    );
+    if (!element || element.dataset.heartEmotion !== emotion) return;
+    const previousSurface = document.documentElement.style.getPropertyValue(
+      '--active-heart-emotion-surface',
+    );
+    const previousAccent = document.documentElement.style.getPropertyValue(
+      '--active-heart-emotion-accent',
+    );
+    const update = () => {
+      const color = getComputedStyle(element)
+        .getPropertyValue('--heart-emotion-surface')
+        .trim();
+      if (color) {
+        if (meta) meta.content = color;
+        document.documentElement.style.setProperty(
+          '--active-heart-emotion-surface',
+          color,
+        );
+        document.documentElement.style.setProperty(
+          '--active-heart-emotion-accent',
+          getComputedStyle(element)
+            .getPropertyValue('--heart-emotion-accent')
+            .trim(),
+        );
+      }
+    };
+    update();
+    const theme = new MutationObserver(update);
+    theme.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => {
+      theme.disconnect();
+      if (previousSurface)
+        document.documentElement.style.setProperty(
+          '--active-heart-emotion-surface',
+          previousSurface,
+        );
+      else
+        document.documentElement.style.removeProperty(
+          '--active-heart-emotion-surface',
+        );
+      if (previousAccent)
+        document.documentElement.style.setProperty(
+          '--active-heart-emotion-accent',
+          previousAccent,
+        );
+      else
+        document.documentElement.style.removeProperty(
+          '--active-heart-emotion-accent',
+        );
+      const background = getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-background')
+        .trim();
+      if (background && meta) meta.content = background;
+    };
+  }, [emotion]);
+  return (
+    <div
+      ref={surface}
+      className={`heart-emotion-page heart-emotion-compose ${className}`.trim()}
+      data-heart-emotion={emotion}
+    >
+      {children}
+    </div>
   );
 }

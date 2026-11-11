@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Diary composer reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,500;7..72,600&display=block" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  /* Values mirror design/tokens.json semantic roles (light/dark). */
+  .phone {
+    --bg: #E6EBFA; --surface: #F3F5FC; --subtle: #D6E1F7; --raised: #FFFFFF;
+    --text: #19233E; --text-2: #58627B; --brand: #4C6ED0; --brand-strong: #3055B8;
+    --on-brand: #FFFFFF; --hairline: #BBC9E5; --chip-text: #3055B8; --scrim: rgb(25 35 62 / 38%);
+    --pro-bg: #F9EAF4; --pro-text: #9B2F6A;
+  }
+  .phone.dark {
+    --bg: #171B2F; --surface: #252B43; --subtle: #303F62; --raised: #303751;
+    --text: #F6F7FF; --text-2: #C4CEE8; --brand: #42558C; --brand-strong: #B7C8FF;
+    --on-brand: #171B2F; --hairline: #46506F; --chip-text: #B7C8FF; --scrim: rgb(0 0 0 / 55%);
+    --pro-bg: #46394F; --pro-text: #F6C9E1;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #CDD5EA; font-family: 'Instrument Sans', Arial, sans-serif; padding: 16px; }
+  .board { display: flex; gap: 40px; align-items: flex-start; padding: 32px; width: max-content; }
+  .cap { font-size: 18px; font-weight: 600; color: #19233E; margin-bottom: 6px; }
+  .sub { font-size: 14px; color: #3F4963; margin-bottom: 16px; max-width: 390px; min-height: 60px; line-height: 1.4; }
+  .phone { width: 390px; height: 844px; border-radius: 44px; background: var(--bg); color: var(--text);
+    position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 10px #19233E; margin-left: 10px; }
+  .status { height: 47px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font-size: 15px; font-weight: 600; }
+  .status i { font-size: 16px; margin-left: 4px; }
+  .head { display: flex; align-items: center; gap: 8px; padding: 6px 20px 10px 12px; }
+  .back { width: 44px; height: 44px; display: grid; place-items: center; font-size: 24px; }
+  .head h1 { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .save { height: 44px; padding: 0 16px; border-radius: 999px; font-size: 16px; font-weight: 600;
+    display: inline-flex; align-items: center; background: var(--subtle); color: var(--text-2); }
+  .save.ready { background: var(--brand-strong); color: var(--on-brand); }
+  .dark .save.ready { background: var(--brand-strong); }
+  .scroll { flex: 1; padding: 4px 20px 0; overflow: hidden; }
+  .context { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+  .ctx { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 15px; color: var(--text-2); }
+  .ctx i { font-size: 18px; }
+  .ctx.date { color: var(--text); font-weight: 500; }
+  .ctx .chev { font-size: 15px; color: var(--text-2); }
+  .intake { border-radius: 24px; background: var(--subtle); padding: 8px; }
+  .intake-main { height: 172px; border-radius: 18px; background: var(--surface); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px; text-align: center; }
+  .dark .intake-main { background: var(--raised); }
+  .bubble { width: 52px; height: 52px; border-radius: 50%; background: var(--pro-bg); color: var(--brand-strong);
+    display: grid; place-items: center; font-size: 26px; }
+  .dark .bubble { color: var(--text); }
+  .intake-main strong { font-size: 17px; font-weight: 600; }
+  .intake-main span { font-size: 14px; color: var(--text-2); }
+  .intake-alt { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 10px 0; font-size: 15px; font-weight: 500; color: var(--chip-text); }
+  .intake-alt i { font-size: 20px; }
+  .pro { margin-left: auto; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--pro-bg); color: var(--pro-text); }
+  .title { font-family: 'Literata', Georgia, serif; font-size: 27px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; margin: 20px 0 8px; }
+  .muted { color: var(--text-2); opacity: 1; }
+  .title.muted { font-weight: 500; }
+  .prose { font-size: 17px; line-height: 1.55; }
+  .cover { height: 214px; border-radius: 24px; overflow: hidden; position: relative; }
+  .cover svg, .thumb svg { width: 100%; height: 100%; display: block; }
+  .badge { position: absolute; top: 12px; left: 12px; font-size: 12px; font-weight: 600; color: #fff; background: rgb(25 35 62 / 55%);
+    padding: 5px 10px; border-radius: 999px; display: flex; gap: 5px; align-items: center; }
+  .count { position: absolute; right: 12px; bottom: 12px; font-size: 12px; font-weight: 600; color: #fff; background: rgb(25 35 62 / 55%); padding: 5px 10px; border-radius: 999px; }
+  .thumbs { display: flex; gap: 8px; margin-top: 8px; }
+  .thumb { width: 56px; height: 56px; border-radius: 14px; overflow: hidden; position: relative; flex: none; }
+  .thumb.sel { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--brand); }
+  .thumb.sensitive svg { filter: blur(7px) saturate(.6); transform: scale(1.2); }
+  .thumb.sensitive::after { content: ''; position: absolute; inset: 0; background: rgb(25 35 62 / 30%); }
+  .thumb.sensitive i { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 20px; z-index: 1; }
+  .thumb.add { background: var(--subtle); display: grid; place-items: center; font-size: 24px; color: var(--chip-text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--subtle);
+    color: var(--chip-text); font-size: 14px; font-weight: 600; }
+  .chip i { font-size: 16px; }
+  .draft { display: flex; gap: 6px; align-items: flex-start; margin-top: 14px; font-size: 12px; line-height: 1.4; color: var(--text-2); }
+  .draft i { font-size: 15px; }
+  .tools { border-top: 1px solid var(--hairline); background: var(--bg); padding: 6px 20px 28px; display: flex; justify-content: space-around; }
+  .tool { width: 76px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font-size: 12px; font-weight: 600; color: var(--text-2); border-radius: 14px; }
+  .tool i { font-size: 23px; color: var(--chip-text); }
+  .tool.on { color: var(--chip-text); }
+  .home { position: absolute; z-index: 4; bottom: 8px; left: 50%; width: 134px; height: 5px; border-radius: 3px; background: var(--text); transform: translateX(-50%); opacity: .85; }
+  .scrim { position: absolute; inset: 0; z-index: 2; background: var(--scrim); }
+  .sheet { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 10px 20px 40px; }
+  .dark .sheet { background: var(--raised); }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--hairline); margin: 0 auto 18px; }
+  .sheet h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .sheet p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; line-height: 1.4; }
+  .field { height: 52px; border-radius: 16px; background: var(--bg); display: flex; align-items: center; padding: 0 16px; font-size: 16px; color: var(--text-2); gap: 10px; }
+  .label { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--text-2); margin: 20px 0 10px; display: flex; gap: 6px; align-items: center; }
+  .chip.out { background: transparent; box-shadow: inset 0 0 0 1.5px var(--hairline); color: var(--text); }
+  .chip.chosen { background: var(--brand-strong); color: var(--on-brand); }
+  .done { margin-top: 24px; height: 52px; border-radius: 999px; background: var(--brand-strong); color: var(--on-brand); display: grid; place-items: center; font-size: 16px; font-weight: 600; }
+  .board + .board { margin-top: 32px; }
+  .phone.heart { --bg: var(--emo-surface); --subtle: color-mix(in srgb, var(--emo-accent) 13%, var(--emo-surface));
+    --surface: color-mix(in srgb, #FFFFFF 62%, var(--emo-surface)); --chip-text: var(--emo-accent); --brand-strong: var(--emo-accent); --brand: var(--emo-accent);
+    --hairline: color-mix(in srgb, var(--emo-accent) 28%, var(--emo-surface)); }
+  .phone.heart.dark { --surface: color-mix(in srgb, #FFFFFF 7%, var(--emo-surface)); --raised: color-mix(in srgb, #FFFFFF 9%, var(--emo-surface));
+    --on-brand: var(--emo-surface); }
+  .emo-icon { display: inline-grid; width: 26px; height: 26px; flex: none; place-items: center; border-radius: 50%;
+    background: color-mix(in srgb, var(--emo-accent) 15%, transparent); color: var(--emo-accent); }
+  .emo-icon svg { width: 17px; height: 17px; }
+  .feel .chip { padding-left: 6px; gap: 8px; height: 40px; }
+  .feel .chip.chosen .emo-icon { background: color-mix(in srgb, var(--on-brand) 22%, transparent); color: var(--on-brand); }
+  .feel .chip.chosen::after { content: '✓'; font-size: 14px; margin-left: 2px; }
+  .feel { display: flex; flex-wrap: wrap; gap: 8px; }
+  .feel .chip { background: var(--surface); color: var(--text); }
+  .feel .chip.chosen { background: var(--emo-accent); color: var(--on-brand); }
+  .row-label { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--text-2); margin: 20px 0 10px; }
+  .intake.compact { padding: 6px; display: flex; flex-direction: column; gap: 6px; margin-top: 20px; }
+  .src { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px; border-radius: 16px; background: var(--surface); font-size: 15px; font-weight: 600; }
+  .dark .src { background: var(--raised); }
+  .src i { font-size: 22px; color: var(--chip-text); }
+  .src small { display: block; font-size: 12px; font-weight: 400; color: var(--text-2); }
+  .src.quiet { background: transparent; min-height: 44px; color: var(--chip-text); font-weight: 500; }
+  .ctx.pick { display: inline-flex; align-self: flex-start; gap: 6px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--subtle); color: var(--chip-text); font-weight: 600; font-size: 14px; min-height: 34px; margin-top: 4px; }
+  .ctx.pick i { font-size: 16px; }
+  .title.lead { font-size: 25px; margin-top: 6px; }
+  .plan-cover, .heart-cover { height: 176px; }
+  .feel-summary { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 6px; border-radius: 999px;
+    background: var(--surface); font-size: 14px; font-weight: 600; }
+  .voice { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 14px 0 8px; border-radius: 16px; background: var(--surface); margin-top: 8px; }
+  .dark .voice { background: var(--raised); }
+  .play { width: 44px; height: 44px; border-radius: 50%; background: var(--emo-accent, var(--brand-strong)); color: var(--on-brand); display: grid; place-items: center; font-size: 20px; flex: none; }
+  .wave { flex: 1; height: 28px; display: flex; align-items: center; gap: 3px; }
+  .wave i { display: block; width: 3px; border-radius: 2px; background: color-mix(in srgb, var(--emo-accent, var(--brand)) 55%, transparent); }
+  .voice small { font-size: 12px; color: var(--text-2); font-weight: 600; }
+  .srcs { display: flex; flex-direction: column; gap: 8px; }
+  .srcs .src { background: var(--bg); }
+  .ctx-row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; }
+  .ctx.place { color: var(--chip-text); font-weight: 600; }
+  .linkrow { display: flex; align-items: center; gap: 8px; min-height: 40px; margin-top: 10px; color: var(--chip-text); font-weight: 600; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="board" id="board-diary">
+
+  <section>
+    <div class="cap">1 · Empty</div>
+    <div class="sub">Two entry paths: media or words, drag and drop included. Short date only; place and tag wait in the tool row.</div>
+    <div class="phone" id="f-empty">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>10. November 2026<i class="ti ti-chevron-down chev"></i></div>
+        </div>
+        <div class="intake">
+          <div class="intake-main">
+            <div class="bubble"><i class="ti ti-photo-plus"></i></div>
+            <strong>Fotos oder Videos hinzufügen</strong>
+            <span>Vom Gerät auswählen oder hierher ziehen</span>
+          </div>
+          <div class="intake-alt"><i class="ti ti-library-photo"></i>Andere Fotoquelle<span class="pro">Pro</span></div>
+        </div>
+        <div class="title muted">Titel (optional)</div>
+        <div class="prose muted">Was möchtest du von diesem Tag festhalten?</div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cap">2 · Populated</div>
+    <div class="sub">The cover leads, prose gets reading space. The chosen place sits next to the date; tags appear as quiet chips.</div>
+    <div class="phone" id="f-filled">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll" data-content="filled"></div>
+      <div class="tools">
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cap">3 · Populated · Dark</div>
+    <div class="sub">Same anatomy in Dark; imagery stays natural, soft surfaces instead of outlines.</div>
+    <div class="phone dark" id="f-dark">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll" data-content="filled"></div>
+      <div class="tools">
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cap">4 · Tag sheet</div>
+    <div class="sub">Optional details open as a short sheet over the draft and return to the composition.</div>
+    <div class="phone" id="f-sheet">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Tagebucheintrag</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll" data-content="filled"></div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <h2>Was passt zu diesem Moment?</h2>
+        <p>Optional · Wähle aus, was euch später an diesen Moment erinnert.</p>
+        <div class="field"><i class="ti ti-plus"></i>Eigenen Tag hinzufügen</div>
+        <div class="label"><i class="ti ti-sparkles"></i>KI-Vorschläge · Du entscheidest, was passt.</div>
+        <div class="chips" style="margin-top:0">
+          <span class="chip chosen"><i class="ti ti-check"></i>Urlaub</span>
+          <span class="chip out">Sonnenaufgang</span>
+          <span class="chip out">Am Wasser</span>
+        </div>
+        <div class="label">Eure Tags</div>
+        <div class="chips" style="margin-top:0">
+          <span class="chip chosen"><i class="ti ti-check"></i>Unterwegs zusammen</span>
+          <span class="chip out">Lachen</span>
+          <span class="chip out">Zuhause</span>
+          <span class="chip out">Besonderer Tag</span>
+        </div>
+        <div class="done">Fertig</div>
+      </div>
+      <div class="home" style="background:var(--text)"></div>
+    </div>
+  </section>
+
+</div>
+
+<div class="board" id="board-heart">
+  <section data-heart="LOVED" data-mode="light" data-variant="text" data-cap="5 · HeartMoment · choosing a feeling"></section>
+  <section data-heart="GRATEFUL" data-mode="light" data-variant="media" data-cap="6 · HeartMoment · with photo and voice"></section>
+  <section data-heart="SEEN" data-mode="dark" data-variant="text" data-cap="7 · HeartMoment · Dark"></section>
+  <section data-heart="GRATEFUL" data-mode="light" data-variant="sheet" data-cap="8 · Photo source sheet"></section>
+</div>
+
+<div class="board" id="board-plan">
+  <section>
+    <div class="cap">9 · Plan</div>
+    <div class="sub">No media block on the page: Foto in the tool row is the single media entry. Place sits next to the short date; List and tag appear as chips.</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>Sa., 21. Nov. · 12:00 Uhr<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
+        </div>
+        <div class="title lead">Picknick am Rhein</div>
+        <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
+        <div class="chips">
+          <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
+          <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
+        </div>
+        <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-checklist"></i>Liste</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+  <section>
+    <div class="cap">10 · Plan · with photos</div>
+    <div class="sub">After selection the cover leads, followed by the draft gallery strip; the + tile adds more.</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>Sa., 21. Nov. · 12:00 Uhr<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
+        </div>
+        <div class="cover plan-cover"><svg data-photo="picnic"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 3</span></div>
+        <div class="thumbs">
+          <div class="thumb sel"><svg data-photo="picnic"></svg></div>
+          <div class="thumb"><svg data-photo="boat"></svg></div>
+          <div class="thumb"><svg data-photo="coffee"></svg></div>
+          <div class="thumb add"><i class="ti ti-plus"></i></div>
+        </div>
+        <div class="title lead" style="margin-top:18px">Picknick am Rhein</div>
+        <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
+        <div class="chips">
+          <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
+          <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
+        </div>
+        <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
+      </div>
+      <div class="tools">
+        <span class="tool on"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-checklist"></i>Liste</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+  <section>
+    <div class="cap">11 · Plan · schedule sheet</div>
+    <div class="sub">The schedule line opens the existing schedule fields in a short sheet.</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span><i class="ti ti-antenna-bars-5"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Plan</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>Sa., 21. Nov. · 12:00 Uhr<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Rheinufer</div></div>
+        </div>
+        <div class="title lead">Picknick am Rhein</div>
+        <div class="prose">Decke, die gute Thermoskanne und endlich das Brot vom Wochenmarkt ausprobieren.</div>
+        <div class="chips">
+          <span class="chip"><i class="ti ti-checklist"></i>Picknick-Liste</span>
+          <span class="chip"><i class="ti ti-tag"></i>Draußen</span>
+        </div>
+        <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
+      </div>
+      <div class="tools">
+        <span class="tool"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool on"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool on"><i class="ti ti-checklist"></i>Liste</span>
+        <span class="tool on"><i class="ti ti-tag"></i>Tag</span>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <h2>Wann soll's sein?</h2>
+        <p>Ohne Uhrzeit bleibt der ausgewählte Tag genau so bestehen.</p>
+        <div class="label" style="margin-top:4px">Datum</div>
+        <div class="field" style="color:var(--text)"><i class="ti ti-calendar-event"></i>Samstag, 21. November 2026</div>
+        <div class="label">Uhrzeit</div>
+        <div class="field" style="color:var(--text)"><i class="ti ti-clock"></i>12:00</div>
+        <div class="intake-alt" style="padding:8px 2px 0"><i class="ti ti-plus"></i>Endzeit hinzufügen</div>
+        <div class="intake-alt" style="padding:0 2px"><i class="ti ti-calendar-off"></i>Noch ohne festen Termin</div>
+        <div class="done">Fertig</div>
+      </div>
+      <div class="home"></div>
+    </div>
+  </section>
+</div>
+
+<template id="filled">
+  <div class="context">
+    <div class="ctx-row"><div class="ctx date"><i class="ti ti-calendar-event"></i>8. November 2026<i class="ti ti-chevron-down chev"></i></div><div class="ctx place"><i class="ti ti-map-pin"></i>Malcesine</div></div>
+  </div>
+  <div class="cover"><svg data-photo="lake"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 4</span></div>
+  <div class="thumbs">
+    <div class="thumb sel"><svg data-photo="lake"></svg></div>
+    <div class="thumb"><svg data-photo="coffee"></svg></div>
+    <div class="thumb"><svg data-photo="boat"></svg></div>
+    <div class="thumb sensitive"><svg data-photo="sunset"></svg><i class="ti ti-eye-off"></i></div>
+    <div class="thumb add"><i class="ti ti-plus"></i></div>
+  </div>
+  <div class="title">Frühstück am See</div>
+  <div class="prose">Viel zu früh aufgestanden, aber der Nebel über dem Wasser war es wert. Den Kaffee hast du natürlich vergessen.</div>
+  <div class="chips">
+    <span class="chip"><i class="ti ti-tag"></i>Urlaub</span>
+    <span class="chip"><i class="ti ti-tag"></i>Unterwegs zusammen</span>
+  </div>
+  <div class="linkrow"><i class="ti ti-plus"></i>Wunsch oder Plan verknüpfen</div>
+  <div class="draft"><i class="ti ti-device-mobile-check"></i>Entwurf auf diesem Gerät gesichert · noch nicht gemeinsam gespeichert.</div>
+</template>
+
+<script>
+  const photos = {
+    lake: `<defs><linearGradient id="s1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6C9A8"/><stop offset=".55" stop-color="#E9D9D4"/><stop offset="1" stop-color="#B9C9DC"/></linearGradient></defs>
+      <rect width="400" height="300" fill="url(#s1)"/><circle cx="270" cy="118" r="30" fill="#FFE7C2" opacity=".9"/>
+      <path d="M0 170 L70 105 L120 140 L190 80 L260 140 L320 110 L400 160 V210 H0Z" fill="#8C97B4"/>
+      <path d="M0 185 L90 140 L170 175 L250 130 L330 170 L400 150 V215 H0Z" fill="#6F7C9C"/>
+      <rect y="205" width="400" height="95" fill="#9FB3CC"/><rect y="205" width="400" height="22" fill="#E8EEF6" opacity=".7"/>
+      <path d="M232 230 h76 M246 246 h48 M226 262 h88" stroke="#FFE7C2" stroke-width="4" opacity=".7"/>
+      <path d="M40 300 C 60 255 100 250 130 300Z" fill="#3E4A63"/><rect x="58" y="268" width="5" height="32" fill="#2B3448"/>`,
+    coffee: `<rect width="400" height="300" fill="#C9A88A"/><rect y="170" width="400" height="130" fill="#8E6A52"/>
+      <ellipse cx="150" cy="190" rx="70" ry="22" fill="#F4EEE8"/><rect x="95" y="120" width="110" height="70" rx="14" fill="#F4EEE8"/><ellipse cx="150" cy="122" rx="55" ry="14" fill="#6B4433"/>
+      <ellipse cx="290" cy="200" rx="60" ry="18" fill="#E7D4C3"/><rect x="245" y="140" width="90" height="60" rx="12" fill="#E7D4C3"/><ellipse cx="290" cy="142" rx="45" ry="11" fill="#5A392B"/>`,
+    boat: `<rect width="400" height="300" fill="#B6D0E6"/><rect y="150" width="400" height="150" fill="#4F7CA3"/>
+      <path d="M120 200 H290 L260 235 H150Z" fill="#F2E6D8"/><path d="M200 70 V200 H140Z" fill="#FFFFFF"/><path d="M206 90 V195 H260Z" fill="#F7D9C4"/>
+      <path d="M0 250 h400" stroke="#9FC0DC" stroke-width="5" opacity=".6"/>`,
+    picnic: `<rect width="400" height="300" fill="#BFD9EE"/><circle cx="320" cy="70" r="28" fill="#FFE7B0"/><path d="M0 150 C 120 120 260 140 400 125 V300 H0Z" fill="#8DBA7A"/>
+      <path d="M0 175 C 140 160 260 175 400 165 V300 H0Z" fill="#76A866"/><path d="M80 210 L300 190 L340 270 L60 290Z" fill="#E8B7B0"/>
+      <path d="M120 206 L150 286 M190 200 L215 280 M260 194 L290 274 M75 240 L320 222" stroke="#F6E3DE" stroke-width="10"/>
+      <rect x="170" y="205" width="56" height="40" rx="8" fill="#B07A4F"/><path d="M178 205 C 180 188 216 188 218 205" stroke="#7A5136" stroke-width="5" fill="none"/>`,
+    sunset: `<rect width="400" height="300" fill="#F29C7A"/><circle cx="200" cy="170" r="60" fill="#FFD49A"/><rect y="180" width="400" height="120" fill="#7B5C86"/>`
+  };
+
+  const EMO = {
+    LOVED: { de: 'Geliebt', light: ['#be3653', '#fff0f3'], dark: ['#ff90a6', '#3b1e27'],
+      svg: '<path d="M12 20.6 4.7 13.8C1.9 11.2 2 6.9 4.8 5.1c2.3-1.5 5.2-.9 7.2 1.4 2-2.3 4.9-2.9 7.2-1.4 2.8 1.8 2.9 6.1.1 8.7L12 20.6Z" fill="currentColor"/>' },
+    SEEN: { de: 'Gesehen', light: ['#5d5aa6', '#f1f0ff'], dark: ['#b2a9ff', '#28243f'],
+      svg: '<path d="M2.7 12s3.3-5.2 9.3-5.2 9.3 5.2 9.3 5.2-3.3 5.2-9.3 5.2S2.7 12 2.7 12Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/>' },
+    APPRECIATED: { de: 'Wertgeschätzt', light: ['#9b5966', '#fbeef1'], dark: ['#e6a3b0', '#3a252b'],
+      svg: '<path d="m12 2.8 1.6 5.6 5.6 1.6-5.6 1.6-1.6 5.6-1.6-5.6L4.8 10l5.6-1.6L12 2.8Z" fill="currentColor"/><path d="m18.2 14.2.8 2.6 2.6.8-2.6.8-.8 2.6-.8-2.6-2.6-.8 2.6-.8.8-2.6Z" fill="currentColor" opacity=".72"/>' },
+    SUPPORTED: { de: 'Unterstützt', light: ['#2f7467', '#e9f6f2'], dark: ['#7bd9c5', '#183732'],
+      svg: '<path d="M4.2 12.2c2.2 0 3.7 1 5.1 2.5l2.1 2.1c.4.4 1 .4 1.4 0l2.1-2.1c1.4-1.5 2.9-2.5 5.1-2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 13.1 9 10.4c-1.1-1-1.1-2.7 0-3.6.9-.8 2.2-.6 3 .4.8-1 2.1-1.2 3-.4 1.1.9 1.1 2.6 0 3.6l-3 2.7Z" fill="currentColor"/><path d="M4.1 16.6c2.4.1 4.1 1 5.8 2.4M19.9 16.6c-2.4.1-4.1 1-5.8 2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+    GRATEFUL: { de: 'Dankbar', light: ['#9a6320', '#fff3df'], dark: ['#f0bb70', '#3b2a18'],
+      svg: '<circle cx="12" cy="12" r="3.1" fill="currentColor"/><path d="M12 3.1v3M12 17.9v3M3.1 12h3M17.9 12h3M5.7 5.7l2.1 2.1M16.2 16.2l2.1 2.1M18.3 5.7l-2.1 2.1M7.8 16.2l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>' },
+    HAPPY: { de: 'Glücklich', light: ['#9a7118', '#fff7d6'], dark: ['#ffd77b', '#3a3118'],
+      svg: '<circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="9.2" cy="10.2" r=".9" fill="currentColor"/><circle cx="14.8" cy="10.2" r=".9" fill="currentColor"/><path d="M8.7 13.7c.9 1.4 2 2.1 3.3 2.1s2.4-.7 3.3-2.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' },
+  };
+  const TEXT = {
+    LOVED: 'Du hast mir heute einfach zugehört, ohne gleich eine Lösung zu suchen.',
+    GRATEFUL: 'Danke für den Kaffee ans Bett heute früh.',
+    SEEN: 'Du hast gemerkt, dass ich müde war, bevor ich etwas gesagt habe.',
+  };
+  const SUB = {
+    text: 'Choosing a feeling: chips show the timeline icons; the selection tints the whole composer. No media block on the page: Foto and Sprache in the tool row are the entries.',
+    media: 'Feeling chips stay visible after choosing (no delayed collapse). Photos lead as cover plus strip; the voice note plays inline.',
+    dark: 'Dark uses the dark emotion roles; shared visibility shows the people glyph.',
+    sheet: 'Foto opens one shared source sheet in every composer: device first, external sources with the Pro mark.',
+  };
+  const icon = (e, dark) => `<span class="emo-icon" style="--emo-accent:${EMO[e][dark ? 'dark' : 'light'][0]}"><svg viewBox="0 0 24 24" aria-hidden="true">${EMO[e].svg}</svg></span>`;
+  document.querySelectorAll('section[data-heart]').forEach((sec) => {
+    const e = sec.dataset.heart, dark = sec.dataset.mode === 'dark', v = sec.dataset.variant;
+    const [accent, surface] = EMO[e][dark ? 'dark' : 'light'];
+    const vis = e === 'SEEN' ? '<i class="ti ti-users"></i>Für uns beide' : '<i class="ti ti-lock"></i>Nur für mich';
+    const chips = Object.keys(EMO).map((k) => `<span class="chip${k === e ? ' chosen' : ''}">${icon(k, dark)}${EMO[k].de}</span>`).join('');
+    const expanded = `<div class="row-label">Gefühl</div><div class="feel">${chips}</div>`;
+    const summary = `<div class="row-label">Gefühl</div><span class="feel-summary">${icon(e, dark)}${EMO[e].de}<i class="ti ti-chevron-down" style="font-size:15px;color:var(--text-2)"></i></span>`;
+    const bars = [8,14,22,12,26,18,10,20,28,16,9,19,24,13,7,17,23,11,15,21,9,6].map((h) => `<i style="height:${h}px"></i>`).join('');
+    const media = `
+        <div class="cover heart-cover" style="margin-top:20px"><svg data-photo="coffee"></svg><span class="badge"><i class="ti ti-star"></i>Titelbild</span><span class="count">1 von 2</span></div>
+        <div class="thumbs"><div class="thumb sel"><svg data-photo="coffee"></svg></div><div class="thumb"><svg data-photo="sunset"></svg></div><div class="thumb add"><i class="ti ti-plus"></i></div></div>
+        <div class="voice"><span class="play"><i class="ti ti-player-play"></i></span><span class="wave">${bars}</span><small>0:42</small></div>`;
+    const withMedia = v === 'media' || v === 'sheet';
+    const sheet = v === 'sheet' ? `
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <h2>Fotos hinzufügen</h2>
+        <p>Nur ausgewählte Fotos werden in deinen Entwurf kopiert.</p>
+        <div class="srcs">
+          <div class="src"><i class="ti ti-device-mobile"></i><span>Vom Gerät auswählen<small>Fotos und Videos gemeinsam auswählen</small></span></div>
+          <div class="src"><i class="ti ti-cloud"></i><span>Google Fotos</span><span class="pro">Pro</span></div>
+          <div class="src"><i class="ti ti-server-2"></i><span>Immich</span><span class="pro">Pro</span></div>
+        </div>
+      </div>` : '';
+    sec.innerHTML = `
+    <div class="cap">${sec.dataset.cap}</div>
+    <div class="sub">${SUB[dark ? 'dark' : v]}</div>
+    <div class="phone heart${dark ? ' dark' : ''}" style="--emo-accent:${accent};--emo-surface:${surface}">
+      ${document.querySelector('.status').outerHTML}
+      <div class="head"><span class="back"><i class="ti ti-chevron-left"></i></span><h1>Neuer Herzmoment</h1><span class="save ready">Speichern</span></div>
+      <div class="scroll">
+        <div class="context">
+          <div class="ctx date"><i class="ti ti-calendar-event"></i>10. November 2026<i class="ti ti-chevron-down chev"></i></div>
+          <div class="ctx pick">${vis}<i class="ti ti-chevron-down"></i></div>
+        </div>
+        <div class="title lead">${TEXT[e]}</div>
+        ${expanded}${withMedia ? media : ''}
+      </div>
+      <div class="tools">
+        <span class="tool${withMedia ? ' on' : ''}"><i class="ti ti-photo"></i>Foto</span>
+        <span class="tool${withMedia ? ' on' : ''}"><i class="ti ti-microphone"></i>Sprache</span>
+        <span class="tool"><i class="ti ti-map-pin"></i>Ort</span>
+        <span class="tool"><i class="ti ti-tag"></i>Tag</span>
+      </div>${sheet}
+      <div class="home"></div>
+    </div>`;
+  });
+  const tpl = document.getElementById('filled').innerHTML;
+  document.querySelectorAll('[data-content="filled"]').forEach((el) => { el.innerHTML = tpl; });
+  document.querySelectorAll('svg[data-photo]').forEach((svg, i) => {
+    svg.setAttribute('viewBox', '0 0 400 300');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    svg.innerHTML = photos[svg.dataset.photo].replaceAll('id="s1"', `id="s1-${i}"`).replaceAll('url(#s1)', `url(#s1-${i})`);
+  });
+</script>
+</body>
+</html>

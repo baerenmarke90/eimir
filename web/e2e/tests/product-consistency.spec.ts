@@ -4,11 +4,14 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import composer from '../../src/i18n/locales/composer';
+import experiences from '../../src/i18n/locales/experiences';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import planningCopy from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { openComposerPlace } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -235,28 +238,43 @@ for (const scenario of [
     await expect(
       page.getByRole('heading', {
         name: 'Breakfast by the canal',
-        level: 1,
+        level: 2,
         exact: true,
       }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: copy.add, exact: true }),
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
     ).toHaveCount(0);
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
-    await page.getByRole('button', { name: copy.add, exact: true }).click();
+    await openComposerPlace(page);
     const picker = page.getByRole('dialog', { name: copy.add });
     await expect(picker).toBeVisible();
     await expect(picker.locator('select')).toHaveCount(0);
-    await picker.getByRole('button', { name: /Our park by the water/ }).click();
+    await picker
+      .locator('.moment-place-choices')
+      .getByRole('button', { name: /Our park by the water/ })
+      .click();
+    await expect(
+      picker
+        .locator('.ordered-moment-places > ol')
+        .getByText(place.name, { exact: true }),
+    ).toBeVisible();
+    await picker
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
     await expect(picker).toBeHidden();
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
     expect(links).toBe(0);
     expect(updates).toEqual([]);
     await expect(
-      page.getByRole('button', { name: copy.add, exact: true }),
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
     ).toHaveCount(1);
     await page
       .getByRole('button', { name: memoryProduct.save, exact: true })
@@ -526,7 +544,7 @@ test('a created map Place survives a failed Memory save and retries only its sta
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
-  await page.getByRole('button', { name: copy.add, exact: true }).click();
+  await openComposerPlace(page);
   const picker = page.getByRole('dialog', { name: copy.add });
   await picker
     .getByRole('button', { name: planningCopy.map.open, exact: true })
@@ -549,6 +567,14 @@ test('a created map Place survives a failed Memory save and retries only its sta
     .getByRole('button', { name: copy.saveSharedPlace, exact: true })
     .click();
   await expect(map).toBeHidden();
+  await expect(
+    picker
+      .locator('.ordered-moment-places > ol')
+      .getByText(place.name, { exact: true }),
+  ).toBeVisible();
+  await picker
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   await expect(picker).toBeHidden();
   await expect(page.getByText(place.name, { exact: true })).toBeVisible();
   expect(creates).toEqual([

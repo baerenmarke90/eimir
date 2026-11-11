@@ -1,0 +1,8 @@
+eimir. Android 0.2.0-test.64
+
+- Use the new full-page editors to create and edit Diary entries, Heart Moments and Plans.
+- Preview draft photos, choose a cover and manage sensitive-photo visibility directly on the selected photo.
+- Add details such as tags, places and lists in dedicated sheets while keeping the draft in view.
+- Revisit shared photos in the monthly mosaic and see the month summary in Today.
+
+Install over test.63 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 64.

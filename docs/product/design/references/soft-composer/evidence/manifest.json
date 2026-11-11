@@ -1,0 +1,100 @@
+{
+  "sourceCommit": "9de71192fcbaf27af5558b79c4ddf8c745e3325a",
+  "screenshots": [
+    {
+      "file": "shell-soft-composer-360-light.png",
+      "journey": "media-planning-corrections-2b3fb-sible-composer-at-360-light-chromium",
+      "sha256": "ff026440acbc52e8364bbc87476250780c6e60a34dac0da64d784fa47ad77fa8"
+    },
+    {
+      "file": "shell-soft-composer-390-dark.png",
+      "journey": "media-planning-corrections-1d287-ssible-composer-at-390-dark-chromium",
+      "sha256": "8846db60543834b4fb4dc1cb106fe03812a6f767cc1f4e586748b2d53579bc55"
+    },
+    {
+      "file": "shell-soft-composer-430-light.png",
+      "journey": "media-planning-corrections-9793a-sible-composer-at-430-light-chromium",
+      "sha256": "431c33548d29f8c69d9ae03a68c90b36278138bd3cbf4bdf7a40c7d12fda017b"
+    },
+    {
+      "file": "shell-soft-composer-1280-dark.png",
+      "journey": "media-planning-corrections-c1d4b-sible-composer-at-1280-dark-chromium",
+      "sha256": "29a00a76326ebe7f8ae1c45dcd286195b769b251fcfad822f55fc3f1b0a38d2d"
+    },
+    {
+      "file": "shell-soft-composer-320-light.png",
+      "journey": "media-planning-corrections-8db8f-sible-composer-at-320-light-chromium",
+      "sha256": "249124eb2230b0a4d4026acd9b3cae4568881289e75661028c5c2dcc685bb797"
+    },
+    {
+      "file": "shell-soft-composer-memory-edit-390-dark.png",
+      "journey": "media-planning-corrections-1d287-ssible-composer-at-390-dark-chromium",
+      "sha256": "10ca7915d6c67eefbda3eb85eec15e33efbc0b0964f11b42bb28e4830d69c80e"
+    },
+    {
+      "file": "shell-soft-composer-plan-create-360-light.png",
+      "journey": "media-planning-corrections-2b3fb-sible-composer-at-360-light-chromium",
+      "sha256": "15e5fe2db0aec5a2a81101a4b1746355f51c96f5e2df107586b687d3ca2b7acc"
+    },
+    {
+      "file": "shell-soft-composer-plan-edit-360-light.png",
+      "journey": "media-planning-corrections-2b3fb-sible-composer-at-360-light-chromium",
+      "sha256": "a981d1da9949af811381f0206b0eca5c8e266103f23e87821f577acc126e74f5"
+    },
+    {
+      "file": "shell-soft-composer-plan-create-1280-dark.png",
+      "journey": "media-planning-corrections-c1d4b-sible-composer-at-1280-dark-chromium",
+      "sha256": "ae32b4acb17560a0e97f7daf9e3118723a6307a9aa621108bed442270e6a5790"
+    },
+    {
+      "file": "shell-soft-composer-plan-edit-1280-dark.png",
+      "journey": "media-planning-corrections-c1d4b-sible-composer-at-1280-dark-chromium",
+      "sha256": "987794d7847b0a7cbbcd66844e6fa62ee14014d198cf80910e992d025905cdf5"
+    },
+    {
+      "file": "heart-feeling-create-390-light.png",
+      "journey": "heart-moment-reading-all-s-b66a5-t-and-reload-in-both-themes-chromium",
+      "sha256": "b825a13c7d5c6b50fb2eee9ae1ff8ad65b3eba0dd345ff14e5428c3fd2656ddf"
+    },
+    {
+      "file": "heart-feeling-edit-390-light.png",
+      "journey": "heart-moment-reading-all-s-b66a5-t-and-reload-in-both-themes-chromium",
+      "sha256": "490febc1540191f497cf0b734161ee4e2fb850d004c243502f93c38b2b0b06f6"
+    },
+    {
+      "file": "heart-feeling-reading-1440-light.png",
+      "journey": "heart-moment-reading-all-s-b66a5-t-and-reload-in-both-themes-chromium",
+      "sha256": "18c5d7175ce181525f8ac16af2553be305ccabf13dacd45944ff5a2bbdf67497"
+    },
+    {
+      "file": "heart-feeling-create-390-dark.png",
+      "journey": "heart-moment-reading-all-s-b66a5-t-and-reload-in-both-themes-chromium",
+      "sha256": "92ce7aec506fe08c1b77d87e5fa8a62d071f7e876fd7922a7e77d85add530dca"
+    },
+    {
+      "file": "heart-feeling-edit-390-dark.png",
+      "journey": "heart-moment-reading-all-s-b66a5-t-and-reload-in-both-themes-chromium",
+      "sha256": "0d0a4fb36203a9765e440e004f27c068af3236d00411006e4108f5792058bdf4"
+    },
+    {
+      "file": "heart-feeling-reading-1440-dark.png",
+      "journey": "heart-moment-reading-all-s-b66a5-t-and-reload-in-both-themes-chromium",
+      "sha256": "167a37474b4983517d0faefc0641775728f2538f4e7f66a17f348c2424ad2bda"
+    },
+    {
+      "file": "compact-photos-390.png",
+      "journey": "memory-create-defaults-com-ffd91-aves-a-dense-selection-390--chromium",
+      "sha256": "f76df9fbf294a982c89aa57f0ec5a44059d48d0c1a0816dd484250b99274e5bc"
+    },
+    {
+      "file": "heart-feelings-large-320-light-de.png",
+      "journey": "private-location-and-captu-aa1f9-ad-edit-at-200-320-light-de-chromium",
+      "sha256": "b4c34f12600359445da779481983d430e5c5a9e211b32b138feca0f2bb833bc6"
+    },
+    {
+      "file": "heart-feelings-large-320-dark-en.png",
+      "journey": "private-location-and-captu-2d628-ead-edit-at-200-320-dark-en-chromium",
+      "sha256": "bc0427c39c08539ce0bf6945536b80df7db9e462ae187412812ce437ade00199"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import { type ReactNode, useRef, useState } from 'react';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { MomentPlaceActionsMenu } from './MomentPlaceActionsMenu';
@@ -11,19 +13,30 @@ export function OrderedMomentPlacesField({
   value,
   onChange,
   onNavigate,
+  presentation = 'default',
+  renderSelection,
+  renderTrigger,
   ...props
 }: Omit<Parameters<typeof MomentPlaceField>[0], 'value' | 'onChange'> & {
+  presentation?: 'default' | 'composer';
+  renderSelection?: (
+    places: readonly MomentPlaceSelection[],
+    open: () => void,
+  ) => ReactNode;
   value: MomentPlaceSelection[];
   onChange: (places: MomentPlaceSelection[]) => void;
   onNavigate?: (proceed: () => void) => void;
 }) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const sheet = useRef<ShortTaskSheetHandle>(null);
   function move(index: number, offset: number) {
     const next = [...value];
     [next[index], next[index + offset]] = [next[index + offset], next[index]];
     onChange(next);
   }
-  return (
+  const editor = (
     <fieldset className="ordered-moment-places">
       <legend className="sr-only">{t('experiences.places')}</legend>
       <ol>
@@ -90,6 +103,11 @@ export function OrderedMomentPlacesField({
       </ol>
       <MomentPlaceField
         {...props}
+        embedded={presentation === 'composer'}
+        onPendingChange={(next) => {
+          setPending(next);
+          props.onPendingChange(next);
+        }}
         disabled={props.disabled || value.length >= 20}
         onChange={(place) => {
           if (place && !value.some((item) => item.id === place.id))
@@ -97,5 +115,30 @@ export function OrderedMomentPlacesField({
         }}
       />
     </fieldset>
+  );
+  if (presentation !== 'composer') return editor;
+  return (
+    <>
+      {renderSelection?.(value, () => setOpen(true))}
+      {renderTrigger?.(() => setOpen(true))}
+      <ShortTaskSheet
+        ref={sheet}
+        open={open}
+        title={t('photoPlaces.add')}
+        onClose={() => setOpen(false)}
+        isCloseBlocked={pending}
+        footer={
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => sheet.current?.requestClose()}
+          >
+            {t('experiences.finish')}
+          </button>
+        }
+      >
+        {editor}
+      </ShortTaskSheet>
+    </>
   );
 }

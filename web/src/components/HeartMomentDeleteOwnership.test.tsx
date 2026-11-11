@@ -27,6 +27,7 @@ import { ClientProblemError } from '../client/problemDetails';
 import type { ReferenceApis } from '../client/referenceFlow';
 import de from '../i18n/locales/de';
 import storyProducts from '../i18n/locales/storyProducts';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 
 vi.mock('../client/photoPlaces', async (original) => ({
@@ -208,6 +209,17 @@ function setup(mode: 'edit' | 'create' = 'edit') {
 }
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+  vi.stubGlobal('matchMedia', () => ({
+    matches: false,
+    addEventListener() {},
+    removeEventListener() {},
+  }));
   // Keep unrelated linked-Plan reads deterministic and off the network.
   vi.spyOn(
     StoryPlanningRelationsApi.prototype,
@@ -219,6 +231,7 @@ beforeEach(() => {
 afterEach(() => {
   onlineManager.setOnline(true);
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('HeartMoment delete response ownership', () => {
@@ -567,7 +580,7 @@ describe('HeartMoment delete response ownership', () => {
     expect(screen.getByText('Timeline result')).toBeTruthy();
   });
 
-  it('prevents a visibility write from the real detail while deletion is pending', async () => {
+  it('prevents a visibility write after detail reopens Edit while deletion is pending', async () => {
     const h = setup();
     await userEvent
       .setup()
@@ -578,13 +591,27 @@ describe('HeartMoment delete response ownership', () => {
     await h.submit();
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: copy.backToHeartMoment }));
+      .click(screen.getByRole('link', { name: taskBoundary.back }));
+    await userEvent
+      .setup()
+      .click(await screen.findByRole('link', { name: copy.edit }));
     const visibility = await screen.findByRole('button', {
-      name: copy.makePrivate,
+      name: `${copy.visibilityLabel}: ${copy.visibilityShared}`,
     });
     expect((visibility as HTMLButtonElement).disabled).toBe(true);
     await act(async () => fireEvent.click(visibility));
+    expect(
+      screen.queryByRole('radio', { name: copy.visibilityPrivate }),
+    ).toBeNull();
     expect(h.changeHeartMomentVisibility).not.toHaveBeenCalled();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('link', { name: taskBoundary.back }));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Current route').textContent).toBe(
+        '/story/heart-moments/heart-1',
+      ),
+    );
     await h.settle();
     expect(screen.getByLabelText('Current route').textContent).toBe(
       '/story/heart-moments/heart-1',
@@ -595,12 +622,28 @@ describe('HeartMoment delete response ownership', () => {
     const h = setup();
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: copy.backToHeartMoment }));
+      .click(screen.getByRole('link', { name: taskBoundary.back }));
     await userEvent
       .setup()
-      .click(await screen.findByRole('button', { name: copy.makePrivate }));
+      .click(await screen.findByRole('link', { name: copy.edit }));
+    await userEvent.setup().click(
+      await screen.findByRole('button', {
+        name: `${copy.visibilityLabel}: ${copy.visibilityShared}`,
+      }),
+    );
+    await userEvent
+      .setup()
+      .click(screen.getByRole('radio', { name: copy.visibilityPrivate }));
     await waitFor(() =>
       expect(h.changeHeartMomentVisibility).toHaveBeenCalledTimes(1),
+    );
+    await userEvent
+      .setup()
+      .click(screen.getByRole('link', { name: taskBoundary.back }));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Current route').textContent).toBe(
+        '/story/heart-moments/heart-1',
+      ),
     );
     await userEvent
       .setup()

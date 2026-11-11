@@ -42,6 +42,8 @@ const storyProducts = {
     imageAlt: 'Foto zu diesem Eintrag',
     openItem: 'Medium {{index}} von {{count}} öffnen',
     counter: '{{index}} von {{count}}',
+    fraction: '{{index}} / {{count}}',
+    selectItem: 'Medium {{index}} von {{count}} anzeigen',
     close: 'Schließen',
     done: 'Fertig',
     previous: 'Vorheriges Medium',

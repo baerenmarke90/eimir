@@ -1,7 +1,18 @@
 .photo-draft-gallery {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   min-inline-size: 0;
+}
+.photo-draft-stage {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.photo-draft-stage,
+.photo-draft-stage .media-gallery-carousel {
+  min-inline-size: 0;
+  max-inline-size: 100%;
 }
 .photo-draft-gallery .media-gallery-carousel-viewport {
   aspect-ratio: 4 / 3;

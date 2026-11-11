@@ -1,0 +1,646 @@
+/* Page-as-composer composition approved in #1730; controllers retain ownership. */
+.page-composer {
+  --composer-accent: var(--color-link-text);
+  --composer-ground: var(--color-background);
+  padding-block-end: calc(var(--composer-tools-height, 6rem) + var(--space-6));
+  background: var(--composer-ground);
+}
+.page-composer .composer-header.page-heading {
+  position: sticky;
+  inset-block-start: var(--composer-viewport-top, 0px);
+  z-index: 100;
+  padding-block: var(--space-2);
+  background: var(--composer-ground);
+}
+.page-composer
+  .composer-header
+  .page-heading-action
+  > button[data-saveable="false"] {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+}
+.page-composer :is(.composer-content, .composer-writing-surface) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: var(--space-4);
+}
+.page-composer .composer-writing-surface .field-group + .field-group {
+  border: 0;
+  padding: 0;
+}
+.page-composer
+  .composer-writing-surface
+  :is(input:not([type]), input[type="text"], textarea) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: var(--font-composer-prose);
+  resize: vertical;
+}
+.page-composer
+  .composer-writing-surface
+  :is(input[name="title"], .composer-lead) {
+  font: var(--font-composer-title);
+}
+.page-composer .composer-writing-surface input[name="title"]::placeholder {
+  font-family: var(--font-display);
+}
+.page-composer .composer-writing-surface textarea {
+  min-block-size: 5rem;
+}
+.page-composer .composer-context-trigger {
+  font: var(--font-composer-context);
+  color: var(--color-text);
+}
+.page-composer .composer-context {
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.page-composer .composer-place-context {
+  display: inline-flex;
+  flex: 0 1 auto;
+  max-inline-size: 100%;
+  font: var(--font-composer-context);
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--composer-accent);
+  min-block-size: var(--touch-target-web);
+  background: transparent;
+  padding: 0;
+}
+.page-composer .composer-place-context > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.composer-tool-row {
+  margin: 0;
+  min-inline-size: 0;
+  border: 0;
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: var(--composer-keyboard-inset, 0px);
+  z-index: 100;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  padding: var(--space-2) var(--page-gutter)
+    calc(var(--space-2) + env(safe-area-inset-bottom));
+  border-block-start: var(--border-divider-width) solid var(--color-border);
+  background: var(--composer-ground, var(--color-background));
+  color: var(--composer-accent, var(--color-link-text));
+}
+button.composer-tool {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-inline-size: var(--touch-target-comfortable);
+  min-block-size: var(--touch-target-comfortable);
+  max-inline-size: 100%;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: var(--font-navigation-label);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.composer-tool .eimir-icon {
+  color: var(--composer-accent, var(--color-link-text));
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+.composer-tool[data-active] {
+  color: var(--composer-accent, var(--color-link-text));
+}
+.composer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+button.composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-2) var(--space-3);
+  max-inline-size: 100%;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--composer-accent, var(--color-link-text));
+  font: var(--font-action-label);
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  animation: composer-chip-enter var(--duration-transition) var(--easing-enter);
+}
+.composer-chip > span {
+  min-inline-size: 0;
+}
+.composer-chip .eimir-icon {
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+.page-composer :is(.memory-draft-status, .field-help) {
+  font: var(--font-supporting-copy);
+}
+.page-composer .media-drop-zone {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+.page-composer .media-drop-hint {
+  display: none;
+}
+.page-composer .media-drop-zone.is-dragging::after {
+  content: attr(data-drop-label);
+  position: fixed;
+  inset: var(--space-3);
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  border: var(--border-focus-width, 3px) dashed var(--composer-accent);
+  border-radius: var(--radius-sheet-top);
+  background: color-mix(in srgb, var(--composer-ground) 92%, transparent);
+  color: var(--composer-accent);
+  font: var(--font-section-heading);
+  pointer-events: none;
+}
+.page-composer .photo-draft-gallery .media-gallery {
+  animation: composer-media-enter var(--duration-transition)
+    var(--easing-standard);
+}
+.page-composer .media-gallery-carousel-viewport {
+  block-size: var(--composer-media-height);
+  aspect-ratio: auto;
+}
+.page-composer .composer-photo-draft button.media-gallery-carousel-slide {
+  padding: 0;
+}
+.page-composer .photo-draft-toolbar {
+  margin: 0;
+  gap: var(--space-2);
+}
+.page-composer .photo-draft-toolbar button {
+  font: var(--font-supporting-copy);
+  min-block-size: var(--touch-target-web);
+}
+.page-composer .photo-draft-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.page-composer .photo-draft-item {
+  inline-size: var(--composer-thumbnail-size);
+  flex: 0 0 var(--composer-thumbnail-size);
+}
+.page-composer .photo-draft-stage {
+  position: relative;
+}
+.page-composer .photo-draft-add {
+  display: grid;
+  place-items: center;
+  inline-size: var(--composer-thumbnail-size);
+  min-block-size: var(--composer-thumbnail-size);
+  padding: 0;
+  background: var(--color-surface-subtle);
+  color: var(--composer-accent);
+  border-radius: var(--radius-medium);
+}
+.page-composer .photo-draft-add .eimir-icon {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+.page-composer .photo-draft-gallery {
+  gap: var(--space-2);
+}
+.page-composer.heart-emotion-compose .media-gallery-carousel-viewport,
+.page-composer.planning-create-task .media-gallery-carousel-viewport,
+.page-composer.plan-composer .media-gallery-carousel-viewport {
+  block-size: var(--composer-media-compact-height);
+}
+.page-composer .photo-source-actions {
+  display: contents;
+}
+.page-composer .composer-diary-intake {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sheet-top);
+  background: var(--color-surface-subtle);
+}
+.page-composer .composer-diary-intake .media-device-choice {
+  display: contents;
+}
+.page-composer .composer-diary-intake button.media-intake-device {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  min-block-size: var(--composer-intake-height);
+  padding: var(--space-6) var(--space-3);
+  border-radius: var(--radius-sheet-top);
+  background: var(--color-surface);
+}
+.page-composer .composer-diary-intake .media-intake-device .media-intake-icon {
+  flex: none;
+  border-radius: var(--radius-pill);
+  inline-size: var(--touch-target-comfortable);
+  block-size: var(--touch-target-comfortable);
+}
+.page-composer .composer-diary-intake .media-intake-device .media-intake-copy {
+  flex: 0 1 auto;
+  max-inline-size: 100%;
+}
+.page-composer .composer-diary-intake .photo-source-trigger {
+  background: transparent;
+  padding: var(--space-2);
+}
+.page-composer .memory-planning-links {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.page-composer .composer-link-action {
+  color: var(--composer-accent);
+  padding-inline: 0;
+  justify-content: flex-start;
+}
+.page-composer .context-tag-selected {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.composer-tag-sheet .context-tag-suggestions > summary {
+  display: none;
+}
+.composer-tag-sheet .context-tag-entry .add-action {
+  background: var(--color-surface-subtle);
+  color: var(--color-link-text);
+}
+.composer-tag-sheet .short-task-sheet-footer > button {
+  inline-size: 100%;
+}
+.page-composer :is(input, textarea) {
+  scroll-margin-block: 6rem;
+}
+@keyframes composer-chip-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes composer-media-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (min-width: 840px) {
+  .composer-tool-row {
+    inset-inline: max(0px, calc((100% - var(--composer-max)) / 2));
+    border-start-start-radius: var(--radius-medium);
+    border-start-end-radius: var(--radius-medium);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .composer-chip,
+  .page-composer .photo-draft-gallery .media-gallery {
+    animation: none;
+  }
+}
+
+.page-composer .photo-draft-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+.page-composer .photo-draft-grid > li {
+  flex: 0 0 var(--composer-thumbnail-size);
+  inline-size: var(--composer-thumbnail-size);
+}
+.page-composer .photo-draft-number {
+  display: none;
+}
+.page-composer .composer-photo-draft .media-gallery-carousel-counter {
+  inset-block-end: var(--space-3);
+}
+
+.composer-tool-slot {
+  display: contents;
+}
+
+.page-composer:has(.composer-header button[data-saveable="true"])
+  .composer-diary-intake
+  .media-intake-device {
+  min-block-size: var(--touch-target-comfortable);
+  padding: var(--space-3);
+  flex-direction: row;
+  text-align: start;
+}
+.page-composer .composer-diary-intake .media-intake-device .media-intake-label {
+  color: var(--color-text);
+}
+
+.page-composer .composer-photo-draft .media-gallery-position {
+  display: none;
+}
+.composer-new-place,
+.page-composer .composer-link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: start;
+}
+.composer-new-place > .eimir-icon,
+.page-composer .composer-link-action > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.composer-new-place-sheet .short-task-sheet-body {
+  display: grid;
+  gap: var(--space-3);
+}
+.composer-new-place-sheet .short-task-sheet-body > label {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.composer-new-place-sheet .short-task-sheet-body > button {
+  inline-size: 100%;
+  border-radius: var(--radius-pill);
+}
+.composer-new-place-sheet .place-map-open {
+  min-block-size: calc(var(--touch-target-web) * 1.5);
+  border-radius: var(--radius-medium);
+}
+.product-shell:has(.page-composer) :is(.product-topbar, .mobile-bottom-shell) {
+  display: none;
+}
+.product-shell:has(.page-composer) .product-main {
+  padding-block-end: 0;
+}
+
+.page-composer :is(input, textarea):focus {
+  scroll-margin-block-end: calc(
+    var(--composer-tools-height, 6rem) +
+    var(--space-4)
+  );
+}
+.page-composer
+  .attachment-draft-picker[data-presentation="tools"][data-has-media="false"],
+.page-composer
+  .attachment-draft-picker[data-presentation="tools"][data-has-media="false"]
+  :is(.media-action-group, .photo-source-actions),
+.page-composer
+  .media-drop-zone:has(
+    > .attachment-draft-picker[data-presentation="tools"][data-has-media="false"]
+  ) {
+  display: contents;
+}
+
+.composer-tag-sheet .context-tag-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
+  background: var(--color-background);
+  border-radius: var(--radius-medium);
+}
+.composer-tag-sheet .context-tag-entry > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  color: var(--color-text-secondary);
+}
+.composer-tag-sheet .context-tag-entry > input {
+  flex: 1;
+  min-inline-size: 0;
+  background: transparent;
+  padding-inline: 0;
+}
+.composer-tag-sheet .context-tag-entry > .add-action {
+  flex: 0 1 auto;
+  background: transparent;
+  padding-inline: var(--space-2);
+}
+.composer-tag-sheet .context-tag-entry > .add-action .add-action-icon {
+  display: none;
+}
+.composer-tag-sheet .memory-tag-choice {
+  border: var(--border-divider-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font: var(--font-action-label);
+}
+.composer-tag-sheet .memory-tag-choice:has(input:checked) {
+  border-color: transparent;
+  background: var(--color-action-emphasis);
+  color: var(--color-on-action-emphasis);
+}
+.composer-tag-sheet .context-tag-suggestions {
+  margin-block-start: var(--space-4);
+}
+.composer-tag-sheet .context-tag-suggestions p {
+  font: var(--font-supporting-copy);
+  margin-block: var(--space-4) var(--space-2);
+}
+
+.page-composer .composer-enrichment:empty {
+  display: none;
+}
+
+.page-composer.quiet-composer .composer-header.page-heading h1 {
+  font: var(--font-action-label);
+  letter-spacing: normal;
+}
+
+.composer-tag-sheet .context-tag-disclosure .context-tag-entry {
+  display: flex;
+  align-items: center;
+}
+body:has(.page-composer)
+  :is(.composer-tag-sheet, .composer-new-place-sheet, .composer-date-sheet) {
+  background: var(--color-surface);
+}
+.composer-new-place-sheet .place-map-open {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  inline-size: 100%;
+  min-block-size: calc(var(--touch-target-comfortable) * 2);
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  color: var(--color-link-text);
+  box-shadow: none;
+}
+
+.page-composer .composer-photo-draft .photo-draft-tile {
+  aspect-ratio: 1;
+}
+
+/* PO review #1735: stable thumbnail strip, editing directly on the stage. */
+.page-composer .composer-photo-draft .photo-draft-grid {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.page-composer .composer-photo-draft .photo-draft-tile {
+  cursor: pointer;
+}
+.page-composer .composer-photo-draft .photo-draft-tile[aria-pressed="true"] {
+  background: var(--composer-accent);
+}
+.page-composer .composer-photo-draft .photo-draft-tile:focus-visible {
+  outline-offset: calc(-1 * var(--border-focus-width, 3px));
+}
+.page-composer .composer-photo-draft .media-gallery-carousel-content {
+  object-fit: cover;
+}
+.page-composer .composer-photo-draft .media-gallery-carousel-backdrop {
+  display: none;
+}
+.page-composer .composer-photo-draft .photo-draft-stage-cover,
+.page-composer .composer-photo-draft .photo-draft-stage-remove,
+.page-composer .composer-photo-draft .photo-draft-stage-retry {
+  position: absolute;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-block-size: var(--touch-target-web);
+  min-inline-size: var(--touch-target-web);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+}
+.page-composer .composer-photo-draft .photo-draft-stage-cover {
+  inset-block-start: var(--space-3);
+  inset-inline-start: var(--space-3);
+  max-inline-size: calc(
+    100% -
+    var(--touch-target-web) -
+    var(--space-8) -
+    var(--space-1)
+  );
+}
+.page-composer .composer-photo-draft .photo-draft-stage-remove {
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  padding: var(--space-2);
+}
+.page-composer .composer-photo-draft .photo-draft-stage-sensitive {
+  inset-block-start: auto;
+  inset-inline-end: auto;
+  inset-block-end: var(--space-3);
+  inset-inline-start: var(--space-3);
+}
+.page-composer .composer-photo-draft .photo-draft-stage-retry {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+}
+.page-composer
+  .composer-photo-draft
+  .photo-draft-stage
+  :is(.photo-draft-stage-cover, .photo-draft-stage-remove)
+  > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.page-composer .photo-draft-cover-star {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-1);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+.page-composer .photo-draft-sensitive-mark {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+.page-composer .photo-draft-sensitive-mark .eimir-icon,
+.page-composer .photo-draft-cover-star .eimir-icon,
+.page-composer .composer-photo-draft .photo-draft-tile-status .eimir-icon {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+}
+.page-composer .composer-photo-draft .photo-draft-tile-status {
+  inset: auto auto var(--space-1) var(--space-1);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+@container product-content (max-width: 18rem) {
+  .page-composer .memory-planning-links > ul > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page-composer .memory-planning-links .memory-planning-destination {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page-composer
+    .memory-planning-links
+    .memory-planning-destination
+    > .eimir-icon:last-child {
+    display: none;
+  }
+  .page-composer .memory-planning-links > ul > li > button {
+    justify-self: end;
+  }
+  .page-composer .composer-photo-draft .photo-draft-stage-cover,
+  .page-composer .composer-photo-draft .photo-draft-stage-sensitive {
+    inline-size: var(--touch-target-web);
+    max-inline-size: none;
+    min-inline-size: var(--touch-target-web);
+    justify-content: center;
+    padding: var(--space-1);
+  }
+  .page-composer .composer-photo-draft .photo-draft-stage-cover > span,
+  .page-composer .composer-photo-draft .photo-draft-stage-sensitive > span {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .page-composer .composer-photo-draft .media-gallery-carousel-viewport {
+    block-size: max(
+      var(--composer-media-height),
+      calc(var(--touch-target-web) * 6)
+    );
+  }
+}

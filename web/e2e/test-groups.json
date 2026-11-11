@@ -16,6 +16,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "page-composer.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 26,
+      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, fullscreen privacy and continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. The final PO contract verifies persistent stage controls, no redundant editor rows, independent preview/cover identity, original input order, failed-upload retry and canonical save."
+    },
     "moments-local-create.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
@@ -319,7 +324,7 @@
     "today-living-home.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 28,
-      "reason": "PO #1546 clarification retains monthly highlights and retrospectives; only the ready monthly invitation archive action is removed. Preserve the complete carousel, source, dismissal, reflow, keyboard and accessibility coverage."
+      "reason": "Feature-owned Today composition, monthly mosaic 1/2/3-photo reference states, concealed media, optional story summary, category navigation/return, reflow, keyboard and Light/Dark accessibility. PO #1736 supersedes the former monthly carousel presentation."
     },
     "today-pro-insights.spec.ts": {
       "disposition": "PR_CRITICAL",

@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
+
+import { Capacitor } from '@capacitor/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
+import { i18n } from '../i18n';
 import { ZoomablePhoto } from './ZoomablePhoto';
 
 const state = vi.hoisted(() => ({
@@ -26,6 +29,7 @@ vi.mock('@panzoom/panzoom/dist/panzoom.es.js', () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   state.scale = 1;
 });
 function touch(
@@ -55,6 +59,32 @@ function photo() {
   render(<ZoomablePhoto src="synthetic-photo.jpg" alt="Synthetic photo" />);
   return screen.getByRole('img');
 }
+
+it('retains the explicit zoom controls in a browser', () => {
+  vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+  photo();
+  for (const action of ['zoomIn', 'zoomOut', 'fit']) {
+    expect(
+      screen.getByRole('button', { name: i18n.t(`gallery.${action}`) }),
+    ).toBeTruthy();
+  }
+});
+
+it.each(['android', 'ios'])(
+  'omits the zoom toolbar on %s while preserving double-tap zoom and fit',
+  (platform) => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue(platform);
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+    const image = photo();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    tap(image, 0);
+    tap(image, 120);
+    expect(state.scale).toBe(2.5);
+    tap(image, 600);
+    tap(image, 720);
+    expect(state.scale).toBe(1);
+  },
+);
 
 it('toggles focal zoom and fit from real touch taps even without any synthesized click', () => {
   const image = photo();

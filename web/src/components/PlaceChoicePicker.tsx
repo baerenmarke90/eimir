@@ -1,6 +1,6 @@
 import { AutoLoadMore } from './AutoLoadMore';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import { assertOnlineWrite } from '../client/connectivity';
@@ -13,6 +13,7 @@ import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
 import { ProblemState } from './ProblemState';
+import { ShortTaskSheet } from './ShortTaskSheet';
 
 /** One saved/map Place choice; a created Place survives a failed consumer write. */
 export function PlaceChoicePicker({
@@ -40,6 +41,10 @@ export function PlaceChoicePicker({
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
+  const id = useId();
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newAddress, setNewAddress] = useState('');
   const [search, setSearch] = useState('');
   const [mapSelection, setMapSelection] = useState<PlaceMapSelection>();
   const [pending, setPending] = useState(false);
@@ -80,7 +85,15 @@ export function PlaceChoicePicker({
         ? page.nextCursor
         : undefined,
   });
-  async function connect(place?: PlaceDetail, selection?: PlaceMapSelection) {
+  async function connect(
+    place?: PlaceDetail,
+    selection?: {
+      name: string;
+      address?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    },
+  ) {
     if (owner.current.pending || offline) return;
     const choiceAdmitted = captureQueryIdentity(client, [
       ...queryKey,
@@ -109,8 +122,8 @@ export function PlaceChoicePicker({
           placeCreate: {
             name: selection.name,
             address: selection.address ?? undefined,
-            latitude: selection.latitude,
-            longitude: selection.longitude,
+            latitude: selection.latitude ?? undefined,
+            longitude: selection.longitude ?? undefined,
           },
         });
         if (owner.current.active && admitted()) setCreated(destination);
@@ -118,6 +131,10 @@ export function PlaceChoicePicker({
       if (!destination || !owner.current.active || !admitted()) return;
       assertOnlineWrite();
       await onChoose(destination);
+      if (owner.current.active && admitted()) {
+        setCreating(false);
+        setCreated(null);
+      }
     } catch (failure) {
       const problem = await normalizeClientError(failure);
       if (owner.current.active && admitted()) setError(problem);
@@ -140,6 +157,93 @@ export function PlaceChoicePicker({
       ];
   return (
     <div className="moment-place-picker" aria-busy={pending}>
+      {!onChooseLocation ? (
+        <button
+          type="button"
+          className="secondary composer-new-place"
+          disabled={offline || pending || Boolean(created)}
+          onClick={() => {
+            setNewName(search.trim());
+            setNewAddress('');
+            setMapSelection(undefined);
+            setCreating(true);
+          }}
+        >
+          <EimirIcon name="hinzufuegen" />
+          {search.trim() &&
+          !entries.some((place) =>
+            `${place.name} ${place.address ?? ''}`
+              .toLocaleLowerCase()
+              .includes(search.toLocaleLowerCase()),
+          )
+            ? t('composer.createNamedPlace', { name: search.trim() })
+            : t('composer.createPlace')}
+        </button>
+      ) : null}
+      <ShortTaskSheet
+        open={creating}
+        title={t('composer.newPlace')}
+        onClose={() => setCreating(false)}
+        isCloseBlocked={pending}
+        className="composer-new-place-sheet"
+      >
+        <p className="field-help">{t('photoPlaces.sharedCreateHint')}</p>
+        <label htmlFor={`${id}-name`}>{t('m5s3.place.name')}</label>
+        <input
+          id={`${id}-name`}
+          value={newName}
+          maxLength={200}
+          disabled={pending}
+          onChange={(event) => setNewName(event.target.value)}
+        />
+        <label htmlFor={`${id}-address`}>{t('m5s3.place.address')}</label>
+        <input
+          id={`${id}-address`}
+          value={newAddress}
+          maxLength={1000}
+          disabled={pending}
+          onChange={(event) => setNewAddress(event.target.value)}
+        />
+        <PlaceMapPicker
+          api={api}
+          spaceId={spaceId}
+          value={mapSelection}
+          disabled={pending}
+          onSelect={(selection) => {
+            setMapSelection(selection);
+            if (!newName.trim()) setNewName(selection.name);
+            if (!newAddress.trim()) setNewAddress(selection.address ?? '');
+          }}
+        />
+        {error ? <ProblemState error={error} /> : null}
+        {created ? (
+          <p role="status">
+            {t('photoPlaces.createdHelp', { name: created.name })}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          disabled={!newName.trim() || pending || offline}
+          onClick={() =>
+            void connect(created ?? undefined, {
+              name: newName.trim(),
+              address: newAddress.trim() || undefined,
+              latitude: mapSelection?.latitude,
+              longitude: mapSelection?.longitude,
+            })
+          }
+        >
+          {t(pending ? 'm5s3.common.saving' : 'photoPlaces.saveSharedPlace')}
+        </button>
+        <button
+          type="button"
+          className="tertiary"
+          disabled={pending}
+          onClick={() => setCreating(false)}
+        >
+          {t('composer.backToPlaces')}
+        </button>
+      </ShortTaskSheet>
       <PlaceMapPicker
         api={api}
         spaceId={spaceId}
@@ -175,11 +279,9 @@ export function PlaceChoicePicker({
       ) : null}
       {error ? <ProblemState error={error} /> : null}
       {offline ? <p role="status">{t('photoPlaces.offline')}</p> : null}
-      <label htmlFor="moment-place-search">
-        {t('photoPlaces.savedSearch')}
-      </label>
+      <label htmlFor={`${id}-search`}>{t('photoPlaces.savedSearch')}</label>
       <input
-        id="moment-place-search"
+        id={`${id}-search`}
         type="search"
         value={search}
         onChange={(event) => setSearch(event.target.value)}

@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   captureScreenshot,
   DETAIL_COMMENTS,
@@ -49,6 +50,10 @@ async function openJourney(page: Page, scenario: (typeof cases)[number]) {
     reducedMotion: 'reduce',
   });
   const unknown = await installMocks(page, { strict: true });
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    await route.fallback();
+  });
   let comments = DETAIL_COMMENTS.map((item) => ({ ...item }));
   const writes: {
     method: string;
@@ -120,11 +125,17 @@ for (const scenario of cases) {
       page,
     }, info) => {
       const state = await openJourney(page, scenario);
+      const field = state.panel
+        .locator(
+          operation === 'create' ? 'form.comment-form' : '.comment-edit-form',
+        )
+        .getByRole('textbox');
       if (operation === 'create') {
-        await state.panel
-          .getByRole('button', { name: copy.send, exact: true })
-          .click();
-        await state.panel.getByRole('textbox').fill('A thought worth keeping.');
+        if (!(await state.panel.locator('form.comment-form').isVisible()))
+          await state.panel
+            .getByRole('button', { name: copy.send, exact: true })
+            .click();
+        await field.fill('A thought worth keeping.');
       } else {
         if (operation === 'delete')
           await state.panel.locator('.comment-menu-trigger').click();
@@ -135,9 +146,7 @@ for (const scenario of cases) {
           await state.panel
             .getByRole('button', { name: copy.edit, exact: true })
             .click();
-          await state.panel
-            .getByRole('textbox')
-            .fill('An edited thought worth keeping.');
+          await field.fill('An edited thought worth keeping.');
         }
       }
       const action = state.panel.getByRole('button', {
@@ -159,7 +168,7 @@ for (const scenario of cases) {
       await expect(action).toBeEnabled();
       expect(state.writes).toEqual([]);
       if (operation !== 'delete')
-        await expect(state.panel.getByRole('textbox')).toHaveValue(
+        await expect(field).toHaveValue(
           operation === 'create'
             ? 'A thought worth keeping.'
             : 'An edited thought worth keeping.',

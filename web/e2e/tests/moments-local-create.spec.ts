@@ -1,4 +1,3 @@
-import { expectLabeledAddAction } from '../support/addAction';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -7,14 +6,16 @@ import mapCopy from '../../src/i18n/locales/memoryMap';
 import navigation from '../../src/i18n/locales/navigation';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
+import { expectLabeledAddAction } from '../support/addAction';
+import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
   installMocks,
   ME,
-  signIn,
   SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 const ORIGIN = '/story?tab=timeline&type=MILESTONE&year=2024&order=asc';
@@ -125,7 +126,7 @@ for (const target of [
       page.getByText('Our new moment', { exact: true }).first(),
     ).toBeVisible();
     expect(created).toEqual([target.resource]);
-    await page.locator('.shell-detail-back').click();
+    await storyDetailBack(page).click();
     await expect(page).toHaveURL(ORIGIN);
     await expect(
       page.getByRole('tab', { name: de.story.tabTimeline }),

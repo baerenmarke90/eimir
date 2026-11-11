@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 
 /** Select one media identity without opening a second task or saving the draft. */
 export async function selectDraftMedia(page: Page, index = 0) {
@@ -19,6 +20,19 @@ export async function expectInlineDraftActions(page: Page) {
   await expect(
     page.getByRole('group', { name: de.memory.photoSelected, exact: true }),
   ).toBeVisible();
+  if (await page.locator('.composer-photo-draft').count())
+    await expectQuietComposerMedia(page);
+}
+
+/** Latest PO correction: no redundant composer action rows or replacement entry. */
+export async function expectQuietComposerMedia(page: Page) {
+  const gallery = page.locator('.composer-photo-draft');
+  await expect(gallery).toBeVisible();
+  for (const name of [experiences.arrange, experiences.automaticCover])
+    await expect(
+      gallery.getByRole('button', { name, exact: true }),
+    ).toHaveCount(0);
+  await expect(gallery.locator('.sensitive-media-control')).toHaveCount(0);
 }
 
 /** Drag the photo itself; corner actions are separate pointer targets. */
@@ -29,6 +43,9 @@ export async function dragDraftMedia(
   input: 'mouse' | 'touch' = 'mouse',
   cancel = false,
 ) {
+  // Latest PO correction removes composer arrangement rows without a replacement.
+  // This gesture helper remains exclusively for the unchanged legacy sortable owner.
+  await expect(page.locator('.composer-photo-draft')).toHaveCount(0);
   const tiles = page.locator('.photo-draft-tile');
   await tiles.nth(from).scrollIntoViewIfNeeded();
   const initial = await tiles.nth(from).boundingBox(),

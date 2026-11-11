@@ -1147,7 +1147,7 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
   ).toBeChecked();
 });
 
-test('monthly highlights include visible photo captions and dates plus distinct text and milestone moments', async ({
+test('monthly highlights keep photo captions, accessible dates and distinct text and milestone moments', async ({
   page,
 }, info) => {
   await page.clock.install({ time: new Date('2026-10-29T08:00:00Z') });
@@ -1226,8 +1226,13 @@ test('monthly highlights include visible photo captions and dates plus distinct 
     'Sunday together',
     'Coffee break',
   ]);
-  await expect(month.locator('.today-monthly-caption time')).toHaveCount(3);
-  await expect(month).toContainText('02.10.2026');
+  await expect(month.locator('.today-monthly-caption time')).toHaveCount(0);
+  await expect(
+    month.getByRole('link', {
+      name: 'Lakeside walk · 02.10.2026',
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(month).toContainText('A lovely quiet evening');
   await expect(month).toContainText('A year of adventures');
   await expect(

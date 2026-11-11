@@ -2,14 +2,14 @@ import { expect, test } from '@playwright/test';
 import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import sensitive from '../../src/i18n/locales/sensitiveMedia';
 import {
-  SPACE_ID,
+  CAPABILITIES,
+  captureScreenshot,
+  installMocks,
   ME,
   PARTNER,
-  CAPABILITIES,
-  TINY_PNG,
-  installMocks,
+  SPACE_ID,
   signIn,
-  captureScreenshot,
+  TINY_PNG,
 } from '../support/storyTimelineFixture';
 
 for (const parentAuthor of [false, true]) {
@@ -104,11 +104,9 @@ for (const parentAuthor of [false, true]) {
     const gallery = page.locator('.photo-draft-gallery');
     await gallery.locator('.photo-draft-tile').nth(targetIndex).click();
     const checkbox = gallery
-      .locator('.photo-draft-item')
-      .nth(targetIndex)
+      .locator('.photo-draft-stage')
       .getByRole('checkbox', {
-        name: sensitive.mark,
-        exact: true,
+        name: new RegExp(`^${sensitive.mark}:`),
       });
     await checkbox.check();
     await expect(checkbox).toBeChecked();

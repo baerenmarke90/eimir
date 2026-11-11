@@ -347,6 +347,11 @@
   transition: background-color var(--duration-feedback) var(--easing-standard);
 }
 
+.media-lightbox-close .eimir-icon {
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
+}
+
 .media-processing-state .eimir-icon {
   inline-size: var(--space-6);
   block-size: var(--space-6);

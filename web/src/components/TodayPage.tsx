@@ -626,12 +626,12 @@ function TodayLivingModuleCard({
 }
 
 /**
- * `Diesen Monat` — a small strip of this month's real shared photos.
+ * This month's shared photos, composed as a bounded mosaic.
  *
- * Photos carry their real title and calendar date, alongside text highlights.
+ * Titles overlay the photos; calendar dates remain in their accessible names.
  * The bounded projection deliberately makes no counted-total claim.
  */
-function TodayMonthlyStrip({
+export function TodayMonthlyMosaic({
   onFollow,
   items,
   loadMemoryImage,
@@ -645,13 +645,8 @@ function TodayMonthlyStrip({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
-  const isCarousel = items.length > 1;
   return (
-    <ul
-      className={`today-monthly-strip today-monthly-strip-${items.length}${
-        isCarousel ? ' eimir-media-snap-track' : ''
-      }`}
-    >
+    <ul className={`today-monthly-strip today-monthly-strip-${items.length}`}>
       {items.map((item) => {
         const path = dashboardItemPath(item.type, item.id);
         const { title, titleIsDate } = dashboardItemTitle(item, t);
@@ -666,31 +661,36 @@ function TodayMonthlyStrip({
                 loadImage={loadMemoryImage}
               />
             ) : null}
+            {item.previewIsSensitive ? (
+              <span
+                className="today-monthly-sensitive-label"
+                aria-hidden="true"
+              >
+                {t('sensitiveMedia.label')}
+              </span>
+            ) : null}
           </span>
         );
         return (
-          <li
-            key={item.id}
-            className={`today-monthly-item${
-              isCarousel
-                ? ' eimir-media-snap-item eimir-media-snap-item-start'
-                : ''
-            }`}
-          >
+          <li key={item.id} className="today-monthly-item">
             {path ? (
               <TodayDestinationLink
                 onFollow={onFollow}
                 to={path}
                 className="today-monthly-tile"
+                ariaLabel={[
+                  title,
+                  item.occurredOn && !titleIsDate
+                    ? formatCalendarDate(item.occurredOn)
+                    : null,
+                  item.previewIsSensitive ? t('sensitiveMedia.label') : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               >
                 {tile}
                 <span className="today-monthly-caption">
                   <strong>{title}</strong>
-                  {item.occurredOn && !titleIsDate ? (
-                    <time dateTime={item.occurredOn.toISOString()}>
-                      {formatCalendarDate(item.occurredOn)}
-                    </time>
-                  ) : null}
                 </span>
               </TodayDestinationLink>
             ) : (
@@ -698,11 +698,6 @@ function TodayMonthlyStrip({
                 {tile}
                 <span className="today-monthly-caption">
                   <strong>{title}</strong>
-                  {item.occurredOn && !titleIsDate ? (
-                    <time dateTime={item.occurredOn.toISOString()}>
-                      {formatCalendarDate(item.occurredOn)}
-                    </time>
-                  ) : null}
                 </span>
               </span>
             )}
@@ -1525,20 +1520,24 @@ export function TodayPage({
         (monthlyStrip.length > 0 || monthlyNotes.length > 0) ? (
           <TodayModuleSection
             className="today-section-monthly"
-            title={t('m5s5.today.monthly.title')}
+            title={t('m5s5.today.monthly.title', {
+              month: new Intl.DateTimeFormat(resolvedLocale(), {
+                month: 'long',
+              }).format(new Date()),
+            })}
             headerAction={
               <TodayDestinationLink
                 onFollow={monthlyReceipt.consume}
                 to={`${appRoutePath('story')}?tab=timeline`}
                 className="today-section-link"
-                aria-label={t('m5s5.today.monthly.allAriaLabel')}
+                ariaLabel={t('m5s5.today.monthly.allAriaLabel')}
               >
                 {t('m5s5.today.monthly.allAction')}
               </TodayDestinationLink>
             }
           >
             {loadMemoryImage && monthlyStrip.length > 0 ? (
-              <TodayMonthlyStrip
+              <TodayMonthlyMosaic
                 onFollow={monthlyReceipt.consume}
                 items={monthlyStrip}
                 loadMemoryImage={loadMemoryImage}
@@ -1600,6 +1599,8 @@ export function TodayPage({
           <SharedStorySummary
             summary={dashboardQuery.data?.sharedStorySummary}
             showEmpty
+            includeEmptyCategories={false}
+            relationshipDuration={dashboardQuery.data.relationshipDuration}
           />
         ) : null}
       </>

@@ -9,9 +9,16 @@ import placeCopy from '../../src/i18n/locales/photoPlaces';
 import photoCopy from '../../src/i18n/locales/photoSources';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import fixtures from '../fixtures/locales/de';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import {
+  closeContextTags,
+  openComposerPlace,
+  showContextSuggestions,
+  showContextTags,
+} from '../support/memoryDiary';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillDefaultProductContext } from '../support/productContext';
-import { showContextTags } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -238,6 +245,7 @@ for (const view of [
       .fill(fixtures.planningFollowup.wishNew);
     await showContextTags(page);
     await page.getByLabel(tagCopy.newLabel).fill(fixtures.planningFollowup.tag);
+    await closeContextTags(page);
     await page
       .getByRole('button', { name: copy.common.save, exact: true })
       .click();
@@ -251,16 +259,15 @@ for (const view of [
       .getByLabel(copy.plan.intentionLabel)
       .fill(fixtures.planningFollowup.planNew);
     await showContextTags(page);
-    await page.getByText(tagCopy.suggestions, { exact: true }).click();
+    await showContextSuggestions(page);
     await page
       .getByRole('checkbox', {
         name: fixtures.planningFollowup.tag,
         exact: true,
       })
       .check();
-    await page
-      .getByRole('button', { name: placeCopy.add, exact: true })
-      .click();
+    await closeContextTags(page);
+    await openComposerPlace(page);
     const picker = page.getByRole('dialog');
     await picker.getByLabel(placeCopy.savedSearch).fill('Garten');
     await picker
@@ -269,12 +276,12 @@ for (const view of [
       })
       .click();
     await expect(picker).not.toBeVisible();
+    const sourceSheet = await openComposerMediaSources(page);
     const chooserPromise = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: photoCopy.addMedia, exact: true })
+    await sourceSheet
+      .getByRole('button', { name: photoCopy.device, exact: true })
       .click();
     const chooser = await chooserPromise;
-    await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
     await chooser.setFiles({
       name: 'lake.jpg',
       mimeType: 'image/jpeg',
@@ -445,8 +452,11 @@ test.describe('photo-local touch gestures', () => {
     { width: 430, theme: 'light' },
     { width: 1280, theme: 'dark' },
     { width: 320, theme: 'light' },
+    { width: 390, theme: 'light', native: true },
+    { width: 430, theme: 'dark', native: true },
   ] as const) {
-    test(`pinch, pan, double tap, fit and browse at ${view.width} ${view.theme}`, async ({
+    const native = 'native' in view && view.native;
+    test(`pinch, pan, double tap, fit and browse at ${view.width} ${view.theme}${native ? ' native app' : ''}`, async ({
       page,
     }, info) => {
       await page.setViewportSize({ width: view.width, height: 900 });
@@ -454,6 +464,7 @@ test.describe('photo-local touch gestures', () => {
         colorScheme: view.theme,
         reducedMotion: 'reduce',
       });
+      if (native) await installNativeAppLifecycle(page);
       const state = await fixture(page);
       await signIn(page);
       await page.goto('/story/memories/mem-canal');
@@ -467,6 +478,23 @@ test.describe('photo-local touch gestures', () => {
       const photo = dialog.locator('.media-lightbox-photo img');
       const frame = dialog.locator('.media-lightbox-photo');
       await expect(photo).toBeVisible();
+      await expect(dialog.locator('.media-photo-zoom-controls')).toHaveCount(
+        native ? 0 : 1,
+      );
+      const close = dialog.getByRole('button', {
+        name: storyCopy.gallery.close,
+        exact: true,
+      });
+      await expect(close.locator('.eimir-icon')).toHaveCSS('width', '24px');
+      await expect(close.locator('.eimir-icon')).toHaveCSS('height', '24px');
+      const closeBox = await close.boundingBox();
+      expect(closeBox?.width).toBeGreaterThanOrEqual(44);
+      expect(closeBox?.height).toBeGreaterThanOrEqual(44);
+      await captureScreenshot(
+        page,
+        info,
+        `story-photo-viewer-${view.width}-${view.theme}${native ? '-native-app' : ''}.png`,
+      );
       const geometry = await frame.boundingBox();
       if (!geometry) throw new Error('The photo viewport is unavailable.');
       const x = geometry.x + geometry.width / 2;
@@ -539,11 +567,16 @@ test.describe('photo-local touch gestures', () => {
       await captureScreenshot(
         page,
         info,
-        `photo-zoom-${view.width}-${view.theme}.png`,
+        `story-photo-zoom-${view.width}-${view.theme}${native ? '-native-app' : ''}.png`,
       );
-      await dialog
-        .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
-        .click();
+      if (native) {
+        await page.touchscreen.tap(x, y);
+        await page.touchscreen.tap(x, y);
+      } else {
+        await dialog
+          .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
+          .click();
+      }
       await expect.poll(scale).toBe(1);
       await page.touchscreen.tap(x, y);
       await page.touchscreen.tap(x, y);
@@ -553,18 +586,25 @@ test.describe('photo-local touch gestures', () => {
       await page.touchscreen.tap(x, y);
       await page.touchscreen.tap(x, y);
       await expect.poll(scale).toBe(1);
-      await dialog
-        .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
-        .click();
+      if (!native) {
+        await dialog
+          .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
+          .click();
+      }
       await expect.poll(scale).toBe(1);
       await swipeCarousel(page, 'next', 'lightbox');
       await expect(dialog.locator('.media-lightbox-counter')).toContainText(
         fixtures.planningFollowup.twoOfTwo,
       );
       await expect.poll(scale).toBe(1);
-      await dialog
-        .getByRole('button', { name: storyCopy.gallery.zoomIn, exact: true })
-        .click();
+      if (native) {
+        await page.touchscreen.tap(x, y);
+        await page.touchscreen.tap(x, y);
+      } else {
+        await dialog
+          .getByRole('button', { name: storyCopy.gallery.zoomIn, exact: true })
+          .click();
+      }
       await expect.poll(scale).toBeGreaterThan(1);
       await frame.focus();
       const index = await dialog

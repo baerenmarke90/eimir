@@ -1,0 +1,33 @@
+const composer = {
+  addOwnTag: 'Eigenen Tag hinzufügen',
+  yourTags: 'Eure Tags',
+  diaryEntry: 'Tagebucheintrag',
+  saved: 'Gespeichert',
+  viewLinkedPlan: 'Verknüpften Plan ansehen',
+  emptyContent: 'Füge ein Foto, einen Titel oder deine Worte hinzu.',
+  linkRecovery:
+    'Dein Eintrag ist gespeichert. Die Verknüpfungen fehlen noch. Du kannst sie erneut übernehmen, ohne einen zweiten Eintrag anzulegen.',
+  planSavedLinkFailed:
+    'Dein Plan ist gespeichert. Die Verknüpfungen konnten noch nicht übernommen werden. Bitte versuche es erneut.',
+  tools: 'Eintrag ergänzen',
+  place: 'Ort',
+  tag: 'Tag',
+  photo: 'Foto',
+  voice: 'Sprache',
+  list: 'Liste',
+  listProgress: '{{completed}} von {{count}} erledigt',
+  sharedListProgress: 'Gemeinsame Liste · {{completed}} von {{count}} erledigt',
+  addPhotos: 'Fotos hinzufügen',
+  addMedia: 'Fotos oder Videos hinzufügen',
+  chooseOrDrag: 'Vom Gerät auswählen oder hierher ziehen',
+  newPlace: 'Neuer Ort',
+  createPlace: 'Neuen Ort hinzufügen',
+  createNamedPlace: '„{{name}}“ als neuen Ort erstellen',
+  backToPlaces: 'Zurück zu euren Orten',
+  editTag: 'Tag: {{name}}, bearbeiten',
+  editPlace: 'Ort: {{name}}, bearbeiten',
+  dropPhotos: 'Fotos hier ablegen',
+  tagsTitle: 'Was passt zu diesem Moment?',
+  tagsHint: 'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
+};
+export default composer;

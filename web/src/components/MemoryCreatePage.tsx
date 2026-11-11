@@ -1,3 +1,11 @@
+import { createPortal } from 'react-dom';
+import {
+  StoryPlanningDraftLinks,
+  linkDraftPlanningTargets,
+  type StoryPlanningTarget,
+} from './StoryPlanningLinks';
+import { ComposerTool, ComposerToolRow } from './PageComposer';
+import { EimirIcon } from './EimirIcon';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -108,6 +116,15 @@ export function MemoryCreatePage({
   );
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState('');
+  const [planningLinks, setPlanningLinks] = useState<StoryPlanningTarget[]>([]);
+  const [linkRecoveryMemory, setLinkRecoveryMemory] = useState<MemoryDetail>();
+  const [emptyContent, setEmptyContent] = useState(false);
+  const [placeToolHost, setPlaceToolHost] = useState<HTMLSpanElement | null>(
+    null,
+  );
+  const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
+  const [placeContextHost, setPlaceContextHost] =
+    useState<HTMLSpanElement | null>(null);
   const [places, setPlaces] = useState<MomentPlaceSelection[]>([]);
   const [selectedCoverKey, setSelectedCoverKey] = useState<string | null>(null);
   const [happenedUntil, setHappenedUntil] = useState('');
@@ -221,6 +238,7 @@ export function MemoryCreatePage({
     (experienceQuestion ? title !== initialTitle : title) ||
       body ||
       tags.length ||
+      planningLinks.length ||
       tagDraftDirty ||
       places.length ||
       happenedUntil ||
@@ -236,6 +254,8 @@ export function MemoryCreatePage({
     () => ({
       title,
       body,
+      planningLinks,
+      linkRecoveryMemory,
       tags,
       tagDraft: tagDraftText,
       happenedOn,
@@ -258,6 +278,8 @@ export function MemoryCreatePage({
       partial: null,
     }),
     [
+      planningLinks,
+      linkRecoveryMemory,
       title,
       body,
       tags,
@@ -353,6 +375,8 @@ export function MemoryCreatePage({
       }
       controller.signal.throwIfAborted();
       if (!owner.current.active || scope !== recoveryScopeRef.current) return;
+      setPlanningLinks(draft.planningLinks ?? []);
+      setLinkRecoveryMemory(draft.linkRecoveryMemory);
       setTitle(draft.title);
       setBody(draft.body);
       setPlaces(draft.places ?? (draft.place ? [draft.place] : []));
@@ -481,6 +505,31 @@ export function MemoryCreatePage({
       const memory = await work();
       if (!session.active) return;
       attemptRef.current = null;
+      if (!experienceKind && planningLinks.length) {
+        try {
+          await linkDraftPlanningTargets({
+            apiBaseUrl,
+            accessToken,
+            spaceId,
+            contentId: memory.id,
+            sourceKind: 'MEMORY',
+            targets: planningLinks,
+            isCurrent: () => session.active,
+          });
+        } catch (error) {
+          if (!session.active) return;
+          setLinkRecoveryMemory(memory);
+          setUncertain(false);
+          setProblem(await normalizeClientError(error));
+          await diaryDraft.checkpoint({
+            ...draftSnapshot,
+            attempt: null,
+            linkRecoveryMemory: memory,
+          });
+          return;
+        }
+      }
+      setLinkRecoveryMemory(undefined);
       await openResult(memory);
     } catch (error) {
       if (!session.active) return;
@@ -551,8 +600,17 @@ export function MemoryCreatePage({
 
   async function save() {
     if (sourceLoading) return;
+    if (!hasUserContent) {
+      setEmptyContent(true);
+      bodyInputRef.current?.focus();
+      return;
+    }
+    setEmptyContent(false);
+    if (linkRecoveryMemory) {
+      await run(async () => linkRecoveryMemory, { verification: false });
+      return;
+    }
     if (
-      !hasUserContent ||
       diaryDraft.recovery ||
       diaryDraft.status === 'conflict' ||
       owner.current.pending ||
@@ -832,8 +890,8 @@ export function MemoryCreatePage({
       form="memory-create-form"
       className={!experienceKind ? 'composer-save-action' : undefined}
       aria-label={saveLabel}
+      data-saveable={hasUserContent}
       disabled={
-        !hasUserContent ||
         Boolean(diaryDraft.recovery) ||
         diaryDraft.status === 'conflict' ||
         pending ||
@@ -893,7 +951,7 @@ export function MemoryCreatePage({
       pageClassName={
         experienceKind
           ? 'memory-task-page couple-experience-compose'
-          : 'memory-task-page quiet-composer'
+          : 'memory-task-page quiet-composer page-composer'
       }
       labelledBy="memory-form-heading"
     >
@@ -955,6 +1013,7 @@ export function MemoryCreatePage({
             disabled={
               pending ||
               Boolean(partial) ||
+              Boolean(linkRecoveryMemory) ||
               uncertain ||
               Boolean(diaryDraft.recovery)
             }
@@ -1013,6 +1072,12 @@ export function MemoryCreatePage({
                   }}
                 />
               ) : null}
+              {!experienceKind ? (
+                <span
+                  ref={setPlaceContextHost}
+                  className="composer-context-row"
+                />
+              ) : null}
             </div>
             {experienceKind && title ? (
               <section
@@ -1025,53 +1090,54 @@ export function MemoryCreatePage({
             ) : null}
             {experienceKind ? narrativeField : null}
             {!experienceKind ? (
-              <div className="composer-writing-surface">
-                <div className="field-group immersive-create-title-field">
-                  <label htmlFor="title">
-                    {t('memory.titleLabelOptional')}
-                  </label>
-                  <input
-                    id="title"
-                    name="title"
-                    maxLength={200}
-                    placeholder={t('memory.titleLabelOptional')}
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    className="immersive-create-title-input"
+              <div className="composer-content">
+                <div className="immersive-create-media">
+                  <AttachmentDraftPicker
+                    presentation="diary"
+                    pageWideDrop
+                    id="memory-create-images"
+                    videoContext={{ apis, accountId, spaceId }}
+                    attachments={attachments}
+                    selectedCoverKey={
+                      selectedCoverKey &&
+                      attachments.items.some(
+                        (item) => item.id === selectedCoverKey,
+                      )
+                        ? selectedCoverKey
+                        : null
+                    }
+                    onSelectCover={setSelectedCoverKey}
+                    sourceContext={{
+                      apiBaseUrl,
+                      accessToken,
+                      accountId,
+                      spaceId,
+                      remaining: Math.max(
+                        0,
+                        MAX_MEMORY_ATTACHMENTS - attachments.items.length,
+                      ),
+                      beginSelection: attachments.beginSelection,
+                    }}
+                    multiple
                   />
                 </div>
-                {narrativeField}
-              </div>
-            ) : null}
-
-            {!experienceKind ? (
-              <div className="immersive-create-media">
-                <AttachmentDraftPicker
-                  id="memory-create-images"
-                  videoContext={{ apis, accountId, spaceId }}
-                  attachments={attachments}
-                  selectedCoverKey={
-                    selectedCoverKey &&
-                    attachments.items.some(
-                      (item) => item.id === selectedCoverKey,
-                    )
-                      ? selectedCoverKey
-                      : null
-                  }
-                  onSelectCover={setSelectedCoverKey}
-                  sourceContext={{
-                    apiBaseUrl,
-                    accessToken,
-                    accountId,
-                    spaceId,
-                    remaining: Math.max(
-                      0,
-                      MAX_MEMORY_ATTACHMENTS - attachments.items.length,
-                    ),
-                    beginSelection: attachments.beginSelection,
-                  }}
-                  multiple
-                />
+                <div className="composer-writing-surface">
+                  <div className="field-group immersive-create-title-field">
+                    <label htmlFor="title">
+                      {t('memory.titleLabelOptional')}
+                    </label>
+                    <input
+                      id="title"
+                      name="title"
+                      maxLength={200}
+                      placeholder={t('memory.titleLabelOptional')}
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      className="immersive-create-title-input"
+                    />
+                  </div>
+                  {narrativeField}
+                </div>
               </div>
             ) : null}
 
@@ -1079,6 +1145,55 @@ export function MemoryCreatePage({
               className={!experienceKind ? 'composer-enrichment' : undefined}
             >
               <OrderedMomentPlacesField
+                presentation={!experienceKind ? 'composer' : 'default'}
+                renderTrigger={
+                  !experienceKind
+                    ? (open) =>
+                        placeToolHost
+                          ? createPortal(
+                              <ComposerTool
+                                icon="orte"
+                                label={t('composer.place')}
+                                active={places.length > 0}
+                                disabled={
+                                  pending ||
+                                  uncertain ||
+                                  Boolean(partial) ||
+                                  Boolean(diaryDraft.recovery)
+                                }
+                                onClick={open}
+                              />,
+                              placeToolHost,
+                            )
+                          : null
+                    : undefined
+                }
+                renderSelection={
+                  !experienceKind
+                    ? (selected, open) =>
+                        selected.length && placeContextHost
+                          ? createPortal(
+                              <button
+                                type="button"
+                                className="tertiary composer-place-context"
+                                aria-label={t('composer.editPlace', {
+                                  name: selected[0].name,
+                                })}
+                                onClick={open}
+                              >
+                                <EimirIcon name="orte" />
+                                <span>
+                                  {selected[0].name}
+                                  {selected.length > 1
+                                    ? ` +${selected.length - 1}`
+                                    : ''}
+                                </span>
+                              </button>,
+                              placeContextHost,
+                            )
+                          : null
+                    : undefined
+                }
                 apiBaseUrl={apiBaseUrl}
                 accessToken={accessToken}
                 accountId={accountId}
@@ -1099,6 +1214,26 @@ export function MemoryCreatePage({
 
               {!experienceKind ? (
                 <MemoryTagChoices
+                  presentation="composer"
+                  renderTrigger={(open) =>
+                    tagToolHost
+                      ? createPortal(
+                          <ComposerTool
+                            icon="tag"
+                            label={t('composer.tag')}
+                            active={tags.length > 0}
+                            disabled={
+                              pending ||
+                              uncertain ||
+                              Boolean(partial) ||
+                              Boolean(diaryDraft.recovery)
+                            }
+                            onClick={open}
+                          />,
+                          tagToolHost,
+                        )
+                      : null
+                  }
                   editorRef={tagEditorRef}
                   selected={tags}
                   onChange={setTags}
@@ -1109,7 +1244,59 @@ export function MemoryCreatePage({
                 />
               ) : null}
             </div>
+            {!experienceKind && (hasUserContent || planningLinks.length > 0) ? (
+              <StoryPlanningDraftLinks
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={accountId}
+                spaceId={spaceId}
+                targets={planningLinks}
+                onChange={setPlanningLinks}
+                disabled={
+                  pending ||
+                  uncertain ||
+                  Boolean(partial) ||
+                  Boolean(linkRecoveryMemory) ||
+                  Boolean(diaryDraft.recovery)
+                }
+              />
+            ) : null}
           </fieldset>
+          {emptyContent ? (
+            <p className="field-error" role="alert">
+              {t('composer.emptyContent')}
+            </p>
+          ) : null}
+          {linkRecoveryMemory ? (
+            <div className="inline-message" role="status">
+              <p>{t('composer.linkRecovery')}</p>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  void run(async () => linkRecoveryMemory, {
+                    verification: false,
+                  })
+                }
+              >
+                {t('common.retry')}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={pending}
+                onClick={() => void openResult(linkRecoveryMemory)}
+              >
+                {t('taskBoundary.openSaved')}
+              </button>
+            </div>
+          ) : null}
+          {!experienceKind ? (
+            <ComposerToolRow>
+              <span className="composer-tool-slot" ref={setPlaceToolHost} />
+              <span className="composer-tool-slot" ref={setTagToolHost} />
+            </ComposerToolRow>
+          ) : null}
           {dirty &&
           !diaryDraft.recovery &&
           !pending &&

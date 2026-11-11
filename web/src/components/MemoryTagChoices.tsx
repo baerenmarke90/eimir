@@ -1,5 +1,5 @@
 import { useTranslation } from '../i18n';
-import type { Ref } from 'react';
+import type { Ref, ReactNode } from 'react';
 import {
   ContextTagEditor,
   type ContextTagEditorHandle,
@@ -14,6 +14,8 @@ export const MEMORY_TAGS = [
 export type MemoryTag = string;
 
 export function MemoryTagChoices({
+  presentation,
+  renderTrigger,
   selected,
   onChange,
   disabled = false,
@@ -25,6 +27,8 @@ export function MemoryTagChoices({
   parentId,
   parentType = 'MEMORY',
 }: {
+  presentation?: 'default' | 'composer';
+  renderTrigger?: (open: () => void) => ReactNode;
   selected: readonly string[];
   onChange: (tags: string[]) => void;
   disabled?: boolean;
@@ -39,6 +43,8 @@ export function MemoryTagChoices({
   const { t } = useTranslation();
   return (
     <ContextTagEditor
+      presentation={presentation}
+      renderTrigger={renderTrigger}
       parentId={parentId}
       parentType={parentType}
       ref={editorRef}

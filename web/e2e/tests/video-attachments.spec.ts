@@ -10,6 +10,7 @@ import taskSheets from '../../src/i18n/locales/taskSheets';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -364,7 +365,7 @@ for (const [width, colorScheme] of [
   test(`upload observation preserves progress and page geometry ${width} ${colorScheme} (#1719)`, async ({
     page,
   }, info) => {
-    await page.setViewportSize({ width, height: 900 });
+    await page.setViewportSize({ width, height: 500 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const transfer = await observeNativeTransfer(page);
     const { state, unknown } = await setup(page, { retained: true });
@@ -376,7 +377,11 @@ for (const [width, colorScheme] of [
     const progress = placeholder.getByRole('progressbar');
     await expect(progress).toHaveAttribute('value', '17');
     expect((await progress.boundingBox())?.width).toBeGreaterThan(100);
-    await page.locator('.memory-provenance-footer').scrollIntoViewIfNeeded();
+    await page
+      .locator('.memory-provenance-footer')
+      .evaluate((element) =>
+        element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+      );
     await expect
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeGreaterThan(0);
@@ -515,16 +520,19 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    const device = page.locator('input[type=file][accept^="image/"]');
+    const sources = await openComposerMediaSources(page);
+    const device = page.locator(
+      '.media-device-choice--chooser input[type=file][accept^="image/"]',
+    );
     await expect(device).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
-    await expect(page.locator('input[type=file]')).toHaveCount(1);
+    await expect(
+      page.locator('.media-device-choice--chooser input[type=file]'),
+    ).toHaveCount(1);
     await device.setInputFiles([
       { name: 'sunrise.jpg', mimeType: 'image/jpeg', buffer: image },
       { name: 'jump.mp4', mimeType: 'video/mp4', buffer: movie },
     ]);
+    await expect(sources).toHaveCount(0);
     await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
@@ -585,7 +593,7 @@ for (const [width, colorScheme] of [
     state.videoStatus = 'READY';
     await expect(page.locator('.media-processing-state')).toHaveCount(0);
     await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-      storyCopy.gallery.counter
+      storyCopy.gallery.fraction
         .replace('{{index}}', '2')
         .replace('{{count}}', '2'),
     );
@@ -689,21 +697,33 @@ test('source selection waits for video eligibility and preserves photo fallback 
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  const input = page.locator('#memory-create-images');
+  await expect(page.locator('#memory-create-images')).toBeDisabled();
+  const sources = await openComposerMediaSources(page);
+  const input = page.locator('.media-device-choice--chooser input[type=file]');
   await expect(input).toBeDisabled();
   release();
   await expect(
-    page.getByText(photoSources.videoAvailabilityUnavailable, { exact: true }),
+    sources.getByText(photoSources.videoAvailabilityUnavailable, {
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(input).toBeEnabled();
   await expect(input).not.toHaveAttribute('accept', /video/);
   expect(requests).toBe(1);
-  await page
+  await sources
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(input).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
   expect(requests).toBe(2);
+  await expect(sources).toBeVisible();
+  await sources
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .last()
+    .click();
   await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: photoSources.more, exact: true }),
+  ).toBeFocused();
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);
 });
@@ -714,10 +734,10 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
+  const sources = await openComposerMediaSources(page);
+  await sources
+    .getByRole('button', { name: new RegExp(videoCopy.add) })
     .click();
-  await page.getByRole('button', { name: new RegExp(videoCopy.add) }).click();
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);
   await sheet
@@ -810,14 +830,15 @@ test('an interrupted local journal does not block an atomic save while video byt
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
+    const sources = await openComposerMediaSources(page);
     await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page.locator('input[type=file]').setInputFiles({
-      name: 'private-video.mp4',
-      mimeType: 'video/mp4',
-      buffer: movie,
-    });
+      .locator('.media-device-choice--chooser input[type=file]')
+      .setInputFiles({
+        name: 'private-video.mp4',
+        mimeType: 'video/mp4',
+        buffer: movie,
+      });
+    await expect(sources).toHaveCount(0);
     await expect.poll(() => state.uploads).toBe(1);
     await expect(
       page.getByRole('button', { name: de.memory.save, exact: true }),
@@ -863,14 +884,15 @@ test('a saved interrupted video resumes the same upload without recreating its p
   await signIn(page);
   await page.goto('/story/memories/new');
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(momentBody);
+  const sources = await openComposerMediaSources(page);
   await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
-  await page.locator('input[type=file]').setInputFiles({
-    name: 'our-video.mp4',
-    mimeType: 'video/mp4',
-    buffer: movie,
-  });
+    .locator('.media-device-choice--chooser input[type=file]')
+    .setInputFiles({
+      name: 'our-video.mp4',
+      mimeType: 'video/mp4',
+      buffer: movie,
+    });
+  await expect(sources).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: videoCopy.retryUpload, exact: true }),
   ).toBeVisible();
@@ -922,14 +944,15 @@ for (const [width, colorScheme] of [
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
         .fill(momentBody);
+      const sources = await openComposerMediaSources(page);
       await page
-        .getByRole('button', { name: photoSources.addMedia, exact: true })
-        .click();
-      await page.locator('input[type=file]').setInputFiles({
-        name: `eimir-selected-${VIDEO}.mp4`,
-        mimeType: 'video/mp4',
-        buffer: movie,
-      });
+        .locator('.media-device-choice--chooser input[type=file]')
+        .setInputFiles({
+          name: `eimir-selected-${VIDEO}.mp4`,
+          mimeType: 'video/mp4',
+          buffer: movie,
+        });
+      await expect(sources).toHaveCount(0);
       await page
         .getByRole('button', {
           name: de.memory.photoReviewFailure,

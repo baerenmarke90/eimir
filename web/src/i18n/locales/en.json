@@ -1,4 +1,34 @@
 {
+  "composer": {
+    "diaryEntry": "Diary entry",
+    "saved": "Saved",
+    "viewLinkedPlan": "View linked plan",
+    "emptyContent": "Add a photo, a title or your words.",
+    "linkRecovery": "Your entry is saved. Its links are still missing. You can retry them without creating another entry.",
+    "planSavedLinkFailed": "Your plan is saved. The links could not be applied yet. Please try again.",
+    "tools": "Enrich entry",
+    "addOwnTag": "Add your own tag",
+    "yourTags": "Your tags",
+    "place": "Place",
+    "tag": "Tag",
+    "photo": "Photo",
+    "voice": "Voice",
+    "list": "List",
+    "addPhotos": "Add photos",
+    "addMedia": "Add photos or videos",
+    "chooseOrDrag": "Choose from device or drag here",
+    "newPlace": "New place",
+    "createPlace": "Add a new place",
+    "createNamedPlace": "Create “{{name}}” as a new place",
+    "backToPlaces": "Back to your places",
+    "editTag": "Tag: {{name}}, edit",
+    "editPlace": "Place: {{name}}, edit",
+    "dropPhotos": "Drop photos here",
+    "tagsTitle": "What fits this moment?",
+    "tagsHint": "Optional · Choose what will remind you of this moment later.",
+    "listProgress": "{{completed}} of {{count}} done",
+    "sharedListProgress": "Shared list · {{completed}} of {{count}} done"
+  },
   "common": {
     "cancel": "Cancel",
     "retry": "Try again",
@@ -921,7 +951,7 @@
       "allActivityAction": "View all activity",
       "recentEmpty": "No shared entries yet.",
       "storySummaryKicker": "Already part of you",
-      "storySummaryTitle": "Your story in numbers",
+      "storySummaryTitle": "Your story",
       "storySummaryIntro": "Follow individual traces and keep exploring here.",
       "storySummarySettingsTitle": "Your story in numbers",
       "storySummaryMemories": "Moments",
@@ -934,7 +964,17 @@
       "storySummaryMilestonesCount_one": "{{count}} milestone",
       "storySummaryMilestonesCount_other": "{{count}} milestones",
       "itemFallback": "Shared entry",
-      "anniversaryTitle": "Your anniversary"
+      "anniversaryTitle": "Your anniversary",
+      "storySummarySharedMemories_one": "shared memory",
+      "storySummarySharedMemories_other": "shared memories",
+      "storySummaryMemoriesInPeriod_one": "memory in {{period}}",
+      "storySummaryMemoriesInPeriod_other": "memories in {{period}}",
+      "storySummaryPeriodYears_one": "{{formattedCount}} year",
+      "storySummaryPeriodYears_other": "{{formattedCount}} years",
+      "storySummaryPeriodMonths_one": "{{formattedCount}} month",
+      "storySummaryPeriodMonths_other": "{{formattedCount}} months",
+      "storySummaryPeriodDays_one": "{{formattedCount}} day",
+      "storySummaryPeriodDays_other": "{{formattedCount}} days"
     },
     "today": {
       "roles": {
@@ -993,8 +1033,8 @@
         "retrospectiveDismissed": "Recap hidden for today"
       },
       "monthly": {
-        "title": "Your month",
-        "allAction": "View moments",
+        "title": "Your {{month}}",
+        "allAction": "All moments",
         "allAriaLabel": "View all shared moments"
       },
       "relationshipSignal": {
@@ -2175,6 +2215,8 @@
     "connected": "Immich is connected.",
     "configureInSettings": "Connect Immich under Settings › Media sources.",
     "addMedia": "Add media",
+    "mediaLabel": "Media",
+    "deviceMediaHint": "Photos and videos",
     "device": "Choose from device",
     "deviceMedia": "Choose photos and videos together",
     "previewFailed": "Preview unavailable",
@@ -2301,7 +2343,7 @@
     "actionButton": "Actions",
     "edit": "View place",
     "maps": "Open in Google Maps (external)",
-    "mapAddress": "{{address}} – open in Google Maps (external)",
+    "mapAddress": "{{address}} – view on your map",
     "viewMap": "View on map",
     "locationFallback": "Photo location",
     "remove": "Remove link",
@@ -3977,6 +4019,7 @@
     }
   },
   "photoReactions": {
+    "react": "React",
     "open": "React to this photo",
     "choose": "Choose reaction",
     "summary": "Reactions to this photo",
@@ -4032,6 +4075,8 @@
     "imageAlt": "Photo for this entry",
     "openItem": "Open media item {{index}} of {{count}}",
     "counter": "{{index}} of {{count}}",
+    "fraction": "{{index}} / {{count}}",
+    "selectItem": "Show media {{index}} of {{count}}",
     "close": "Close",
     "done": "Done",
     "previous": "Previous media",

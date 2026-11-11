@@ -37,12 +37,14 @@
       "review": "The affected G2M decoder is not compiled in the restricted build. The audio decoder additions are Opus/Vorbis; they do not enable G2M."
     },
     "CVE-2026-120244": {
-      "evidenceSha256": "f65e04f748c2727c5af51110c9296c2e4049ea3ed9e43149869f8697909f89b7",
-      "review": "The affected PCX decoder is not compiled in the restricted build. No image decoder is added by the audio input changes."
+      "evidenceSha256": "9ca6d38fbaf8ebd70bb20eced2a8b9fe86e9465b310d90eb1489c52c97c91fb7",
+      "reviewedAt": "2026-11-11",
+      "review": "Debian sid remains open. The updated advisory still concerns the PCX decoder. The restricted build starts with --disable-everything and its explicit decoder list excludes pcx."
     },
     "CVE-2026-120245": {
-      "evidenceSha256": "fadcb444122b3fffbebd59d50229757be1f1ec6639ea93dfcdf97080fc9e5ea1",
-      "review": "The affected SunRaster decoder is not compiled in the restricted build. No image decoder is added by the audio input changes."
+      "evidenceSha256": "7dd0cbde51703e8ed743395f5652c199e774d4598a58ae6717ead7a551c90a02",
+      "reviewedAt": "2026-11-11",
+      "review": "Debian sid remains open. The updated advisory still concerns the Sun Raster decoder. The restricted build starts with --disable-everything and its explicit decoder list excludes sunrast."
     },
     "CVE-2026-120246": {
       "evidenceSha256": "fb41b0d61744b9b8ad912f7d936dc6dd5814c9f35dba238bb2a768536f7b42c9",

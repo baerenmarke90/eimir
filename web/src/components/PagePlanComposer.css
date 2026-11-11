@@ -29,6 +29,10 @@
   font: var(--font-composer-lead);
   color: var(--color-text);
 }
+.page-plan-composer .page-composer-writing input.page-composer-title {
+  /* Keep the input's line box tall enough for the font's descenders. */
+  line-height: normal;
+}
 .page-plan-composer .page-composer-writing textarea.page-composer-prose {
   font: var(--font-composer-prose);
   min-block-size: calc(var(--space-6) * 2);

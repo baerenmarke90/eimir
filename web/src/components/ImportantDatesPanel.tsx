@@ -46,7 +46,7 @@ const DATE_REPEATS = Object.values(DateRepeat);
 const VISIBILITIES = Object.values(ContentVisibility);
 const OCCASION_ICONS: Record<ImportantDateType, EimirIconName> = {
   BIRTHDAY: 'geburtstag',
-  ANNIVERSARY: 'jahrestag',
+  ANNIVERSARY: 'wir',
   CUSTOM: 'highlights',
 };
 
@@ -59,6 +59,7 @@ function OccasionTitle({
 }) {
   const { t } = useTranslation();
   const typeLabel = t(`importantDates.type.${type}`);
+  const icon = OCCASION_ICONS[type];
   return (
     <span className="occasion-title">
       <span
@@ -67,7 +68,10 @@ function OccasionTitle({
         aria-label={typeLabel}
         title={typeLabel}
       >
-        <EimirIcon name={OCCASION_ICONS[type]} variant="duotone" />
+        <EimirIcon
+          name={icon}
+          variant={icon === 'wir' ? 'outline' : 'duotone'}
+        />
       </span>
       <span>{label}</span>
     </span>
@@ -230,6 +234,7 @@ function ImportantDateEditorSheet({
     <div
       ref={backdropRef}
       className="focused-editor-backdrop"
+      data-create-entry={date ? undefined : true}
       role="presentation"
     >
       <section

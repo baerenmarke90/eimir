@@ -605,6 +605,19 @@
     var(--shell-content-bottom-clearance);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .product-main[data-create-entry] {
+    animation: eimir-create-entry-fade var(--duration-transition)
+      var(--easing-standard);
+  }
+
+  .product-main[data-create-entry]
+    :is(.page-composer-writing, .composer-writing-surface) {
+    animation: eimir-create-entry-rise var(--duration-transition)
+      var(--easing-standard);
+  }
+}
+
 /* Native focus/scroll alignment must clear the fixed bar as well as the
    document's final content. Padding alone does not protect an end-aligned
    focused control from the overlaid navigation. */

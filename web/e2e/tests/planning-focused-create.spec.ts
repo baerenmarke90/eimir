@@ -332,6 +332,10 @@ test('focused Wish creation omits the redundant fixed-audience banner', async ({
 
   await expect(page.getByText(m5s3.wish.sharedBody)).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
+  await expect(page.locator('#main-content')).toHaveCSS(
+    'animation-name',
+    'none',
+  );
   await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
 });
 
@@ -339,14 +343,42 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   await installPlanningMocks(page);
   await signIn(page);
   await page.goto('/plan');
 
+  const main = page.locator('#main-content');
+  await main.evaluate((element) => {
+    let entries = 0;
+    element.addEventListener('animationstart', (event) => {
+      if (
+        event.target !== element ||
+        event.animationName !== 'eimir-create-entry-fade'
+      )
+        return;
+      entries += 1;
+      element.setAttribute('data-e2e-create-entries', String(entries));
+      // Hold the first entry open to check the viewport tools and rapid Back.
+      if (entries === 1) {
+        for (const animation of element.getAnimations()) animation.pause();
+      }
+    });
+  });
   await page.getByRole('link', { name: m5s3.overview.addPlan }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/new$/);
+  await expect(main).toHaveAttribute('data-e2e-create-entries', '1');
+  await expect(page.getByLabel(m5s3.plan.intentionLabel)).toBeEditable();
+  expect(
+    await page
+      .locator('.composer-tool-row')
+      .evaluate(
+        (row) => window.innerHeight - row.getBoundingClientRect().bottom,
+      ),
+  ).toBeCloseTo(0);
   await page.goBack();
   await expect(page).toHaveURL(/\/plan$/);
+  await expect(main).toHaveCSS('animation-name', 'none');
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   const wishAction = page.getByRole('link', { name: m5s3.overview.addWish });
@@ -364,12 +396,21 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
   await wishAction.click();
   await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
   await expect(page.getByLabel(m5s3.wish.intentionLabel)).not.toBeFocused();
+  await expect(main).toHaveAttribute('data-e2e-create-entries', '2');
+  await expect(main).toHaveCSS('animation-name', 'none');
   await page.goBack();
   await expect(page).toHaveURL(/\/plan(?:#wishes)?$/);
   await expect(
     page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
   ).toHaveAttribute('aria-selected', 'true');
   await expect(wishAction).toBeVisible();
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await wishAction.click();
+  await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
+  await expect(page.getByLabel(m5s3.wish.intentionLabel)).toBeEditable();
+  await expect(main).toHaveCSS('animation-name', 'none');
+  await expect(main).toHaveAttribute('data-e2e-create-entries', '2');
 });
 
 test('an undated Plan is valid while optional context remains available', async ({

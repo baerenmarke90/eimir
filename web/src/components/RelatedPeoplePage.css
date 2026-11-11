@@ -492,6 +492,18 @@ button.danger:hover:not(:disabled) {
   box-shadow: 0 -16px 48px rgb(20 15 24 / 22%);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .focused-editor-backdrop[data-create-entry] {
+    animation: eimir-create-entry-fade var(--duration-context)
+      var(--easing-enter);
+  }
+
+  .focused-editor-backdrop[data-create-entry] > .focused-editor-sheet {
+    animation: eimir-create-entry-rise var(--duration-context)
+      var(--easing-enter);
+  }
+}
+
 .focused-editor-header {
   flex: 0 0 auto;
   min-width: 0;

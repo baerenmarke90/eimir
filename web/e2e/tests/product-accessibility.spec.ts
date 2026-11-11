@@ -2,6 +2,7 @@ import composer from '../../src/i18n/locales/composer';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -923,6 +924,16 @@ for (const view of [
       descriptionId,
     );
     await expect(dialog.getByLabel(profiles.categoryLabel)).toBeFocused();
+    for (const label of [
+      profiles.categoryLabel,
+      profiles.sentimentLabel,
+      profiles.topicLabel,
+      profiles.valueLabel,
+    ]) {
+      await expectVisibleFieldBoundary(
+        dialog.getByLabel(label, { exact: true }),
+      );
+    }
     if (view.width === 390) await expect(trigger).toBeHidden();
     await expectNoWcagViolations(page);
     await page.screenshot({
@@ -952,6 +963,7 @@ for (const view of [
     });
     await saved.click();
     await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await expectVisibleFieldBoundary(dialog.getByLabel(profiles.valueLabel));
     await dialog
       .getByLabel(profiles.valueLabel)
       .fill('Book the cabin for autumn');

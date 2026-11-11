@@ -1,4 +1,11 @@
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  Link,
+  matchPath,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { ProfilesApi } from '../client/mediaApis';
@@ -131,10 +138,15 @@ export function PrivateAreaProductPage({
   const isOverview =
     pathname === PRIVATE_AREA_ROOT_PATH ||
     pathname === `${PRIVATE_AREA_ROOT_PATH}/`;
+  const isGiftEditor = Boolean(
+    matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/new`, pathname) ||
+      matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId/edit`, pathname),
+  );
 
   return (
     <PrivateAreaFrame
       showNavigation={!isOverview}
+      editorFirst={isGiftEditor}
       overviewAction={
         isOverview ? (
           <ContextualCreateMenu

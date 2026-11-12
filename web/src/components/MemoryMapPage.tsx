@@ -120,6 +120,8 @@ export function MemoryMapPage({
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Overlaid tools step aside while the viewer pans or zooms the map.
+  const [mapMoving, setMapMoving] = useState(false);
   const filterTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenFilterTrigger = useRef<HTMLButtonElement>(null);
   const filterSheet = useRef<ShortTaskSheetHandle>(null);
@@ -460,7 +462,10 @@ export function MemoryMapPage({
         ) : (
           <>
             {locations.length || focusPoint ? (
-              <div className="memory-map-surface">
+              <div
+                className="memory-map-surface"
+                data-map-moving={mapMoving || undefined}
+              >
                 <div className="memory-map-tools">
                   <button
                     ref={filterTrigger}
@@ -507,6 +512,7 @@ export function MemoryMapPage({
                         key={`${fullscreenScope}:inline`}
                         initialViewport={viewport.current.value}
                         onViewportChange={rememberViewport}
+                        onUserMotionChange={setMapMoving}
                         locations={visiblePoints}
                         focus={focusPoint}
                         value={selectedId && !selected ? focusPoint : undefined}
@@ -525,7 +531,10 @@ export function MemoryMapPage({
                   restoreFocusRef={fullscreenTrigger}
                   className="memory-map-fullscreen"
                 >
-                  <div className="memory-map-fullscreen-surface">
+                  <div
+                    className="memory-map-fullscreen-surface"
+                    data-map-moving={mapMoving || undefined}
+                  >
                     {expanded ? (
                       <div className="memory-map-fullscreen-tools">
                         <button
@@ -561,6 +570,7 @@ export function MemoryMapPage({
                             key={`${fullscreenScope}:fullscreen`}
                             initialViewport={viewport.current.value}
                             onViewportChange={rememberViewport}
+                            onUserMotionChange={setMapMoving}
                             locations={visiblePoints}
                             focus={focusPoint}
                             value={

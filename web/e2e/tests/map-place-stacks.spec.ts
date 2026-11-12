@@ -345,7 +345,9 @@ for (const [width, theme, motion] of [
     };
     const beforeZoom = await position();
     const clicked = Date.now();
-    await fullscreen.locator('.place-map-zoom-in').click();
+    // Touch screens zoom by pinch; the buttons stay reachable by keyboard.
+    await fullscreen.locator('.place-map-zoom-in').focus();
+    await page.keyboard.press('Enter');
     // Zooming is animated and a marker at the zoom origin does not move, so
     // allow the zoom duration to pass, then require a resting camera.
     let previous = beforeZoom;

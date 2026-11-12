@@ -587,3 +587,42 @@
   min-height: 0;
   object-fit: cover;
 }
+
+/* The tools step aside while the map is being panned or zoomed, and return on
+   focus so keyboard and assistive technology users never lose them. */
+.memory-map-tools,
+.memory-map-fullscreen-tools {
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+[data-map-moving]
+  :is(.memory-map-tools, .memory-map-fullscreen-tools):not(:focus-within) {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Touch screens zoom by pinch and double tap; the zoom buttons stay reachable
+   by keyboard and assistive technology without sitting on the map. */
+@media (max-width: 839px), (hover: none), (pointer: coarse) {
+  .memory-map-surface .place-map-zoom,
+  .memory-map-fullscreen-surface .place-map-zoom {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .memory-map-surface .place-map-zoom:focus-within,
+  .memory-map-fullscreen-surface .place-map-zoom:focus-within {
+    inline-size: auto;
+    block-size: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-map-tools,
+  .memory-map-fullscreen-tools {
+    transition: none;
+  }
+}

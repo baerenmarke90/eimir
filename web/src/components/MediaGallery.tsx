@@ -134,6 +134,10 @@ export function GalleryExpandAction({
   );
 }
 
+/** How long the carousel's controls stay hidden after the last swipe. */
+const CONTROLS_REST_MS = 1500;
+const CONTROLS_HIDDEN_CLASS = 'is-browsing';
+
 export interface GalleryMediaItem {
   status?: string;
   id: string;
@@ -297,6 +301,9 @@ export function MediaGallery({
   const carouselSlides = useRef<Array<HTMLButtonElement | null>>([]);
   const carouselScrollFrame = useRef<number | null>(null);
   const carouselScrollEndTimer = useRef<number | null>(null);
+  const carouselViewport = useRef<HTMLDivElement | null>(null);
+  const controlsRestTimer = useRef<number | null>(null);
+  const userBrowsing = useRef(false);
   const lightboxTrack = useRef<HTMLDivElement | null>(null);
   const lightboxSlides = useRef<Array<HTMLDivElement | null>>([]);
   const lightboxScrollFrame = useRef<number | null>(null);
@@ -315,6 +322,30 @@ export function MediaGallery({
   const cancelLightboxFeedback = useCallback(() => {
     cancelScrollFeedback(lightboxScrollFrame, lightboxScrollEndTimer);
   }, []);
+  /**
+   * Overlaid controls get out of the way while the viewer swipes through the
+   * photos and return once the gesture has rested. Only the viewer's own
+   * gestures count, not layout or programmatic scrolling.
+   */
+  const holdBrowsing = useCallback((hideControls: boolean) => {
+    userBrowsing.current = true;
+    if (hideControls)
+      carouselViewport.current?.classList.add(CONTROLS_HIDDEN_CLASS);
+    if (controlsRestTimer.current !== null)
+      window.clearTimeout(controlsRestTimer.current);
+    controlsRestTimer.current = window.setTimeout(() => {
+      controlsRestTimer.current = null;
+      userBrowsing.current = false;
+      carouselViewport.current?.classList.remove(CONTROLS_HIDDEN_CLASS);
+    }, CONTROLS_REST_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      if (controlsRestTimer.current !== null)
+        window.clearTimeout(controlsRestTimer.current);
+    },
+    [],
+  );
   const dismiss = useCallback(() => {
     cancelLightboxFeedback();
     lightboxScrollTarget.current = null;
@@ -570,6 +601,7 @@ export function MediaGallery({
 
   function handleCarouselScroll(track: HTMLDivElement) {
     cancelPhotoPress(true);
+    if (userBrowsing.current) holdBrowsing(true);
     if (carouselScrollFrame.current === null) {
       carouselScrollFrame.current = window.requestAnimationFrame(() => {
         carouselScrollFrame.current = null;
@@ -869,17 +901,23 @@ export function MediaGallery({
           className={`media-gallery-carousel${readingFrame ? ' media-gallery-reader' : ''}`}
           aria-label={t('gallery.aria')}
         >
-          <div className="media-gallery-carousel-viewport">
+          <div
+            ref={carouselViewport}
+            className="media-gallery-carousel-viewport"
+          >
             <div
               ref={carouselTrack}
               className="eimir-media-snap-track media-gallery-carousel-track"
               onScroll={(event) => handleCarouselScroll(event.currentTarget)}
               onPointerDown={() => {
                 carouselScrollTarget.current = null;
+                holdBrowsing(false);
               }}
               onWheel={(event) => {
-                if (event.deltaX !== 0 || event.shiftKey)
+                if (event.deltaX !== 0 || event.shiftKey) {
                   carouselScrollTarget.current = null;
+                  holdBrowsing(false);
+                }
               }}
             >
               {items.length > 1 ? (

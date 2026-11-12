@@ -598,6 +598,11 @@
 
 /* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
 .primary-tab-panel {
+  /* Measured per peek by the tab panels; these are the neutral defaults. */
+  --primary-tab-peek-left: 0px;
+  --primary-tab-peek-width: 100%;
+  --primary-tab-peek-origin: 0px;
+
   display: contents;
 }
 

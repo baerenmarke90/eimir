@@ -1629,8 +1629,16 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(
     page.getByText('anna@example.org', { exact: false }),
   ).toBeVisible();
-  await expect(page.locator('.anniversary-reminder-form')).toHaveCount(2);
-  await expect(page.locator('.rule-reminder-form')).toHaveCount(2);
+  await expect(page.locator('.important-date-card')).toHaveCount(2);
+  await expect(
+    page.getByRole('heading', { name: notificationSettings.dates }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', { name: profileIdentity.anniversaryReminderToggle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', { name: profileIdentity.partnerBirthdayReminderToggle }),
+  ).toBeVisible();
   await expect(
     page.getByRole('link', {
       name: profileIdentity.settingsNotificationsAction,

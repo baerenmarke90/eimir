@@ -13,7 +13,7 @@ const profiles = {
     badge: 'Pro',
     gamesTitle: 'Spiele, Einblicke und persönliche Extras.',
     gamesBody:
-      'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, das Zitat des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
+      'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, den Spruch des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
     action: 'Pro ansehen',
     detailsTitle: 'Ein Zugang für euch beide',
     detailsBody:

@@ -1,5 +1,3 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -8,6 +6,8 @@ import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import localizedFixture from '../fixtures/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillDefaultProductContext } from '../support/productContext';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -462,7 +462,7 @@ async function expectQuoteSurfaceAccessible(
       page
         .locator('.daily-quote-card')
         .getByRole('heading', { level: 2, name: dailyQuote.title }),
-    ).toHaveClass('sr-only');
+    ).toHaveClass('today-section-title');
     await expect(page.locator('.daily-quote-symbol')).toHaveCount(0);
   }
 
@@ -965,7 +965,7 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
   await signIn(page);
   const quote = page.locator('.daily-quote-card');
   await expect(quote.getByRole('heading')).toHaveText(dailyQuote.title);
-  await expect(quote.getByRole('heading')).toHaveClass('sr-only');
+  await expect(quote.getByRole('heading')).toHaveClass('today-section-title');
   await expect(quote.locator('.daily-quote-symbol')).toHaveCount(0);
   await expect(
     page.locator('.today-section-moment .today-section-kicker'),

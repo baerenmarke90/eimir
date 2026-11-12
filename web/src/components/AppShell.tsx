@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigationType } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
@@ -25,6 +25,7 @@ import {
   type AppRouteDefinition,
   activeNavigationArea,
   appRoutePath,
+  COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
   PRIMARY_APP_ROUTES,
@@ -53,7 +54,7 @@ import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
-import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
+import { useNavigationMotion } from './useNavigationMotion';
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
@@ -220,11 +221,15 @@ function AuthenticatedAppShell({
 
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+  const pathname = location.pathname.replace(/\/$/, '');
+  const navigationType = useNavigationType();
   const { navigatePrimary } = usePrimaryNavigation();
-  usePrimaryTabSwipe({
+  useNavigationMotion({
     surfaceRef: mainRef,
-    pathname: location.pathname,
+    pathname,
     routeKey: location.key,
+    skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
+    createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
     onNavigate: navigatePrimary,
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');

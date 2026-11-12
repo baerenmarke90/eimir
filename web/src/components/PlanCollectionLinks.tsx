@@ -162,9 +162,6 @@ export function PlanCollectionLinks({
           onRetry={() => void linked.refetch()}
         />
       ) : null}
-      {!linked.isPending && !linked.error && !lists.length ? (
-        <p className="muted">{t('m5s3.collection.planEmpty')}</p>
-      ) : null}
       <ul
         className={
           editing

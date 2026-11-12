@@ -43,6 +43,7 @@ class WishCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str
+    description: str | SkipJsonSchema[None] = None
     tags: ContextTags = Field(default_factory=list)
 
     _unique_tags = field_validator("tags")(unique_tags)
@@ -55,9 +56,16 @@ class WishCreate(ApiModel):
             raise ValueError("must not be blank")
         return cleaned
 
+    @field_validator("description")
+    @classmethod
+    def _description_not_null(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("description must not be null")
+        return value
+
 
 class WishUpdate(ApiModel):
-    """Wish title correction.
+    """Wish content correction. Explicit null clears the description.
 
     There is deliberately no ``status`` field. Wish status is controlled only
     by explicit lifecycle commands; an arbitrary status PATCH would provide a
@@ -67,6 +75,7 @@ class WishUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | SkipJsonSchema[None] = None
+    description: str | None = None
     tags: ContextTags | SkipJsonSchema[None] = None
 
     @field_validator("tags")
@@ -93,6 +102,7 @@ class WishDetail(ApiModel):
     space_id: UUID
     created_by: UUID
     title: str
+    description: str | None = None
     tags: ContextTags = Field(default_factory=list)
     status: WishStatus
     version: int
@@ -121,6 +131,7 @@ def wish_detail(
         space_id=wish.space_id,
         created_by=wish.owner_id,
         title=wish.payload.title,
+        description=wish.payload.description,
         tags=wish.payload.tags,
         status=WishStatus(wish.status),
         version=wish.version,
@@ -167,7 +178,12 @@ def create_wish(
     idempotency_key: IdempotencyKey,
 ) -> WishDetail:
     result = service.create_wish_once(
-        session, authorization, idempotency_key=idempotency_key, title=body.title, tags=body.tags
+        session,
+        authorization,
+        idempotency_key=idempotency_key,
+        title=body.title,
+        description=body.description,
+        tags=body.tags,
     )
     if not result.created:
         response.status_code = http_status.HTTP_200_OK
@@ -268,7 +284,9 @@ def update_wish(
         authorization,
         wish_id,
         expected_version=expected_version,
+        changed_fields=frozenset(body.model_fields_set),
         title=body.title,
+        description=body.description,
         tags=body.tags,
     )
     response.headers["ETag"] = etag_for(wish.version)

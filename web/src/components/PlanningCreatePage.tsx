@@ -1,6 +1,11 @@
 import { TaskBackButton } from './TaskBackButton';
 import { createPortal } from 'react-dom';
-import { ComposerToolRow, ComposerTool, ComposerChip } from './PageComposer';
+import {
+  ComposerChip,
+  ComposerDescriptionField,
+  ComposerTool,
+  ComposerToolRow,
+} from './PageComposer';
 import { PlanWishLink } from './PlanWishLink';
 import { planningIfMatch } from '../client/sharedPlanning';
 import './PagePlanComposer.css';
@@ -113,9 +118,12 @@ export function PlanningCreatePage({
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { requestReturn } = useTaskOrigin();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
+  const [defaultPlannedDate] = useState(() =>
+    kind === 'plan' ? resolveOrigin(originKey)?.planningCreateDate : undefined,
+  );
   const headingRef = useRef<HTMLDivElement>(null);
   const discardRef = useRef<ShortTaskSheetHandle>(null);
   const referenceApis = useMemo(
@@ -242,8 +250,13 @@ export function PlanningCreatePage({
       owns: () => boolean;
     }) => {
       assertOnlineWrite();
+      const wishCreate = {
+        title: values.title,
+        description: values.description,
+        tags: values.tags,
+      };
       let requestValues: PlanningCreateValues =
-        kind === 'wish' ? { title: values.title, tags: values.tags } : values;
+        kind === 'wish' ? wishCreate : values;
       if (kind === 'plan' && photos.items.length) {
         requestValues = {
           ...values,
@@ -282,7 +295,7 @@ export function PlanningCreatePage({
             kind === 'wish'
               ? apis.wishes.createWish({
                   spaceId,
-                  wishCreate: { title: values.title, tags: values.tags },
+                  wishCreate,
                   idempotencyKey,
                 })
               : apis.plans.createPlan({
@@ -411,10 +424,7 @@ export function PlanningCreatePage({
       values: {
         title: title.trim(),
         tags: committedTags,
-        description:
-          kind === 'plan' && description.trim()
-            ? description.trim()
-            : undefined,
+        description: description.trim() || undefined,
         placeId: kind === 'plan' && placeId ? placeId : undefined,
         schedule,
       },
@@ -479,6 +489,7 @@ export function PlanningCreatePage({
                 formId="planning-create-form"
                 disabled={pending || parentSaved}
                 idPrefix="planning-create-schedule"
+                defaultDate={defaultPlannedDate}
                 includeEnd
               />
               {chosenPlace ? (
@@ -537,21 +548,10 @@ export function PlanningCreatePage({
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={t('m5s3.common.title')}
               />
-              <label className="sr-only" htmlFor="planning-create-description">
-                {t('m5s3.common.description')}
-              </label>
-              <textarea
+              <ComposerDescriptionField
                 id="planning-create-description"
-                name="description"
-                className="page-composer-prose"
-                onInput={(event) => {
-                  event.currentTarget.style.height = 'auto';
-                  event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`;
-                }}
-                rows={2}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder={t('m5s3.common.description')}
               />
             </div>
             <PlanFilesEditor
@@ -799,18 +799,7 @@ export function PlanningCreatePage({
         className="planning-intention-form"
         onSubmit={submit}
       >
-        <fieldset
-          disabled={pending || parentSaved}
-          onChange={(event) => {
-            if (
-              !(
-                event.target instanceof HTMLInputElement &&
-                event.target.name === 'title'
-              )
-            )
-              setEnrichmentDirty(true);
-          }}
-        >
+        <fieldset disabled={pending || parentSaved}>
           <legend className="sr-only">
             {t(isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading')}
           </legend>
@@ -847,21 +836,13 @@ export function PlanningCreatePage({
                 />
               </div>
 
-              {isPlan ? (
-                <div className="field-group">
-                  <label htmlFor="planning-create-description">
-                    {t('m5s3.common.description')}
-                  </label>
-                  <textarea
-                    id="planning-create-description"
-                    name="description"
-                    rows={4}
-                    placeholder={t('m5s3.common.description')}
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                  />
-                </div>
-              ) : null}
+              <div className="field-group">
+                <ComposerDescriptionField
+                  id="planning-create-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </div>
             </div>
             {isPlan ? (
               <PlanPhotosEditor

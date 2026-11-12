@@ -49,14 +49,22 @@ describe('calculateNextAnniversary', () => {
     expect(result?.nextDate.toISOString().slice(0, 10)).toBe('2026-09-04');
   });
 
-  it('handles leap day (Feb 29) start date in non-leap target years', () => {
-    // Started on leap day 2024-02-29. Reference: Jan 1, 2025 (non-leap year).
-    const refDate = new Date('2025-01-01T00:00:00.000Z');
-    const result = calculateNextAnniversary('2024-02-29', refDate);
+  it.each([
+    ['2025-01-01', '2025-02-28', false],
+    ['2027-02-28', '2027-02-28', true],
+    ['2027-03-01', '2028-02-29', false],
+    ['2028-02-28', '2028-02-29', false],
+  ])(
+    'resolves a leap-day anniversary on %s',
+    (reference, expected, isToday) => {
+      const refDate = new Date(`${reference}T12:00:00Z`);
+      const result = calculateNextAnniversary('2024-02-29', refDate);
 
-    expect(result).not.toBeNull();
-    expect(result?.nextDate.toISOString().slice(0, 10)).toBe('2025-02-28');
-  });
+      expect(result?.nextDate.toISOString().slice(0, 10)).toBe(expected);
+      expect(result?.isToday).toBe(isToday);
+      if (isToday) expect(result?.daysRemaining).toBe(0);
+    },
+  );
 
   it('formats anniversary detail correctly for future countdown and for today', () => {
     const mockT = (key: string, values?: Record<string, unknown>) => {

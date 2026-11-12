@@ -236,6 +236,12 @@
   }
 }
 
+.more-destination:is(:active, [data-control-pressed]) {
+  color: var(--color-brand-text);
+  background: var(--color-surface-subtle);
+  transition: none;
+}
+
 @media (max-width: 389px) {
   .more-groups {
     gap: var(--space-6);

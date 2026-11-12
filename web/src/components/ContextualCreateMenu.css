@@ -29,6 +29,12 @@
   outline-offset: 2px;
 }
 
-.contextual-create-choice:hover {
+@media (hover: hover) and (pointer: fine) {
+  .contextual-create-choice:hover {
+    background: var(--color-surface-subtle);
+  }
+}
+
+.contextual-create-choice:is(:active, [data-control-pressed]) {
   background: var(--color-surface-subtle);
 }

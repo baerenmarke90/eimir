@@ -4,10 +4,10 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import localeFixtures from '../fixtures/locales/de';
-import recaps from '../../src/i18n/locales/recaps';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import recaps from '../../src/i18n/locales/recaps';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
+import localeFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 
@@ -1733,15 +1733,18 @@ for (const [width, theme, largeText] of [
     const scenario: Scenario = {
       ...RICH_SPACE,
       recentShared: [MOMENT, photos[0]],
-      summary: { memories: 28, heartMoments: 9, milestones: 5 },
+      summary: { memories: 29, heartMoments: 9, milestones: 5 },
       relationshipDuration: {
-        startedOn: '2023-01-01',
-        daysTogether: 1096,
+        startedOn: '2026-05-13',
+        daysTogether: 181,
         displayMode: 'DAYS',
       },
+      viewerLocalDate: '2026-11-10',
     };
     await installMocks(page, scenario);
     await signInAndOpenToday(page);
+    const duration = page.locator('.today-hero-duration-link');
+    await expect(duration).toHaveText('181 Tage zusammen');
     for (const count of [1, 2, 3]) {
       if (count > 1) {
         scenario.recentShared = [MOMENT, ...photos.slice(0, count)];
@@ -1759,9 +1762,13 @@ for (const [width, theme, largeText] of [
         page.locator('.today-section-monthly .today-section-link'),
       ).toHaveText('Alle Momente');
       const story = page.locator('.shared-story-summary');
+      await expect(
+        story.getByText(m5s5.dashboard.storySummaryIntro, { exact: true }),
+      ).toBeVisible();
       await expect(story.locator('.shared-story-summary-line')).toHaveText(
-        '42 Erinnerungen in 3 Jahren',
+        '43 Erinnerungen',
       );
+      await expect(story).not.toContainText('181 Tage');
       await expect(story.locator('.shared-story-summary-row')).toHaveCount(3);
       for (const row of await story
         .locator('.shared-story-summary-row')
@@ -1770,7 +1777,7 @@ for (const [width, theme, largeText] of [
         expect(box?.height).toBeGreaterThanOrEqual(44);
       }
       await expect(
-        story.getByRole('link', { name: '28 Momente', exact: true }),
+        story.getByRole('link', { name: '29 Momente', exact: true }),
       ).toHaveAttribute('href', '/story?tab=timeline&type=MEMORY');
       await expect(
         story.getByRole('link', { name: '9 Herzmomente', exact: true }),
@@ -1855,18 +1862,21 @@ for (const [width, theme, largeText] of [
     }
     scenario.summary = { memories: 3, heartMoments: 2, milestones: 0 };
     scenario.relationshipDuration = {
-      startedOn: '2026-01-01',
-      daysTogether: 120,
+      startedOn: '2026-05-13',
+      daysTogether: 182,
       displayMode: 'DAYS',
     };
+    scenario.viewerLocalDate = '2026-11-11';
+    await page.clock.setFixedTime(new Date('2026-11-11T12:00:00Z'));
     await page.reload();
     if (largeText)
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
       });
     const story = page.locator('.shared-story-summary');
+    await expect(duration).toHaveText('182 Tage zusammen');
     await expect(story.locator('.shared-story-summary-line')).toHaveText(
-      '5 Erinnerungen in 4 Monaten',
+      '5 Erinnerungen',
     );
     await expect(story.locator('.shared-story-summary-row')).toHaveCount(2);
     await expect(story.locator('.shared-story-summary-bar > span')).toHaveCount(
@@ -1882,8 +1892,9 @@ for (const [width, theme, largeText] of [
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
       });
+    await expect(duration).toHaveCount(0);
     await expect(story.locator('.shared-story-summary-line')).toHaveText(
-      '5 gemeinsame Erinnerungen',
+      '5 Erinnerungen',
     );
     await expectNoHorizontalOverflow(page);
     await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
@@ -1896,7 +1907,7 @@ for (const [width, theme, largeText] of [
     await page.goBack();
     await expect(page).toHaveURL(/\/today$/);
     await expect(story.locator('.shared-story-summary-line')).toHaveText(
-      '5 gemeinsame Erinnerungen',
+      '5 Erinnerungen',
     );
   });
 }

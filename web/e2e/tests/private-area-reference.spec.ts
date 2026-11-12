@@ -6,8 +6,15 @@ import {
   expectLabeledAddAction,
 } from '../support/addAction';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import { expectVisibleFieldBoundary } from '../support/renderedContrast';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type Route } from '@playwright/test';
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Route,
+} from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
@@ -77,6 +84,22 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(dimensions.scrollWidth, JSON.stringify(overflow)).toBeLessThanOrEqual(
     dimensions.clientWidth,
   );
+}
+
+async function expectPrivateFloatingColor(action: Locator) {
+  const colors = await action.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      primary: style.getPropertyValue('--color-action-primary').trim(),
+      private: style.getPropertyValue('--private-action-color').trim(),
+      shared: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-action-primary')
+        .trim(),
+    };
+  });
+  expect(colors.primary).toBe(colors.private);
+  expect(colors.primary).not.toBe(colors.shared);
+  await expect(action).toHaveCSS('color', 'rgb(255, 255, 255)');
 }
 
 async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
@@ -486,6 +509,7 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   });
   if ((page.viewportSize()?.width ?? 0) < 840) {
     await expectFloatingAddAction(create, page.locator('.mobile-bottom-shell'));
+    await expectPrivateFloatingColor(create);
   } else {
     await expectLabeledAddAction(create);
     await expect(create).not.toHaveCSS('position', 'fixed');
@@ -714,6 +738,21 @@ test('private area reflows at 320 CSS px and removes decorative motion', async (
     path: testInfo.outputPath('private-area-320-light.png'),
     fullPage: true,
   });
+  const chooser = await openPrivateCreateChoices(page);
+  await chooser
+    .getByRole('link', { name: privateArea.gifts.add, exact: true })
+    .click();
+  await expect(
+    page.getByLabel(privateArea.gifts.titleLabel, { exact: true }),
+  ).toBeInViewport();
+  await expect(
+    page.getByRole('button', { name: privateArea.save, exact: true }),
+  ).toBeInViewport();
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('private-gift-create-320-light.png'),
+  });
   expect(unexpectedRequests).toEqual([]);
 });
 
@@ -896,12 +935,18 @@ test('private collection is read/check-first and discloses management in Edit', 
   ).toBeVisible();
 
   await page.getByRole('button', { name: de.common.edit }).click();
-  await expect(
-    page.getByPlaceholder(privateArea.collections.itemTitleLabel),
-  ).toBeVisible();
-  await expect(page.getByLabel(privateArea.collections.rename)).toBeVisible();
-
   const titleInput = page.getByLabel(privateArea.collections.titleLabel);
+  const newItem = page.getByPlaceholder(privateArea.collections.itemTitleLabel);
+  const rename = page.getByLabel(privateArea.collections.rename);
+  for (const field of [titleInput, newItem, rename]) {
+    await expectVisibleFieldBoundary(field);
+  }
+  await rename.focus();
+  await expect(rename).toHaveCSS('outline-style', 'solid');
+  await page.screenshot({
+    path: testInfo.outputPath('private-collection-fields-390-dark.png'),
+    fullPage: true,
+  });
   await titleInput.fill('Packing for Lisbon');
   await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
 
@@ -2043,6 +2088,14 @@ for (const view of [
       const compactListEntry = view.width === 390 && !view.fromOverview;
       if (compactListEntry) await installNativeAppLifecycle(page);
       const unexpected = await signInAndOpenPrivateArea(page);
+      if (compactListEntry && definition.kind === 'gift-ideas') {
+        await page.evaluate(() =>
+          document.documentElement.style.setProperty(
+            '--safe-area-inset-top',
+            '28px',
+          ),
+        );
+      }
       const fixture = await installHeldPrivateCreate(page, definition.kind);
       const add = page.getByRole('link', {
         name: definition.copy.add,
@@ -2067,6 +2120,7 @@ for (const view of [
         if (compactListEntry) {
           await expect(page.locator('[data-floating-create]')).toHaveCount(1);
           await expectFloatingAddAction(add, dock);
+          await expectPrivateFloatingColor(add);
         } else {
           await expectLabeledAddAction(
             add,
@@ -2079,10 +2133,65 @@ for (const view of [
         new RegExp(`/more/private/${definition.kind}/new$`),
       );
       await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+      const titleInput = page.getByLabel(definition.copy.titleLabel, {
+        exact: true,
+      });
+      await expectVisibleFieldBoundary(titleInput);
+      if (definition.kind === 'notes') {
+        await expectVisibleFieldBoundary(
+          page.getByLabel(privateArea.notes.bodyLabel, { exact: true }),
+        );
+        await expect(
+          page.locator('.private-area-editor.free-composer'),
+        ).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        if (view.width === 390) {
+          await page.screenshot({
+            path: testInfo.outputPath(`private-note-fields-${view.name}.png`),
+            fullPage: true,
+          });
+        }
+      }
+      if (definition.kind === 'gift-ideas') {
+        const editor = page.locator('.private-gift-composer');
+        const save = editor.getByRole('button', {
+          name: privateArea.save,
+          exact: true,
+        });
+        await expect(
+          editor.getByText(privateArea.privacyLabel, { exact: true }),
+        ).toBeInViewport();
+        await expect(titleInput).toBeInViewport();
+        await expect(titleInput).not.toBeFocused();
+        await expectVisibleFieldBoundary(
+          editor.getByLabel(privateArea.gifts.descriptionLabel),
+        );
+        await expectVisibleFieldBoundary(
+          editor.getByLabel(privateArea.gifts.targetOnLabel),
+        );
+        await expect(save).toBeInViewport();
+        await expectNoHorizontalOverflow(page);
+        await expectNoWcagViolations(page);
+        if (compactListEntry) {
+          await page
+            .getByRole('navigation', {
+              name: privateArea.navigation.aria,
+              exact: true,
+            })
+            .scrollIntoViewIfNeeded();
+          await editor
+            .getByLabel(privateArea.gifts.urlLabel)
+            .scrollIntoViewIfNeeded();
+          await expect(save).toBeInViewport();
+          expect(
+            await editor
+              .locator('.composer-header')
+              .evaluate((header) => header.getBoundingClientRect().top),
+          ).toBeGreaterThanOrEqual(28);
+          await page.evaluate(() => window.scrollTo(0, 0));
+        }
+      }
       const title = `Personal ${definition.kind} plan`;
-      await page
-        .getByLabel(definition.copy.titleLabel, { exact: true })
-        .fill(title);
+      await titleInput.fill(title);
       await page
         .getByRole('button', { name: privateArea.save, exact: true })
         .click();

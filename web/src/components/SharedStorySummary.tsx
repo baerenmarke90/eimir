@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom';
 import type { DashboardSharedStorySummary } from '../api/generated/models/DashboardSharedStorySummary';
-import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
-import { calculateRelationshipDuration } from '../client/relationshipPreview';
 import { appRoutePath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
@@ -11,7 +9,6 @@ interface SharedStorySummaryProps {
   summary: DashboardSharedStorySummary;
   showEmpty?: boolean;
   includeEmptyCategories?: boolean;
-  relationshipDuration?: DashboardRelationshipDuration | null;
 }
 
 export function sharedStorySummaryIsEligible(
@@ -31,7 +28,6 @@ export function SharedStorySummary({
   summary,
   showEmpty = false,
   includeEmptyCategories = showEmpty,
-  relationshipDuration,
 }: SharedStorySummaryProps) {
   const { t } = useTranslation();
   if (!showEmpty && !sharedStorySummaryIsEligible(summary)) return null;
@@ -68,34 +64,6 @@ export function SharedStorySummary({
     },
   ].filter((metric) => includeEmptyCategories || metric.value > 0);
   const total = metrics.reduce((sum, metric) => sum + metric.value, 0);
-  // Use the server snapshot's reference day, also when viewing cached data.
-  const start = relationshipDuration
-    ? new Date(relationshipDuration.startedOn)
-    : null;
-  const duration =
-    start && relationshipDuration
-      ? calculateRelationshipDuration(
-          start,
-          new Date(
-            start.getTime() + relationshipDuration.daysTogether * 86_400_000,
-          ),
-        )
-      : null;
-  const periodCount = duration
-    ? duration.years || duration.months || duration.days
-    : null;
-  const periodUnit = duration?.years
-    ? 'Years'
-    : duration?.months
-      ? 'Months'
-      : 'Days';
-  const period =
-    periodCount === null
-      ? null
-      : t(`m5s5.dashboard.storySummaryPeriod${periodUnit}`, {
-          count: periodCount,
-          formattedCount: numberFormat.format(periodCount),
-        });
 
   return (
     <section
@@ -106,16 +74,19 @@ export function SharedStorySummary({
         {t('m5s5.dashboard.storySummaryTitle')}
       </h2>
       <div className="shared-story-summary-card">
+        {total > 0 ? (
+          <p className="shared-story-summary-intro">
+            <span className="shared-story-summary-heart" aria-hidden="true">
+              <EimirIcon name="momente" />
+            </span>
+            <span>{t('m5s5.dashboard.storySummaryIntro')}</span>
+          </p>
+        ) : null}
         <p className="shared-story-summary-line">
           <strong className="shared-story-summary-total">
             {numberFormat.format(total)}
           </strong>{' '}
-          {period === null
-            ? t('m5s5.dashboard.storySummarySharedMemories', { count: total })
-            : t('m5s5.dashboard.storySummaryMemoriesInPeriod', {
-                count: total,
-                period,
-              })}
+          {t('m5s5.dashboard.storySummaryTotalLabel', { count: total })}
         </p>
         {total > 0 ? (
           <div className="shared-story-summary-bar" aria-hidden="true">

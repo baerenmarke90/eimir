@@ -356,15 +356,33 @@
 }
 
 /* #1730: one feeling canvas across capture, editing, chrome and reading. */
-.heart-emotion-page.heart-emotion-compose {
-  --composer-accent: var(--heart-emotion-action);
-  --composer-ground: var(--heart-emotion-surface);
+.heart-emotion-page.heart-emotion-compose,
+.product-shell:has(.heart-moment-read-page)
+  :is(.mobile-bottom-shell, .shell-nav) {
   --heart-emotion-action: color-mix(
     in srgb,
     var(--heart-emotion-accent) 80%,
     var(--color-text)
   );
+  --color-surface-subtle: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 12%,
+    var(--heart-emotion-surface)
+  );
+  --color-focus: var(--heart-emotion-action);
+}
+.heart-emotion-page.heart-emotion-compose {
+  --composer-accent: var(--heart-emotion-action);
+  --composer-ground: var(--heart-emotion-surface);
   --heart-emotion-on-accent: var(--color-on-accent);
+  --color-border-subtle: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 20%,
+    var(--heart-emotion-surface)
+  );
+  --color-shimmer-base: var(--color-surface-subtle);
+  --color-shimmer-highlight: var(--heart-emotion-surface);
+  --color-link-text: var(--heart-emotion-action);
   background: var(--heart-emotion-surface);
   transition: background-color var(--duration-feedback) var(--easing-standard);
 }
@@ -376,14 +394,23 @@ body:has(.heart-emotion-page),
 .product-shell:has(.heart-emotion-page) {
   background: var(--active-heart-emotion-surface, var(--color-background));
 }
+.product-shell:has(.heart-moment-read-page)
+  :is(.mobile-bottom-shell, .shell-nav) {
+  --heart-emotion-accent: var(--active-heart-emotion-accent);
+  --heart-emotion-surface: var(--active-heart-emotion-surface);
+  --color-surface-overlay: var(--heart-emotion-surface);
+  --color-brand-surface: var(--color-surface-subtle);
+  --color-brand-text: var(--heart-emotion-action);
+}
+.product-shell:has(.heart-moment-read-page)
+  .shell-nav
+  .shell-nav-link-active::before {
+  background: var(--heart-emotion-action);
+}
 .heart-emotion-page .composer-header,
 .heart-emotion-page .composer-tool-row {
   background: var(--heart-emotion-surface);
-  border-color: color-mix(
-    in srgb,
-    var(--heart-emotion-accent) 20%,
-    var(--heart-emotion-surface)
-  );
+  border-color: var(--color-border-subtle);
   transition: background-color var(--duration-feedback) var(--easing-standard);
 }
 .heart-emotion-page .composer-tool-row > span {
@@ -395,6 +422,23 @@ body:has(.heart-emotion-page),
 .heart-emotion-page .composer-header button[data-saveable="true"] {
   background: var(--heart-emotion-action);
   color: var(--heart-emotion-on-accent);
+}
+.heart-emotion-page
+  .comment-edit-actions
+  > button[type="submit"]:not(:disabled) {
+  background: var(--heart-emotion-action);
+  color: var(--heart-emotion-on-accent);
+}
+.heart-emotion-page
+  :is(.media-processing-state, .photo-draft-inspector)
+  progress {
+  accent-color: var(--heart-emotion-action);
+}
+.heart-emotion-page
+  :is(.media-processing-state, .memory-tag-summary)
+  .eimir-icon {
+  --identity-icon-accent: var(--heart-emotion-action);
+  color: var(--heart-emotion-action);
 }
 .heart-emotion-page .page,
 .heart-emotion-page .composer-content,
@@ -422,11 +466,7 @@ button.heart-visibility-pill {
   padding: var(--space-2) var(--space-3);
   border: 0;
   border-radius: var(--radius-pill);
-  background: color-mix(
-    in srgb,
-    var(--heart-emotion-accent) 12%,
-    var(--heart-emotion-surface)
-  );
+  background: var(--color-surface-subtle);
   color: var(--heart-emotion-action);
   font: var(--font-action-label);
   text-align: start;
@@ -491,11 +531,7 @@ button.heart-visibility-pill {
 }
 .heart-emotion-page .composer-chip,
 .heart-emotion-page .photo-draft-add {
-  background: color-mix(
-    in srgb,
-    var(--heart-emotion-accent) 12%,
-    var(--heart-emotion-surface)
-  );
+  background: var(--color-surface-subtle);
   color: var(--heart-emotion-action);
 }
 .heart-emotion-page .voice-player {
@@ -547,11 +583,7 @@ button.heart-visibility-pill {
 }
 .heart-emotion-page .composer-saved-status {
   color: var(--heart-emotion-action);
-  background: color-mix(
-    in srgb,
-    var(--heart-emotion-accent) 12%,
-    var(--heart-emotion-surface)
-  );
+  background: var(--color-surface-subtle);
 }
 @media (prefers-reduced-motion: reduce) {
   .heart-emotion-page,

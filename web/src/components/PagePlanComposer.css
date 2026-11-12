@@ -29,10 +29,9 @@
   font: var(--font-composer-lead);
   color: var(--color-text);
 }
-.page-plan-composer .page-composer-writing textarea.page-composer-prose {
-  font: var(--font-composer-prose);
-  min-block-size: calc(var(--space-6) * 2);
-  resize: vertical;
+.page-plan-composer .page-composer-writing input.page-composer-title {
+  /* Keep the input's line box tall enough for the font's descenders. */
+  line-height: normal;
 }
 .page-plan-composer .planning-editor-fields,
 .page-plan-composer .planning-intention-form fieldset {
@@ -138,17 +137,6 @@
 }
 .page-plan-detail .plan-calendar-action {
   margin-block-start: var(--space-2);
-}
-.page-plan-detail .planen-section-content {
-  border: 0;
-  border-radius: var(--radius-card);
-  box-shadow: none;
-  padding: var(--space-5);
-  background: var(--color-surface);
-}
-.page-plan-detail .planen-section-content p {
-  font: var(--font-composer-prose);
-  color: var(--color-text);
 }
 .page-plan-detail .plan-wish-source > span {
   display: grid;

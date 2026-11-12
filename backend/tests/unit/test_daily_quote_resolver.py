@@ -170,7 +170,8 @@ def test_empty_pool_returns_neutral_no_quote_state() -> None:
     assert res.quote is None
 
 
-def test_fallback_pool_when_selected_preferences_empty() -> None:
+@pytest.mark.parametrize("author_display", ["Someone", ""])
+def test_fallback_pool_when_selected_preferences_empty(author_display: str) -> None:
     account_id = uuid4()
     space_id = uuid4()
     auth = AuthorizationContext(account_id=account_id, space_id=space_id)
@@ -185,13 +186,22 @@ def test_fallback_pool_when_selected_preferences_empty() -> None:
         version=1,
     )
     session = _mock_session_with_preference(pref)
+    fallback_quote = DailyQuote(
+        id="fallback-1",
+        text="Fallback saying",
+        author_display=author_display,
+        source_display=None,
+        source_id="classic_literature",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=bool(author_display),
+    )
 
     # Even though user selected non-matching preferences, resolver gracefully falls back to Pro pool
-    res = resolver.resolve_daily_quote(session, auth)
-    assert res.quote is not None
-    assert res.quote.locale == "de"
-    assert res.quote.rights_classification == RightsClassification.PUBLIC_DOMAIN
-    assert res.quote.attribution_required is True
+    res = resolver.resolve_daily_quote(session, auth, custom_quote_pool=[fallback_quote])
+    assert res.enabled is True
+    assert res.quote == fallback_quote
 
 
 def test_resolver_respects_space_timezone(monkeypatch) -> None:  # type: ignore[no-untyped-def]

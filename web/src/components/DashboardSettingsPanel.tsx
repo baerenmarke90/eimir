@@ -15,6 +15,7 @@ import {
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import {
+  COUPLE_HERO_MODULE_KEY,
   dashboardPreferencesQueryKey,
   effectiveUpcomingItemLimit,
   isDashboardModuleVisible,
@@ -31,9 +32,24 @@ import {
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { useTranslation } from '../i18n';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
+
+const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
+  relationship_presence: 'wir',
+  shared_experience: 'nurfuer',
+  daily_quote: 'quote',
+  keepsake: 'momente',
+  upcoming: 'kalender',
+  pinned_collection: 'listen',
+  retrospective: 'erinnerungen',
+  relationship_signal: 'gemeinsam',
+  monthly_highlights: 'highlights',
+  recent_shared: 'aktivitaet',
+  shared_story_summary: 'statistiken',
+};
 
 export interface DashboardSettingsPanelProps {
   dashboardApi: DashboardApi;
@@ -542,17 +558,32 @@ export function DashboardSettingsPanel({
     },
   });
 
-  const orderedKeys = orderedDashboardModuleKeys(preferencesQuery.data);
+  // The couple identity is always first; hidden standard modules remain
+  // available without crowding the everyday arrangement.
+  const personalKeys = orderedDashboardModuleKeys(preferencesQuery.data).filter(
+    (key) => key !== COUPLE_HERO_MODULE_KEY,
+  );
+  const hiddenKeys = personalKeys.filter(
+    (key) =>
+      moduleControls?.[key] === undefined &&
+      key !== 'shared_story_summary' &&
+      !isDashboardModuleVisible(preferencesQuery.data, key),
+  );
+  const visibleKeys = personalKeys.filter((key) => !hiddenKeys.includes(key));
   const reorder = useListItemReorder({
-    itemIds: orderedKeys,
+    itemIds: visibleKeys,
     animatePreview: true,
     disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
     onReorder: (keys, moved) => {
       const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
       if (!isCurrentQuery()) return;
-      const next = keys as DashboardModuleKey[];
+      const next = [
+        COUPLE_HERO_MODULE_KEY,
+        ...keys,
+        ...hiddenKeys,
+      ] as DashboardModuleKey[];
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
-      const position = next.indexOf(moved as DashboardModuleKey) + 1;
+      const position = keys.indexOf(moved as DashboardModuleKey) + 1;
       const write: DashboardOrderWrite = {
         keys: next,
         sequence: ++latestOrderRequest.current,

@@ -3,6 +3,10 @@ import { type Location, Route, Routes, useLocation } from 'react-router-dom';
 import { PrimaryTabTaskOriginScope } from '../client/taskOrigin';
 import { AppErrorBoundary } from './AppErrorBoundary';
 
+/** About half a second at 60 Hz for a revealed panel to finish settling. */
+const RESTORE_FRAMES = 30;
+const USER_SCROLL_INTENTS = ['wheel', 'touchstart', 'keydown'] as const;
+
 export interface PrimaryTabPanel {
   path: string;
   element: ReactNode;
@@ -50,9 +54,39 @@ export function PrimaryTabPanels({
     const previous = activeRef.current;
     activeRef.current = active;
     if (!active || previous === active) return;
-    const saved = scrollPositions.current.get(active);
+    const target = scrollPositions.current.get(active) ?? 0;
     // New tabs start at the top; revisited tabs restore their reading position.
-    window.scrollTo({ top: saved ?? 0, behavior: 'instant' });
+    window.scrollTo({ top: target, behavior: 'instant' });
+    if (target === 0) return;
+    // The revealed panel can still be briefly shorter than when it was left
+    // (content settling after it becomes visible), which clamps the restore.
+    // Re-apply it for a few frames while the page grows, and stop as soon as
+    // anything else scrolls.
+    let frames = 0;
+    let request = 0;
+    // Any scroll this restore did not make (the person, or reselecting the
+    // tab to return to the top) ends it.
+    let expected = window.scrollY;
+    const stop = () => {
+      cancelAnimationFrame(request);
+      for (const type of USER_SCROLL_INTENTS)
+        window.removeEventListener(type, stop);
+    };
+    const settle = () => {
+      if (
+        Math.abs(window.scrollY - expected) > 1 ||
+        Math.abs(window.scrollY - target) <= 1 ||
+        ++frames > RESTORE_FRAMES
+      )
+        return stop();
+      window.scrollTo({ top: target, behavior: 'instant' });
+      expected = window.scrollY;
+      request = requestAnimationFrame(settle);
+    };
+    for (const type of USER_SCROLL_INTENTS)
+      window.addEventListener(type, stop, { passive: true });
+    request = requestAnimationFrame(settle);
+    return stop;
   }, [active]);
 
   return panels.map(({ path, element }) => {

@@ -7,6 +7,7 @@ import de from '../../src/i18n/locales/de';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import navigation from '../../src/i18n/locales/navigation';
 import productTour from '../../src/i18n/locales/productTour';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
 
@@ -1018,6 +1019,87 @@ for (const [width, theme] of [
     await page.screenshot({
       path: info.outputPath(`diary-${width}-${theme}.png`),
       fullPage: false,
+    });
+    expect(unexpected).toEqual([]);
+  });
+}
+
+for (const [width, theme] of [
+  [390, 'dark'],
+  [390, 'light'],
+] as const) {
+  test(`Discover HeartMoment notes follow their emotion at ${width} ${theme} (#1784)`, async ({
+    page,
+  }, info) => {
+    const unexpected = await installDiscoverApiMocks(page);
+    const emotions = [
+      'LOVED',
+      'SEEN',
+      'APPRECIATED',
+      'SUPPORTED',
+      'GRATEFUL',
+      'HAPPY',
+    ] as const;
+    const notes = emotions.map((emotion, index) => {
+      const item = heartMomentItem(
+        `discover-emotion-${index}`,
+        localizedFixture.diaryCategoryNotes[index],
+        '2026-10-26',
+      );
+      return { ...item, heartMoment: { ...item.heartMoment, emotion } };
+    });
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/discover`, (route) =>
+      route.fulfill({
+        json: {
+          selectionDate: '2026-09-17',
+          lead: DISCOVER_ITEMS[2],
+          items: notes,
+          leadContext: null,
+        },
+      }),
+    );
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.goto('/story?tab=discover');
+    await signIn(page);
+    await page.goto('/story?tab=discover');
+
+    const links = page.locator('.momente-tapestry-note');
+    await expect(links).toHaveCount(emotions.length);
+    // The emotion badge replaces the corner glyph, the surface follows the feeling.
+    await expect(
+      page.locator('.momente-tapestry-note .momente-tapestry-kind'),
+    ).toHaveCount(0);
+    const surfaces = await links.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const probe = document.createElement('span');
+        probe.style.backgroundColor = 'var(--heart-emotion-surface)';
+        node.append(probe);
+        const expected = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return { background: getComputedStyle(node).backgroundColor, expected };
+      }),
+    );
+    expect(new Set(surfaces.map((s) => s.background)).size).toBe(
+      emotions.length,
+    );
+    for (const surface of surfaces)
+      expect(surface.background).toBe(surface.expected);
+    for (const [index, emotion] of emotions.entries()) {
+      const label = storyProducts.heartEmotion[emotion];
+      const link = links.nth(index);
+      await expect(link.locator('.heart-emotion-label')).toHaveText(label);
+      await expect(link).toHaveAttribute(
+        'aria-label',
+        new RegExp(
+          `${storyProducts.heartMomentProduct.emotionLabel}: ${label}$`,
+        ),
+      );
+    }
+    await links.first().scrollIntoViewIfNeeded();
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(`discover-emotion-notes-${width}-${theme}.png`),
     });
     expect(unexpected).toEqual([]);
   });

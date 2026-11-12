@@ -307,6 +307,76 @@ describe('StoryProductPage', () => {
     expect(html).toContain('First apartment together');
   });
 
+  describe('issue #1784: Discover HeartMoment note follows its emotion', () => {
+    const lead = {
+      kind: 'MEMORY',
+      effectiveDate: new Date('2026-08-26T00:00:00Z'),
+      memory: {
+        id: 'mem-1',
+        title: 'Summer Lake Vacation',
+        notes: 'Wonderful sunset together',
+        occurredOn: new Date('2026-08-26T00:00:00Z'),
+        createdAt: new Date('2026-08-26T00:00:00Z'),
+        attachments: [
+          { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+        ],
+        author: { id: 'author-1', displayName: 'Alex' },
+        creator: { id: 'author-1', displayName: 'Alex' },
+        capabilities: { canComment: true, canDelete: true, canEdit: true },
+      },
+    };
+    const heartMoment = (emotion?: string) => ({
+      kind: 'HEART_MOMENT',
+      effectiveDate: new Date('2026-08-25T00:00:00Z'),
+      heartMoment: {
+        id: 'heart-1',
+        text: 'I love you more each day',
+        emotion,
+        createdAt: new Date('2026-08-25T00:00:00Z'),
+        author: { id: 'author-2', displayName: 'Taylor' },
+        creator: { id: 'author-2', displayName: 'Taylor' },
+      },
+    });
+    const renderNoteLink = (emotion?: string): string => {
+      const html = renderStoryPage('/story', {
+        items: [lead, heartMoment(emotion)],
+        hasMore: false,
+        nextCursor: null,
+      });
+      const link = /<a [^>]*momente-tapestry-note[^>]*>[\s\S]*?<\/a>/.exec(
+        html,
+      );
+      if (!link) throw new Error('The Discover note link did not render.');
+      return link[0];
+    };
+
+    it('shows the shared emotion badge and the emotion surface instead of the corner glyph', () => {
+      const link = renderNoteLink('LOVED');
+
+      expect(link).toContain('data-heart-emotion="LOVED"');
+      expect(link).toContain('heart-emotion-badge');
+      expect(link).toContain(storyProducts.heartEmotion.LOVED);
+      expect(link).not.toContain('momente-tapestry-kind');
+    });
+
+    it('names the emotion in the accessible name of the note', () => {
+      expect(renderNoteLink('SEEN')).toContain(
+        `aria-label="${storyProducts.storyItem.note}: I love you more each day. ${storyProducts.heartMomentProduct.emotionLabel}: ${storyProducts.heartEmotion.SEEN}"`,
+      );
+    });
+
+    it('keeps the previous corner glyph for a note without an emotion', () => {
+      const link = renderNoteLink();
+
+      expect(link).not.toContain('data-heart-emotion');
+      expect(link).not.toContain('heart-emotion-badge');
+      expect(link).toContain('momente-tapestry-kind');
+      expect(link).toContain(
+        `aria-label="${storyProducts.storyItem.note}: I love you more each day"`,
+      );
+    });
+  });
+
   describe('issue #977: curated reveal and viewport-aware media loading', () => {
     it('gives tapestry entries a reveal key/class and defers their media until near the viewport, while the Discover page wrapper no longer replays a generic mount animation', () => {
       const html = renderStoryPage('/story', {

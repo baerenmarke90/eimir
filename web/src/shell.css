@@ -614,7 +614,8 @@
     will-change: transform, opacity;
   }
 
-  .product-shell-body:has(.product-main[data-primary-tab-dragging]) {
+  .product-shell-body:has(.product-main[data-primary-tab-dragging]),
+  .product-shell-body:has(.product-main[data-navigation-slide]) {
     overflow-x: clip;
   }
 

@@ -140,9 +140,13 @@ function animatePageSlide(
       easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
     },
   );
+  // Clip the page's transformed visual bounds for the complete animation,
+  // including after touchend has released the drag state.
+  surface.dataset.navigationSlide = 'true';
   const complete = () => {
     if (owner.current !== cancel) return;
     owner.current = null;
+    delete surface.dataset.navigationSlide;
     animation.onfinish = null;
     animation.oncancel = null;
     reduced?.removeEventListener('change', onMotionChanged);

@@ -476,7 +476,11 @@ class TestExactTagNavigation:
             Memory(
                 **shared,
                 happened_on=date(2026, 2, 1),
-                payload=MemoryPayload(title="Unrelated title", tags=["Our trip"]),
+                payload=MemoryPayload(
+                    title="Unrelated title",
+                    body="Remembered together",
+                    tags=["Our trip"],
+                ),
             ),
             HeartMoment(
                 **shared,
@@ -504,14 +508,22 @@ class TestExactTagNavigation:
         not_tagged = Memory(
             **shared,
             happened_on=date(2026, 2, 4),
-            payload=MemoryPayload(title="Our trip", tags=["Other trip"]),
+            payload=MemoryPayload(
+                title="Our trip",
+                body="A memory with another tag",
+                tags=["Other trip"],
+            ),
         )
         outsider = Memory(
             space_id=couple["foreign_space"].id,
             owner_id=couple["outsider"].id,
             privacy_class=PrivacyClass.SPACE_SHARED.value,
             happened_on=date(2026, 2, 5),
-            payload=MemoryPayload(title="Foreign", tags=["Our trip"]),
+            payload=MemoryPayload(
+                title="Foreign",
+                body="Belongs to another Space",
+                tags=["Our trip"],
+            ),
         )
         session.add_all([*tagged, not_tagged, outsider])
         session.flush()
@@ -546,7 +558,11 @@ class TestExactTagNavigation:
             Memory(
                 **_shared(couple, couple["anna"].id),
                 happened_on=date(2026, 1, 1),
-                payload=MemoryPayload(title="Example", tags=["Café"]),
+                payload=MemoryPayload(
+                    title="Example",
+                    body="A memorable cafe",
+                    tags=["Café"],
+                ),
             )
         )
         session.flush()

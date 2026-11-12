@@ -162,6 +162,14 @@ describe('primary tab slide feedback', () => {
       ],
       expect.objectContaining({ duration: 180 }),
     );
+    expect(surface.dataset.navigationSlide).toBe('true');
+    act(() =>
+      animation.onfinish?.call(
+        animation,
+        new Event('finish') as AnimationPlaybackEvent,
+      ),
+    );
+    expect(surface.hasAttribute('data-navigation-slide')).toBe(false);
     view.unmount();
     frame.mockRestore();
   });

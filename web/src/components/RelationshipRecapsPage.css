@@ -727,6 +727,14 @@
   place-self: center;
   transform: none;
 }
+.recap-playback-overlay.recap-playback-inline {
+  position: relative;
+  inset: auto;
+  order: 2;
+  align-self: center;
+  margin-block: 0 var(--space-5);
+  transform: none;
+}
 .recap-playback-overlay[data-playing="true"] {
   opacity: 0;
 }

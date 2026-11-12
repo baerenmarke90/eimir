@@ -156,5 +156,5 @@ Captured by `web/e2e/tests/automatic-recaps.spec.ts` (three journeys: 390 Light,
 - The quote is a quiet italic serif block with the author's first name and German quotation marks, inside the photo scrim or on the text-led surface.
 - The reaction line is one calm line with a filled heart; it only appears on a photo scene.
 - The photo scrim now holds stronger and longer (45 % / 82 % stops) so the eyebrow, title, quote and reaction line stay readable over a busy picture.
-- Open: on text-led scenes the paused, centred play toggle (Product Owner decision of 2026-11-11) overlaps the title and now also the quote; the generated board placed it below the copy. Large-text and Android device acceptance of these scenes have not been performed; the rhythm scene is not built yet.
+- On text-led scenes (facts, words, titles, a cover without photos) the play toggle stays in the stage but sits below the copy (Product Owner decision of 2026-11-12), so a paused reader never covers the title or a quote. While playing it is invisible as before; on photography it stays centred on the picture. The text-scene captures in `evidence/` were refreshed for this. Large-text and Android device acceptance of these scenes have not been performed; the rhythm scene is not built yet.
 

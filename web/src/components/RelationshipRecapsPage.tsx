@@ -674,11 +674,13 @@ function RecapReader({
         ? 'recaps.replay'
         : 'recaps.play',
   );
-  const playbackToggle = (overlay: boolean) =>
+  // Text-led scenes keep the toggle in the stage but below the copy, so a paused
+  // reader never covers the title or a quote.
+  const playbackToggle = (overlay: boolean, inline = false) =>
     value?.status === 'READY' ? (
       <button
         type="button"
-        className={`recap-playback-toggle${overlay ? ' recap-playback-overlay' : ''}`}
+        className={`recap-playback-toggle${overlay ? ' recap-playback-overlay' : ''}${inline ? ' recap-playback-inline' : ''}`}
         data-playing={playback.playing}
         onClick={() => {
           if (playback.playing) playback.pause();
@@ -806,7 +808,7 @@ function RecapReader({
                   count: pageCount,
                 })}
               >
-                {centredOnStage ? playbackToggle(true) : null}
+                {centredOnStage ? playbackToggle(true, true) : null}
                 {!scene || scene.type === 'cover' ? (
                   <>
                     {mosaic.length ? (

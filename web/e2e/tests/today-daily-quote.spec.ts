@@ -449,11 +449,11 @@ async function expectQuoteSurfaceAccessible(
     expect(geometry.outerBorder).toBe('0px');
     expect(geometry.outerBackground).toBe('rgba(0, 0, 0, 0)');
     expect(geometry.quoteScale).toBeLessThanOrEqual(1.25);
-    await expect(
-      page
-        .locator('.daily-quote-card')
-        .getByRole('heading', { level: 2, name: dailyQuote.title }),
-    ).toHaveClass('sr-only');
+    // A modal settings sheet makes the background inaccessible by design.
+    // Verify the underlying heading semantics directly while it is inert.
+    const heading = card.locator('h2#daily-quote-title');
+    await expect(heading).toHaveText(dailyQuote.title);
+    await expect(heading).toHaveClass('sr-only');
     await expect(page.locator('.daily-quote-symbol')).toHaveCount(0);
   }
 

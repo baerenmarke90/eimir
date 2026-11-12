@@ -1,5 +1,7 @@
 package de.eimir.app;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -24,11 +26,27 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SplashScreen.installSplashScreen(this);
+        SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
+        // A process-wide hold: a recreated activity does not wait for a Web
+        // shell that has already painted.
+        if (savedInstanceState == null) LaunchScreenHold.start();
+        splashScreen.setKeepOnScreenCondition(LaunchScreenHold::keepOnScreen);
+        splashScreen.setOnExitAnimationListener(provider ->
+            provider.getView().animate()
+                .alpha(0f)
+                .setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime))
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        provider.remove();
+                    }
+                })
+                .start());
         rendererRecovery = new RendererRecovery(
             savedInstanceState != null && savedInstanceState.getBoolean(RECOVERY_ATTEMPTED));
         registerPlugin(NativePushBridge.class);
         registerPlugin(AppIconPlugin.class);
+        registerPlugin(LaunchScreenPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         registerPlugin(PlanCalendarPlugin.class);
         registerPlugin(PlanFilesPlugin.class);

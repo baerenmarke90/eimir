@@ -85,7 +85,10 @@ export function RouteEntryHandoff(): null {
           ? Array.from(
               document.querySelectorAll<HTMLElement>('[data-task-item-key]'),
             ).find(
-              (element) => element.dataset.taskItemKey === origin.selectedKey,
+              // Kept, hidden primary tabs can render the same item.
+              (element) =>
+                element.dataset.taskItemKey === origin.selectedKey &&
+                !element.closest('[hidden]'),
             )
           : origin.focusTarget === 'quick-create'
             ? Array.from(
@@ -112,7 +115,9 @@ export function RouteEntryHandoff(): null {
             )
           )
             return;
-          const heading = document.querySelector<HTMLElement>('main h1');
+          const heading = Array.from(
+            document.querySelectorAll<HTMLElement>('main h1'),
+          ).find((candidate) => !candidate.closest('[hidden]'));
           if (heading) {
             heading.tabIndex = -1;
             heading.focus({ preventScroll: true });

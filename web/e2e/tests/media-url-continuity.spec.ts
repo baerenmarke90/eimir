@@ -17,7 +17,7 @@ for (const [width, theme] of [
   [390, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`authorized thumbnail survives detail return at ${width} ${theme}`, async ({
+  test(`kept authorized thumbnail survives detail return without a new delivery at ${width} ${theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 900 });
@@ -70,6 +70,7 @@ for (const [width, theme] of [
     expect(src).toMatch(/^blob:/);
     expect(downloads).toBe(1);
     const firstReads = reads;
+    expect(firstReads).toBeGreaterThan(0);
     await captureScreenshot(
       page,
       info,
@@ -86,7 +87,10 @@ for (const [width, theme] of [
     await storyDetailBack(page).click();
     await expect(image).toBeVisible();
     await expect(image).toHaveAttribute('src', src ?? '');
-    await expect.poll(() => reads).toBeGreaterThan(firstReads);
+    // Returning to a kept tab neither remounts the preview nor delivers new
+    // cached media. Fresh deliveries, including the gallery opened below,
+    // still require parent read-access before using retained image bytes.
+    expect(reads).toBe(firstReads);
     expect(downloads).toBe(1);
     const reflow = await page.evaluate(() => ({
       width: document.documentElement.clientWidth,
@@ -228,4 +232,47 @@ test('Memory gallery originals survive Wir and Moments tab navigation with fresh
   await expect(galleryImage).toHaveAttribute('src', source ?? '');
   await expect.poll(() => originalReads).toBeGreaterThan(readsBefore);
   expect(originalDownloads).toBe(1);
+});
+
+test('revisiting kept tabs does not repeat session membership or Pro checks', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page);
+  let membershipReads = 0;
+  let tierReads = 0;
+  await page.route('**/api/v1/**', async (route) => {
+    if (route.request().method() === 'GET') {
+      const path = new URL(route.request().url()).pathname;
+      if (path === '/api/v1/auth/memberships') membershipReads++;
+      if (path === `/api/v1/spaces/${SPACE_ID}/entitlements`) tierReads++;
+    }
+    return route.fallback();
+  });
+  await signIn(page);
+  await expect.poll(() => membershipReads).toBeGreaterThan(0);
+  // The Pro presentation is checked at session start, even before visiting
+  // a view with a Pro mark. Feature-specific reads can occur on first visit.
+  await expect.poll(() => tierReads).toBeGreaterThan(0);
+
+  const visitTab = async (path: string) => {
+    await page
+      .locator(
+        `.mobile-bottom-nav a[href="${path}"], .shell-nav a[href="${path}"]`,
+      )
+      .filter({ visible: true })
+      .first()
+      .click();
+    await expect.poll(() => new URL(page.url()).pathname).toBe(path);
+  };
+  for (const path of ['/today', '/plan', '/more', '/story']) {
+    await visitTab(path);
+  }
+  const membershipAfterFirstVisits = membershipReads;
+  const tierAfterFirstVisits = tierReads;
+  for (const path of ['/today', '/plan', '/more', '/story']) {
+    await visitTab(path);
+  }
+  expect(membershipReads).toBe(membershipAfterFirstVisits);
+  expect(tierReads).toBe(tierAfterFirstVisits);
 });

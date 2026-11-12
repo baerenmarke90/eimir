@@ -596,6 +596,15 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
+.primary-tab-panel {
+  display: contents;
+}
+
+.primary-tab-panel[hidden] {
+  display: none;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
   --primary-tab-opacity: 1;
@@ -608,7 +617,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .product-main[data-primary-tab-dragging] > .page {
+  .product-main[data-primary-tab-dragging] > .page,
+  .product-main[data-primary-tab-dragging] > .primary-tab-panel > .page {
     opacity: var(--primary-tab-opacity);
     transform: translate3d(var(--primary-tab-offset, 0px), 0, 0);
     will-change: transform, opacity;

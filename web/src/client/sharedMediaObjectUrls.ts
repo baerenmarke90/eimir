@@ -14,6 +14,8 @@ interface Entry {
   original: boolean;
 }
 const entries = new Map<string, Entry>();
+type RevocationListener = (urls: ReadonlySet<string>) => void;
+const revocationListeners = new Set<RevocationListener>();
 // Compressed file size does not bound decoded image/GPU memory. Keep only the
 // two most recently viewed originals idle; their bytes remain in the media cache.
 export const MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS = 2;
@@ -105,13 +107,31 @@ export function acquireMediaObjectUrl(
   };
 }
 
+/**
+ * A view that stays mounted (for example a kept primary tab) keeps showing
+ * already decoded pixels after its object URL is revoked. Holders subscribe
+ * so a revocation also withdraws what they display.
+ */
+export function subscribeMediaObjectUrlRevocations(
+  listener: RevocationListener,
+): () => void {
+  revocationListeners.add(listener);
+  return () => {
+    revocationListeners.delete(listener);
+  };
+}
+
 /** Revocation is immediate even while a previous view still owns a handle. */
 export function evictMediaObjectUrls(prefix?: string): void {
+  const revoked = new Set<string>();
   for (const [key, entry] of entries) {
     if (prefix !== undefined && !key.startsWith(prefix)) continue;
+    revoked.add(entry.resource.url);
     entry.resource.dispose();
     entry.retained = false;
     entries.delete(key);
   }
   prune();
+  if (revoked.size)
+    for (const listener of [...revocationListeners]) listener(revoked);
 }

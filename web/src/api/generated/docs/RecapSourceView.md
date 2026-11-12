@@ -11,9 +11,11 @@ Name | Type
 `id` | string
 `key` | string
 `kind` | [RecapSourceKind](RecapSourceKind.md)
+`mutualReaction` | string
 `occurredOn` | Date
 `previewAttachmentId` | string
 `previewIsSensitive` | boolean
+`quote` | [RecapQuoteView](RecapQuoteView.md)
 `title` | string
 `version` | number
 
@@ -29,9 +31,11 @@ const example = {
   "id": null,
   "key": null,
   "kind": null,
+  "mutualReaction": null,
   "occurredOn": null,
   "previewAttachmentId": null,
   "previewIsSensitive": null,
+  "quote": null,
   "title": null,
   "version": null,
 } satisfies RecapSourceView

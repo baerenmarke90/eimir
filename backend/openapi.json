@@ -9106,6 +9106,31 @@
         "title": "RecapPeriod",
         "type": "object"
       },
+      "RecapQuoteView": {
+        "description": "One shared comment, shown as written and cut at a word boundary.",
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "authorName": {
+            "title": "Authorname",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "authorId",
+          "authorName"
+        ],
+        "title": "RecapQuoteView",
+        "type": "object"
+      },
       "RecapReflectionUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -9289,6 +9314,22 @@
           "kind": {
             "$ref": "#/components/schemas/RecapSourceKind"
           },
+          "mutualReaction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LOVE",
+                  "LAUGH",
+                  "CELEBRATE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mutualreaction"
+          },
           "occurredOn": {
             "anyOf": [
               {
@@ -9316,6 +9357,16 @@
           "previewIsSensitive": {
             "title": "Previewissensitive",
             "type": "boolean"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapQuoteView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "anyOf": [

@@ -261,6 +261,7 @@ export * from './RecapFactsView';
 export * from './RecapKind';
 export * from './RecapOverview';
 export * from './RecapPeriod';
+export * from './RecapQuoteView';
 export * from './RecapReflectionUpdate';
 export * from './RecapReflectionView';
 export * from './RecapRequest';

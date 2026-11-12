@@ -7,7 +7,7 @@ from uuid import UUID
 import httpx
 import pytest
 
-from eimir.recaps import local_ai
+from eimir.recaps import local_ai, words
 from eimir.recaps.composition import Candidate, period_bounds, select_candidates
 from eimir.recaps.models import RecapKind, RecapSourceKind
 
@@ -301,3 +301,24 @@ def test_editorial_instruction_asks_for_the_couples_language_with_a_matching_exa
     assert f"in {language}" in prompt and f"Title: '{example}'" in prompt
     other = "Breakfast in the morning" if language == "German" else "Frühstück am Morgen"
     assert other not in prompt
+
+
+def test_quote_is_cut_at_a_word_boundary_and_never_reworded():  # type: ignore[no-untyped-def]
+    assert words.cut("  Short   note \n here ") == "Short note here"
+    long = words.cut("alpha " * 40)
+    assert long.endswith("\u2026") and len(long) <= 141 and "alpha alpha" in long
+
+
+def test_a_loved_candidate_is_always_selected_over_equal_peers():  # type: ignore[no-untyped-def]
+    peers = [
+        Candidate(RecapSourceKind.MEMORY, UUID(int=number), date(2026, 10, number), 1)
+        for number in range(1, 11)
+    ]
+    for index, loved in enumerate(peers):
+        pool = [*peers[:index], Candidate(*[*vars_of(loved)], loved=True), *peers[index + 1 :]]
+        chosen = select_candidates(pool, RecapKind.MONTH, "seed", 0)
+        assert loved.key in {item.key for item in chosen}
+
+
+def vars_of(item):  # type: ignore[no-untyped-def]
+    return item.kind, item.id, item.occurred_on, item.version

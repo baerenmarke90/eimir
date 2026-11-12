@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Response
@@ -40,6 +40,17 @@ class RecapRequest(RecapPeriod):
     refresh: bool = False
 
 
+RecapReaction = Literal["LOVE", "LAUGH", "CELEBRATE"]
+
+
+class RecapQuoteView(ApiModel):
+    """One shared comment, shown as written and cut at a word boundary."""
+
+    text: str
+    author_id: UUID
+    author_name: str
+
+
 class RecapSourceView(ApiModel):
     key: str
     kind: RecapSourceKind
@@ -51,6 +62,8 @@ class RecapSourceView(ApiModel):
     preview_attachment_id: UUID | None
     preview_is_sensitive: bool
     available: bool
+    quote: RecapQuoteView | None = None
+    mutual_reaction: RecapReaction | None = None
 
 
 class RecapReflectionView(ApiModel):

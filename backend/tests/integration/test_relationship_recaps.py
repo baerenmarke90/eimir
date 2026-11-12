@@ -6,13 +6,21 @@ from uuid import UUID
 import pytest
 from sqlalchemy import func, select
 
+from eimir.attachments import binding
+from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.authorization import PrivacyClass
+from eimir.comments.models import Comment, CommentPayload
 from eimir.core import clock
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.jobs.models import Job
-from eimir.memories.models import Memory, MemoryPayload
+from eimir.memories.models import (
+    Memory,
+    MemoryPayload,
+    MemoryPhotoReaction,
+    PhotoReaction,
+)
 from eimir.recaps import jobs, service
 from eimir.recaps.models import RecapEdition, RecapPayload
 from eimir.relationship import service as relationship_service
@@ -534,3 +542,119 @@ def test_recap_transfer_retains_shared_words_and_only_the_exporters_private_draf
         )
         == 2
     )
+
+
+def comment(session, context, item, author, body, minutes):  # type: ignore[no-untyped-def]
+    row = Comment(
+        space_id=context["space"].id,
+        owner_id=author.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        target_type="MEMORY",
+        target_id=item.id,
+        payload=CommentPayload(body=body),
+        created_at=NOW - timedelta(minutes=minutes),
+    )
+    session.add(row)
+    session.flush()
+    return row
+
+
+def sources_of(client, context, created):  # type: ignore[no-untyped-def]
+    return {item["id"]: item for item in read(client, context, created).json()["sources"]}
+
+
+def test_a_scene_quotes_the_newest_comment_of_the_other_member_and_follows_edits(
+    client, session, context
+):  # type: ignore[no-untyped-def]
+    item = memory(session, context)  # written by Anna
+    comment(session, context, item, context["anna"], "My own comment is never quoted.", 1)
+    comment(session, context, item, context["ben"], "An older note from Ben.", 30)
+    newest = comment(session, context, item, context["ben"], "word " * 60, 5)
+    created = request(client, context).json()
+    generate(session, context, created)
+
+    quoted = sources_of(client, context, created)[str(item.id)]["quote"]
+    assert quoted["authorName"] == "Ben" and quoted["text"].endswith("\u2026")
+    assert len(quoted["text"]) <= 141 and "word word" in quoted["text"]
+
+    newest.payload = CommentPayload(body="Edited by Ben.")
+    session.flush()
+    assert sources_of(client, context, created)[str(item.id)]["quote"]["text"] == "Edited by Ben."
+    session.delete(newest)
+    session.flush()
+    assert (
+        sources_of(client, context, created)[str(item.id)]["quote"]["text"]
+        == "An older note from Ben."
+    )
+
+
+def test_a_scene_without_a_foreign_comment_has_no_quote(client, session, context):  # type: ignore[no-untyped-def]
+    item = memory(session, context)
+    comment(session, context, item, context["anna"], "Only the author spoke.", 1)
+    created = request(client, context).json()
+    generate(session, context, created)
+    assert sources_of(client, context, created)[str(item.id)]["quote"] is None
+
+
+def photo_memory(session, context, anna, ben, day):  # type: ignore[no-untyped-def]
+    item = memory(session, context, day=day)
+    row = Attachment(
+        space_id=context["space"].id,
+        owner_id=context["anna"].id,
+        privacy_class=PrivacyClass.OWNER_ONLY.value,
+        status=AttachmentStatus.READY.value,
+        media_type=MediaType.IMAGE.value,
+        declared_mime_type="image/png",
+        declared_size=8,
+        mime_type="image/png",
+        size=8,
+        width=1,
+        height=1,
+        has_thumbnail=False,
+        ready_at=NOW,
+        payload=AttachmentPayload(original_name="cover.png"),
+    )
+    session.add(row)
+    session.flush()
+    session.add(binding.MemoryAttachment(memory_id=item.id, attachment_id=row.id, position=0))
+    reactions = [
+        MemoryPhotoReaction(attachment_id=row.id, account_id=context["anna"].id, reaction=anna),
+        MemoryPhotoReaction(attachment_id=row.id, account_id=context["ben"].id, reaction=ben),
+    ]
+    item.payload = item.payload.model_copy(update={"photo_reactions": reactions})
+    session.flush()
+    return item
+
+
+def test_the_reaction_line_needs_both_members_to_react_alike_and_stays_rare(
+    client, session, context
+):  # type: ignore[no-untyped-def]
+    both = photo_memory(session, context, PhotoReaction.LOVE, PhotoReaction.LOVE, date(2026, 3, 5))
+    laugh = photo_memory(
+        session, context, PhotoReaction.LAUGH, PhotoReaction.LAUGH, date(2026, 4, 5)
+    )
+    mixed = photo_memory(
+        session, context, PhotoReaction.LOVE, PhotoReaction.LAUGH, date(2026, 5, 5)
+    )
+    sad = photo_memory(session, context, PhotoReaction.SAD, PhotoReaction.SAD, date(2026, 6, 5))
+    like = photo_memory(session, context, PhotoReaction.LIKE, PhotoReaction.LIKE, date(2026, 7, 5))
+    extra = [
+        photo_memory(
+            session, context, PhotoReaction.CELEBRATE, PhotoReaction.CELEBRATE, date(2026, day, 5)
+        )
+        for day in (8, 9)
+    ]
+    created = request(client, context, kind="YEAR", month=0).json()
+    generate(session, context, created)
+
+    lines = {
+        key: value["mutualReaction"] for key, value in sources_of(client, context, created).items()
+    }
+    assert lines[str(both.id)] == "LOVE" and lines[str(laugh.id)] == "LAUGH"
+    assert (
+        lines[str(mixed.id)] is None and lines[str(sad.id)] is None and lines[str(like.id)] is None
+    )
+    # Four qualify (one pool allows four per month, so each sits in its own month); only the
+    # first three in reading order keep the line.
+    assert sorted(line for line in lines.values() if line) == ["CELEBRATE", "LAUGH", "LOVE"]
+    assert extra

@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { RecapQuoteView } from './RecapQuoteView';
+import {
+    RecapQuoteViewFromJSON,
+    RecapQuoteViewFromJSONTyped,
+    RecapQuoteViewToJSON,
+    RecapQuoteViewToJSONTyped,
+} from './RecapQuoteView';
 import type { RecapSourceKind } from './RecapSourceKind';
 import {
     RecapSourceKindFromJSON,
@@ -59,6 +66,12 @@ export interface RecapSourceView {
     kind: RecapSourceKind;
     /**
      * 
+     * @type {RecapSourceViewMutualReactionEnum}
+     * @memberof RecapSourceView
+     */
+    mutualReaction?: RecapSourceViewMutualReactionEnum | null;
+    /**
+     * 
      * @type {Date}
      * @memberof RecapSourceView
      */
@@ -77,6 +90,12 @@ export interface RecapSourceView {
     previewIsSensitive: boolean;
     /**
      * 
+     * @type {RecapQuoteView}
+     * @memberof RecapSourceView
+     */
+    quote?: RecapQuoteView | null;
+    /**
+     * 
      * @type {string}
      * @memberof RecapSourceView
      */
@@ -89,6 +108,16 @@ export interface RecapSourceView {
     version: number | null;
 }
 
+
+/**
+ * @export
+ */
+export const RecapSourceViewMutualReactionEnum = {
+    LOVE: 'LOVE',
+    LAUGH: 'LAUGH',
+    CELEBRATE: 'CELEBRATE'
+} as const;
+export type RecapSourceViewMutualReactionEnum = typeof RecapSourceViewMutualReactionEnum[keyof typeof RecapSourceViewMutualReactionEnum];
 
 
 /**
@@ -123,9 +152,11 @@ export function RecapSourceViewFromJSONTyped(json: any, ignoreDiscriminator: boo
         'id': json['id'],
         'key': json['key'],
         'kind': RecapSourceKindFromJSON(json['kind']),
+        'mutualReaction': json['mutualReaction'] === undefined ? undefined : json['mutualReaction'] === null ? null : json['mutualReaction'],
         'occurredOn': (json['occurredOn'] == null ? null : new Date(json['occurredOn'])),
         'previewAttachmentId': json['previewAttachmentId'],
         'previewIsSensitive': json['previewIsSensitive'],
+        'quote': json['quote'] === undefined ? undefined : json['quote'] === null ? null : RecapQuoteViewFromJSON(json['quote']),
         'title': json['title'],
         'version': json['version'],
     };
@@ -147,9 +178,11 @@ export function RecapSourceViewToJSONTyped(value?: RecapSourceView | null, ignor
         'id': value['id'],
         'key': value['key'],
         'kind': RecapSourceKindToJSON(value['kind']),
+        'mutualReaction': value['mutualReaction'],
         'occurredOn': value['occurredOn'] == null ? value['occurredOn'] : value['occurredOn'].toISOString().substring(0,10),
         'previewAttachmentId': value['previewAttachmentId'],
         'previewIsSensitive': value['previewIsSensitive'],
+        'quote': RecapQuoteViewToJSON(value['quote']),
         'title': value['title'],
         'version': value['version'],
     };

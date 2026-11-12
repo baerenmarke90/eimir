@@ -72,3 +72,8 @@ HTTP/schema, bounded payload, missing/invalid service fallback and CPU/unload
 options are tested. No language-quality, host latency or native Android-device
 acceptance claim is made from those tests. The same Web implementation ships in
 the Capacitor wrapper; device-specific gates remain separate.
+
+## The couple's own words (#1744, backend contract)
+
+Product Owner decisions of 2026-11-12: recap texts come from the couple's own words and localised templates, not from model prose. A scene may carry one quote: the newest shared comment on the source written by a member other than the entry's author, cut at a word boundary at 140 characters and never reworded. A memory may carry a reaction line when both members gave its cover photo the same positive reaction (`LOVE`, `LAUGH` or `CELEBRATE`); at most three lines are kept per edition in reading order. Both are read live with the source and reauthorized on every read, so editing or deleting a comment or reaction is reflected at once and no edition stores them; they therefore need no invalidation. A mutual reaction adds a mild, deterministic bonus to selection, applied within the bounded candidate pool (four per kind and month). The reader scenes and the localised copy are not built yet; they need a generated Compact reference first.
+

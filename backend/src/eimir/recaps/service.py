@@ -32,6 +32,7 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
+from eimir.recaps import words
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
@@ -192,6 +193,9 @@ def candidates(
             )
             for source_id, chapter_id in links:
                 groups.setdefault((kind, source_id), str(chapter_id))
+    loved = words.loved_memories(
+        session, context, [item.id for item in result if item.kind == RecapSourceKind.MEMORY]
+    )
     return [
         Candidate(
             i.kind,
@@ -199,6 +203,7 @@ def candidates(
             i.occurred_on,
             i.version,
             str(i.id) if i.kind == RecapSourceKind.CHAPTER else groups.get((i.kind, i.id)),
+            i.id in loved,
         )
         for i in result
     ]
@@ -544,7 +549,12 @@ def schedule_backfill(session: Session, context: AuthorizationContext) -> None:
 
 
 def source_material(
-    session: Session, context: AuthorizationContext, item: Candidate, *, lock: bool = False
+    session: Session,
+    context: AuthorizationContext,
+    item: Candidate,
+    *,
+    lock: bool = False,
+    own_words: bool = False,
 ) -> dict[str, Any] | None:
     model = MODELS[item.kind]
     statement = readable(model, context).where(
@@ -585,7 +595,7 @@ def source_material(
     )
     if photo and photo.status == AttachmentStatus.READY:
         attachment, sensitive = photo.id, photo.payload.is_sensitive
-    return {
+    result = {
         "key": item.key,
         "kind": item.kind,
         "id": item.id,
@@ -597,6 +607,14 @@ def source_material(
         "preview_is_sensitive": sensitive,
         "available": True,
     }
+    if own_words:
+        result["quote"] = words.quote(session, context, item.kind, item.id, value.owner_id)
+        result["mutual_reaction"] = (
+            words.mutual_reaction(words.partners(session, context.space_id), payload, attachment)
+            if item.kind == RecapSourceKind.MEMORY
+            else None
+        )
+    return result
 
 
 def materials(
@@ -625,6 +643,7 @@ def materials(
                     day or value.starts_on,
                     ref.source_version,
                 ),
+                own_words=True,
             )
             if day
             and interval
@@ -649,6 +668,13 @@ def materials(
                 "available": False,
             }
         )
+    # The reaction line stays rare: only the first few in reading order keep it.
+    shown = 0
+    for item in result:
+        if item.get("mutual_reaction"):
+            shown += 1
+            if shown > words.REACTION_LINES_PER_EDITION:
+                item["mutual_reaction"] = None
     return result, unchanged
 
 

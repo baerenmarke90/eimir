@@ -4067,6 +4067,11 @@
   },
   "contextTags": {
     "label": "Tags",
+    "showTagged": "See all entries tagged “{{tag}}”",
+    "resultsTitle": "Tag: {{tag}}",
+    "resultsDescription": "All memories, heart moments, plans and wishes with this tag.",
+    "searchAll": "Back to search",
+    "noMatches": "No entries have this tag yet.",
     "proposed": "AI suggestions · You decide what fits.",
     "help": "Describe your moment in your own words.",
     "newLabel": "Add your own tag",

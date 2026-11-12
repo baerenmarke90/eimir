@@ -64,10 +64,41 @@
 }
 
 .memory-tag-summary li {
-  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-medium);
   background: var(--color-surface-subtle);
   color: var(--color-text-secondary);
+}
+
+.memory-tag-link {
+  display: inline-flex;
+  min-height: 44px;
+  max-width: 100%;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: inherit;
+  color: inherit;
+  font-size: 0.875rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.memory-tag-link:is(:hover, :active) {
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.memory-tag-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .memory-tag-link {
+    transition:
+      color var(--duration-feedback) var(--easing-standard),
+      background var(--duration-feedback) var(--easing-standard);
+  }
 }
 
 .context-tag-selected {

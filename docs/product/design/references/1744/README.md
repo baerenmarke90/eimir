@@ -149,3 +149,12 @@ Decisions taken from it when building:
 - The rhythm scene shows only counts per week or month with the leading bucket in the cobalt tone; zero buckets stay as a thin line. Every bar has a text equivalent. No score, percentage or line.
 - The second panel's eyebrow sits over a busy part of the photo: the scrim must be strengthened so the eyebrow, title and reaction line meet contrast, and the date line should carry the day when it is known.
 
+### Runtime evidence for the quote and reaction scenes
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` (three journeys: 390 Light, 430 Dark, 1280 Dark, reduced motion, axe and overflow checks) from a dense fixture whose photo scene carries a quote, whose second photo scene carries a mutual reaction, and whose text-led scene carries a quote: `evidence/recaps-own-words-photo-quote-*`, `recaps-own-words-photo-reaction-*` and `recaps-own-words-words-quote-*`.
+
+- The quote is a quiet italic serif block with the author's first name and German quotation marks, inside the photo scrim or on the text-led surface.
+- The reaction line is one calm line with a filled heart; it only appears on a photo scene.
+- The photo scrim now holds stronger and longer (45 % / 82 % stops) so the eyebrow, title, quote and reaction line stay readable over a busy picture.
+- Open: on text-led scenes the paused, centred play toggle (Product Owner decision of 2026-11-11) overlaps the title and now also the quote; the generated board placed it below the copy. Large-text and Android device acceptance of these scenes have not been performed; the rhythm scene is not built yet.
+

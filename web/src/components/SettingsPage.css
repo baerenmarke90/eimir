@@ -1072,12 +1072,30 @@
 }
 
 @container (max-width: 18rem) {
-  .dashboard-module-option {
+  .dashboard-module-option,
+  .dashboard-module-option.is-hidden {
+    grid-template-columns: 2rem minmax(0, 1fr) var(--touch-target-web);
     gap: var(--space-1);
   }
+
   .dashboard-module-option .dashboard-module-icon {
     width: 2rem;
     height: 2rem;
+  }
+
+  .dashboard-module-option-label {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+
+  .dashboard-module-option .list-entry-drag-handle {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .dashboard-module-switch {
+    grid-column: 3;
+    grid-row: 1;
   }
 }
 

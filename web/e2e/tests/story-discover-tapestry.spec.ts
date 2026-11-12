@@ -1024,11 +1024,15 @@ for (const [width, theme] of [
   });
 }
 
-for (const [width, theme] of [
-  [390, 'dark'],
-  [390, 'light'],
+for (const [width, theme, textScale] of [
+  [360, 'light', 100],
+  [390, 'dark', 100],
+  [390, 'light', 100],
+  [430, 'dark', 100],
+  [1280, 'dark', 100],
+  [320, 'dark', 200],
 ] as const) {
-  test(`Discover HeartMoment notes follow their emotion at ${width} ${theme} (#1784)`, async ({
+  test(`Discover HeartMoment notes follow their emotion at ${width} ${theme} ${textScale}% text (#1784)`, async ({
     page,
   }, info) => {
     const unexpected = await installDiscoverApiMocks(page);
@@ -1063,6 +1067,10 @@ for (const [width, theme] of [
     await page.goto('/story?tab=discover');
     await signIn(page);
     await page.goto('/story?tab=discover');
+    if (textScale !== 100)
+      await page.addStyleTag({
+        content: `html { font-size: ${textScale}%; }`,
+      });
 
     const links = page.locator('.momente-tapestry-note');
     await expect(links).toHaveCount(emotions.length);
@@ -1097,9 +1105,28 @@ for (const [width, theme] of [
       );
     }
     await links.first().scrollIntoViewIfNeeded();
+    // Badge and label stay inside their note, also with enlarged text.
+    const overflow = await links.evaluateAll(
+      (nodes) =>
+        nodes.filter((node) => {
+          const note = node.getBoundingClientRect();
+          const badge = node
+            .querySelector('.heart-emotion-badge')
+            ?.getBoundingClientRect();
+          return (
+            !badge ||
+            badge.left < note.left - 1 ||
+            badge.right > note.right + 1 ||
+            node.scrollWidth > node.clientWidth + 1
+          );
+        }).length,
+    );
+    expect(overflow).toBe(0);
     await expectNoWcagViolations(page);
     await page.screenshot({
-      path: info.outputPath(`discover-emotion-notes-${width}-${theme}.png`),
+      path: info.outputPath(
+        `discover-emotion-notes-${width}-${theme}-${textScale}.png`,
+      ),
     });
     expect(unexpected).toEqual([]);
   });

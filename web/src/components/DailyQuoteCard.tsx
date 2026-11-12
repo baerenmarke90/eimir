@@ -457,7 +457,7 @@ export function DailyQuoteCard({
           data-color-world="warm"
           aria-labelledby="daily-quote-title"
         >
-          <h2 id="daily-quote-title" className="today-section-title">
+          <h2 id="daily-quote-title" className="sr-only">
             {t('dailyQuote.title')}
           </h2>
           <div className="daily-quote-content">{body}</div>

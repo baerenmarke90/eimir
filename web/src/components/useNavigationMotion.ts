@@ -17,6 +17,11 @@ const ROUTE_LOADING = [
 const BLOCKED_TARGETS =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .leaflet-container, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
 
+/** Bounded visual travel avoids displacing fixed shell controls or the page layout. */
+function swipeTravel(distance: number): number {
+  return Math.sign(distance) * Math.min(48, Math.abs(distance) * 0.28);
+}
+
 function swipeOpacity(distance: number): number {
   const progress = Math.min(1, (2 * Math.abs(distance)) / window.innerWidth);
   return 1 - progress * (1 - ENTRY_OPACITY);
@@ -111,6 +116,55 @@ function animateContent(
   reducedMotion?.addEventListener('change', motionChanged);
 }
 
+/** Move only the page content, never the main shell (fixed actions stay fixed). */
+function animatePageSlide(
+  surface: HTMLElement,
+  owner: RefObject<(() => void) | null>,
+  fromX: number,
+): boolean {
+  owner.current?.();
+  const page = surface.querySelector<HTMLElement>(':scope > .page');
+  const reduced = window.matchMedia?.(REDUCED_MOTION);
+  if (!page || !fromX || reduced?.matches || typeof page.animate !== 'function')
+    return false;
+  const style = window.getComputedStyle(surface);
+  const animation = page.animate(
+    [
+      { transform: `translate3d(${fromX}px, 0, 0)` },
+      { transform: 'translate3d(0, 0, 0)' },
+    ],
+    {
+      duration: cssDurationMilliseconds(
+        style.getPropertyValue('--duration-transition'),
+      ),
+      easing: style.getPropertyValue('--easing-standard').trim() || 'ease-out',
+    },
+  );
+  // Clip the page's transformed visual bounds for the complete animation,
+  // including after touchend has released the drag state.
+  surface.dataset.navigationSlide = 'true';
+  const complete = () => {
+    if (owner.current !== cancel) return;
+    owner.current = null;
+    delete surface.dataset.navigationSlide;
+    animation.onfinish = null;
+    animation.oncancel = null;
+    reduced?.removeEventListener('change', onMotionChanged);
+  };
+  const cancel = () => {
+    animation.cancel();
+    complete();
+  };
+  const onMotionChanged = () => {
+    if (reduced?.matches) cancel();
+  };
+  owner.current = cancel;
+  animation.onfinish = complete;
+  animation.oncancel = complete;
+  reduced?.addEventListener('change', onMotionChanged);
+  return true;
+}
+
 /** Animate committed destinations and give direct feedback during a root swipe. */
 export function useNavigationMotion({
   surfaceRef,
@@ -134,11 +188,15 @@ export function useNavigationMotion({
   const suppressClick = useRef(false);
   const previousPath = useRef(pathname);
   const mainMotionCleanup = useRef<(() => void) | null>(null);
+  const pageSlideCleanup = useRef<(() => void) | null>(null);
+  const incomingSwipeDirection = useRef(0);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
     const changedPage = previousPath.current !== pathname;
     previousPath.current = pathname;
+    const swipeDirection = incomingSwipeDirection.current;
+    incomingSwipeDirection.current = 0;
     if (
       !surface ||
       !changedPage ||
@@ -148,8 +206,11 @@ export function useNavigationMotion({
       return;
 
     const arrive = () => {
-      if (!surface.hasAttribute('data-primary-tab-dragging'))
-        animateContent(surface, mainMotionCleanup, ENTRY_OPACITY, createEntry);
+      if (surface.hasAttribute('data-primary-tab-dragging')) return;
+      animateContent(surface, mainMotionCleanup, ENTRY_OPACITY, createEntry);
+      if (swipeDirection) {
+        animatePageSlide(surface, pageSlideCleanup, swipeDirection * 32);
+      }
     };
     let observer: MutationObserver | undefined;
     // The destination and its loading status commit immediately. Its entry
@@ -176,6 +237,7 @@ export function useNavigationMotion({
     return () => {
       observer?.disconnect();
       mainMotionCleanup.current?.();
+      pageSlideCleanup.current?.();
     };
   }, [createEntry, pathname, routeKey, skipEntry, surfaceRef]);
 
@@ -193,6 +255,7 @@ export function useNavigationMotion({
       frame = 0;
       delete surface.dataset.primaryTabDragging;
       surface.style.removeProperty('--primary-tab-opacity');
+      surface.style.removeProperty('--primary-tab-offset');
     };
     const cancel = () => {
       gesture = null;
@@ -201,6 +264,7 @@ export function useNavigationMotion({
     const start = (event: TouchEvent) => {
       cancel();
       mainMotionCleanup.current?.();
+      pageSlideCleanup.current?.();
       suppressClick.current = false;
       const touch = event.touches[0];
       if (
@@ -272,6 +336,10 @@ export function useNavigationMotion({
             '--primary-tab-opacity',
             String(swipeOpacity(gesture.offset)),
           );
+          surface.style.setProperty(
+            '--primary-tab-offset',
+            `${swipeTravel(gesture.offset)}px`,
+          );
         });
     };
     const end = (event: TouchEvent) => {
@@ -299,16 +367,25 @@ export function useNavigationMotion({
           !(elapsed >= 32 && Math.abs(dx) >= 32 && velocity > 0.5)) ||
         Math.abs(dx) < Math.abs(dy) * HORIZONTAL_BIAS
       ) {
-        animateContent(
-          surface,
-          mainMotionCleanup,
-          swipeOpacity(current.offset),
-        );
+        if (
+          !animatePageSlide(
+            surface,
+            pageSlideCleanup,
+            swipeTravel(current.offset),
+          )
+        ) {
+          animateContent(
+            surface,
+            mainMotionCleanup,
+            swipeOpacity(current.offset),
+          );
+        }
         return;
       }
       const direction = dx < 0 ? 1 : -1;
       const destination = PRIMARY_APP_ROUTES[index + direction];
       if (!destination) return;
+      incomingSwipeDirection.current = direction;
       navigateRef.current(destination.path);
     };
     const click = (event: MouseEvent) => {
@@ -338,6 +415,7 @@ export function useNavigationMotion({
     return () => {
       cancel();
       mainMotionCleanup.current?.();
+      pageSlideCleanup.current?.();
       surface.removeEventListener('touchstart', start);
       surface.removeEventListener('touchmove', move);
       surface.removeEventListener('touchend', end);

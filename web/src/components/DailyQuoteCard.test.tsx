@@ -207,7 +207,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('today-section-title'),
+        .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
@@ -235,7 +235,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('today-section-title'),
+        .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
     expect(

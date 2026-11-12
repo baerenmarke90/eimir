@@ -599,6 +599,7 @@
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
   --primary-tab-opacity: 1;
+  --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
@@ -607,8 +608,15 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .product-main[data-primary-tab-dragging] {
+  .product-main[data-primary-tab-dragging] > .page {
     opacity: var(--primary-tab-opacity);
+    transform: translate3d(var(--primary-tab-offset, 0px), 0, 0);
+    will-change: transform, opacity;
+  }
+
+  .product-shell-body:has(.product-main[data-primary-tab-dragging]),
+  .product-shell-body:has(.product-main[data-navigation-slide]) {
+    overflow-x: clip;
   }
 
   .product-main[data-navigation-motion="create"]

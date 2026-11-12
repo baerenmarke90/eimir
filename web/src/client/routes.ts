@@ -125,11 +125,6 @@ export function appRoutePath(id: AppRouteId): string {
 /** Global search keeps its canonical path and is discovered under More. */
 export const SEARCH_ROUTE = '/search';
 
-/** Exact authored-tag results reuse the canonical Search destination. */
-export function tagSearchPath(tag: string): string {
-  return `${SEARCH_ROUTE}?tag=${encodeURIComponent(tag)}`;
-}
-
 /**
  * Stable Activity route. The Web shell exposes it from the personal account
  * tree; route placement remains under `today` for Deep-Link compatibility and

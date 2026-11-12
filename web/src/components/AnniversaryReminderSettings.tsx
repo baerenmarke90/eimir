@@ -295,16 +295,16 @@ function RuleReminderSettings({
                 }
                 onBlur={() => {
                   if (
-                      draft.localTime &&
-                      /^\d{2}:\d{2}$/.test(draft.localTime)
-                    ) {
+                    draft.localTime &&
+                    /^\d{2}:\d{2}$/.test(draft.localTime)
+                  ) {
                     savePreference(draft);
                   } else {
                     setDraft((current) => ({
                       ...current,
                       localTime:
-                          preference?.parameters.localTime?.slice(0, 5) ??
-                          '09:00',
+                        preference?.parameters.localTime?.slice(0, 5) ??
+                        '09:00',
                     }));
                   }
                 }}

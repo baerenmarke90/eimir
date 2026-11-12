@@ -298,7 +298,7 @@ export function SettingsPage(props: SettingsPageProps) {
         eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={
-          categoryId === 'today'
+          categoryId === 'today' || categoryId === 'notifications'
             ? undefined
             : category
               ? t(category.descriptionKey)

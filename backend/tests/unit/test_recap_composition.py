@@ -282,3 +282,22 @@ def test_overlong_model_prose_is_rejected_instead_of_truncated() -> None:
             introduction="A perfect day full of love and happiness. " * 8,
             source_keys=["note"],
         )
+
+
+@pytest.mark.parametrize(
+    "locale,language,example",
+    [
+        ("de-DE", "German", "Frühstück am Morgen"),
+        ("de", "German", "Frühstück am Morgen"),
+        ("en_GB", "English", "Breakfast in the morning"),
+        ("fr-FR", "English", "Breakfast in the morning"),
+        ("", "English", "Breakfast in the morning"),
+    ],
+)
+def test_editorial_instruction_asks_for_the_couples_language_with_a_matching_example(
+    locale, language, example
+):  # type: ignore[no-untyped-def]
+    prompt = local_ai.editorial_instruction(locale)
+    assert f"in {language}" in prompt and f"Title: '{example}'" in prompt
+    other = "Breakfast in the morning" if language == "German" else "Frühstück am Morgen"
+    assert other not in prompt

@@ -48,8 +48,12 @@ The editorial request is a short album caption rather than fictional storytellin
 at most ten title words and two introductory sentences, forty introduction words,
 64 title characters and 240 introduction characters. Source kind, occurrence date
 and the existing bounded original text provide context; identical title/excerpt
-text is sent once. The prompt explicitly rules out invented authors/recipients,
-third-party reactions, inferred day-long emotions, superlatives and filler.
+text is sent once. The prompt states the wanted caption positively, names the
+output language from the Space locale (German or English, English for any other
+tag) and shows one paraphrased example in that language, so the instructions'
+language does not leak into the answer. It then limits the caption to what the
+sources say: no invented authors/recipients, third-party reactions, inferred
+day-long emotions, superlatives or filler. The prompt wording is not benchmarked.
 The parser rejects overlong/blank/multiline copy, repeated four-word phrases,
 duplicate or unknown source references, and numeric claims absent from the cited
 original wording. Source dates and identifiers cannot justify numbers in prose.

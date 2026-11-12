@@ -4,20 +4,24 @@ import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DailyQuoteCatalogView } from '../api/generated/models/DailyQuoteCatalogView';
 import {
+  DAILY_QUOTE_CAPABILITY,
   type DailyQuotePreferenceSnapshot,
   dailyQuoteCatalogQueryKey,
-  dailyQuoteEntitlementQueryKey,
   dailyQuotePreferencesQueryKey,
   dailyQuoteQueryKey,
   isDailyQuoteConflict,
   isDailyQuoteEntitlementRequired,
   loadDailyQuote,
-  loadDailyQuoteCapability,
   loadDailyQuoteCatalog,
   loadDailyQuotePreferences,
   saveDailyQuotePreferences,
 } from '../client/dailyQuote';
 import { clientProblemKind } from '../client/problemDetails';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+  withdrawSpaceCapability,
+} from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -182,10 +186,6 @@ export function DailyQuoteCard({
     null,
   );
 
-  const entitlementKey = useMemo(
-    () => dailyQuoteEntitlementQueryKey(accountId, spaceId),
-    [accountId, spaceId],
-  );
   const quoteKey = useMemo(
     () => dailyQuoteQueryKey(accountId, spaceId),
     [accountId, spaceId],
@@ -199,13 +199,16 @@ export function DailyQuoteCard({
     [accountId, spaceId],
   );
 
-  const entitlementQuery = useQuery({
-    queryKey: entitlementKey,
-    queryFn: ({ signal }) =>
-      loadDailyQuoteCapability(entitlementsApi, spaceId, signal),
-    enabled: Boolean(accountId && spaceId),
-    retry: false,
-    gcTime: 0,
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementsApi, spaceId),
+    [entitlementsApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const entitlementQuery = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
+    capability: DAILY_QUOTE_CAPABILITY,
   });
 
   const hasCapability = entitlementQuery.data === true;
@@ -241,24 +244,39 @@ export function DailyQuoteCard({
 
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(quoteQuery.error)) return;
-    queryClient.setQueryData(entitlementKey, false);
-  }, [entitlementKey, quoteQuery.error, queryClient]);
+    withdrawSpaceCapability(
+      queryClient,
+      accountId,
+      spaceId,
+      DAILY_QUOTE_CAPABILITY,
+    );
+  }, [accountId, spaceId, quoteQuery.error, queryClient]);
 
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(catalogQuery.error)) return;
     setSettingsOpen(false);
     setDraftCategoryIds(null);
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-    queryClient.setQueryData(entitlementKey, false);
-  }, [catalogQuery.error, entitlementKey, preferencesKey, queryClient]);
+    withdrawSpaceCapability(
+      queryClient,
+      accountId,
+      spaceId,
+      DAILY_QUOTE_CAPABILITY,
+    );
+  }, [accountId, catalogQuery.error, spaceId, preferencesKey, queryClient]);
 
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;
     setSettingsOpen(false);
     setDraftCategoryIds(null);
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-    queryClient.setQueryData(entitlementKey, false);
-  }, [entitlementKey, preferencesKey, preferencesQuery.error, queryClient]);
+    withdrawSpaceCapability(
+      queryClient,
+      accountId,
+      spaceId,
+      DAILY_QUOTE_CAPABILITY,
+    );
+  }, [accountId, spaceId, preferencesKey, preferencesQuery.error, queryClient]);
 
   const saveMutation = useMutation({
     mutationFn: ({
@@ -280,7 +298,12 @@ export function DailyQuoteCard({
     onError: (error) => {
       if (!isDailyQuoteEntitlementRequired(error)) return;
       queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-      queryClient.setQueryData(entitlementKey, false);
+      withdrawSpaceCapability(
+        queryClient,
+        accountId,
+        spaceId,
+        DAILY_QUOTE_CAPABILITY,
+      );
       setSettingsOpen(false);
       setDraftCategoryIds(null);
     },

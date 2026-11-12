@@ -20,6 +20,10 @@ import type { ImportantDateView } from '../api/generated/models/ImportantDateVie
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
+import {
+  occasionHolidayPreferenceKey,
+  saveOccasionHolidayPreference,
+} from '../client/occasionHolidayPreferences';
 import importantDates from '../i18n/locales/importantDates';
 import { ImportantDatesPanel } from './ImportantDatesPanel';
 
@@ -40,7 +44,10 @@ beforeAll(() => {
     })),
   });
 });
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
 const person: RelatedPersonView = {
   id: 'person-1',
@@ -127,6 +134,7 @@ function renderPanel(
     displayName: string;
   } | null = null,
   people = [person],
+  holidayContext?: { accountId: string; instance: string },
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
@@ -139,6 +147,8 @@ function renderPanel(
           spaceId="space-1"
           people={people}
           partnerBirthday={partnerBirthday}
+          accountId={holidayContext?.accountId}
+          instance={holidayContext?.instance}
         />
       </QueryClientProvider>
     </MemoryRouter>,
@@ -146,6 +156,75 @@ function renderPanel(
 }
 
 describe('ImportantDatesPanel mobile-first surface', () => {
+  it('shows opt-in holidays in the existing agenda without persisting or editing generated dates', async () => {
+    const holidayContext = {
+      instance: 'https://api.example.test',
+      accountId: 'account-one',
+    };
+    saveOccasionHolidayPreference(
+      occasionHolidayPreferenceKey(
+        holidayContext.instance,
+        holidayContext.accountId,
+        'space-1',
+      ),
+      true,
+    );
+    const api = createMockPeopleApi([]);
+    const { container } = renderPanel(api, null, [], holidayContext);
+    const christmas = await screen.findByRole('button', {
+      name: new RegExp(importantDates.holidays.christmasDay),
+    });
+    expect(christmas.querySelector('.people-chevron')).toBeNull();
+    expect(
+      await screen.findByRole('button', {
+        name: new RegExp(importantDates.holidays.easterSunday),
+      }),
+    ).toBeTruthy();
+    fireEvent.click(christmas);
+    const reader = screen.getByRole('dialog');
+    expect(
+      within(reader).getByRole('button', {
+        name: importantDates.holidaySettings.manage,
+      }),
+    ).toBeTruthy();
+    expect(within(reader).queryByRole('button', { name: importantDates.edit })).toBeNull();
+    expect(container.querySelector('.occasions-list')).toBeTruthy();
+    expect(
+      api.createImportantDateApiV1SpacesSpaceIdImportantDatesPost,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not add a generated duplicate for an existing annual named occasion', async () => {
+    const holidayContext = {
+      instance: 'https://api.example.test',
+      accountId: 'account-two',
+    };
+    saveOccasionHolidayPreference(
+      occasionHolidayPreferenceKey(
+        holidayContext.instance,
+        holidayContext.accountId,
+        'space-1',
+      ),
+      true,
+    );
+    renderPanel(
+      createMockPeopleApi([
+        importantDate('christmas', importantDates.holidays.christmasDay, {
+          date: new Date('2024-12-25T00:00:00Z'),
+          repeats: DateRepeat.ANNUALLY,
+          type: ImportantDateType.CUSTOM,
+        }),
+      ]),
+      null,
+      [],
+      holidayContext,
+    );
+    const matches = await screen.findAllByRole('button', {
+      name: new RegExp(importantDates.holidays.christmasDay),
+    });
+    expect(matches).toHaveLength(1);
+  });
+
   it('projects the active partner birthday without creating an editable ImportantDate', async () => {
     const { container } = renderPanel(createMockPeopleApi([]), {
       accountId: 'partner-1',

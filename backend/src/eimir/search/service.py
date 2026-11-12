@@ -78,12 +78,14 @@ class SearchKind(StrEnum):
     PRIVATE_COLLECTION_ITEM = "PRIVATE_COLLECTION_ITEM"
 
 
-_TAGGED_KINDS = frozenset({
-    SearchKind.MEMORY,
-    SearchKind.HEART_MOMENT,
-    SearchKind.WISH,
-    SearchKind.PLAN,
-})
+_TAGGED_KINDS = frozenset(
+    {
+        SearchKind.MEMORY,
+        SearchKind.HEART_MOMENT,
+        SearchKind.WISH,
+        SearchKind.PLAN,
+    }
+)
 
 
 class SearchScope(StrEnum):

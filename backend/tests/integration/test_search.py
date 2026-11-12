@@ -528,19 +528,18 @@ class TestExactTagNavigation:
             cursor = next_page.json()["nextCursor"]
 
         assert {entry["id"] for entry in found} == {str(row.id) for row in tagged}
-        assert {entry["type"] for entry in found} == {
-            "MEMORY", "HEART_MOMENT", "PLAN", "WISH"
-        }
+        assert {entry["type"] for entry in found} == {"MEMORY", "HEART_MOMENT", "PLAN", "WISH"}
         partner = _search(client, couple, token=couple["token_b"], q="tag:Our trip")
-        assert {entry["id"] for entry in _items(partner)} == {
-            str(row.id) for row in tagged[:-1]
-        }
+        assert {entry["id"] for entry in _items(partner)} == {str(row.id) for row in tagged[:-1]}
         unrelated = _search(client, couple, q="tag:Other trip")
         assert str(not_tagged.id) in {entry["id"] for entry in _items(unrelated)}
         assert str(outsider.id) not in {entry["id"] for entry in found}
-        assert _search(
-            client, couple, q="tag:Different", cursor=first.json()["nextCursor"]
-        ).status_code == 400
+        assert (
+            _search(
+                client, couple, q="tag:Different", cursor=first.json()["nextCursor"]
+            ).status_code
+            == 400
+        )
 
     def test_tag_search_respects_type_filter(self, client, session, couple) -> None:  # type: ignore[no-untyped-def]
         session.add(

@@ -21,6 +21,9 @@
   --space-story-lifeline-landmark: 0.875rem;
   --space-story-lifeline-step: 0.75rem;
   --space-story-lifeline-band: 4.5rem;
+  --opacity-story-chip-fill: 16%;
+  --opacity-story-chip-fill-active: 26%;
+  --opacity-story-chip-edge: 45%;
   --color-story-memory: #3055b8;
   --color-story-heart-moment: #9b2f6a;
   --color-story-milestone: #2e8b7e;

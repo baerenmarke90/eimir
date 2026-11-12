@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react';
 import { useLayoutEffect, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { usePrimaryTabPeek } from '../client/primaryTabPeek';
 import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 import { useNavigationMotion } from './useNavigationMotion';
 import { usePullToRefresh } from './usePullToRefresh';
@@ -87,6 +88,7 @@ function PageMotionHarness({
   loading?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
+  const peek = usePrimaryTabPeek();
   useNavigationMotion({
     surfaceRef: ref,
     pathname,
@@ -95,6 +97,11 @@ function PageMotionHarness({
   });
   return (
     <main ref={ref} data-testid="motion-surface">
+      {peek ? (
+        <div className="primary-tab-panel" data-primary-tab-peek="true">
+          <section className="page" data-testid="peek-page" data-peek={peek} />
+        </div>
+      ) : null}
       <section className="page" data-testid="motion-page">
         {loading ? (
           <div className="ui-state-loading" role="status">
@@ -131,7 +138,7 @@ afterEach(() => {
 });
 
 describe('primary tab slide feedback', () => {
-  it('tracks the finger and animates the committed adjacent page in the same direction', () => {
+  it('drags the page beside its neighbour and settles both before navigating', () => {
     const navigate = vi.fn();
     const frame = vi
       .spyOn(window, 'requestAnimationFrame')
@@ -139,15 +146,23 @@ describe('primary tab slide feedback', () => {
         callback(0);
         return 1;
       });
-    const animation = { cancel: vi.fn() } as unknown as Animation;
-    const animate = vi.fn().mockReturnValue(animation);
+    const currentSettle = {
+      cancel: vi.fn(),
+      finish: vi.fn(),
+    } as unknown as Animation;
+    const peekSettle = {
+      cancel: vi.fn(),
+      finish: vi.fn(),
+    } as unknown as Animation;
+    const currentAnimate = vi.fn().mockReturnValue(currentSettle);
+    const peekAnimate = vi.fn().mockReturnValue(peekSettle);
     const view = render(<PageMotionHarness onNavigate={navigate} />);
     const surface = screen.getByTestId('motion-surface');
     const page = screen.getByTestId('motion-page');
     surface.style.setProperty('--duration-transition', '.18s');
     Object.defineProperty(page, 'animate', {
       configurable: true,
-      value: animate,
+      value: currentAnimate,
     });
 
     const reading = screen.getByTestId('motion-reading');
@@ -155,32 +170,99 @@ describe('primary tab slide feedback', () => {
       touch(reading, 'touchstart', [point(280)]);
       touch(reading, 'touchmove', [point(90)]);
     });
+    // The page follows the finger one to one and the next tab travels beside it.
     expect(surface.getAttribute('data-primary-tab-dragging')).toBe('true');
     expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe(
-      '-48px',
+      '-190px',
     );
+    expect(surface.style.getPropertyValue('--primary-tab-peek-offset')).toBe(
+      '200px',
+    );
+    const peekPage = screen.getByTestId('peek-page');
+    expect(peekPage.dataset.peek).toBe('/plan');
+    Object.defineProperty(peekPage, 'animate', {
+      configurable: true,
+      value: peekAnimate,
+    });
+
     act(() => touch(reading, 'touchend', [], [point(90)]));
-    expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe('');
+    // Both pages finish their travel first; the route follows the settle.
+    expect(navigate).not.toHaveBeenCalled();
+    expect(currentAnimate).toHaveBeenCalledWith(
+      [
+        { transform: 'translate3d(-190px, 0, 0)' },
+        { transform: 'translate3d(-390px, 0, 0)' },
+      ],
+      expect.objectContaining({ duration: 180, fill: 'forwards' }),
+    );
+    expect(peekAnimate).toHaveBeenCalledWith(
+      [
+        { transform: 'translate3d(200px, 0, 0)' },
+        { transform: 'translate3d(0px, 0, 0)' },
+      ],
+      expect.objectContaining({ duration: 180, fill: 'forwards' }),
+    );
+    act(() => {
+      currentSettle.onfinish?.call(
+        currentSettle,
+        new Event('finish') as AnimationPlaybackEvent,
+      );
+      peekSettle.onfinish?.call(
+        peekSettle,
+        new Event('finish') as AnimationPlaybackEvent,
+      );
+    });
     expect(navigate).toHaveBeenCalledExactlyOnceWith('/plan');
 
+    // The committed route replaces the pages without a second entry motion.
     view.rerender(<PageMotionHarness pathname="/plan" onNavigate={navigate} />);
-    expect(animate).toHaveBeenCalledWith(
-      [
-        { transform: 'translate3d(32px, 0, 0)' },
-        { transform: 'translate3d(0, 0, 0)' },
-      ],
-      expect.objectContaining({ duration: 180 }),
-    );
-    expect(surface.dataset.navigationSlide).toBe('true');
-    act(() =>
-      animation.onfinish?.call(
-        animation,
-        new Event('finish') as AnimationPlaybackEvent,
-      ),
-    );
+    expect(currentAnimate).toHaveBeenCalledTimes(1);
+    expect(surface.hasAttribute('data-primary-tab-dragging')).toBe(false);
     expect(surface.hasAttribute('data-navigation-slide')).toBe(false);
+    expect(screen.queryByTestId('peek-page')).toBeNull();
+    expect(currentSettle.cancel).toHaveBeenCalled();
     view.unmount();
     frame.mockRestore();
+  });
+
+  it('settles at once when a second touch interrupts a committing swipe', () => {
+    const navigate = vi.fn();
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    const settle = { cancel: vi.fn(), finish: vi.fn() } as unknown as Animation;
+    render(<PageMotionHarness onNavigate={navigate} />);
+    Object.defineProperty(screen.getByTestId('motion-page'), 'animate', {
+      configurable: true,
+      value: vi.fn().mockReturnValue(settle),
+    });
+    const reading = screen.getByTestId('motion-reading');
+    act(() => {
+      touch(reading, 'touchstart', [point(280)]);
+      touch(reading, 'touchmove', [point(90)]);
+      touch(reading, 'touchend', [], [point(90)]);
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    act(() => touch(reading, 'touchstart', [point(200)]));
+    expect(settle.finish).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/plan');
+  });
+
+  it('lets the last tab give a little instead of revealing a neighbour', () => {
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    render(<PageMotionHarness pathname="/today" onNavigate={vi.fn()} />);
+    const surface = screen.getByTestId('motion-surface');
+    const reading = screen.getByTestId('motion-reading');
+    act(() => {
+      touch(reading, 'touchstart', [point(90)]);
+      touch(reading, 'touchmove', [point(290)]);
+    });
+    expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe('48px');
+    expect(screen.queryByTestId('peek-page')).toBeNull();
   });
 
   it.each([
@@ -270,13 +352,16 @@ describe('primary tab slide feedback', () => {
     expect(animate).not.toHaveBeenCalled();
   });
 
-  it('gently springs back after a cancelled swipe and keeps the shell untransformed', () => {
+  it('settles a cancelled swipe back and releases the neighbour', () => {
     const navigate = vi.fn();
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       callback(0);
       return 1;
     });
-    const animation = { cancel: vi.fn() } as unknown as Animation;
+    const animation = {
+      cancel: vi.fn(),
+      finish: vi.fn(),
+    } as unknown as Animation;
     const animate = vi.fn().mockReturnValue(animation);
     render(<PageMotionHarness onNavigate={navigate} />);
     const surface = screen.getByTestId('motion-surface');
@@ -294,12 +379,21 @@ describe('primary tab slide feedback', () => {
     expect(navigate).not.toHaveBeenCalled();
     expect(animate).toHaveBeenCalledWith(
       [
-        { transform: 'translate3d(-7.000000000000001px, 0, 0)' },
-        { transform: 'translate3d(0, 0, 0)' },
+        { transform: 'translate3d(-25px, 0, 0)' },
+        { transform: 'translate3d(0px, 0, 0)' },
       ],
       expect.anything(),
     );
     expect(surface.style.transform).toBe('');
+    act(() =>
+      animation.onfinish?.call(
+        animation,
+        new Event('finish') as AnimationPlaybackEvent,
+      ),
+    );
+    expect(surface.hasAttribute('data-primary-tab-dragging')).toBe(false);
+    expect(screen.queryByTestId('peek-page')).toBeNull();
+    expect(animation.cancel).toHaveBeenCalled();
   });
 });
 
@@ -354,8 +448,9 @@ describe('primary tab swipe ownership', () => {
     view.rerender(
       <Harness pathname="/more" routeKey="third" onNavigate={navigate} />,
     );
-    expect(animate).toHaveBeenCalledTimes(2);
-    expect(surface.getAttribute('data-navigation-motion')).toBe('content');
+    // The swipe already travelled the pages; it does not replay an entrance.
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
     view.unmount();
     expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
   });
@@ -655,33 +750,23 @@ describe('primary tab swipe ownership', () => {
     expect(click).toHaveBeenCalledTimes(1);
   });
 
-  it('bounds snap-back motion and cancels it when reduced motion becomes active', () => {
-    const media = {
-      matches: false,
+  it('keeps the pages still and navigates immediately when motion is reduced', () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    };
-    window.matchMedia = vi.fn().mockReturnValue(media);
-    const animation = { cancel: vi.fn() } as unknown as Animation;
-    const navigate = vi.fn();
-    render(<Harness onNavigate={navigate} />);
-    const surface = screen.getByTestId('surface');
-    Object.defineProperty(surface, 'animate', {
-      configurable: true,
-      value: vi.fn().mockReturnValue(animation),
     });
-    act(() => swipe(screen.getByTestId('reading'), 200, 225));
-    expect(navigate).not.toHaveBeenCalled();
-    expect(surface.getAttribute('data-navigation-motion')).toBe('content');
-    const changed = media.addEventListener.mock.calls.find(
-      ([type]) => type === 'change',
-    )?.[1];
-    expect(changed).toBeTypeOf('function');
-    media.matches = true;
-    act(() => changed());
-    expect(animation.cancel).toHaveBeenCalled();
-    expect(surface.hasAttribute('data-navigation-motion')).toBe(false);
-    expect(media.removeEventListener).toHaveBeenCalledWith('change', changed);
+    const animate = vi.fn();
+    const navigate = vi.fn();
+    render(<PageMotionHarness onNavigate={navigate} />);
+    Object.defineProperty(screen.getByTestId('motion-page'), 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    act(() => swipe(screen.getByTestId('motion-reading'), 280, 90));
+    expect(screen.queryByTestId('peek-page')).toBeNull();
+    expect(animate).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/plan');
   });
 
   it('uses the current navigation callback and keeps reduced-motion navigation immediate', () => {

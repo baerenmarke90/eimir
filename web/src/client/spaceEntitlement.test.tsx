@@ -1,16 +1,26 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  focusManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import {
+  RESUME_RECHECK_AFTER_MS,
   spaceEntitlementQueryKey,
+  useRecheckSpaceEntitlementOnResume,
   useSpaceCapability,
   useSpaceEntitlement,
   withdrawSpaceCapability,
 } from './spaceEntitlement';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  focusManager.setFocused(undefined);
+  vi.restoreAllMocks();
+});
 
 function view(capabilities: string[]): SpaceEntitlementView {
   return {
@@ -42,6 +52,10 @@ function Session({ load }: { load: () => Promise<SpaceEntitlementView> }) {
     accountId: 'account-a',
     spaceId: 'space-a',
     load,
+  });
+  useRecheckSpaceEntitlementOnResume({
+    accountId: 'account-a',
+    spaceId: 'space-a',
   });
   return <span>{query.data ? `tier:${query.data.tier}` : 'tier:unknown'}</span>;
 }
@@ -171,4 +185,34 @@ it('never shares a read across Accounts or Spaces', () => {
   expect(spaceEntitlementQueryKey('account-a', 'space-a')).not.toEqual(
     spaceEntitlementQueryKey('account-a', 'space-b'),
   );
+});
+
+it('counts a return after a pause as a new start, so a partner purchase appears', async () => {
+  let now = 1_000_000;
+  vi.spyOn(Date, 'now').mockImplementation(() => now);
+  const load = vi
+    .fn<() => Promise<SpaceEntitlementView>>()
+    .mockResolvedValue(view([]));
+  const queryClient = client();
+  render(
+    <Shell queryClient={queryClient} load={load} features={['daily.quote']} />,
+  );
+  expect(await screen.findByText('daily.quote:locked')).toBeDefined();
+  expect(load).toHaveBeenCalledTimes(1);
+
+  // A brief switch away (notification, share sheet) is not a new start.
+  act(() => focusManager.setFocused(false));
+  now += RESUME_RECHECK_AFTER_MS - 1;
+  act(() => focusManager.setFocused(true));
+  expect(load).toHaveBeenCalledTimes(1);
+
+  // The partner buys Pro while the app stays in the background.
+  load.mockResolvedValue(view(['daily.quote']));
+  act(() => focusManager.setFocused(false));
+  now += RESUME_RECHECK_AFTER_MS;
+  act(() => focusManager.setFocused(true));
+  expect(await screen.findByText('daily.quote:granted')).toBeDefined();
+  expect(screen.getByText('tier:PREMIUM')).toBeDefined();
+  expect(load).toHaveBeenCalledTimes(2);
+  queryClient.clear();
 });

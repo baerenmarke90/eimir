@@ -94,14 +94,20 @@ every tab change or navigation:
   from that one session read through `web/src/client/spaceEntitlement.ts`;
   opening a tab, detail route, sheet or settings panel never reads it again.
 - A new read happens only on the next app start, an Account/Space change
-  (both clear the client query cache), or when the startup read did not
+  (both clear the client query cache), a return to the foreground after at
+  least 60 seconds in the background, or when the startup read did not
   complete (failed or still missing, retried on the next mount, focus or
   reconnect).
+- A return after such a pause counts as a new start (Product Owner decision,
+  2026-11-12), so a Pro purchase made by the partner on their own device
+  appears when the app is reopened. Brief switches away, such as a
+  notification or a share sheet, do not trigger a read. The native shell
+  reports the platform app state and the browser reports page visibility
+  through the shared Query focus manager.
 - When a server response denies a Pro capability
   (`PREMIUM_ENTITLEMENT_REQUIRED`), the client removes that capability from
-  the session view immediately, without another read. A full tier refresh
-  (for example after an upgrade made elsewhere during the session) follows
-  on the next app start.
+  the session view immediately, without another read. The full tier is
+  refreshed at the next start or return after a pause.
 - Space membership keeps its existing cadence: checked at start, and
   revalidated when the app returns to the foreground after its freshness
   window, so a removed member loses access promptly.

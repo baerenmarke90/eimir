@@ -1,4 +1,10 @@
-import { type QueryClient, useQuery } from '@tanstack/react-query';
+import {
+  focusManager,
+  type QueryClient,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useEffect } from 'react';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { normalizeClientError } from './problemDetails';
@@ -12,6 +18,9 @@ import { normalizeClientError } from './problemDetails';
  * The read is renewed only when:
  * - the app starts again or the active Space/Account changes (the shell
  *   clears the query cache on both);
+ * - the app returns to the foreground after at least
+ *   `RESUME_RECHECK_AFTER_MS` in the background, which counts as a new start
+ *   (for example after the partner bought Pro on their device);
  * - the previous read failed or never completed (no data yet), on the next
  *   mount, window focus or reconnect;
  * - a server response denies a Pro capability, which removes it from the
@@ -118,4 +127,48 @@ export function withdrawSpaceCapability(
         capabilities: view.capabilities.filter((item) => item !== capability),
       },
   );
+}
+
+/**
+ * A return to the foreground after this long in the background counts as an
+ * app start for the Pro check. It matches the freshness window after which
+ * Space membership is revalidated on return.
+ */
+export const RESUME_RECHECK_AFTER_MS = 60_000;
+
+/**
+ * Re-reads the session entitlement when the app comes back after a pause of
+ * at least `RESUME_RECHECK_AFTER_MS`. Brief switches away (a notification, a
+ * share sheet) and in-app navigation never trigger a read. Focus follows the
+ * shared Query focus manager, which the native shell drives from the
+ * platform app state and the browser from page visibility.
+ */
+export function useRecheckSpaceEntitlementOnResume({
+  accountId,
+  spaceId,
+  enabled = true,
+}: {
+  accountId: string;
+  spaceId: string;
+  enabled?: boolean;
+}) {
+  const client = useQueryClient();
+  useEffect(() => {
+    if (!enabled || !accountId || !spaceId) return;
+    let pausedAt: number | null = focusManager.isFocused() ? null : Date.now();
+    return focusManager.subscribe((focused) => {
+      if (!focused) {
+        pausedAt ??= Date.now();
+        return;
+      }
+      const since = pausedAt;
+      pausedAt = null;
+      if (since === null || Date.now() - since < RESUME_RECHECK_AFTER_MS)
+        return;
+      void client.invalidateQueries({
+        queryKey: spaceEntitlementQueryKey(accountId, spaceId),
+        exact: true,
+      });
+    });
+  }, [client, accountId, spaceId, enabled]);
 }

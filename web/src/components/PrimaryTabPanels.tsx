@@ -1,5 +1,6 @@
 import { type ReactNode, useLayoutEffect, useRef } from 'react';
 import { type Location, Route, Routes, useLocation } from 'react-router-dom';
+import { usePrimaryTabPeek } from '../client/primaryTabPeek';
 import { PrimaryTabTaskOriginScope } from '../client/taskOrigin';
 import { AppErrorBoundary } from './AppErrorBoundary';
 
@@ -38,6 +39,8 @@ export function PrimaryTabPanels({
   const locations = useRef(new Map<string, Location>());
   if (active) locations.current.set(active, location);
   const scrollPositions = useRef(new Map<string, number>());
+  const peek = usePrimaryTabPeek();
+  const peekRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
   const renderedTab = useRef<string | null>(null);
 
@@ -89,16 +92,52 @@ export function PrimaryTabPanels({
     return stop;
   }, [active]);
 
+  // While a swipe drags the pages, the neighbouring tab is laid over the
+  // viewport at the reading position it was left in. Measure once per peek
+  // and let CSS place it; the gesture only supplies the horizontal offset.
+  useLayoutEffect(() => {
+    const panel = peekRef.current;
+    const main = panel?.parentElement;
+    if (!panel || !main || !peek) return;
+    const box = main.getBoundingClientRect();
+    const paddingTop = Number.parseFloat(getComputedStyle(main).paddingTop);
+    const saved = scrollPositions.current.get(peek) ?? 0;
+    panel.style.setProperty('--primary-tab-peek-left', `${box.left}px`);
+    panel.style.setProperty('--primary-tab-peek-width', `${box.width}px`);
+    panel.style.setProperty(
+      '--primary-tab-peek-origin',
+      `${box.top + window.scrollY - saved + (paddingTop || 0)}px`,
+    );
+  }, [peek]);
+
   return panels.map(({ path, element }) => {
-    const kept = locations.current.get(path);
+    const peeking = peek === path && path !== active;
+    // A tab that was never opened is shown from its root while it is peeked,
+    // but is not kept (and unmounts again if the swipe is cancelled).
+    const kept =
+      locations.current.get(path) ??
+      (peeking
+        ? {
+            ...location,
+            pathname: path,
+            search: '',
+            hash: '',
+            state: null,
+            key: `peek-${path}`,
+          }
+        : undefined);
     if (!kept) return null;
     const visible = path === active;
     return (
       <div
         key={path}
+        ref={peeking ? peekRef : undefined}
         className="primary-tab-panel"
         data-primary-tab={path}
-        hidden={!visible}
+        data-primary-tab-peek={peeking ? 'true' : undefined}
+        aria-hidden={peeking ? true : undefined}
+        inert={peeking}
+        hidden={!visible && !peeking}
       >
         <PrimaryTabTaskOriginScope active={visible}>
           <AppErrorBoundary resetKey={kept.key} fallback={fallback}>

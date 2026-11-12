@@ -562,11 +562,14 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
       page,
       browser,
     }, info) => {
+      // Two signed-in partners, five audited states and a reply hand-off.
+      test.slow();
       type Note = {
         id: string;
         title: string;
         body: string;
         experienceKind: string;
+        experienceQuestionId?: string;
         happenedOn: string | null;
         createdAt: string;
         updatedAt: string;
@@ -591,18 +594,34 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           const request = route.request();
           const url = new URL(request.url());
           const path = url.pathname;
-          if (path.endsWith('/questions') && path.includes('/experiences/'))
+          if (path.endsWith('/questions') && path.includes('/experiences/')) {
+            const questionIds = Object.keys(
+              experienceCopy.questions[kind],
+            ).slice(0, 3);
             return route.fulfill({
               json: {
                 kind: kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
                 localDate: '2026-11-01',
                 refreshAfterSeconds: 3600,
-                questionIds: Object.keys(experienceCopy.questions[kind]).slice(
-                  0,
-                  3,
-                ),
+                questionIds,
+                questionStates: questionIds.map((questionId) => {
+                  const thread = notes.filter(
+                    (note) => note.experienceQuestionId === questionId,
+                  );
+                  return {
+                    questionId,
+                    memoryId: thread[0]?.id ?? null,
+                    answeredByMe: thread.some(
+                      (note) => note.authorId === actor,
+                    ),
+                    answeredByPartner: thread.some(
+                      (note) => note.authorId !== actor,
+                    ),
+                  };
+                }),
               },
             });
+          }
 
           if (path === `/api/v1/spaces/${SPACE_ID}/entitlements`)
             return route.fulfill({
@@ -917,6 +936,9 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(page).toHaveURL(/\/story\/memories\/experience-/);
         await expect(page.getByText(words, { exact: true })).toBeVisible();
         expect(notes[0].title).toBe(question);
+        expect(notes[0].experienceQuestionId).toBe(
+          Object.keys(experienceCopy.questions[kind])[0],
+        );
         expect(
           notes.filter(
             (note) =>
@@ -936,8 +958,15 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(
           page
             .locator('.couple-experience-history-entry')
-            .getByRole('heading', { name: question }),
-        ).toBeVisible();
+            .locator('.couple-experience-entry-question'),
+        ).toHaveText(question);
+        // The author's own answered question no longer invites a new entry.
+        await expect(
+          page.locator('.couple-experience-questions a').first(),
+        ).toHaveAttribute(
+          'href',
+          new RegExp(`/story/memories/${notes[0].id}$`),
+        );
         await signIn(partnerPage);
         await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
         const reveal = partnerPage.locator('.shared-experience-reveal');
@@ -1009,6 +1038,37 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(
           partnerPage.locator('.shared-experience-reveal'),
         ).toHaveCount(0);
+        // The partner sees the answered question first and replies in its thread.
+        await partnerPage.goto(base, { waitUntil: 'domcontentloaded' });
+        const focus = partnerPage.locator('.experience-question-focus');
+        await expect(focus).toContainText(question);
+        await expect(
+          focus.getByRole('link', { name: experienceCopy.addOwnAnswer }),
+        ).toHaveAttribute(
+          'href',
+          `${base}/new?replyTo=${encodeURIComponent(notes[0].id)}`,
+        );
+        await expect(
+          partnerPage.locator('.couple-experience-questions li a'),
+        ).toHaveCount(2);
+        expect(
+          await partnerPage.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          partnerPage,
+          info,
+          `${kind}-awaiting-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        expect(
+          (
+            await new AxeBuilder({ page: partnerPage })
+              .include('.couple-experience-page')
+              .analyze()
+          ).violations,
+        ).toEqual([]);
       } finally {
         await partnerContext.close();
       }

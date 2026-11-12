@@ -1335,7 +1335,6 @@
     "dashboardModulesIntro": "Show or hide sections and drag the handle to reorder.",
     "dashboardHiddenTitle": "Hidden ({{count}})",
     "dashboardMoreOptions": "More settings",
-    "dashboardCustomizeAction": "Customize Us",
     "dashboardOrderHandle": "Move {{name}}",
     "dashboardModuleConfigure": "Edit {{name}}",
     "dashboardOrderInstructions": "Drag the handle, or focus it and move it with the up and down arrow keys.",
@@ -3034,6 +3033,17 @@
     "share": "Share with {{name}}",
     "shareHint": "Your partner will be notified. The entry stays in your memories.",
     "history": "Already shared",
+    "historyGroups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "recent": "A few days ago"
+    },
+    "questionState": {
+      "partnerAnswered": "{{name}} answered",
+      "open": "Still open",
+      "youAnswered": "You answered",
+      "bothAnswered": "You both answered"
+    },
     "questionsTitle": "Three questions for today",
     "questionsUnavailable": "Today's questions could not be loaded. You can write freely.",
     "selectedQuestion": "Selected question",

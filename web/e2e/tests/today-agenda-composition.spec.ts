@@ -486,20 +486,33 @@ test('personal module reorder persists across reload and separates the visibilit
   await handle.press('ArrowUp');
   await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
   await expect(handle).toBeFocused();
+  // A visibility change moves the row between the sortable list and the
+  // collapsed hidden group, which replaces its checkbox element. Playwright's
+  // check()/uncheck() re-read the clicked element afterwards and, once it is
+  // detached, wait for a role match that the closed group hides. Click as the
+  // user does and assert the persisted state and the moved row instead.
   await page
     .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
-    .uncheck();
+    .click();
   await expect.poll(() => preferences.upcomingVisible()).toBe(false);
+  await expect(page.locator('.dashboard-hidden-sections')).toBeVisible();
+  await expect(handle).toHaveCount(0);
   await page.reload();
   await expect(page.locator('.dashboard-hidden-sections')).toBeVisible();
+  await expect(handle).toHaveCount(0);
   await page.locator('.dashboard-hidden-sections summary').click();
   await expect(
     page.getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle }),
   ).not.toBeChecked();
   await page
     .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
-    .check();
+    .click();
   await expect.poll(() => preferences.upcomingVisible()).toBe(true);
+  await expect(handle).toBeVisible();
+  await expect(
+    page.getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle }),
+  ).toBeChecked();
+  await expect(page.locator('.dashboard-hidden-sections')).toHaveCount(0);
   await page.goto('/today');
   await expect(page.locator('.today-section-upcoming')).toBeVisible();
   const orderedSections = await page

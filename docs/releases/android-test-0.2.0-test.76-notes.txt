@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.76
+
+- Recognize memories, heart moments and milestones in your lifeline through matching colored legend chips, with direct links to your history.
+- See which happiness questions you have already answered and turn an answer into a shared memory.
+- Change the visibility of your personal Wir sections reliably, even when switching choices quickly.
+- Follow system light and dark mode while the app is open, with cleaner touch scrolling and steadier sheets.
+
+The product changes come from main at f6175ace44a047dc0e4965f81d63c50bc3b21517.
+Install over test.75 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 76.

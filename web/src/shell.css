@@ -598,16 +598,23 @@
 
 /* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
 .primary-tab-panel {
+  /* Measured per peek by the tab panels; these are the neutral defaults. */
+  --primary-tab-peek-left: 0px;
+  --primary-tab-peek-width: 100%;
+  --primary-tab-peek-origin: 0px;
+
   display: contents;
 }
 
-.primary-tab-panel[hidden] {
+.primary-tab-panel[hidden],
+.product-main:not([data-primary-tab-dragging])
+  > .primary-tab-panel[data-primary-tab-peek] {
   display: none;
 }
 
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
-  --primary-tab-opacity: 1;
+  --primary-tab-peek-offset: 0px;
   --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
@@ -617,11 +624,40 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* A swipe drags the pages themselves, like a pager: the current page follows
+     the finger and the neighbouring tab travels beside it. */
   .product-main[data-primary-tab-dragging] > .page,
-  .product-main[data-primary-tab-dragging] > .primary-tab-panel > .page {
-    opacity: var(--primary-tab-opacity);
+  .product-main[data-primary-tab-dragging]
+    > .primary-tab-panel:not([data-primary-tab-peek])
+    > .page {
     transform: translate3d(var(--primary-tab-offset, 0px), 0, 0);
-    will-change: transform, opacity;
+    will-change: transform;
+  }
+
+  /* The neighbour is laid over the viewport at the reading position it was
+     left in, in the column the tab panels measured, and clipped to the screen
+     (not the column) so it travels in from the edge like a pager page. */
+  .product-main[data-primary-tab-dragging]
+  > .primary-tab-panel[data-primary-tab-peek] {
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .product-main[data-primary-tab-dragging]
+    > .primary-tab-panel[data-primary-tab-peek]
+    > .page {
+    width: var(--primary-tab-peek-width, 100%);
+    margin-top: var(--primary-tab-peek-origin, 0px);
+    margin-left: var(--primary-tab-peek-left, 0px);
+    transform: translate3d(var(--primary-tab-peek-offset, 0px), 0, 0);
+    will-change: transform;
   }
 
   .product-shell-body:has(.product-main[data-primary-tab-dragging]),
@@ -1221,4 +1257,19 @@ html.app-pull-refresh-enabled body {
   .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
     animation: none;
   }
+}
+
+/*
+ * The native app follows the platform convention for touch scrolling and shows
+ * no persistent scrollbar. Browsers keep their own scrollbars. The Android
+ * shell also disables the WebView's own root scrollbar.
+ */
+:root[data-runtime="native"],
+:root[data-runtime="native"] * {
+  scrollbar-width: none;
+}
+
+:root[data-runtime="native"]::-webkit-scrollbar,
+:root[data-runtime="native"] ::-webkit-scrollbar {
+  display: none;
 }

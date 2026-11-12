@@ -32,28 +32,25 @@ const COMPACT_DRAG_SLOP_PX = 4;
 const COMPACT_DRAG_AXIS_DOMINANCE = 1.15;
 const EXPANDED_QUERY = '(min-width: 840px)';
 
-const INTERACTIVE_DRAG_EXCLUSION_SELECTOR = [
-  'a[href]',
-  'button',
+// A deliberate downward pull may start anywhere on the sheet surface,
+// including buttons, links and list rows (the release then does not activate
+// them). Only controls whose own vertical gesture or text caret would be taken
+// away stay excluded.
+const GESTURE_OWNER_DRAG_EXCLUSION_SELECTOR = [
   'input',
   'textarea',
   'select',
   'option',
-  'label',
-  'summary',
   'iframe',
   'video',
   'audio',
   '.leaflet-container',
   '[draggable="true"]',
   '[contenteditable]:not([contenteditable="false"])',
-  '[role="button"]',
-  '[role="link"]',
-  '[role="checkbox"]',
-  '[role="switch"]',
   '[role="slider"]',
   '[role="textbox"]',
   '[role="combobox"]',
+  '[role="listbox"]',
 ].join(',');
 
 type DragInput = 'pointer' | 'touch';
@@ -143,7 +140,6 @@ export function ShortTaskSheet({
   const dragSheetHeightRef = useRef(COMPACT_DRAG_DISMISS_MAX_PX);
   const dragScrollOwnerRef = useRef<HTMLElement | null>(null);
   const dragClaimedRef = useRef(false);
-  const dragStartedOnCloseRef = useRef(false);
   const suppressNextClickRef = useRef(false);
   const gestureHandlersRef = useRef<DragGestureHandlers | null>(null);
   const closeConfirmed = useEditorHistoryEntry({
@@ -227,7 +223,6 @@ export function ShortTaskSheet({
     dragPeakOffsetRef.current = 0;
     dragScrollOwnerRef.current = null;
     dragClaimedRef.current = false;
-    dragStartedOnCloseRef.current = false;
   }
 
   function elementFromTarget(target: EventTarget | null): Element | null {
@@ -261,25 +256,17 @@ export function ShortTaskSheet({
   function canArmSurfaceDrag(
     target: EventTarget | null,
     dialog: HTMLDialogElement,
-  ): { target: Element; scrollOwner: HTMLElement | null } | null {
+  ): { scrollOwner: HTMLElement | null } | null {
     const element = elementFromTarget(target);
     if (!element || element === dialog || !dialog.contains(element))
       return null;
 
-    const startsOnClose = Boolean(
-      element.closest('.short-task-sheet-drag-zone'),
-    );
-    if (
-      !startsOnClose &&
-      element.closest(INTERACTIVE_DRAG_EXCLUSION_SELECTOR)
-    ) {
-      return null;
-    }
+    if (element.closest(GESTURE_OWNER_DRAG_EXCLUSION_SELECTOR)) return null;
 
     const scrollOwner = findScrollableAncestor(element, dialog);
     if (scrollOwner && scrollOwner.scrollTop > 0) return null;
 
-    return { target: element, scrollOwner };
+    return { scrollOwner };
   }
 
   function beginDragGesture(
@@ -314,9 +301,6 @@ export function ShortTaskSheet({
     );
     dragScrollOwnerRef.current = armed.scrollOwner;
     dragClaimedRef.current = false;
-    dragStartedOnCloseRef.current = Boolean(
-      armed.target.closest('.short-task-sheet-drag-zone'),
-    );
     suppressNextClickRef.current = false;
     return true;
   }
@@ -405,10 +389,9 @@ export function ShortTaskSheet({
     dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
     const reversedUpward =
       dragPeakOffsetRef.current - offset >= COMPACT_DRAG_REVERSAL_CANCEL_PX;
-    const startedOnClose = dragStartedOnCloseRef.current;
-
     dialogRef.current?.removeAttribute('data-dragging');
-    if (startedOnClose) suppressNextClickRef.current = true;
+    // A claimed pull must not fall through into the control it started on.
+    suppressNextClickRef.current = true;
 
     const shouldDismiss =
       allowDismiss &&
@@ -459,7 +442,6 @@ export function ShortTaskSheet({
       dragPeakOffsetRef.current = 0;
       dragScrollOwnerRef.current = null;
       dragClaimedRef.current = false;
-      dragStartedOnCloseRef.current = false;
       dialog.removeAttribute('data-interacted');
       dialog.removeAttribute('data-dragging');
       dialog.style.removeProperty('--short-task-sheet-drag-offset');
@@ -565,7 +547,6 @@ export function ShortTaskSheet({
     dragPeakOffsetRef.current = 0;
     dragScrollOwnerRef.current = null;
     dragClaimedRef.current = false;
-    dragStartedOnCloseRef.current = false;
     suppressNextClickRef.current = false;
     const dialog = dialogRef.current;
     dialog?.removeAttribute('data-interacted');
@@ -620,6 +601,27 @@ export function ShortTaskSheet({
         if (event.target !== event.currentTarget || presenceState !== 'exiting')
           return;
         completeExit();
+      }}
+      onPointerDownCapture={() => {
+        // Every new press starts without a stale suppression; a touch pull
+        // produces no click of its own to consume the flag.
+        suppressNextClickRef.current = false;
+      }}
+      onClickCapture={(event) => {
+        if (event.detail === 0 || !suppressNextClickRef.current) return;
+        suppressNextClickRef.current = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onDragStart={(event) => {
+        // A mouse pull armed on a link or image must not become a native
+        // drag-and-drop, which would cancel the sheet gesture.
+        if (
+          dragInputRef.current === 'pointer' &&
+          dragIdentifierRef.current !== null
+        ) {
+          event.preventDefault();
+        }
       }}
       onPointerDown={(event: ReactPointerEvent<HTMLDialogElement>) => {
         if (
@@ -705,14 +707,7 @@ export function ShortTaskSheet({
           className="short-task-sheet-close short-task-sheet-drag-zone"
           aria-label={resolvedCloseLabel}
           title={resolvedCloseLabel}
-          onClick={(event) => {
-            if (event.detail > 0 && suppressNextClickRef.current) {
-              suppressNextClickRef.current = false;
-              return;
-            }
-            suppressNextClickRef.current = false;
-            requestClose();
-          }}
+          onClick={() => requestClose()}
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />
           <svg

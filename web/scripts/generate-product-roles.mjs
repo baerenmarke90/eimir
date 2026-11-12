@@ -73,6 +73,11 @@ for (const [name, role] of [
   ['story-lifeline-band', 'storyLifelineBand'],
 ])
   declare(`space-${name}`, rem(`spacing.${role}`));
+declare('opacity-story-chip-fill', `${value('storyChip.fillOpacity') * 100}%`);
+declare(
+  'opacity-story-chip-fill-active',
+  `${value('storyChip.activeFillOpacity') * 100}%`,
+);
 const storyColors = [
   ['memory', 'storyMemory'],
   ['heart-moment', 'storyHeartMoment'],

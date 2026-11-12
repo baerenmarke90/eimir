@@ -108,7 +108,6 @@ const profileIdentity = {
   dashboardModulesIntro: 'Ein- oder ausblenden und am Griff sortieren.',
   dashboardHiddenTitle: 'Ausgeblendet ({{count}})',
   dashboardMoreOptions: 'Weitere Einstellungen',
-  dashboardCustomizeAction: 'Wir-Seite anpassen',
   dashboardOrderHandle: '{{name}} verschieben',
   dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:

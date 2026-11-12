@@ -84,6 +84,7 @@ export function MemoryCreatePage({
   experienceKind,
   partnerName,
   experienceQuestion,
+  experienceQuestionId,
   experienceReply,
 }: {
   accessToken: string;
@@ -94,6 +95,8 @@ export function MemoryCreatePage({
   experienceKind?: ExperienceKind;
   partnerName?: string;
   experienceQuestion?: string;
+  /** Editorial key of the selected daily question, sent with a new experience. */
+  experienceQuestionId?: string;
   experienceReply?: MemoryDetail;
 }) {
   const { t } = useTranslation();
@@ -141,6 +144,7 @@ export function MemoryCreatePage({
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const dateInputRef = useRef<ComposerDateContextHandle>(null);
   const experienceDateRef = useRef<HTMLInputElement>(null);
+  const [questionId, setQuestionId] = useState(experienceQuestionId);
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
@@ -256,6 +260,7 @@ export function MemoryCreatePage({
   const draftSnapshot = useMemo<MemoryDiaryDraft>(
     () => ({
       title,
+      experienceQuestionId: questionId,
       body,
       planningLinks,
       linkRecoveryMemory,
@@ -284,6 +289,7 @@ export function MemoryCreatePage({
       planningLinks,
       linkRecoveryMemory,
       title,
+      questionId,
       body,
       tags,
       tagDraftText,
@@ -381,6 +387,7 @@ export function MemoryCreatePage({
       setPlanningLinks(draft.planningLinks ?? []);
       setLinkRecoveryMemory(draft.linkRecoveryMemory);
       setTitle(draft.title);
+      setQuestionId(draft.experienceQuestionId);
       setBody(draft.body);
       setPlaces(draft.places ?? (draft.place ? [draft.place] : []));
       setHappenedUntil(draft.happenedUntil ?? '');
@@ -702,6 +709,9 @@ export function MemoryCreatePage({
                 experienceReplyTo:
                   experienceReply.experienceRootId ?? experienceReply.id,
               }
+            : {}),
+          ...(experienceKind && !experienceReply && questionId
+            ? { experienceQuestionId: questionId }
             : {}),
           tags: [...(submittedTags ?? tags)],
           happenedOn: submittedDate,

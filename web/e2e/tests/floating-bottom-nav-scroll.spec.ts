@@ -1132,6 +1132,15 @@ async function expectPrimaryReadingSurface(page: Page) {
 }
 
 async function swipePrimary(page: Page, direction: 'next' | 'previous') {
+  const { width, startX, y } = await primarySwipeStart(page, direction);
+  await dragTouch(
+    page,
+    { x: startX, y },
+    { x: direction === 'next' ? width * 0.25 : width * 0.75, y },
+  );
+}
+
+async function primarySwipeStart(page: Page, direction: 'next' | 'previous') {
   await expectPrimaryReadingSurface(page);
   const width = page.viewportSize()?.width ?? 390;
   const startX = direction === 'next' ? width * 0.75 : width * 0.25;
@@ -1178,11 +1187,7 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
     }
     throw new Error('No visible reading surface for a primary swipe.');
   }, startX);
-  await dragTouch(
-    page,
-    { x: startX, y },
-    { x: direction === 'next' ? width * 0.25 : width * 0.75, y },
-  );
+  return { width, startX, y };
 }
 
 async function pauseNavigationMotion(page: Page) {
@@ -1326,38 +1331,24 @@ test.describe('primary tab touch navigation', () => {
     expect(reads).toBe(1);
   });
 
-  test('live primary motion stays interactive before its first frame completes', async ({
+  test('a second swipe works at once while the previous one is still settling', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 844 });
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await pauseNavigationMotion(page);
     await installApiMocks(page);
     await page.goto('/login');
     await signIn(page);
     await expect(page).toHaveURL(/\/today$/);
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/story$/);
-    expect(
-      await page
-        .locator('main')
-        .evaluate((main) =>
-          main
-            .getAnimations()
-            .some((animation) => animation.playState === 'paused'),
-        ),
-    ).toBe(true);
     await expectNoHorizontalOverflow(page);
-    // A second real touch must work while the previous motion is still held.
+    // A second real touch must work right after the first one.
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/plan$/);
     await expectNoHorizontalOverflow(page);
-    await page.locator('main').evaluate((main) => {
-      for (const animation of main.getAnimations()) animation.finish();
-    });
     await expect(page.locator('main')).not.toHaveAttribute(
-      'data-navigation-motion',
-      'content',
+      'data-primary-tab-dragging',
     );
   });
 
@@ -1431,6 +1422,89 @@ test.describe('primary tab touch navigation', () => {
       await expectNoHorizontalOverflow(page);
     });
   }
+
+  test('primary swipe drags the page beside its neighbour like a pager', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    const { width, startX, y } = await primarySwipeStart(page, 'next');
+    const main = page.locator('main.product-main');
+    const current = page.locator(
+      'main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page',
+    );
+    const neighbour = page.locator(
+      'main > .primary-tab-panel[data-primary-tab-peek] > .page',
+    );
+    const restBox = await current.boundingBox();
+    const mainBox = await main.boundingBox();
+    const session = await page.context().newCDPSession(page);
+    try {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: startX, y, id: 1 }],
+      });
+      await nextFrame(page);
+      for (let step = 1; step <= 5; step++)
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: startX - 40 * step, y, id: 1 }],
+        });
+      await expect(main).toHaveAttribute('data-primary-tab-dragging', 'true');
+      await expect(neighbour).toBeVisible();
+      // The page follows the finger one to one; the next tab is one viewport
+      // further along, so both are on screen while dragging.
+      const currentBox = await current.boundingBox();
+      const neighbourBox = await neighbour.boundingBox();
+      expect(currentBox).not.toBeNull();
+      expect(neighbourBox).not.toBeNull();
+      if (!currentBox || !neighbourBox) return;
+      expect(currentBox.x).toBeCloseTo((restBox?.x ?? 0) - 200, 0);
+      // One viewport further along, in the same content column.
+      expect(neighbourBox.x).toBeCloseTo((mainBox?.x ?? 0) + width - 200, 0);
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath('swipe-mid-drag.png'),
+      });
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+    } finally {
+      await session.detach();
+    }
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(main).not.toHaveAttribute('data-primary-tab-dragging');
+    await expect(neighbour).toHaveCount(0);
+    await expect(
+      page.locator('main > .primary-tab-panel:not([hidden]) .story-page'),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test('a short primary swipe settles back without leaving the tab', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    const { startX, y } = await primarySwipeStart(page, 'next');
+    await dragTouch(page, { x: startX, y }, { x: startX - 30, y });
+    await expect(page).toHaveURL(/\/today$/);
+    const main = page.locator('main.product-main');
+    await expect(main).not.toHaveAttribute('data-primary-tab-dragging');
+    await expect(
+      page.locator('main > .primary-tab-panel[data-primary-tab-peek]'),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+  });
 
   test('primary swipe restores reading position and resets Planning segment without growing native history or refetching fresh content', async ({
     page,

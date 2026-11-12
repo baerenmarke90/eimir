@@ -1774,11 +1774,13 @@ test('notification choices survive return and stay legible across themes and wid
     .click();
   await page.locator('a[href="/more/settings"]').click();
   await expect(page).toHaveURL(/\/more\/settings$/);
-  await page
-    .getByRole('link', {
-      name: profileIdentity.settingsNotifications,
-    })
-    .click();
+  // The kept More tab also has a notification link, but this return must
+  // reopen the Settings category rather than the notification inbox.
+  const notificationSettingsLink = page.locator(
+    'a[href="/more/settings/notifications"]',
+  );
+  await expect(notificationSettingsLink).toBeVisible();
+  await notificationSettingsLink.click();
   await expect(
     page.locator('.notification-quiet-hours > summary'),
   ).toContainText('Täglich 22:00–07:00 Uhr.');

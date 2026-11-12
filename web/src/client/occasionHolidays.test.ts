@@ -18,7 +18,9 @@ describe('Occasion holidays', () => {
     expect(byId.christmasEve).toBe('2026-12-24');
     expect(byId.christmasDay).toBe('2026-12-25');
     expect(byId.newYear).toBe('2027-01-01');
-    expect(holidays.length).toBe(new Set(holidays.map((item) => item.key)).size);
+    expect(holidays.length).toBe(
+      new Set(holidays.map((item) => item.key)).size,
+    );
   });
 
   it('includes an occasion occurring today rather than skipping to next year', () => {

@@ -1,22 +1,22 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import { expectFloatingAddAction } from '../support/addAction';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import copy from '../../src/i18n/locales/wirDesign';
-import quoteCopy from '../../src/i18n/locales/dailyQuote';
-import profileCopy from '../../src/i18n/locales/profileIdentity';
-import energyCopy from '../../src/i18n/locales/dailyEnergy';
-import reflections from '../../src/i18n/locales/relationshipReflections';
-import notificationCopy from '../../src/i18n/locales/notificationSettings';
-import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import fs from 'node:fs';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import energyCopy from '../../src/i18n/locales/dailyEnergy';
+import quoteCopy from '../../src/i18n/locales/dailyQuote';
+import notificationCopy from '../../src/i18n/locales/notificationSettings';
+import profileCopy from '../../src/i18n/locales/profileIdentity';
+import reflections from '../../src/i18n/locales/relationshipReflections';
+import copy from '../../src/i18n/locales/wirDesign';
+import { expectFloatingAddAction } from '../support/addAction';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
+  captureScreenshot,
+  installMocks,
+  PARTNER,
   PARTNER_ID,
   SPACE_ID,
-  PARTNER,
-  installMocks,
   signIn,
-  captureScreenshot,
 } from '../support/storyTimelineFixture';
 
 async function fixture(
@@ -34,6 +34,11 @@ async function fixture(
     if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // The opted-in story lifeline (#1770) with no shared history yet.
+    if (path === `${base}/story-lifeline`)
+      return route.fulfill({
+        json: { startsOn: null, today: '2026-11-12', weeks: [] },
+      });
     if (path.includes('/attachments/') && path.endsWith('/content')) {
       return route.fulfill({
         contentType: 'image/jpeg',

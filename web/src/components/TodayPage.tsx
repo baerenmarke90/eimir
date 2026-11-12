@@ -1585,8 +1585,10 @@ export function TodayPage({
         dashboardQuery.data?.sharedStorySummary ? (
           <SharedStorySummary
             summary={dashboardQuery.data.sharedStorySummary}
-            showEmpty
-            includeEmptyCategories={false}
+            accountId={account?.id ?? ''}
+            spaceId={spaceId}
+            dashboardApi={apis.dashboard}
+            loadMemoryImage={loadMemoryImage}
           />
         ) : null}
       </>

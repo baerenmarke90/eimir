@@ -105,6 +105,50 @@ async function fixture(
           capabilities: options.pro === false ? [] : ['relationship.passport'],
         },
       });
+    if (path === `${BASE}/story-lifeline`) {
+      const memory = (id: string, title: string, occurredOn: string) => ({
+        type: 'MEMORY',
+        id,
+        titleOrText: title,
+        occurredOn,
+        scheduledAt: null,
+        createdAt: null,
+      });
+      // Three weeks whose parts add up to the shared totals below.
+      return route.fulfill({
+        json: {
+          startsOn: '2023-06-17',
+          today: '2026-10-29',
+          weeks: [
+            {
+              weekStart: '2023-06-12',
+              memories: 40,
+              heartMoments: 4,
+              milestones: 2,
+              highlight: memory('lifeline-1', 'Our first summer', '2023-06-17'),
+            },
+            {
+              weekStart: '2025-01-06',
+              memories: 44,
+              heartMoments: 4,
+              milestones: 1,
+              highlight: memory(
+                'lifeline-2',
+                'New Year in the snow',
+                '2025-01-08',
+              ),
+            },
+            {
+              weekStart: '2026-10-26',
+              memories: 44,
+              heartMoments: 4,
+              milestones: 1,
+              highlight: memory('lifeline-3', 'Autumn walk', '2026-10-27'),
+            },
+          ],
+        },
+      });
+    }
     if (path === `${BASE}/relationship-passport`) {
       passportReads++;
       return route.fulfill({

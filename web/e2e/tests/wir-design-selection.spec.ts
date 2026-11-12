@@ -34,6 +34,11 @@ async function fixture(
     if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // The opted-in story lifeline (#1770) with no shared history yet.
+    if (path === `${base}/story-lifeline`)
+      return route.fulfill({
+        json: { startsOn: null, today: '2026-11-12', weeks: [] },
+      });
     if (path.includes('/attachments/') && path.endsWith('/content')) {
       return route.fulfill({
         contentType: 'image/jpeg',

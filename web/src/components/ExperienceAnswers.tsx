@@ -5,6 +5,7 @@ import { usePartnerNickname } from '../client/partnerNickname';
 import { memoryEditPath } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { personInitials } from './PersonIdentity';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import './ExperienceAnswers.css';
 
@@ -15,6 +16,8 @@ export function ExperienceAnswers({
   showLabel = true,
   editable = false,
   originKey,
+  preview = false,
+  viewerId,
 }: {
   answers: readonly ExperienceAnswer[];
   kind: ExperienceKind;
@@ -22,9 +25,38 @@ export function ExperienceAnswers({
   showLabel?: boolean;
   editable?: boolean;
   originKey?: string;
+  /** Overview rows: one surface per entry, author once, short clamped words. */
+  preview?: boolean;
+  /** Lets a preview tell the reader's own words from the partner's. */
+  viewerId?: string;
 }) {
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
+  const nameOf = (answer: ExperienceAnswer) =>
+    answer.author.isFormerMember
+      ? authorDisplayName(answer.author)
+      : nicknameFor(answer.author.id) || answer.author.displayName;
+  if (preview) {
+    return (
+      <ul className="experience-answers experience-answers-preview">
+        {answers.map((answer) => (
+          <li
+            key={answer.id}
+            className="experience-answer-preview"
+            data-own={answer.author.id === viewerId || undefined}
+          >
+            <span className="experience-answer-avatar" aria-hidden="true">
+              {personInitials(nameOf(answer))}
+            </span>
+            <span className="experience-answer-preview-words">
+              <strong>{nameOf(answer)}</strong>
+              <span>{answer.body}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   return (
     <div
       className={`experience-answers${compact ? ' experience-answers-compact' : ''}`}
@@ -46,11 +78,7 @@ export function ExperienceAnswers({
           data-answer-tone={index % 2}
         >
           <div className="experience-answer-author">
-            <strong>
-              {answer.author.isFormerMember
-                ? authorDisplayName(answer.author)
-                : nicknameFor(answer.author.id) || answer.author.displayName}
-            </strong>
+            <strong>{nameOf(answer)}</strong>
             {editable && answer.capabilities.canEdit ? (
               <StoryDetailEditLink
                 to={memoryEditPath(answer.id)}

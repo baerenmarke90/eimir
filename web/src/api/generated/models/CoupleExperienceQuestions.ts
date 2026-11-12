@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CoupleExperienceQuestionState } from './CoupleExperienceQuestionState';
+import {
+    CoupleExperienceQuestionStateFromJSON,
+    CoupleExperienceQuestionStateFromJSONTyped,
+    CoupleExperienceQuestionStateToJSON,
+    CoupleExperienceQuestionStateToJSONTyped,
+} from './CoupleExperienceQuestionState';
 import type { ExperienceKind } from './ExperienceKind';
 import {
     ExperienceKindFromJSON,
@@ -47,6 +54,12 @@ export interface CoupleExperienceQuestions {
     questionIds: Array<string>;
     /**
      * 
+     * @type {Array<CoupleExperienceQuestionState>}
+     * @memberof CoupleExperienceQuestions
+     */
+    questionStates?: Array<CoupleExperienceQuestionState>;
+    /**
+     * 
      * @type {number}
      * @memberof CoupleExperienceQuestions
      */
@@ -79,6 +92,7 @@ export function CoupleExperienceQuestionsFromJSONTyped(json: any, ignoreDiscrimi
         'kind': ExperienceKindFromJSON(json['kind']),
         'localDate': (new Date(json['localDate'])),
         'questionIds': json['questionIds'],
+        'questionStates': json['questionStates'] == null ? undefined : ((json['questionStates'] as Array<any>).map(CoupleExperienceQuestionStateFromJSON)),
         'refreshAfterSeconds': json['refreshAfterSeconds'],
     };
 }
@@ -97,6 +111,7 @@ export function CoupleExperienceQuestionsToJSONTyped(value?: CoupleExperienceQue
         'kind': ExperienceKindToJSON(value['kind']),
         'localDate': value['localDate'].toISOString().substring(0,10),
         'questionIds': value['questionIds'],
+        'questionStates': value['questionStates'] == null ? undefined : ((value['questionStates'] as Array<any>).map(CoupleExperienceQuestionStateToJSON)),
         'refreshAfterSeconds': value['refreshAfterSeconds'],
     };
 }

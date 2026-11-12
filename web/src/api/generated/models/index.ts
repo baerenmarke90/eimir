@@ -50,6 +50,7 @@ export * from './CommentPage';
 export * from './CommentUpdate';
 export * from './ContentVisibility';
 export * from './ContextTagSuggestionsView';
+export * from './CoupleExperienceQuestionState';
 export * from './CoupleExperienceQuestions';
 export * from './DailyCheckInEnergyView';
 export * from './DailyCheckInInsightDayView';

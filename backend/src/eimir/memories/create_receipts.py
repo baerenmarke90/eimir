@@ -55,6 +55,7 @@ def fingerprint(
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     experience_reply_to: UUID | None = None,
+    experience_question_id: str | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     attachments: list[tuple[UUID, int, bool | None]] | None = None,
@@ -84,6 +85,8 @@ def fingerprint(
         content["placeIds"] = [str(identifier) for identifier in place_ids]
     if experience_reply_to is not None:
         content["experienceReplyTo"] = str(experience_reply_to)
+    if experience_question_id is not None:
+        content["experienceQuestionId"] = experience_question_id
     if attachments is not None:
         content["attachments"] = [
             [str(identifier), position, sensitive]

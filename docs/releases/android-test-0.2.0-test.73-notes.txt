@@ -1,0 +1,7 @@
+eimir. Android 0.2.0-test.73
+
+- Move smoothly between the main tabs when tapping, swiping or using Back. The next tab starts sliding in while its content loads.
+- The selected tab icon lifts slightly. The navigation bar stays in place, and the app respects reduced-motion preferences.
+
+The product changes come from main at 7086b91104d5dc3e1c1d4c69a86bc48940661818.
+Install over test.72 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 73.

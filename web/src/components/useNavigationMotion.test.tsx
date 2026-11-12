@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import { useLayoutEffect, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -79,9 +80,11 @@ function Harness({
 function PageMotionHarness({
   pathname = '/story',
   onNavigate,
+  loading = false,
 }: {
   pathname?: string;
   onNavigate: (path: string) => void;
+  loading?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   useNavigationMotion({
@@ -93,7 +96,13 @@ function PageMotionHarness({
   return (
     <main ref={ref} data-testid="motion-surface">
       <section className="page" data-testid="motion-page">
-        <p data-testid="motion-reading">Shared content</p>
+        {loading ? (
+          <div className="ui-state-loading" role="status">
+            Loading destination
+          </div>
+        ) : (
+          <p data-testid="motion-reading">Shared content</p>
+        )}
       </section>
     </main>
   );
@@ -172,6 +181,93 @@ describe('primary tab slide feedback', () => {
     expect(surface.hasAttribute('data-navigation-slide')).toBe(false);
     view.unmount();
     frame.mockRestore();
+  });
+
+  it.each([
+    ['/today', '/story', 32],
+    ['/story', '/today', -32],
+    ['/today', '/more', 32],
+    ['/more', '/plan', -32],
+  ])(
+    'slides direct tab navigation from %s to %s by %spx',
+    (from, to, offset) => {
+      const navigate = vi.fn();
+      const slide = { cancel: vi.fn() } as unknown as Animation;
+      const view = render(
+        <PageMotionHarness pathname={from} onNavigate={navigate} />,
+      );
+      const surface = screen.getByTestId('motion-surface');
+      const page = screen.getByTestId('motion-page');
+      const animate = vi.fn().mockReturnValue(slide);
+      Object.defineProperty(page, 'animate', {
+        configurable: true,
+        value: animate,
+      });
+      view.rerender(<PageMotionHarness pathname={to} onNavigate={navigate} />);
+      expect(animate).toHaveBeenCalledWith(
+        [
+          { transform: `translate3d(${offset}px, 0, 0)` },
+          { transform: 'translate3d(0, 0, 0)' },
+        ],
+        expect.objectContaining({ easing: expect.any(String) }),
+      );
+      expect(surface.dataset.navigationSlide).toBe('true');
+      expect(surface.style.transform).toBe('');
+    },
+  );
+
+  it('slides an incoming tab while loading, then reveals its content', async () => {
+    const navigate = vi.fn();
+    const view = render(<PageMotionHarness onNavigate={navigate} />);
+    const surface = screen.getByTestId('motion-surface');
+    const page = screen.getByTestId('motion-page');
+    const slide = vi.fn().mockReturnValue({ cancel: vi.fn() });
+    const fade = vi.fn().mockReturnValue({ cancel: vi.fn() });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: slide,
+    });
+    Object.defineProperty(surface, 'animate', {
+      configurable: true,
+      value: fade,
+    });
+
+    view.rerender(
+      <PageMotionHarness pathname="/plan" loading onNavigate={navigate} />,
+    );
+    expect(slide).toHaveBeenCalledTimes(1);
+    expect(fade).not.toHaveBeenCalled();
+    expect(surface.dataset.navigationSlide).toBe('true');
+
+    view.rerender(<PageMotionHarness pathname="/plan" onNavigate={navigate} />);
+    await waitFor(() => expect(fade).toHaveBeenCalledTimes(1));
+    expect(surface.dataset.navigationMotion).toBe('content');
+  });
+
+  it('does not slide a nested destination or animate when motion is reduced', () => {
+    const navigate = vi.fn();
+    const view = render(<PageMotionHarness onNavigate={navigate} />);
+    const page = screen.getByTestId('motion-page');
+    const animate = vi.fn().mockReturnValue({ cancel: vi.fn() });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    view.rerender(
+      <PageMotionHarness
+        pathname="/story/memories/example"
+        onNavigate={navigate}
+      />,
+    );
+    expect(animate).not.toHaveBeenCalled();
+
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    view.rerender(<PageMotionHarness pathname="/plan" onNavigate={navigate} />);
+    expect(animate).not.toHaveBeenCalled();
   });
 
   it('gently springs back after a cancelled swipe and keeps the shell untransformed', () => {

@@ -876,6 +876,17 @@
   color: var(--color-brand);
 }
 
+/* Give the selected destination a quiet, tactile lift; the dock stays fixed. */
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-bottom-nav .shell-nav-link .shell-nav-icon {
+    transition: transform var(--duration-transition) var(--easing-standard);
+  }
+
+  .mobile-bottom-nav .shell-nav-link-active .shell-nav-icon {
+    transform: translate3d(0, -2px, 0) scale(1.05);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .mobile-bottom-nav .shell-nav-link:hover {
     color: var(--color-text);

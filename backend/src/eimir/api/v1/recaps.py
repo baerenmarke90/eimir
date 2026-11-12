@@ -78,6 +78,21 @@ class RecapFactsView(ApiModel):
     busiest_month: int | None
 
 
+class RecapMoodBucketView(ApiModel):
+    """Mutual check-in days of one week (month edition) or one month (year edition)."""
+
+    index: int
+    mutual_days: int
+    good_days: int
+
+
+class RecapMoodView(ApiModel):
+    """Frozen rhythm of days on which both partners marked a good Vibe."""
+
+    buckets: list[RecapMoodBucketView]
+    leading: int | None
+
+
 class RecapView(RecapPeriod):
     id: UUID
     variant: int
@@ -94,6 +109,7 @@ class RecapView(RecapPeriod):
     introduction: str | None
     sources: list[RecapSourceView]
     facts: RecapFactsView | None = None
+    mood: RecapMoodView | None = None
     reflections: list[RecapReflectionView]
     own_draft: RecapDraftView | None
 

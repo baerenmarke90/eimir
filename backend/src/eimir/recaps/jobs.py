@@ -17,7 +17,7 @@ from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
-from eimir.recaps import local_ai, service
+from eimir.recaps import local_ai, mood, service
 from eimir.recaps.composition import select_candidates, theme_for
 from eimir.recaps.models import RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
@@ -144,10 +144,13 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     if {item["key"]: item["version"] for item in fresh} != versions:
         narration = None
     service.store_selection(session, value, fresh_selected)
+    rhythm = mood.refreshed(
+        session, space_id, kind, value.starts_on, value.through_on, value.payload.mood
+    )
     value.payload = (
-        RecapPayload(headline=narration.title, introduction=narration.introduction)
+        RecapPayload(headline=narration.title, introduction=narration.introduction, mood=rhythm)
         if narration
-        else RecapPayload()
+        else RecapPayload(mood=rhythm)
     )
     value.generated_by = "LOCAL_AI" if narration else "RULES"
     value.theme = theme_for(fresh_selected)

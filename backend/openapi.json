@@ -9046,6 +9046,59 @@
         "title": "RecapKind",
         "type": "string"
       },
+      "RecapMoodBucketView": {
+        "description": "Mutual check-in days of one week (month edition) or one month (year edition).",
+        "properties": {
+          "goodDays": {
+            "title": "Gooddays",
+            "type": "integer"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "mutualDays": {
+            "title": "Mutualdays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "mutualDays",
+          "goodDays"
+        ],
+        "title": "RecapMoodBucketView",
+        "type": "object"
+      },
+      "RecapMoodView": {
+        "description": "Frozen rhythm of days on which both partners marked a good Vibe.",
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/RecapMoodBucketView"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "leading": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leading"
+          }
+        },
+        "required": [
+          "buckets",
+          "leading"
+        ],
+        "title": "RecapMoodView",
+        "type": "object"
+      },
       "RecapOverview": {
         "properties": {
           "canCompose": {
@@ -9423,6 +9476,16 @@
             "minimum": 0.0,
             "title": "Month",
             "type": "integer"
+          },
+          "mood": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapMoodView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "ownDraft": {
             "anyOf": [

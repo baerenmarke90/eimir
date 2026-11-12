@@ -45,7 +45,7 @@ def _before_flush(session: Session, flush_context: Any, instances: Any) -> None:
     if affected:
         for edition in session.scalars(select(RecapEdition).where(RecapEdition.id.in_(affected))):
             if edition.payload.headline or edition.payload.introduction:
-                edition.payload = RecapPayload()
+                edition.payload = RecapPayload(mood=edition.payload.mood)
                 edition.generated_by = "RULES"
                 # The factual template shows at once; an automatic proposal is rewritten
                 # later. Scrubbed prose cannot trigger this again, which debounces edits.

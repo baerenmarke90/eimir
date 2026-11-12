@@ -69,6 +69,73 @@ type Choice = {
   enabled: boolean;
 };
 
+function DevicePushSetting({
+  devicePush,
+}: {
+  devicePush: DevicePushController;
+}) {
+  const { t } = useTranslation();
+  const { state, error, registered } = devicePush;
+  const action = devicePushAction(devicePush);
+  const connecting = state === 'connecting';
+  const disableFailed = error === 'PUSH_DEVICE_DISABLE_FAILED';
+  const checked =
+    state === 'on' ||
+    (!connecting && state !== 'loading' && (registered || disableFailed));
+  const disabled =
+    state === 'loading' ||
+    connecting ||
+    state === 'disconnecting' ||
+    (!checked && action !== 'enable');
+  const status =
+    error || (state !== 'on' && state !== 'off')
+      ? t(devicePushStatusKey(devicePush))
+      : null;
+  let secondaryAction: { label: string; run: () => Promise<void> } | undefined;
+  if (connecting) {
+    secondaryAction = { label: t('common.cancel'), run: devicePush.disable };
+  } else if (action === 'openSettings') {
+    secondaryAction = {
+      label: t('notificationSettings.deviceOpenSettings'),
+      run: devicePush.openSettings,
+    };
+  } else if (checked && action === 'enable' && !disableFailed) {
+    secondaryAction = { label: t('common.retry'), run: devicePush.enable };
+  }
+
+  return (
+    <div className="notification-device-push">
+      <PreferenceSwitch
+        label={t('notificationSettings.deviceToggle')}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={(enabled) => {
+          if (enabled) void devicePush.enable();
+          else void devicePush.disable();
+        }}
+      />
+      <p
+        className={status ? undefined : 'sr-only'}
+        role="status"
+        aria-live="polite"
+      >
+        {status}
+      </p>
+      {secondaryAction ? (
+        <div className="form-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void secondaryAction.run()}
+          >
+            {secondaryAction.label}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function NotificationSettingsPanel({
   notificationsApi,
   accountId,
@@ -209,51 +276,9 @@ export function NotificationSettingsPanel({
         <h2 id="notification-settings-title">
           {t('notificationSettings.title')}
         </h2>
-        <p className="settings-section-intro">
-          {t('notificationSettings.intro')}
-        </p>
       </div>
 
-      {devicePush?.available && (
-        <div className="notification-device-push">
-          <h3>{t('notificationSettings.deviceTitle')}</h3>
-          <p>{t('notificationSettings.deviceIntro')}</p>
-          <p role="status" aria-live="polite">
-            {t(devicePushStatusKey(devicePush))}
-          </p>
-          <div className="form-actions">
-            {devicePushAction(devicePush) === 'openSettings' && (
-              <button
-                type="button"
-                className="button-link"
-                onClick={() => void devicePush.openSettings()}
-              >
-                {t('notificationSettings.deviceOpenSettings')}
-              </button>
-            )}
-            {devicePushAction(devicePush) === 'enable' && (
-              <button
-                type="button"
-                className="button-link"
-                onClick={() => void devicePush.enable()}
-              >
-                {t('notificationSettings.deviceEnable')}
-              </button>
-            )}
-            {(devicePush.registered ||
-              devicePush.state === 'on' ||
-              devicePush.state === 'connecting') && (
-              <button
-                type="button"
-                className="button-link secondary-link"
-                onClick={() => void devicePush.disable()}
-              >
-                {t('notificationSettings.deviceDisable')}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {devicePush?.available && <DevicePushSetting devicePush={devicePush} />}
 
       {preferences.isPending ? (
         <p role="status">{t('notificationSettings.loading')}</p>

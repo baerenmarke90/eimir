@@ -108,7 +108,7 @@ describe('SettingsPage', () => {
     expect(html).not.toContain('settings-back-link');
 
     expect(html).not.toContain('name="relationshipStartedOn"');
-    expect(html).not.toContain('anniversary-reminder-form');
+    expect(html).not.toContain('important-date-card');
     expect(html).not.toContain('name="dashboardUpcomingItemLimit"');
     expect(html).not.toContain('theme-control');
     expect(html).not.toContain('id="data-transfer"');
@@ -121,13 +121,15 @@ describe('SettingsPage', () => {
     );
     expect(relationship).toContain('name="relationshipStartedOn"');
     expect(relationship).not.toContain('settings-back-link');
-    expect(relationship).not.toContain('anniversary-reminder-form');
+    expect(relationship).not.toContain('important-date-card');
     expect(relationship).not.toContain('name="dashboardUpcomingItemLimit"');
 
     const notifications = renderSettingsPageFixture(
       '/more/settings/notifications',
     );
-    expect(notifications).toContain('anniversary-reminder-form');
+    expect(notifications).toContain('important-dates-settings');
+    expect(notifications).toContain('important-date-card');
+    expect(notifications).toContain(profileIdentity.importantDatesIntro);
     expect(notifications).toContain('href="/more/notifications"');
     expect(notifications).not.toContain('name="relationshipStartedOn"');
     expect(notifications).not.toContain('name="dashboardUpcomingItemLimit"');
@@ -137,7 +139,7 @@ describe('SettingsPage', () => {
     expect(today).toContain(profileIdentity.dashboardUpcomingQuestion);
     expect(today).toContain(dailyQuote.settingsTitle);
     expect(today).toContain('settings-daily-quote');
-    expect(today).not.toContain('anniversary-reminder-form');
+    expect(today).not.toContain('important-date-card');
     expect(today).not.toContain('id="data-transfer"');
 
     const appearance = renderSettingsPageFixture('/more/settings/appearance');
@@ -165,6 +167,6 @@ describe('SettingsPage', () => {
     expect(html).not.toContain('id="settings-privacy"');
     expect(html).not.toContain('/more/private');
     expect(html).not.toContain('partner-identity-title');
-    expect(html).not.toContain('anniversary-reminder-form');
+    expect(html).not.toContain('important-date-card');
   });
 });

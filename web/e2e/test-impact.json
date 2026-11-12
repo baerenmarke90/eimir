@@ -49,7 +49,8 @@
       "roots": [
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
-        "web/src/components/NotificationSettingsPanel.tsx"
+        "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/SettingsPage.tsx"
       ]
     },
     "app-icon-selection.spec.ts": {

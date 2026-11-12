@@ -47,6 +47,14 @@ from eimir.relationship.models import Membership, Space, SpaceConfiguration
 
 CAPABILITY = "relationship.passport"
 GENERATE_JOB = "recap.generate.v1"
+BACKFILL_JOB = "recap.backfill.v1"
+# Earlier periods are prepared in small delayed batches so a long shared history
+# never monopolizes the worker or the single local inference slot.
+BACKFILL_BATCH = 6
+BACKFILL_DELAY = timedelta(minutes=2)
+# A completed period stays open for late entries and curation for one week (#1744).
+FINALISE_AFTER = timedelta(days=7)
+FINALISE_BATCH = 50
 MODELS: dict[RecapSourceKind, Any] = {
     RecapSourceKind.MEMORY: Memory,
     RecapSourceKind.HEART_MOMENT: HeartMoment,
@@ -413,22 +421,126 @@ def request_period(
     return existing
 
 
-def prepare_current(session: Session, context: AuthorizationContext) -> None:
+def unprepared(
+    session: Session, context: AuthorizationContext, today: date
+) -> list[dict[str, Any]]:
+    """Periods with shared material that have no edition yet, newest first."""
+    existing = {
+        (kind, year, month)
+        for kind, year, month in session.execute(
+            select(RecapEdition.kind, RecapEdition.year, RecapEdition.month)
+            .where(RecapEdition.space_id == context.space_id)
+            .distinct()
+        )
+    }
+    return [
+        item
+        for item in periods(session, context, today)
+        if (item["kind"].value, item["year"], item["month"]) not in existing
+    ]
+
+
+def prepare_current(session: Session, context: AuthorizationContext) -> int:
+    """Request the current periods and one batch of earlier ones; return what is left."""
     zone, _ = calendar_context(session, context)
     today = clock.today_in(zone)
     previous = date(today.year, today.month, 1) - timedelta(days=1)
-    for kind, year, month in [
+    current = [
         (RecapKind.MONTH, today.year, today.month),
         (RecapKind.YEAR, today.year, 0),
         (RecapKind.MONTH, previous.year, previous.month),
         (RecapKind.YEAR, today.year - 1, 0),
-    ]:
+    ]
+    for kind, year, month in current:
         # Completed empty historical periods do not create decorative editions.
         if year != today.year or (kind == RecapKind.MONTH and month != today.month):
             starts, through, _ = period_bounds(kind, year, month, today)
             if not candidates(session, context, starts, through):
                 continue
         request_period(session, context, kind, year, month)
+    session.flush()
+    earlier = unprepared(session, context, today)
+    for item in earlier[:BACKFILL_BATCH]:
+        request_period(session, context, item["kind"], item["year"], item["month"])
+    finalise_completed(session, context, today)
+    remaining = max(len(earlier) - BACKFILL_BATCH, 0)
+    if remaining:
+        schedule_backfill(session, context)
+    return remaining
+
+
+def finalise_completed(session: Session, context: AuthorizationContext, today: date) -> int:
+    """Retain completed periods once their grace week has passed; no manual step.
+
+    Only the default variant of a period without a retained edition is finalised.
+    A stale automatic proposal is first recomposed over the whole period, while a
+    curated selection is kept exactly as the couple left it.
+    """
+    session.execute(select(func.pg_advisory_xact_lock(context.space_id.int & ((1 << 63) - 1))))
+    live = session.scalars(
+        select(RecapEdition)
+        .where(
+            RecapEdition.space_id == context.space_id,
+            RecapEdition.saved_at.is_(None),
+            RecapEdition.variant == 0,
+            RecapEdition.status == "READY",
+            RecapEdition.starts_on <= today - FINALISE_AFTER,
+        )
+        .order_by(RecapEdition.year, RecapEdition.month, RecapEdition.id)
+        .limit(FINALISE_BATCH)
+        .with_for_update()
+    ).all()
+    taken = {
+        (kind, year, month)
+        for kind, year, month in session.execute(
+            select(RecapEdition.kind, RecapEdition.year, RecapEdition.month).where(
+                RecapEdition.space_id == context.space_id,
+                RecapEdition.saved_at.is_not(None),
+                RecapEdition.variant == 0,
+            )
+        )
+    }
+    finalised = 0
+    for value in live:
+        kind = RecapKind(value.kind)
+        _, through, partial = period_bounds(kind, value.year, value.month, today)
+        if (
+            partial
+            or through > today - FINALISE_AFTER
+            or (value.kind, value.year, value.month) in taken
+        ):
+            continue
+        if value.is_partial or value.through_on != through:
+            if not value.customized:
+                request_period(session, context, kind, value.year, value.month)
+                continue
+            # The couple's own selection stands; only the frozen period is completed.
+            value.through_on, value.is_partial = through, False
+        value.saved_at = clock.now()
+        finalised += 1
+    return finalised
+
+
+def schedule_backfill(session: Session, context: AuthorizationContext) -> None:
+    """Keep at most one waiting continuation per Space."""
+    session.execute(select(func.pg_advisory_xact_lock(context.space_id.int & ((1 << 63) - 1))))
+    waiting = session.scalar(
+        select(Job.id)
+        .where(
+            Job.kind == BACKFILL_JOB,
+            Job.status == JobStatus.PENDING.value,
+            Job.payload["space_id"].astext == str(context.space_id),
+        )
+        .limit(1)
+    )
+    if waiting is None:
+        queue.enqueue(
+            session,
+            BACKFILL_JOB,
+            {"space_id": str(context.space_id), "account_id": str(context.account_id)},
+            delay=BACKFILL_DELAY,
+            max_attempts=3,
+        )
 
 
 def source_material(
@@ -744,10 +856,6 @@ def write_reflection(
         )
         .with_for_update()
     )
-    if value.saved_at:
-        raise ConflictError(
-            "Saved reflections may be withdrawn but not rewritten.", ErrorCode.VERSION_CONFLICT
-        )
     if existing is None:
         ensure_capability(session, context.space_id, CAPABILITY)
         if expected_version != 0:

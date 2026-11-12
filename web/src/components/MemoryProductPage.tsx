@@ -68,6 +68,7 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
+import { ContextTagList } from './ContextTagList';
 import {
   ComposerDateContext,
   type ComposerDateContextHandle,
@@ -82,11 +83,7 @@ import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
 import { MemoryPlanningLinks } from './MemoryPlanningLinks';
 import { MemoryPreview } from './MemoryPreview';
-import {
-  MEMORY_TAGS,
-  type MemoryTag,
-  MemoryTagChoices,
-} from './MemoryTagChoices';
+import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import { MomentDate } from './MomentDate';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
@@ -1490,16 +1487,10 @@ export function MemoryProductPage({
 
       {(memory.tags ?? []).length > 0 ? (
         <section aria-label={t('memory.tagsLabel')}>
-          <ul className="memory-tag-summary">
-            {memory.tags.map((tag) => (
-              <li key={tag}>
-                {!memory.experienceKind ? <EimirIcon name="tag" /> : null}
-                {(MEMORY_TAGS as readonly string[]).includes(tag)
-                  ? t(`memory.tagLabels.${tag}`)
-                  : tag}
-              </li>
-            ))}
-          </ul>
+          <ContextTagList
+            tags={memory.tags}
+            presentation={memory.experienceKind ? undefined : 'composer'}
+          />
         </section>
       ) : null}
 

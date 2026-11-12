@@ -166,17 +166,29 @@ export function SettingsPage(props: SettingsPageProps) {
           accountId={props.account.id}
           devicePush={props.devicePush}
         />
-        <details className="notification-event-details">
-          <summary>{t('notificationSettings.dates')}</summary>
-          <AnniversaryReminderSettings
-            rulesApi={rulesApi}
-            spaceId={props.spaceId}
-          />
-          <PartnerBirthdayReminderSettings
-            rulesApi={rulesApi}
-            spaceId={props.spaceId}
-          />
-        </details>
+        <section
+          className="important-dates-settings"
+          aria-labelledby="important-dates-heading"
+        >
+          <div className="settings-section-head">
+            <h2 id="important-dates-heading">
+              {t('notificationSettings.dates')}
+            </h2>
+            <p className="settings-section-intro">
+              {t('profileIdentity.importantDatesIntro')}
+            </p>
+          </div>
+          <div className="important-dates-list">
+            <AnniversaryReminderSettings
+              rulesApi={rulesApi}
+              spaceId={props.spaceId}
+            />
+            <PartnerBirthdayReminderSettings
+              rulesApi={rulesApi}
+              spaceId={props.spaceId}
+            />
+          </div>
+        </section>
         <div className="form-actions settings-notification-inbox-action">
           <Link
             className="button-link secondary-link"
@@ -215,7 +227,7 @@ export function SettingsPage(props: SettingsPageProps) {
           }}
         />
         <DailyQuoteSettingsPanel
-          variant="sources"
+          variant="categories"
           quoteApi={dailyQuoteApi}
           entitlementsApi={entitlementsApi}
           accountId={props.account.id}
@@ -314,7 +326,7 @@ export function SettingsPage(props: SettingsPageProps) {
         eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={
-          categoryId === 'today'
+          categoryId === 'today' || categoryId === 'notifications'
             ? undefined
             : category
               ? t(category.descriptionKey)

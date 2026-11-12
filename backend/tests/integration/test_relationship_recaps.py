@@ -284,6 +284,140 @@ def test_year_uses_full_period_and_auto_prepare_queues_current_periods(client, s
     assert request(client, context, month=12).status_code == 422
 
 
+def test_earlier_periods_are_prepared_in_bounded_batches_without_a_request(
+    client, session, context
+):  # type: ignore[no-untyped-def]
+    for year in (2024, 2025):
+        for month in range(1, 11):
+            memory(session, context, day=date(year, month, 10))
+
+    def count(kind):  # type: ignore[no-untyped-def]
+        return session.scalar(select(func.count()).select_from(Job).where(Job.kind == kind))
+
+    def editions():  # type: ignore[no-untyped-def]
+        return session.scalar(select(func.count()).select_from(RecapEdition))
+
+    def waiting():  # type: ignore[no-untyped-def]
+        overview = client.get(context["path"], headers=context["headers"]).json()
+        return [(item["kind"], item["year"], item["month"]) for item in overview["periods"]]
+
+    # 20 earlier months and the year 2024, plus the three periods prepared right away.
+    assert len(waiting()) == 21 + 3
+    assert client.post(f"{context['path']}/prepare", headers=context["headers"]).status_code == 202
+    # Current month, current year and the completed previous year, plus one batch.
+    assert editions() == 3 + service.BACKFILL_BATCH
+    left = waiting()
+    assert len(left) == 21 - service.BACKFILL_BATCH
+    # The newest earlier periods come first.
+    assert ("MONTH", 2025, 10) not in left and ("MONTH", 2024, 1) in left
+    assert count(service.BACKFILL_JOB) == 1
+
+    assert client.post(f"{context['path']}/prepare", headers=context["headers"]).status_code == 202
+    assert count(service.BACKFILL_JOB) == 1
+    payload = {"space_id": str(context["space"].id), "account_id": str(context["anna"].id)}
+    for _ in range(4):
+        jobs.backfill(session, payload)
+        session.flush()
+    assert waiting() == []
+    assert editions() == 3 + 21
+    assert count(service.GENERATE_JOB) == editions()
+    # Nothing is left, so the continuation does not reschedule itself again.
+    assert count(service.BACKFILL_JOB) == 1
+
+    context["grant"].status = EntitlementStatus.REVOKED.value
+    session.flush()
+    memory(session, context, day=date(2023, 5, 10))
+    jobs.backfill(session, payload)
+    assert editions() == 3 + 21
+
+
+def test_completed_periods_are_retained_after_a_grace_week_and_keep_accepting_words(
+    client, session, context, monkeypatch
+):  # type: ignore[no-untyped-def]
+    memory(session, context, day=date(2026, 9, 12))
+    memory(session, context, day=date(2026, 10, 21))
+    prepare = lambda: client.post(f"{context['path']}/prepare", headers=context["headers"])  # noqa: E731
+
+    def editions(month):  # type: ignore[no-untyped-def]
+        return session.scalars(
+            select(RecapEdition)
+            .where(RecapEdition.kind == "MONTH", RecapEdition.month == month)
+            .execution_options(populate_existing=True)
+        ).all()
+
+    def compose(month):  # type: ignore[no-untyped-def]
+        (value,) = editions(month)
+        generate(session, context, {"id": str(value.id)})
+        return value
+
+    assert prepare().status_code == 202
+    september, october = compose(9), compose(10)
+    assert prepare().status_code == 202
+    # September ended a month ago; the running October is never retained.
+    assert editions(9)[0].saved_at is not None and editions(10)[0].saved_at is None
+    assert october.is_partial is True
+
+    # A proposal that still describes a partial month is recomposed before it is kept.
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 11, 5, 12, tzinfo=UTC))
+    assert prepare().status_code == 202
+    assert editions(10)[0].saved_at is None and editions(10)[0].status == "PENDING"
+    compose(10)
+    assert prepare().status_code == 202
+    assert editions(10)[0].saved_at is None  # 31 October + 7 days has not passed
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 11, 8, 12, tzinfo=UTC))
+    assert prepare().status_code == 202
+    (kept,) = editions(10)
+    assert kept.saved_at is not None and kept.is_partial is False
+    assert kept.through_on == date(2026, 10, 31)
+    # Reopening the period returns the retained edition instead of a second one.
+    assert prepare().status_code == 202
+    assert len(editions(10)) == 1 and len(editions(9)) == 1
+
+    current = read(client, context, {"id": str(september.id)}).json()
+    frozen = client.put(
+        f"{context['path']}/{september.id}/selection",
+        headers={**context["headers"], "If-Match": str(current["version"])},
+        json={"sourceKeys": []},
+    )
+    assert frozen.status_code == 409
+    words = client.put(
+        f"{context['path']}/{september.id}/reflection",
+        headers=context["partner"],
+        json={"text": "Still our favorite month.", "shared": True, "version": 0},
+    )
+    assert words.status_code == 200
+    assert [item["text"] for item in words.json()["reflections"]] == ["Still our favorite month."]
+
+
+def test_a_curated_month_is_retained_as_selected_and_only_with_the_capability(
+    client, session, context, monkeypatch
+):  # type: ignore[no-untyped-def]
+    first, second = memory(session, context), memory(session, context, day=date(2026, 10, 5))
+    proposed = request(client, context).json()
+    generate(session, context, proposed)
+    current = read(client, context, proposed).json()
+    chosen = client.put(
+        f"{context['path']}/{proposed['id']}/selection",
+        headers={**context["headers"], "If-Match": str(current["version"])},
+        json={"sourceKeys": [f"MEMORY:{second.id}"]},
+    )
+    assert chosen.status_code == 200
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 11, 20, 12, tzinfo=UTC))
+    context["grant"].status = EntitlementStatus.REVOKED.value
+    session.flush()
+    jobs.scan(session, {})
+    session.flush()
+    assert read(client, context, proposed).json()["savedAt"] is None
+    context["grant"].status = EntitlementStatus.ACTIVE.value
+    session.flush()
+    jobs.scan(session, {})
+    session.flush()
+    kept = read(client, context, proposed).json()
+    assert kept["savedAt"] and kept["isPartial"] is False and kept["throughOn"] == "2026-10-31"
+    assert [item["id"] for item in kept["sources"]] == [str(second.id)]
+    assert first.id != second.id
+
+
 def test_recap_transfer_retains_shared_words_and_only_the_exporters_private_draft(
     client, session, context, encryption
 ):  # type: ignore[no-untyped-def]

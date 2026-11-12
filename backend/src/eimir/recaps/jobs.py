@@ -178,6 +178,14 @@ def scan(session: Session, payload: dict[str, Any]) -> None:
         ensure_scheduled(session, delay=SCAN_INTERVAL, running=True)
 
 
+def backfill(session: Session, payload: dict[str, Any]) -> None:
+    """Continue preparing earlier periods; stops by itself once none are left."""
+    context = authorized_context(session, UUID(payload["account_id"]), UUID(payload["space_id"]))
+    if context and service.can_compose(session, context):
+        service.prepare_current(session, context)
+
+
 def register_handlers() -> None:
     registry.register(service.GENERATE_JOB, generate)
+    registry.register(service.BACKFILL_JOB, backfill)
     registry.register(SCAN_JOB, scan)

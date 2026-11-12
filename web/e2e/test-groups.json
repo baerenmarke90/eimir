@@ -451,8 +451,8 @@
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, narrow/large-text theme and accessibility evidence; ordinary Web remains unchanged."
+      "baselineTests": 12,
+      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, independent registration and revocation through the device settings switch, and narrow/large-text theme and accessibility evidence."
     },
     "content-reading.spec.ts": {
       "disposition": "PR_CRITICAL",

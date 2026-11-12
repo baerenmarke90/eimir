@@ -640,10 +640,71 @@
   border: 0;
 }
 
+.settings-dashboard-panel .settings-section-head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dashboard-personal-intro {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.dashboard-shared-core {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-content);
+  background: var(--color-brand-surface);
+}
+
+.dashboard-shared-core-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.dashboard-shared-core-copy strong {
+  font-weight: 700;
+}
+
+.dashboard-shared-core-copy > span,
+.dashboard-shared-fixed {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.dashboard-shared-fixed {
+  grid-column: 2;
+  width: fit-content;
+  font-weight: 650;
+}
+
+.dashboard-module-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.dashboard-module-icon .eimir-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
 .dashboard-module-preference {
   display: grid;
-  max-width: 32rem;
+  max-width: 36rem;
   gap: var(--space-3);
+  min-inline-size: 0;
   margin: 0;
   padding: 0;
   border: 0;
@@ -651,11 +712,13 @@
 
 .dashboard-module-preference legend {
   padding: 0;
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .dashboard-module-question,
-.dashboard-module-status {
+.dashboard-module-status,
+.dashboard-upcoming-question,
+.dashboard-upcoming-status {
   margin: 0;
   color: var(--color-text-secondary);
 }
@@ -663,39 +726,42 @@
 .dashboard-module-list {
   display: grid;
   container-type: inline-size;
-  gap: 0;
-  border-top: 1px solid var(--color-border-subtle);
+  gap: var(--space-2);
 }
 
 .dashboard-module-option {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(2, var(--touch-target-web));
-  min-height: 52px;
+  grid-template-columns:
+    2.5rem minmax(0, 1fr) var(--touch-target-web)
+    var(--touch-target-web);
+  min-width: 0;
+  min-height: 60px;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) 0;
+  padding: var(--space-2);
   border: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
-  border-radius: 0;
-  background: transparent;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
   color: var(--color-text-primary);
   transition:
     background var(--duration-transition) var(--easing-standard),
     box-shadow var(--duration-transition) var(--easing-standard);
 }
 
+.dashboard-module-option.is-hidden {
+  grid-template-columns: 2.5rem minmax(0, 1fr) var(--touch-target-web);
+}
+
 .dashboard-module-option.is-dragging {
   position: relative;
   z-index: 1;
-  background: var(--color-surface-subtle);
-  border-color: transparent;
-  outline: none;
-  box-shadow: none;
+  background: var(--color-brand-surface);
+  outline: 2px solid var(--color-border);
   transition: none;
 }
 
 .dashboard-module-option-label {
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 1;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -713,7 +779,7 @@
 }
 
 .dashboard-module-option .list-entry-drag-handle {
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 1;
   color: var(--color-text-secondary);
   background: transparent;
@@ -725,20 +791,15 @@
   background: var(--color-brand-surface);
 }
 
+.dashboard-module-option:hover,
+.dashboard-module-option:focus-within {
+  background: var(--color-brand-surface);
+}
+
 .dashboard-order-instructions {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: 0.875rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-module-option {
-    transition: none;
-  }
-}
-
-.dashboard-module-option:focus-within {
-  background: var(--color-surface-subtle);
 }
 
 .dashboard-module-preference[aria-busy="true"] .dashboard-module-option {
@@ -746,9 +807,46 @@
   opacity: var(--opacity-disabled);
 }
 
+.dashboard-hidden-sections,
+.dashboard-more-settings {
+  display: grid;
+  max-width: 36rem;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.dashboard-hidden-sections summary,
+.dashboard-more-settings summary {
+  display: flex;
+  min-height: var(--touch-target-web);
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  max-width: 100%;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.dashboard-hidden-sections summary .eimir-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.dashboard-hidden-sections[open] .dashboard-module-list,
+.dashboard-more-settings[open] .dashboard-upcoming-preference {
+  margin-top: var(--space-3);
+}
+
+.dashboard-more-settings {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
 .dashboard-upcoming-preference {
   display: grid;
   max-width: 24rem;
+  min-inline-size: 0;
   gap: var(--space-3);
   margin: 0;
   padding: 0;
@@ -758,12 +856,6 @@
 .dashboard-upcoming-preference legend {
   padding: 0;
   font-weight: 700;
-}
-
-.dashboard-upcoming-question,
-.dashboard-upcoming-status {
-  margin: 0;
-  color: var(--color-text-secondary);
 }
 
 .dashboard-upcoming-options {
@@ -804,7 +896,9 @@
   color: var(--color-brand-strong);
 }
 
-.dashboard-upcoming-option:focus-within {
+.dashboard-upcoming-option:focus-within,
+.dashboard-hidden-sections summary:focus-visible,
+.dashboard-more-settings summary:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -812,6 +906,13 @@
 .dashboard-upcoming-preference[aria-busy="true"] .dashboard-upcoming-option {
   cursor: wait;
   opacity: var(--opacity-disabled);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-module-option,
+  .dashboard-upcoming-option {
+    transition: none;
+  }
 }
 
 .settings-data-block .transfer-panel > p,
@@ -945,17 +1046,15 @@
   padding-inline: var(--space-2);
 }
 
-.dashboard-module-option:hover {
-  background: var(--color-surface-subtle);
-}
 .dashboard-module-control {
   display: contents;
 }
 
 .dashboard-module-control > :not(.dashboard-module-switch) {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
   min-width: 0;
 }
+
 .dashboard-module-option.is-dragging
   .list-entry-icon-button:not(:focus-visible) {
   border-color: transparent;
@@ -964,7 +1063,7 @@
 
 .dashboard-module-switch {
   display: grid;
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   place-items: center;
   min-width: var(--touch-target-web);
@@ -972,21 +1071,16 @@
   cursor: pointer;
 }
 
-.dashboard-module-preference,
-.dashboard-upcoming-preference {
-  min-inline-size: 0;
-}
-
-@container (max-width: 14rem) {
-  .dashboard-module-option-label {
-    grid-column: 1 / -1;
+@container (max-width: 18rem) {
+  .dashboard-module-option {
+    gap: var(--space-1);
   }
-
-  .dashboard-module-switch,
-  .dashboard-module-option .list-entry-drag-handle {
-    grid-row: 2;
+  .dashboard-module-option .dashboard-module-icon {
+    width: 2rem;
+    height: 2rem;
   }
 }
+
 /* Pro uses the same heading-outside-surface anatomy as other settings sections. */
 .settings-pro-information > h2 {
   margin: 0 0 var(--space-3);

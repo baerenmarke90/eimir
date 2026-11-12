@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { tagSearchPath } from '../client/routes';
+import { SEARCH_ROUTE } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { HEART_MOMENT_TAGS } from './HeartMomentTagChoices';
@@ -31,7 +31,8 @@ export function ContextTagList({
           <li key={tag} className="memory-tag">
             <Link
               className="memory-tag-link"
-              to={tagSearchPath(tag)}
+              to={SEARCH_ROUTE}
+              state={{ selectedTag: tag }}
               aria-label={t('contextTags.showTagged', { tag: label })}
             >
               {presentation === 'composer' ? <EimirIcon name="tag" /> : null}

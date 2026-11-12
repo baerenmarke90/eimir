@@ -17,6 +17,10 @@
   --space-story-summary-inset: 1.125rem;
   --space-story-category-gap: 0.625rem;
   --space-story-bar-gap: 0.1875rem;
+  --space-story-lifeline-dot: 0.625rem;
+  --space-story-lifeline-landmark: 0.875rem;
+  --space-story-lifeline-step: 0.75rem;
+  --space-story-lifeline-band: 4.5rem;
   --color-story-memory: #3055b8;
   --color-story-heart-moment: #9b2f6a;
   --color-story-milestone: #2e8b7e;

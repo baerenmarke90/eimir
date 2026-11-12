@@ -67,6 +67,10 @@ for (const [name, role] of [
   ['story-summary-inset', 'storySummaryInset'],
   ['story-category-gap', 'storyCategoryGap'],
   ['story-bar-gap', 'storyBarGap'],
+  ['story-lifeline-dot', 'storyLifelineDot'],
+  ['story-lifeline-landmark', 'storyLifelineLandmark'],
+  ['story-lifeline-step', 'storyLifelineStep'],
+  ['story-lifeline-band', 'storyLifelineBand'],
 ])
   declare(`space-${name}`, rem(`spacing.${role}`));
 const storyColors = [

@@ -953,6 +953,7 @@ export function ImportantDatesPanel({
           },
         ]
       : []),
+    ...holidayEntries,
   ];
   const tomorrow = new Date(today);
   tomorrow.setUTCDate(today.getUTCDate() + 1);
@@ -1041,9 +1042,6 @@ export function ImportantDatesPanel({
                 ) : null}
               </span>
             ) : null}
-          </span>
-          <span className="people-chevron" aria-hidden="true">
-            ›
           </span>
         </button>
       </li>
@@ -1170,6 +1168,17 @@ export function ImportantDatesPanel({
                   name: selected.profileName,
                 })}
               </p>
+            ) : null}
+            {selected.key.startsWith('holiday:') ? (
+              <button
+                type="button"
+                className="tertiary"
+                onClick={() =>
+                  navigateFromReader(settingsCategoryPath('relationship'))
+                }
+              >
+                {t('importantDates.holidaySettings.manage')}
+              </button>
             ) : null}
             {selected.key === RELATIONSHIP_ANNIVERSARY_KEY ? (
               <button

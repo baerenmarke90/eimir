@@ -34,7 +34,6 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MemoryMapMemories, MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryPreview } from './MemoryPreview';
-import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import type { MapLocation, MapViewport } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -425,7 +424,6 @@ export function MemoryMapPage({
         variant="root"
         className="content-overview-heading"
         title={t('story.timelineTitle')}
-        action={<MomentCreateMenu />}
         before={
           hasOrigin ? (
             <TaskBackButton
@@ -482,12 +480,10 @@ export function MemoryMapPage({
                     type="button"
                     className="secondary memory-map-expand"
                     aria-label={t('memoryMap.fullscreen')}
+                    title={t('memoryMap.fullscreen')}
                     onClick={() => setExpanded(true)}
                   >
                     <EimirIcon name="expand" />
-                    <span className="memory-map-expand-label">
-                      {t('memoryMap.fullscreen')}
-                    </span>
                   </button>
                 </div>
                 <AppErrorBoundary

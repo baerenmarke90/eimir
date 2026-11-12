@@ -1193,3 +1193,75 @@ for (const [width, colorScheme] of [
     expect(unknown).toEqual([]);
   });
 }
+
+test('fullscreen map uses the whole landscape phone and puts memories beside the map', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installMocks(page);
+  const tiles = await mockMapTiles(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'Afternoon by the canal',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Lake',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect(page.locator('#momente-panel-map')).toBeVisible();
+  await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+  await expect(
+    page.getByRole('button', { name: de.story.addMoment }),
+  ).toHaveCount(0);
+  const expand = page.getByRole('button', {
+    name: mapCopy.fullscreen,
+    exact: true,
+  });
+  await expect(expand).toHaveText('');
+  await expand.click();
+  const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+  await expect(fullscreen).toBeVisible();
+
+  // Rotating while the map is open must give it the whole screen.
+  await page.setViewportSize({ width: 844, height: 390 });
+  const viewport = fullscreen.locator('.place-map-viewport');
+  await expect
+    .poll(async () => (await viewport.boundingBox())?.height)
+    .toBe(390);
+  expect((await viewport.boundingBox())?.width).toBe(844);
+
+  await fullscreen.locator('.memory-map-marker').click();
+  const selection = fullscreen.locator('.memory-map-selection');
+  await expect(selection).toBeVisible();
+  const [map, side] = await Promise.all([
+    viewport.boundingBox(),
+    selection.boundingBox(),
+  ]);
+  if (!map || !side) throw new Error('Map and selection must be measurable');
+  expect(map.height).toBe(390);
+  expect(map.x + map.width).toBeLessThanOrEqual(side.x + 1);
+  expect(side.y).toBe(0);
+  await expect(
+    fullscreen.getByRole('link', { name: /Afternoon by the canal/ }),
+  ).toBeInViewport();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});

@@ -373,9 +373,6 @@
   padding-block-end: 0;
 }
 @container (width < 20rem) {
-  .memory-map-expand-label {
-    display: none;
-  }
   .memory-map-selection {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -391,6 +388,53 @@
   .memory-map-place-icon,
   .memory-map-date {
     display: none;
+  }
+}
+
+/*
+ * A phone in landscape is wider than 840px but barely 400px tall, so the
+ * fullscreen map must not spend height on the sheet header and title, and the
+ * selected place's memories sit beside the map instead of below it.
+ */
+@media (min-width: 840px) and (max-height: 540px) {
+  .short-task-sheet.memory-map-fullscreen {
+    padding-block: 0;
+  }
+  .memory-map-fullscreen .short-task-sheet-header {
+    position: absolute;
+    inset-block-start: calc(var(--space-3) + env(safe-area-inset-top, 0px));
+    inset-inline-start: calc(var(--space-3) + env(safe-area-inset-left, 0px));
+    z-index: 500;
+    min-height: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+  .memory-map-fullscreen .short-task-sheet-title {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .memory-map-fullscreen .short-task-sheet-body {
+    flex-direction: row;
+    padding: 0;
+  }
+  .memory-map-fullscreen .memory-map-fullscreen-surface {
+    padding-inline-start: env(safe-area-inset-left, 0px);
+  }
+  .memory-map-fullscreen .place-map-viewport {
+    min-height: 0;
+    border-radius: 0;
+  }
+  .memory-map-fullscreen .memory-map-selection {
+    flex: 0 0 min(22rem, 42vw);
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+    padding-inline-end: calc(var(--space-3) + env(safe-area-inset-right, 0px));
+    align-content: start;
   }
 }
 

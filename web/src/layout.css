@@ -283,7 +283,7 @@
 }
 
 @media (max-width: 839px) {
-  /* Leave room for the map's two-line action across all root destinations. */
+  /* One taller band on Compact, shared by all root destinations. */
   .page-heading-root {
     min-block-size: calc(var(--touch-target-comfortable) + var(--space-1));
   }

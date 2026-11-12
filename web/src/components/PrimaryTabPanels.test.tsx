@@ -9,6 +9,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { setPrimaryTabPeek } from '../client/primaryTabPeek';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { PrimaryTabPanels } from './PrimaryTabPanels';
 
@@ -184,4 +185,37 @@ it('stops restoring as soon as something else scrolls the page', async () => {
   scroll.page.max = 2000;
   act(() => scroll.flush());
   expect(window.scrollY).toBe(0);
+});
+
+it('reveals the neighbouring tab for a swipe without keeping it unless it is opened', async () => {
+  render(<Harness />);
+  expect(panel('/story')).toBeNull();
+
+  await act(() => setPrimaryTabPeek('/story'));
+  const peeked = panel('/story');
+  expect(peeked?.hidden).toBe(false);
+  expect(peeked?.dataset.primaryTabPeek).toBe('true');
+  expect(peeked?.getAttribute('aria-hidden')).toBe('true');
+  expect(peeked?.hasAttribute('inert')).toBe(true);
+  expect(peeked?.style.getPropertyValue('--primary-tab-peek-width')).not.toBe(
+    '',
+  );
+  // The current tab stays the only interactive one.
+  expect(panel('/today')?.hidden).toBe(false);
+  expect(panel('/today')?.hasAttribute('data-primary-tab-peek')).toBe(false);
+
+  // A cancelled swipe unmounts the tab that was never opened.
+  await act(() => setPrimaryTabPeek(null));
+  expect(panel('/story')).toBeNull();
+
+  // A committed swipe turns the peeked panel into the active, kept tab.
+  await act(() => setPrimaryTabPeek('/story'));
+  const mountedForPeek = mounts.length;
+  await act(() => navigate('/story'));
+  await act(() => setPrimaryTabPeek(null));
+  expect(panel('/story')?.hidden).toBe(false);
+  expect(panel('/story')?.hasAttribute('data-primary-tab-peek')).toBe(false);
+  expect(panel('/today')?.hidden).toBe(true);
+  // The peeked page becomes the active tab without being rebuilt.
+  expect(mounts).toHaveLength(mountedForPeek);
 });

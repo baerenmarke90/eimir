@@ -12,6 +12,7 @@ import {
   PARTNER,
   SPACE_ID,
   captureScreenshot,
+  getTimelineItems,
   installMocks,
   signIn,
 } from '../support/storyTimelineFixture';
@@ -159,6 +160,28 @@ test('a stored photo stays hidden while access is checked and is evicted after a
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await installMocks(page, { strict: true });
+  // The normal detail mock is text-only. Include its timeline attachment so
+  // opening the detail makes a new original-media authorization request.
+  const attachment = getTimelineItems()[0]?.memory?.attachments[0];
+  if (!attachment) throw new Error('Missing canal attachment fixture.');
+  await page.route(`**${root}/memories/mem-canal`, (route) =>
+    route.fulfill({
+      json: {
+        id: 'mem-canal',
+        spaceId: SPACE_ID,
+        author: ME,
+        authorId: ME.id,
+        title: 'Breakfast by the canal',
+        body: 'A wonderful morning by the water.',
+        happenedOn: '2026-05-12',
+        createdAt: '2026-05-12T08:30:00Z',
+        updatedAt: '2026-05-12T08:30:00Z',
+        version: 1,
+        attachments: [attachment],
+        capabilities: CAPABILITIES,
+      },
+    }),
+  );
   let holding = false;
   let held = 0;
   let downloads = 0;
@@ -167,7 +190,8 @@ test('a stored photo stays hidden while access is checked and is evicted after a
     release = resolve;
   });
   await page.route('**/attachments/att-canal-1/read-access', async (route) => {
-    if (!holding) return route.fallback();
+    if (!holding || route.request().postDataJSON()?.variant !== 'original')
+      return route.fallback();
     held++;
     await denied;
     return route.fulfill({
@@ -194,17 +218,27 @@ test('a stored photo stays hidden while access is checked and is evicted after a
   expect(downloads).toBe(1);
   await captureScreenshot(page, info, 'diary-expanded-dark.png');
 
-  // Returning within the session renders retained cards without a new parent read.
-  holding = true;
+  // A tab return preserves an already authorized image without redelivery.
   await page.locator('a[href="/plan"]').first().click();
-  await expect(card).toHaveCount(0);
+  await expect(card).not.toBeVisible();
   await page.goBack();
-  await expect.poll(() => held).toBeGreaterThan(0);
   await expect(card).toBeVisible();
-  await expect(card.locator('img')).toHaveCount(0);
+  await expect(card.locator('img')).toHaveCount(1);
+  expect(held).toBe(0);
+
+  // A fresh detail original must authorize independently of the kept preview.
+  // A document reload may use a fresh Timeline projection as its proof, so it
+  // is not a reliable way to force an attachment read-access request.
+  holding = true;
+  await card.click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect.poll(() => held).toBeGreaterThan(0);
+  expect(await countStoredCanalPhotos(page)).toBeGreaterThan(0);
 
   release();
   await expect.poll(() => countStoredCanalPhotos(page)).toBe(0);
+  await page.goBack();
+  await expect(card).toBeVisible();
   await expect(card.locator('.story-media-placeholder')).toBeVisible();
   expect(downloads).toBe(1);
   await captureScreenshot(page, info, 'diary-access-denied-expanded-dark.png');

@@ -481,6 +481,8 @@ test('personal module reorder persists across reload and separates the visibilit
   expect(size?.height).toBeGreaterThanOrEqual(44);
   await handle.focus();
   await handle.press('ArrowUp');
+  // Let the first change persist before issuing another write.
+  await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
   await handle.press('ArrowUp');
   await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
   await expect(handle).toBeFocused();

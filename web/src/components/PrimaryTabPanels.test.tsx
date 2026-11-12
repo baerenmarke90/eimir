@@ -103,7 +103,7 @@ it('restores the scroll position a tab had when it is shown again', async () => 
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 640 });
   window.dispatchEvent(new Event('scroll'));
   await act(() => navigate('/story'));
-  expect(scrollTo).not.toHaveBeenCalled();
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
   Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
   await act(() => navigate('/today'));
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'instant' });

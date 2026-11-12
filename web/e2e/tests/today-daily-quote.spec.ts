@@ -453,7 +453,7 @@ async function expectQuoteSurfaceAccessible(
       page
         .locator('.daily-quote-card')
         .getByRole('heading', { level: 2, name: dailyQuote.title }),
-    ).toHaveClass('today-section-title');
+    ).toHaveClass('sr-only');
     await expect(page.locator('.daily-quote-symbol')).toHaveCount(0);
   }
 
@@ -961,7 +961,7 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
   await signIn(page);
   const quote = page.locator('.daily-quote-card');
   await expect(quote.getByRole('heading')).toHaveText(dailyQuote.title);
-  await expect(quote.getByRole('heading')).toHaveClass('today-section-title');
+  await expect(quote.getByRole('heading')).toHaveClass('sr-only');
   await expect(quote.locator('.daily-quote-symbol')).toHaveCount(0);
   await expect(
     page.locator('.today-section-moment .today-section-kicker'),

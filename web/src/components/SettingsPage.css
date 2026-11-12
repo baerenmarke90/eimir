@@ -336,14 +336,15 @@
   font: var(--font-section-heading);
 }
 
-.important-dates-list {
+.important-date-reminder-list {
   display: grid;
   min-width: 0;
   gap: var(--space-3);
 }
 
-.important-date-card {
+.important-date-reminder-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   gap: var(--space-3);
   padding: var(--space-4);
@@ -579,14 +580,14 @@
 }
 
 @media (min-width: 680px) {
-  .important-dates-list {
+  .important-date-reminder-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
   }
 }
 
 @media (max-width: 359px) {
-  .important-date-card {
+  .important-date-reminder-card {
     padding: var(--space-3);
   }
 

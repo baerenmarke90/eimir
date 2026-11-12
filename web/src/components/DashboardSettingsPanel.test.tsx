@@ -712,11 +712,19 @@ describe('DashboardSettingsPanel', () => {
           { moduleKey: 'keepsake', visible: true },
         ],
       } as DashboardModulePreferenceList);
-      expect(screen.getByText(profileIdentity.dashboardSharedFixed)).not.toBeNull();
-      expect(screen.getByText(profileIdentity.dashboardAlwaysVisible)).not.toBeNull();
-      expect(document.getElementById('dashboard-visible-relationship_presence')).toBeNull();
       expect(
-        screen.queryByRole('button', { name: `${moduleLabel('relationship_presence')} verschieben` }),
+        screen.getByText(profileIdentity.dashboardSharedFixed),
+      ).not.toBeNull();
+      expect(
+        screen.getByText(profileIdentity.dashboardAlwaysVisible),
+      ).not.toBeNull();
+      expect(
+        document.getElementById('dashboard-visible-relationship_presence'),
+      ).toBeNull();
+      expect(
+        screen.queryByRole('button', {
+          name: `${moduleLabel('relationship_presence')} verschieben`,
+        }),
       ).toBeNull();
     });
 
@@ -768,9 +776,15 @@ describe('DashboardSettingsPanel', () => {
       } as unknown as DashboardModulePreferenceList);
 
       expect(moduleCheckbox('keepsake').checked).toBe(false);
-      expect(screen.getByText(profileIdentity.dashboardHiddenTitle.replace('{{count}}', '1'))).not.toBeNull();
       expect(
-        screen.queryByRole('button', { name: `${moduleLabel('keepsake')} verschieben` }),
+        screen.getByText(
+          profileIdentity.dashboardHiddenTitle.replace('{{count}}', '1'),
+        ),
+      ).not.toBeNull();
+      expect(
+        screen.queryByRole('button', {
+          name: `${moduleLabel('keepsake')} verschieben`,
+        }),
       ).toBeNull();
     });
 
@@ -858,7 +872,9 @@ describe('DashboardSettingsPanel', () => {
         screen.getByRole('checkbox', { name: moduleLabel('keepsake') }),
       );
 
-      await waitFor(() => expect(moduleCheckbox('keepsake').checked).toBe(true));
+      await waitFor(() =>
+        expect(moduleCheckbox('keepsake').checked).toBe(true),
+      );
       screen.getByRole('alert');
     });
 
@@ -895,7 +911,9 @@ describe('DashboardSettingsPanel', () => {
           visible: false,
         });
       });
-      await waitFor(() => expect(moduleCheckbox('recent_shared').disabled).toBe(false));
+      await waitFor(() =>
+        expect(moduleCheckbox('recent_shared').disabled).toBe(false),
+      );
       expect(moduleCheckbox('keepsake').disabled).toBe(true);
       expect(moduleCheckbox('keepsake').checked).toBe(false);
 
@@ -905,7 +923,9 @@ describe('DashboardSettingsPanel', () => {
           visible: false,
         });
       });
-      await waitFor(() => expect(moduleCheckbox('keepsake').disabled).toBe(false));
+      await waitFor(() =>
+        expect(moduleCheckbox('keepsake').disabled).toBe(false),
+      );
       const cached = queryClient.getQueryData<DashboardModulePreferenceList>(
         dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID),
       );

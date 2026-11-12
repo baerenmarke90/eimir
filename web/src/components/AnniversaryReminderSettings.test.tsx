@@ -23,14 +23,20 @@ function createMockRulesApi(
   },
 ) {
   const getRulePreference = vi.fn().mockResolvedValue(initialPreference);
-  const setRulePreference = vi.fn().mockImplementation(async ({ rulePreferenceUpdate }) => ({
-    ruleKey: initialPreference.ruleKey,
-    enabled: rulePreferenceUpdate.enabled,
-    parameters: {
-      daysBefore: rulePreferenceUpdate.parameters?.daysBefore ?? initialPreference.parameters.daysBefore,
-      localTime: rulePreferenceUpdate.parameters?.localTime ?? initialPreference.parameters.localTime,
-    },
-  }));
+  const setRulePreference = vi
+    .fn()
+    .mockImplementation(async ({ rulePreferenceUpdate }) => ({
+      ruleKey: initialPreference.ruleKey,
+      enabled: rulePreferenceUpdate.enabled,
+      parameters: {
+        daysBefore:
+          rulePreferenceUpdate.parameters?.daysBefore ??
+          initialPreference.parameters.daysBefore,
+        localTime:
+          rulePreferenceUpdate.parameters?.localTime ??
+          initialPreference.parameters.localTime,
+      },
+    }));
 
   return {
     getRulePreference,
@@ -74,18 +80,26 @@ describe('AnniversaryReminderSettings', () => {
       name: profileIdentity.anniversaryReminderToggle,
     });
     expect(toggle.getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByText('30 Tage vorher · 7 Tage vorher · 1 Tag vorher · 09:00'))
-      .toBeDefined();
-    expect(screen.queryByRole('button', { name: /Änderungen speichern/i }))
-      .toBeNull();
+    expect(
+      screen.getByText('30 Tage vorher · 7 Tage vorher · 1 Tag vorher · 09:00'),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: /Änderungen speichern/i }),
+    ).toBeNull();
 
     expandSchedule();
-    expect(screen.getByRole('checkbox', { name: '30 Tage vorher' }))
-      .toBeDefined();
-    expect(screen.getByRole('checkbox', { name: '7 Tage vorher' }))
-      .toBeDefined();
     expect(
-      (screen.getByLabelText(profileIdentity.anniversaryReminderTimeLabel) as HTMLInputElement).value,
+      screen.getByRole('checkbox', { name: '30 Tage vorher' }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole('checkbox', { name: '7 Tage vorher' }),
+    ).toBeDefined();
+    expect(
+      (
+        screen.getByLabelText(
+          profileIdentity.anniversaryReminderTimeLabel,
+        ) as HTMLInputElement
+      ).value,
     ).toBe('09:00');
   });
 
@@ -114,7 +128,9 @@ describe('AnniversaryReminderSettings', () => {
       );
       expect(toggle.getAttribute('aria-checked')).toBe('false');
     });
-    expect(screen.queryByText(profileIdentity.importantDatesSchedule)).toBeNull();
+    expect(
+      screen.queryByText(profileIdentity.importantDatesSchedule),
+    ).toBeNull();
   });
 
   it('saves selected days without a submit button', async () => {
@@ -135,8 +151,9 @@ describe('AnniversaryReminderSettings', () => {
         }),
       ),
     );
-    expect(await screen.findByText(profileIdentity.anniversaryReminderSaved))
-      .toBeDefined();
+    expect(
+      await screen.findByText(profileIdentity.anniversaryReminderSaved),
+    ).toBeDefined();
   });
 
   it('saves a changed time when the time picker loses focus', async () => {
@@ -145,7 +162,9 @@ describe('AnniversaryReminderSettings', () => {
 
     await screen.findByRole('switch');
     expandSchedule();
-    const time = screen.getByLabelText(profileIdentity.anniversaryReminderTimeLabel);
+    const time = screen.getByLabelText(
+      profileIdentity.anniversaryReminderTimeLabel,
+    );
     fireEvent.change(time, { target: { value: '10:30' } });
     fireEvent.blur(time);
 
@@ -171,7 +190,9 @@ describe('AnniversaryReminderSettings', () => {
     await screen.findByRole('switch');
     expandSchedule();
 
-    const finalDay = screen.getByRole('checkbox', { name: 'Am Jahrestag' });
+    const finalDay = screen.getByRole('checkbox', {
+      name: profileIdentity.anniversaryReminderDay0,
+    });
     expect((finalDay as HTMLInputElement).disabled).toBe(true);
     fireEvent.click(finalDay);
     expect(rulesApi.setRulePreference).not.toHaveBeenCalled();
@@ -179,7 +200,9 @@ describe('AnniversaryReminderSettings', () => {
 
   it('restores the persisted switch value when saving fails', async () => {
     const rulesApi = createMockRulesApi();
-    vi.mocked(rulesApi.setRulePreference).mockRejectedValueOnce(new Error('Offline'));
+    vi.mocked(rulesApi.setRulePreference).mockRejectedValueOnce(
+      new Error('Offline'),
+    );
     renderReminder(rulesApi);
 
     const toggle = await screen.findByRole('switch');
@@ -207,8 +230,9 @@ describe('PartnerBirthdayReminderSettings', () => {
     const toggle = await screen.findByRole('switch', {
       name: profileIdentity.partnerBirthdayReminderToggle,
     });
-    expect(screen.getByText('14 Tage vorher · 7 Tage vorher · 1 Tag vorher · 09:00'))
-      .toBeDefined();
+    expect(
+      screen.getByText('14 Tage vorher · 7 Tage vorher · 1 Tag vorher · 09:00'),
+    ).toBeDefined();
     expect(rulesApi.getRulePreference).toHaveBeenCalledWith({
       spaceId: SPACE_ID,
       ruleKey: 'partner_birthday_reminder',

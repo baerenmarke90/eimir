@@ -1634,10 +1634,14 @@ test('notification choices survive return and stay legible across themes and wid
     page.getByRole('heading', { name: notificationSettings.dates }),
   ).toBeVisible();
   await expect(
-    page.getByRole('switch', { name: profileIdentity.anniversaryReminderToggle }),
+    page.getByRole('switch', {
+      name: profileIdentity.anniversaryReminderToggle,
+    }),
   ).toBeVisible();
   await expect(
-    page.getByRole('switch', { name: profileIdentity.partnerBirthdayReminderToggle }),
+    page.getByRole('switch', {
+      name: profileIdentity.partnerBirthdayReminderToggle,
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', {

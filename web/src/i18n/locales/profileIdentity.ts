@@ -114,7 +114,8 @@ const profileIdentity = {
   dashboardUpcomingLoading: 'Dashboard-Einstellung wird geladen …',
   dashboardUpcomingSaving: 'Wird gespeichert …',
   dashboardUpcomingSaved: '✓ Gespeichert',
-  importantDatesIntro: 'Erinnere dich an eure besonderen Tage. Diese Hinweise bekommst nur du.',
+  importantDatesIntro:
+    'Erinnere dich an eure besonderen Tage. Diese Hinweise bekommst nur du.',
   importantDatesSchedule: 'Erinnerungszeiten anpassen',
   importantDatesChooseDays: 'Wann möchtest du erinnert werden?',
   importantDatesAtLeastOne: 'Mindestens einen Zeitpunkt auswählen.',

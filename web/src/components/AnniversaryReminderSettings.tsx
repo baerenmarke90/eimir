@@ -60,7 +60,9 @@ const PARTNER_BIRTHDAY_DAY_PRESETS: DayPreset[] = [
 ];
 
 function sameDays(left: number[], right: number[]): boolean {
-  return left.length === right.length && left.every((day) => right.includes(day));
+  return (
+    left.length === right.length && left.every((day) => right.includes(day))
+  );
 }
 
 function RuleReminderSettings({
@@ -199,9 +201,7 @@ function RuleReminderSettings({
           description={t(toggleHelpKey)}
           checked={draft.enabled}
           disabled={mutation.isPending}
-          onCheckedChange={(enabled) =>
-            savePreference({ ...draft, enabled })
-          }
+          onCheckedChange={(enabled) => savePreference({ ...draft, enabled })}
         />
       </div>
 
@@ -215,7 +215,10 @@ function RuleReminderSettings({
             <EimirIcon name="chevron-right" />
           </summary>
           <div className="important-date-edit">
-            <fieldset className="important-date-day-fieldset" disabled={mutation.isPending}>
+            <fieldset
+              className="important-date-day-fieldset"
+              disabled={mutation.isPending}
+            >
               <legend>{t('profileIdentity.importantDatesChooseDays')}</legend>
               <div className="important-date-day-grid">
                 {dayPresets.map((preset) => {
@@ -234,7 +237,9 @@ function RuleReminderSettings({
                         disabled={selected && draft.daysBefore.length === 1}
                         onChange={() => {
                           const nextDays = selected
-                            ? draft.daysBefore.filter((day) => day !== preset.days)
+                            ? draft.daysBefore.filter(
+                                (day) => day !== preset.days,
+                              )
                             : [...draft.daysBefore, preset.days];
                           savePreference({ ...draft, daysBefore: nextDays });
                         }}
@@ -244,7 +249,10 @@ function RuleReminderSettings({
                   );
                 })}
                 {customDays.map((day) => (
-                  <label key={day} className="important-date-day-chip is-selected">
+                  <label
+                    key={day}
+                    className="important-date-day-chip is-selected"
+                  >
                     <input
                       type="checkbox"
                       checked
@@ -252,11 +260,17 @@ function RuleReminderSettings({
                       onChange={() =>
                         savePreference({
                           ...draft,
-                          daysBefore: draft.daysBefore.filter((value) => value !== day),
+                          daysBefore: draft.daysBefore.filter(
+                            (value) => value !== day,
+                          ),
                         })
                       }
                     />
-                    <span>{t('profileIdentity.importantDatesOtherDay', { count: day })}</span>
+                    <span>
+                      {t('profileIdentity.importantDatesOtherDay', {
+                        count: day,
+                      })}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -280,12 +294,17 @@ function RuleReminderSettings({
                   }))
                 }
                 onBlur={() => {
-                  if (draft.localTime && /^\d{2}:\d{2}$/.test(draft.localTime)) {
+                  if (
+                      draft.localTime &&
+                      /^\d{2}:\d{2}$/.test(draft.localTime)
+                    ) {
                     savePreference(draft);
                   } else {
                     setDraft((current) => ({
                       ...current,
-                      localTime: preference?.parameters.localTime?.slice(0, 5) ?? '09:00',
+                      localTime:
+                          preference?.parameters.localTime?.slice(0, 5) ??
+                          '09:00',
                     }));
                   }
                 }}

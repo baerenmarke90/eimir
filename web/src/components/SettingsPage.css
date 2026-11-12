@@ -452,7 +452,8 @@
   display: grid;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-1) var(--space-1);
-  animation: important-date-reveal var(--duration-feedback) var(--easing-standard);
+  animation: important-date-reveal var(--duration-feedback)
+    var(--easing-standard);
 }
 
 .important-date-day-fieldset {

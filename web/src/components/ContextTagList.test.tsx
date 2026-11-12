@@ -3,6 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
+import contextTags from '../i18n/locales/contextTags';
 import { ContextTagList } from './ContextTagList';
 
 afterEach(cleanup);
@@ -40,7 +41,7 @@ describe('ContextTagList', () => {
     );
 
     const tag = screen.getByRole('link', {
-      name: 'Alle Einträge mit Tag „Private winter trip“ ansehen',
+      name: contextTags.showTagged.replace('{{tag}}', 'Private winter trip'),
     });
     expect(tag.getAttribute('href')).toBe('/search');
     await userEvent.setup().click(tag);
@@ -68,7 +69,7 @@ describe('ContextTagList', () => {
     );
     await userEvent.setup().click(
       screen.getByRole('link', {
-        name: 'Alle Einträge mit Tag „Special moments“ ansehen',
+        name: contextTags.showTagged.replace('{{tag}}', 'Special moments'),
       }),
     );
     expect(screen.getByTestId('tag').textContent).toBe('everyday');

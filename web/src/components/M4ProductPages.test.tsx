@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SearchPage } from '../api/generated/models/SearchPage';
 import type { M4ProductApis } from '../client/m4Product';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import contextTags from '../i18n/locales/contextTags';
 import { ActivityProductPage, SearchProductPage } from './M4ProductPages';
 
 afterEach(() => {
@@ -228,7 +229,7 @@ describe('SearchProductPage exact authored tags', () => {
     expect(screen.queryByRole('searchbox')).toBeNull();
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole('link', { name: /Zur Suche/ }));
+    await user.click(screen.getByRole('link', { name: contextTags.searchAll }));
     expect(screen.getByRole('searchbox')).toBeTruthy();
     expect(screen.queryByText('Our special moment')).toBeNull();
     expect(probeLocation.search).toBe('');

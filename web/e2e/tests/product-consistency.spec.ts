@@ -373,7 +373,7 @@ for (const [width, theme] of [
           json: {
             items: DASHBOARD_MODULE_KEYS.map((moduleKey) => ({
               moduleKey,
-              visible: moduleKey !== 'relationship_presence',
+              visible: moduleKey !== 'keepsake',
             })),
           },
         });
@@ -424,7 +424,7 @@ for (const [width, theme] of [
         page.getByText('Saved afternoon together', { exact: true }),
       ).toBeVisible();
       await expect(page.locator('.overview-cache-notice')).toBeVisible();
-      await expect(page.locator('.today-hero')).toHaveCount(0);
+      await expect(page.locator('.today-hero')).toBeVisible();
       await expect(page.locator('.branded-startup')).toHaveCount(0);
       await expect(page.locator('.today-page .ui-state')).toHaveCount(0);
       await captureScreenshot(

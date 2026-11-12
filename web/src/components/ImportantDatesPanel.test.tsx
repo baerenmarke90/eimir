@@ -187,7 +187,9 @@ describe('ImportantDatesPanel mobile-first surface', () => {
         name: importantDates.holidaySettings.manage,
       }),
     ).toBeTruthy();
-    expect(within(reader).queryByRole('button', { name: importantDates.edit })).toBeNull();
+    expect(
+      within(reader).queryByRole('button', { name: importantDates.edit }),
+    ).toBeNull();
     expect(container.querySelector('.occasions-list')).toBeTruthy();
     expect(
       api.createImportantDateApiV1SpacesSpaceIdImportantDatesPost,

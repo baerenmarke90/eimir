@@ -2704,6 +2704,15 @@
       "DAYS_other": "days with entries"
     },
     "factsBusiest": "Most kept in {{month}}",
+    "rhythm": {
+      "title": "Good days together",
+      "summary_one": "{{count}} day when you both had a good day.",
+      "summary_other": "{{count}} days when you both had a good day.",
+      "week": "Week {{count}}",
+      "days_one": "{{count}} good day",
+      "days_other": "{{count}} good days",
+      "note": "Only days you both checked in are counted."
+    },
     "gestureHint": "Tap to turn the page · Hold to pause",
     "previous": "Previous page",
     "next": "Next page",

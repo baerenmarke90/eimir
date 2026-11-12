@@ -2015,3 +2015,58 @@ for (const [width, theme, largeText] of [
     );
   });
 }
+
+for (const width of [390, 1280] as const) {
+  test(`Wir, Momente and Planen share one title band and menu spacing at ${width}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page, { ...RICH_SPACE });
+    await signInAndOpenToday(page);
+    const bands = [];
+    for (const [label, path] of [
+      ['Wir', '/today'],
+      ['Momente', '/story'],
+      ['Planen', '/plan'],
+    ] as const) {
+      await page
+        .locator('a.shell-nav-link:visible')
+        .filter({ hasText: new RegExp(`^${label}$`) })
+        .first()
+        .click();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      const title = page
+        .locator('.page-heading-root h1:visible')
+        .filter({ hasText: new RegExp(`^${label}$`) });
+      await expect(title).toBeVisible();
+      bands.push(
+        await title.evaluate((heading) => {
+          const header = heading.closest('header');
+          const next = header?.nextElementSibling;
+          const box = heading.getBoundingClientRect();
+          return {
+            label: heading.textContent,
+            x: Math.round(box.x),
+            y: Math.round(box.y),
+            height: Math.round(box.height),
+            fontSize: getComputedStyle(heading).fontSize,
+            headerHeight: Math.round(
+              header?.getBoundingClientRect().height ?? 0,
+            ),
+            gapToMenu: Math.round(
+              (next?.getBoundingClientRect().top ?? 0) -
+                (header?.getBoundingClientRect().bottom ?? 0),
+            ),
+          };
+        }),
+      );
+    }
+    const [wir, momente, planen] = bands;
+    const { label: _wir, ...wirBand } = wir;
+    const { label: _momente, ...momenteBand } = momente;
+    const { label: _planen, ...planenBand } = planen;
+    expect(momenteBand).toEqual(wirBand);
+    expect(planenBand).toEqual(wirBand);
+  });
+}

@@ -253,7 +253,7 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length);
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 1);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -275,7 +275,8 @@ async function alignedVisibilityControls(page: Page) {
         };
       }),
     );
-  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length);
+  // The shared couple hero is fixed and has no visibility switch.
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 1);
   for (const target of targets) {
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);
@@ -727,7 +728,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
     { steps: 12 },
   );
   await expect(quote).toHaveCSS('box-shadow', 'none');
-  await expect(quote).toHaveCSS('outline-style', 'none');
+  // The lifted row is marked by a quiet outline while it is dragged.
+  await expect(quote).toHaveCSS('outline-style', 'solid');
   const held = await quote.boundingBox();
   expect(Math.abs((held?.y ?? 0) - rowBefore.y - dragDistance)).toBeLessThan(4);
   await page.mouse.up();
@@ -756,7 +758,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-  ).toEqual(order);
+    // The fixed couple hero keeps its stored slot but is not sortable.
+  ).toEqual(order.filter((key) => key !== 'relationship_presence'));
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });
@@ -830,7 +833,17 @@ test('quote preference recovery keeps aligned controls and accessible feedback',
   const errorBounds = await failure.boundingBox();
   const rowBounds = await failedQuote.boundingBox();
   if (!errorBounds || !rowBounds) throw new Error('Missing quote recovery');
-  expect(Math.abs(errorBounds.width - rowBounds.width)).toBeLessThan(1);
+  // #1564: recovery spans the row's full available (content) width.
+  const rowPadding = await failedQuote.evaluate((row) => {
+    const style = getComputedStyle(row);
+    return (
+      Number.parseFloat(style.paddingLeft) +
+      Number.parseFloat(style.paddingRight)
+    );
+  });
+  expect(
+    Math.abs(errorBounds.width - (rowBounds.width - rowPadding)),
+  ).toBeLessThan(1);
   await captureScreenshot(
     failedQuote,
     info,

@@ -427,6 +427,7 @@ test('compact Dashboard settings persist the personal horizon and update Today w
   await signIn(page);
   await page.goto(settingsCategoryPath('today'));
 
+  await page.getByText(profileIdentity.dashboardMoreOptions).click();
   const group = page.getByRole('group', {
     name: profileIdentity.dashboardUpcomingTitle,
   });
@@ -483,16 +484,15 @@ test('personal module reorder persists across reload and separates the visibilit
   // Let the first change persist before issuing another write.
   await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
   await handle.press('ArrowUp');
-  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+  await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
   await expect(handle).toBeFocused();
   await page
     .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
     .uncheck();
   await expect.poll(() => preferences.upcomingVisible()).toBe(false);
   await page.reload();
-  await expect(page.locator('.dashboard-module-option').first()).toContainText(
-    m5s5.dashboard.upcomingTitle,
-  );
+  await expect(page.locator('.dashboard-hidden-sections')).toBeVisible();
+  await page.locator('.dashboard-hidden-sections summary').click();
   await expect(
     page.getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle }),
   ).not.toBeChecked();
@@ -510,9 +510,11 @@ test('personal module reorder persists across reload and separates the visibilit
         .filter((name) => typeof name === 'string'),
     );
   expect(
-    orderedSections.indexOf('today-section today-section-upcoming'),
-  ).toBeLessThan(
     orderedSections.findIndex((name) => name.includes('today-hero')),
+  ).toBeLessThan(
+    orderedSections.findIndex((name) =>
+      name.includes('today-section-upcoming'),
+    ),
   );
 
   await page.goto(settingsCategoryPath('today'));
@@ -571,7 +573,7 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     { steps: 12 },
   );
   await page.mouse.up();
-  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+  await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
 
   const scrollBefore = await page.evaluate(() => window.scrollY);
   await page.mouse.move(firstBounds.x + 12, firstBounds.y + 15);
@@ -624,7 +626,7 @@ test('touch dragging starts on the handle and keeps normal row scrolling availab
     const bounds = await handle.boundingBox();
     const target = await page
       .locator('.dashboard-module-option')
-      .nth(1)
+      .nth(0)
       .boundingBox();
     expect(bounds).not.toBeNull();
     expect(target).not.toBeNull();
@@ -670,6 +672,7 @@ test('expanded Dashboard settings remain clear in light mode and at 200 percent 
   await signIn(page);
   await page.goto(settingsCategoryPath('today'));
 
+  await page.getByText(profileIdentity.dashboardMoreOptions).click();
   const group = page.getByRole('group', {
     name: profileIdentity.dashboardUpcomingTitle,
   });

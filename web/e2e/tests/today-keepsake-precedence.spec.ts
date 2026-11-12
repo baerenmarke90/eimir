@@ -1,13 +1,14 @@
-import { fulfillFreeEntitlements } from '../support/freeEntitlements';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import recaps from '../../src/i18n/locales/recaps';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import recaps from '../../src/i18n/locales/recaps';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+
 const moduleContract: { moduleKeys: string[] } = JSON.parse(
   readFileSync(
     new URL(
@@ -584,7 +585,12 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
       name: m5s5.today.living.kicker,
       exact: true,
     });
-    await retro.uncheck();
+    const hiddenSections = page.locator('.dashboard-hidden-sections > summary');
+    // Toggling moves the row between the visible list and the collapsed
+    // hidden-sections disclosure, so click and then assert the moved row.
+    await retro.click();
+    await hiddenSections.click();
+    await expect(retro).not.toBeChecked();
     await expect(retro).toBeEnabled();
     await expect(signal).toBeChecked();
     await page.goto('/today');
@@ -592,10 +598,14 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await expect(page.locator('.today-section-retrospective')).toHaveCount(0);
     await expect(page.locator('.today-section-living')).toBeVisible();
     await page.goto('/more/settings/today');
+    await hiddenSections.click();
     await expect(retro).not.toBeChecked();
-    await retro.check();
+    await retro.click();
+    await expect(retro).toBeChecked();
     await expect(retro).toBeEnabled();
-    await signal.uncheck();
+    await signal.click();
+    await hiddenSections.click();
+    await expect(signal).not.toBeChecked();
     await expect(signal).toBeEnabled();
     const grip = page.getByRole('button', {
       name: `${m5s5.today.living.retrospectiveLabel} verschieben`,

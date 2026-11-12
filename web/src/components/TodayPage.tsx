@@ -95,7 +95,7 @@ import {
   MonthlyRecapInvitation,
   useMonthlyRecapInvitation,
 } from './MonthlyRecapInvitation';
-import { OnceComposeEntry, OnceIncomingSignal } from './OnceMessages';
+import { OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
@@ -1326,7 +1326,6 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
-        {partner ? <OnceComposeEntry /> : null}
         {dailyVibe}
         <OnceIncomingSignal />
       </>

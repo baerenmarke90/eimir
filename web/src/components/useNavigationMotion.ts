@@ -193,10 +193,23 @@ export function useNavigationMotion({
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
-    const changedPage = previousPath.current !== pathname;
+    const previous = previousPath.current;
+    const changedPage = previous !== pathname;
     previousPath.current = pathname;
     const swipeDirection = incomingSwipeDirection.current;
     incomingSwipeDirection.current = 0;
+    const before = PRIMARY_APP_ROUTES.findIndex(
+      (route) => route.path === previous,
+    );
+    const after = PRIMARY_APP_ROUTES.findIndex(
+      (route) => route.path === pathname,
+    );
+    // All root-tab changes share a direction, whether triggered by tapping,
+    // swiping or history navigation. Nested tasks keep their own entry motion.
+    const tabDirection =
+      before >= 0 && after >= 0 && before !== after
+        ? Math.sign(after - before)
+        : 0;
     if (
       !surface ||
       !changedPage ||
@@ -205,12 +218,14 @@ export function useNavigationMotion({
     )
       return;
 
+    // Start the root handoff on the committed destination, even if it still
+    // displays loading UI. The content reveal below waits for usable data.
+    const direction = swipeDirection || tabDirection;
+    if (direction) animatePageSlide(surface, pageSlideCleanup, direction * 32);
+
     const arrive = () => {
       if (surface.hasAttribute('data-primary-tab-dragging')) return;
       animateContent(surface, mainMotionCleanup, ENTRY_OPACITY, createEntry);
-      if (swipeDirection) {
-        animatePageSlide(surface, pageSlideCleanup, swipeDirection * 32);
-      }
     };
     let observer: MutationObserver | undefined;
     // The destination and its loading status commit immediately. Its entry

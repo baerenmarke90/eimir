@@ -9,7 +9,8 @@
 .memory-map-page .place-map-viewport,
 .memory-map-placeholder,
 .memory-map-loading {
-  height: clamp(14rem, 30dvh, 22rem);
+  /* The map is the point of this view; the places below are a quiet list. */
+  height: clamp(16rem, 42dvh, 28rem);
   border-radius: var(--radius-media);
 }
 
@@ -318,6 +319,25 @@
   block-size: auto;
   aspect-ratio: 2 / 1;
   border-radius: var(--radius-content) var(--radius-content) 0 0;
+}
+/* Places are compact rows, so the map keeps the dominant share of the screen. */
+.memory-map-places {
+  gap: var(--space-2);
+}
+.memory-map-places .memory-map-place {
+  grid-template-columns: var(--space-12) minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+.memory-map-places .memory-map-thumbnail {
+  width: var(--space-12);
+  height: var(--space-12);
+}
+.memory-map-places .memory-map-place-copy {
+  gap: 0;
+}
+.memory-map-places .memory-map-place-copy strong {
+  font: var(--font-action-label);
 }
 .memory-map-strip .memory-map-memory-copy {
   padding: 0 var(--space-4) var(--space-4);

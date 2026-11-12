@@ -88,11 +88,13 @@ export function MilestoneProductPage({
   apis,
   spaceId,
   currentAccountId,
+  startupRead,
 }: {
   mode: MilestoneProductMode;
   apis: ReferenceApis;
   spaceId: string;
   currentAccountId: string;
+  startupRead?: () => Promise<MilestoneDetail> | undefined;
 }) {
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
@@ -143,7 +145,9 @@ export function MilestoneProductPage({
         spaceId,
         kind: 'milestone',
         resourceId: milestoneId,
-        load: () => apis.milestones.getMilestone({ spaceId, milestoneId }),
+        load: () =>
+          startupRead?.() ??
+          apis.milestones.getMilestone({ spaceId, milestoneId }),
         serialize: MilestoneDetailToJSON,
         deserialize: (payload) => MilestoneDetailFromJSON(payload),
       });

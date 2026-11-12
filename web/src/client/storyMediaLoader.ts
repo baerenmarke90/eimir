@@ -7,6 +7,7 @@ import {
   evictAuthorizedMedia,
   loadCachedMediaBlob,
   consumeAuthorizedMediaPreview,
+  readStoredMediaBlob,
 } from './authorizedMediaCache';
 import type { OwnedObjectUrl } from './objectUrlResource';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
@@ -67,9 +68,14 @@ async function loadAuthorizedStoryBlob(
       attachmentId,
       options.variant ?? 'original',
     ];
-    if (!consumeAuthorizedMediaPreview(lease, identity)) {
-      descriptor = await requestDescriptor(options.signal);
-    }
+    const storedRead = consumeAuthorizedMediaPreview(lease, identity)
+      ? undefined
+      : readStoredMediaBlob(lease, identity);
+    if (storedRead)
+      [descriptor] = await Promise.all([
+        requestDescriptor(options.signal),
+        storedRead,
+      ]);
 
     // Every existing image consumer remains bounded when its source becomes a
     // video. Playback has a distinct grant path; image caches own posters only.
@@ -112,6 +118,7 @@ async function loadAuthorizedStoryBlob(
         }
       },
       options.signal,
+      storedRead,
     );
 
     assertMediaCacheLease(lease);

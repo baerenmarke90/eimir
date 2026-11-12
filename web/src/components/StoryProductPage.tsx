@@ -72,6 +72,7 @@ import {
   storyFiltersToSearch,
   storyRequest,
 } from '../client/storyProduct';
+import type { StoryStartupReads } from '../client/storyStartup';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
@@ -227,6 +228,7 @@ export function StoryProductPage({
   loadMemoryImage,
   profilesApi,
   dashboardApi,
+  startupReads,
 }: {
   apis: ReferenceApis;
   accountId: string;
@@ -238,6 +240,7 @@ export function StoryProductPage({
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   dashboardApi?: DashboardApi;
+  startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -319,6 +322,7 @@ export function StoryProductPage({
           kind: 'story',
           resourceId: cacheResourceId,
           load: () =>
+            startupReads?.takeTimeline() ??
             apis.story.getStoryTimeline(
               storyRequest(spaceId, effectiveFilters, null),
             ),
@@ -353,7 +357,9 @@ export function StoryProductPage({
         spaceId,
         kind: 'story-discover',
         resourceId: 'discover',
-        load: () => apis.story.getStoryDiscover({ spaceId }),
+        load: () =>
+          startupReads?.takeDiscover() ??
+          apis.story.getStoryDiscover({ spaceId }),
         serialize: DiscoverSelectionToJSON,
         deserialize: (payload) => DiscoverSelectionFromJSON(payload),
       });

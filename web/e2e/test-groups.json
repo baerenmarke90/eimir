@@ -24,8 +24,8 @@
     },
     "app-continuity-polish.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 8,
-      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention and persistent preview bytes across browser/native restoration."
+      "baselineTests": 11,
+      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention, persistent preview bytes across browser/native restoration, parent revocation on return, and parallel Diary and Memory cold-start reads with a current membership gate."
     },
     "media-url-continuity.spec.ts": {
       "disposition": "PR_CRITICAL",

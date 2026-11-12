@@ -972,7 +972,13 @@ for (const variant of [
         page.getByText(importantDates.emptyTitle, { exact: true }),
       ).toBeVisible();
     }
-    await nav.locator('a[href^="/story"]').click();
+    // On Expanded, Playwright would scroll the non-sticky header into view
+    // before clicking, changing the position we meant to restore.
+    if (variant.width >= 840) {
+      await nav
+        .locator('a[href^="/story"]')
+        .evaluate((element: HTMLAnchorElement) => element.click());
+    } else await nav.locator('a[href^="/story"]').click();
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
@@ -1115,7 +1121,9 @@ async function expectPrimaryReadingSurface(page: Page) {
   const selector = surfaceForRoute[new URL(page.url()).pathname];
   if (!selector)
     throw new Error('A primary swipe requires a primary destination.');
-  await expect(page.locator(`main > .primary-tab-panel:not([hidden]) ${selector}`)).toBeVisible();
+  await expect(
+    page.locator(`main > .primary-tab-panel:not([hidden]) ${selector}`),
+  ).toBeVisible();
   if (selector === '.today-page') {
     // Use the settled reading surface. During cold startup the loading node
     // can disappear between hit-testing and the native touch sequence.

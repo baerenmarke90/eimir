@@ -55,7 +55,6 @@ export function PrimaryTabPanels({
     window.scrollTo({ top: saved ?? 0, behavior: 'instant' });
   }, [active]);
 
-
   return panels.map(({ path, element }) => {
     const kept = locations.current.get(path);
     if (!kept) return null;

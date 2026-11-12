@@ -574,7 +574,7 @@ def search(
                         tags = getattr(row.payload, "tags", ()) or ()
                         if not any(tag.casefold() == exact_tag for tag in tags):
                             continue
-                        rank = _RANK_SCALE
+                        rank: int | None = _RANK_SCALE
                     else:
                         rank = score(
                             groups,

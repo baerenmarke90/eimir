@@ -1629,7 +1629,30 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(
     page.getByText('anna@example.org', { exact: false }),
   ).toBeVisible();
-  await expect(page.locator('.important-date-card')).toHaveCount(2);
+  const reminderCards = page.locator('.important-date-reminder-card');
+  await expect(reminderCards).toHaveCount(2);
+  // The occasion timeline also uses "important date" terminology, but its
+  // three-column layout must never leak into reminder preferences.
+  const expectVerticallyStackedReminders = async () => {
+    const layouts = await reminderCards.evaluateAll((cards) =>
+      cards.map((card) => {
+        const header = card.querySelector('.important-date-card-head');
+        const schedule = card.querySelector('.important-date-details');
+        if (!header || !schedule) return null;
+        const headerBox = header.getBoundingClientRect();
+        const scheduleBox = schedule.getBoundingClientRect();
+        return {
+          stacked: scheduleBox.top >= headerBox.bottom - 1,
+          fullWidth: Math.abs(headerBox.width - scheduleBox.width) < 2,
+        };
+      }),
+    );
+    expect(layouts).toEqual([
+      { stacked: true, fullWidth: true },
+      { stacked: true, fullWidth: true },
+    ]);
+  };
+  await expectVerticallyStackedReminders();
   await expect(
     page.getByRole('heading', { name: notificationSettings.dates }),
   ).toBeVisible();
@@ -1732,6 +1755,7 @@ test('notification choices survive return and stay legible across themes and wid
   });
   await expectNoHorizontalOverflow(page);
   await expectSettingsControlsInsideViewport(page);
+  await expectVerticallyStackedReminders();
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '';
   });

@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.74
+
+- Browse upcoming occasions in a simpler, more spacious list in Planning.
+- Enable annual occasions such as Easter, Christmas and New Year in relationship settings. The setting applies to this device and is off by default.
+- Anniversary and birthday reminder cards stack correctly on small screens and with larger text.
+- Date fields use a cleaner appearance and still open the native date picker.
+
+The product changes come from main at bbebebfd7f40b525b7362f9c0626ac656c4a650b.
+Install over test.73 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 74.

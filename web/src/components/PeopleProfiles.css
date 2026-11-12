@@ -228,6 +228,8 @@
   justify-self: start;
 }
 .occasions-list {
+  display: grid;
+  gap: var(--space-3);
   list-style: none;
   padding: 0;
   margin: 0;
@@ -239,7 +241,7 @@
   margin: 0 0 var(--space-2);
 }
 .occasions-month + .occasions-month {
-  margin-top: var(--space-5);
+  margin-top: var(--space-8);
 }
 .occasions-past > h2 {
   color: var(--color-text);
@@ -249,14 +251,36 @@
   font-size: 0.9rem;
 }
 .occasions-list .important-date-card {
-  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
-  min-height: 60px;
-  padding: var(--space-2) 0;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 68px;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  box-shadow: none;
+}
+.occasions-list .important-date-card:hover {
+  background: var(--color-surface-subtle);
+  transform: none;
+}
+.occasions-list .important-date-card:active {
+  background: var(--color-surface-subtle);
+  transform: scale(0.995);
 }
 .occasions-list .important-date-marker {
-  width: 100%;
-  min-height: 2.75rem;
+  width: 3rem;
+  min-height: 3rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(
+    in srgb,
+    var(--color-brand-surface) 70%,
+    var(--color-background)
+  );
   box-shadow: none;
+}
+.occasions-list .important-date-timeline-body {
+  gap: var(--space-1);
 }
 .occasion-reader-sheet .short-task-sheet-title {
   margin-bottom: var(--space-2);

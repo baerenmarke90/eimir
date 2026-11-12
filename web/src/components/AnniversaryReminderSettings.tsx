@@ -175,7 +175,7 @@ function RuleReminderSettings({
 
   if (isLoading) {
     return (
-      <div className="important-date-card" role="status">
+      <div className="important-date-reminder-card" role="status">
         {t(loadingKey)}
       </div>
     );
@@ -183,14 +183,14 @@ function RuleReminderSettings({
 
   if (error) {
     return (
-      <div className="important-date-card">
+      <div className="important-date-reminder-card">
         <ProblemState error={error} onRetry={() => void refetch()} />
       </div>
     );
   }
 
   return (
-    <article className="important-date-card" aria-label={label}>
+    <article className="important-date-reminder-card" aria-label={label}>
       <div className="important-date-card-head">
         <span className="important-date-icon" aria-hidden="true">
           <EimirIcon name={icon} variant="duotone" />

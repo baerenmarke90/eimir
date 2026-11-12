@@ -2017,7 +2017,7 @@ for (const [width, theme, largeText] of [
 }
 
 for (const width of [390, 1280] as const) {
-  test(`Wir, Momente and Planen share one title band and menu spacing at ${width}`, async ({
+  test(`Wir, Momente, Planen and Mehr share one title band at ${width}`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -2025,14 +2025,15 @@ for (const width of [390, 1280] as const) {
     await installMocks(page, { ...RICH_SPACE });
     await signInAndOpenToday(page);
     const bands = [];
-    for (const [label, path] of [
-      ['Wir', '/today'],
-      ['Momente', '/story'],
-      ['Planen', '/plan'],
+    for (const [tab, label, path] of [
+      ['Wir', 'Wir', '/today'],
+      ['Momente', 'Momente', '/story'],
+      ['Planen', 'Planen', '/plan'],
+      ['Mehr', 'Alles Weitere', '/more'],
     ] as const) {
       await page
         .locator('a.shell-nav-link:visible')
-        .filter({ hasText: new RegExp(`^${label}$`) })
+        .filter({ hasText: new RegExp(`^${tab}$`) })
         .first()
         .click();
       await expect(page).toHaveURL(new RegExp(`${path}$`));
@@ -2050,6 +2051,7 @@ for (const width of [390, 1280] as const) {
             x: Math.round(box.x),
             y: Math.round(box.y),
             height: Math.round(box.height),
+            fontFamily: getComputedStyle(heading).fontFamily,
             fontSize: getComputedStyle(heading).fontSize,
             headerHeight: Math.round(
               header?.getBoundingClientRect().height ?? 0,
@@ -2062,11 +2064,15 @@ for (const width of [390, 1280] as const) {
         }),
       );
     }
-    const [wir, momente, planen] = bands;
-    const { label: _wir, ...wirBand } = wir;
-    const { label: _momente, ...momenteBand } = momente;
-    const { label: _planen, ...planenBand } = planen;
-    expect(momenteBand).toEqual(wirBand);
-    expect(planenBand).toEqual(wirBand);
+    const [wirBand, ...others] = bands.map(
+      ({ label: _label, ...band }) => band,
+    );
+    for (const band of others) {
+      // On Expanded, Mehr stays a centered reading column by design.
+      const { x, ...rest } = band;
+      const { x: wirX, ...wirRest } = wirBand;
+      expect(rest).toEqual(wirRest);
+      if (width < 840 || band !== others.at(-1)) expect(x).toBe(wirX);
+    }
   });
 }

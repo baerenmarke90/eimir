@@ -373,7 +373,6 @@ describe('DailyQuoteCard', () => {
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
         },
       }),
       undefined,
@@ -436,10 +435,9 @@ describe('DailyQuoteCard', () => {
       expect.objectContaining({
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
-        dailyQuotePreferencePatch: expect.objectContaining({
+        dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
-        }),
+        },
       }),
       undefined,
     );

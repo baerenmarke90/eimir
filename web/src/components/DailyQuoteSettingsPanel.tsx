@@ -33,7 +33,7 @@ export function DailyQuoteSettingsPanel({
   entitlementsApi: EntitlementsApi;
   accountId: string;
   spaceId: string;
-  variant?: 'section' | 'toggle' | 'sources';
+  variant?: 'section' | 'toggle' | 'categories';
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -166,7 +166,7 @@ export function DailyQuoteSettingsPanel({
         <h2 id="settings-daily-quote-heading">
           {t('dailyQuote.settingsTitle')}
         </h2>
-        {variant !== 'sources' ? (
+        {variant !== 'categories' ? (
           <p className="settings-section-intro">
             {t('dailyQuote.settingsIntro')}
           </p>
@@ -216,7 +216,7 @@ export function DailyQuoteSettingsPanel({
             {t('dailyQuote.retry')}
           </button>
         </div>
-      ) : preferencesQuery.data && variant !== 'sources' ? (
+      ) : preferencesQuery.data && variant !== 'categories' ? (
         <PreferenceSwitch
           label={t('dailyQuote.enabledLabel')}
           description={t('dailyQuote.enabledSettingsDescription')}

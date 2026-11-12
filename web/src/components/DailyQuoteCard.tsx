@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
-import type { DailyQuotePreferencePatch } from '../api/generated/models/DailyQuotePreferencePatch';
+import type { DailyQuoteCatalogView } from '../api/generated/models/DailyQuoteCatalogView';
 import {
   type DailyQuotePreferenceSnapshot,
   dailyQuoteCatalogQueryKey,
@@ -22,11 +22,6 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
-
-interface DailyQuoteDraft {
-  categoryIds: string[];
-  sourceIds: string[];
-}
 
 function toggleSelection(values: string[], id: string): string[] {
   return values.includes(id)
@@ -55,24 +50,24 @@ function QuoteStateMessage({
 }
 
 function PreferencesContent({
-  catalog,
-  draft,
+  categories,
+  selectedCategoryIds,
   partnerName,
   partnerNameIsResolved,
   pending,
   error,
-  onDraftChange,
+  onCategorySelectionChange,
   onReload,
   onCancel,
   onSave,
 }: {
-  catalog: Awaited<ReturnType<typeof loadDailyQuoteCatalog>>;
-  draft: DailyQuoteDraft;
+  categories: DailyQuoteCatalogView['categories'];
+  selectedCategoryIds: string[];
   partnerName?: string;
   partnerNameIsResolved?: boolean;
   pending: boolean;
   error: unknown;
-  onDraftChange: (draft: DailyQuoteDraft) => void;
+  onCategorySelectionChange: (categoryIds: string[]) => void;
   onReload: () => void;
   onCancel: () => void;
   onSave: () => void;
@@ -97,8 +92,8 @@ function PreferencesContent({
       <fieldset className="daily-quote-choice-group" disabled={pending}>
         <legend>{t('dailyQuote.categories')}</legend>
         <div className="daily-quote-category-grid">
-          {catalog.categories.map((category) => {
-            const selected = draft.categoryIds.includes(category.id);
+          {categories.map((category) => {
+            const selected = selectedCategoryIds.includes(category.id);
             return (
               <label
                 key={category.id}
@@ -109,13 +104,9 @@ function PreferencesContent({
                   checked={selected}
                   disabled={pending}
                   onChange={() =>
-                    onDraftChange({
-                      ...draft,
-                      categoryIds: toggleSelection(
-                        draft.categoryIds,
-                        category.id,
-                      ),
-                    })
+                    onCategorySelectionChange(
+                      toggleSelection(selectedCategoryIds, category.id),
+                    )
                   }
                 />
                 <span aria-hidden="true" className="daily-quote-category-check">
@@ -131,50 +122,6 @@ function PreferencesContent({
           })}
         </div>
       </fieldset>
-
-      <fieldset
-        className="daily-quote-choice-group daily-quote-source-group"
-        disabled={pending}
-      >
-        <legend>{t('dailyQuote.sources')}</legend>
-        <div className="daily-quote-source-list">
-          {catalog.sources.map((source) => {
-            const selected = draft.sourceIds.includes(source.id);
-            return (
-              <label key={source.id} className="daily-quote-source">
-                <span className="daily-quote-source-copy">
-                  <strong>
-                    {t(`dailyQuote.catalog.sources.${source.id}.name`, {
-                      defaultValue: source.name,
-                    })}
-                  </strong>
-                  <span>
-                    {t(`dailyQuote.catalog.sources.${source.id}.description`, {
-                      defaultValue: source.description,
-                    })}
-                  </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={selected}
-                  disabled={pending}
-                  onChange={() =>
-                    onDraftChange({
-                      ...draft,
-                      sourceIds: toggleSelection(draft.sourceIds, source.id),
-                    })
-                  }
-                />
-                <span aria-hidden="true" className="daily-quote-source-check">
-                  {selected ? '✓' : ''}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <p className="daily-quote-footnote">{t('dailyQuote.footnote')}</p>
 
       {error ? (
         <div className="daily-quote-preference-error" role="alert">
@@ -231,7 +178,9 @@ export function DailyQuoteCard({
   const queryClient = useQueryClient();
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [draft, setDraft] = useState<DailyQuoteDraft | null>(null);
+  const [draftCategoryIds, setDraftCategoryIds] = useState<string[] | null>(
+    null,
+  );
 
   const entitlementKey = useMemo(
     () => dailyQuoteEntitlementQueryKey(accountId, spaceId),
@@ -287,10 +236,7 @@ export function DailyQuoteCard({
 
   useEffect(() => {
     if (!settingsOpen || !preferencesQuery.data) return;
-    setDraft({
-      categoryIds: [...preferencesQuery.data.preference.selectedCategoryIds],
-      sourceIds: [...preferencesQuery.data.preference.selectedSourceIds],
-    });
+    setDraftCategoryIds(preferencesQuery.data.preference.selectedCategoryIds);
   }, [preferencesQuery.data, settingsOpen]);
 
   useEffect(() => {
@@ -301,7 +247,7 @@ export function DailyQuoteCard({
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(catalogQuery.error)) return;
     setSettingsOpen(false);
-    setDraft(null);
+    setDraftCategoryIds(null);
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
     queryClient.setQueryData(entitlementKey, false);
   }, [catalogQuery.error, entitlementKey, preferencesKey, queryClient]);
@@ -309,7 +255,7 @@ export function DailyQuoteCard({
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;
     setSettingsOpen(false);
-    setDraft(null);
+    setDraftCategoryIds(null);
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
     queryClient.setQueryData(entitlementKey, false);
   }, [entitlementKey, preferencesKey, preferencesQuery.error, queryClient]);
@@ -317,35 +263,32 @@ export function DailyQuoteCard({
   const saveMutation = useMutation({
     mutationFn: ({
       snapshot,
-      nextDraft,
+      categoryIds,
     }: {
       snapshot: DailyQuotePreferenceSnapshot;
-      nextDraft: DailyQuoteDraft;
-    }) => {
-      const patch: DailyQuotePreferencePatch = {
-        selectedCategoryIds: nextDraft.categoryIds,
-        selectedSourceIds: nextDraft.sourceIds,
-      };
-      return saveDailyQuotePreferences(quoteApi, spaceId, snapshot, patch);
-    },
+      categoryIds: string[];
+    }) =>
+      saveDailyQuotePreferences(quoteApi, spaceId, snapshot, {
+        selectedCategoryIds: categoryIds,
+      }),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
       void queryClient.invalidateQueries({ queryKey: quoteKey });
       setSettingsOpen(false);
-      setDraft(null);
+      setDraftCategoryIds(null);
     },
     onError: (error) => {
       if (!isDailyQuoteEntitlementRequired(error)) return;
       queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
       queryClient.setQueryData(entitlementKey, false);
       setSettingsOpen(false);
-      setDraft(null);
+      setDraftCategoryIds(null);
     },
   });
 
   const openSettings = () => {
     saveMutation.reset();
-    setDraft(null);
+    setDraftCategoryIds(null);
     setSettingsOpen(true);
   };
 
@@ -353,7 +296,7 @@ export function DailyQuoteCard({
     if (saveMutation.isPending) return;
     saveMutation.reset();
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-    setDraft(null);
+    setDraftCategoryIds(null);
     setSettingsOpen(false);
   };
 
@@ -361,10 +304,7 @@ export function DailyQuoteCard({
     saveMutation.reset();
     const result = await preferencesQuery.refetch();
     if (result.data) {
-      setDraft({
-        categoryIds: [...result.data.preference.selectedCategoryIds],
-        sourceIds: [...result.data.preference.selectedSourceIds],
-      });
+      setDraftCategoryIds(result.data.preference.selectedCategoryIds);
     }
   };
 
@@ -493,8 +433,8 @@ export function DailyQuoteCard({
 
   const snapshot = preferencesQuery.data;
   const preferenceReady =
-    snapshot && catalogQuery.data && draft
-      ? { snapshot, catalog: catalogQuery.data, draft }
+    snapshot && catalogQuery.data && draftCategoryIds !== null
+      ? { snapshot, categories: catalogQuery.data.categories, draftCategoryIds }
       : null;
 
   return (
@@ -558,22 +498,22 @@ export function DailyQuoteCard({
           </div>
         ) : preferenceReady ? (
           <PreferencesContent
-            catalog={preferenceReady.catalog}
-            draft={preferenceReady.draft}
+            categories={preferenceReady.categories}
+            selectedCategoryIds={preferenceReady.draftCategoryIds}
             partnerName={partnerName}
             partnerNameIsResolved={partnerNameIsResolved}
             pending={saveMutation.isPending}
             error={saveMutation.error}
-            onDraftChange={(nextDraft) => {
+            onCategorySelectionChange={(categoryIds) => {
               saveMutation.reset();
-              setDraft(nextDraft);
+              setDraftCategoryIds(categoryIds);
             }}
             onReload={() => void reloadPreferences()}
             onCancel={closeSettings}
             onSave={() =>
               saveMutation.mutate({
                 snapshot: preferenceReady.snapshot,
-                nextDraft: preferenceReady.draft,
+                categoryIds: preferenceReady.draftCategoryIds,
               })
             }
           />

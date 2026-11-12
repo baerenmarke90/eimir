@@ -199,7 +199,7 @@ export function SettingsPage(props: SettingsPageProps) {
           }}
         />
         <DailyQuoteSettingsPanel
-          variant="sources"
+          variant="categories"
           quoteApi={dailyQuoteApi}
           entitlementsApi={entitlementsApi}
           accountId={props.account.id}

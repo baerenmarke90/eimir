@@ -58,8 +58,7 @@
 
 .daily-quote-settings:focus-visible,
 .daily-quote-retry:focus-visible,
-.daily-quote-category:has(input:focus-visible),
-.daily-quote-source:has(input:focus-visible) {
+.daily-quote-category:has(input:focus-visible) {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -145,7 +144,7 @@
   font-weight: 650;
 }
 
-/* Personal source/category preferences ----------------------------------- */
+/* Personal category preferences ------------------------------------------ */
 
 .daily-quote-preferences-sheet {
   max-width: 40rem;
@@ -158,7 +157,6 @@
 }
 
 .daily-quote-privacy,
-.daily-quote-footnote,
 .daily-quote-preferences-status {
   margin: 0;
   color: var(--color-text-secondary);
@@ -167,10 +165,6 @@
 
 .daily-quote-privacy {
   margin-top: calc(var(--space-2) * -1);
-}
-
-.daily-quote-footnote {
-  font-size: 0.8rem;
 }
 
 .daily-quote-preferences > .preference-switch-row {
@@ -234,8 +228,7 @@
   font-weight: 650;
 }
 
-.daily-quote-category input,
-.daily-quote-source input {
+.daily-quote-category input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -254,67 +247,6 @@
 
 .daily-quote-category:not(.is-selected) .daily-quote-category-check {
   display: none;
-}
-
-.daily-quote-source-list {
-  display: grid;
-  min-width: 0;
-}
-
-.daily-quote-source {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr) 2rem;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 64px;
-  padding-block: var(--space-3);
-  border-bottom: 1px solid var(--color-border-subtle);
-  cursor: pointer;
-}
-
-.daily-quote-source:first-child {
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.daily-quote-source-copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.2rem;
-}
-
-.daily-quote-source-copy strong,
-.daily-quote-source-copy span {
-  overflow-wrap: break-word;
-}
-
-.daily-quote-source-copy strong {
-  font-size: 0.95rem;
-}
-
-.daily-quote-source-copy span {
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
-.daily-quote-source-check {
-  display: grid;
-  width: 1.6rem;
-  height: 1.6rem;
-  place-items: center;
-  justify-self: end;
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: 0.5rem;
-  background: var(--color-surface-subtle);
-  color: var(--color-on-accent);
-  font-size: 0.85rem;
-}
-
-.daily-quote-source:has(input:checked) .daily-quote-source-check {
-  border-color: var(--color-brand-strong);
-  background: var(--color-brand-strong);
 }
 
 .daily-quote-preference-error {
@@ -365,8 +297,7 @@
     animation: daily-quote-reveal var(--duration-transition) var(--easing-enter);
   }
 
-  .daily-quote-category,
-  .daily-quote-source-check {
+  .daily-quote-category {
     transition:
       background var(--duration-feedback) var(--easing-standard),
       border-color var(--duration-feedback) var(--easing-standard),
@@ -385,8 +316,7 @@
 
 @media (forced-colors: active) {
   .daily-quote-content,
-  .daily-quote-category,
-  .daily-quote-source-check {
+  .daily-quote-category {
     border: 1px solid CanvasText;
   }
 }

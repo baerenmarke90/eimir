@@ -23,7 +23,7 @@
     "cap:build:web": "node scripts/build-capacitor-web.mjs",
     "cap:build:android": "npm run cap:build:web && npm run cap:sync && cd ../android && ./gradlew assembleDebug",
     "typecheck": "tsc -b --pretty false",
-    "lint": "biome lint . --max-diagnostics=400",
+    "lint": "biome lint .",
     "format:check": "biome format .",
     "format": "biome format . --write"
   },

@@ -1834,7 +1834,7 @@ export function HeartMomentProductPage({
               />
             </div>
             {heartMoment.tags?.length ? (
-              <div aria-label={t('heartMomentProduct.tagsLabel')}>
+              <div>
                 <ContextTagList
                   tags={heartMoment.tags}
                   presentation="composer"

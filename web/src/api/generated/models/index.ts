@@ -353,6 +353,8 @@ export * from './SpaceView';
 export * from './StoryHeartMomentItem';
 export * from './StoryItem';
 export * from './StoryKind';
+export * from './StoryLifelineView';
+export * from './StoryLifelineWeek';
 export * from './StoryMemoryItem';
 export * from './StoryMilestoneItem';
 export * from './StoryOrder';

@@ -4,61 +4,61 @@
 <rect x="450" y="20" width="390" height="810" rx="24" fill="#e8edfc"/>
 <text x="40" y="69" font-family="Arial, sans-serif" font-size="17" font-weight="600" fill="#192642" >12:35</text>
 <text x="470" y="69" font-family="Arial, sans-serif" font-size="17" font-weight="600" fill="#192642" >12:35</text>
-<text x="39" y="152" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#192642" >Planen</text>
-<text x="469" y="152" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#192642" >Einstellungen</text>
+<text x="39" y="152" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#192642" >Plan</text>
+<text x="469" y="152" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#192642" >Settings</text>
 <rect x="40" y="184" width="350" height="57" rx="29" fill="#d9e4fa"/>
 <rect x="270" y="188" width="116" height="49" rx="25" fill="#3159bd"/>
-<text x="98" y="220" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#52607f" >Pläne</text>
-<text x="202" y="220" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#52607f" >Wünsche</text>
-<text x="294" y="220" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff" >Anlässe</text>
-<text x="40" y="289" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#5a6682" >März 2027</text>
+<text x="98" y="220" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#52607f" >Plans</text>
+<text x="202" y="220" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#52607f" >Wishes</text>
+<text x="294" y="220" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff" >Occasions</text>
+<text x="40" y="289" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#5a6682" >March 2027</text>
 <g>
 <rect x="40" y="309" width="48" height="48" rx="13" fill="#f5e8f3"/>
 <text x="64" y="340" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172441" text-anchor="middle">10</text>
 <text x="103" y="341" font-family="Arial, sans-serif" font-size="22" font-weight="600" fill="#3d72cd" >♧</text>
-<text x="136" y="341" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Geburtstag von Alex</text>
+<text x="136" y="341" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Alex's birthday</text>
 </g>
 <g>
 <rect x="40" y="391" width="48" height="48" rx="13" fill="#f5e8f3"/>
 <text x="64" y="422" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172441" text-anchor="middle">27</text>
 <text x="103" y="423" font-family="Arial, sans-serif" font-size="22" font-weight="600" fill="#3d72cd" >♧</text>
-<text x="136" y="423" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Geburtstag von Sam</text>
+<text x="136" y="423" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Sam's birthday</text>
 </g>
 <g>
 <rect x="40" y="473" width="48" height="48" rx="13" fill="#f5e8f3"/>
 <text x="64" y="504" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172441" text-anchor="middle">28</text>
 <text x="103" y="505" font-family="Arial, sans-serif" font-size="22" font-weight="600" fill="#3d72cd" >✦</text>
-<text x="136" y="505" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Ostersonntag</text>
+<text x="136" y="505" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Easter Sunday</text>
 </g>
-<text x="40" y="594" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#5a6682" >Mai 2027</text>
+<text x="40" y="594" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#5a6682" >May 2027</text>
 <g>
 <rect x="40" y="618" width="48" height="48" rx="13" fill="#f5e8f3"/>
 <text x="64" y="649" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172441" text-anchor="middle">14</text>
 <text x="103" y="650" font-family="Arial, sans-serif" font-size="22" font-weight="600" fill="#3d72cd" >♡</text>
-<text x="136" y="650" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Euer Jahrestag</text>
+<text x="136" y="650" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#192642" >Your anniversary</text>
 </g>
 <rect x="333" y="682" width="58" height="58" rx="20" fill="#3159bd"/>
 <text x="361" y="722" font-family="Arial, sans-serif" font-size="36" font-weight="400" fill="#fff" text-anchor="middle">+</text>
 <g>
 <rect x="32" y="742" width="366" height="79" rx="0" fill="#f4f5ff"/>
-<text x="80" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♡</text><text x="80" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Wir</text><text x="170" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♥</text><text x="170" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Momente</text><rect x="216" y="744" width="88" height="68" rx="28" fill="#d9e4fa"/><text x="260" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">▦</text><text x="260" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Planen</text><text x="350" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">⋮</text><text x="350" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Mehr</text>
+<text x="80" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♡</text><text x="80" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Us</text><text x="170" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♥</text><text x="170" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Moments</text><rect x="216" y="744" width="88" height="68" rx="28" fill="#d9e4fa"/><text x="260" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">▦</text><text x="260" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Plan</text><text x="350" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">⋮</text><text x="350" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">More</text>
 </g>
-<text x="470" y="219" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#192642" >Beziehung</text>
-<text x="470" y="255" font-family="Arial, sans-serif" font-size="15" font-weight="400" fill="#5d6883" >Euer gemeinsamer Raum</text>
+<text x="470" y="219" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#192642" >Relationship</text>
+<text x="470" y="255" font-family="Arial, sans-serif" font-size="15" font-weight="400" fill="#5d6883" >Your shared space</text>
 <line x1="470" y1="279" x2="820" y2="279" stroke="#d3dcef" stroke-width="1"/>
-<text x="470" y="326" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#192642" >Allgemeine Anlässe</text>
-<text x="470" y="356" font-family="Arial, sans-serif" font-size="15" font-weight="400" fill="#5d6883" >Auch Feste neben euren persönlichen</text>
-<text x="470" y="377" font-family="Arial, sans-serif" font-size="15" font-weight="400" fill="#5d6883" >Terminen im Blick behalten.</text>
-<text x="470" y="436" font-family="Arial, sans-serif" font-size="17" font-weight="600" fill="#192642" >Allgemeine Termine anzeigen</text>
+<text x="470" y="326" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#192642" >Common occasions</text>
+<text x="470" y="356" font-family="Arial, sans-serif" font-size="15" font-weight="400" fill="#5d6883" >Show celebrations alongside your</text>
+<text x="470" y="377" font-family="Arial, sans-serif" font-size="15" font-weight="400" fill="#5d6883" >own special days.</text>
+<text x="470" y="436" font-family="Arial, sans-serif" font-size="17" font-weight="600" fill="#192642" >Show common occasions</text>
 <rect x="767" y="407" width="56" height="33" rx="17" fill="#3159bd"/>
 <circle cx="805" cy="423.5" r="13" fill="#ffffff"/>
-<text x="470" y="473" font-family="Arial, sans-serif" font-size="14" font-weight="400" fill="#5d6883" >Ostern, Weihnachten, Neujahr</text>
-<text x="470" y="493" font-family="Arial, sans-serif" font-size="14" font-weight="400" fill="#5d6883" >und weitere Anlässe.</text>
+<text x="470" y="473" font-family="Arial, sans-serif" font-size="14" font-weight="400" fill="#5d6883" >Easter, Christmas, New Year</text>
+<text x="470" y="493" font-family="Arial, sans-serif" font-size="14" font-weight="400" fill="#5d6883" >and other special dates.</text>
 <line x1="470" y1="512" x2="820" y2="512" stroke="#d3dcef" stroke-width="1"/>
-<text x="470" y="554" font-family="Arial, sans-serif" font-size="13" font-weight="400" fill="#5d6883" >Nur auf diesem Gerät · Eure Termine</text>
-<text x="470" y="574" font-family="Arial, sans-serif" font-size="13" font-weight="400" fill="#5d6883" >bleiben unverändert.</text>
+<text x="470" y="554" font-family="Arial, sans-serif" font-size="13" font-weight="400" fill="#5d6883" >Device only. Your saved dates</text>
+<text x="470" y="574" font-family="Arial, sans-serif" font-size="13" font-weight="400" fill="#5d6883" >stay unchanged.</text>
 <g>
 <rect x="462" y="742" width="366" height="79" rx="0" fill="#f4f5ff"/>
-<text x="510" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♡</text><text x="510" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Wir</text><text x="600" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♥</text><text x="600" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Momente</text><text x="690" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">▦</text><text x="690" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Planen</text><rect x="736" y="744" width="88" height="68" rx="28" fill="#d9e4fa"/><text x="780" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">⋮</text><text x="780" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Mehr</text>
+<text x="510" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♡</text><text x="510" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Us</text><text x="600" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">♥</text><text x="600" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Moments</text><text x="690" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">▦</text><text x="690" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">Plan</text><rect x="736" y="744" width="88" height="68" rx="28" fill="#d9e4fa"/><text x="780" y="771" font-family="Arial, sans-serif" font-size="24" font-weight="600" fill="#4266ae" text-anchor="middle">⋮</text><text x="780" y="798" font-family="Arial, sans-serif" font-size="13" font-weight="500" fill="#18233e" text-anchor="middle">More</text>
 </g>
 </svg>

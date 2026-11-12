@@ -109,6 +109,18 @@ it('restores the scroll position a tab had when it is shown again', async () => 
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 640, behavior: 'instant' });
 });
 
+it('captures scroll before a new tab can clamp the outgoing document height', async () => {
+  render(<Harness />);
+  const scrollTo = vi.mocked(window.scrollTo);
+  // A fast root navigation may commit before the browser dispatches a scroll
+  // event for the most recent reading position.
+  Object.defineProperty(window, 'scrollY', { configurable: true, value: 540 });
+  await act(() => navigate('/story'));
+  Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+  await act(() => navigate('/today'));
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 540, behavior: 'instant' });
+});
+
 it('lets only the visible tab capture a task origin', async () => {
   render(<Harness />);
   await act(() => navigate('/story'));

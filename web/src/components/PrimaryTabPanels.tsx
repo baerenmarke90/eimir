@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+import { type ReactNode, useLayoutEffect, useRef } from 'react';
 import { type Location, Route, Routes, useLocation } from 'react-router-dom';
 import { PrimaryTabTaskOriginScope } from '../client/taskOrigin';
 import { AppErrorBoundary } from './AppErrorBoundary';
@@ -35,6 +35,16 @@ export function PrimaryTabPanels({
   if (active) locations.current.set(active, location);
   const scrollPositions = useRef(new Map<string, number>());
   const activeRef = useRef<string | null>(null);
+  const renderedTab = useRef<string | null>(null);
+
+  // Capture the outgoing reading position while its panel is still visible.
+  // Once React hides that panel, the shorter destination can clamp scrollY
+  // before a scroll event runs and silently overwrite the saved position.
+  if (renderedTab.current !== active) {
+    if (renderedTab.current && typeof window !== 'undefined')
+      scrollPositions.current.set(renderedTab.current, window.scrollY);
+    renderedTab.current = active;
+  }
 
   useLayoutEffect(() => {
     const previous = activeRef.current;
@@ -45,14 +55,6 @@ export function PrimaryTabPanels({
     window.scrollTo({ top: saved ?? 0, behavior: 'instant' });
   }, [active]);
 
-  useEffect(() => {
-    const remember = () => {
-      if (activeRef.current)
-        scrollPositions.current.set(activeRef.current, window.scrollY);
-    };
-    window.addEventListener('scroll', remember, { passive: true });
-    return () => window.removeEventListener('scroll', remember);
-  }, []);
 
   return panels.map(({ path, element }) => {
     const kept = locations.current.get(path);

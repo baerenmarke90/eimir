@@ -190,8 +190,12 @@ test('a stored photo stays hidden while access is checked and is evicted after a
     release = resolve;
   });
   await page.route('**/attachments/att-canal-1/read-access', async (route) => {
-    if (!holding || route.request().postDataJSON()?.variant !== 'original')
-      return route.fallback();
+    // The generated API nests the variant inside attachmentReadRequest;
+    // absence of a variant means original (the default), not thumbnail.
+    const variant =
+      route.request().postDataJSON()?.attachmentReadRequest?.variant ??
+      'original';
+    if (!holding || variant !== 'original') return route.fallback();
     held++;
     await denied;
     return route.fulfill({

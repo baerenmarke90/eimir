@@ -164,7 +164,7 @@ def overview(
         ],
         periods=[
             RecapPeriod.model_validate(item)
-            for item in service.periods(session, authorization, clock.today_in(zone))
+            for item in service.unprepared(session, authorization, clock.today_in(zone))
         ]
         if allowed
         else [],

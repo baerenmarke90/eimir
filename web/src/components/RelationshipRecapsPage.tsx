@@ -67,6 +67,9 @@ import './RelationshipRecapsPage.css';
 
 export type RecapsPageProps = ProfilePageProps & { mediaApis: ReferenceApis };
 const POLL_WINDOW_MS = 120_000;
+/** Earlier periods arrive in server-paced batches; a calm cadence is enough. */
+const PREPARING_POLL_MS = 15_000;
+const PREPARING_WINDOW_MS = 30 * 60_000;
 
 async function authorized<T>(operation: Promise<T>): Promise<T> {
   try {
@@ -134,7 +137,9 @@ function Cover({
       <div className="recap-cover-copy">
         <div className="recap-cover-kicker">
           <span>{label}</span>
-          {value.savedAt ? <span>{t('recaps.saved')}</span> : null}
+          {value.savedAt && value.isPartial ? (
+            <span>{t('recaps.saved')}</span>
+          ) : null}
         </div>
         <h2 lang={value.headline ? value.locale : undefined}>
           {value.status === 'EMPTY'
@@ -158,6 +163,33 @@ function Cover({
             : t('recaps.open')}
           <span aria-hidden="true"> →</span>
         </Link>
+      </div>
+    </article>
+  );
+}
+
+/** A period the server is still compiling; it becomes a cover without a request. */
+function PreparingCover({ value }: { value: RecapPeriod }) {
+  const { t } = useTranslation();
+  return (
+    <article className="recap-cover recap-cover-preparing">
+      <div className="recap-cover-art">
+        <div className="recap-cover-words">
+          <EimirIcon name="kapitel" />
+        </div>
+        <span className="recap-edition-mark" aria-hidden="true">
+          {value.kind === 'YEAR'
+            ? value.year
+            : new Intl.NumberFormat(resolvedLocale(), {
+                minimumIntegerDigits: 2,
+              }).format(value.month ?? 1)}
+        </span>
+      </div>
+      <div className="recap-cover-copy">
+        <div className="recap-cover-kicker">
+          <span>{recapPeriodLabel(value, resolvedLocale())}</span>
+        </div>
+        <p className="recap-period-note">{t('recaps.preparing')}</p>
       </div>
     </article>
   );
@@ -194,10 +226,8 @@ export function RelationshipRecapsPage(props: RecapsPageProps) {
 function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
   const { t } = useTranslation();
   const [search, setSearch] = useSearchParams();
-  const navigate = useNavigate();
   const client = useQueryClient();
   const [error, setError] = useState<Error | null>(null);
-  const [requesting, setRequesting] = useState(false);
   const started = useRef(Date.now());
   const prepared = useRef(false);
   const kind = search.get('tab') === 'years' ? 'YEAR' : 'MONTH';
@@ -220,14 +250,22 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
     retry: false,
     gcTime: 0,
     refetchOnMount: 'always',
-    refetchInterval: (state) =>
-      document.visibilityState !== 'hidden' &&
-      Date.now() - started.current < POLL_WINDOW_MS &&
-      state.state.data?.pages.some((page) =>
-        page.editions.some((item) => item.status === 'PENDING'),
+    refetchInterval: (state) => {
+      if (document.visibilityState === 'hidden') return false;
+      const pages = state.state.data?.pages ?? [];
+      const elapsed = Date.now() - started.current;
+      if (
+        elapsed < POLL_WINDOW_MS &&
+        pages.some((page) =>
+          page.editions.some((item) => item.status === 'PENDING'),
+        )
       )
-        ? 2500
-        : false,
+        return 2500;
+      return elapsed < PREPARING_WINDOW_MS &&
+        pages[0]?.periods.some((period) => period.kind === kind)
+        ? PREPARING_POLL_MS
+        : false;
+    },
   });
   const allowed = query.data?.pages[0]?.canCompose === true;
   useEffect(() => {
@@ -267,25 +305,6 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           (item) => recapPeriodKey(item) === recapPeriodKey(period),
         ),
     ) ?? [];
-  async function openPeriod(period: RecapPeriod) {
-    setRequesting(true);
-    setError(null);
-    try {
-      const result = await authorized(
-        api.requestRelationshipRecap({
-          spaceId: props.spaceId,
-          recapRequest: { ...period, variant: 0 },
-        }),
-      );
-      void navigate(
-        `${recapDetailPath(result.id)}${kind === 'YEAR' ? '?tab=years' : ''}`,
-      );
-    } catch (cause) {
-      setError(await normalizeClientError(cause));
-    } finally {
-      setRequesting(false);
-    }
-  }
   return (
     <div className="page recap-library">
       <PageHeader
@@ -353,23 +372,20 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           <>
             <p className="recap-section-label">{t('recaps.current')}</p>
             <Cover {...props} value={editions[0]} featured />
-            {editions.length > 1 ? (
-              <section
-                className="recap-archive"
-                aria-label={t('recaps.archive')}
-              >
-                <h2>{t('recaps.archive')}</h2>
-                {editions.slice(1).map((value) => (
-                  <Cover
-                    key={value.id}
-                    {...props}
-                    value={value}
-                    featured={false}
-                  />
-                ))}
-              </section>
-            ) : null}
           </>
+        ) : null}
+        {editions.length > 1 || (allowed && periods.length > 0) ? (
+          <section className="recap-archive" aria-label={t('recaps.archive')}>
+            <h2>{t('recaps.archive')}</h2>
+            {editions.slice(1).map((value) => (
+              <Cover key={value.id} {...props} value={value} featured={false} />
+            ))}
+            {allowed
+              ? periods.map((period) => (
+                  <PreparingCover key={recapPeriodKey(period)} value={period} />
+                ))
+              : null}
+          </section>
         ) : null}
         {allowed && !query.isPending && !editions.length && !periods.length ? (
           <UiState
@@ -382,23 +398,6 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
               </Link>
             }
           />
-        ) : null}
-        {allowed && periods.length > 0 ? (
-          <section className="recap-available">
-            <h2>{t('recaps.available')}</h2>
-            {periods.map((period) => (
-              <button
-                className="recap-period-button"
-                key={recapPeriodKey(period)}
-                type="button"
-                disabled={requesting}
-                onClick={() => void openPeriod(period)}
-              >
-                <span>{recapPeriodLabel(period, resolvedLocale())}</span>
-                <span>{t('recaps.create')} →</span>
-              </button>
-            ))}
-          </section>
         ) : null}
         {query.hasNextPage ? (
           <AutoLoadMore
@@ -443,9 +442,7 @@ function RecapReader({
   const location = useLocation();
   const navigate = useNavigate();
   const { requestReturn, captureOrigin, resolveOrigin } = useTaskOrigin();
-  const [task, setTask] = useState<'selection' | 'reflection' | 'save' | null>(
-    null,
-  );
+  const [task, setTask] = useState<'selection' | 'reflection' | null>(null);
   const started = useRef(Date.now());
   const key = ['relationship-recap', props.account.id, props.spaceId, recapId];
   const query = useQuery({
@@ -996,7 +993,7 @@ function RecapReader({
                         <p>{value.ownDraft.text}</p>
                       </div>
                     ) : null}
-                    {!value.savedAt && (capability.data || value.ownDraft) ? (
+                    {capability.data || value.ownDraft ? (
                       <button
                         type="button"
                         onClick={() => setTask('reflection')}
@@ -1019,14 +1016,6 @@ function RecapReader({
                       <p className="recap-period-note">
                         {t('recaps.savedHelp')}
                       </p>
-                    ) : capability.data ? (
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => setTask('save')}
-                      >
-                        {t('recaps.save')}
-                      </button>
                     ) : null}
                   </div>
                 )}
@@ -1066,15 +1055,17 @@ function RecapReader({
                   {t('recaps.gestureHint')}
                 </p>
               ) : null}
-              {!value.savedAt && capability.data ? (
+              {capability.data ? (
                 <div className="recap-reader-tools">
-                  <button
-                    type="button"
-                    className="recap-text-button"
-                    onClick={() => setTask('selection')}
-                  >
-                    {t('recaps.edit')}
-                  </button>
+                  {value.savedAt ? null : (
+                    <button
+                      type="button"
+                      className="recap-text-button"
+                      onClick={() => setTask('selection')}
+                    >
+                      {t('recaps.edit')}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="recap-text-button"

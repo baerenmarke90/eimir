@@ -170,6 +170,7 @@ async function setup(
     hideMonthly?: boolean;
     dense?: boolean;
     native?: boolean;
+    earlier?: boolean;
   } = {},
 ) {
   // The API fixture's current day and the system clock share one timeline.
@@ -199,6 +200,7 @@ async function setup(
   let fail = options.fail === true;
   let writes = 0;
   let prepares = 0;
+  let earlierReady = false;
   let deniedOverview = false;
   let overviewReads = 0;
   await page.route('**/api/v1/**', async (route) => {
@@ -226,9 +228,29 @@ async function setup(
               isPartial: false,
               headline: fixtureCopy.previousHeadline,
             },
+            ...(earlierReady
+              ? [
+                  {
+                    ...initial('august'),
+                    month: 8,
+                    startsOn: '2026-08-01',
+                    throughOn: '2026-08-31',
+                    isPartial: false,
+                    headline: fixtureCopy.previousHeadline,
+                  },
+                ]
+              : []),
             year,
           ],
-          periods: [],
+          periods: options.earlier
+            ? [
+                ...(earlierReady
+                  ? []
+                  : [{ kind: 'MONTH', year: 2026, month: 8 }]),
+                { kind: 'MONTH', year: 2026, month: 7 },
+                { kind: 'YEAR', year: 2025, month: 0 },
+              ]
+            : [],
           hasMore: false,
         },
       });
@@ -343,10 +365,6 @@ async function setup(
         );
         month.version++;
       }
-      if (path.endsWith('/save')) {
-        month.savedAt = '2026-10-30T12:00:00Z';
-        month.version++;
-      }
       return route.fulfill({ json: month });
     }
     if (path.endsWith('/entitlements'))
@@ -387,6 +405,17 @@ async function setup(
     },
     writes: () => writes,
     prepares: () => prepares,
+    finalise: () => {
+      Object.assign(month, {
+        savedAt: '2026-11-08T03:00:00Z',
+        isPartial: false,
+        throughOn: '2026-10-31',
+        version: month.version + 1,
+      });
+    },
+    finishEarlier: () => {
+      earlierReady = true;
+    },
     overviewReads: () => overviewReads,
     denyOverview: () => {
       deniedOverview = true;
@@ -748,7 +777,7 @@ for (const [width, theme] of [
   });
 }
 
-test('selection, private draft, explicit sharing, save and withdrawal keep confirmed state', async ({
+test('selection, private draft, explicit sharing, automatic retention and withdrawal keep confirmed state', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -781,12 +810,16 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
   await expect(page.locator('blockquote')).toContainText(
     fixtureCopy.reflection,
   );
-  await page.getByRole('button', { name: copy.save, exact: true }).click();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: copy.saveConfirm })
-    .click();
+  // Nothing has to be kept by hand: the server retains a completed period.
+  state.finalise();
+  await page.reload();
   await expect(page.getByText(copy.savedHelp)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.edit, exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: copy.ownWords, exact: true }).first(),
+  ).toBeVisible();
   await captureScreenshot(page, info, 'recaps-saved-reflections.png', {
     fullPage: true,
   });
@@ -796,7 +829,7 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
     .getByRole('button', { name: copy.withdraw, exact: true })
     .click();
   await expect(page.locator('blockquote')).toHaveCount(0);
-  expect(state.writes()).toBe(6);
+  expect(state.writes()).toBe(5);
 });
 
 test('Free reads retained editions without preparing or exposing composition', async ({
@@ -812,6 +845,69 @@ test('Free reads retained editions without preparing or exposing composition', a
   await expect(page.getByRole('button', { name: copy.edit })).toHaveCount(0);
   expect(state.prepares()).toBe(0);
 });
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`earlier periods appear by themselves at 390 ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { earlier: true });
+    const month = (value: number) =>
+      new Intl.DateTimeFormat('de-DE', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(Date.UTC(2026, value - 1, 1)));
+    const preparing = page.locator('.recap-cover-preparing');
+    await expect(preparing).toHaveCount(2);
+    await expect(preparing.first()).toContainText(month(8));
+    await expect(preparing.first()).toContainText(copy.preparing);
+    await expect(preparing.last()).toContainText(month(7));
+    // Nothing has to be requested per period any more.
+    await expect(
+      page.locator('#recap-library-panel').getByRole('button'),
+    ).toHaveCount(0);
+    await expect(preparing.getByRole('link')).toHaveCount(0);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-immersive-library-preparing-390-${theme}.png`,
+      { fullPage: true },
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-library').analyze())
+        .violations,
+    ).toEqual([]);
+
+    // The years shelf only carries its own waiting period.
+    await page.getByRole('tab', { name: copy.years }).click();
+    await expect(preparing).toHaveCount(1);
+    await expect(preparing).toContainText('2025');
+    state.finishEarlier();
+    await page.getByRole('tab', { name: copy.months }).click();
+    await expect(preparing).toHaveCount(1);
+    await expect(preparing).toContainText(month(7));
+    await expect(
+      page
+        .locator('.recap-archive .recap-cover:not(.recap-cover-preparing)')
+        .filter({ hasText: month(8) })
+        .getByRole('link', { name: new RegExp(copy.open) }),
+    ).toBeVisible();
+    expect(state.prepares()).toBe(1);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
 
 test('empty periods do not invent shared events', async ({ page }) => {
   await setup(page, { empty: true });

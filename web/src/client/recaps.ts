@@ -34,7 +34,8 @@ export function recapPeriodStatus(
   locale: string,
   translate: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  return value.savedAt
+  // A retained snapshot of a running period is the only "kept" state couples see.
+  return value.savedAt && value.isPartial
     ? translate('recaps.saved')
     : value.isPartial
       ? translate('recaps.partial', {

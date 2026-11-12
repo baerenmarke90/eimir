@@ -44,7 +44,7 @@ export function easterSunday(year: number): Date {
   const h = (19 * a + b - d - g + 15) % 30;
   const i = Math.floor(c / 4);
   const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k + 7 * 7) % 7;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
   const m = Math.floor((a + 11 * h + 22 * l) / 451);
   const n = h + l - 7 * m + 114;
   return utcDate(year, Math.floor(n / 31), (n % 31) + 1);

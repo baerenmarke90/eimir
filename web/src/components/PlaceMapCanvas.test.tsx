@@ -18,10 +18,10 @@ const state = vi.hoisted(() => ({
   stop: vi.fn(),
   marker: vi.fn(),
 }));
-vi.mock('maplibre-gl/dist/maplibre-gl-csp-worker.js?url', () => ({
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({
   default: '/worker.js',
 }));
-vi.mock('maplibre-gl/dist/maplibre-gl-csp.js', () => {
+vi.mock('maplibre-gl', () => {
   const map = {
     jumpTo: state.jump,
     flyTo: state.fly,
@@ -51,23 +51,21 @@ vi.mock('maplibre-gl/dist/maplibre-gl-csp.js', () => {
     }
   }
   return {
-    default: {
-      setWorkerUrl: vi.fn(),
-      Map: function (options: Record<string, unknown>) {
-        state.options = options;
-        return map;
-      },
-      LngLatBounds: Bounds,
-      Marker: function (options: { element: HTMLElement }) {
-        state.marker(options);
-        const marker = {
-          setLngLat: () => marker,
-          addTo: () => marker,
-          remove: vi.fn(),
-          getElement: () => options.element,
-        };
-        return marker;
-      },
+    setWorkerUrl: vi.fn(),
+    MapLibreMap: function (options: Record<string, unknown>) {
+      state.options = options;
+      return map;
+    },
+    LngLatBounds: Bounds,
+    Marker: function (options: { element: HTMLElement }) {
+      state.marker(options);
+      const marker = {
+        setLngLat: () => marker,
+        addTo: () => marker,
+        remove: vi.fn(),
+        getElement: () => options.element,
+      };
+      return marker;
     },
   };
 });

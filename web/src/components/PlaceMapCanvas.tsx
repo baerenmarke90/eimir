@@ -1,11 +1,13 @@
-import type {
-  IControl,
+import {
+  type ErrorEvent,
+  type IControl,
   LngLatBounds,
-  Map as MapLibreMap,
+  MapLibreMap,
+  type MapMouseEvent,
   Marker,
+  setWorkerUrl,
 } from 'maplibre-gl';
-import maplibregl from 'maplibre-gl/dist/maplibre-gl-csp.js';
-import workerUrl from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cssDurationMilliseconds } from '../client/cssDuration';
@@ -15,7 +17,7 @@ import './PlaceMapPicker.css';
 import { googleLikeStyle } from './placeMapStyle';
 
 // The CSP forbids blob workers, so MapLibre runs its first-party worker file.
-maplibregl.setWorkerUrl(workerUrl);
+setWorkerUrl(workerUrl);
 
 /** Keyless vector style built from OpenStreetMap data; see docs/DEPENDENCIES.md. */
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
@@ -156,7 +158,7 @@ export default function PlaceMapCanvas({
     const element = container.current;
     const point =
       restoredViewport.current ?? initialPoint.current ?? focusRef.current;
-    const map = new maplibregl.Map({
+    const map = new MapLibreMap({
       container: element,
       center: point ? lngLat(point) : [10.45, 51.16],
       zoom: toMapZoom(restoredViewport.current?.zoom ?? (point ? 15 : 5)),
@@ -181,12 +183,12 @@ export default function PlaceMapCanvas({
     );
     // A missing tile (HTTP 404) is an empty area; aborted requests are
     // ordinary pan/zoom cancellation. Everything else is a real outage.
-    map.on('error', (event) => {
+    map.on('error', (event: ErrorEvent) => {
       const error = event.error as (Error & { status?: number }) | undefined;
       if (error?.name === 'AbortError' || error?.status === 404) return;
       setTileError(true);
     });
-    map.on('click', (event) =>
+    map.on('click', (event: MapMouseEvent) =>
       selectRef.current?.({
         latitude: event.lngLat.lat,
         longitude: event.lngLat.lng,
@@ -295,7 +297,7 @@ export default function PlaceMapCanvas({
     else {
       const pin = document.createElement('span');
       pin.className = 'place-map-selected-marker';
-      markerRef.current = new maplibregl.Marker({ element: pin })
+      markerRef.current = new Marker({ element: pin })
         .setLngLat(position)
         .addTo(map);
     }
@@ -339,7 +341,7 @@ export default function PlaceMapCanvas({
           event.preventDefault();
           select(event);
         });
-        const marker = new maplibregl.Marker({ element: pin })
+        const marker = new Marker({ element: pin })
           .setLngLat(lngLat(location))
           .addTo(map);
         entry = { marker, host, count };
@@ -365,7 +367,7 @@ export default function PlaceMapCanvas({
     );
     if (fittedGeometry.current !== geometry) {
       if (locations?.length) {
-        const fitted = new maplibregl.LngLatBounds();
+        const fitted = new LngLatBounds();
         for (const point of locations) fitted.extend(lngLat(point));
         bounds.current = fitted;
       } else bounds.current = null;

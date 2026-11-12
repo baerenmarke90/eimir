@@ -344,18 +344,21 @@ for (const [width, theme, motion] of [
       return { x: pin.x - map.x, y: pin.y - map.y };
     };
     const beforeZoom = await position();
+    const clicked = Date.now();
     await fullscreen.locator('.place-map-zoom-in').click();
-    // Zooming is animated: measure only after the camera moved and came to rest.
+    // Zooming is animated and a marker at the zoom origin does not move, so
+    // allow the zoom duration to pass, then require a resting camera.
     let previous = beforeZoom;
     await expect
       .poll(async () => {
         const next = await position();
-        const moved = Math.hypot(next.x - beforeZoom.x, next.y - beforeZoom.y);
         const rested =
           Math.abs(next.x - previous.x) < 0.5 &&
           Math.abs(next.y - previous.y) < 0.5;
+        const moved =
+          Math.hypot(next.x - beforeZoom.x, next.y - beforeZoom.y) > 2;
         previous = next;
-        return moved > 2 && rested;
+        return rested && (moved || Date.now() - clicked > 1_000);
       })
       .toBe(true);
     const before = await position();

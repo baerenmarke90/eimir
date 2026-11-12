@@ -829,7 +829,7 @@ stylesheet or arbitrary image host is allowed, and the previous OSM image origin
 is removed. Map requests carry no application referrer (`Referrer-Policy:
 no-referrer`) and disclose no app route, Account or Space ID; the provider sees
 the user's IP address and the requested map area, as the in-app notice states.
-MapLibre runs from its first-party CSP build and worker file, so no blob worker
+MapLibre runs its own first-party module worker file (a same-origin script), so no blob worker
 or `unsafe-eval` allowance is needed. The production service worker keeps public
 basemap responses in a bounded cache. They contain no account, Space or media
 data, are never prefetched in bulk and reveal only areas the device already

@@ -138,3 +138,50 @@ it('keeps feature content and avoids an upgrade assertion when no effective tier
   expect(screen.getByText('Feature content')).toBeDefined();
   client.clear();
 });
+
+it('loads the tier at session entry and does not refetch when feature marks appear', async () => {
+  const api = vi
+    .spyOn(
+      EntitlementsApi.prototype,
+      'getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet',
+    )
+    .mockResolvedValue(tier('FREE'));
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const view = (showMark: boolean) => (
+    <QueryClientProvider client={client}>
+      <ApiRuntimeProvider
+        apiBaseUrl="https://example.test"
+        accessToken="token"
+        accountId="account-a"
+        spaceId="space-a"
+      >
+        <ProPresentationProvider>
+          {showMark ? <ProMark label="Pro" /> : <span>Ordinary tab</span>}
+        </ProPresentationProvider>
+      </ApiRuntimeProvider>
+    </QueryClientProvider>
+  );
+  const mounted = render(view(false));
+  await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+  mounted.rerender(view(true));
+  expect(await screen.findByText('Pro')).toBeDefined();
+  mounted.rerender(view(false));
+  mounted.rerender(view(true));
+  expect(api).toHaveBeenCalledTimes(1);
+  // Explicit subscription changes still refresh the same owner-scoped cache.
+  api.mockResolvedValue(tier('PREMIUM'));
+  await act(async () => {
+    await client.invalidateQueries({
+      queryKey: proPresentationKey(
+        'https://example.test',
+        'account-a',
+        'space-a',
+      ),
+    });
+  });
+  await waitFor(() => expect(screen.queryByText('Pro')).toBeNull());
+  expect(api).toHaveBeenCalledTimes(2);
+  client.clear();
+});

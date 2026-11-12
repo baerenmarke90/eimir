@@ -9,29 +9,9 @@
   align-items: center;
   gap: var(--space-2) var(--space-4);
 }
-.page-plan-composer .page-composer-writing {
-  display: grid;
-  gap: var(--space-2);
-}
-.page-plan-composer .page-composer-writing :is(input, textarea) {
-  inline-size: 100%;
-  max-inline-size: 100%;
-  min-inline-size: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-medium);
-  background: transparent;
-  box-shadow: none;
-}
-.page-plan-composer .page-composer-writing input.page-composer-title,
 .page-plan-detail .plan-detail-title {
   font: var(--font-composer-lead);
   color: var(--color-text);
-}
-.page-plan-composer .page-composer-writing input.page-composer-title {
-  /* Keep the input's line box tall enough for the font's descenders. */
-  line-height: normal;
 }
 .page-plan-composer .planning-editor-fields,
 .page-plan-composer .planning-intention-form fieldset {

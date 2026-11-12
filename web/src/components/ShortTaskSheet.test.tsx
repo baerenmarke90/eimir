@@ -763,29 +763,79 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('does not claim controls or primarily horizontal gestures', () => {
+  it('lets a pull start on buttons and rows without activating them', () => {
     mockMatchMedia(false);
-    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
-    fireEvent.click(screen.getByText('Task choices'));
-
+    const onChoose = vi.fn();
+    render(
+      <ShortTaskSheet open title="Places" onClose={vi.fn()}>
+        <button type="button" onClick={onChoose}>
+          Riverside cafe
+        </button>
+      </ShortTaskSheet>,
+    );
     const dialog = screen.getByRole('dialog') as HTMLDialogElement;
-    const control = screen.getByText('Continue to result');
-    const surface = screen.getByTestId('sheet-surface');
+    const row = screen.getByText('Riverside cafe');
 
-    fireEvent.pointerDown(control, {
+    fireEvent.pointerDown(row, {
       pointerId: 21,
       button: 0,
       isPrimary: true,
       clientX: 100,
       clientY: 100,
     });
-    fireEvent.pointerMove(control, {
-      pointerId: 21,
+    fireEvent.pointerMove(row, { pointerId: 21, clientX: 102, clientY: 180 });
+    expect(dialog.getAttribute('data-dragging')).toBe('true');
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('80px');
+    fireEvent.pointerUp(row, { pointerId: 21, clientX: 102, clientY: 180 });
+    // The settled pull's synthetic click must not choose the row.
+    fireEvent.click(row, { detail: 1 });
+    expect(onChoose).not.toHaveBeenCalled();
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+
+    // A fresh ordinary press still activates the row.
+    fireEvent.pointerDown(row, {
+      pointerId: 22,
+      button: 0,
+      isPrimary: true,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerUp(row, { pointerId: 22, clientX: 100, clientY: 100 });
+    fireEvent.click(row, { detail: 1 });
+    expect(onChoose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not claim text entry or primarily horizontal gestures', () => {
+    mockMatchMedia(false);
+    render(
+      <ShortTaskSheet open title="Places" onClose={vi.fn()}>
+        <input aria-label="Search places" />
+        <div data-testid="sheet-surface">Swipe surface</div>
+      </ShortTaskSheet>,
+    );
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const field = screen.getByLabelText('Search places');
+    const surface = screen.getByTestId('sheet-surface');
+
+    fireEvent.pointerDown(field, {
+      pointerId: 23,
+      button: 0,
+      isPrimary: true,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(field, {
+      pointerId: 23,
       clientX: 102,
       clientY: 180,
     });
-    fireEvent.pointerUp(control, {
-      pointerId: 21,
+    fireEvent.pointerUp(field, {
+      pointerId: 23,
       clientX: 102,
       clientY: 180,
     });
@@ -796,19 +846,19 @@ describe('ShortTaskSheet history ownership', () => {
     ).toBe('0px');
 
     fireEvent.pointerDown(surface, {
-      pointerId: 22,
+      pointerId: 24,
       button: 0,
       isPrimary: true,
       clientX: 100,
       clientY: 100,
     });
     fireEvent.pointerMove(surface, {
-      pointerId: 22,
+      pointerId: 24,
       clientX: 180,
       clientY: 120,
     });
     fireEvent.pointerUp(surface, {
-      pointerId: 22,
+      pointerId: 24,
       clientX: 180,
       clientY: 120,
     });

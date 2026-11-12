@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.os.Bundle;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.content.res.Configuration;
 import android.util.Log;
 import android.view.ViewGroup;
 import android.webkit.RenderProcessGoneDetail;
@@ -52,10 +53,14 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PlanFilesPlugin.class);
         registerPlugin(VoiceSharePlugin.class);
         registerPlugin(BackgroundMediaUploadsPlugin.class);
+        registerPlugin(SystemThemePlugin.class);
         super.onCreate(savedInstanceState);
         if (getBridge() != null) {
-            getBridge().getWebView().setBackgroundColor(
-                getResources().getColor(R.color.eimir_startup_background, getTheme()));
+            applyStartupBackground();
+            // Touch scrolling follows the platform convention without a
+            // persistent root scrollbar; the Web shell hides inner ones.
+            getBridge().getWebView().setVerticalScrollBarEnabled(false);
+            getBridge().getWebView().setHorizontalScrollBarEnabled(false);
             getBridge().addWebViewListener(new WebViewListener() {
                 @Override
                 public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
@@ -66,6 +71,19 @@ public class MainActivity extends BridgeActivity {
             photoFileChooser = new PhotoFileChooser(getBridge());
             getBridge().getWebView().setWebChromeClient(photoFileChooser);
         }
+    }
+
+    private void applyStartupBackground() {
+        getBridge().getWebView().setBackgroundColor(
+            getResources().getColor(R.color.eimir_startup_background, getTheme()));
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // uiMode is handled here, so the night startup color is reapplied
+        // instead of recreating the activity and reloading the WebView.
+        if (getBridge() != null) applyStartupBackground();
     }
 
     private void logRuntimeVersion() {

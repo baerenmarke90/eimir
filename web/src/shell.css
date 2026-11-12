@@ -1222,3 +1222,18 @@ html.app-pull-refresh-enabled body {
     animation: none;
   }
 }
+
+/*
+ * The native app follows the platform convention for touch scrolling and shows
+ * no persistent scrollbar. Browsers keep their own scrollbars. The Android
+ * shell also disables the WebView's own root scrollbar.
+ */
+:root[data-runtime="native"],
+:root[data-runtime="native"] * {
+  scrollbar-width: none;
+}
+
+:root[data-runtime="native"]::-webkit-scrollbar,
+:root[data-runtime="native"] ::-webkit-scrollbar {
+  display: none;
+}

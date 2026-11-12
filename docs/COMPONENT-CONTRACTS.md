@@ -361,6 +361,11 @@ visible until resolved or deliberately discarded.
 - Has a clear heading and a visible close option.
 - Drag-to-dismiss is supplementary only; keyboard and screen reader support
   remains complete.
+- On Compact, a deliberate downward pull may start anywhere on the sheet
+  surface, including buttons, links and list rows; releasing a claimed pull
+  never activates the control it started on. Text entry, selects, sliders,
+  maps and media keep their own gestures, and a scrolled inner region first
+  scrolls back to its top boundary.
 - Long or complex flows move to a dedicated page.
 
 ### 8.3 Side Pane

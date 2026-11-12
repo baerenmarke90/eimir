@@ -1058,7 +1058,7 @@ for (const [width, theme] of [
         },
       }),
     );
-    await page.setViewportSize({ width, height: 1000 });
+    await page.setViewportSize({ width, height: 1500 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     await page.goto('/story?tab=discover');
     await signIn(page);

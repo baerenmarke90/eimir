@@ -1,13 +1,14 @@
-import { fulfillFreeEntitlements } from '../support/freeEntitlements';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import recaps from '../../src/i18n/locales/recaps';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import recaps from '../../src/i18n/locales/recaps';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+
 const moduleContract: { moduleKeys: string[] } = JSON.parse(
   readFileSync(
     new URL(
@@ -584,7 +585,10 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
       name: m5s5.today.living.kicker,
       exact: true,
     });
+    const hiddenSections = page.locator('.dashboard-hidden-sections > summary');
     await retro.uncheck();
+    // A hidden section moves into the collapsed hidden-sections disclosure.
+    await hiddenSections.click();
     await expect(retro).toBeEnabled();
     await expect(signal).toBeChecked();
     await page.goto('/today');
@@ -592,10 +596,12 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await expect(page.locator('.today-section-retrospective')).toHaveCount(0);
     await expect(page.locator('.today-section-living')).toBeVisible();
     await page.goto('/more/settings/today');
+    await hiddenSections.click();
     await expect(retro).not.toBeChecked();
     await retro.check();
     await expect(retro).toBeEnabled();
     await signal.uncheck();
+    await hiddenSections.click();
     await expect(signal).toBeEnabled();
     const grip = page.getByRole('button', {
       name: `${m5s5.today.living.retrospectiveLabel} verschieben`,

@@ -1051,7 +1051,8 @@
 }
 
 .dashboard-module-control > :not(.dashboard-module-switch) {
-  grid-column: 2 / -1;
+  /* #1564: error and retry content spans the whole row, icon column included. */
+  grid-column: 1 / -1;
   min-width: 0;
 }
 

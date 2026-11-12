@@ -1,23 +1,23 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
-import composer from '../../src/i18n/locales/composer';
-import experiences from '../../src/i18n/locales/experiences';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import composer from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import planningCopy from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { openComposerPlace } from '../support/memoryDiary';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
-  installMocks,
   getTimelineItems,
+  installMocks,
   ME,
   SPACE_ID,
   signIn,
@@ -440,7 +440,9 @@ for (const [width, theme] of [
       page.getByText('Fresh afternoon together', { exact: true }),
     ).toBeVisible();
     await expect(page.locator('.overview-cache-notice')).toHaveCount(0);
-    await expect(page.locator('.today-hero')).toHaveCount(0);
+    // The fixed couple hero stays; the hidden personal section stays hidden.
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(page.locator('.today-section-moment')).toHaveCount(0);
 
     // Even with a saved overview, a current denial cannot authorize a cold start.
     await page.route('**/api/v1/auth/memberships', (route) =>

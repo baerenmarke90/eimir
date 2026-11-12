@@ -58,6 +58,20 @@ class DashboardSharedStorySummary(ApiModel):
     milestones: int
 
 
+class StoryLifelineWeek(ApiModel):
+    week_start: date
+    memories: int
+    heart_moments: int
+    milestones: int
+    highlight: DashboardItem
+
+
+class StoryLifelineView(ApiModel):
+    starts_on: date | None
+    today: date
+    weeks: list[StoryLifelineWeek]
+
+
 class DashboardAnticipation(ApiModel):
     plan_id: UUID
     title: str
@@ -341,6 +355,39 @@ def update_dashboard_module_preference(
         visible=state.visible,
         item_limit=state.item_limit,
         selected_collection_id=state.selected_collection_id,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/story-lifeline",
+    response_model=StoryLifelineView,
+    operation_id="getStoryLifeline",
+    responses=problem_responses(401, 403, 404),
+)
+def get_story_lifeline(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> StoryLifelineView:
+    """Return the shared Story bucketed by week for the Pro Wir lifeline."""
+    ensure_capability(
+        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
+    )
+    lifeline = service.read_story_lifeline(session, authorization)
+    response.headers["Cache-Control"] = "private, no-store"
+    return StoryLifelineView(
+        starts_on=lifeline.starts_on,
+        today=lifeline.today,
+        weeks=[
+            StoryLifelineWeek(
+                week_start=week.week_start,
+                memories=week.memories,
+                heart_moments=week.heart_moments,
+                milestones=week.milestones,
+                highlight=_project_item(week.highlight),
+            )
+            for week in lifeline.weeks
+        ],
     )
 
 

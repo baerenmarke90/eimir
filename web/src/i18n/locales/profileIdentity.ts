@@ -97,10 +97,18 @@ const profileIdentity = {
   settingsNotificationsAction: 'Zum Benachrichtigungs-Posteingang',
   settingsToday: 'Wir',
   settingsTodayIntro:
-    'Lege fest, welche Bereiche und wie viele kommende Einträge du auf „Wir“ sehen möchtest.',
-  settingsDashboard: 'Inhalte auf „Wir“',
-  dashboardModulesTitle: 'Sichtbare Bereiche',
-  dashboardModulesIntro: 'Bereiche auswählen und sortieren.',
+    'Gestalte deine persönliche Wir-Seite. Dein Partner hat seine eigene Ansicht.',
+  settingsDashboard: 'Wir-Seite anpassen',
+  dashboardPersonalIntro:
+    'Das hier ist deine Ansicht. Dein Partner entscheidet selbst, was er auf „Wir“ sieht.',
+  dashboardSharedFixed:
+    'Euer gemeinsamer Einstieg bleibt für euch beide gleich.',
+  dashboardAlwaysVisible: 'Immer oben',
+  dashboardModulesTitle: 'Deine Bereiche',
+  dashboardModulesIntro: 'Ein- oder ausblenden und am Griff sortieren.',
+  dashboardHiddenTitle: 'Ausgeblendet ({{count}})',
+  dashboardMoreOptions: 'Weitere Einstellungen',
+  dashboardCustomizeAction: 'Wir-Seite anpassen',
   dashboardOrderHandle: '{{name}} verschieben',
   dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:

@@ -1,38 +1,42 @@
-import { dashboardItemTitle } from '../client/dashboardPresentation';
-import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
-import { ProfilesApi } from '../client/mediaApis';
-import type { ProfilePageProps } from './ProfilePage';
-import type { RelationshipPassportView } from '../api/generated/models/RelationshipPassportView';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
-import { dashboardItemPath } from '../client/m4Product';
-import {
-  passportHighlights,
-  passportLandmarks,
-} from '../client/relationshipPassport';
-import { textExcerpt } from '../client/textExcerpt';
-import { OVERVIEW_GC_TIME } from '../client/useWarmOverviewQuery';
+import type { RelationshipPassportView } from '../api/generated/models/RelationshipPassportView';
 import { Configuration } from '../client/apiConfiguration';
-import {
-  ClientProblemError,
-  normalizeClientError,
-} from '../client/problemDetails';
+import { dashboardItemTitle } from '../client/dashboardPresentation';
+import { dashboardItemPath } from '../client/m4Product';
+import { ProfilesApi } from '../client/mediaApis';
 import { usePartnerNickname } from '../client/partnerNickname';
-import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
-import { MORE_PLACES_ROUTE, PRO_INFORMATION_ROUTE } from '../client/routes';
-import { resolvedLocale, useTranslation } from '../i18n';
-import { PartnerAvatarPair } from './PartnerAvatarPair';
-import { ProMark } from './ProMark';
-import { PreferenceSwitch } from './PreferenceSwitch';
 import {
   passportStatisticsKey,
   readPassportStatisticsPreference,
   savePassportStatisticsPreference,
 } from '../client/passportPreferences';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
+import {
+  passportHighlights,
+  passportLandmarks,
+} from '../client/relationshipPassport';
+import { MORE_PLACES_ROUTE, PRO_INFORMATION_ROUTE } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
+import { textExcerpt } from '../client/textExcerpt';
+import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
+import { OVERVIEW_GC_TIME } from '../client/useWarmOverviewQuery';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { PartnerAvatarPair } from './PartnerAvatarPair';
+import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
+import type { ProfilePageProps } from './ProfilePage';
+import { ProMark } from './ProMark';
 import './RelationshipReflections.css';
 
 const CAPABILITY = 'relationship.passport';
@@ -49,28 +53,16 @@ export function RelationshipPassport(props: ProfilePageProps) {
       profiles: new ProfilesApi(configuration),
     };
   }, [props.apiBaseUrl, props.accessToken]);
-  const capability = useQuery({
-    queryKey: [
-      'relationship-passport',
-      'entitlement',
-      props.account.id,
-      props.spaceId,
-    ],
-    queryFn: async ({ signal }) => {
-      try {
-        const view =
-          await apis.entitlements.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-            { spaceId: props.spaceId },
-            { signal },
-          );
-        return view.capabilities.includes(CAPABILITY);
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    retry: false,
-    gcTime: OVERVIEW_GC_TIME,
-    refetchOnMount: 'always',
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(apis.entitlements, props.spaceId),
+    [apis.entitlements, props.spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capability = useSpaceCapability({
+    accountId: props.account.id,
+    spaceId: props.spaceId,
+    load: loadEntitlement,
+    capability: CAPABILITY,
   });
   return (
     <section

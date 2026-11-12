@@ -52,6 +52,7 @@ function renderGames(
           <GamesProductArea
             apiBaseUrl="http://api.example.test"
             accessToken="test-token"
+            accountId="account-a"
             spaceId={SPACE_ID}
             loadEntitlement={async () => view}
             loadPerspectiveParticipants={async () => PARTICIPANTS}

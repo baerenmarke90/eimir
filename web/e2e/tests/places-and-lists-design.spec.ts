@@ -219,7 +219,7 @@ async function installContent(page: Page, dense = false) {
 
 async function openOverview(page: Page, kind: 'places' | 'collections') {
   await page.goto(`/more/${kind}`);
-  await expect(page.locator('h1')).toHaveText(
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     kind === 'places' ? m5s3.place.heading : m5s3.collection.overviewHeading,
   );
   await expect(page.locator('.content-overview-row').first()).toBeVisible();
@@ -290,11 +290,13 @@ for (const scenario of [
         ).violations,
       ).toEqual([]);
       await page.locator('.content-overview-row').first().click();
-      await expect(page.locator('h1')).toHaveText(
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(
         kind === 'places' ? 'Volkspark' : 'Trash-TV',
       );
       if (!scenario.large && scenario.width < 840)
-        expect((await page.locator('h1').boundingBox())?.y).toBeLessThan(180);
+        expect(
+          (await page.getByRole('heading', { level: 1 }).boundingBox())?.y,
+        ).toBeLessThan(180);
       if (scenario.width < 840)
         await expect(page.locator('.mobile-bottom-shell')).toBeInViewport();
       await captureScreenshot(page, testInfo, `${kind}-detail-${suffix}.png`);
@@ -388,7 +390,9 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await dialog.getByRole('button', { name: m5s3.common.keepEditing }).click();
   await dialog.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.locator('h1')).toHaveText('Unser Volkspark');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Unser Volkspark',
+  );
   await page.getByRole('button', { name: taskBoundary.back }).click();
   await page.getByRole('button', { name: m5s3.place.scopeALL }).click();
   const createPlace = page.getByRole('button', {
@@ -408,7 +412,9 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await dialog
     .getByRole('button', { name: m5s3.common.save, exact: true })
     .click();
-  await expect(page.locator('h1')).toHaveText('Unser Café');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Unser Café',
+  );
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: taskBoundary.back }).click();
   await expect(page).toHaveURL(/\/more\/places\?scope=ALL$/);
@@ -540,7 +546,9 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await dialog
     .getByRole('button', { name: m5s3.common.save, exact: true })
     .click();
-  await expect(page.locator('h1')).toHaveText('Unser Wochenende');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Unser Wochenende',
+  );
   await captureScreenshot(page, testInfo, 'list-created-390-light.png');
   await page.getByRole('button', { name: taskBoundary.back }).click();
   await expect(page).toHaveURL(/\/more\/collections\?scope=ALL$/);

@@ -9,11 +9,17 @@ const HORIZONTAL_BIAS = 1.25;
 const ENTRY_OPACITY = 0.92;
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 // Count only page-level loading states and the visible overview panel.
-const ROUTE_LOADING = [
-  ':scope > .ui-state-loading',
-  ':scope > .page > .ui-state-loading',
-  ':scope > .page > [role="tabpanel"]:not([hidden]) > .ui-state-loading',
-].join(', ');
+// A kept primary tab renders its page inside a visible tab panel.
+const PAGE_PARENTS = [
+  ':scope >',
+  ':scope > .primary-tab-panel:not([hidden]) >',
+];
+const ROUTE_LOADING = PAGE_PARENTS.flatMap((parent) => [
+  `${parent} .ui-state-loading`,
+  `${parent} .page > .ui-state-loading`,
+  `${parent} .page > [role="tabpanel"]:not([hidden]) > .ui-state-loading`,
+]).join(', ');
+const CURRENT_PAGE = PAGE_PARENTS.map((parent) => `${parent} .page`).join(', ');
 const BLOCKED_TARGETS =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .leaflet-container, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
 
@@ -123,7 +129,7 @@ function animatePageSlide(
   fromX: number,
 ): boolean {
   owner.current?.();
-  const page = surface.querySelector<HTMLElement>(':scope > .page');
+  const page = surface.querySelector<HTMLElement>(CURRENT_PAGE);
   const reduced = window.matchMedia?.(REDUCED_MOTION);
   if (!page || !fromX || reduced?.matches || typeof page.animate !== 'function')
     return false;

@@ -173,7 +173,7 @@ def last_problem(trace: Trace, evidence: list[dict[str, Any]]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--url", required=True, help="Ollama origin, e.g. http://127.0.0.1:11434")
-    parser.add_argument("--model", default="qwen3.5:4b-q4_K_M")
+    parser.add_argument("--model", default="qwen3:1.7b-q4_K_M")
     parser.add_argument("--timeout", type=int, default=90, help="seconds per model call")
     parser.add_argument("--runs", type=int, default=1, help="repeat each case")
     args = parser.parse_args()

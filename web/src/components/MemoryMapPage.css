@@ -114,6 +114,9 @@
 .memory-map-marker {
   display: grid;
   place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  cursor: pointer;
   background: transparent;
   color: var(--color-on-accent);
   border: 0;
@@ -512,7 +515,7 @@
 .memory-map-thumbnail .sensitive-media-label {
   padding: var(--space-1);
 }
-/* Leaflet resets marker images to intrinsic width; crop authored previews locally. */
+/* Crop authored marker previews locally so media keeps its square frame. */
 .place-map-viewport .memory-map-marker .memory-map-marker-photo img {
   width: 100%;
   height: 100%;

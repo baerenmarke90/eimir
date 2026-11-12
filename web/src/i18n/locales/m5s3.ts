@@ -236,7 +236,7 @@ const m5s3 = {
       'Kein passender Ort gefunden. Ändere die Suche oder wähle eine Position auf der Karte.',
     loadMap: 'Karte laden',
     privacy:
-      'Die Ortssuche nutzt Photon. Beim Laden der Karte erhält OpenStreetMap deine IP-Adresse und den Kartenausschnitt. Eure übrigen Inhalte werden nicht übermittelt.',
+      'Die Ortssuche nutzt Photon. Beim Laden der Karte erhält der Kartendienst OpenFreeMap deine IP-Adresse und den Kartenausschnitt. Eure übrigen Inhalte werden nicht übermittelt.',
     attribution: 'Kartendaten © OpenStreetMap-Mitwirkende · Suche mit Photon',
     zoomIn: 'Karte vergrößern',
     zoomOut: 'Karte verkleinern',

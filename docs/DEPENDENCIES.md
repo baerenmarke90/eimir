@@ -241,7 +241,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
-| leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
+| maplibre-gl | 6.16.0 | npm / MapLibre | BSD-3-Clause |
 | mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
 
 Mediabunny is used unmodified in a lazy, same-origin Web Worker for active
@@ -275,7 +275,6 @@ server-side lossy encoding is not a fallback. See [operations](operations/on-dev
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
-| @types/leaflet | 1.9.22 | npm / DefinitelyTyped | MIT |
 | typescript | 7.0.2 | npm | Apache-2.0 |
 | rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.4 | npm | MIT |
@@ -337,19 +336,31 @@ pull M5 functionality such as persistent Offline Caches, complete navigation,
 or Client Parity forward. The generated `typescript-fetch` code remains free
 of additional runtime dependencies and uses the browser Fetch API.
 
-### Explicit place map selection (2026-10-29)
+### Explicit place map selection (2026-10-29, basemap replaced 2026-11-12)
 
-Leaflet is loaded only inside the deliberately opened place-map task. It reuses
-browser map interaction, keyboard panning, zoom and attribution instead of
-implementing a map engine. Raster tiles come from OpenStreetMap under its public
-best-effort tile policy, with visible OSM attribution and ordinary HTTP caching;
-there are no bulk/offline tile downloads. Photon search reuses the existing
-backend provider normalization and an operator-controlled origin. It adds no
-Python dependency, end-user key or paid account. Google Maps and MapLibre were
-reviewed; billing/key setup and a separate vector-style boundary are unnecessary
-for this bounded choice task. Existing places and manual coordinates survive
-provider outages. The preflight, privacy disclosure and provider terms are
-recorded in `docs/product/design/plan-images-and-map-picker.md`.
+MapLibre GL JS is loaded only inside the deliberately opened map task. It reuses
+GPU vector rendering, animated zoom, pinch/keyboard handling and attribution
+instead of implementing a map engine. It replaces Leaflet with 256 px OpenStreetMap
+raster tiles: those jumped between integer zoom levels, showed grey gaps while
+tiles loaded and could not be restyled. The Memory map is a Pro capability and
+needs a smooth, recognizable map; the earlier "bounded choice task" argument
+against a vector stack no longer holds.
+
+Vector tiles, glyphs and sprites come from OpenFreeMap (`tiles.openfreemap.org`):
+OpenStreetMap data, no API key, no account, no billing and no usage cap, with
+visible OpenFreeMap, OpenMapTiles and OpenStreetMap attribution. It is
+self-hostable, so an operator can replace the origin. The OpenFreeMap "liberty"
+style is recolored client-side (`placeMapStyle.ts`) to a calmer palette; unknown
+layers keep their upstream colors. Google Maps (key and billing) and CARTO tiles
+(commercial-use terms unclear) were reviewed and not selected. Tile URLs are
+versioned and served with ten-year caching; the production service worker also
+keeps basemap responses in a bounded cache (1,500 entries, oldest first) so
+revisited areas load without the network. There is no prefetching and no bulk or
+offline download. The native app relies on its WebView HTTP cache. Photon search
+reuses the existing backend provider normalization and operator-controlled
+origin. It adds no Python dependency, end-user key or paid account. Existing
+places and manual coordinates survive provider outages. The original preflight
+is recorded in `docs/product/design/plan-images-and-map-picker.md`.
 
 ## Web — Browser QA Development
 

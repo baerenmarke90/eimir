@@ -7,6 +7,7 @@ import de from '../../src/i18n/locales/de';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
+import { type MapTileMock, mockMapTiles } from '../support/mapTiles';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -34,15 +35,14 @@ async function expectSecondaryProIcons(page: Page) {
   }
 }
 
-async function exerciseMapTouchOwnership(page: Page) {
+async function exerciseMapTouchOwnership(page: Page, tiles: MapTileMock) {
   const sheet = page.getByRole('dialog', { name: mapCopy.title });
   const map = sheet.locator('.place-map-viewport');
   const bounds = await map.boundingBox();
   if (!bounds) throw new Error('Fullscreen map has no touch bounds');
-  const pane = map.locator('.leaflet-map-pane');
-  const beforePan = await pane.evaluate(
-    (node) => getComputedStyle(node).transform,
-  );
+  // Markers are anchored to the map, so panning moves them on screen.
+  const anchor = map.locator('.memory-map-marker').first();
+  const beforePan = await anchor.boundingBox();
   const touch = await page.context().newCDPSession(page);
   let touching = false;
   const x = bounds.x + bounds.width * 0.7;
@@ -70,20 +70,12 @@ async function exerciseMapTouchOwnership(page: Page) {
       touchPoints: [],
     });
     touching = false;
-    await expect(pane).not.toHaveCSS('transform', beforePan);
+    await expect
+      .poll(async () => (await anchor.boundingBox())?.y)
+      .not.toBe(beforePan?.y);
     await expect(sheet).toBeVisible();
 
-    const tileZooms = () =>
-      map
-        .locator('img.leaflet-tile')
-        .evaluateAll((images) =>
-          images.map((image) =>
-            Number(
-              new URL((image as HTMLImageElement).src).pathname.split('/')[1],
-            ),
-          ),
-        );
-    const beforeZoom = Math.max(...(await tileZooms()));
+    const beforeZoom = Math.max(...tiles.zooms());
     const centerX = bounds.x + bounds.width / 2;
     const centerY = bounds.y + bounds.height / 2;
     for (const [index, spread] of [35, 70, 110].entries()) {
@@ -104,7 +96,7 @@ async function exerciseMapTouchOwnership(page: Page) {
     });
     touching = false;
     await expect
-      .poll(async () => Math.max(...(await tileZooms())))
+      .poll(async () => Math.max(...tiles.zooms()))
       .toBeGreaterThan(beforeZoom);
     await expect(sheet).toBeVisible();
   } finally {
@@ -149,11 +141,7 @@ for (const [width, theme] of [
         ),
       });
     });
-    let tileReads = 0;
-    await page.route('https://tile.openstreetmap.org/**', async (route) => {
-      tileReads++;
-      await route.fulfill({ contentType: 'image/png', body: TINY_PNG });
-    });
+    const tiles = await mockMapTiles(page);
     await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
       route.fulfill({
         json: {
@@ -245,7 +233,7 @@ for (const [width, theme] of [
     // Initial layout/StrictMode admission may cancel a fetch before any body
     // arrives. Measure return continuity from the first confirmed ready view.
     const readyThumbnailReads = thumbnailReads;
-    await expect.poll(() => tileReads).toBeGreaterThan(0);
+    await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Karte laden' })).toHaveCount(
       0,
     );
@@ -269,21 +257,13 @@ for (const [width, theme] of [
     await expect
       .poll(async () => Math.round((await fullscreen.boundingBox())?.y ?? -1))
       .toBe(0);
-    await expect(page.locator('.leaflet-container')).toHaveCount(1);
-    // Real Leaflet tiles must use an overview zoom, including single-place maps.
+    await expect(page.locator('.maplibregl-map')).toHaveCount(1);
+    // Real vector tiles must use an overview zoom, including single-place maps.
     await expect
-      .poll(async () => {
-        const sources = await fullscreen
-          .locator('img.leaflet-tile')
-          .evaluateAll((images) =>
-            images.map((image) =>
-              Number(
-                new URL((image as HTMLImageElement).src).pathname.split('/')[1],
-              ),
-            ),
-          );
-        return sources.length > 0 && sources.every((zoom) => zoom <= 12);
-      })
+      .poll(
+        () =>
+          tiles.zooms().length > 0 && tiles.zooms().every((zoom) => zoom <= 11),
+      )
       .toBe(true);
     const viewport = await fullscreen
       .locator('.place-map-viewport')
@@ -312,7 +292,7 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
-    if (width < 840) await exerciseMapTouchOwnership(page);
+    if (width < 840) await exerciseMapTouchOwnership(page, tiles);
     await page.keyboard.press('Escape');
     await expect(fullscreen).toBeHidden();
     await expect(expand).toBeFocused();
@@ -383,9 +363,7 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
   await page.setViewportSize({ width: 320, height: 740 });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await installMocks(page);
-  await page.route('https://tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ status: 503, body: '' }),
-  );
+  await mockMapTiles(page, { fail: true });
   await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
     route.fulfill({
       json: {
@@ -1137,9 +1115,7 @@ for (const [width, colorScheme] of [
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const unknown = await installMocks(page, { strict: true });
-    await page.route('https://tile.openstreetmap.org/**', (route) =>
-      route.fulfill({ contentType: 'image/png', body: TINY_PNG }),
-    );
+    const tiles = await mockMapTiles(page);
     await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
       route.fulfill({
         json: {
@@ -1178,22 +1154,10 @@ for (const [width, colorScheme] of [
     await expect(page.locator('.memory-map-marker')).toHaveCount(1);
     await expect(page.locator('.memory-map-selection h2')).toHaveText('Lake');
     await expect
-      .poll(async () =>
-        page
-          .locator('img.leaflet-tile')
-          .evaluateAll(
-            (images) =>
-              images.length > 0 &&
-              images.every(
-                (image) =>
-                  Number(
-                    new URL((image as HTMLImageElement).src).pathname.split(
-                      '/',
-                    )[1],
-                  ) === 15,
-              ),
-          ),
-      )
+      .poll(() => {
+        const zooms = tiles.zooms();
+        return zooms.length > 0 && zooms[zooms.length - 1] === 14;
+      })
       .toBe(true);
     const filter = page.getByRole('button', {
       name: mapCopy.filter,

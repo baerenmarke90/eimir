@@ -7,48 +7,66 @@ const state = vi.hoisted(() => ({
   width: 0,
   height: 0,
   resize: () => {},
-  events: {} as Record<string, () => void>,
+  events: {} as Record<string, (event?: unknown) => void>,
+  options: {} as Record<string, unknown>,
   fit: vi.fn(),
-  invalidate: vi.fn(),
+  mapResize: vi.fn(),
   remove: vi.fn(),
-  view: vi.fn().mockReturnThis(),
+  jump: vi.fn(),
   fly: vi.fn(),
-  flyBounds: vi.fn(),
+  camera: vi.fn(),
   stop: vi.fn(),
   marker: vi.fn(),
 }));
-vi.mock('leaflet', () => {
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({
+  default: '/worker.js',
+}));
+vi.mock('maplibre-gl', () => {
   const map = {
-    setView: state.view,
+    jumpTo: state.jump,
     flyTo: state.fly,
-    flyToBounds: state.flyBounds,
+    cameraForBounds: state.camera,
     stop: state.stop,
     getCenter: () => ({ lat: 49, lng: 7 }),
-    getZoom: () => 15,
-    on: (events: string, callback: () => void) => {
-      for (const event of events.split(' ')) state.events[event] = callback;
+    getZoom: () => 14,
+    getMinZoom: () => 0,
+    getMaxZoom: () => 18,
+    on: (event: string, callback: () => void) => {
+      state.events[event] = callback;
       return map;
     },
+    off: vi.fn(),
+    setStyle: vi.fn(),
+    addControl: vi.fn(),
+    touchZoomRotate: { disableRotation: vi.fn() },
     fitBounds: state.fit,
-    invalidateSize: state.invalidate,
+    resize: state.mapResize,
     remove: state.remove,
   };
-  const layer = () => ({
-    addTo: vi.fn().mockReturnThis(),
-    remove: vi.fn(),
-    on: vi.fn().mockReturnThis(),
-  });
+  class Bounds {
+    points: number[][] = [];
+    extend(point: number[]) {
+      this.points.push(point);
+      return this;
+    }
+  }
   return {
-    map: () => map,
-    control: { zoom: layer },
-    tileLayer: layer,
-    layerGroup: layer,
-    marker: state.marker.mockImplementation(() => ({
-      ...layer(),
-      getElement: () => null,
-    })),
-    divIcon: (options: unknown) => options,
-    latLngBounds: (points: unknown) => points,
+    setWorkerUrl: vi.fn(),
+    MapLibreMap: function (options: Record<string, unknown>) {
+      state.options = options;
+      return map;
+    },
+    LngLatBounds: Bounds,
+    Marker: function (options: { element: HTMLElement }) {
+      state.marker(options);
+      const marker = {
+        setLngLat: () => marker,
+        addTo: () => marker,
+        remove: vi.fn(),
+        getElement: () => options.element,
+      };
+      return marker;
+    },
   };
 });
 beforeEach(() => {
@@ -92,11 +110,13 @@ it('waits for measurable dialog layout, then fits every location without a timer
   state.height = 740;
   act(() => state.resize());
   expect(state.fit).toHaveBeenLastCalledWith(
-    [
-      [49, 7],
-      [54, 8],
-    ],
-    expect.objectContaining({ maxZoom: 12, animate: false }),
+    expect.objectContaining({
+      points: [
+        [7, 49],
+        [8, 54],
+      ],
+    }),
+    expect.objectContaining({ maxZoom: 11, animate: false }),
   );
   state.width = 740;
   act(() => state.resize());
@@ -114,10 +134,10 @@ it('preserves deliberate user pan/zoom across later resizes', () => {
     />,
   );
   expect(state.fit).toHaveBeenCalledTimes(1);
-  act(() => state.events.zoomstart());
+  act(() => state.events.movestart());
   state.height = 640;
   act(() => state.resize());
-  expect(state.invalidate).toHaveBeenCalledTimes(2);
+  expect(state.mapResize).toHaveBeenCalledTimes(2);
   expect(state.fit).toHaveBeenCalledTimes(1);
 });
 
@@ -136,7 +156,8 @@ it('keeps a retained marker host and camera stable when only its photo changes',
       locations={[{ ...point, preview: <span>First preview</span> }]}
     />,
   );
-  const firstContent = state.marker.mock.calls[0][1].icon.html as HTMLElement;
+  const pin = state.marker.mock.calls[0][0].element as HTMLElement;
+  const firstContent = pin.firstElementChild as HTMLElement;
   const firstHost = firstContent.firstElementChild;
   expect(firstHost?.textContent).toBe('First preview');
   view.rerender(
@@ -187,7 +208,9 @@ it.each(['1100ms', '1.1s'])(
         focus={{ latitude: 49, longitude: 7 }}
       />,
     );
-    expect(state.fly).toHaveBeenLastCalledWith([49, 7], 15, { duration: 1.1 });
+    expect(state.fly).toHaveBeenLastCalledWith(
+      expect.objectContaining({ center: [7, 49], zoom: 14, duration: 1100 }),
+    );
     expect(state.fit).toHaveBeenCalledTimes(1);
     expect(
       view.container.firstElementChild?.getAttribute('data-map-moving'),
@@ -198,7 +221,9 @@ it.each(['1100ms', '1.1s'])(
         focus={{ latitude: 54, longitude: 8 }}
       />,
     );
-    expect(state.fly).toHaveBeenLastCalledWith([54, 8], 15, { duration: 1.1 });
+    expect(state.fly).toHaveBeenLastCalledWith(
+      expect.objectContaining({ center: [8, 54], zoom: 14, duration: 1100 }),
+    );
     const viewport = view.container.querySelector('.place-map-viewport');
     if (!viewport) throw new Error('Map viewport must exist');
     fireEvent.pointerDown(viewport);
@@ -209,13 +234,19 @@ it.each(['1100ms', '1.1s'])(
     act(() => state.resize());
     expect(state.fly).toHaveBeenCalledTimes(2);
     expect(state.fit).toHaveBeenCalledTimes(1);
+    state.camera.mockReturnValue({ center: [7.5, 51], zoom: 6 });
     view.rerender(<PlaceMapCanvas locations={points} />);
-    expect(state.flyBounds).toHaveBeenCalledWith(
-      [
-        [49, 7],
-        [54, 8],
-      ],
-      expect.objectContaining({ duration: 1.1, maxZoom: 12 }),
+    expect(state.camera).toHaveBeenCalledWith(
+      expect.objectContaining({
+        points: [
+          [7, 49],
+          [8, 54],
+        ],
+      }),
+      expect.objectContaining({ maxZoom: 11 }),
+    );
+    expect(state.fly).toHaveBeenLastCalledWith(
+      expect.objectContaining({ center: [7.5, 51], zoom: 6, duration: 1100 }),
     );
     act(() => state.events.moveend());
     expect(
@@ -245,7 +276,14 @@ it('restores the captured camera and uses immediate focus with reduced motion', 
       initialViewport={{ latitude: 49.1, longitude: 7.2, zoom: 13 }}
     />,
   );
-  expect(state.view).toHaveBeenCalledWith([49.1, 7.2], 13);
+  expect(state.options).toEqual(
+    expect.objectContaining({ center: [7.2, 49.1], zoom: 12 }),
+  );
+  act(() => state.resize());
+  expect(state.jump).toHaveBeenLastCalledWith({
+    center: [7.2, 49.1],
+    zoom: 12,
+  });
   expect(state.fit).not.toHaveBeenCalled();
   view.rerender(
     <PlaceMapCanvas
@@ -253,7 +291,7 @@ it('restores the captured camera and uses immediate focus with reduced motion', 
       focus={{ latitude: 49, longitude: 7 }}
     />,
   );
-  expect(state.view).toHaveBeenLastCalledWith([49, 7], 15, { animate: false });
+  expect(state.jump).toHaveBeenLastCalledWith({ center: [7, 49], zoom: 14 });
   expect(state.fly).not.toHaveBeenCalled();
 });
 
@@ -263,15 +301,18 @@ it('restores a saved camera after a fullscreen dialog first becomes measurable',
       initialViewport={{ latitude: 49.1, longitude: 7.2, zoom: 16 }}
     />,
   );
-  expect(state.view).toHaveBeenCalledWith([49.1, 7.2], 16);
+  expect(state.options).toEqual(
+    expect.objectContaining({ center: [7.2, 49.1], zoom: 15 }),
+  );
   state.width = 390;
   state.height = 740;
   act(() => state.resize());
-  expect(state.view).toHaveBeenLastCalledWith([49.1, 7.2], 16, {
-    animate: false,
+  expect(state.jump).toHaveBeenLastCalledWith({
+    center: [7.2, 49.1],
+    zoom: 15,
   });
-  const calls = state.view.mock.calls.length;
+  const calls = state.jump.mock.calls.length;
   state.height = 640;
   act(() => state.resize());
-  expect(state.view).toHaveBeenCalledTimes(calls);
+  expect(state.jump).toHaveBeenCalledTimes(calls);
 });

@@ -876,7 +876,7 @@ describe('ShortTaskSheet history ownership', () => {
       const onClose = vi.fn();
       render(
         <ShortTaskSheet open title="Map" onClose={onClose}>
-          <div className="leaflet-container">
+          <div className="place-map-viewport">
             <span data-testid="map-tile">Map tile</span>
           </div>
         </ShortTaskSheet>,

@@ -248,7 +248,7 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length);
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 1);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')

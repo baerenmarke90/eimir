@@ -2539,7 +2539,7 @@ describe('formatRelationshipDuration', () => {
           expect(html).toMatch(/<h2[^>]*class="couple-presence-title"/);
           expect(html).toContain('<h1>Wir</h1>');
           expect(html).toContain('page-heading-root');
-          expect((html.match(/<h1[\\s>]/g) ?? []).length).toBe(1);
+          expect((html.match(/<h1[\s>]/g) ?? []).length).toBe(1);
         }
       });
 

@@ -1659,6 +1659,43 @@
         "title": "ContextTagSuggestionsView",
         "type": "object"
       },
+      "CoupleExperienceQuestionState": {
+        "description": "Answer state of one daily question for the reading partner.",
+        "properties": {
+          "answeredByMe": {
+            "title": "Answeredbyme",
+            "type": "boolean"
+          },
+          "answeredByPartner": {
+            "title": "Answeredbypartner",
+            "type": "boolean"
+          },
+          "memoryId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shared experience to open or answer: the thread still waiting for the reader when the partner answered first, otherwise the latest thread for this question.",
+            "title": "Memoryid"
+          },
+          "questionId": {
+            "title": "Questionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "answeredByMe",
+          "answeredByPartner"
+        ],
+        "title": "CoupleExperienceQuestionState",
+        "type": "object"
+      },
       "CoupleExperienceQuestions": {
         "properties": {
           "kind": {
@@ -1674,6 +1711,13 @@
               "type": "string"
             },
             "title": "Questionids",
+            "type": "array"
+          },
+          "questionStates": {
+            "items": {
+              "$ref": "#/components/schemas/CoupleExperienceQuestionState"
+            },
+            "title": "Questionstates",
             "type": "array"
           },
           "refreshAfterSeconds": {
@@ -4861,6 +4905,19 @@
                 "type": "null"
               }
             ]
+          },
+          "experienceQuestionId": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Editorial key of the daily question this experience answers. Only valid together with `experienceKind` and without `experienceReplyTo`; a reply inherits the question of the experience it answers.",
+            "title": "Experiencequestionid"
           },
           "experienceReplyTo": {
             "anyOf": [

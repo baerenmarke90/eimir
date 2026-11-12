@@ -173,6 +173,7 @@ def create_memory(
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     experience_reply_to: UUID | None = None,
+    experience_question_id: str | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
@@ -198,10 +199,11 @@ def create_memory(
         existing = experiences.responses(session, context, [source]).get(reply_root, [])
         if any(entry.owner_id == context.account_id for entry in existing):
             raise ConflictError("Edit your existing answer instead.", "EXPERIENCE_ALREADY_ANSWERED")
-        title, happened_on, happened_until = (
+        title, happened_on, happened_until, experience_question_id = (
             source.payload.title,
             source.happened_on,
             source.happened_until,
+            source.payload.experience_question_id,
         )
     selected_places = place_ids if place_ids is not None else ([place_id] if place_id else [])
     memory_places.validate(selected_places)
@@ -214,7 +216,11 @@ def create_memory(
         happened_until=happened_until,
         experience_kind=experience_kind.value if experience_kind is not None else None,
         payload=MemoryPayload(
-            title=_normalize_title(title), body=body, tags=tags or [], place_order=selected_places
+            title=_normalize_title(title),
+            body=body,
+            tags=tags or [],
+            place_order=selected_places,
+            experience_question_id=experience_question_id if experience_kind is not None else None,
         ),
     )
     session.add(memory)
@@ -254,6 +260,7 @@ def create_memory_once(
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     experience_reply_to: UUID | None = None,
+    experience_question_id: str | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
@@ -275,6 +282,7 @@ def create_memory_once(
             tags=tags,
             experience_kind=experience_kind,
             experience_reply_to=experience_reply_to,
+            experience_question_id=experience_question_id,
             place_id=place_id,
             place_ids=place_ids,
             happened_until=happened_until,
@@ -291,6 +299,7 @@ def create_memory_once(
         tags=tags or [],
         experience_kind=experience_kind,
         experience_reply_to=experience_reply_to,
+        experience_question_id=experience_question_id,
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,
@@ -311,6 +320,7 @@ def create_memory_once(
         tags=tags,
         experience_kind=experience_kind,
         experience_reply_to=experience_reply_to,
+        experience_question_id=experience_question_id,
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,

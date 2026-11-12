@@ -9,6 +9,7 @@ Name | Type
 `kind` | [ExperienceKind](ExperienceKind.md)
 `localDate` | Date
 `questionIds` | Array&lt;string&gt;
+`questionStates` | [Array&lt;CoupleExperienceQuestionState&gt;](CoupleExperienceQuestionState.md)
 `refreshAfterSeconds` | number
 
 ## Example
@@ -21,6 +22,7 @@ const example = {
   "kind": null,
   "localDate": null,
   "questionIds": null,
+  "questionStates": null,
   "refreshAfterSeconds": null,
 } satisfies CoupleExperienceQuestions
 

@@ -972,7 +972,9 @@ describe('DashboardSettingsPanel', () => {
       await act(async () => {
         resolveWrite?.({ moduleKey: 'keepsake', visible: false });
       });
-      await waitFor(() => expect(moduleCheckbox('keepsake').disabled).toBe(false));
+      await waitFor(() =>
+        expect(moduleCheckbox('keepsake').disabled).toBe(false),
+      );
       expect(moduleCheckbox('keepsake').checked).toBe(true);
       expect(
         queryClient

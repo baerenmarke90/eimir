@@ -510,7 +510,9 @@ test('personal module reorder persists across reload and separates the visibilit
   expect(
     orderedSections.findIndex((name) => name.includes('today-hero')),
   ).toBeLessThan(
-    orderedSections.findIndex((name) => name.includes('today-section-upcoming')),
+    orderedSections.findIndex((name) =>
+      name.includes('today-section-upcoming'),
+    ),
   );
 
   await page.goto(settingsCategoryPath('today'));

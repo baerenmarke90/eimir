@@ -76,6 +76,29 @@ function Harness({
   );
 }
 
+function PageMotionHarness({
+  pathname = '/story',
+  onNavigate,
+}: {
+  pathname?: string;
+  onNavigate: (path: string) => void;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  useNavigationMotion({
+    surfaceRef: ref,
+    pathname,
+    routeKey: pathname,
+    onNavigate,
+  });
+  return (
+    <main ref={ref} data-testid="motion-surface">
+      <section className="page" data-testid="motion-page">
+        <p data-testid="motion-reading">Shared content</p>
+      </section>
+    </main>
+  );
+}
+
 beforeEach(() => {
   Object.defineProperty(window, 'innerWidth', {
     configurable: true,
@@ -96,6 +119,76 @@ afterEach(() => {
   cleanup();
   document.body.style.overflow = '';
   vi.restoreAllMocks();
+});
+
+describe('primary tab slide feedback', () => {
+  it('tracks the finger and animates the committed adjacent page in the same direction', () => {
+    const navigate = vi.fn();
+    const frame = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback) => {
+        callback(0);
+        return 1;
+      });
+    const animation = { cancel: vi.fn() } as unknown as Animation;
+    const animate = vi.fn().mockReturnValue(animation);
+    const view = render(<PageMotionHarness onNavigate={navigate} />);
+    const surface = screen.getByTestId('motion-surface');
+    const page = screen.getByTestId('motion-page');
+    surface.style.setProperty('--duration-transition', '.18s');
+    Object.defineProperty(page, 'animate', { configurable: true, value: animate });
+
+    const reading = screen.getByTestId('motion-reading');
+    act(() => {
+      touch(reading, 'touchstart', [point(280)]);
+      touch(reading, 'touchmove', [point(90)]);
+    });
+    expect(surface.getAttribute('data-primary-tab-dragging')).toBe('true');
+    expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe('-48px');
+    act(() => touch(reading, 'touchend', [], [point(90)]));
+    expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe('');
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/plan');
+
+    view.rerender(<PageMotionHarness pathname="/plan" onNavigate={navigate} />);
+    expect(animate).toHaveBeenCalledWith(
+      [
+        { transform: 'translate3d(32px, 0, 0)' },
+        { transform: 'translate3d(0, 0, 0)' },
+      ],
+      expect.objectContaining({ duration: 180 }),
+    );
+    view.unmount();
+    frame.mockRestore();
+  });
+
+  it('gently springs back after a cancelled swipe and keeps the shell untransformed', () => {
+    const navigate = vi.fn();
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    const animation = { cancel: vi.fn() } as unknown as Animation;
+    const animate = vi.fn().mockReturnValue(animation);
+    render(<PageMotionHarness onNavigate={navigate} />);
+    const surface = screen.getByTestId('motion-surface');
+    const page = screen.getByTestId('motion-page');
+    Object.defineProperty(page, 'animate', { configurable: true, value: animate });
+    const reading = screen.getByTestId('motion-reading');
+    act(() => {
+      touch(reading, 'touchstart', [point(200)]);
+      touch(reading, 'touchmove', [point(175)]);
+      touch(reading, 'touchend', [], [point(175)]);
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(animate).toHaveBeenCalledWith(
+      [
+        { transform: 'translate3d(-7.000000000000001px, 0, 0)' },
+        { transform: 'translate3d(0, 0, 0)' },
+      ],
+      expect.anything(),
+    );
+    expect(surface.style.transform).toBe('');
+  });
 });
 
 describe('primary tab swipe ownership', () => {

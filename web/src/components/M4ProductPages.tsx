@@ -197,9 +197,7 @@ export function SearchProductPage({
     : (HEART_MOMENT_TAGS as readonly string[]).includes(selectedTag)
       ? t(`heartMomentProduct.tagLabels.${selectedTag}`)
       : selectedTag;
-  const effectiveQuery = selectedTag
-    ? `tag:${selectedTag}`
-    : submittedQuery;
+  const effectiveQuery = selectedTag ? `tag:${selectedTag}` : submittedQuery;
   const effectiveKind = selectedTag ? '' : kind;
 
   const returnKey = (location.state as { taskReturnKey?: unknown } | null)
@@ -299,53 +297,53 @@ export function SearchProductPage({
           </Link>
         </div>
       ) : (
-      <form className="layout-panel m4-toolbar" onSubmit={submit}>
-        <div className="m4-toolbar-row">
-          <div className="field-group m4-search-field">
-            <label htmlFor="m4-search-query">{t('m5s5.search.label')}</label>
-            <div className="m4-search-input-shell">
-              <span className="m4-search-input-icon" aria-hidden="true">
-                <DestinationIcon icon="search" />
-              </span>
-              <input
-                id="m4-search-query"
-                type="search"
-                value={draftQuery}
-                onChange={(event) => setDraftQuery(event.currentTarget.value)}
-                placeholder={t('m5s5.search.placeholder')}
-                autoComplete="off"
-              />
+        <form className="layout-panel m4-toolbar" onSubmit={submit}>
+          <div className="m4-toolbar-row">
+            <div className="field-group m4-search-field">
+              <label htmlFor="m4-search-query">{t('m5s5.search.label')}</label>
+              <div className="m4-search-input-shell">
+                <span className="m4-search-input-icon" aria-hidden="true">
+                  <DestinationIcon icon="search" />
+                </span>
+                <input
+                  id="m4-search-query"
+                  type="search"
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.currentTarget.value)}
+                  placeholder={t('m5s5.search.placeholder')}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            <div className="field-group">
+              <label htmlFor="m4-search-kind">{t('m5s5.search.typeLabel')}</label>
+              <select
+                id="m4-search-kind"
+                value={kind}
+                onChange={(event) =>
+                  setKind(event.currentTarget.value as SearchKind | '')
+                }
+              >
+                <option value="">{t('m5s5.search.allTypes')}</option>
+                {SEARCH_KINDS.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {t(`m5s5.kind.${candidate}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="m4-toolbar-submit">
+              <button
+                type="submit"
+                disabled={!draftQuery.trim() || searchQuery.isFetching}
+              >
+                {searchQuery.isFetching && !searchQuery.isFetchingNextPage
+                  ? t('m5s5.search.searching')
+                  : t('m5s5.search.submit')}
+              </button>
             </div>
           </div>
-          <div className="field-group">
-            <label htmlFor="m4-search-kind">{t('m5s5.search.typeLabel')}</label>
-            <select
-              id="m4-search-kind"
-              value={kind}
-              onChange={(event) =>
-                setKind(event.currentTarget.value as SearchKind | '')
-              }
-            >
-              <option value="">{t('m5s5.search.allTypes')}</option>
-              {SEARCH_KINDS.map((candidate) => (
-                <option key={candidate} value={candidate}>
-                  {t(`m5s5.kind.${candidate}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="m4-toolbar-submit">
-            <button
-              type="submit"
-              disabled={!draftQuery.trim() || searchQuery.isFetching}
-            >
-              {searchQuery.isFetching && !searchQuery.isFetchingNextPage
-                ? t('m5s5.search.searching')
-                : t('m5s5.search.submit')}
-            </button>
-          </div>
-        </div>
-      </form>
+        </form>
       )}
 
       {!effectiveQuery ? (

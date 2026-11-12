@@ -363,11 +363,13 @@ export function useNavigationMotion({
           !(elapsed >= 32 && Math.abs(dx) >= 32 && velocity > 0.5)) ||
         Math.abs(dx) < Math.abs(dy) * HORIZONTAL_BIAS
       ) {
-        if (!animatePageSlide(
-          surface,
-          pageSlideCleanup,
-          swipeTravel(current.offset),
-        )) {
+        if (
+          !animatePageSlide(
+            surface,
+            pageSlideCleanup,
+            swipeTravel(current.offset),
+          )
+        ) {
           animateContent(
             surface,
             mainMotionCleanup,

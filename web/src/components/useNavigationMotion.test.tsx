@@ -136,7 +136,10 @@ describe('primary tab slide feedback', () => {
     const surface = screen.getByTestId('motion-surface');
     const page = screen.getByTestId('motion-page');
     surface.style.setProperty('--duration-transition', '.18s');
-    Object.defineProperty(page, 'animate', { configurable: true, value: animate });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: animate,
+    });
 
     const reading = screen.getByTestId('motion-reading');
     act(() => {
@@ -144,7 +147,9 @@ describe('primary tab slide feedback', () => {
       touch(reading, 'touchmove', [point(90)]);
     });
     expect(surface.getAttribute('data-primary-tab-dragging')).toBe('true');
-    expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe('-48px');
+    expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe(
+      '-48px',
+    );
     act(() => touch(reading, 'touchend', [], [point(90)]));
     expect(surface.style.getPropertyValue('--primary-tab-offset')).toBe('');
     expect(navigate).toHaveBeenCalledExactlyOnceWith('/plan');
@@ -172,7 +177,10 @@ describe('primary tab slide feedback', () => {
     render(<PageMotionHarness onNavigate={navigate} />);
     const surface = screen.getByTestId('motion-surface');
     const page = screen.getByTestId('motion-page');
-    Object.defineProperty(page, 'animate', { configurable: true, value: animate });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: animate,
+    });
     const reading = screen.getByTestId('motion-reading');
     act(() => {
       touch(reading, 'touchstart', [point(200)]);

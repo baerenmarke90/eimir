@@ -2,7 +2,8 @@ export default {
   label: 'Tags',
   showTagged: 'Alle Einträge mit Tag „{{tag}}“ ansehen',
   resultsTitle: 'Tag: {{tag}}',
-  resultsDescription: 'Alle Erinnerungen, Herzmomente, Pläne und Wünsche mit diesem Tag.',
+  resultsDescription:
+    'Alle Erinnerungen, Herzmomente, Pläne und Wünsche mit diesem Tag.',
   searchAll: 'Zur Suche',
   noMatches: 'Zu diesem Tag gibt es noch keine Einträge.',
   proposed: 'KI-Vorschläge · Du entscheidest, was passt.',

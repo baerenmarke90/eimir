@@ -15,7 +15,10 @@ function TagNavigationProbe() {
       <span data-testid="pathname">{location.pathname}</span>
       <span data-testid="query">{location.search}</span>
       <span data-testid="tag">
-        {String((location.state as { selectedTag?: string } | null)?.selectedTag ?? '')}
+        {String(
+          (location.state as { selectedTag?: string } | null)?.selectedTag ??
+            '',
+        )}
       </span>
     </div>
   );

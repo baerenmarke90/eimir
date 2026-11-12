@@ -1335,7 +1335,6 @@
     "dashboardModulesIntro": "Show or hide sections and drag the handle to reorder.",
     "dashboardHiddenTitle": "Hidden ({{count}})",
     "dashboardMoreOptions": "More settings",
-    "dashboardCustomizeAction": "Customize Us",
     "dashboardOrderHandle": "Move {{name}}",
     "dashboardModuleConfigure": "Edit {{name}}",
     "dashboardOrderInstructions": "Drag the handle, or focus it and move it with the up and down arrow keys.",

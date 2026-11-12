@@ -15,39 +15,6 @@
   padding-top: 0;
 }
 
-.today-customize-action {
-  display: grid;
-  flex: 0 0 var(--touch-target-web);
-  width: var(--touch-target-web);
-  height: var(--touch-target-web);
-  place-items: center;
-  border-radius: var(--radius-pill);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  transition: background var(--duration-feedback) var(--easing-standard);
-}
-
-.today-customize-action .eimir-icon {
-  width: 1.3rem;
-  height: 1.3rem;
-}
-
-.today-customize-action:hover,
-.today-customize-action:focus-visible {
-  background: var(--color-brand-surface);
-}
-
-.today-customize-action:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .today-customize-action {
-    transition: none;
-  }
-}
-
 .today-hero.couple-presence-card {
   position: relative;
   display: flex;

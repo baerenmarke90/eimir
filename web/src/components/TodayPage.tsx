@@ -59,7 +59,6 @@ import {
   ACTIVITY_ROUTE,
   appRoutePath,
   collectionDetailPath,
-  settingsCategoryPath,
 } from '../client/routes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
@@ -1643,16 +1642,6 @@ export function TodayPage({
             variant="root"
             className="content-overview-heading"
             title={t('navigation.today')}
-            titleContext={
-              <Link
-                className="today-customize-action"
-                to={settingsCategoryPath('today')}
-                aria-label={t('profileIdentity.dashboardCustomizeAction')}
-                title={t('profileIdentity.dashboardCustomizeAction')}
-              >
-                <EimirIcon name="einstellungen" />
-              </Link>
-            }
             action={<MomentCreateMenu floating />}
           />
 

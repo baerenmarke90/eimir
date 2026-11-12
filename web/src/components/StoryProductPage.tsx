@@ -80,6 +80,10 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { EimirIcon } from './EimirIcon';
 import { ExperienceAnswers } from './ExperienceAnswers';
+import {
+  HeartEmotionBadge,
+  type HeartEmotionValue,
+} from './HeartEmotionVisual';
 import { MomentCreateMenu } from './MomentCreateMenu';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
@@ -138,8 +142,26 @@ interface TapestryEntry {
   dateTime: string;
   dateLabel: string;
   experience?: Extract<StoryItem, { kind: 'MEMORY' }>['memory'];
+  /** Feeling of a HeartMoment note; drives its surface, badge and name. */
+  emotion?: HeartEmotionValue;
   wide?: boolean;
   mediaShape?: 'landscape' | 'portrait' | 'square';
+}
+
+/**
+ * The link's name replaces its content for assistive technology, so the
+ * HeartMoment feeling shown by the badge has to be part of it.
+ */
+function tapestryAccessibleName(
+  t: TFunction,
+  role: TapestryEntry['role'],
+  title: string,
+  emotion: HeartEmotionValue | undefined,
+): string {
+  const name = `${t(`storyItem.${role}`)}: ${title}`;
+  return role === 'note' && emotion
+    ? `${name}. ${t('heartMomentProduct.emotionLabel')}: ${t(`heartEmotion.${emotion}`)}`
+    : name;
 }
 
 function buildTapestryEntry(
@@ -175,6 +197,8 @@ function buildTapestryEntry(
       item.kind === 'MEMORY' && item.memory.experienceKind
         ? item.memory
         : undefined,
+    emotion:
+      item.kind === 'HEART_MOMENT' ? item.heartMoment.emotion : undefined,
     path,
     memoryId,
     author,
@@ -1030,9 +1054,17 @@ export function StoryProductPage({
                             }
                             to={path}
                             data-media-shape={entry.mediaShape}
+                            data-heart-emotion={
+                              role === 'note' ? entry.emotion : undefined
+                            }
                             className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
                             data-discover-reveal-key={`item:${entry.key}`}
-                            aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
+                            aria-label={tapestryAccessibleName(
+                              t,
+                              role,
+                              presentation.title,
+                              entry.emotion,
+                            )}
                             onClick={(event) => openDiscoverItem(event, path)}
                           >
                             {role === 'media' && entry.firstAttachment ? (
@@ -1052,16 +1084,20 @@ export function StoryProductPage({
                               </div>
                             ) : null}
                             <div className="momente-tapestry-body">
-                              <span
-                                className="momente-tapestry-kind"
-                                aria-hidden="true"
-                              >
-                                <EimirIcon
-                                  name={
-                                    role === 'note' ? 'momente' : 'erinnerungen'
-                                  }
-                                />
-                              </span>
+                              {role === 'note' && entry.emotion ? null : (
+                                <span
+                                  className="momente-tapestry-kind"
+                                  aria-hidden="true"
+                                >
+                                  <EimirIcon
+                                    name={
+                                      role === 'note'
+                                        ? 'momente'
+                                        : 'erinnerungen'
+                                    }
+                                  />
+                                </span>
+                              )}
                               {role === 'note' ? (
                                 <blockquote className="momente-tapestry-quote">
                                   "{presentation.title}"
@@ -1071,6 +1107,9 @@ export function StoryProductPage({
                                   {presentation.title}
                                 </h4>
                               )}
+                              {role === 'note' && entry.emotion ? (
+                                <HeartEmotionBadge emotion={entry.emotion} />
+                              ) : null}
                               {entry.experience?.experienceKind ? (
                                 <ExperienceAnswers
                                   answers={

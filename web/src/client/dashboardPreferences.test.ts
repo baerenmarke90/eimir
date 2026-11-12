@@ -34,7 +34,9 @@ describe('dashboardPreferences', () => {
     });
     expect(migrated[0]).toBe('relationship_presence');
     expect(
-      migrated.filter((key) => key !== 'daily_quote' && key !== 'relationship_presence'),
+      migrated.filter(
+        (key) => key !== 'daily_quote' && key !== 'relationship_presence',
+      ),
     ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
     expect(migrated.indexOf('daily_quote')).toBe(
       migrated.indexOf('shared_experience') + 1,
@@ -74,7 +76,9 @@ describe('dashboardPreferences', () => {
     const order = orderedDashboardModuleKeys({ items });
     expect(order[0]).toBe('relationship_presence');
     expect(
-      order.filter((key) => key !== 'retrospective' && key !== 'relationship_presence'),
+      order.filter(
+        (key) => key !== 'retrospective' && key !== 'relationship_presence',
+      ),
     ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
     expect(order.indexOf('retrospective')).toBe(
       order.indexOf('pinned_collection') + 1,
@@ -90,7 +94,8 @@ describe('dashboardPreferences', () => {
     const value = {
       items: keys.map((moduleKey) => ({
         moduleKey,
-        visible: moduleKey !== 'relationship_presence' && moduleKey !== 'keepsake',
+        visible:
+          moduleKey !== 'relationship_presence' && moduleKey !== 'keepsake',
       })),
     };
     expect(orderedDashboardModuleKeys(value)).toEqual([

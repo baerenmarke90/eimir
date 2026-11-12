@@ -58,11 +58,13 @@ const importantDates = {
   closeDialogAria: 'Dialog schließen',
   holidaySettings: {
     title: 'Allgemeine Anlässe',
-    intro: 'Neben euren persönlichen Terminen könnt ihr auch wiederkehrende Feste anzeigen.',
+    intro:
+      'Neben euren persönlichen Terminen könnt ihr auch wiederkehrende Feste anzeigen.',
     toggle: 'Allgemeine Termine anzeigen',
     description:
       'Zum Beispiel Ostern, Weihnachten, Neujahr, Pfingsten und Valentinstag.',
-    deviceNote: 'Diese Auswahl gilt auf diesem Gerät. Eure gespeicherten Termine bleiben unverändert.',
+    deviceNote:
+      'Diese Auswahl gilt auf diesem Gerät. Eure gespeicherten Termine bleiben unverändert.',
     manage: 'Allgemeine Anlässe einstellen',
   },
   holidays: {

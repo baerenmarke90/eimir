@@ -10,6 +10,7 @@ Name | Type
 `createdAt` | Date
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
+`description` | string
 `id` | string
 `spaceId` | string
 `status` | [WishStatus](WishStatus.md)
@@ -29,6 +30,7 @@ const example = {
   "createdAt": null,
   "createdBy": null,
   "creator": null,
+  "description": null,
   "id": null,
   "spaceId": null,
   "status": null,

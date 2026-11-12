@@ -1,0 +1,8 @@
+eimir. Android 0.2.0-test.71
+
+- Resume the Diary, year views and individual moments with overlapping content and photo loading.
+- Add an optional description to a Wish and read it when you open the Wish.
+- Discover 1,010 new sayings in German and English in Saying of the Day.
+
+The product changes come from main at f99754c99653dcc055c99e99364a069d38eaeca1.
+Install over test.70 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 71.

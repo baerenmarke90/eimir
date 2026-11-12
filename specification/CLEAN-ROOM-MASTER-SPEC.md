@@ -1180,6 +1180,7 @@ Wish:
 - id
 - spaceId
 - title
+- description?
 - createdBy
 - createdAt
 - updatedAt
@@ -1209,6 +1210,10 @@ PO extension #1586 (2026-11-02): an existing non-completed direct Plan may
 explicitly adopt one open Wish. Both versions are checked; the same unique
 source relation, atomic Wish lifecycle, completion and return rules apply.
 No duplicate Plan is created and neither resource's authored content is replaced.
+
+PO extension #1757 (2026-11-11): the optional Wish description is shared,
+protected authored text. Either partner can add, update or clear it through
+the existing versioned Wish write. Wish detail uses the Plan's prose disclosure.
 
 Functions:
 - Search

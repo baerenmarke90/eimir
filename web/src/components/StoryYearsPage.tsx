@@ -6,8 +6,8 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
-import { StoryOrder } from '../api/generated/models/StoryOrder';
 import {
+  type StoryPage,
   StoryPageFromJSON,
   StoryPageToJSON,
 } from '../api/generated/models/StoryPage';
@@ -22,9 +22,11 @@ import { storyYearPath } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
+  parseStoryYear,
   storyCacheResourceId,
   storyRequest,
-  type StoryFilters,
+  storyYearFilters,
+  storyYearsIndexRequest,
 } from '../client/storyProduct';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
@@ -39,8 +41,6 @@ import { TaskOriginLink } from './TodayDestinationLink';
 import './StoryYearsPage.css';
 
 const INDEX_RESOURCE_ID = 'years:diary-v2';
-const MIN_YEAR = 1900;
-const MAX_YEAR = 2100;
 
 interface StoryYearsProps {
   apis: ReferenceApis;
@@ -52,15 +52,7 @@ interface StoryYearsProps {
     signal?: AbortSignal,
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
-}
-
-function parseYear(raw: string | undefined): number | null {
-  if (!raw || !/^\d{4}$/.test(raw)) return null;
-  const year = Number(raw);
-  if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
-    return null;
-  }
-  return year;
+  startupRead?: () => Promise<StoryPage> | undefined;
 }
 
 function EmptyYearsState() {
@@ -80,6 +72,7 @@ export function StoryYearsIndexPage({
   apis,
   accountId,
   spaceId,
+  startupRead,
 }: StoryYearsProps) {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
@@ -94,12 +87,8 @@ export function StoryYearsIndexPage({
         kind: 'story',
         resourceId: INDEX_RESOURCE_ID,
         load: () =>
-          apis.story.getStoryTimeline({
-            spaceId,
-            order: StoryOrder.DESC,
-            limit: 1,
-            includeChapters: true,
-          }),
+          startupRead?.() ??
+          apis.story.getStoryTimeline(storyYearsIndexRequest(spaceId)),
         serialize: StoryPageToJSON,
         deserialize: StoryPageFromJSON,
       }),
@@ -185,21 +174,15 @@ export function StoryYearDetailPage({
   spaceId,
   loadMemoryImage,
   profilesApi,
+  startupRead,
 }: StoryYearsProps) {
   const { t } = useTranslation();
   const { year: yearParam } = useParams<{ year: string }>();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
-  const year = parseYear(yearParam);
+  const year = parseStoryYear(yearParam);
   const currentYear = new Date().getFullYear();
-  const filters = useMemo<StoryFilters>(
-    () => ({
-      kind: null,
-      year,
-      order: StoryOrder.ASC,
-    }),
-    [year],
-  );
+  const filters = useMemo(() => storyYearFilters(year), [year]);
   const cacheResourceId = useMemo(
     () => storyCacheResourceId(filters),
     [filters],
@@ -219,6 +202,7 @@ export function StoryYearDetailPage({
           kind: 'story',
           resourceId: cacheResourceId,
           load: () =>
+            startupRead?.() ??
             apis.story.getStoryTimeline(storyRequest(spaceId, filters, null)),
           serialize: StoryPageToJSON,
           deserialize: StoryPageFromJSON,

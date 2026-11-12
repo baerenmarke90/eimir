@@ -127,6 +127,7 @@ export function MemoryProductPage({
   spaceId,
   currentAccountId,
   loadMemoryImage,
+  startupRead,
 }: {
   mode: MemoryProductMode;
   apis: ReferenceApis;
@@ -134,6 +135,7 @@ export function MemoryProductPage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
+  startupRead?: () => Promise<MemoryDetail> | undefined;
   loadMemoryImage: (
     memoryId: string,
     attachmentId: string,
@@ -242,7 +244,8 @@ export function MemoryProductPage({
         spaceId,
         kind: 'memory',
         resourceId: memoryId,
-        load: () => apis.memories.getMemory({ spaceId, memoryId }),
+        load: () =>
+          startupRead?.() ?? apis.memories.getMemory({ spaceId, memoryId }),
         serialize: MemoryDetailToJSON,
         deserialize: (payload) => MemoryDetailFromJSON(payload),
       });

@@ -8,6 +8,38 @@ import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import './PageComposer.css';
 
+export function ComposerDescriptionField({
+  id,
+  rows = 2,
+  ...props
+}: Omit<
+  ComponentProps<'textarea'>,
+  'id' | 'name' | 'className' | 'onInput' | 'placeholder'
+> & { id: string }) {
+  const { t } = useTranslation();
+  const label = t('m5s3.common.description');
+  return (
+    <>
+      <label className="sr-only" htmlFor={id}>
+        {label}
+      </label>
+      <textarea
+        {...props}
+        id={id}
+        name="description"
+        className="page-composer-prose"
+        rows={rows}
+        placeholder={label}
+        onInput={(event) => {
+          const field = event.currentTarget;
+          field.style.height = 'auto';
+          field.style.height = `${field.scrollHeight}px`;
+        }}
+      />
+    </>
+  );
+}
+
 /** Labeled enrichment actions share one keyboard- and safe-area-aware boundary. */
 export function ComposerToolRow({ children }: { children: ReactNode }) {
   const { t } = useTranslation();

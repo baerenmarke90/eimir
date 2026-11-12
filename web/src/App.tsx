@@ -120,6 +120,7 @@ import {
   resolveActiveSpaceId,
 } from './client/spaceContext';
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
+import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
@@ -274,6 +275,7 @@ function AuthenticatedApp({
   apiBaseUrl,
   spaceId,
   serverAdmin,
+  storyStartupReads,
 }: {
   tokens: TokenView;
   account: AccountView;
@@ -281,6 +283,7 @@ function AuthenticatedApp({
   apiBaseUrl: string;
   spaceId: string;
   serverAdmin: boolean;
+  storyStartupReads?: StoryStartupReads;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -534,6 +537,11 @@ function AuthenticatedApp({
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
                   dashboardApi={m4Apis.dashboard}
+                  startupReads={
+                    storyStartupReads?.kind === 'diary'
+                      ? storyStartupReads
+                      : undefined
+                  }
                 />
               }
             />
@@ -546,6 +554,11 @@ function AuthenticatedApp({
                   spaceId={spaceId}
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
+                  startupRead={
+                    storyStartupReads?.kind === 'years'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
@@ -569,6 +582,11 @@ function AuthenticatedApp({
                   spaceId={spaceId}
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
+                  startupRead={
+                    storyStartupReads?.kind === 'year'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
@@ -904,7 +922,15 @@ function AuthenticatedApp({
             <Route
               path={MEMORY_DETAIL_ROUTE_PATTERN}
               element={
-                <MemoryProductPage mode="detail" {...memoryProductProps} />
+                <MemoryProductPage
+                  mode="detail"
+                  {...memoryProductProps}
+                  startupRead={
+                    storyStartupReads?.kind === 'memory'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
+                />
               }
             />
             <Route
@@ -931,6 +957,11 @@ function AuthenticatedApp({
                 <HeartMomentProductPage
                   mode="detail"
                   {...heartMomentProductProps}
+                  startupRead={
+                    storyStartupReads?.kind === 'heartMoment'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
@@ -955,6 +986,11 @@ function AuthenticatedApp({
                 <MilestoneProductPage
                   mode="detail"
                   {...milestoneProductProps}
+                  startupRead={
+                    storyStartupReads?.kind === 'milestone'
+                      ? storyStartupReads.take
+                      : undefined
+                  }
                 />
               }
             />
@@ -1036,6 +1072,18 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
   const [initialStoredSession] = useState(loadStoredSession);
+  const [startupLocation] = useState(() => ({
+    pathname: location.pathname,
+    search: location.search,
+  }));
+  const onStartupRoute =
+    startupLocation.pathname === location.pathname &&
+    startupLocation.search === location.search;
+  const storyStartupReads = useRef<StoryStartupReads | null>(null);
+  const cancelStoryStartupReads = useCallback(() => {
+    storyStartupReads.current?.cancel();
+    storyStartupReads.current = null;
+  }, []);
   const [tokens, setTokens] = useState<TokenView | null>(
     () => initialStoredSession?.tokens ?? null,
   );
@@ -1067,6 +1115,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }, [account, isRestoring]);
 
   const terminateSession = useCallback(() => {
+    cancelStoryStartupReads();
     stopNativePushForSignedOutAccount();
     const cleared = clearStoredSession();
     setSpaceId(null);
@@ -1076,7 +1125,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     queryClient.clear();
     clearProductReadCacheInBackground();
     return cleared;
-  }, [queryClient]);
+  }, [cancelStoryStartupReads, queryClient]);
 
   useEffect(() => {
     if (!initialStoredSession) {
@@ -1110,6 +1159,14 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           config.apiBaseUrl,
           currentTokens.accessToken,
         );
+        if (activeSession.spaceId) {
+          storyStartupReads.current = startStoryReads(
+            apis,
+            activeSession.account.id,
+            activeSession.spaceId,
+            startupLocation,
+          );
+        }
         const verifiedAccount = await apis.auth.meApiV1AuthMeGet();
 
         if (
@@ -1154,8 +1211,15 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
 
     return () => {
       cancelled = true;
+      cancelStoryStartupReads();
     };
-  }, [config.apiBaseUrl, initialStoredSession, terminateSession]);
+  }, [
+    cancelStoryStartupReads,
+    config.apiBaseUrl,
+    initialStoredSession,
+    startupLocation,
+    terminateSession,
+  ]);
 
   const acceptSessionTokens = useCallback(
     (next: TokenView) => {
@@ -1215,6 +1279,30 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     retry: false,
   });
 
+  useEffect(() => {
+    const startup = storyStartupReads.current;
+    if (!startup) return;
+    if (
+      !onStartupRoute ||
+      (membershipsQuery.error &&
+        !canReuseMembershipsAfterRefreshFailure(
+          membershipsQuery.data,
+          membershipsQuery.error,
+        )) ||
+      (membershipsQuery.data &&
+        !membershipsQuery.data.some(
+          (membership) => membership.spaceId === startup.spaceId,
+        ))
+    ) {
+      cancelStoryStartupReads();
+    }
+  }, [
+    cancelStoryStartupReads,
+    membershipsQuery.data,
+    membershipsQuery.error,
+    onStartupRoute,
+  ]);
+
   const spacesQuery = useQuery({
     queryKey: [
       'authorized-spaces',
@@ -1273,6 +1361,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   function selectSpace(selectedSpaceId: string) {
+    cancelStoryStartupReads();
     queryClient.clear();
     clearProductReadCacheInBackground();
     setSpaceId(selectedSpaceId);
@@ -1479,6 +1568,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     return <BrandedStartup label={t('states.loading.title')} />;
   }
 
+  const startup = storyStartupReads.current;
   return (
     <AudioProcessingContext.Provider
       value={capabilitiesQuery.data?.audioProcessingEnabled === true}
@@ -1493,6 +1583,13 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           apiBaseUrl={config.apiBaseUrl}
           spaceId={activeSpaceId}
           serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
+          storyStartupReads={
+            onStartupRoute &&
+            startup?.spaceId === activeSpaceId &&
+            startup.accountId === account.id
+              ? startup
+              : undefined
+          }
         />
       </VideoProcessingContext.Provider>
     </AudioProcessingContext.Provider>

@@ -430,6 +430,11 @@
   line-height: 1.65;
   resize: vertical;
 }
+.free-composer textarea.page-composer-prose,
+.quiet-composer .composer-writing-surface textarea.page-composer-prose {
+  font: var(--font-composer-prose);
+  min-block-size: calc(var(--space-6) * 2);
+}
 .quiet-composer .composer-writing-surface :is(input, textarea)::placeholder {
   color: var(--color-text-secondary);
   font-family: var(--font-ui);

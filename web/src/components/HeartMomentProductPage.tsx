@@ -189,6 +189,7 @@ export function HeartMomentProductPage({
   spaceId,
   currentAccountId,
   loadAttachment,
+  startupRead,
 }: {
   mode: HeartMomentProductMode;
   apis: ReferenceApis;
@@ -196,6 +197,7 @@ export function HeartMomentProductPage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
+  startupRead?: () => Promise<HeartMomentDetail> | undefined;
   loadAttachment: (
     heartMomentId: string,
     attachmentId: string,
@@ -442,6 +444,7 @@ export function HeartMomentProductPage({
         kind: 'heartMoment',
         resourceId: heartMomentId,
         load: () =>
+          startupRead?.() ??
           apis.heartMoments.getHeartMoment({ spaceId, heartMomentId }),
         serialize: HeartMomentDetailToJSON,
         deserialize: (payload) => HeartMomentDetailFromJSON(payload),

@@ -2076,3 +2076,43 @@ for (const width of [390, 1280] as const) {
     }
   });
 }
+
+test('the add action stays put while a tab slides in', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await installMocks(page, { ...RICH_SPACE });
+  await signInAndOpenToday(page);
+  await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+  for (const label of ['Momente', 'Planen', 'Wir']) {
+    await page.evaluate(() => {
+      const w = window as unknown as { __fab: string[]; __stop: boolean };
+      w.__fab = [];
+      w.__stop = false;
+      const tick = () => {
+        for (const node of document.querySelectorAll(
+          '[data-floating-create]',
+        )) {
+          const box = node.getBoundingClientRect();
+          if (box.width > 0 && getComputedStyle(node).visibility !== 'hidden')
+            w.__fab.push(`${Math.round(box.x)},${Math.round(box.y)}`);
+        }
+        if (!w.__stop) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await page
+      .locator('a.shell-nav-link:visible')
+      .filter({ hasText: new RegExp(`^${label}$`) })
+      .first()
+      .click();
+    await expect(page.locator('main[data-navigation-slide]')).toHaveCount(0);
+    await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+    const seen = await page.evaluate(() => {
+      const w = window as unknown as { __fab: string[]; __stop: boolean };
+      w.__stop = true;
+      return [...new Set(w.__fab)];
+    });
+    // Every frame, including the slide, shows the add action in one place.
+    expect(seen).toHaveLength(1);
+  }
+});

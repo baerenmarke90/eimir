@@ -775,6 +775,7 @@ function AuthenticatedApp({
                       accessToken={tokens.accessToken}
                       accountId={account.id}
                       spaceId={spaceId}
+                      profilesApi={profilesApi}
                     />
                   }
                 />

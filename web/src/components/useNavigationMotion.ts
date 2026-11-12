@@ -59,13 +59,17 @@ function settlePages(
   onSettled: () => void,
 ): Settle | null {
   if (window.matchMedia?.(REDUCED_MOTION).matches) return null;
+  // The current page is offset with `left`, not a transform: a transformed
+  // page would become the containing block of its fixed add action and make
+  // that control travel with the page's bottom edge before snapping back.
   const pages = [
     [
       surface.querySelector<HTMLElement>(CURRENT_PAGE),
       from.current,
       to.current,
+      'left',
     ],
-    [surface.querySelector<HTMLElement>(PEEK_PAGE), from.peek, to.peek],
+    [surface.querySelector<HTMLElement>(PEEK_PAGE), from.peek, to.peek, null],
   ] as const;
   const style = window.getComputedStyle(surface);
   const timing = {
@@ -76,14 +80,16 @@ function settlePages(
     // The end state holds until the committed route replaces the pages.
     fill: 'forwards' as const,
   };
-  const animations = pages.flatMap(([page, start, end]) =>
+  const animations = pages.flatMap(([page, start, end, offsetProperty]) =>
     page && typeof page.animate === 'function'
       ? [
           page.animate(
-            [
-              { transform: `translate3d(${start}px, 0, 0)` },
-              { transform: `translate3d(${end}px, 0, 0)` },
-            ],
+            offsetProperty
+              ? [{ left: `${start}px` }, { left: `${end}px` }]
+              : [
+                  { transform: `translate3d(${start}px, 0, 0)` },
+                  { transform: `translate3d(${end}px, 0, 0)` },
+                ],
             timing,
           ),
         ]
@@ -223,10 +229,8 @@ function animatePageSlide(
     return false;
   const style = window.getComputedStyle(surface);
   const animation = page.animate(
-    [
-      { transform: `translate3d(${fromX}px, 0, 0)` },
-      { transform: 'translate3d(0, 0, 0)' },
-    ],
+    // `left`, not a transform, so the page's fixed add action stays put.
+    [{ left: `${fromX}px` }, { left: '0px' }],
     {
       duration: cssDurationMilliseconds(
         style.getPropertyValue('--duration-transition'),

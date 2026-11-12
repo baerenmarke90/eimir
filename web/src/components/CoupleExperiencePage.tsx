@@ -8,6 +8,7 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { GamesApi } from '../api/generated/apis/GamesApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
+import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { CoupleExperienceQuestionState } from '../api/generated/models/CoupleExperienceQuestionState';
 import type { CoupleExperienceQuestions } from '../api/generated/models/CoupleExperienceQuestions';
 import { ExperienceKind } from '../api/generated/models/ExperienceKind';
@@ -113,6 +114,7 @@ export function CoupleExperiencePage({
   apiBaseUrl,
   accessToken,
   spaceId,
+  profilesApi,
   onSaved,
   loadEntitlement,
   loadParticipants,
@@ -124,6 +126,7 @@ export function CoupleExperiencePage({
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
+  profilesApi?: ProfilesApi | null;
   onSaved?: () => Promise<void>;
   loadEntitlement?: () => Promise<SpaceEntitlementView>;
   loadParticipants?: () => Promise<
@@ -513,6 +516,8 @@ export function CoupleExperiencePage({
                                   kind={entry.experienceKind}
                                   preview
                                   viewerId={accountId}
+                                  profilesApi={profilesApi}
+                                  spaceId={spaceId}
                                 />
                               ) : (
                                 <span className="couple-experience-entry-words">

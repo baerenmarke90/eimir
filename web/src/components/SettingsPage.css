@@ -326,31 +326,293 @@
   font-weight: 700;
 }
 
-.anniversary-reminder-form {
+.important-dates-settings {
   display: grid;
+  min-width: 0;
   gap: var(--space-4);
 }
 
-.anniversary-reminder-config {
+.important-dates-settings .settings-section-head h2 {
+  font: var(--font-section-heading);
+}
+
+.important-dates-list {
   display: grid;
-  gap: var(--space-4);
-  padding-top: var(--space-4);
+  min-width: 0;
+  gap: var(--space-3);
 }
 
-.anniversary-reminder-days {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin-top: var(--space-2);
+.important-date-card {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-content);
+  background: var(--color-surface-subtle);
+  box-shadow: none;
 }
 
-.anniversary-reminder-day-option {
-  display: inline-flex;
-  min-height: 44px;
+.important-date-card-head {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
   align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.important-date-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: var(--radius-medium);
+  color: var(--color-brand-text);
+  background: var(--color-page-tint-brand);
+}
+
+.important-date-icon .eimir-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.important-date-switch {
+  min-height: 56px;
   gap: var(--space-2);
+  padding: 0;
+}
+
+.important-date-switch .preference-switch-copy {
+  gap: var(--space-1);
+}
+
+.important-date-switch .preference-switch-copy strong {
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.important-date-details {
+  min-width: 0;
+  margin-left: 0;
+}
+
+.important-date-details > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.25rem;
+  min-height: 48px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   cursor: pointer;
-  font-size: 0.95rem;
+  list-style: none;
+}
+
+.important-date-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.important-date-details > summary:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.important-date-details > summary > .eimir-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-secondary);
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+
+.important-date-details[open] > summary > .eimir-icon {
+  transform: rotate(90deg);
+}
+
+.important-date-summary-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.important-date-summary-copy strong {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.important-date-summary-copy > span {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.important-date-edit {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-1) var(--space-1);
+  animation: important-date-reveal var(--duration-feedback) var(--easing-standard);
+}
+
+.important-date-day-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.important-date-day-fieldset legend {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.important-date-day-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.important-date-day-chip {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  place-items: center;
+  padding: var(--space-2);
+  border: var(--border-surface-width) solid transparent;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.3;
+  cursor: pointer;
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
+}
+
+.important-date-day-chip.is-selected {
+  border-color: var(--color-brand-strong);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.important-date-day-chip input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.important-date-day-chip:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.important-date-day-chip:has(input:disabled) {
+  cursor: default;
+}
+
+.important-date-day-fieldset:disabled {
+  opacity: var(--opacity-disabled);
+}
+
+.important-date-minimum {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+
+.important-date-time-row {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.important-date-time-row label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.important-date-time-row input[type="time"] {
+  min-width: 0;
+  width: 8.5rem;
+  max-width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding-inline: var(--space-2);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.important-date-feedback {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+@keyframes important-date-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 680px) {
+  .important-dates-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 359px) {
+  .important-date-card {
+    padding: var(--space-3);
+  }
+
+  .important-date-card-head {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .important-date-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .important-date-day-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .important-date-edit {
+    animation: none;
+  }
+
+  .important-date-details > summary > .eimir-icon,
+  .important-date-day-chip {
+    transition: none;
+  }
 }
 
 .settings-notification-inbox-action {

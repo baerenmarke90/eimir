@@ -83,11 +83,7 @@ import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
 import { MemoryPlanningLinks } from './MemoryPlanningLinks';
 import { MemoryPreview } from './MemoryPreview';
-import {
-  MEMORY_TAGS,
-  type MemoryTag,
-  MemoryTagChoices,
-} from './MemoryTagChoices';
+import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import { MomentDate } from './MomentDate';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';

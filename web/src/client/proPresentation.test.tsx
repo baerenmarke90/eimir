@@ -6,7 +6,8 @@ import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { ProMark } from '../components/ProMark';
 import { ApiRuntimeProvider } from './apiRuntimeContext';
-import { ProPresentationProvider, proPresentationKey } from './proPresentation';
+import { ProPresentationProvider } from './proPresentation';
+import { spaceEntitlementQueryKey } from './spaceEntitlement';
 
 afterEach(() => {
   cleanup();
@@ -62,11 +63,7 @@ it('hides every mark after a Space upgrade and restores it after a downgrade wit
   api.mockResolvedValue(tier('PREMIUM'));
   await act(async () => {
     await client.invalidateQueries({
-      queryKey: proPresentationKey(
-        'https://example.test',
-        'account-a',
-        'space-a',
-      ),
+      queryKey: spaceEntitlementQueryKey('account-a', 'space-a'),
     });
   });
   await waitFor(() => expect(screen.queryByText('Pro')).toBeNull());
@@ -74,11 +71,7 @@ it('hides every mark after a Space upgrade and restores it after a downgrade wit
   api.mockResolvedValue(tier('FREE'));
   await act(async () => {
     await client.invalidateQueries({
-      queryKey: proPresentationKey(
-        'https://example.test',
-        'account-a',
-        'space-a',
-      ),
+      queryKey: spaceEntitlementQueryKey('account-a', 'space-a'),
     });
   });
   expect(await screen.findByText('Pro')).toBeDefined();
@@ -96,9 +89,7 @@ it('never borrows the previous account or Space tier while the next scope is loa
   const view = render(fixture(client));
   await waitFor(() =>
     expect(
-      client.getQueryData(
-        proPresentationKey('https://example.test', 'account-a', 'space-a'),
-      ),
+      client.getQueryData(spaceEntitlementQueryKey('account-a', 'space-a')),
     ).toBeDefined(),
   );
   let finish!: (value: SpaceEntitlementView) => void;
@@ -129,9 +120,8 @@ it('keeps feature content and avoids an upgrade assertion when no effective tier
   render(fixture(client));
   await waitFor(() =>
     expect(
-      client.getQueryState(
-        proPresentationKey('https://example.test', 'account-a', 'space-a'),
-      )?.status,
+      client.getQueryState(spaceEntitlementQueryKey('account-a', 'space-a'))
+        ?.status,
     ).toBe('error'),
   );
   expect(screen.queryByText('Pro')).toBeNull();
@@ -174,11 +164,7 @@ it('loads the tier at session entry and does not refetch when feature marks appe
   api.mockResolvedValue(tier('PREMIUM'));
   await act(async () => {
     await client.invalidateQueries({
-      queryKey: proPresentationKey(
-        'https://example.test',
-        'account-a',
-        'space-a',
-      ),
+      queryKey: spaceEntitlementQueryKey('account-a', 'space-a'),
     });
   });
   await waitFor(() => expect(screen.queryByText('Pro')).toBeNull());

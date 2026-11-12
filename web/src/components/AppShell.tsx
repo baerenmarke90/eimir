@@ -383,6 +383,7 @@ function AuthenticatedAppShell({
                 <GamesProductArea
                   apiBaseUrl={apiBaseUrl}
                   accessToken={accessToken}
+                  accountId={account.id}
                   spaceId={spaceId}
                 />
               ) : (

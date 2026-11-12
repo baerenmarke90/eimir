@@ -1,14 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { Configuration } from '../client/apiConfiguration';
-import { normalizeClientError } from '../client/problemDetails';
 import {
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceEntitlement,
+} from '../client/spaceEntitlement';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
@@ -32,12 +34,14 @@ function gameRoute(entry: GameEntry): string | null {
 export function GamesProductArea({
   apiBaseUrl,
   accessToken,
+  accountId,
   spaceId,
   loadEntitlement,
   loadPerspectiveParticipants,
 }: {
   apiBaseUrl: string;
   accessToken: string;
+  accountId: string;
   spaceId: string;
   loadEntitlement?: () => Promise<SpaceEntitlementView>;
   loadPerspectiveParticipants?: () => Promise<
@@ -59,22 +63,15 @@ export function GamesProductArea({
     [apiBaseUrl, accessToken],
   );
 
-  const entitlementQuery = useQuery({
-    queryKey: ['games-entitlement', spaceId],
-    queryFn: async () => {
-      try {
-        if (loadEntitlement) return await loadEntitlement();
-        return await entitlementApi.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-          {
-            spaceId,
-          },
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    retry: false,
-  });
+  const load = useMemo(
+    () =>
+      loadEntitlement
+        ? () => loadEntitlement()
+        : entitlementLoader(entitlementApi, spaceId),
+    [entitlementApi, loadEntitlement, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const entitlementQuery = useSpaceEntitlement({ accountId, spaceId, load });
 
   const gamesUnlocked = Boolean(
     entitlementQuery.data?.capabilities.includes(GAMES_COUPLE_CAPABILITY),

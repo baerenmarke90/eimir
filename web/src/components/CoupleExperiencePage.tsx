@@ -21,6 +21,10 @@ import {
   memoryDetailPath,
   TIME_TRAVEL_ROUTE,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceEntitlement,
+} from '../client/spaceEntitlement';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { resolvedLocale, useTranslation } from '../i18n';
 import experienceCopy from '../i18n/locales/coupleExperiences';
@@ -108,22 +112,18 @@ export function CoupleExperiencePage({
     gcTime: 0,
   });
   const scope = [apiBaseUrl, accountId, spaceId];
-  const entitlement = useQuery({
-    queryKey: ['couple-experience-entitlement', ...scope],
-    queryFn: async () => {
-      try {
-        return await (loadEntitlement
-          ? loadEntitlement()
-          : entitlements.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet({
-              spaceId,
-            }));
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    retry: false,
-    gcTime: 0,
-    refetchOnMount: 'always',
+  const loadSpaceEntitlement = useMemo(
+    () =>
+      loadEntitlement
+        ? () => loadEntitlement()
+        : entitlementLoader(entitlements, spaceId),
+    [entitlements, loadEntitlement, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const entitlement = useSpaceEntitlement({
+    accountId,
+    spaceId,
+    load: loadSpaceEntitlement,
   });
   const participants = useQuery({
     queryKey: ['couple-experience-participants', ...scope],

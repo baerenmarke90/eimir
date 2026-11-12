@@ -17,7 +17,7 @@ for (const [width, theme] of [
   [390, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`authorized thumbnail survives detail return at ${width} ${theme}`, async ({
+  test(`kept authorized thumbnail survives detail return without a new delivery at ${width} ${theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 900 });
@@ -70,6 +70,7 @@ for (const [width, theme] of [
     expect(src).toMatch(/^blob:/);
     expect(downloads).toBe(1);
     const firstReads = reads;
+    expect(firstReads).toBeGreaterThan(0);
     await captureScreenshot(
       page,
       info,
@@ -86,7 +87,10 @@ for (const [width, theme] of [
     await storyDetailBack(page).click();
     await expect(image).toBeVisible();
     await expect(image).toHaveAttribute('src', src ?? '');
-    await expect.poll(() => reads).toBeGreaterThan(firstReads);
+    // Returning to a kept tab neither remounts the preview nor delivers new
+    // cached media. Fresh deliveries, including the gallery opened below,
+    // still require parent read-access before using retained image bytes.
+    expect(reads).toBe(firstReads);
     expect(downloads).toBe(1);
     const reflow = await page.evaluate(() => ({
       width: document.documentElement.clientWidth,

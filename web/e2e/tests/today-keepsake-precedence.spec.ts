@@ -586,9 +586,11 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
       exact: true,
     });
     const hiddenSections = page.locator('.dashboard-hidden-sections > summary');
-    await retro.uncheck();
-    // A hidden section moves into the collapsed hidden-sections disclosure.
+    // Toggling moves the row between the visible list and the collapsed
+    // hidden-sections disclosure, so click and then assert the moved row.
+    await retro.click();
     await hiddenSections.click();
+    await expect(retro).not.toBeChecked();
     await expect(retro).toBeEnabled();
     await expect(signal).toBeChecked();
     await page.goto('/today');
@@ -598,10 +600,12 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await page.goto('/more/settings/today');
     await hiddenSections.click();
     await expect(retro).not.toBeChecked();
-    await retro.check();
+    await retro.click();
+    await expect(retro).toBeChecked();
     await expect(retro).toBeEnabled();
-    await signal.uncheck();
+    await signal.click();
     await hiddenSections.click();
+    await expect(signal).not.toBeChecked();
     await expect(signal).toBeEnabled();
     const grip = page.getByRole('button', {
       name: `${m5s5.today.living.retrospectiveLabel} verschieben`,

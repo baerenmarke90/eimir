@@ -161,7 +161,7 @@ def test_downgrade_preserves_personal_preferences_for_restored_pro(
     assert restored.json()["selectedCategoryIds"] == ["serenity"]
     quote = client.get(f"/api/v1/spaces/{space_id}/daily-quote", headers=headers)
     assert quote.status_code == 200
-    assert quote.json()["quote"]["sourceId"] == "stoic_philosophy"
+    assert "serenity" in quote.json()["quote"]["categoryIds"]
 
 
 def test_pro_space_receives_deterministic_daily_quote_and_metadata(
@@ -206,16 +206,14 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
     changed = client.patch(
         f"{path}/preferences",
         headers={**headers, "If-Match": preferences.headers["etag"]},
-        json={
-            "selectedSourceIds": ["poetic_wisdom"],
-            "selectedCategoryIds": ["motivation"],
-        },
+        json={"selectedCategoryIds": ["motivation"]},
     )
     assert changed.status_code == 200
 
     before = client.get(path, headers=headers)
     assert before.status_code == 200
     assert before.json()["quote"]["locale"] == "de"
+    assert "motivation" in before.json()["quote"]["categoryIds"]
 
     language_path = "/api/v1/account/language-preference"
     language = client.get(language_path, headers=headers)
@@ -234,10 +232,10 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
     assert saying["locale"] == "en"
     assert saying["id"].startswith("saying-en-")
     assert saying["rightsClassification"] == "EDITORIAL_CURATED"
-    assert saying["sourceId"] == "poetic_wisdom"
     assert "motivation" in saying["categoryIds"]
     translation = catalog.get_quote_by_id(saying["id"])
     assert translation is not None
+    assert saying["sourceId"] == translation.source_id
     assert saying["text"] == translation.text
     assert saying["sourceDisplay"] == (
         "English translation" if saying["attributionRequired"] else None

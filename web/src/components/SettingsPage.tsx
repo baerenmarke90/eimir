@@ -162,7 +162,7 @@ export function SettingsPage(props: SettingsPageProps) {
               {t('profileIdentity.importantDatesIntro')}
             </p>
           </div>
-          <div className="important-dates-list">
+          <div className="important-date-reminder-list">
             <AnniversaryReminderSettings
               rulesApi={rulesApi}
               spaceId={props.spaceId}

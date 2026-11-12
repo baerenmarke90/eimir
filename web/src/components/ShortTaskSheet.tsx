@@ -44,7 +44,7 @@ const GESTURE_OWNER_DRAG_EXCLUSION_SELECTOR = [
   'iframe',
   'video',
   'audio',
-  '.leaflet-container',
+  '.place-map-viewport',
   '[draggable="true"]',
   '[contenteditable]:not([contenteditable="false"])',
   '[role="slider"]',

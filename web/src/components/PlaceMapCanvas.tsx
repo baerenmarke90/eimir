@@ -1,10 +1,35 @@
-import * as L from 'leaflet';
+import type {
+  IControl,
+  LngLatBounds,
+  Map as MapLibreMap,
+  Marker,
+} from 'maplibre-gl';
+import maplibregl from 'maplibre-gl/dist/maplibre-gl-csp.js';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cssDurationMilliseconds } from '../client/cssDuration';
-import 'leaflet/dist/leaflet.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTranslation } from '../i18n';
 import './PlaceMapPicker.css';
+import { googleLikeStyle } from './placeMapStyle';
+
+// The CSP forbids blob workers, so MapLibre runs its first-party worker file.
+maplibregl.setWorkerUrl(workerUrl);
+
+/** Keyless vector style built from OpenStreetMap data; see docs/DEPENDENCIES.md. */
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+/**
+ * Camera zoom values exchanged with callers use the 256 px raster-tile scale
+ * the app started with. MapLibre counts 512 px vector tiles, one level lower.
+ */
+const ZOOM_OFFSET = 1;
+const toMapZoom = (zoom: number) => zoom - ZOOM_OFFSET;
+const fromMapZoom = (zoom: number) => zoom + ZOOM_OFFSET;
+const MAX_ZOOM = 19;
+const PLACE_ZOOM = 15;
+const OVERVIEW_MAX_ZOOM = 12;
+const MARKER_KEYS = ['Enter', ' '];
 
 export interface MapPoint {
   latitude: number;
@@ -20,6 +45,58 @@ export interface MapLocation extends MapPoint {
   label: string;
   count: number;
   preview?: ReactNode;
+}
+
+type LngLat = [number, number];
+const lngLat = (point: MapPoint): LngLat => [point.longitude, point.latitude];
+
+/** Zoom buttons with localized names; MapLibre's stock control needs data: images. */
+class ZoomControl implements IControl {
+  private group?: HTMLElement;
+  private map?: MapLibreMap;
+  private buttons: HTMLButtonElement[] = [];
+
+  constructor(private labels: { zoomIn: string; zoomOut: string }) {}
+
+  onAdd(map: MapLibreMap) {
+    this.map = map;
+    const group = document.createElement('div');
+    group.className = 'maplibregl-ctrl maplibregl-ctrl-group place-map-zoom';
+    const make = (kind: 'in' | 'out', glyph: string, label: string) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `place-map-zoom-${kind}`;
+      button.textContent = glyph;
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.addEventListener('click', () =>
+        kind === 'in' ? map.zoomIn() : map.zoomOut(),
+      );
+      group.append(button);
+      return button;
+    };
+    this.buttons = [
+      make('in', '+', this.labels.zoomIn),
+      make('out', '−', this.labels.zoomOut),
+    ];
+    map.on('zoom', this.sync);
+    this.group = group;
+    this.sync();
+    return group;
+  }
+
+  onRemove() {
+    this.map?.off('zoom', this.sync);
+    this.group?.remove();
+    this.map = undefined;
+  }
+
+  private sync = () => {
+    if (!this.map) return;
+    const zoom = this.map.getZoom();
+    this.buttons[0].disabled = zoom >= this.map.getMaxZoom();
+    this.buttons[1].disabled = zoom <= this.map.getMinZoom();
+  };
 }
 
 export default function PlaceMapCanvas({
@@ -41,15 +118,14 @@ export default function PlaceMapCanvas({
 }) {
   const { t } = useTranslation();
   const container = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.CircleMarker | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const markerRef = useRef<Marker | null>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
   const locationSelectRef = useRef(onLocationSelect);
   locationSelectRef.current = onLocationSelect;
   const [tileError, setTileError] = useState(false);
   const [moving, setMoving] = useState(false);
-  const tileLayer = useRef<L.TileLayer | null>(null);
   const initialPoint = useRef(value);
   const restoredViewport = useRef(initialViewport);
   const viewportChangeRef = useRef(onViewportChange);
@@ -61,7 +137,7 @@ export default function PlaceMapCanvas({
     { id: string; host: HTMLElement; preview: ReactNode }[]
   >([]);
   const fittedGeometry = useRef('');
-  const bounds = useRef<L.LatLngBounds | null>(null);
+  const bounds = useRef<LngLatBounds | null>(null);
   const autoFrame = useRef(true);
   const updateFrame = useRef<(() => void) | null>(null);
   const cameraMoving = useRef(false);
@@ -69,7 +145,7 @@ export default function PlaceMapCanvas({
   const markers = useRef(
     new Map<
       string,
-      { marker: L.Marker; host: HTMLElement; count: HTMLElement }
+      { marker: Marker; host: HTMLElement; count: HTMLElement }
     >(),
   );
 
@@ -80,38 +156,40 @@ export default function PlaceMapCanvas({
     const element = container.current;
     const point =
       restoredViewport.current ?? initialPoint.current ?? focusRef.current;
-    const map = L.map(element, {
-      zoomControl: false,
-      scrollWheelZoom: false,
-      zoomAnimation: false,
-      fadeAnimation: false,
-      markerZoomAnimation: false,
-    }).setView(
-      point ? [point.latitude, point.longitude] : [51.16, 10.45],
-      restoredViewport.current?.zoom ?? (point ? 15 : 5),
-    );
+    const map = new maplibregl.Map({
+      container: element,
+      center: point ? lngLat(point) : [10.45, 51.16],
+      zoom: toMapZoom(restoredViewport.current?.zoom ?? (point ? 15 : 5)),
+      maxZoom: toMapZoom(MAX_ZOOM),
+      // The page scrolls past an embedded map; zoom stays on buttons, double
+      // tap and pinch. Rotation/tilt would need a compass the product lacks.
+      scrollZoom: false,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
+      attributionControl: { compact: false },
+    });
+    map.touchZoomRotate.disableRotation();
+    map.setStyle(MAP_STYLE_URL, { transformStyle: googleLikeStyle });
     mapRef.current = map;
-    L.control
-      .zoom({
-        zoomInTitle: t('m5s3.map.zoomIn'),
-        zoomOutTitle: t('m5s3.map.zoomOut'),
-      })
-      .addTo(map);
-    tileLayer.current = L.tileLayer(
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {
-        maxZoom: 19,
-        referrerPolicy: 'origin',
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
-      },
-    )
-      .on('tileerror', () => setTileError(true))
-      .addTo(map);
-    map.on('click', (event: L.LeafletMouseEvent) =>
+    map.addControl(
+      new ZoomControl({
+        zoomIn: t('m5s3.map.zoomIn'),
+        zoomOut: t('m5s3.map.zoomOut'),
+      }),
+      'bottom-right',
+    );
+    // A missing tile (HTTP 404) is an empty area; aborted requests are
+    // ordinary pan/zoom cancellation. Everything else is a real outage.
+    map.on('error', (event) => {
+      const error = event.error as (Error & { status?: number }) | undefined;
+      if (error?.name === 'AbortError' || error?.status === 404) return;
+      setTileError(true);
+    });
+    map.on('click', (event) =>
       selectRef.current?.({
-        latitude: event.latlng.lat,
-        longitude: event.latlng.lng,
+        latitude: event.lngLat.lat,
+        longitude: event.lngLat.lng,
       }),
     );
     let framing = false;
@@ -123,12 +201,13 @@ export default function PlaceMapCanvas({
         return;
       framing = true;
       try {
-        map.invalidateSize({ animate: false, pan: false });
+        map.resize();
         if (restorePending && restoredViewport.current) {
           const restored = restoredViewport.current;
           restorePending = false;
-          map.setView([restored.latitude, restored.longitude], restored.zoom, {
-            animate: false,
+          map.jumpTo({
+            center: lngLat(restored),
+            zoom: toMapZoom(restored.zoom),
           });
           return;
         }
@@ -140,15 +219,14 @@ export default function PlaceMapCanvas({
         )
           return;
         if (focusRef.current && autoFrame.current)
-          map.setView(
-            [focusRef.current.latitude, focusRef.current.longitude],
-            15,
-            { animate: false },
-          );
+          map.jumpTo({
+            center: lngLat(focusRef.current),
+            zoom: toMapZoom(PLACE_ZOOM),
+          });
         else if (bounds.current && autoFrame.current)
           map.fitBounds(bounds.current, {
-            padding: [40, 40],
-            maxZoom: 12,
+            padding: 40,
+            maxZoom: toMapZoom(OVERVIEW_MAX_ZOOM),
             animate: false,
           });
       } finally {
@@ -156,7 +234,7 @@ export default function PlaceMapCanvas({
       }
     };
     updateFrame.current = frame;
-    map.on('movestart zoomstart', () => {
+    map.on('movestart', () => {
       if (!framing) autoFrame.current = false;
     });
     map.on('moveend', () => {
@@ -167,7 +245,7 @@ export default function PlaceMapCanvas({
       viewportChangeRef.current?.({
         latitude: center.lat,
         longitude: center.lng,
-        zoom: map.getZoom(),
+        zoom: fromMapZoom(map.getZoom()),
       });
     });
     const interrupt = () => {
@@ -178,7 +256,7 @@ export default function PlaceMapCanvas({
       autoFrame.current = false;
       setMoving(false);
     };
-    // Leaflet owns pan/pinch; direct input supersedes a pending place flight.
+    // MapLibre owns pan/pinch; direct input supersedes a pending place flight.
     for (const event of ['pointerdown', 'wheel', 'keydown'])
       element.addEventListener(event, interrupt, { passive: true });
     const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -208,15 +286,19 @@ export default function PlaceMapCanvas({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !value) return;
-    const position: L.LatLngExpression = [value.latitude, value.longitude];
-    map.setView(position, Math.max(map.getZoom(), 15), { animate: false });
-    if (markerRef.current) markerRef.current.setLatLng(position);
-    else
-      markerRef.current = L.circleMarker(position, {
-        radius: 10,
-        weight: 3,
-        className: 'place-map-selected-marker',
-      }).addTo(map);
+    const position = lngLat(value);
+    map.jumpTo({
+      center: position,
+      zoom: Math.max(map.getZoom(), toMapZoom(PLACE_ZOOM)),
+    });
+    if (markerRef.current) markerRef.current.setLngLat(position);
+    else {
+      const pin = document.createElement('span');
+      pin.className = 'place-map-selected-marker';
+      markerRef.current = new maplibregl.Marker({ element: pin })
+        .setLngLat(position)
+        .addTo(map);
+    }
   }, [value, t]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Locale changes recreate the map and must restore its location layer.
@@ -241,25 +323,32 @@ export default function PlaceMapCanvas({
         const count = document.createElement('span');
         count.className = 'memory-map-marker-count';
         content.append(count);
-        const marker = L.marker([location.latitude, location.longitude], {
-          title: location.label,
-          alt: location.label,
-          icon: L.divIcon({
-            html: content,
-            className: 'memory-map-marker',
-            iconSize: [56, 56],
-            iconAnchor: [28, 28],
-          }),
-        })
-          .on('click', () => locationSelectRef.current?.(location.id))
+        const pin = document.createElement('div');
+        pin.className = 'memory-map-marker';
+        pin.tabIndex = 0;
+        pin.setAttribute('role', 'button');
+        pin.append(content);
+        const select = (event: Event) => {
+          // The map's own click is a Place pick; a marker is not one.
+          event.stopPropagation();
+          locationSelectRef.current?.(location.id);
+        };
+        pin.addEventListener('click', select);
+        pin.addEventListener('keydown', (event) => {
+          if (!MARKER_KEYS.includes(event.key)) return;
+          event.preventDefault();
+          select(event);
+        });
+        const marker = new maplibregl.Marker({ element: pin })
+          .setLngLat(lngLat(location))
           .addTo(map);
         entry = { marker, host, count };
         markers.current.set(location.id, entry);
       }
       entry.count.textContent = String(location.count);
       const element = entry.marker.getElement();
-      element?.setAttribute('aria-label', location.label);
-      element?.setAttribute('title', location.label);
+      element.setAttribute('aria-label', location.label);
+      element.setAttribute('title', location.label);
       hosts.push({
         id: location.id,
         host: entry.host,
@@ -275,11 +364,11 @@ export default function PlaceMapCanvas({
       ]),
     );
     if (fittedGeometry.current !== geometry) {
-      bounds.current = locations?.length
-        ? L.latLngBounds(
-            locations.map((point) => [point.latitude, point.longitude]),
-          )
-        : null;
+      if (locations?.length) {
+        const fitted = new maplibregl.LngLatBounds();
+        for (const point of locations) fitted.extend(lngLat(point));
+        bounds.current = fitted;
+      } else bounds.current = null;
       if (
         !focusRef.current &&
         !lastFocus.current &&
@@ -305,14 +394,14 @@ export default function PlaceMapCanvas({
     map.stop();
     autoFrame.current = !focus;
     const overview = bounds.current;
-    const options = { padding: [64, 64] as L.PointTuple, maxZoom: 12 };
+    const options = { padding: 64, maxZoom: toMapZoom(OVERVIEW_MAX_ZOOM) };
     const snap = () => {
       finishCamera.current = null;
       map.stop();
       cameraMoving.current = false;
       setMoving(false);
       if (focus)
-        map.setView([focus.latitude, focus.longitude], 15, { animate: false });
+        map.jumpTo({ center: lngLat(focus), zoom: toMapZoom(PLACE_ZOOM) });
       else if (overview)
         map.fitBounds(overview, { ...options, animate: false });
     };
@@ -321,7 +410,7 @@ export default function PlaceMapCanvas({
           getComputedStyle(container.current).getPropertyValue(
             '--duration-map-camera',
           ),
-        ) / 1000
+        )
       : 0;
     const reduced = window.matchMedia?.(
       '(prefers-reduced-motion: reduce)',
@@ -333,8 +422,18 @@ export default function PlaceMapCanvas({
     finishCamera.current = snap;
     cameraMoving.current = true;
     setMoving(true);
-    if (focus) map.flyTo([focus.latitude, focus.longitude], 15, { duration });
-    else if (overview) map.flyToBounds(overview, { ...options, duration });
+    if (focus)
+      map.flyTo({
+        center: lngLat(focus),
+        zoom: toMapZoom(PLACE_ZOOM),
+        duration,
+        essential: true,
+      });
+    else if (overview) {
+      const camera = map.cameraForBounds(overview, options);
+      if (camera) map.flyTo({ ...camera, duration, essential: true });
+      else snap();
+    }
   }, [focus, value, t]);
 
   return (
@@ -371,7 +470,9 @@ export default function PlaceMapCanvas({
             className="tertiary"
             onClick={() => {
               setTileError(false);
-              tileLayer.current?.redraw();
+              mapRef.current?.setStyle(MAP_STYLE_URL, {
+                transformStyle: googleLikeStyle,
+              });
             }}
           >
             {t('common.retry')}

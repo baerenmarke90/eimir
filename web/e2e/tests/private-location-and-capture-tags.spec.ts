@@ -13,6 +13,7 @@ import {
   expectNaturalTextReflow,
   expectReadableActionLabel,
 } from '../support/addAction';
+import { mockMapTiles } from '../support/mapTiles';
 import {
   closeContextTags,
   closeHeartAudience,
@@ -116,9 +117,7 @@ async function setup(page: Page, premium = false) {
     return route.fallback();
   });
   // Map selection must also work without contacting a real tile provider.
-  await page.route('https://*.tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ status: 204, body: '' }),
-  );
+  await mockMapTiles(page);
   await signIn(page);
   return { mutations, sharedWrites: () => sharedPlaceWrites };
 }

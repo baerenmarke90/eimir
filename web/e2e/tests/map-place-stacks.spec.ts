@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import mapCopy from '../../src/i18n/locales/memoryMap';
+import { mockMapTiles } from '../support/mapTiles';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
   captureScreenshot,
@@ -79,9 +80,7 @@ async function installMap(page: Page) {
       });
     });
   }
-  await page.route('https://tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ contentType: 'image/png', body: TINY_PNG }),
-  );
+  await mockMapTiles(page);
   await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
     route.fulfill({
       json: {
@@ -337,7 +336,6 @@ for (const [width, theme, motion] of [
       'data-active-memory',
       'mem-canal',
     );
-    await fullscreen.locator('.leaflet-control-zoom-in').click();
     const position = async () => {
       const map = await fullscreen.locator('.place-map-viewport').boundingBox();
       const pin = await fullscreen.locator('.memory-map-marker').boundingBox();
@@ -345,6 +343,21 @@ for (const [width, theme, motion] of [
         throw new Error('Map camera geometry must be measurable');
       return { x: pin.x - map.x, y: pin.y - map.y };
     };
+    const beforeZoom = await position();
+    await fullscreen.locator('.place-map-zoom-in').click();
+    // Zooming is animated: measure only after the camera moved and came to rest.
+    let previous = beforeZoom;
+    await expect
+      .poll(async () => {
+        const next = await position();
+        const moved = Math.hypot(next.x - beforeZoom.x, next.y - beforeZoom.y);
+        const rested =
+          Math.abs(next.x - previous.x) < 0.5 &&
+          Math.abs(next.y - previous.y) < 0.5;
+        previous = next;
+        return moved > 2 && rested;
+      })
+      .toBe(true);
     const before = await position();
     const beforeReads = new Map(reads);
     await captureScreenshot(

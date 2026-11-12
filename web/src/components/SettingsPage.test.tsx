@@ -120,6 +120,9 @@ describe('SettingsPage', () => {
       '/more/settings/relationship',
     );
     expect(relationship).toContain('name="relationshipStartedOn"');
+    expect(relationship).toContain('occasion-holiday-settings');
+    expect(relationship).toContain('role="switch"');
+    expect(relationship).toContain('Allgemeine Termine anzeigen');
     expect(relationship).not.toContain('settings-back-link');
     expect(relationship).not.toContain('important-date-reminder-card');
     expect(relationship).not.toContain('name="dashboardUpcomingItemLimit"');
@@ -127,6 +130,7 @@ describe('SettingsPage', () => {
     const notifications = renderSettingsPageFixture(
       '/more/settings/notifications',
     );
+    expect(notifications).not.toContain('occasion-holiday-settings');
     expect(notifications).toContain('important-dates-settings');
     expect(notifications).toContain('important-date-reminder-card');
     expect(notifications).toContain(profileIdentity.importantDatesIntro);

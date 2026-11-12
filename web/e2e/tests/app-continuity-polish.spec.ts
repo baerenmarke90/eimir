@@ -478,20 +478,24 @@ for (const [width, theme] of [
       page.getByRole('heading', { name: copy.history }),
     ).toBeVisible();
     const history = page.locator('.couple-experience-history-entry');
-    await expect(history.locator('.experience-answer')).toContainText([
+    const answers = history.locator('.experience-answer-preview');
+    await expect(answers).toContainText([
       fixture.partnerAnswer,
       fixture.ownInitial,
     ]);
-    await expect(history.locator('.experience-answer')).toHaveCount(2);
+    await expect(answers).toHaveCount(2);
+    // #1775: both answers stand apart through author name and identity
+    // colour on one shared surface, not through nested answer boxes.
     const colors = await history.evaluate((node) => ({
-      parent: getComputedStyle(node).backgroundColor,
-      answers: Array.from(node.querySelectorAll('.experience-answer')).map(
-        (answer) => getComputedStyle(answer).backgroundColor,
-      ),
+      answers: Array.from(
+        node.querySelectorAll('.experience-answer-preview'),
+      ).map((answer) => getComputedStyle(answer).backgroundColor),
+      avatars: Array.from(
+        node.querySelectorAll('.experience-answer-avatar'),
+      ).map((avatar) => getComputedStyle(avatar).borderColor),
     }));
-    expect(colors.answers[0]).not.toBe(colors.parent);
-    expect(colors.answers[1]).not.toBe(colors.parent);
-    expect(colors.answers[0]).not.toBe(colors.answers[1]);
+    expect(colors.answers).toEqual(['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0)']);
+    expect(colors.avatars[0]).not.toBe(colors.avatars[1]);
     await history.scrollIntoViewIfNeeded();
     await captureScreenshot(
       page,

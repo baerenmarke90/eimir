@@ -3034,6 +3034,17 @@
     "share": "Share with {{name}}",
     "shareHint": "Your partner will be notified. The entry stays in your memories.",
     "history": "Already shared",
+    "historyGroups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "recent": "A few days ago"
+    },
+    "questionState": {
+      "partnerAnswered": "{{name}} answered",
+      "open": "Still open",
+      "youAnswered": "You answered",
+      "bothAnswered": "You both answered"
+    },
     "questionsTitle": "Three questions for today",
     "questionsUnavailable": "Today's questions could not be loaded. You can write freely.",
     "selectedQuestion": "Selected question",

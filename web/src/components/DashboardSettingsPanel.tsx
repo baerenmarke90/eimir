@@ -644,64 +644,66 @@ export function DashboardSettingsPanel({
   ) {
     const rowScope = `${settingsScope}:${moduleKey}`;
 
-                        if (
-                          visibilityWrites.current.has(rowScope) ||
-                          (moduleKey === UPCOMING_MODULE_KEY &&
-                            (upcomingWriteRef.current?.scope ===
-                              settingsScope ||
-                              queryClient.isMutating({
-                                mutationKey: upcomingMutationKey,
-                                exact: true,
-                              }) > 0))
-                        ) {
-                          return;
-                        }
-                        // The mutation cache also prevents duplicate admission
-                        // across a panel unmount/remount while a request is in flight.
-                        const existing = queryClient
-                          .getMutationCache()
-                          .findAll({
-                            mutationKey: visibilityMutationKey,
-                            exact: true,
-                          })
-                          .some(
-                            (mutation) =>
-                              mutation.state.status === 'pending' &&
-                              (
-                                mutation.state.variables as
-                                  | VisibilityWrite
-                                  | undefined
-                              )?.moduleKey === moduleKey,
-                          );
-                        if (existing) return;
-                        const isCurrentQuery = captureAuthorizedQuery(
-                          queryClient,
-                          queryKey,
-                        );
-                        if (!isCurrentQuery()) return;
-                        const write: VisibilityWrite = {
-                          id: ++nextVisibilityId.current,
-                          scope: settingsScope,
-                          rowScope,
-                          moduleKey: moduleKey,
-                          visible: nextVisible,
-                          key: queryKey,
-                          isCurrentQuery,
-                          api: dashboardApi,
-                          spaceId,
-                        };
-                        visibilityWrites.current.set(rowScope, write);
-                        setPendingVisibility((current) => ({
-                          ...current,
-                          [rowScope]: { id: write.id, visible: write.visible },
-                        }));
-                        setSavedModuleKey(null);
-                        setVisibilityError(null);
-                        visibilityMutation.mutate(write);
+    if (
+      visibilityWrites.current.has(rowScope) ||
+      (moduleKey === UPCOMING_MODULE_KEY &&
+        (upcomingWriteRef.current?.scope ===
+          settingsScope ||
+          queryClient.isMutating({
+            mutationKey: upcomingMutationKey,
+            exact: true,
+          }) > 0))
+    ) {
+      return;
+    }
+    // The mutation cache also prevents duplicate admission
+    // across a panel unmount/remount while a request is in flight.
+    const existing = queryClient
+      .getMutationCache()
+      .findAll({
+        mutationKey: visibilityMutationKey,
+        exact: true,
+      })
+      .some(
+        (mutation) =>
+          mutation.state.status === 'pending' &&
+          (
+            mutation.state.variables as
+              | VisibilityWrite
+              | undefined
+          )?.moduleKey === moduleKey,
+      );
+    if (existing) return;
+    const isCurrentQuery = captureAuthorizedQuery(
+      queryClient,
+      queryKey,
+    );
+    if (!isCurrentQuery()) return;
+    const write: VisibilityWrite = {
+      id: ++nextVisibilityId.current,
+      scope: settingsScope,
+      rowScope,
+      moduleKey,
+      visible: nextVisible,
+      key: queryKey,
+      isCurrentQuery,
+      api: dashboardApi,
+      spaceId,
+    };
+    visibilityWrites.current.set(rowScope, write);
+    setPendingVisibility((current) => ({
+      ...current,
+      [rowScope]: { id: write.id, visible: write.visible },
+    }));
+    setSavedModuleKey(null);
+    setVisibilityError(null);
+    visibilityMutation.mutate(write);
   }
 
   function renderModuleRow(moduleKey: DashboardModuleKey, sortable: boolean) {
-    const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moduleKey);
+    const entry = DASHBOARD_MODULE_CATALOG.find(
+      (item) => item.key === moduleKey,
+    );
     if (!entry) return null;
     const visible = isDashboardModuleVisible(preferencesQuery.data, entry.key);
     const rowScope = `${settingsScope}:${entry.key}`;
@@ -716,7 +718,9 @@ export function DashboardSettingsPanel({
     return (
       <div
         key={entry.key}
-        className={`dashboard-module-option${sortable && reorder.activeItemId === entry.key ? ' is-dragging' : ''}${sortable ? '' : ' is-hidden'}`}
+        className={`dashboard-module-option${
+          sortable && reorder.activeItemId === entry.key ? ' is-dragging' : ''
+        }${sortable ? '' : ' is-hidden'}`}
         data-sortable-item-id={sortable ? entry.key : undefined}
       >
         <span className="dashboard-module-icon" aria-hidden="true">

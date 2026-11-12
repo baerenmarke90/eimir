@@ -28,7 +28,7 @@ const ROUTE_LOADING = PAGE_PARENTS.flatMap((parent) => [
 ]).join(', ');
 const CURRENT_PAGE = PAGE_PARENTS.map((parent) => `${parent} .page`).join(', ');
 const BLOCKED_TARGETS =
-  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .leaflet-container, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
+  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .place-map-viewport, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
 
 function dragOffset(distance: number, hasNeighbour: boolean): number {
   const width = window.innerWidth;

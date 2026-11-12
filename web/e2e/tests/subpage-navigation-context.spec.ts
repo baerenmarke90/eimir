@@ -1,24 +1,25 @@
-import fixtureCopy from '../fixtures/locales/de';
-import placeCopy from '../../src/i18n/locales/photoPlaces';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/coupleExperiences';
-import taskCopy from '../../src/i18n/locales/taskBoundary';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import storyProducts from '../../src/i18n/locales/storyProducts';
 import navigation from '../../src/i18n/locales/navigation';
+import placeCopy from '../../src/i18n/locales/photoPlaces';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskCopy from '../../src/i18n/locales/taskBoundary';
+import fixtureCopy from '../fixtures/locales/de';
+import { mockMapTiles } from '../support/mapTiles';
 import { openComposerPlace } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
+  captureScreenshot,
+  installMocks,
   ME,
   PARTNER,
   SPACE_ID,
-  captureScreenshot,
-  installMocks,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -196,9 +197,7 @@ for (const [width, theme, large] of [
         },
       }),
     );
-    await page.route('https://tile.openstreetmap.org/**', (route) =>
-      route.fulfill({ contentType: 'image/jpeg', body: photo }),
-    );
+    await mockMapTiles(page);
     await signIn(page);
     await expect(page.locator('.subpage-back-slot')).toHaveCount(0);
     await page.goto('/story/memories/mem-canal');
@@ -363,7 +362,7 @@ for (const [width, theme] of [
             vibeCheckEnabled: true,
             vibeVisibilityMode: 'MUTUAL_REVEAL',
           },
-          headers: { ETag: '\"7\"' },
+          headers: { ETag: '"7"' },
         }),
       );
       await page.route(`**${base}/daily-check-in/today`, (route) =>
@@ -379,7 +378,7 @@ for (const [width, theme] of [
               partnerNote: null,
             },
           },
-          headers: { ETag: '\"2026-11-04:empty\"' },
+          headers: { ETag: '"2026-11-04:empty"' },
         }),
       );
       await page.route(`**${base}/profiles/*`, (route) =>

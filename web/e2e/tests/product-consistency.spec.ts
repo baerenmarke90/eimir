@@ -10,6 +10,7 @@ import planningCopy from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { mockMapTiles } from '../support/mapTiles';
 import { openComposerPlace } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -539,7 +540,7 @@ test('a created map Place survives a failed Memory save and retries only its sta
     }
     return route.fallback();
   });
-  await page.route('**/*.tile.openstreetmap.org/**', (route) => route.abort());
+  await mockMapTiles(page, { fail: true });
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
   await page

@@ -129,6 +129,8 @@ const serviceWorkerContext = {
       addAll: async () => undefined,
       match: async () => undefined,
       put: async () => undefined,
+      keys: async () => [],
+      delete: async () => true,
     }),
     keys: async () => [],
     delete: async () => true,
@@ -155,12 +157,17 @@ assert(
 
 function makeRequest(
   path,
-  { method = 'GET', mode = 'cors', auth = false } = {},
+  {
+    method = 'GET',
+    mode = 'cors',
+    auth = false,
+    origin = 'https://eimir.test',
+  } = {},
 ) {
   return {
     method,
     mode,
-    url: `https://eimir.test${path}`,
+    url: `${origin}${path}`,
     headers: {
       has(name) {
         return auth && name.toLowerCase() === 'authorization';
@@ -216,6 +223,36 @@ assert(
   'Service worker must not intercept mutation requests.',
 );
 
+const mapOrigin = 'https://tiles.openfreemap.org';
+const mapTile = await dispatchFetch(
+  makeRequest('/planet/20261101_080013_pt/12/2200/1350.pbf', {
+    origin: mapOrigin,
+  }),
+);
+assert(
+  mapTile.responded,
+  'Basemap tiles must use the bounded persistent map cache.',
+);
+for (const [label, request] of [
+  [
+    'authenticated',
+    makeRequest('/planet/x/1/0/0.pbf', { origin: mapOrigin, auth: true }),
+  ],
+  [
+    'mutating',
+    makeRequest('/planet/x/1/0/0.pbf', { origin: mapOrigin, method: 'POST' }),
+  ],
+  [
+    'other third-party',
+    makeRequest('/tile.png', { origin: 'https://tiles.example.test' }),
+  ],
+]) {
+  assert(
+    !(await dispatchFetch(request)).responded,
+    `Service worker must not intercept ${label} cross-origin requests.`,
+  );
+}
+
 rejectNetwork = false;
 const onlineNavigation = await dispatchFetch(
   makeRequest('/momente/42', { mode: 'navigate' }),
@@ -233,6 +270,94 @@ assert(
   offlineNavigation.responded && offlineNavigation.response === offlineResponse,
   'Failed top-level navigation must return the privacy-safe offline fallback.',
 );
+
+// Basemap cache behavior, with a stateful Cache stand-in.
+{
+  const handlers = new Map();
+  const stored = new Map();
+  let online = true;
+  let fetches = 0;
+  const cache = {
+    addAll: async () => undefined,
+    match: async (request) => stored.get(request.url),
+    put: async (request, response) => {
+      stored.set(request.url, response);
+    },
+    keys: async () => [...stored.keys()].map((url) => ({ url })),
+    delete: async (key) => stored.delete(key.url),
+  };
+  runInNewContext(
+    serviceWorker,
+    {
+      URL,
+      Response: { error: () => ({ kind: 'error' }) },
+      self: {
+        location: { origin: 'https://eimir.test' },
+        addEventListener: (type, handler) => handlers.set(type, handler),
+      },
+      caches: {
+        open: async () => cache,
+        keys: async () => [],
+        delete: async () => true,
+        match: async () => undefined,
+      },
+      fetch: async (request) => {
+        fetches += 1;
+        if (!online) throw new Error('offline');
+        return {
+          ok: true,
+          type: 'cors',
+          url: request.url,
+          clone() {
+            return this;
+          },
+        };
+      },
+    },
+    { filename: 'service-worker.js' },
+  );
+  const request = (path) => makeRequest(path, { origin: mapOrigin });
+  const respond = async (path) => {
+    let response;
+    handlers.get('fetch')({
+      request: request(path),
+      respondWith(value) {
+        response = Promise.resolve(value);
+      },
+    });
+    const result = await response;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return result;
+  };
+  const tile = '/planet/20261101_080013_pt/12/2200/1350.pbf';
+  const style = '/styles/liberty';
+
+  await respond(tile);
+  await respond(style);
+  assert(stored.size === 2, 'Basemap tiles and style must be stored.');
+  const afterWarm = fetches;
+  await respond(tile);
+  assert(fetches === afterWarm, 'A cached versioned tile must not refetch.');
+  await respond(style);
+  assert(
+    fetches === afterWarm + 1,
+    'The mutable style must revalidate online.',
+  );
+
+  online = false;
+  assert(
+    (await respond(tile)).url?.endsWith(tile),
+    'A cached tile must be available offline.',
+  );
+  assert(
+    (await respond(style)).url?.endsWith(style),
+    'The last cached style must be available offline.',
+  );
+  assert(
+    (await respond('/planet/20261101_080013_pt/12/9/9.pbf')).kind === 'error',
+    'An uncached tile must fail offline instead of inventing content.',
+  );
+}
 
 const registration = read('src/pwa.ts');
 assert(

@@ -727,7 +727,7 @@
       "results": "Places found",
       "noResults": "No matching place found. Change your search or choose a position on the map.",
       "loadMap": "Load map",
-      "privacy": "Place search uses Photon. When loading the map, OpenStreetMap receives your IP address and the map area. Your other content is not sent.",
+      "privacy": "Place search uses Photon. When loading the map, the map service OpenFreeMap receives your IP address and the map area. Your other content is not sent.",
       "attribution": "Map data © OpenStreetMap contributors · Search by Photon",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",

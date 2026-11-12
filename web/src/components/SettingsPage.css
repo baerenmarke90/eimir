@@ -38,6 +38,17 @@
   min-width: 0;
   gap: var(--space-6);
 }
+.occasion-holiday-settings {
+  display: grid;
+  max-width: 36rem;
+  gap: var(--space-2);
+}
+.occasion-holiday-settings .preference-switch-row {
+  border-block: 1px solid var(--color-border-subtle);
+}
+.occasion-holiday-device-note {
+  font-size: 0.8rem;
+}
 
 .settings-section,
 .settings-category-content.settings-section {

@@ -299,18 +299,9 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
     if (method === 'GET' && pathname === `${space}/daily-quote/catalog`) {
       requests.catalog += 1;
       await json({
-        categories: [
-          {
-            id: 'love',
-            name: 'Love',
-            description: 'Relationship thoughts',
-          },
-          {
-            id: 'mindfulness',
-            name: 'Mindfulness',
-            description: 'Present-moment thoughts',
-          },
-        ],
+        categories: Object.entries(dailyQuote.catalog.categories).map(
+          ([id, name]) => ({ id, name, description: name }),
+        ),
         sources: [
           {
             id: 'classic_literature',
@@ -610,6 +601,14 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   await expect(page.getByText(dailyQuote.privacyFallback)).toBeVisible();
 
   const preferencesSheet = page.locator('.daily-quote-preferences-sheet');
+  const categories = preferencesSheet.getByRole('group', {
+    name: dailyQuote.categories,
+  });
+  const categoryCount = Object.keys(dailyQuote.catalog.categories).length;
+  await expect(categories.getByRole('checkbox')).toHaveCount(categoryCount);
+  await expect(preferencesSheet.getByRole('checkbox')).toHaveCount(
+    categoryCount,
+  );
   const mindfulness = preferencesSheet.getByRole('checkbox', {
     name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
   });
@@ -629,12 +628,9 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
     page.getByRole('button', { name: dailyQuote.settingsAria }),
   ).toBeFocused();
   expect(requests.patches[0]?.ifMatch).toBe('"quote-pref:2"');
-  expect(requests.patches[0]?.body).toEqual(
-    expect.objectContaining({
-      selectedCategoryIds: ['love', 'mindfulness'],
-      selectedSourceIds: ['classic_literature'],
-    }),
-  );
+  expect(requests.patches[0]?.body).toEqual({
+    selectedCategoryIds: ['love', 'mindfulness'],
+  });
   expect(JSON.stringify(requests.patches)).not.toContain(PARTNER_ID);
 });
 
@@ -1083,7 +1079,7 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const frames = await page
       .locator(
-        'button, .today-agenda-row, .short-task-sheet, .daily-quote-category, .daily-quote-source-check, .preference-switch-track',
+        'button, .today-agenda-row, .short-task-sheet, .daily-quote-category, .preference-switch-track',
       )
       .evaluateAll((elements) =>
         elements

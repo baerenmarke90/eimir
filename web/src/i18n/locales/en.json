@@ -2074,21 +2074,19 @@
     "retry": "Try again",
     "settingsAria": "Open your saying of the day settings",
     "settingsTitle": "Saying of the Day",
-    "selectionAction": "Categories and sources",
-    "settingsIntro": "Show or hide your saying of the day on Us. Your categories and sources stay saved.",
+    "selectionAction": "Choose categories",
+    "settingsIntro": "Show or hide your saying of the day on Us. Your categories stay saved.",
     "settingsLoading": "Loading your saying of the day setting …",
     "settingsSaved": "Saved.",
     "enabledLabel": "Show the saying of the day",
     "enabledDescription": "Turning this off hides the card on Us. Your selection stays saved.",
-    "enabledSettingsDescription": "Applies only to you. Your partner has their own setting; your categories and sources stay saved.",
+    "enabledSettingsDescription": "Applies only to you. Your categories stay saved.",
     "sheetTitle": "Your saying of the day",
     "close": "Close saying of the day settings",
     "privacy": "Just for you – {{name, firstName}} cannot see your selection.",
     "privacyResolved": "Just for you – {{name}} cannot see your selection.",
     "privacyFallback": "Just for you – your selection stays personal.",
     "categories": "Categories",
-    "sources": "Sources",
-    "footnote": "The texts come from public-domain works and historical proverb collections.",
     "done": "Done",
     "cancel": "Cancel",
     "saving": "Saving …",
@@ -2109,20 +2107,6 @@
         "mindfulness": "Mindfulness",
         "serenity": "Serenity",
         "motivation": "Courage & motivation"
-      },
-      "sources": {
-        "classic_literature": {
-          "name": "Classic literature",
-          "description": "Works of classic world literature (public domain)."
-        },
-        "stoic_philosophy": {
-          "name": "Ancient philosophy",
-          "description": "Ancient and Stoic philosophical writings (public domain)."
-        },
-        "poetic_wisdom": {
-          "name": "Poetry & wisdom",
-          "description": "Public-domain aphorisms, poetic reflections, and traditional proverbs."
-        }
       }
     },
     "quoteText": "“{{text}}”"

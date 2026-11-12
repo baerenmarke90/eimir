@@ -295,7 +295,7 @@ def test_daily_quote_preferences_crud_and_optimistic_concurrency(
     )
     assert patch_invalid_category.status_code == 422
 
-    # 6. Valid PATCH to filter sources and categories
+    # 6. PATCH accepts the legacy source IDs and the active category preference.
     patch_valid = client.patch(
         f"/api/v1/spaces/{space_id}/daily-quote/preferences",
         headers={**headers, "If-Match": etag},
@@ -314,11 +314,10 @@ def test_daily_quote_preferences_crud_and_optimistic_concurrency(
     assert updated_data["selectedCategoryIds"] == ["serenity"]
     assert updated_data["locale"] == "de"
 
-    # Verify daily quote now conforms to preferences
+    # Verify daily quote resolution follows the category preference.
     quote_res = client.get(f"/api/v1/spaces/{space_id}/daily-quote", headers=headers)
     assert quote_res.status_code == 200
     q = quote_res.json()["quote"]
-    assert q["sourceId"] == "stoic_philosophy"
     assert "serenity" in q["categoryIds"]
 
     # 7. Disabling daily quote in preferences returns enabled=False and quote=None

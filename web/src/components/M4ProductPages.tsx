@@ -316,7 +316,9 @@ export function SearchProductPage({
               </div>
             </div>
             <div className="field-group">
-              <label htmlFor="m4-search-kind">{t('m5s5.search.typeLabel')}</label>
+              <label htmlFor="m4-search-kind">
+                {t('m5s5.search.typeLabel')}
+              </label>
               <select
                 id="m4-search-kind"
                 value={kind}

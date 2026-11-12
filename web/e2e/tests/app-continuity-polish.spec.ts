@@ -1,19 +1,19 @@
 import { readFileSync } from 'node:fs';
-import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
-import { expect, test, type Page } from '@playwright/test';
-import { fulfillDefaultProductContext } from '../support/productContext';
+import { expect, type Page, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localizedFixture from '../fixtures/locales/de';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   CAPABILITIES,
-  ME,
-  PARTNER,
-  SPACE_ID,
   captureScreenshot,
   getTimelineItems,
   installMocks,
+  ME,
+  PARTNER,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -190,8 +190,10 @@ test('a stored photo stays hidden while access is checked and is evicted after a
     release = resolve;
   });
   await page.route('**/attachments/att-canal-1/read-access', async (route) => {
-    if (!holding || route.request().postDataJSON()?.variant !== 'original')
-      return route.fallback();
+    // The generated API serializes attachmentReadRequest as the POST body.
+    // A missing variant means original; thumbnails explicitly request theirs.
+    const variant = route.request().postDataJSON()?.variant ?? 'original';
+    if (!holding || variant !== 'original') return route.fallback();
     held++;
     await denied;
     return route.fulfill({
@@ -321,6 +323,9 @@ test('a read-mode Memory refreshes its detail alongside the membership check', a
 }) => {
   await installMocks(page, { strict: true });
   let restoring = false;
+  // Count only the reloaded document: the page being replaced may still
+  // finish its own read after the reload starts.
+  let reloaded = false;
   let reads = 0;
   let release!: () => void;
   const membership = new Promise<void>((resolve) => {
@@ -332,8 +337,11 @@ test('a read-mode Memory refreshes its detail alongside the membership check', a
   });
   const detail = `${root}/memories/mem-canal`;
   await page.route(`**${detail}`, (route) => {
-    if (restoring) reads++;
+    if (restoring && reloaded) reads++;
     return route.fallback();
+  });
+  page.on('framenavigated', (frame) => {
+    if (restoring && frame === page.mainFrame()) reloaded = true;
   });
   await signIn(page);
   await page.locator(canalCard).click();

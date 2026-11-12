@@ -691,7 +691,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
           .click();
         await page.evaluate(() => window.scrollTo(0, 0));
 
-        const rootHeader = page.locator('.page-heading-root');
+        const rootHeader = page.locator('.page-heading-root:visible');
         const heading = rootHeader.getByRole('heading', {
           level: 1,
           name: destination.title,
@@ -893,7 +893,7 @@ for (const variant of [
   { width: 430, theme: 'light', view: 'timeline', reduced: true },
   { width: 1280, theme: 'light', view: 'discover', reduced: false },
 ] as const) {
-  test(`primary destinations reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
+  test(`primary destinations restore scroll and reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: variant.width, height: 740 });
@@ -978,9 +978,7 @@ for (const variant of [
     ).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(/\/story$/);
     await expect(page.getByRole('tablist')).toHaveCount(1);
-    await expect
-      .poll(() => page.evaluate(() => window.scrollY))
-      .toBeLessThan(2);
+    await expectRestoredScroll(page, targetY);
     await page.screenshot({
       path: testInfo.outputPath(`reset-${variant.width}-${variant.theme}.png`),
     });
@@ -1040,7 +1038,7 @@ test('native primary tab switching replaces root history but keeps nested task r
     await expect(page).toHaveURL(new RegExp(`${root}$`));
     expect(await page.evaluate(() => history.length)).toBe(historyLength);
   }
-  await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+  await expect(page.locator('[data-floating-create]:visible')).toHaveCount(0);
   await nav.locator('a[href="/today"]').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(await page.evaluate(() => history.length)).toBe(historyLength);
@@ -1093,6 +1091,20 @@ async function dragTouch(
   }
 }
 
+async function expectRestoredScroll(page: Page, desired: number) {
+  await expect
+    .poll(() =>
+      page.evaluate((stored) => {
+        const max = Math.max(
+          0,
+          document.documentElement.scrollHeight - innerHeight,
+        );
+        return Math.abs(window.scrollY - Math.min(stored, max));
+      }, desired),
+    )
+    .toBeLessThan(3);
+}
+
 async function expectPrimaryReadingSurface(page: Page) {
   const surfaceForRoute: Record<string, string> = {
     '/today': '.today-page',
@@ -1103,7 +1115,7 @@ async function expectPrimaryReadingSurface(page: Page) {
   const selector = surfaceForRoute[new URL(page.url()).pathname];
   if (!selector)
     throw new Error('A primary swipe requires a primary destination.');
-  await expect(page.locator(`main > ${selector}`)).toBeVisible();
+  await expect(page.locator(`main > .primary-tab-panel:not([hidden]) ${selector}`)).toBeVisible();
   if (selector === '.today-page') {
     // Use the settled reading surface. During cold startup the loading node
     // can disappear between hit-testing and the native touch sequence.
@@ -1225,7 +1237,7 @@ test.describe('primary tab touch navigation', () => {
     await expect(page).toHaveURL(/\/plan$/);
     await expect(main).toHaveAttribute('data-navigation-motion', 'content');
 
-    const floatingAction = main.locator('[data-floating-create]');
+    const floatingAction = main.locator('[data-floating-create]:visible');
     await expect(floatingAction).toHaveCount(1);
     await page.screenshot({
       path: testInfo.outputPath('shell-planning-tab-entry-390.png'),
@@ -1412,7 +1424,7 @@ test.describe('primary tab touch navigation', () => {
     });
   }
 
-  test('primary swipe resets Timeline scroll and Planning segment without growing native history or refetching fresh content', async ({
+  test('primary swipe restores reading position and resets Planning segment without growing native history or refetching fresh content', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1463,9 +1475,7 @@ test.describe('primary tab touch navigation', () => {
     ).toHaveAttribute('aria-selected', 'true');
     await swipePrimary(page, 'previous');
     await expect(page).toHaveURL(/\/story/);
-    await expect
-      .poll(() => page.evaluate(() => window.scrollY))
-      .toBeLessThan(2);
+    await expectRestoredScroll(page, targetY);
     await expect(page).toHaveURL(/\/story$/);
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),

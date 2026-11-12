@@ -194,11 +194,18 @@ test('a stored photo stays hidden while access is checked and is evicted after a
   expect(downloads).toBe(1);
   await captureScreenshot(page, info, 'diary-expanded-dark.png');
 
-  // Returning within the session renders retained cards without a new parent read.
-  holding = true;
+  // A tab return preserves an already authorized image without redelivery.
   await page.locator('a[href="/plan"]').first().click();
-  await expect(card).toHaveCount(0);
+  await expect(card).not.toBeVisible();
   await page.goBack();
+  await expect(card).toBeVisible();
+  await expect(card.locator('img')).toHaveCount(1);
+  expect(held).toBe(0);
+
+  // A real new delivery after a reload still checks access before showing
+  // retained bytes, and a denied grant evicts the stored photo.
+  holding = true;
+  await page.reload();
   await expect.poll(() => held).toBeGreaterThan(0);
   await expect(card).toBeVisible();
   await expect(card.locator('img')).toHaveCount(0);

@@ -41,9 +41,8 @@ export function PrimaryTabPanels({
     activeRef.current = active;
     if (!active || previous === active) return;
     const saved = scrollPositions.current.get(active);
-    // A first visit keeps the shared route-entry handoff (top of the page).
-    if (saved !== undefined)
-      window.scrollTo({ top: saved, behavior: 'instant' });
+    // New tabs start at the top; revisited tabs restore their reading position.
+    window.scrollTo({ top: saved ?? 0, behavior: 'instant' });
   }, [active]);
 
   useEffect(() => {

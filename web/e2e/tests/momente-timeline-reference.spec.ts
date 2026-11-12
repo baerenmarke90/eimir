@@ -528,7 +528,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
 
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
-    await expect(page.getByText('Thinking of you')).toBeVisible();
+    await expect(page.locator('.heart-moment-detail-text')).toHaveText('Thinking of you');
     const detailEmotion = page.locator('.heart-emotion-badge--detail');
     await expect(detailEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(detailEmotion.locator('.heart-emotion-label')).toBeVisible();

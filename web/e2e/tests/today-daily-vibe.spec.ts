@@ -499,7 +499,7 @@ for (const theme of ['light', 'dark'] as const) {
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
     await expect(page).toHaveURL(/\/more$/);
-    await expect(cleanup).toHaveCount(0);
+    await expect(cleanup).not.toBeVisible();
     await page
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
@@ -520,7 +520,7 @@ for (const theme of ['light', 'dark'] as const) {
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
     await expect(page).toHaveURL(/\/more$/);
-    await expect(energy).toHaveCount(0);
+    await expect(energy).not.toBeVisible();
     await page
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
@@ -989,7 +989,7 @@ for (const viewport of [
       await page
         .getByRole('link', { name: navigation.more, exact: true })
         .click();
-      await expect(energy).toHaveCount(0);
+      await expect(energy).not.toBeVisible();
       await page
         .getByRole('link', { name: navigation.today, exact: true })
         .click();
@@ -1162,7 +1162,7 @@ for (const [width, theme, largeText] of [
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
-    await expect(own).toHaveCount(0);
+    await expect(own).not.toBeVisible();
     await page
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
@@ -1271,7 +1271,7 @@ test('Daily Vibe keeps a committed clear pending through return and consumes a l
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
-  await expect(page.getByTestId('daily-energy-own-battery')).toHaveCount(0);
+  await expect(page.getByTestId('daily-energy-own-battery')).not.toBeVisible();
   await page.getByRole('link', { name: navigation.today, exact: true }).click();
   const choose = page.getByRole('button', { name: dailyVibe.chooseAria });
   await expect(choose).toBeVisible();

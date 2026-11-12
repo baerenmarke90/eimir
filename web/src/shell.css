@@ -599,6 +599,7 @@
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
   --primary-tab-opacity: 1;
+  --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;

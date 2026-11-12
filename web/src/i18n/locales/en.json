@@ -1758,7 +1758,29 @@
       "SHARED": "For both of us",
       "PRIVATE": "Only for me"
     },
-    "relationshipAnniversary": "Your anniversary"
+    "relationshipAnniversary": "Your anniversary",
+    "holidaySettings": {
+      "title": "Shared calendar occasions",
+      "intro": "You can include recurring celebrations alongside your personal dates.",
+      "toggle": "Show common occasions",
+      "description": "For example Easter, Christmas, New Year, Pentecost and Valentine's Day.",
+      "deviceNote": "This choice applies on this device only. Your saved dates do not change.",
+      "manage": "Common occasion settings"
+    },
+    "holidays": {
+      "newYear": "New Year's Day",
+      "valentinesDay": "Valentine's Day",
+      "goodFriday": "Good Friday",
+      "easterSunday": "Easter Sunday",
+      "easterMonday": "Easter Monday",
+      "pentecostSunday": "Pentecost Sunday",
+      "pentecostMonday": "Whit Monday",
+      "stNicholas": "St Nicholas' Day",
+      "christmasEve": "Christmas Eve",
+      "christmasDay": "Christmas Day",
+      "boxingDay": "Boxing Day",
+      "newYearsEve": "New Year's Eve"
+    }
   },
   "privateArea": {
     "eyebrow": "For me",

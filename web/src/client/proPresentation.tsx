@@ -1,22 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, type ReactNode, useContext, useMemo } from 'react';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { Configuration } from './apiConfiguration';
 import { useApiRuntime } from './apiRuntimeContext';
 import { normalizeClientError } from './problemDetails';
 
-const ProPresentationContext = createContext<{
-  hide: boolean;
-  register: () => () => void;
-} | null>(null);
+const ProPresentationContext = createContext<boolean | null>(null);
 
 export const proPresentationKey = (
   instance: string,
@@ -24,7 +13,12 @@ export const proPresentationKey = (
   spaceId: string,
 ) => ['pro-presentation', instance, accountId, spaceId] as const;
 
-/** Presentation only. Backend capabilities continue to authorize every action. */
+/**
+ * Read the effective tier once for this authenticated Account/Space session.
+ * Navigation never triggers another read. Explicit invalidation (for example
+ * after changing a subscription) may refresh the view. The backend still
+ * authorizes capabilities and every protected action independently.
+ */
 export function ProPresentationProvider({ children }: { children: ReactNode }) {
   const runtime = useApiRuntime();
   const instance = runtime?.apiBaseUrl ?? '';
@@ -42,16 +36,9 @@ export function ProPresentationProvider({ children }: { children: ReactNode }) {
     [instance, accessToken],
   );
   const hasOwner = Boolean(instance && accountId && spaceId && accessToken);
-  const [readers, setReaders] = useState(0);
-  const register = useCallback(() => {
-    setReaders((count) => count + 1);
-    return () => setReaders((count) => Math.max(0, count - 1));
-  }, []);
-  // Inspect only where feature marks are actually present, and share that read.
-  const enabled = hasOwner && readers > 0;
   const query = useQuery({
     queryKey: proPresentationKey(instance, accountId, spaceId),
-    enabled,
+    enabled: hasOwner,
     queryFn: async ({ signal }) => {
       try {
         return await api.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
@@ -63,26 +50,24 @@ export function ProPresentationProvider({ children }: { children: ReactNode }) {
       }
     },
     retry: false,
-    staleTime: 30_000,
-    gcTime: 0,
-    refetchInterval: 60_000,
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
-  // Avoid flashing upgrade marks before the effective Space tier is known.
-  // A retained authorized tier is safe for decoration, never for capability grants.
+  // Unknown/new scope never borrows another Space's tier. This controls only
+  // decorative upgrade marks, not authorization or the availability of content.
   const hide =
     hasOwner &&
     (query.data?.spaceId !== spaceId || query.data.tier === 'PREMIUM');
-  const value = useMemo(() => ({ hide, register }), [hide, register]);
   return (
-    <ProPresentationContext.Provider value={value}>
+    <ProPresentationContext.Provider value={hide}>
       {children}
     </ProPresentationContext.Provider>
   );
 }
 
 export function useHideProFeatureMarks() {
-  const context = useContext(ProPresentationContext);
-  const register = context?.register;
-  useEffect(() => register?.(), [register]);
-  return context?.hide ?? false;
+  return useContext(ProPresentationContext) ?? false;
 }

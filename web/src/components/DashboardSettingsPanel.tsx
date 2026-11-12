@@ -647,8 +647,7 @@ export function DashboardSettingsPanel({
     if (
       visibilityWrites.current.has(rowScope) ||
       (moduleKey === UPCOMING_MODULE_KEY &&
-        (upcomingWriteRef.current?.scope ===
-          settingsScope ||
+        (upcomingWriteRef.current?.scope === settingsScope ||
           queryClient.isMutating({
             mutationKey: upcomingMutationKey,
             exact: true,
@@ -667,17 +666,11 @@ export function DashboardSettingsPanel({
       .some(
         (mutation) =>
           mutation.state.status === 'pending' &&
-          (
-            mutation.state.variables as
-              | VisibilityWrite
-              | undefined
-          )?.moduleKey === moduleKey,
+          (mutation.state.variables as VisibilityWrite | undefined)
+            ?.moduleKey === moduleKey,
       );
     if (existing) return;
-    const isCurrentQuery = captureAuthorizedQuery(
-      queryClient,
-      queryKey,
-    );
+    const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
     if (!isCurrentQuery()) return;
     const write: VisibilityWrite = {
       id: ++nextVisibilityId.current,
@@ -739,7 +732,7 @@ export function DashboardSettingsPanel({
           </label>
         )}
         {hasDedicatedSetting ? (
-          customControl ?? null
+          (customControl ?? null)
         ) : (
           <label className="dashboard-module-switch">
             <input
@@ -896,7 +889,11 @@ export function DashboardSettingsPanel({
           </div>
         </fieldset>
         {status ? (
-          <p className="dashboard-upcoming-status" role="status" aria-live="polite">
+          <p
+            className="dashboard-upcoming-status"
+            role="status"
+            aria-live="polite"
+          >
             {status}
           </p>
         ) : null}

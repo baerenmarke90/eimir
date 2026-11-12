@@ -65,7 +65,9 @@ describe('Occasion holiday preference', () => {
   });
 
   it('fails closed when no Account is provided or browser storage is unavailable', () => {
-    expect(occasionHolidayPreferenceKey(context.instance, '', 'space')).toBe('');
+    expect(occasionHolidayPreferenceKey(context.instance, '', 'space')).toBe(
+      '',
+    );
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');
     });

@@ -798,6 +798,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await page.locator('.product-shell a[href="/today"]:visible').click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.shared-story-summary')).toBeVisible();
+  await expect(page.locator('.daily-quote-card')).toBeVisible();
   expect(
     await page
       .locator('.today-section-moment')
@@ -918,7 +919,15 @@ for (const [width, theme] of [
     };
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultProductContext(route)) return;
-      const path = new URL(route.request().url()).pathname;
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      if (
+        request.method() === 'GET' &&
+        path === '/api/v1/push-endpoints/configuration'
+      )
+        return route.fulfill({
+          json: { fcm: null, unifiedPush: null, webPush: null, apns: null },
+        });
       if (path === '/api/v1/notification-preferences')
         return route.fulfill({ json: notifications });
       if (path.startsWith('/api/v1/notification-preferences/')) {

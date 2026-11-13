@@ -152,7 +152,7 @@ export function WishReminderAction({
         <p>{t(`${prefix}.privacy`)}</p>
         {!online ? <p role="status">{t(`${prefix}.offline`)}</p> : null}
         {reminder.isPending && online ? (
-          <p role="status">{t('common.loading')}</p>
+          <p role="status">{t('m5s5.reminderDetail.loading')}</p>
         ) : null}
         {reminder.isError && online ? (
           <ProblemState

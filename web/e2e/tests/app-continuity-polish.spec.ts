@@ -1,18 +1,19 @@
 import { readFileSync } from 'node:fs';
-import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
-import { expect, test, type Page } from '@playwright/test';
-import { fulfillDefaultProductContext } from '../support/productContext';
+import { expect, type Page, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localizedFixture from '../fixtures/locales/de';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   CAPABILITIES,
+  captureScreenshot,
+  getTimelineItems,
+  installMocks,
   ME,
   PARTNER,
   SPACE_ID,
-  captureScreenshot,
-  installMocks,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -159,6 +160,28 @@ test('a stored photo stays hidden while access is checked and is evicted after a
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await installMocks(page, { strict: true });
+  // The normal detail mock is text-only. Include its timeline attachment so
+  // opening the detail makes a new original-media authorization request.
+  const attachment = getTimelineItems()[0]?.memory?.attachments[0];
+  if (!attachment) throw new Error('Missing canal attachment fixture.');
+  await page.route(`**${root}/memories/mem-canal`, (route) =>
+    route.fulfill({
+      json: {
+        id: 'mem-canal',
+        spaceId: SPACE_ID,
+        author: ME,
+        authorId: ME.id,
+        title: 'Breakfast by the canal',
+        body: 'A wonderful morning by the water.',
+        happenedOn: '2026-05-12',
+        createdAt: '2026-05-12T08:30:00Z',
+        updatedAt: '2026-05-12T08:30:00Z',
+        version: 1,
+        attachments: [attachment],
+        capabilities: CAPABILITIES,
+      },
+    }),
+  );
   let holding = false;
   let held = 0;
   let downloads = 0;
@@ -167,7 +190,10 @@ test('a stored photo stays hidden while access is checked and is evicted after a
     release = resolve;
   });
   await page.route('**/attachments/att-canal-1/read-access', async (route) => {
-    if (!holding) return route.fallback();
+    // The generated API serializes attachmentReadRequest as the POST body.
+    // A missing variant means original; thumbnails explicitly request theirs.
+    const variant = route.request().postDataJSON()?.variant ?? 'original';
+    if (!holding || variant !== 'original') return route.fallback();
     held++;
     await denied;
     return route.fulfill({
@@ -194,17 +220,27 @@ test('a stored photo stays hidden while access is checked and is evicted after a
   expect(downloads).toBe(1);
   await captureScreenshot(page, info, 'diary-expanded-dark.png');
 
-  // Returning within the session renders retained cards without a new parent read.
-  holding = true;
+  // A tab return preserves an already authorized image without redelivery.
   await page.locator('a[href="/plan"]').first().click();
-  await expect(card).toHaveCount(0);
+  await expect(card).not.toBeVisible();
   await page.goBack();
-  await expect.poll(() => held).toBeGreaterThan(0);
   await expect(card).toBeVisible();
-  await expect(card.locator('img')).toHaveCount(0);
+  await expect(card.locator('img')).toHaveCount(1);
+  expect(held).toBe(0);
+
+  // A fresh detail original must authorize independently of the kept preview.
+  // A document reload may use a fresh Timeline projection as its proof, so it
+  // is not a reliable way to force an attachment read-access request.
+  holding = true;
+  await card.click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect.poll(() => held).toBeGreaterThan(0);
+  expect(await countStoredCanalPhotos(page)).toBeGreaterThan(0);
 
   release();
   await expect.poll(() => countStoredCanalPhotos(page)).toBe(0);
+  await page.goBack();
+  await expect(card).toBeVisible();
   await expect(card.locator('.story-media-placeholder')).toBeVisible();
   expect(downloads).toBe(1);
   await captureScreenshot(page, info, 'diary-access-denied-expanded-dark.png');
@@ -287,6 +323,9 @@ test('a read-mode Memory refreshes its detail alongside the membership check', a
 }) => {
   await installMocks(page, { strict: true });
   let restoring = false;
+  // Count only the reloaded document: the page being replaced may still
+  // finish its own read after the reload starts.
+  let reloaded = false;
   let reads = 0;
   let release!: () => void;
   const membership = new Promise<void>((resolve) => {
@@ -298,8 +337,11 @@ test('a read-mode Memory refreshes its detail alongside the membership check', a
   });
   const detail = `${root}/memories/mem-canal`;
   await page.route(`**${detail}`, (route) => {
-    if (restoring) reads++;
+    if (restoring && reloaded) reads++;
     return route.fallback();
+  });
+  page.on('framenavigated', (frame) => {
+    if (restoring && frame === page.mainFrame()) reloaded = true;
   });
   await signIn(page);
   await page.locator(canalCard).click();
@@ -436,20 +478,24 @@ for (const [width, theme] of [
       page.getByRole('heading', { name: copy.history }),
     ).toBeVisible();
     const history = page.locator('.couple-experience-history-entry');
-    await expect(history.locator('.experience-answer')).toContainText([
+    const answers = history.locator('.experience-answer-preview');
+    await expect(answers).toContainText([
       fixture.partnerAnswer,
       fixture.ownInitial,
     ]);
-    await expect(history.locator('.experience-answer')).toHaveCount(2);
+    await expect(answers).toHaveCount(2);
+    // #1775: both answers stand apart through author name and identity
+    // colour on one shared surface, not through nested answer boxes.
     const colors = await history.evaluate((node) => ({
-      parent: getComputedStyle(node).backgroundColor,
-      answers: Array.from(node.querySelectorAll('.experience-answer')).map(
-        (answer) => getComputedStyle(answer).backgroundColor,
-      ),
+      answers: Array.from(
+        node.querySelectorAll('.experience-answer-preview'),
+      ).map((answer) => getComputedStyle(answer).backgroundColor),
+      avatars: Array.from(
+        node.querySelectorAll('.experience-answer-avatar'),
+      ).map((avatar) => getComputedStyle(avatar).borderColor),
     }));
-    expect(colors.answers[0]).not.toBe(colors.parent);
-    expect(colors.answers[1]).not.toBe(colors.parent);
-    expect(colors.answers[0]).not.toBe(colors.answers[1]);
+    expect(colors.answers).toEqual(['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0)']);
+    expect(colors.avatars[0]).not.toBe(colors.avatars[1]);
     await history.scrollIntoViewIfNeeded();
     await captureScreenshot(
       page,

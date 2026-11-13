@@ -33,6 +33,7 @@ import {
   searchResultPath,
 } from '../client/m4Product';
 import { memoryPreviewTitle } from '../client/memoryProduct';
+import { SEARCH_ROUTE } from '../client/routes';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
@@ -51,6 +52,8 @@ import { handleTabKeyDown } from '../client/tabKeyboard';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
+import { HEART_MOMENT_TAGS } from './HeartMomentTagChoices';
+import { MEMORY_TAGS } from './MemoryTagChoices';
 import {
   useActivityQuery,
   readableActivityItems,
@@ -182,49 +185,85 @@ export function SearchProductPage({
   const [draftQuery, setDraftQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [kind, setKind] = useState<SearchKind | ''>('');
+  const locationTag = (location.state as { selectedTag?: unknown } | null)
+    ?.selectedTag;
+  const directTag =
+    typeof locationTag === 'string' && locationTag.trim().length <= 40
+      ? locationTag.trim()
+      : '';
+  const [selectedTag, setSelectedTag] = useState(directTag);
+  const tagLabel = (MEMORY_TAGS as readonly string[]).includes(selectedTag)
+    ? t(`memory.tagLabels.${selectedTag}`)
+    : (HEART_MOMENT_TAGS as readonly string[]).includes(selectedTag)
+      ? t(`heartMomentProduct.tagLabels.${selectedTag}`)
+      : selectedTag;
+  const effectiveQuery = selectedTag ? `tag:${selectedTag}` : submittedQuery;
+  const effectiveKind = selectedTag ? '' : kind;
 
   const returnKey = (location.state as { taskReturnKey?: unknown } | null)
     ?.taskReturnKey;
-  const restoredKeyRef = useRef<unknown>(undefined);
+  const restoredKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (restoredKeyRef.current === returnKey) return;
-    restoredKeyRef.current = returnKey;
+    if (restoredKeyRef.current === location.key) return;
+    restoredKeyRef.current = location.key;
     const candidateOrigin = resolveOrigin(returnKey);
     const returnOrigin =
       candidateOrigin?.to === taskOriginPath(location.pathname, location.search)
         ? candidateOrigin
         : null;
+    if (directTag) {
+      setSelectedTag(directTag);
+      setKind('');
+      return;
+    }
+    if (returnOrigin?.searchQuery?.startsWith('tag:')) {
+      setSelectedTag(returnOrigin.searchQuery.slice(4));
+      setKind('');
+      return;
+    }
+    setSelectedTag('');
     if (returnOrigin?.searchQuery) {
       setDraftQuery(returnOrigin.searchQuery);
       setSubmittedQuery(returnOrigin.searchQuery);
       setKind((returnOrigin.searchKind as SearchKind | undefined) ?? '');
+    } else {
+      setDraftQuery('');
+      setSubmittedQuery('');
+      setKind('');
     }
-  }, [returnKey, resolveOrigin, location.pathname, location.search]);
+  }, [
+    directTag,
+    location.key,
+    location.pathname,
+    location.search,
+    resolveOrigin,
+    returnKey,
+  ]);
 
   useEffect(
     () =>
       registerOriginMetadata({
-        searchQuery: submittedQuery || undefined,
-        searchKind: kind || undefined,
+        searchQuery: effectiveQuery || undefined,
+        searchKind: effectiveKind || undefined,
       }),
-    [submittedQuery, kind, registerOriginMetadata],
+    [effectiveQuery, effectiveKind, registerOriginMetadata],
   );
 
   const searchQuery = useInfiniteQuery({
-    queryKey: ['m5-s5', 'search', spaceId, submittedQuery, kind],
+    queryKey: ['m5-s5', 'search', spaceId, effectiveQuery, effectiveKind],
     queryFn: ({ pageParam }) =>
       apiCall(() =>
         apis.search.searchSpaceContent({
           spaceId,
-          q: submittedQuery,
-          type: kind ? [kind] : undefined,
+          q: effectiveQuery,
+          type: effectiveKind ? [effectiveKind] : undefined,
           cursor: pageParam,
           limit: PAGE_SIZE,
         }),
       ),
     initialPageParam: null as string | null,
     getNextPageParam: opaqueNextCursor,
-    enabled: submittedQuery.length > 0,
+    enabled: effectiveQuery.length > 0,
     retry: false,
   });
 
@@ -238,59 +277,78 @@ export function SearchProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        title={t('m5s5.search.title')}
-        description={t('m5s5.search.intro')}
+        title={
+          selectedTag
+            ? t('contextTags.resultsTitle', { tag: tagLabel })
+            : t('m5s5.search.title')
+        }
+        description={
+          selectedTag
+            ? t('contextTags.resultsDescription')
+            : t('m5s5.search.intro')
+        }
       />
 
-      <form className="layout-panel m4-toolbar" onSubmit={submit}>
-        <div className="m4-toolbar-row">
-          <div className="field-group m4-search-field">
-            <label htmlFor="m4-search-query">{t('m5s5.search.label')}</label>
-            <div className="m4-search-input-shell">
-              <span className="m4-search-input-icon" aria-hidden="true">
-                <DestinationIcon icon="search" />
-              </span>
-              <input
-                id="m4-search-query"
-                type="search"
-                value={draftQuery}
-                onChange={(event) => setDraftQuery(event.currentTarget.value)}
-                placeholder={t('m5s5.search.placeholder')}
-                autoComplete="off"
-              />
+      {selectedTag ? (
+        <div className="m4-tag-navigation">
+          <span className="m4-tag-label">{tagLabel}</span>
+          <Link to={SEARCH_ROUTE} state={null} className="m4-tag-back">
+            {t('contextTags.searchAll')}
+          </Link>
+        </div>
+      ) : (
+        <form className="layout-panel m4-toolbar" onSubmit={submit}>
+          <div className="m4-toolbar-row">
+            <div className="field-group m4-search-field">
+              <label htmlFor="m4-search-query">{t('m5s5.search.label')}</label>
+              <div className="m4-search-input-shell">
+                <span className="m4-search-input-icon" aria-hidden="true">
+                  <DestinationIcon icon="search" />
+                </span>
+                <input
+                  id="m4-search-query"
+                  type="search"
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.currentTarget.value)}
+                  placeholder={t('m5s5.search.placeholder')}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            <div className="field-group">
+              <label htmlFor="m4-search-kind">
+                {t('m5s5.search.typeLabel')}
+              </label>
+              <select
+                id="m4-search-kind"
+                value={kind}
+                onChange={(event) =>
+                  setKind(event.currentTarget.value as SearchKind | '')
+                }
+              >
+                <option value="">{t('m5s5.search.allTypes')}</option>
+                {SEARCH_KINDS.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {t(`m5s5.kind.${candidate}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="m4-toolbar-submit">
+              <button
+                type="submit"
+                disabled={!draftQuery.trim() || searchQuery.isFetching}
+              >
+                {searchQuery.isFetching && !searchQuery.isFetchingNextPage
+                  ? t('m5s5.search.searching')
+                  : t('m5s5.search.submit')}
+              </button>
             </div>
           </div>
-          <div className="field-group">
-            <label htmlFor="m4-search-kind">{t('m5s5.search.typeLabel')}</label>
-            <select
-              id="m4-search-kind"
-              value={kind}
-              onChange={(event) =>
-                setKind(event.currentTarget.value as SearchKind | '')
-              }
-            >
-              <option value="">{t('m5s5.search.allTypes')}</option>
-              {SEARCH_KINDS.map((candidate) => (
-                <option key={candidate} value={candidate}>
-                  {t(`m5s5.kind.${candidate}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="m4-toolbar-submit">
-            <button
-              type="submit"
-              disabled={!draftQuery.trim() || searchQuery.isFetching}
-            >
-              {searchQuery.isFetching && !searchQuery.isFetchingNextPage
-                ? t('m5s5.search.searching')
-                : t('m5s5.search.submit')}
-            </button>
-          </div>
-        </div>
-      </form>
+        </form>
+      )}
 
-      {!submittedQuery ? (
+      {!effectiveQuery ? (
         <UiState
           kind="empty"
           title={t('m5s5.search.startTitle')}
@@ -306,11 +364,15 @@ export function SearchProductPage({
           onRetry={() => void searchQuery.refetch()}
         />
       ) : null}
-      {submittedQuery && searchQuery.data && items.length === 0 ? (
+      {effectiveQuery && searchQuery.data && items.length === 0 ? (
         <UiState
           kind="empty"
           title={t('m5s5.search.emptyTitle')}
-          body={t('m5s5.search.emptyBody')}
+          body={
+            selectedTag
+              ? t('contextTags.noMatches')
+              : t('m5s5.search.emptyBody')
+          }
         />
       ) : null}
       {items.length > 0 ? (

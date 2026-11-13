@@ -27,8 +27,30 @@ export const THEME_STORAGE_KEY = 'eimir.theme';
 export const LEGACY_THEME_STORAGE_KEY = 'sidebyside.theme';
 export const THEME_PREFERENCE_EVENT = 'eimir:theme-preference';
 export const DARK_MODE_QUERY = '(prefers-color-scheme: dark)';
+export const SYSTEM_THEME_EVENT = 'eimir:system-theme';
 
 let activeThemePreference: ThemePreference | null = null;
+// The Android shell handles uiMode changes itself, so its WebView keeps the
+// launch-time prefers-color-scheme. The shell then reports the device
+// appearance, which takes precedence over the stale media query.
+let reportedSystemPrefersDark: boolean | null = null;
+
+export function readSystemPrefersDark(): boolean {
+  if (reportedSystemPrefersDark !== null) return reportedSystemPrefersDark;
+  return window.matchMedia(DARK_MODE_QUERY).matches;
+}
+
+export function reportSystemPrefersDark(prefersDark: boolean): void {
+  if (reportedSystemPrefersDark === prefersDark) return;
+  reportedSystemPrefersDark = prefersDark;
+  if (typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(SYSTEM_THEME_EVENT));
+  }
+}
+
+export function resetReportedSystemThemeForTests(): void {
+  reportedSystemPrefersDark = null;
+}
 
 export function parseThemePreference(
   value: string | null | undefined,
@@ -107,7 +129,9 @@ export function applyResolvedTheme(
 
 export function initializeTheme(): ThemePreference {
   const preference = readThemePreference();
-  const systemPrefersDark = window.matchMedia(DARK_MODE_QUERY).matches;
-  applyResolvedTheme(resolveTheme(preference, systemPrefersDark), preference);
+  applyResolvedTheme(
+    resolveTheme(preference, readSystemPrefersDark()),
+    preference,
+  );
   return preference;
 }

@@ -1259,22 +1259,15 @@ for (const motion of ['no-preference', 'reduce'] as const) {
       name: photoReactions.open,
       exact: true,
     });
-    const commentAction = carousel.getByRole('button', {
-      name: storyProducts.comments.write,
-      exact: true,
-    });
+    // The comment field sits below the photos; no shortcut is laid over them.
+    await expect(
+      carousel.getByRole('button', {
+        name: storyProducts.comments.write,
+        exact: true,
+      }),
+    ).toHaveCount(0);
     await expect(react).toHaveText('');
-    const [reactBounds, commentBounds] = await Promise.all([
-      react.boundingBox(),
-      commentAction.boundingBox(),
-    ]);
-    if (!reactBounds || !commentBounds)
-      throw new Error('Gallery actions must be visible');
-    expect(reactBounds.y).toBeCloseTo(commentBounds.y, 0);
-    expect(reactBounds.x - commentBounds.x - commentBounds.width).toBeCloseTo(
-      8,
-      0,
-    );
+    await expect(react).toBeInViewport({ ratio: 1 });
     const positions = page.locator('.media-gallery-position');
     await positions.getByRole('button').nth(1).click();
     await expect(positions.getByRole('button').nth(1)).toHaveAttribute(
@@ -1344,7 +1337,7 @@ for (const motion of ['no-preference', 'reduce'] as const) {
     await expect(active.locator('.sensitive-media-cover')).toBeVisible();
     const input = page.locator('.comment-form-compact textarea');
     await expect(input).toHaveAttribute('rows', '2');
-    await commentAction.click();
+    await input.focus();
     await expect(input).toBeFocused();
     if (motion === 'no-preference')
       await capture(page, info, 'gallery-compact-reply');
@@ -1365,11 +1358,15 @@ for (const motion of ['no-preference', 'reduce'] as const) {
       photos[1],
     ];
     await page.reload();
-    await expect(commentAction).toBeVisible();
     await expect(carousel.locator('.is-active .video-poster')).toBeVisible();
     await expect(react).toHaveCount(0);
-    await commentAction.click();
-    await expect(input).toBeFocused();
+    await expect(
+      carousel.getByRole('button', {
+        name: storyProducts.comments.write,
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(input).toBeVisible();
     expect(state.unexpected).toEqual([]);
   });
 }

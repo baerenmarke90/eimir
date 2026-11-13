@@ -11,6 +11,7 @@ from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentSt
 from eimir.authorization import PrivacyClass
 from eimir.comments.models import Comment, CommentPayload
 from eimir.core import clock
+from eimir.daily_checkins.models import DailyCheckIn
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
@@ -21,8 +22,9 @@ from eimir.memories.models import (
     MemoryPhotoReaction,
     PhotoReaction,
 )
-from eimir.recaps import jobs, service
+from eimir.recaps import jobs, mood, service
 from eimir.recaps.models import RecapEdition, RecapPayload
+from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -658,3 +660,74 @@ def test_the_reaction_line_needs_both_members_to_react_alike_and_stays_rare(
     # first three in reading order keep the line.
     assert sorted(line for line in lines.values() if line) == ["CELEBRATE", "LAUGH", "LOVE"]
     assert extra
+
+
+def test_mood_rhythm_counts_only_mutual_days_and_stays_frozen_after_a_downgrade(
+    client, session, context, monkeypatch
+):  # type: ignore[no-untyped-def]
+    memory(session, context)
+    configuration_service.load(session, context["space"].id).vibe_check_enabled = True
+    for number in range(1, 7):
+        for account, vibe in ((context["anna"], "GOOD"), (context["ben"], "VERY_GOOD")):
+            session.add(
+                DailyCheckIn(
+                    space_id=context["space"].id,
+                    account_id=account.id,
+                    checked_on=date(2026, 10, number),
+                    vibe=vibe,
+                )
+            )
+    # One-sided day: counted nowhere and implied nowhere.
+    session.add(
+        DailyCheckIn(
+            space_id=context["space"].id,
+            account_id=context["anna"].id,
+            checked_on=date(2026, 10, 20),
+            vibe="GOOD",
+        )
+    )
+    session.flush()
+    created = request(client, context).json()
+
+    generate(session, context, created)
+    assert read(client, context, created).json()["mood"] is None  # no daily.insights yet
+
+    entitlements.record_grant(
+        session,
+        space_id=context["space"].id,
+        account_id=context["anna"].id,
+        source_type=EntitlementSourceType.ADMIN_GRANT,
+        status=EntitlementStatus.ACTIVE,
+        tier=EntitlementTier.PREMIUM,
+        effective_from=NOW - timedelta(days=30),
+        effective_until=NOW + timedelta(days=30),
+        capabilities=["daily.insights"],
+    )
+    session.flush()
+    generate(session, context, created)
+    own, partner = (read(client, context, created, partner=who).json() for who in (False, True))
+    assert own["mood"] == partner["mood"]
+    assert own["mood"]["leading"] == 1
+    assert [(b["index"], b["mutualDays"], b["goodDays"]) for b in own["mood"]["buckets"]] == [
+        (1, 6, 6),
+        (2, 0, 0),
+        (3, 0, 0),
+        (4, 0, 0),
+        (5, 0, 0),
+    ]
+
+    # Without the capability a recomposition keeps the frozen aggregate.
+    original = entitlements.has_capability
+    monkeypatch.setattr(
+        entitlements,
+        "has_capability",
+        lambda session, space_id, capability, **kwargs: (
+            capability != "daily.insights" and original(session, space_id, capability, **kwargs)
+        ),
+    )
+    generate(session, context, created)
+    assert read(client, context, created).json()["mood"] == own["mood"]
+
+    # It is not served once the Vibe module is switched off or a partner is gone.
+    monkeypatch.setattr(mood, "_vibe_enabled", lambda *args: False)
+    assert read(client, context, created).json()["mood"] is None

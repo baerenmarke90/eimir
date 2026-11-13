@@ -47,6 +47,7 @@ def test_memory_write_dtos_only_expose_approved_fields() -> None:
         "tags",
         "experienceKind",
         "experienceReplyTo",
+        "experienceQuestionId",
         "placeId",
         "placeIds",
         "happenedUntil",

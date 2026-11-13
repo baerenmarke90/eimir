@@ -34,6 +34,7 @@ from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.domain.experiences import ExperienceKind
 from eimir.engagement.gentle import record_manual_save
+from eimir.games.questions import QUESTION_IDS
 from eimir.memories import experiences, service
 from eimir.memories import places as memory_places
 from eimir.memories.models import Memory, PhotoReaction
@@ -61,6 +62,15 @@ class MemoryCreate(ApiModel):
     place_ids: list[UUID] | None = Field(default=None, max_length=20)
     experience_kind: ExperienceKind | None = None
     experience_reply_to: UUID | None = None
+    experience_question_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "Editorial key of the daily question this experience answers. Only valid together "
+            "with `experienceKind` and without `experienceReplyTo`; a reply inherits the "
+            "question of the experience it answers."
+        ),
+    )
     attachments: list[AttachmentEntry] | None = Field(default=None, max_length=20)
     selected_cover_attachment_id: UUID | None = None
 
@@ -68,6 +78,14 @@ class MemoryCreate(ApiModel):
 
     @model_validator(mode="after")
     def _validate_places(self) -> Self:
+        if self.experience_question_id is not None:
+            if self.experience_kind is None or self.experience_reply_to is not None:
+                raise ValueError(
+                    "experienceQuestionId requires experienceKind and cannot be combined "
+                    "with experienceReplyTo"
+                )
+            if self.experience_question_id not in QUESTION_IDS[self.experience_kind]:
+                raise ValueError("experienceQuestionId is not a question of this experience")
         if self.selected_cover_attachment_id is not None and self.attachments is None:
             raise ValueError("selectedCoverAttachmentId requires attachments")
         if "place_ids" in self.model_fields_set:
@@ -369,6 +387,7 @@ def create_memory(
         place_id=body.place_id,
         experience_kind=body.experience_kind,
         experience_reply_to=body.experience_reply_to,
+        experience_question_id=body.experience_question_id,
         happened_on=body.happened_on,
         happened_until=body.happened_until,
         place_ids=body.place_ids,

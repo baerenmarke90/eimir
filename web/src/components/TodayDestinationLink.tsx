@@ -8,6 +8,8 @@ export function TaskOriginLink({
   to,
   className,
   ariaLabel,
+  ariaLabelledBy,
+  ariaDescribedBy,
   children,
   selectedKey,
   previewControls = false,
@@ -16,6 +18,8 @@ export function TaskOriginLink({
   to: string;
   className?: string;
   ariaLabel?: string;
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
   children: ReactNode;
   selectedKey?: string;
   previewControls?: boolean;
@@ -46,6 +50,8 @@ export function TaskOriginLink({
       to={to}
       className={className}
       aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+      aria-describedby={ariaDescribedBy}
       data-task-item-key={selectedKey}
       onClick={followWithOrigin}
     >

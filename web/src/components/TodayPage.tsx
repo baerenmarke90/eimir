@@ -95,7 +95,7 @@ import {
   MonthlyRecapInvitation,
   useMonthlyRecapInvitation,
 } from './MonthlyRecapInvitation';
-import { OnceComposeEntry, OnceIncomingSignal } from './OnceMessages';
+import { OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
@@ -1300,10 +1300,8 @@ export function TodayPage({
     daily_quote: dailyQuote,
     relationship_presence: (
       <>
-        {/* ROLE: Hero / Couple Presence — the permanent emotional entry
-              point, shown for every space including a new/sparse one, unless
-              the user hid the `relationship_presence` module. The couple's
-              names become the page H1; hidden modules retain a semantic fallback. */}
+        {/* The shared couple identity stays above the personal section stack,
+              including for older accounts that once hid or moved this module. */}
         {relationshipPresenceVisible ? (
           supportGesturesEnabled && partner && account?.id ? (
             <PartnerQuickActions
@@ -1326,7 +1324,6 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
-        {partner ? <OnceComposeEntry /> : null}
         {dailyVibe}
         <OnceIncomingSignal />
       </>
@@ -1585,8 +1582,10 @@ export function TodayPage({
         dashboardQuery.data?.sharedStorySummary ? (
           <SharedStorySummary
             summary={dashboardQuery.data.sharedStorySummary}
-            showEmpty
-            includeEmptyCategories={false}
+            accountId={account?.id ?? ''}
+            spaceId={spaceId}
+            dashboardApi={apis.dashboard}
+            loadMemoryImage={loadMemoryImage}
           />
         ) : null}
       </>

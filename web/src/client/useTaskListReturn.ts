@@ -60,7 +60,10 @@ export function useTaskListReturn({
       Array.from(
         document.querySelectorAll<HTMLElement>('[data-task-item-key]'),
       ).find(
-        (element) => element.dataset.taskItemKey === returnOrigin.selectedKey,
+        // Kept, hidden primary tabs can render the same item.
+        (element) =>
+          element.dataset.taskItemKey === returnOrigin.selectedKey &&
+          !element.closest('[hidden]'),
       );
     const restorePosition = () => {
       const selected = findSelected();

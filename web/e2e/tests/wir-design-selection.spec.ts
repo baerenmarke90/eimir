@@ -1,22 +1,22 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import { expectFloatingAddAction } from '../support/addAction';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import copy from '../../src/i18n/locales/wirDesign';
-import quoteCopy from '../../src/i18n/locales/dailyQuote';
-import profileCopy from '../../src/i18n/locales/profileIdentity';
-import energyCopy from '../../src/i18n/locales/dailyEnergy';
-import reflections from '../../src/i18n/locales/relationshipReflections';
-import notificationCopy from '../../src/i18n/locales/notificationSettings';
-import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import fs from 'node:fs';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import energyCopy from '../../src/i18n/locales/dailyEnergy';
+import quoteCopy from '../../src/i18n/locales/dailyQuote';
+import notificationCopy from '../../src/i18n/locales/notificationSettings';
+import profileCopy from '../../src/i18n/locales/profileIdentity';
+import reflections from '../../src/i18n/locales/relationshipReflections';
+import copy from '../../src/i18n/locales/wirDesign';
+import { expectFloatingAddAction } from '../support/addAction';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
+  captureScreenshot,
+  installMocks,
+  PARTNER,
   PARTNER_ID,
   SPACE_ID,
-  PARTNER,
-  installMocks,
   signIn,
-  captureScreenshot,
 } from '../support/storyTimelineFixture';
 
 async function fixture(
@@ -34,6 +34,11 @@ async function fixture(
     if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // The opted-in story lifeline (#1770) with no shared history yet.
+    if (path === `${base}/story-lifeline`)
+      return route.fulfill({
+        json: { startsOn: null, today: '2026-11-12', weeks: [] },
+      });
     if (path.includes('/attachments/') && path.endsWith('/content')) {
       return route.fulfill({
         contentType: 'image/jpeg',
@@ -248,7 +253,7 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length);
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 1);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -270,7 +275,8 @@ async function alignedVisibilityControls(page: Page) {
         };
       }),
     );
-  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length);
+  // The shared couple hero is fixed and has no visibility switch.
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 1);
   for (const target of targets) {
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);
@@ -722,7 +728,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
     { steps: 12 },
   );
   await expect(quote).toHaveCSS('box-shadow', 'none');
-  await expect(quote).toHaveCSS('outline-style', 'none');
+  // The lifted row is marked by a quiet outline while it is dragged.
+  await expect(quote).toHaveCSS('outline-style', 'solid');
   const held = await quote.boundingBox();
   expect(Math.abs((held?.y ?? 0) - rowBefore.y - dragDistance)).toBeLessThan(4);
   await page.mouse.up();
@@ -751,7 +758,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-  ).toEqual(order);
+    // The fixed couple hero keeps its stored slot but is not sortable.
+  ).toEqual(order.filter((key) => key !== 'relationship_presence'));
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });
@@ -825,7 +833,17 @@ test('quote preference recovery keeps aligned controls and accessible feedback',
   const errorBounds = await failure.boundingBox();
   const rowBounds = await failedQuote.boundingBox();
   if (!errorBounds || !rowBounds) throw new Error('Missing quote recovery');
-  expect(Math.abs(errorBounds.width - rowBounds.width)).toBeLessThan(1);
+  // #1564: recovery spans the row's full available (content) width.
+  const rowPadding = await failedQuote.evaluate((row) => {
+    const style = getComputedStyle(row);
+    return (
+      Number.parseFloat(style.paddingLeft) +
+      Number.parseFloat(style.paddingRight)
+    );
+  });
+  expect(
+    Math.abs(errorBounds.width - (rowBounds.width - rowPadding)),
+  ).toBeLessThan(1);
   await captureScreenshot(
     failedQuote,
     info,

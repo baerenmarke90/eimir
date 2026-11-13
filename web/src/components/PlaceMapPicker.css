@@ -33,36 +33,67 @@
   isolation: isolate;
   z-index: 0;
 }
-.place-map-viewport .leaflet-control-zoom a {
+/* Zoom buttons: round, raised and thumb-sized, in the corner a map user expects. */
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button {
   width: var(--space-12);
   height: var(--space-12);
-  line-height: var(--space-12);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: var(--font-action-label);
+  font-size: var(--space-6);
+  line-height: 1;
+  box-shadow: var(--shadow-raised);
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button:focus {
+  border-radius: var(--radius-pill);
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button + button {
+  border-top: 0;
+}
+.place-map-viewport
+  .maplibregl-ctrl-group.place-map-zoom
+  button:not(:disabled):hover {
+  background: var(--color-surface-subtle);
+}
+.place-map-viewport .maplibregl-ctrl-group.place-map-zoom button:disabled {
+  color: var(--color-text-secondary);
 }
 .place-map-selected-marker {
-  fill: var(--color-brand-strong);
-  fill-opacity: 1;
-  stroke: var(--color-on-accent);
+  display: block;
+  box-sizing: border-box;
+  width: var(--space-6);
+  height: var(--space-6);
+  border: var(--border-strong) solid var(--color-on-accent);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-strong);
 }
-.place-map-viewport.leaflet-container .leaflet-control-attribution {
+/* The stock attribution icon is a data: image the CSP does not allow. */
+.place-map-viewport .maplibregl-ctrl-attrib-button {
+  display: none;
+}
+.place-map-viewport .maplibregl-ctrl-attrib {
   color: var(--color-text);
   background: var(--color-surface);
 }
-.place-map-viewport .leaflet-control-attribution a {
+.place-map-viewport .maplibregl-ctrl-attrib a {
   color: var(--color-link-text);
 }
 
-/* Only tile pixels change scheme; authored previews, markers and attribution do not. */
-:root[data-theme="dark"] .place-map-viewport .leaflet-tile-pane {
+/* Only map pixels change scheme; authored previews, markers and attribution do not. */
+:root[data-theme="dark"] .place-map-viewport .maplibregl-canvas {
   filter: var(--map-dark-tile-filter);
 }
-.place-map-viewport.leaflet-container,
-.place-map-viewport .leaflet-control-zoom a {
+.place-map-viewport.maplibregl-map {
   background: var(--color-surface);
   color: var(--color-text);
-}
-.place-map-viewport .leaflet-control-zoom a:hover {
-  background: var(--color-surface-subtle);
-}
-.place-map-viewport .leaflet-control-zoom {
-  border-color: var(--color-border);
 }

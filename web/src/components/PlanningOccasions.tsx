@@ -139,6 +139,8 @@ export function PlanningOccasions({
         peopleApi={peopleApi}
         spaceId={spaceId}
         people={people.data ?? []}
+        accountId={accountId}
+        instance={apiBaseUrl}
         sourcesUnavailable={Boolean(
           people.error || space.error || profile.error || ownProfile.error,
         )}

@@ -8,10 +8,3 @@
   padding-inline: var(--space-2);
   overflow-wrap: anywhere;
 }
-
-@media (max-width: 839px) {
-  /* Leave room for the map's two-line action across the peer views. */
-  :is(.story-page-unified, .memory-map-page) > .page-heading-root {
-    min-block-size: calc(var(--touch-target-comfortable) + var(--space-1));
-  }
-}

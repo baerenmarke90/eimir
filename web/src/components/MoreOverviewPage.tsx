@@ -5,6 +5,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
 import { useProductTour } from '../client/productTour';
+import { useHideProFeatureMarks } from '../client/proPresentation';
 import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
@@ -25,7 +26,6 @@ import {
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
-import { useHideProFeatureMarks } from '../client/proPresentation';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
@@ -220,7 +220,11 @@ export function MoreOverviewPage({
 
   return (
     <div className="page more-page">
-      <PageHeader variant="root" title={t('more.title')} />
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('more.title')}
+      />
 
       <Link className="more-search-entry" to={SEARCH_ROUTE}>
         <span className="shell-nav-icon" aria-hidden="true">

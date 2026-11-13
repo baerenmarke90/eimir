@@ -32,7 +32,7 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
-from eimir.recaps import words
+from eimir.recaps import mood, words
 from eimir.recaps.composition import MANUAL_SELECTION_LIMIT, Candidate, period_bounds
 from eimir.recaps.models import (
     RecapEdition,
@@ -521,6 +521,18 @@ def finalise_completed(session: Session, context: AuthorizationContext, today: d
                 continue
             # The couple's own selection stands; only the frozen period is completed.
             value.through_on, value.is_partial = through, False
+            value.payload = value.payload.model_copy(
+                update={
+                    "mood": mood.refreshed(
+                        session,
+                        context.space_id,
+                        kind,
+                        value.starts_on,
+                        through,
+                        value.payload.mood,
+                    )
+                }
+            )
         value.saved_at = clock.now()
         finalised += 1
     return finalised
@@ -727,6 +739,9 @@ def project(session: Session, context: AuthorizationContext, value: RecapEdition
             "introduction": value.payload.introduction if unchanged else None,
             "sources": sources,
             "facts": facts(session, context, value) if value.status == "READY" else None,
+            "mood": mood.visible(session, context.space_id, value.payload)
+            if value.status == "READY"
+            else None,
             "reflections": [
                 {
                     "id": n.id,
@@ -854,7 +869,7 @@ def replace_sources(
                 position=position,
             )
         )
-    value.payload = RecapPayload()
+    value.payload = RecapPayload(mood=value.payload.mood)
     value.generated_by = "RULES"
     value.customized = True
     value.status = "READY" if keys else "EMPTY"

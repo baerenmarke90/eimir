@@ -53,6 +53,12 @@ export interface MemoryCreate {
      */
     experienceKind?: ExperienceKind | null;
     /**
+     * Editorial key of the daily question this experience answers. Only valid together with `experienceKind` and without `experienceReplyTo`; a reply inherits the question of the experience it answers.
+     * @type {string}
+     * @memberof MemoryCreate
+     */
+    experienceQuestionId?: string | null;
+    /**
      * 
      * @type {string}
      * @memberof MemoryCreate
@@ -125,6 +131,7 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'attachments': json['attachments'] === undefined ? undefined : json['attachments'] === null ? null : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
         'body': json['body'] == null ? undefined : json['body'],
         'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
+        'experienceQuestionId': json['experienceQuestionId'] === undefined ? undefined : json['experienceQuestionId'] === null ? null : json['experienceQuestionId'],
         'experienceReplyTo': json['experienceReplyTo'] === undefined ? undefined : json['experienceReplyTo'] === null ? null : json['experienceReplyTo'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
         'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
@@ -150,6 +157,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
         'body': value['body'],
         'experienceKind': ExperienceKindToJSON(value['experienceKind']),
+        'experienceQuestionId': value['experienceQuestionId'],
         'experienceReplyTo': value['experienceReplyTo'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),

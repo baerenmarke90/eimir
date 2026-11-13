@@ -9,6 +9,7 @@ import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { mockMapTiles } from '../support/mapTiles';
 import { openComposerMediaSources } from '../support/mediaIntake';
 import { openComposerPlace } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -105,6 +106,50 @@ async function fixture(
           capabilities: options.pro === false ? [] : ['relationship.passport'],
         },
       });
+    if (path === `${BASE}/story-lifeline`) {
+      const memory = (id: string, title: string, occurredOn: string) => ({
+        type: 'MEMORY',
+        id,
+        titleOrText: title,
+        occurredOn,
+        scheduledAt: null,
+        createdAt: null,
+      });
+      // Three weeks whose parts add up to the shared totals below.
+      return route.fulfill({
+        json: {
+          startsOn: '2023-06-17',
+          today: '2026-10-29',
+          weeks: [
+            {
+              weekStart: '2023-06-12',
+              memories: 40,
+              heartMoments: 4,
+              milestones: 2,
+              highlight: memory('lifeline-1', 'Our first summer', '2023-06-17'),
+            },
+            {
+              weekStart: '2025-01-06',
+              memories: 44,
+              heartMoments: 4,
+              milestones: 1,
+              highlight: memory(
+                'lifeline-2',
+                'New Year in the snow',
+                '2025-01-08',
+              ),
+            },
+            {
+              weekStart: '2026-10-26',
+              memories: 44,
+              heartMoments: 4,
+              milestones: 1,
+              highlight: memory('lifeline-3', 'Autumn walk', '2026-10-27'),
+            },
+          ],
+        },
+      });
+    }
     if (path === `${BASE}/relationship-passport`) {
       passportReads++;
       return route.fulfill({
@@ -615,12 +660,7 @@ for (const [width, theme] of [
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: theme });
     const state = await fixture(page);
-    await page.route('https://tile.openstreetmap.org/**', (route) =>
-      route.fulfill({
-        contentType: 'image/svg+xml',
-        body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><path fill="#e5ecdc" d="M0 0h256v256H0z"/><path stroke="#c1d1ab" stroke-width="25" d="M0 40L256 200M40 0L200 256"/><path stroke="#fff" stroke-width="7" d="M0 40L256 200M40 0L200 256"/></svg>',
-      }),
-    );
+    await mockMapTiles(page);
     await signIn(page);
     await page.goto(`/plan/plans/${PLAN}`);
     await expect(
@@ -655,7 +695,7 @@ for (const [width, theme] of [
     await sheet
       .getByRole('button', { name: /Sankt Peter-Ording.*Beach Road/ })
       .click();
-    await expect(sheet.locator('.leaflet-container')).toBeVisible();
+    await expect(sheet.locator('.maplibregl-map')).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await captureScreenshot(page, info, `map-picker-${width}-${theme}.png`);
     expect(

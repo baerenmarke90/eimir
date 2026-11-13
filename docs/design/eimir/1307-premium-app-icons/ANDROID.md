@@ -117,3 +117,29 @@ activity theme. Public Web restoration uses the same restrained brand presence;
 no private relationship content is rendered before authorization. Package,
 signer, update channels, existing selected variant and user data are unchanged.
 A resource/build proof is not a claim of acceptance on the owner's Pixel.
+
+## Launch continuity — 2026-11-12
+
+The PO's screen recording showed the system splash with a square, peach
+backdrop around the rounded tile ("strange edges") followed by a different,
+smaller Web logo with the wordmark. The splash reused the launcher foreground,
+whose approved poster crop carries that square backdrop; on the splash there
+is no adaptive mask to hide it.
+
+The generator now also emits `launch_icon.xml` and `launch_icon_tile.png`: the
+same approved tile with only its square backdrop made transparent (measured
+superellipse, exponent about 4.3), centered at 128dp on the 288dp splash
+canvas so the whole tile lies inside Android's 192dp visible circle. The
+Android shell keeps the system splash on screen until the Web shell has
+painted its first non-startup view (`LaunchScreen.ready()`, bounded at 2.5s)
+and then fades it out. If restoration takes longer, the Android Web startup
+view continues with the identical tile (`/identity/launch-tile.png`) at the
+same centered position and fades the wordmark and status in below it. Browser
+and PWA startup keep the restrained 48–72px branded state. Launcher aliases,
+adaptive icons and the selected-icon behavior are unchanged.
+
+Evidence: [before](../../../product/design/evidence/launch-continuity/before-splash-to-web-logo.webp)
+(frames 2.0–2.7s of the recording, icon area only) and
+[after](../../../product/design/evidence/launch-continuity/after-launch-icon-light-dark.webp)
+(generated splash tile on the light and dark startup backgrounds; the red ring
+marks the 192dp visible circle). Installed-device acceptance is still required.

@@ -2,7 +2,7 @@ const partnerLocation = {
   settingsTitle: 'Standort & Entfernung',
   settingsEyebrow: 'Einstellungen · Beziehung',
   settingsEntryIntro:
-    'Auf Wunsch seht ihr, wie weit ihr ungefähr voneinander entfernt seid.',
+    'Zeige auf Wunsch, wie viele Kilometer zwischen euch liegen.',
   pro: 'Pro',
   partnerFallback: 'dein Partner',
   loading: 'Einstellungen werden geladen …',
@@ -13,7 +13,7 @@ const partnerLocation = {
   levelOff: 'Aus',
   levelOffHint: 'Es wird nichts geteilt.',
   levelDistance: 'Nur Entfernung',
-  levelDistanceHint: 'Eine grobe Spanne auf „Wir“, z. B. „ca. 340 km“.',
+  levelDistanceHint: 'Auf „Wir“ z. B. „340 km zwischen euch“, gerundet.',
   levelMap: 'Entfernung und Kartenbereich',
   levelMapHint:
     'Zusätzlich ein ungefährer Bereich auf eurer Karte, kein genauer Punkt.',
@@ -47,7 +47,7 @@ const partnerLocation = {
   levelLegend: 'Was geteilt wird',
   confirmDistanceTitle: 'Entfernung teilen?',
   confirmDistanceBody:
-    '{{partner}} sieht dann auf „Wir“ ungefähr, wie weit ihr auseinander seid – nie deinen Ort.',
+    '{{partner}} sieht dann auf „Wir“, wie viele Kilometer zwischen euch liegen – gerundet, nie deinen Ort.',
   confirmMapTitle: 'Auch auf der Karte zeigen?',
   confirmMapBody:
     'Neu sichtbar wird ein ungefährer Bereich von mindestens 1,5 km auf eurer Karte – kein genauer Punkt und kein Verlauf.',
@@ -61,7 +61,7 @@ const partnerLocation = {
     'Dein Standort ist gerade nicht verfügbar. eimir. versucht es beim nächsten Öffnen erneut.',
   proTitle: 'Gehört zu eimir. Pro',
   proBody:
-    'Mit eimir. Pro könnt ihr auf Wunsch sehen, wie weit ihr ungefähr voneinander entfernt seid. Jede Person entscheidet selbst, was sie teilt.',
+    'Mit eimir. Pro kannst du auf Wunsch zeigen, wie viele Kilometer zwischen euch liegen. Jede Person entscheidet selbst, was sie teilt.',
   proAction: 'eimir. Pro ansehen',
   unavailable: 'Gerade nicht verfügbar.',
   deviceTitleApp: 'Auf diesem Handy',
@@ -82,12 +82,13 @@ const partnerLocation = {
   permissionChangeBrowser:
     'Änderbar in den Website-Einstellungen deines Browsers.',
   permissionAllow: 'Standort erlauben',
-  onboardingTitle: 'Wie weit seid ihr gerade voneinander entfernt?',
+  onboardingTitle: 'Wie viele Kilometer liegen gerade zwischen euch?',
   onboardingIntro:
-    'Wenn du möchtest, sieht {{partner}} auf „Wir“ ungefähr, wie weit ihr auseinander seid. Bis du zustimmst, wird nichts geteilt.',
+    'Wenn du möchtest, sieht {{partner}} auf „Wir“, wie viele Kilometer zwischen euch liegen.',
   onboardingCoarse: 'Nur eine grobe Entfernung, kein Ort.',
   onboardingEnergy: 'Kein Verlauf, stromsparend, kein GPS.',
-  onboardingStop: 'Jederzeit in den Einstellungen beenden.',
+  onboardingStop:
+    'Erst geteilt, wenn du zustimmst. Jederzeit in den Einstellungen beenden.',
   onboardingShare: 'Entfernung teilen',
   onboardingLater: 'Nicht jetzt',
   onboardingOffline: 'Du bist offline. Versuche es, sobald du verbunden bist.',

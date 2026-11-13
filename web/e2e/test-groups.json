@@ -71,7 +71,7 @@
     },
     "comments-offline-writes.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Production create/edit/delete must reject offline intent, preserve input and require deliberate retry instead of reconnect replay across all three Story comment consumers."
     },
     "create-surface-visual-checks.spec.ts": {
@@ -89,7 +89,7 @@
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 10,
+      "baselineTests": 11,
       "reason": "Docked navigation, icon-only local creation, native modal access and runtime-specific Expanded browser shortcut."
     },
     "heart-moment-create-product-reference.spec.ts": {
@@ -185,7 +185,7 @@
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 10
+      "baselineTests": 11
     },
     "wish-journey.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -310,17 +310,13 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7
     },
-    "today-daily-energy.spec.ts": {
+    "today-daily-checkin.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 11
     },
     "today-daily-quote.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6
-    },
-    "today-daily-vibe.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 20
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -328,7 +324,7 @@
     },
     "today-keepsake-precedence.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10
+      "baselineTests": 11
     },
     "today-living-home.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -367,7 +363,7 @@
     },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Concealed two-person handoff, first input, neutral reveal, restart and local-session return must remain protected in the production browser."
     },
     "milestone-delete-ownership.spec.ts": {
@@ -382,12 +378,17 @@
     },
     "photo-places.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
+      "baselineTests": 11,
       "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility. Place addresses navigate to the existing map and return; draft trash remains beside the Place, and linked Plans identify their destination."
+    },
+    "rediscovery-wording.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "#1790 C2 varying rediscovery wording on Wir and Momente: untitled entries get a stable variant headline with the date below, authored titles keep a variant secondary line; accessible name, reload stability, 360/390/430 px, Light/Dark and large text."
     },
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
     },
     "wir-design-selection.spec.ts": {
@@ -422,7 +423,7 @@
     },
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
+      "baselineTests": 11,
       "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, and the Momente entry with its redirects from the former More addresses for #1744."
     },
     "places-and-lists-design.spec.ts": {
@@ -442,17 +443,17 @@
     },
     "plan-comments-links.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
+      "baselineTests": 11,
       "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text. Direct media controls retain inline saved-video failure status and replacement. Atomic save with unavailable local journal and pending bytes must preserve the placeholder and admitted transfer through route return."
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, independent registration and revocation through the device settings switch, and narrow/large-text theme and accessibility evidence."
     },
     "content-reading.spec.ts": {
@@ -516,7 +517,7 @@
     },
     "multilingual-product.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
     },
     "heart-voice-notes.spec.ts": {

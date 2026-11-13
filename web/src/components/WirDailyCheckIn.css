@@ -1,0 +1,630 @@
+/*
+ * Daily check-in on the couple avatars on Wir (#1790 slice A).
+ *
+ * Quiet and secondary: small badges on the outer lower edge of each avatar,
+ * nothing in the overlap. Motion follows the issue's motion table through
+ * the shared tokens: fast = --duration-feedback, standard =
+ * --duration-transition, emphasized = --duration-context. Reduced motion sets
+ * those durations to 0 and removes every transform below.
+ */
+
+/* Each avatar slot anchors its own badge. */
+.today-hero .partner-avatar-slot {
+  position: relative;
+}
+
+.wir-checkin-badge {
+  position: absolute;
+  bottom: calc(-1 * var(--space-2));
+  z-index: 4;
+  display: inline-flex;
+  min-height: 1.75rem;
+  max-width: 11rem;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  box-shadow: 0 2px 10px var(--color-shadow-card);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  translate: var(--viewport-clamp-shift, 0px) 0;
+  pointer-events: none;
+}
+
+/* Own: outer bottom-left of the own avatar, growing outwards (left). */
+.wir-checkin-badge-own {
+  right: 46%;
+}
+
+/* Partner: outer bottom-right of the partner avatar, growing outwards. */
+.wir-checkin-badge-partner {
+  left: 34%;
+}
+
+.wir-checkin-badge-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  animation: wir-checkin-badge-in var(--duration-transition)
+    var(--easing-standard) both;
+}
+
+.wir-checkin-badge-content.is-revealed {
+  animation-duration: var(--duration-context);
+}
+
+.wir-checkin-badge .wir-checkin-glyph {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-badge .daily-energy-battery-icon {
+  width: 1.3rem;
+  height: 0.8rem;
+}
+
+.wir-checkin-badge[data-pending="true"] {
+  box-shadow:
+    0 0 0 var(--border-surface-width) var(--color-brand),
+    0 2px 10px var(--color-shadow-card);
+}
+
+.wir-checkin-prompt {
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-lock {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-secondary);
+}
+
+/* Unread partner note: outer top corner of the partner avatar. */
+.wir-checkin-note-dot {
+  position: absolute;
+  top: calc(-1 * var(--space-1));
+  right: calc(-1 * var(--space-1));
+  z-index: 4;
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  color: var(--color-on-action-primary);
+  pointer-events: none;
+  animation: wir-checkin-dot-in var(--duration-context) var(--easing-standard)
+    both;
+}
+
+.wir-checkin-note-dot .eimir-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* The note dot owns the outer top corner; presence moves to the outer side. */
+.today-hero .partner-avatar-pair-split .partner-presence-avatar-state {
+  top: 50%;
+  right: -6px;
+  bottom: auto;
+}
+
+/* ---------- "Dein Tag" panel ---------- */
+
+.wir-checkin-panel {
+  display: grid;
+  width: min(100%, 30rem);
+  grid-template-rows: 1fr;
+  margin: calc(-1 * var(--space-3)) auto var(--space-section);
+}
+
+.wir-checkin-panel[hidden] {
+  display: none;
+}
+
+.wir-checkin-panel[data-presence="open"] {
+  animation: wir-checkin-panel-rows-in var(--duration-context)
+    var(--easing-enter) both;
+}
+
+.wir-checkin-panel[data-presence="exiting"] {
+  animation: wir-checkin-panel-rows-out var(--duration-context)
+    var(--easing-exit) both;
+}
+
+.wir-checkin-panel-clip {
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-1) var(--space-2) var(--space-3);
+  margin-inline: calc(-1 * var(--space-2));
+}
+
+.wir-checkin-panel-inner {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.wir-checkin-panel[data-presence="open"] .wir-checkin-panel-inner {
+  animation: wir-checkin-panel-in var(--duration-context) var(--easing-enter)
+    both;
+}
+
+.wir-checkin-panel[data-presence="exiting"] .wir-checkin-panel-inner {
+  animation: wir-checkin-panel-out var(--duration-context) var(--easing-exit)
+    both;
+}
+
+.wir-checkin-panel-title {
+  margin: 0;
+  font: var(--font-content-heading);
+  font-family: var(--font-display);
+}
+
+.wir-checkin-status,
+.wir-checkin-disabled p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.wir-checkin-disabled {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+.wir-checkin-vibes {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Five vibes in one row; at large text they wrap into rows, never overlap. */
+.wir-checkin-vibe-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: var(--space-2) var(--space-1);
+}
+
+.wir-checkin-vibe {
+  display: grid;
+  min-width: var(--touch-target-web);
+  flex: 0 1 auto;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+
+.wir-checkin-vibe:disabled {
+  cursor: default;
+  opacity: 0.64;
+}
+
+.wir-checkin-vibe-circle {
+  position: relative;
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  transition:
+    background var(--duration-context) var(--easing-standard),
+    color var(--duration-context) var(--easing-standard);
+}
+
+.wir-checkin-vibe-circle .daily-vibe-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.wir-checkin-vibe.is-selected {
+  color: var(--color-link-text);
+}
+
+.wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+  animation: wir-checkin-vibe-pop var(--duration-context) var(--easing-standard);
+}
+
+/* The selected face keeps its warm/cool accents legible on the fill. */
+.wir-checkin-vibe.is-selected .daily-vibe-icon {
+  --identity-icon-accent: var(--color-on-action-primary);
+}
+
+.wir-checkin-vibe-clear {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  width: 1.1rem;
+  height: 1.1rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  box-shadow: 0 1px 4px var(--color-shadow-card);
+  color: var(--color-text);
+}
+
+.wir-checkin-vibe-clear .eimir-icon {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.wir-checkin-vibe:focus-visible {
+  outline: none;
+}
+
+.wir-checkin-vibe:focus-visible .wir-checkin-vibe-circle {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.wir-checkin-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: center;
+}
+
+.wir-checkin-note .wir-checkin-hint {
+  text-align: start;
+}
+
+.wir-checkin-energy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.wir-checkin-energy-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.wir-checkin-energy-label {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 650;
+}
+
+.wir-checkin-muted {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.wir-checkin-energy-remove {
+  min-height: var(--touch-target-web);
+}
+
+/* Outranks the global field styling for text inputs. */
+.wir-checkin-energy input.wir-checkin-energy-slider {
+  --wir-checkin-energy-progress: 44.444%;
+
+  width: 100%;
+  min-height: var(--touch-target-web);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.wir-checkin-energy-slider:disabled {
+  cursor: default;
+  opacity: 0.64;
+}
+
+.wir-checkin-energy-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(var(--color-action-emphasis), var(--color-action-emphasis))
+    0 0 / var(--wir-checkin-energy-progress) 100% no-repeat,
+    var(--color-surface-subtle);
+  transition: background-size var(--duration-transition) var(--easing-standard);
+}
+
+.wir-checkin-energy-slider[data-unset="true"]::-webkit-slider-runnable-track {
+  background: var(--color-surface-subtle);
+}
+
+.wir-checkin-energy-slider::-moz-range-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.wir-checkin-energy-slider::-moz-range-progress {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-action-emphasis);
+}
+
+.wir-checkin-energy-slider::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+  margin-top: -10px;
+  border: 3px solid var(--color-action-emphasis);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+  appearance: none;
+}
+
+.wir-checkin-energy-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--color-action-emphasis);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+}
+
+.wir-checkin-energy-slider:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-pill);
+}
+
+.wir-checkin-energy-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: calc(-1 * var(--space-2));
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.wir-checkin-note {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.wir-checkin-note-field {
+  position: relative;
+}
+
+.wir-checkin-note-field textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: var(--space-3) calc(var(--touch-target-web) + var(--space-1))
+    var(--space-3) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font: inherit;
+  font-family: var(--font-display);
+  resize: vertical;
+}
+
+.wir-checkin-note-field textarea:disabled {
+  opacity: 0.64;
+}
+
+.wir-checkin-note-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  width: var(--touch-target-web);
+  height: var(--touch-target-web);
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.wir-checkin-note-delete .eimir-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.wir-checkin-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-error);
+  font: var(--font-supporting-copy);
+}
+
+.wir-checkin-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.wir-checkin-saving {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.wir-checkin-done {
+  margin-inline-start: auto;
+}
+
+/* ---------- Partner block in the existing quick-action sheet ---------- */
+
+.wir-checkin-partner-block {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-brand-surface);
+  color: var(--color-text);
+}
+
+.wir-checkin-partner-block.is-quiet {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+}
+
+.wir-checkin-partner-block p {
+  margin: 0;
+  font: var(--font-supporting-copy);
+}
+
+.wir-checkin-partner-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.wir-checkin-partner-vibe {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wir-checkin-partner-vibe .daily-vibe-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--color-brand-text);
+}
+
+.wir-checkin-partner-energy {
+  display: inline-flex;
+}
+
+.wir-checkin-partner-energy .daily-energy-battery-icon {
+  width: 1.6rem;
+  height: 1rem;
+}
+
+.wir-checkin-partner-time {
+  margin-inline-start: auto;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.wir-checkin-partner-note {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  quotes: "„" "“";
+}
+
+.wir-checkin-partner-note::before {
+  content: open-quote;
+}
+
+.wir-checkin-partner-note::after {
+  content: close-quote;
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes wir-checkin-badge-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes wir-checkin-dot-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes wir-checkin-panel-rows-in {
+  from {
+    grid-template-rows: 0fr;
+  }
+}
+
+@keyframes wir-checkin-panel-rows-out {
+  to {
+    grid-template-rows: 0fr;
+  }
+}
+
+@keyframes wir-checkin-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes wir-checkin-panel-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes wir-checkin-vibe-pop {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wir-checkin-badge .wir-checkin-badge-content,
+  .wir-checkin-note-dot,
+  .wir-checkin-panel[data-presence],
+  .wir-checkin-panel[data-presence] .wir-checkin-panel-inner,
+  .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .wir-checkin-badge,
+  .wir-checkin-panel-inner,
+  .wir-checkin-partner-block {
+    border: 1px solid CanvasText;
+  }
+
+  .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
+    outline: 2px solid Highlight;
+  }
+}

@@ -13,6 +13,7 @@ from pydantic.json_schema import SkipJsonSchema
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.api.v1.rediscovery import RediscoveryContext, project_rediscovery
 from eimir.dashboard import preferences, service
 from eimir.dashboard.service import DashboardItemType
 from eimir.domain.experiences import ExperienceKind
@@ -113,6 +114,8 @@ class DashboardView(ApiModel):
     viewer_local_date: date | None = None
     anticipation: DashboardAnticipation | None = None
     incoming_experience: DashboardExperience | None = None
+    # Additive (#1790 C2): wording facts for the rediscovery card above.
+    retrospective_rediscovery: RediscoveryContext | None = None
 
 
 class DashboardModulePreferenceUpdate(ApiModel):
@@ -206,6 +209,16 @@ def get_dashboard(
             else None
         ),
         retrospective=_project_item(view.retrospective) if view.retrospective is not None else None,
+        retrospective_rediscovery=(
+            project_rediscovery(
+                session,
+                authorization,
+                view.retrospective.type.value,
+                view.retrospective.id,
+            )
+            if view.retrospective is not None
+            else None
+        ),
         keepsake=_project_item(view.keepsake) if view.keepsake is not None else None,
         upcoming=[_project_item(item) for item in view.upcoming],
         recent_shared=[_project_item(item) for item in view.recent_shared],

@@ -126,9 +126,6 @@ export function MemoryCreatePage({
     null,
   );
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
-  const [photoToolHost, setPhotoToolHost] = useState<HTMLSpanElement | null>(
-    null,
-  );
   const [placeContextHost, setPlaceContextHost] =
     useState<HTMLSpanElement | null>(null);
   const [places, setPlaces] = useState<MomentPlaceSelection[]>([]);
@@ -1109,25 +1106,6 @@ export function MemoryCreatePage({
                     presentation="diary"
                     pageWideDrop
                     id="memory-create-images"
-                    mediaTrigger={(open) =>
-                      photoToolHost
-                        ? createPortal(
-                            <ComposerTool
-                              icon="foto"
-                              label={t('composer.photo')}
-                              active={attachments.items.length > 0}
-                              disabled={
-                                pending ||
-                                uncertain ||
-                                Boolean(partial) ||
-                                Boolean(diaryDraft.recovery)
-                              }
-                              onClick={open}
-                            />,
-                            photoToolHost,
-                          )
-                        : null
-                    }
                     videoContext={{ apis, accountId, spaceId }}
                     attachments={attachments}
                     selectedCoverKey={
@@ -1325,7 +1303,6 @@ export function MemoryCreatePage({
           ) : null}
           {!experienceKind ? (
             <ComposerToolRow>
-              <span className="composer-tool-slot" ref={setPhotoToolHost} />
               <span className="composer-tool-slot" ref={setPlaceToolHost} />
               <span className="composer-tool-slot" ref={setTagToolHost} />
             </ComposerToolRow>

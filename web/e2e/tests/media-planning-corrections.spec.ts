@@ -697,22 +697,27 @@ test.describe('integrated soft media choices', () => {
         const composer = page.locator('.page-composer');
         await expect(composer).toHaveCount(1);
         const diary = index < 2;
-        const entry = composer
-          .locator('.composer-tool-row')
-          .getByRole('button', { name: composerCopy.photo, exact: true });
+        // #1790 D1: the diary has one photo entry, the intake; it opens the
+        // shared source sheet because an external source is connected here.
+        const entry = diary
+          ? composer.locator('.composer-diary-intake .media-intake-device')
+          : composer
+              .locator('.composer-tool-row')
+              .getByRole('button', { name: composerCopy.photo, exact: true });
         const external = composer.getByRole('button', {
           name: sources.more,
           exact: true,
         });
-        await expectLabeledComposerTool(entry, 'foto');
         if (diary) {
-          await expectMediaIntakeAction(
-            composer.locator('.media-intake-device'),
-            'foto',
-          );
-          await expect(external).toBeVisible();
-          await expect(external.locator('.media-intake-pro')).toHaveCount(1);
-          await expect(external).toHaveCSS('border-top-width', '0px');
+          await expect(
+            composer
+              .locator('.composer-tool-row')
+              .getByRole('button', { name: composerCopy.photo, exact: true }),
+          ).toHaveCount(0);
+          await expectMediaIntakeAction(entry, 'foto');
+          await expect(entry).toHaveAttribute('aria-haspopup', 'dialog');
+        } else {
+          await expectLabeledComposerTool(entry, 'foto');
         }
         await expect(composer.locator('.media-action-group')).toHaveCount(1);
         await expect(composer.locator('.media-action-group-label')).toHaveCount(
@@ -725,11 +730,11 @@ test.describe('integrated soft media choices', () => {
           'background-color',
           'rgba(0, 0, 0, 0)',
         );
-        await expect(external).toHaveCount(diary ? 1 : 0);
+        await expect(external).toHaveCount(0);
         for (const surface of [
           composer,
           composer.locator('.composer-writing-surface, .page-composer-writing'),
-          entry,
+          ...(diary ? [] : [entry]),
         ])
           await expect(surface).toHaveCSS('border-top-width', '0px');
         expect(
@@ -762,16 +767,6 @@ test.describe('integrated soft media choices', () => {
           name: sources.immich,
           exact: true,
         });
-        if (diary) {
-          await external.press('Enter');
-          await expect(sheet).toBeVisible();
-          await expect(google).toBeVisible();
-          await expect(immich).toBeVisible();
-          await expect(device).toHaveCount(0);
-          await page.keyboard.press('Escape');
-          await expect(sheet).toHaveCount(0);
-          await expect(external).toBeFocused();
-        }
         await entry.press('Enter');
         await expect(sheet).toBeVisible();
         for (const [action, icon] of [
@@ -827,7 +822,7 @@ test.describe('integrated soft media choices', () => {
           await prose.focus();
           await expect(prose).toHaveCSS('outline-style', 'solid');
           await expect(prose).toHaveCSS('outline-width', '2px');
-          await expect(external).toHaveCSS('border-top-width', '1px');
+          await expect(entry).toHaveCSS('border-top-width', '1px');
           await page.emulateMedia({ forcedColors: 'none' });
           await page.locator('.composer-header h1').click();
           expect(

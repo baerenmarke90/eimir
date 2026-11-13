@@ -38,6 +38,7 @@ import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import recaps from './locales/recaps';
+import rediscovery from './locales/rediscovery';
 import relationshipComponents from './locales/relationshipComponents';
 import relationshipReflections from './locales/relationshipReflections';
 import sensitiveMedia from './locales/sensitiveMedia';
@@ -51,6 +52,7 @@ import taskSheets from './locales/taskSheets';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
 import weeklyInsights from './locales/weeklyInsights';
+import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
 import wishJourney from './locales/wishJourney';
@@ -70,6 +72,7 @@ export const germanResources = {
   taskSheets,
   accountSettings,
   appIcon,
+  wirCheckIn,
   wirDesign,
   wishSelection,
   wishJourney,
@@ -101,6 +104,7 @@ export const germanResources = {
   ...relationshipComponents,
   relationshipReflections,
   recaps,
+  rediscovery,
   ...snackbar,
   ...storyProducts,
   contextTags,

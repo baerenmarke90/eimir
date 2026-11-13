@@ -72,7 +72,9 @@ function renderTodayPage(
     preferencesPending?: boolean;
     supportGesturesEnabled?: boolean;
     energyCheckInEnabled?: boolean;
+    vibeCheckEnabled?: boolean;
     configurationPending?: boolean;
+    dailyCheckIn?: unknown;
   },
 ): string {
   const queryClient = new QueryClient({
@@ -100,9 +102,16 @@ function renderTodayPage(
         configuration: {
           supportGesturesEnabled: options?.supportGesturesEnabled ?? true,
           energyCheckInEnabled: options?.energyCheckInEnabled ?? false,
+          vibeCheckEnabled: options?.vibeCheckEnabled ?? false,
         },
         etag: '"1"',
       },
+    );
+  }
+  if (options?.dailyCheckIn) {
+    queryClient.setQueryData(
+      dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      options.dailyCheckIn,
     );
   }
 
@@ -113,10 +122,37 @@ function renderTodayPage(
           apis={{} as M4ProductApis}
           spaceId="space-1"
           account={{ id: 'account-1', displayName: 'Alex' }}
+          dailyCheckInsApi={{} as DailyCheckInsApi}
         />
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+function dailySnapshot(
+  own: { vibe: string | null; energyLevel: number | null },
+  partner:
+    | { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
+    | { vibe: string; energy: number; note: string | null },
+) {
+  const hidden = 'state' in partner;
+  return {
+    etag: '"today:1"',
+    projection: {
+      checkedOn: new Date('2026-09-21T00:00:00Z'),
+      dailyContextTimezone: 'Europe/Berlin',
+      own: { ...own, vibeNote: null, version: 1 },
+      energy: {
+        visibilityMode: hidden ? 'MUTUAL_REVEAL' : 'IMMEDIATE',
+        partner: hidden ? partner : { state: 'VISIBLE', value: partner.energy },
+      },
+      vibe: {
+        visibilityMode: hidden ? 'MUTUAL_REVEAL' : 'IMMEDIATE',
+        partner: hidden ? partner : { state: 'VISIBLE', value: partner.vibe },
+        partnerNote: hidden ? null : partner.note,
+      },
+    },
+  };
 }
 
 describe('TodayPage', () => {
@@ -250,7 +286,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('today-hero-action-container');
   });
 
-  it('integrates enabled Daily Energy into the relationship hero instead of a separate module', () => {
+  it('puts the daily check-in on the couple avatars instead of a separate section', () => {
     const html = renderTodayPage(
       {
         space: {
@@ -270,96 +306,69 @@ describe('TodayPage', () => {
         retrospective: null,
       },
       undefined,
-      { energyCheckInEnabled: true },
+      {
+        energyCheckInEnabled: true,
+        vibeCheckEnabled: true,
+        dailyCheckIn: dailySnapshot(
+          { vibe: 'GOOD', energyLevel: 80 },
+          { vibe: 'OKAY', energy: 40, note: 'Kaffee hilft.' },
+        ),
+      },
     );
 
     const heroIndex = html.indexOf('today-hero');
-    const energyIndex = html.indexOf('daily-energy-checkin');
+    const ownIndex = html.indexOf('wir-checkin-own-badge');
+    const partnerIndex = html.indexOf('wir-checkin-partner-badge');
     const detailsIndex = html.indexOf('couple-presence-details');
     const upcomingIndex = html.indexOf('today-section-upcoming');
 
     expect(heroIndex).toBeGreaterThanOrEqual(0);
-    expect(energyIndex).toBeGreaterThan(heroIndex);
-    expect(detailsIndex).toBeGreaterThan(energyIndex);
+    expect(ownIndex).toBeGreaterThan(heroIndex);
+    expect(partnerIndex).toBeGreaterThan(ownIndex);
+    expect(detailsIndex).toBeGreaterThan(partnerIndex);
     expect(upcomingIndex).toBeGreaterThan(detailsIndex);
-    expect(html).toContain('couple-presence-avatar-adornment');
+    expect(html).toContain(
+      'aria-label="Dein Tag: Entspannt, Akku 80 Prozent. Ändern"',
+    );
+    expect(html).toContain('Marie: Geht so, Akku 40 Prozent, neue Notiz');
+    expect(html).toContain('wir-checkin-note-dot');
+    // Energy is a symbol only; the number stays in accessible names.
+    expect(html).not.toMatch(/>\s*\d+\s*%/);
+    expect(html).not.toContain('Wie geht es euch heute?');
     expect(html).not.toContain('today-section-energy');
+    expect(html).not.toContain('today-section-vibe');
   });
 
-  it('places Daily Vibe directly after Couple Presence and before planning', () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    queryClient.setQueryData(['m5-s5', 'dashboard', 'space-1'], {
-      space: {
-        id: 'space-1',
-        partner: { id: 'partner-1', displayName: 'Marie' },
-      },
-      relationshipDuration: null,
-      upcoming: [
-        {
-          id: 'plan-1',
-          type: 'PLAN',
-          titleOrText: 'Weekend trip',
-          scheduledAt: new Date('2026-09-22T10:00:00Z'),
-        },
-      ],
-      recentShared: [],
-      retrospective: null,
-    });
-    queryClient.setQueryData(
-      dashboardPreferencesQueryKey('account-1', 'space-1'),
-      { items: [] },
-    );
-    queryClient.setQueryData(
-      spaceConfigurationQueryKey('account-1', 'space-1'),
+  it('shows the pre-check-in prompt and a partner lock only with Mutual Reveal', () => {
+    const html = renderTodayPage(
       {
-        configuration: {
-          supportGesturesEnabled: true,
-          energyCheckInEnabled: false,
-          vibeCheckEnabled: true,
+        space: {
+          id: 'space-1',
+          partner: { id: 'partner-1', displayName: 'Marie' },
         },
-        etag: '"1"',
+        relationshipDuration: null,
+        upcoming: [],
+        recentShared: [],
+        retrospective: null,
       },
-    );
-    queryClient.setQueryData(
-      dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      undefined,
       {
-        etag: '"today:1"',
-        projection: {
-          checkedOn: new Date('2026-09-21T00:00:00Z'),
-          dailyContextTimezone: 'Europe/Berlin',
-          own: { energyLevel: null, vibe: null, version: 0 },
-          energy: null,
-          vibe: {
-            visibilityMode: 'MUTUAL_REVEAL',
-            partner: { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' },
-          },
-        },
+        energyCheckInEnabled: true,
+        vibeCheckEnabled: true,
+        dailyCheckIn: dailySnapshot(
+          { vibe: null, energyLevel: null },
+          { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' },
+        ),
       },
     );
 
-    const html = renderToStaticMarkup(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <TodayPage
-            apis={{} as M4ProductApis}
-            spaceId="space-1"
-            account={{ id: 'account-1', displayName: 'Alex' }}
-            dailyCheckInsApi={{} as DailyCheckInsApi}
-          />
-        </MemoryRouter>
-      </QueryClientProvider>,
+    expect(html).toContain('Wie geht’s?');
+    expect(html).toContain('data-state="hidden"');
+    expect(html).toContain('Dein Tag: noch nichts geteilt. Teilen');
+    expect(html).toContain(
+      'Marie: sichtbar, sobald du deinen Tag geteilt hast',
     );
-
-    const heroIndex = html.indexOf('today-hero');
-    const vibeIndex = html.indexOf('daily-vibe-checkin');
-    const upcomingIndex = html.indexOf('today-section-upcoming');
-    expect(heroIndex).toBeGreaterThanOrEqual(0);
-    expect(vibeIndex).toBeGreaterThan(heroIndex);
-    expect(upcomingIndex).toBeGreaterThan(vibeIndex);
-    expect(html).toContain('Wie geht es euch heute?');
-    expect(html).not.toContain('today-section-vibe');
+    expect(html).not.toContain('wir-checkin-note-dot');
   });
 
   it('never mounts the hero Energy control before authoritative Space configuration enables it', () => {
@@ -378,12 +387,12 @@ describe('TodayPage', () => {
       renderTodayPage(dashboard, undefined, {
         energyCheckInEnabled: false,
       }),
-    ).not.toContain('daily-energy-checkin');
+    ).not.toContain('Dein Tag');
     expect(
       renderTodayPage(dashboard, undefined, {
         configurationPending: true,
       }),
-    ).not.toContain('daily-energy-checkin');
+    ).not.toContain('Dein Tag');
   });
 
   // The Thinking-of-you cooldown itself is rendered inside the avatar's

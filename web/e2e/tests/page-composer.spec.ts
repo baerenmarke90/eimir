@@ -634,7 +634,8 @@ for (const view of [
       {
         name: 'diary-empty-frame-1',
         path: '/story/memories/new',
-        tools: [composer.photo, composer.place, composer.tag],
+        // #1790 D1: the diary keeps one on-page photo entry, no photo tool.
+        tools: [composer.place, composer.tag],
       },
       {
         name: 'heart-empty-frame-5',
@@ -655,7 +656,7 @@ for (const view of [
       {
         name: 'diary-edit-frame-2',
         path: '/story/memories/mem-canal/edit',
-        tools: [composer.photo, composer.place, composer.tag],
+        tools: [composer.place, composer.tag],
       },
       {
         name: 'heart-edit-frame-6',
@@ -1371,7 +1372,7 @@ for (const motion of ['no-preference', 'reduce'] as const) {
   });
 }
 
-test('Diary source entry offers external providers and the photo tool also offers the device', async ({
+test('Diary photo entry opens the shared source sheet when an external provider is connected (#1790)', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1379,11 +1380,16 @@ test('Diary source entry offers external providers and the photo tool also offer
   const state = await installPageComposerFixture(page);
   await signIn(page);
   await page.goto('/story/memories/new');
-  const external = page.getByRole('button', {
-    name: photoSources.more,
+  await expect(
+    page.getByRole('button', { name: photoSources.more, exact: true }),
+  ).toHaveCount(0);
+  await expect(tool(page, composer.photo)).toHaveCount(0);
+  const entry = page.getByRole('button', {
+    name: composer.addPhotos,
     exact: true,
   });
-  await external.click();
+  await expect(entry).toHaveAttribute('aria-haspopup', 'dialog');
+  await entry.click();
   const sheet = page.getByRole('dialog', {
     name: photoSources.title,
     exact: true,
@@ -1393,21 +1399,10 @@ test('Diary source entry offers external providers and the photo tool also offer
   ).toBeVisible();
   await expect(
     sheet.getByRole('button', { name: photoSources.device, exact: true }),
-  ).toHaveCount(0);
-  await capture(page, info, 'external-photo-source');
-  await page.keyboard.press('Escape');
-  await expect(external).toBeFocused();
-  const photoTool = tool(page, composer.photo);
-  await photoTool.click();
-  await expect(
-    sheet.getByRole('button', { name: photoSources.immich, exact: true }),
   ).toBeVisible();
-  await expect(
-    sheet.getByRole('button', { name: photoSources.device, exact: true }),
-  ).toBeVisible();
-  await capture(page, info, 'toolbar-photo-sources');
+  await capture(page, info, 'diary-photo-sources');
   await page.keyboard.press('Escape');
-  await expect(photoTool).toBeFocused();
+  await expect(entry).toBeFocused();
   const title = page.locator('input[name="title"]');
   const body = page.locator('textarea[name="body"]');
   for (const field of [title, body]) {

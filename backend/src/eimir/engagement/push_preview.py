@@ -86,11 +86,15 @@ def for_notification(
     )
     name = _label(actor.display_name, 80) if actor is not None and actor.is_active else ""
     title = ""
+    concealed = False
     if notification.target_type is not None and notification.target_id is not None:
         target_type = EngagementTarget(notification.target_type)
+        target = (target_type, notification.target_id)
+        # A discreet Plan keeps device previews generic: no title and no
+        # comment text, not even the list title (M4-D41, #1790 F3).
+        concealed = bool(presentation.concealed_targets(session, {target}))
         # A heart moment's text is authored body content, not a title preview.
-        if target_type is not EngagementTarget.HEART_MOMENT:
-            target = (target_type, notification.target_id)
+        if target_type is not EngagementTarget.HEART_MOMENT and not concealed:
             title = _label(
                 presentation.target_titles(session, context, {target}).get(target, ""), 140
             )
@@ -112,7 +116,11 @@ def for_notification(
             "issuedAt": int(now.timestamp()),
             "expiresAt": int(expires.timestamp()),
             **(
-                {"body": _content(session, notification, context) if not digest else ""}
+                {
+                    "body": _content(session, notification, context)
+                    if not digest and not concealed
+                    else ""
+                }
                 if version == 2
                 else {}
             ),

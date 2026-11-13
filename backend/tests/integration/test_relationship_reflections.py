@@ -105,6 +105,7 @@ def test_countdown_selects_special_plan_beyond_ordinary_agenda_limit(
         "eventOn": "2026-11-10",
         "daysRemaining": 12,
         "eventAt": None,
+        "concealed": False,
     }
 
 

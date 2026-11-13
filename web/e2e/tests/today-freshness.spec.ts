@@ -32,6 +32,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   });
   let isRescheduled = false;
   let planPatchCount = 0;
+  let dashboardDelayMs = 0;
 
   await page.route('**/api/v1/**', async (route) => {
     if (
@@ -216,6 +217,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
     ) {
       dashboardRequestCount++;
+      if (dashboardDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, dashboardDelayMs));
+      }
       if (!isRescheduled) {
         // Initial state: Plan is scheduled later in October
         await fulfillJson({
@@ -510,6 +514,43 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   ).toBeVisible();
   await expect(page.getByText('Later October trip')).toHaveCount(0);
 
-  // Step 7: Verify no unexpected network requests occurred
+  // Step 7: Returning after a long time in the background revalidates, but the
+  // page the person is reading stays whole while the slower answer is in
+  // flight: no loading state, no vanished modules, no module-by-module shuffle.
+  const todayContent = page.locator('.today-content');
+  const textBeforeResume = await todayContent.innerText();
+  const requestsBeforeResume = dashboardRequestCount;
+  dashboardDelayMs = 700;
+  await page.clock.install();
+  await page.clock.fastForward('10:00');
+  await page.evaluate(() => {
+    document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  });
+  await expect
+    .poll(() => dashboardRequestCount)
+    .toBeGreaterThan(requestsBeforeResume);
+  for (let sample = 0; sample < 8; sample++) {
+    await expect(todayContent).toHaveCount(1);
+    await expect(todayContent).toBeVisible();
+    expect(await todayContent.innerText()).toBe(textBeforeResume);
+    if (sample === 3) {
+      await page.screenshot({
+        path: testInfo.outputPath('today-resume-in-flight-390-light.png'),
+      });
+    }
+    await page.waitForTimeout(80);
+  }
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.screenshot({
+    path: testInfo.outputPath('today-resume-settled-390-dark.png'),
+  });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(todayContent).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath('today-resume-settled-1280-dark.png'),
+  });
+  dashboardDelayMs = 0;
+
+  // Step 8: Verify no unexpected network requests occurred
   expect(unexpectedRequests).toEqual([]);
 });

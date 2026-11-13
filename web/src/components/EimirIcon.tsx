@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 
 /** Owner-selected icon grammar from issue #1225, drawn on a 24 px grid. */
 export const EIMIR_ICON_NAMES = [
@@ -54,6 +54,8 @@ export const EIMIR_ICON_NAMES = [
   'close',
   'check',
   'lock-open',
+  'lock',
+  'eye',
   'square',
   'trash',
   'filter',
@@ -98,6 +100,18 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   square: <rect x="5" y="5" width="14" height="14" rx="3" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   check: <path d="m5 12 4.5 4.5L19 7" />,
+  lock: (
+    <>
+      <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />
+      <path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+    </>
+  ),
   'lock-open': (
     <>
       <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />

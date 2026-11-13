@@ -1,14 +1,14 @@
 """Add the follow-up link and series grouping for repeated Wishes (#1816).
 
-Revision ID: 0123
-Revises: 0122
+Revision ID: 0124
+Revises: 0123
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0123"
-down_revision = "0122"
+revision = "0124"
+down_revision = "0123"
 branch_labels = None
 depends_on = None
 

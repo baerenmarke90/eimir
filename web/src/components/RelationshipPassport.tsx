@@ -7,6 +7,7 @@ import type { DashboardRelationshipDuration } from '../api/generated/models/Dash
 import type { RelationshipPassportView } from '../api/generated/models/RelationshipPassportView';
 import { Configuration } from '../client/apiConfiguration';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
+import { concealedTitle } from '../client/discreetPlans';
 import { dashboardItemPath } from '../client/m4Product';
 import { ProfilesApi } from '../client/mediaApis';
 import { usePartnerNickname } from '../client/partnerNickname';
@@ -483,7 +484,9 @@ function PassportStory({
           <Link to={nextPath}>
             <strong>
               {textExcerpt(
-                nextPlan.titleOrText || t('m5s5.dashboard.itemFallback'),
+                nextPlan.concealed
+                  ? concealedTitle(nextPlan.titleOrText, t)
+                  : nextPlan.titleOrText || t('m5s5.dashboard.itemFallback'),
                 100,
               )}
             </strong>

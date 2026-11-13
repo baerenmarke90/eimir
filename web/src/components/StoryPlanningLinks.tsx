@@ -5,12 +5,12 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTaskActivation } from '../client/useTaskActivation';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
 import { MemoryPlanningRelationsApi } from '../api/generated/apis/MemoryPlanningRelationsApi';
+import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
 import { Configuration } from '../client/apiConfiguration';
 import { assertOnlineWrite } from '../client/connectivity';
+import { planListTitle } from '../client/discreetPlans';
 import {
   clientProblemKind,
   normalizeClientError,
@@ -19,6 +19,7 @@ import { sortByProductLabel } from '../client/productLabelOrder';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { planDetailPath, wishDetailPath } from '../client/routes';
 import { createSharedPlanningApis } from '../client/sharedPlanning';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
@@ -215,12 +216,14 @@ function ScopedStoryPlanningLinks({
           relations.listWishes(signal),
         ]);
         return await Promise.all([
-          ...plans.items.map(
-            async (planId): Promise<Target> => ({
-              ...(await apis.plans.getPlan({ spaceId, planId }, { signal })),
-              kind: 'plans',
-            }),
-          ),
+          ...plans.items.map(async (planId): Promise<Target> => {
+            const plan = await apis.plans.getPlan(
+              { spaceId, planId },
+              { signal },
+            );
+            // A linked discreet Plan shows only its list title (#1790 F3).
+            return { ...plan, title: planListTitle(plan, t), kind: 'plans' };
+          }),
           ...wishes.items.map(
             async (wishId): Promise<Target> => ({
               ...(await apis.wishes.getWish({ spaceId, wishId }, { signal })),
@@ -568,7 +571,10 @@ function PlanningTargetPicker({
     ? []
     : sortByProductLabel(
         query.data?.pages.flatMap((page) =>
-          page.items.map((item) => ({ id: item.id, title: item.title })),
+          page.items.map((item) => ({
+            id: item.id,
+            title: 'discreet' in item ? planListTitle(item, t) : item.title,
+          })),
         ) ?? [],
         (item) => item.title,
         resolvedLocale(),

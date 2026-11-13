@@ -1,4 +1,3 @@
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useIsMutating,
@@ -23,17 +22,21 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
+import {
+  readableActivityItems,
+  useActivityQuery,
+} from '../client/activityQueries';
 import { authorDisplayName } from '../client/authorPresentation';
 import { assertOnlineWrite } from '../client/connectivity';
+import { concealedTitle } from '../client/discreetPlans';
 import {
   engagementTargetPath,
-  notificationPath,
   type M4ProductApis,
+  notificationPath,
   opaqueNextCursor,
   searchResultPath,
 } from '../client/m4Product';
 import { memoryPreviewTitle } from '../client/memoryProduct';
-import { SEARCH_ROUTE } from '../client/routes';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
@@ -48,17 +51,16 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { SEARCH_ROUTE } from '../client/routes';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ActivityCard } from './ActivityCard';
+import { AutoLoadMore } from './AutoLoadMore';
+import { DestinationIcon } from './DestinationIcon';
+import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
 import { HEART_MOMENT_TAGS } from './HeartMomentTagChoices';
 import { MEMORY_TAGS } from './MemoryTagChoices';
-import {
-  useActivityQuery,
-  readableActivityItems,
-} from '../client/activityQueries';
-import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -129,7 +131,9 @@ function SearchResultCard({
     item.type === 'MEMORY'
       ? memoryPreviewTitle(item.title, item.occurredOn, t)
       : {
-          title: item.title || t('m5s5.search.resultFallback'),
+          title: item.concealed
+            ? concealedTitle(item.title, t)
+            : item.title || t('m5s5.search.resultFallback'),
           titleIsDate: false,
         };
 
@@ -142,9 +146,20 @@ function SearchResultCard({
           {t(`m5s5.kind.${item.type}`)}
           {item.scope !== 'SHARED' && ` · ${t(`m5s5.scope.${item.scope}`)}`}
         </span>
-        <h3 className="search-result-title">{presentation.title}</h3>
-        {item.excerpt && (
-          <p className="search-result-excerpt">{item.excerpt}</p>
+        {item.concealed ? (
+          <div className="discreet-title-row">
+            <h3 className="search-result-title">{presentation.title}</h3>
+            <DiscreetLock />
+          </div>
+        ) : (
+          <h3 className="search-result-title">{presentation.title}</h3>
+        )}
+        {item.concealed ? (
+          <DiscreetPlaceholderLines />
+        ) : (
+          item.excerpt && (
+            <p className="search-result-excerpt">{item.excerpt}</p>
+          )
         )}
         {date && !presentation.titleIsDate && (
           <span className="search-result-date">{date}</span>

@@ -44,6 +44,7 @@ from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.places.models import Place
+from eimir.plans import discreet
 from eimir.plans.models import Plan
 from eimir.private_collections.models import PrivateCollection, PrivateCollectionItem
 from eimir.private_notes.models import PrivateNote
@@ -104,6 +105,8 @@ class SearchRow:
     occurred_on: date | None
     created_at: datetime
     rank_key: int
+    concealed: bool = False
+    """Display only the list title: a discreet Plan (#1790 F3)."""
 
 
 @dataclass(frozen=True)
@@ -235,6 +238,7 @@ class _Source:
     owner_only: bool = False
     privacy: PrivacyClass = PrivacyClass.SPACE_SHARED
     parent: Any = None
+    concealed: Callable[[Any], bool] = lambda row: False
 
 
 def _none(_: Any) -> None:
@@ -301,10 +305,13 @@ _SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
             SearchKind.PLAN,
             SearchScope.SHARED,
             Plan,
+            # Matching still uses the real content; a discreet Plan only
+            # changes what the result displays (#1790 F3).
             (("title", "A"), ("description", "B"), ("tags", "B")),
-            lambda row: row.payload.title,
-            lambda row: _bounded(row.payload.description),
+            discreet.list_title,
+            lambda row: None if row.discreet else _bounded(row.payload.description),
             lambda row: row.experienced_on,
+            concealed=lambda row: bool(row.discreet),
         ),
     ),
     SearchKind.PLACE: (
@@ -601,6 +608,7 @@ def search(
                             occurred_on=source.occurred_on(row),
                             created_at=row.created_at,
                             rank_key=rank,
+                            concealed=source.concealed(row),
                         )
                     )
 

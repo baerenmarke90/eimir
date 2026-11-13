@@ -2778,7 +2778,8 @@ for (const kind of ['plan', 'heart'] as const) {
         .boundingBox();
       if (!media || !title)
         throw new Error('Saved Plan media or title is missing.');
-      expect(media.y + media.height).toBeLessThanOrEqual(title.y);
+      // Detail reading order: the headline leads, then facts and media.
+      expect(title.y + title.height).toBeLessThanOrEqual(media.y);
     }
     await expect(page.getByText(AUTHORED_BODY, { exact: true })).toBeVisible();
     await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {

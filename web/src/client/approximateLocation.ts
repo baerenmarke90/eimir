@@ -59,8 +59,24 @@ interface NativePosition {
 
 interface ApproximateLocationPlugin {
   checkPermissions(): Promise<NativePermissionStatus>;
-  requestPermissions(): Promise<NativePermissionStatus>;
+  requestPermissions(options: {
+    permissions: Array<'location'>;
+  }): Promise<NativePermissionStatus>;
   current(options: { maxAgeMs: number }): Promise<NativePosition>;
+  deviceId(): Promise<{ deviceId: string }>;
+  backgroundStatus(): Promise<{
+    permission: 'granted' | 'denied' | 'prompt';
+    enabled: boolean;
+  }>;
+  requestBackgroundPermission(): Promise<{
+    permission: 'granted' | 'denied' | 'prompt';
+  }>;
+  enableBackground(options: {
+    instance: string;
+    credential: string;
+    expiresAt: string;
+  }): Promise<void>;
+  disableBackground(): Promise<void>;
 }
 
 const nativeLocation = registerPlugin<ApproximateLocationPlugin>(
@@ -105,7 +121,10 @@ export async function locationPermission(): Promise<LocationPermission> {
  */
 export async function requestLocationPermission(): Promise<LocationPermission> {
   if (usesNativePlugin()) {
-    return nativePermission(await nativeLocation.requestPermissions());
+    // Only the approximate grant; background is a separate, later step.
+    return nativePermission(
+      await nativeLocation.requestPermissions({ permissions: ['location'] }),
+    );
   }
   if (!browserGeolocation()) return 'unsupported';
   try {
@@ -285,4 +304,110 @@ export async function publishOwnPositionIfDue({
     lastPublications.delete(key);
   }
   return view;
+}
+
+export interface BackgroundLocationStatus {
+  /** Android only; browsers and other platforms report `unsupported`. */
+  permission: LocationPermission;
+  enabled: boolean;
+}
+
+export async function backgroundLocationStatus(): Promise<BackgroundLocationStatus> {
+  if (!usesNativePlugin()) return { permission: 'unsupported', enabled: false };
+  return nativeLocation.backgroundStatus();
+}
+
+/** Asks for "Allow all the time" after the approximate grant (Android 10+). */
+export async function requestBackgroundLocationPermission(): Promise<LocationPermission> {
+  if (!usesNativePlugin()) return 'unsupported';
+  try {
+    return (await nativeLocation.requestBackgroundPermission()).permission;
+  } catch {
+    return 'denied';
+  }
+}
+
+type DeviceCredentialApi = Pick<
+  PartnerLocationApi,
+  | 'issuePartnerLocationDeviceCredential'
+  | 'revokePartnerLocationDeviceCredential'
+>;
+
+/**
+ * Turns on background updates for the active share: issues a scoped device
+ * credential (it can only publish this owner's snapshot) and hands it to the
+ * native passive-location service. Never refreshes the Web session natively.
+ */
+export async function enableBackgroundSharing({
+  api,
+  spaceId,
+  instance,
+}: {
+  api: DeviceCredentialApi;
+  spaceId: string;
+  instance: string;
+}): Promise<void> {
+  if (!usesNativePlugin()) {
+    throw new ApproximateLocationError('UNSUPPORTED');
+  }
+  const status = await nativeLocation.backgroundStatus();
+  if (status.permission !== 'granted') {
+    throw new ApproximateLocationError('PERMISSION_DENIED');
+  }
+  const { deviceId } = await nativeLocation.deviceId();
+  const issued = await api.issuePartnerLocationDeviceCredential({
+    spaceId,
+    presenceDeviceCredentialRequest: { deviceId },
+  });
+  await nativeLocation.enableBackground({
+    instance,
+    credential: issued.credential,
+    expiresAt: issued.expiresAt.toISOString(),
+  });
+}
+
+/** Stops background updates on this device; the server credential is revoked best-effort. */
+export async function disableBackgroundSharing({
+  api,
+  spaceId,
+}: {
+  api: DeviceCredentialApi;
+  spaceId: string;
+}): Promise<void> {
+  if (!usesNativePlugin()) return;
+  await nativeLocation.disableBackground();
+  const { deviceId } = await nativeLocation.deviceId();
+  try {
+    await api.revokePartnerLocationDeviceCredential({ spaceId, deviceId });
+  } catch {
+    // Offline: the credential still ends with the next settings change,
+    // sign-out or its 30-day expiry.
+  }
+}
+
+/**
+ * On app open/resume: keep an enabled background share consistent with the
+ * server. Active shares get a freshly rotated credential (any settings change
+ * invalidated the old one); inactive shares stop background updates.
+ */
+export async function syncBackgroundSharing({
+  api,
+  spaceId,
+  instance,
+  settings,
+}: {
+  api: DeviceCredentialApi;
+  spaceId: string;
+  instance: string;
+  settings: Pick<PartnerLocationSettingsView, 'state'>;
+}): Promise<'enabled' | 'disabled' | 'unchanged'> {
+  if (!usesNativePlugin()) return 'unchanged';
+  const status = await nativeLocation.backgroundStatus();
+  if (!status.enabled) return 'unchanged';
+  if (settings.state !== 'ACTIVE' || status.permission !== 'granted') {
+    await disableBackgroundSharing({ api, spaceId });
+    return 'disabled';
+  }
+  await enableBackgroundSharing({ api, spaceId, instance });
+  return 'enabled';
 }

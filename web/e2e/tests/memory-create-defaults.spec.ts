@@ -151,9 +151,10 @@ for (const [width, colorScheme] of [
     const sourceBox = await sourcePicker.boundingBox();
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
+    // #1790 D1: the intake is the one diary photo entry.
     await expect(
       page.locator('.composer-content .photo-source-trigger'),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await expect(
       page.getByText(de.memory.sharedTitle, { exact: true }),
     ).toHaveCount(0);

@@ -2,6 +2,7 @@ package de.eimir.app.updates;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -109,8 +110,8 @@ final class UpdateTransport implements UpdateCatalog.Reader {
                 current.setConnectTimeout(socketTimeout(deadline));
                 current.setReadTimeout(socketTimeout(deadline));
                 current.setRequestProperty("User-Agent", "eimir-android-test-updates");
-                current.setRequestProperty("Accept", url.startsWith(UpdatePolicy.RELEASES_API + "/assets/")
-                    ? "application/octet-stream" : "application/json, application/octet-stream");
+                current.setRequestProperty("Accept",
+                    "application/atom+xml, application/json, application/octet-stream");
                 current.setRequestProperty("Accept-Encoding", "identity");
                 current.setUseCaches(false);
                 int status = current.getResponseCode();
@@ -121,6 +122,8 @@ final class UpdateTransport implements UpdateCatalog.Reader {
                     url = new URL(new URL(url), location).toString();
                     continue;
                 }
+                // A missing release asset is a distinct, non-transient answer for callers that skip it.
+                if (status == 404) throw new FileNotFoundException("NETWORK");
                 if (status != 200) throw new IOException("NETWORK");
                 long declared = current.getContentLengthLong();
                 if (declared > limit || (expectedSize >= 0 && declared >= 0 && declared != expectedSize)) {

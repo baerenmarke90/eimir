@@ -19,13 +19,19 @@ import javax.net.ssl.HttpsURLConnection;
 import org.junit.Test;
 
 public class UpdateTransportTest {
+    private static final String RELEASE_ASSET =
+        UpdatePolicy.releaseUrl("android-test-v0.2.0-test.1", UpdatePolicy.MARKER);
+
     private static final class Connection extends HttpsURLConnection {
         final byte[] body;
         final CountDownLatch entered = new CountDownLatch(1), disconnected = new CountDownLatch(1);
         final boolean blocked;
-        Connection(boolean blocked) throws Exception {
-            super(new URL(UpdatePolicy.CATALOG_URL));
+        final int status;
+        Connection(boolean blocked) throws Exception { this(blocked, 200); }
+        Connection(boolean blocked, int status) throws Exception {
+            super(new URL(UpdatePolicy.FEED_URL));
             this.blocked = blocked;
+            this.status = status;
             body = "[]".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         }
         public void connect() {}
@@ -34,7 +40,7 @@ public class UpdateTransportTest {
         public String getCipherSuite() { return "TLS_TEST"; }
         public Certificate[] getLocalCertificates() { return null; }
         public Certificate[] getServerCertificates() { return new Certificate[0]; }
-        public int getResponseCode() { return 200; }
+        public int getResponseCode() { return status; }
         public long getContentLengthLong() { return blocked ? -1 : body.length; }
         public InputStream getInputStream() {
             if (!blocked) return new ByteArrayInputStream(body);
@@ -53,17 +59,30 @@ public class UpdateTransportTest {
         }
     }
 
-    @Test public void rawAssetRequestsKeepSocketBoundsAndCloseTheirConnection() throws Exception {
+    @Test public void releaseDownloadRequestsKeepSocketBoundsAndCloseTheirConnection() throws Exception {
         Connection connection = new Connection(false);
         UpdateTransport transport = new UpdateTransport(url -> connection, System::nanoTime, 5_000);
         try {
-            assertEquals("[]", transport.readJson(UpdatePolicy.assetUrl(123), 8));
-            assertEquals("application/octet-stream", connection.getRequestProperty("Accept"));
+            assertEquals("[]", transport.readJson(RELEASE_ASSET, 8));
+            assertEquals("application/atom+xml, application/json, application/octet-stream",
+                connection.getRequestProperty("Accept"));
             assertNull(connection.getRequestProperty("Authorization"));
             assertTrue(connection.getConnectTimeout() > 0 && connection.getConnectTimeout() <= 5_000);
             assertTrue(connection.getReadTimeout() > 0 && connection.getReadTimeout() <= 5_000);
             assertEquals(0, connection.disconnected.getCount());
         } finally { transport.close(); }
+    }
+
+    @Test public void aMissingReleaseAssetIsReportedAsNotFoundWhileOtherErrorsStayGeneric() throws Exception {
+        UpdateTransport missing = new UpdateTransport(url -> new Connection(false, 404), System::nanoTime, 5_000);
+        UpdateTransport broken = new UpdateTransport(url -> new Connection(false, 500), System::nanoTime, 5_000);
+        try {
+            assertEquals("NETWORK", assertThrows(java.io.FileNotFoundException.class,
+                () -> missing.readJson(RELEASE_ASSET, 8)).getMessage());
+            IOException failure = assertThrows(IOException.class, () -> broken.readJson(RELEASE_ASSET, 8));
+            assertFalse(failure instanceof java.io.FileNotFoundException);
+            assertEquals("NETWORK", failure.getMessage());
+        } finally { missing.close(); broken.close(); }
     }
 
     @Test public void metadataRequestsShareOneDeadlineAndAnExplicitRetryGetsANewBudget() throws Exception {
@@ -74,13 +93,13 @@ public class UpdateTransportTest {
             return new Connection(false);
         }, clock::get, 5_000);
         try {
-            assertEquals("[]", transport.readJson(UpdatePolicy.CATALOG_URL, 8));
+            assertEquals("[]", transport.readJson(UpdatePolicy.FEED_URL, 8));
             clock.addAndGet(TimeUnit.MILLISECONDS.toNanos(5_001));
             assertEquals("NETWORK", assertThrows(IOException.class,
-                () -> transport.readJson(UpdatePolicy.assetUrl(123), 8)).getMessage());
+                () -> transport.readJson(RELEASE_ASSET, 8)).getMessage());
             assertEquals(1, requests.get());
             transport.reset();
-            assertEquals("[]", transport.readJson(UpdatePolicy.CATALOG_URL, 8));
+            assertEquals("[]", transport.readJson(UpdatePolicy.FEED_URL, 8));
             assertEquals(2, requests.get());
         } finally { transport.close(); }
     }
@@ -90,7 +109,7 @@ public class UpdateTransportTest {
         UpdateTransport transport = new UpdateTransport(url -> connection, System::nanoTime, 250);
         try {
             long start = System.nanoTime();
-            assertThrows(IOException.class, () -> transport.readJson(UpdatePolicy.CATALOG_URL, 8));
+            assertThrows(IOException.class, () -> transport.readJson(UpdatePolicy.FEED_URL, 8));
             assertTrue(connection.entered.getCount() == 0);
             assertEquals(0, connection.disconnected.getCount());
             assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) < 2_500);
@@ -102,7 +121,7 @@ public class UpdateTransportTest {
         UpdateTransport transport = new UpdateTransport(url -> connection, System::nanoTime, 5_000);
         ExecutorService worker = Executors.newSingleThreadExecutor();
         try {
-            Future<String> result = worker.submit(() -> transport.readJson(UpdatePolicy.CATALOG_URL, 8));
+            Future<String> result = worker.submit(() -> transport.readJson(UpdatePolicy.FEED_URL, 8));
             assertTrue(connection.entered.await(2, TimeUnit.SECONDS));
             transport.cancel();
             assertThrows(ExecutionException.class, () -> result.get(1, TimeUnit.SECONDS));
@@ -116,10 +135,10 @@ public class UpdateTransportTest {
         File file = File.createTempFile("eimir-updater-", ".apk");
         try {
             assertEquals("INTEGRITY", assertThrows(IOException.class,
-                () -> transport.readJson(UpdatePolicy.assetUrl(123), 1)).getMessage());
+                () -> transport.readJson(RELEASE_ASSET, 1)).getMessage());
             transport.reset();
             assertEquals("INTEGRITY", assertThrows(IOException.class,
-                () -> transport.download(UpdatePolicy.assetUrl(123), file, 2, "a".repeat(64), bytes -> {})).getMessage());
+                () -> transport.download(RELEASE_ASSET, file, 2, "a".repeat(64), bytes -> {})).getMessage());
         } finally { transport.close(); file.delete(); }
     }
 }

@@ -1,13 +1,18 @@
 package de.eimir.app.updates;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-/** A release is eligible only when its final publication marker binds its APK. */
+/**
+ * A release is eligible only when its final publication marker binds its APK. Discovery uses
+ * the public release feed and plain release downloads, never the rate-limited GitHub API.
+ */
 final class UpdateCatalog {
     interface Reader {
         String readJson(String url, int limit) throws Exception;
@@ -18,7 +23,7 @@ final class UpdateCatalog {
         final int versionCode, minSdk;
         final long size;
 
-        Offer(JSONObject manifest, String tag, JSONObject apk, String expectedPackage) throws Exception {
+        Offer(JSONObject manifest, String tag, String expectedPackage) throws Exception {
             UpdatePolicy.require(integer(manifest, "schemaVersion") == 1);
             UpdatePolicy.require("android-test".equals(manifest.getString("channel")));
             versionName = manifest.getString("versionName");
@@ -36,10 +41,9 @@ final class UpdateCatalog {
             UpdatePolicy.require(name.equals("eimir-" + tag + ".apk"));
             url = UpdatePolicy.releaseUrl(tag, name);
             UpdatePolicy.require(url.equals(asset.getString("url")));
-            UpdatePolicy.require(name.equals(apk.getString("name")));
-            UpdatePolicy.require(url.equals(apk.getString("browser_download_url")));
-            UpdatePolicy.require(size == integer(apk, "size"));
-            downloadUrl = UpdatePolicy.assetUrl(integer(apk, "id"));
+            // The APK is served from the same immutable release as the marker; its size and
+            // SHA-256 come from the marker and are verified while downloading.
+            downloadUrl = url;
             UpdatePolicy.validateMetadata(manifest.getString("packageName"), expectedPackage,
                 versionName, tag, code, size, sha256, minSdk, sourceRevision);
             versionCode = (int) code;
@@ -55,57 +59,49 @@ final class UpdateCatalog {
     private static final class Candidate {
         final String tag;
         final int code;
-        final JSONObject marker, apk;
-        Candidate(String tag, int code, JSONObject marker, JSONObject apk) {
+        Candidate(String tag, int code) {
             this.tag = tag;
             this.code = code;
-            this.marker = marker;
-            this.apk = apk;
         }
     }
 
+    /** Only links to this repository's own test release tags are considered. */
+    private static final Pattern FEED_TAG = Pattern.compile("href=\"https://github\\.com/"
+        + Pattern.quote(UpdatePolicy.REPOSITORY)
+        + "/releases/tag/(android-test-v[0-9]+\\.[0-9]+\\.[0-9]+-test\\.[1-9][0-9]*)\"");
+    private static final int MAX_FEED_BYTES = 512 * 1024;
+    private static final int MAX_MARKER_BYTES = 32_768;
+    private static final int MAX_RELEASES = 30;
+
     static Offer discover(Reader transport, String expectedPackage, int sdk) throws Exception {
-        JSONArray releases = new JSONArray(transport.readJson(UpdatePolicy.CATALOG_URL, 2 * 1024 * 1024));
-        UpdatePolicy.require(releases.length() <= 30);
+        String feed = transport.readJson(UpdatePolicy.FEED_URL, MAX_FEED_BYTES);
         List<Candidate> candidates = new ArrayList<>();
+        Set<String> tags = new HashSet<>();
         Set<Integer> codes = new HashSet<>();
-        for (int index = 0; index < releases.length(); index++) {
+        Matcher links = FEED_TAG.matcher(feed);
+        while (links.find()) {
             transport.ensureActive();
-            JSONObject release = releases.getJSONObject(index);
-            String tag = release.getString("tag_name");
-            if (release.optBoolean("draft", true) || !tag.startsWith("android-test-v")) continue;
-            JSONArray assets = release.getJSONArray("assets");
-            JSONObject marker = null, apk = null;
-            for (int item = 0; item < assets.length(); item++) {
-                JSONObject asset = assets.getJSONObject(item);
-                String name = asset.getString("name");
-                if (UpdatePolicy.MARKER.equals(name)) {
-                    UpdatePolicy.require(marker == null);
-                    marker = asset;
-                }
-                if (name.equals("eimir-" + tag + ".apk")) {
-                    UpdatePolicy.require(apk == null);
-                    apk = asset;
-                }
-            }
-            if (marker == null) continue;
+            String tag = links.group(1);
+            if (!tags.add(tag)) continue;
+            UpdatePolicy.require(tags.size() <= MAX_RELEASES);
             int code = UpdatePolicy.testVersionCode(tag);
             // This immutable package migration is also enforced by the publisher.
             if ("de.eimir.app".equals(expectedPackage) && code <= 38) continue;
             UpdatePolicy.require(codes.add(code));
-            candidates.add(new Candidate(tag, code, marker, apk));
+            candidates.add(new Candidate(tag, code));
         }
         candidates.sort((left, right) -> Integer.compare(right.code, left.code));
         for (Candidate candidate : candidates) {
             transport.ensureActive();
-            String tag = candidate.tag;
-            JSONObject marker = candidate.marker, apk = candidate.apk;
-            UpdatePolicy.require(apk != null && integer(marker, "size") > 0 && integer(marker, "size") <= 32_768);
-            String markerUrl = UpdatePolicy.releaseUrl(tag, UpdatePolicy.MARKER);
-            UpdatePolicy.require(markerUrl.equals(marker.getString("browser_download_url")));
-            JSONObject manifest = new JSONObject(transport.readJson(
-                UpdatePolicy.assetUrl(integer(marker, "id")), 32_768));
-            Offer offer = new Offer(manifest, tag, apk, expectedPackage);
+            String marker;
+            try {
+                marker = transport.readJson(UpdatePolicy.releaseUrl(candidate.tag, UpdatePolicy.MARKER),
+                    MAX_MARKER_BYTES);
+            } catch (FileNotFoundException unfinished) {
+                // A release without its final marker is not an installable publication.
+                continue;
+            }
+            Offer offer = new Offer(new JSONObject(marker), candidate.tag, expectedPackage);
             if (offer.minSdk > sdk) continue;
             return offer;
         }

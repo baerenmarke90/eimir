@@ -9,7 +9,8 @@ public class UpdatePolicyTest {
     private static final String SHA = "a".repeat(64);
 
     @Test public void acceptsOnlyThePublicReleaseSources() {
-        assertTrue(UpdatePolicy.allowedTransportUrl("https://api.github.com/repos/baerenmarke90/eimir/releases?per_page=30"));
+        assertTrue(UpdatePolicy.allowedTransportUrl(UpdatePolicy.FEED_URL));
+        assertFalse(UpdatePolicy.allowedTransportUrl("https://api.github.com/repos/baerenmarke90/eimir/releases?per_page=30"));
         assertTrue(UpdatePolicy.allowedTransportUrl("https://release-assets.githubusercontent.com/asset?signature=example"));
         for (String url : new String[]{"http://github.com/a", "https://github.com.evil.test/a",
             "https://github.com@evil.test/a", "https://secret@github.com/a", "file:///data/a",
@@ -51,9 +52,6 @@ public class UpdatePolicyTest {
             "android-test-v0.2.0", "android-fcm-v0.2.0-fcm.2"}) {
             assertThrows(IllegalArgumentException.class, () -> UpdatePolicy.testVersionCode(tag));
         }
-        assertEquals("https://api.github.com/repos/baerenmarke90/eimir/releases/assets/123", UpdatePolicy.assetUrl(123));
-        assertThrows(IllegalArgumentException.class, () -> UpdatePolicy.assetUrl(0));
-        assertThrows(IllegalArgumentException.class, () -> UpdatePolicy.assetUrl(-1));
     }
 
     @Test public void requiresTheExactNonemptySignerSetRegardlessOfOrder() {

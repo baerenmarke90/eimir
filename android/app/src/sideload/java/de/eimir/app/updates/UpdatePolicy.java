@@ -11,8 +11,11 @@ import java.util.regex.Pattern;
 /** Pure release/installation policy; network and Android remain adapters. */
 public final class UpdatePolicy {
     public static final String REPOSITORY = "baerenmarke90/eimir";
-    public static final String RELEASES_API = "https://api.github.com/repos/" + REPOSITORY + "/releases";
-    public static final String CATALOG_URL = RELEASES_API + "?per_page=30";
+    /**
+     * Public release feed. Unlike api.github.com it is not subject to the 60 requests per hour
+     * and IP limit for anonymous API calls, which a shared home network exhausts quickly.
+     */
+    public static final String FEED_URL = "https://github.com/" + REPOSITORY + "/releases.atom";
     public static final String MARKER = "eimir-test-update.json";
     public static final long MAX_APK_BYTES = 256L * 1024 * 1024;
     public static final int MAX_VERSION_CODE = 2_100_000_000;
@@ -35,11 +38,6 @@ public final class UpdatePolicy {
         }
     }
 
-    public static String assetUrl(long id) {
-        require(id > 0);
-        return RELEASES_API + "/assets/" + id;
-    }
-
     public static String releaseUrl(String tag, String asset) {
         require(tag.matches("android-test-v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?"));
         require(asset.equals(MARKER) || asset.equals("eimir-" + tag + ".apk"));
@@ -51,7 +49,7 @@ public final class UpdatePolicy {
             URI uri = new URI(value);
             return "https".equals(uri.getScheme()) && uri.getUserInfo() == null
                 && uri.getFragment() == null && (uri.getPort() == -1 || uri.getPort() == 443)
-                && Arrays.asList("api.github.com", "github.com", "release-assets.githubusercontent.com",
+                && Arrays.asList("github.com", "release-assets.githubusercontent.com",
                     "objects.githubusercontent.com").contains(uri.getHost());
         } catch (Exception error) {
             return false;

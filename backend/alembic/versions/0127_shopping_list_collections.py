@@ -1,15 +1,15 @@
 """Collection kind, item completion details and several pinned Dashboard lists (#1808).
 
-Revision ID: 0125
-Revises: 0124
+Revision ID: 0127
+Revises: 0126
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0125"
-down_revision = "0124"
+revision = "0127"
+down_revision = "0126"
 branch_labels = None
 depends_on = None
 

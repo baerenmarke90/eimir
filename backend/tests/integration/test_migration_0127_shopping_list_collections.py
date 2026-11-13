@@ -1,4 +1,4 @@
-"""Migration 0125 keeps existing data valid and its downgrade restores the single selection."""
+"""Migration 0127 keeps existing data valid and its downgrade restores the single selection."""
 
 from __future__ import annotations
 
@@ -57,12 +57,12 @@ def test_upgrade_copies_the_single_selection_and_downgrade_restores_it(session):
     session.flush()
     first_id, second_id, preference_id = first.id, second.id, preference.id
 
-    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0125").module
+    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0127").module
     context = MigrationContext.configure(
         session.connection(), opts={"target_metadata": Base.metadata}
     )
     with Operations.context(context):
-        # Start from the schema as it was before 0125, with the data in place.
+        # Start from the schema as it was before 0127, with the data in place.
         migration.downgrade()
         session.execute(
             text(

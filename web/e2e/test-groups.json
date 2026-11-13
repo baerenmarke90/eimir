@@ -187,6 +187,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 11
     },
+    "wish-repeat.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9,
+      "reason": "Feature-owned #1816 acceptance: a series is one row under Erfüllt with its times folded away, repeating a completed wish from an editable proposal with one idempotency key and no write on dismiss, the open repeat mark, and the Wish line on a Plan reminder, with 360/390/430 px, Light/Dark, 200% text, reduced motion and Expanded evidence."
+    },
     "wish-journey.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 8,

@@ -1,8 +1,8 @@
-# Repeat a completed Wish ("Nochmal erleben") — visual reference (#1816)
+# Repeat a completed Wish (`wishRepeat.action`) — visual reference (#1816)
 
 Issue: #1816. Product Owner decisions (2026-11-13, chat): the repeat creates a
-new **Wish**, offered on the completed Wish; "Gleich planen" continues into the
-existing Wish-to-Plan conversion; a series is one row under "Erfüllt".
+new **Wish**, offered on the completed Wish; the plan-now action continues into
+the existing Wish-to-Plan conversion; a series is one row in the fulfilled scope.
 
 ## Sources
 
@@ -19,20 +19,20 @@ elements are placeholder for the new copy.
 
 Left to right:
 
-1. **Planen, Wünsche, Erfüllt:** one row per series ("2× erlebt", the existing
-   "Erinnert" line stays), the earlier times collapsed under "Alle Male
-   ansehen".
-2. **Planen, Wünsche, Offen:** an open repeat carries the quiet "2. Mal" mark
-   (the shared sparkle origin mark).
-3. **Completed Wish detail:** the existing four-step path and "Aus diesem Wunsch
-   wurde Wirklichkeit"; the creation entry is the shared filled add button
-   ("Nochmal erleben") per the Button contract.
+1. **Planen, wishes, fulfilled scope:** one row per series
+   (`wishRepeat.series.experienced`, the existing remembered line stays), the
+   earlier times collapsed under `wishRepeat.series.showAll`.
+2. **Planen, wishes, open scope:** an open repeat carries the quiet
+   `wishRepeat.series.nthTime` mark (the shared sparkle origin mark).
+3. **Completed Wish detail:** the existing four-step path and completed body;
+   the creation entry is the shared filled add button (`wishRepeat.action`)
+   per the Button contract.
 4. **Sheet:** the shipped bottom sheet with the title as an editable proposal.
-   The primary action creates the Wish; a secondary "Gleich planen" creates it
-   and opens the existing conversion (not drawn: the reused sheet only carries
-   one footer action).
-5. **Reminder detail:** one quiet line above the schedule, "Aus eurem Wunsch
-   „…“ · 2. Mal", linking to the Wish.
+   The primary action creates the Wish; a secondary action
+   (`wishRepeat.sheet.planNow`) creates it and opens the existing conversion
+   (not drawn: the reused sheet only carries one footer action).
+5. **Reminder detail:** one quiet line above the schedule
+   (`wishRepeat.reminder.fromWishTitledNth`), linking to the Wish.
 
 Existing functions represented: Planen segments, search, scope filter, the
 shared selection entry, the floating add action, the wish edit action, the

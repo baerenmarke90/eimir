@@ -559,6 +559,13 @@
         "web/src/components/MemoryCreatePage.tsx"
       ]
     },
+    "wish-repeat.spec.ts": {
+      "roots": [
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/ReminderReadPage.tsx"
+      ]
+    },
     "wish-journey.spec.ts": {
       "roots": [
         "web/src/components/SharedPlanningOverviewPage.tsx",

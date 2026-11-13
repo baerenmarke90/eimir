@@ -32,6 +32,7 @@ import {
   appRoutePath,
   MEMORY_CREATE_ROUTE,
   planDetailPath,
+  wishDetailPath,
 } from '../client/routes';
 import {
   loadAllPlaces,
@@ -42,6 +43,7 @@ import {
 import { useTaskOrigin } from '../client/taskOrigin';
 import { wishJourneyStage, wishPlanDateLabel } from '../client/wishJourney';
 import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
 import { ExpandableDescription } from './ExpandableDescription';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
@@ -56,6 +58,7 @@ import { UiState } from './UiState';
 import { WishComposer } from './WishComposer';
 import { WishJourneyPath } from './WishJourney';
 import { useWishCompletion } from './useWishCompletion';
+import { WishRepeatSheet } from './WishRepeatSheet';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -88,6 +91,8 @@ export function WishProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteSheet = useRef<ShortTaskSheetHandle>(null);
+  const [repeatOpen, setRepeatOpen] = useState(false);
+  const repeatTrigger = useRef<HTMLButtonElement>(null);
   const [editSnapshot, setEditingWish] = useState<WishDetail | null>(null);
   const editingWish =
     editSnapshot &&
@@ -581,8 +586,39 @@ export function WishProductPage({
         ) : null}
 
         {wish.status === 'COMPLETED' && !showCompletionContinuation ? (
-          <section className="planning-subsection">
+          <section className="planning-subsection wish-completed-section">
             <p>{t('m5s3.wish.completedBody')}</p>
+            {wish.capabilities.canEdit ? (
+              <>
+                <AddActionButton
+                  ref={repeatTrigger}
+                  className="wish-repeat-action"
+                  label={t('wishRepeat.action')}
+                  icon="sparkle"
+                  disabled={writesPending}
+                  onClick={() => setRepeatOpen(true)}
+                />
+                <WishRepeatSheet
+                  key={wish.id}
+                  apis={apis}
+                  spaceId={spaceId}
+                  source={wish}
+                  open={repeatOpen}
+                  restoreFocusRef={repeatTrigger}
+                  onClose={() => setRepeatOpen(false)}
+                  onDone={(result, handle) =>
+                    handle.closeForNavigation(() => {
+                      setRepeatOpen(false);
+                      navigate(
+                        result.planId
+                          ? planDetailPath(result.planId)
+                          : wishDetailPath(result.wish.id),
+                      );
+                    })
+                  }
+                />
+              </>
+            ) : null}
           </section>
         ) : null}
 

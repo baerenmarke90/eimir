@@ -25,3 +25,18 @@
 .reminder-read-attribution {
   color: var(--color-text-secondary);
 }
+
+/* #1816: the Wish behind a Plan reminder, as one quiet link above the schedule. */
+.reminder-read-origin {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  min-block-size: var(--touch-target-web);
+  max-inline-size: 100%;
+  text-decoration: none;
+}
+
+.reminder-read-origin:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}

@@ -327,18 +327,22 @@ export function MediaGallery({
    * photos and return once the gesture has rested. Only the viewer's own
    * gestures count, not layout or programmatic scrolling.
    */
-  const holdBrowsing = useCallback((hideControls: boolean) => {
-    userBrowsing.current = true;
-    if (hideControls)
-      carouselViewport.current?.classList.add(CONTROLS_HIDDEN_CLASS);
-    if (controlsRestTimer.current !== null)
-      window.clearTimeout(controlsRestTimer.current);
-    controlsRestTimer.current = window.setTimeout(() => {
-      controlsRestTimer.current = null;
-      userBrowsing.current = false;
-      carouselViewport.current?.classList.remove(CONTROLS_HIDDEN_CLASS);
-    }, CONTROLS_REST_MS);
-  }, []);
+  const holdBrowsing = useCallback(
+    (hideControls: boolean) => {
+      userBrowsing.current = true;
+      // Editing controls in a composer stay put; only reading galleries step aside.
+      if (hideControls && presentation !== 'composer')
+        carouselViewport.current?.classList.add(CONTROLS_HIDDEN_CLASS);
+      if (controlsRestTimer.current !== null)
+        window.clearTimeout(controlsRestTimer.current);
+      controlsRestTimer.current = window.setTimeout(() => {
+        controlsRestTimer.current = null;
+        userBrowsing.current = false;
+        carouselViewport.current?.classList.remove(CONTROLS_HIDDEN_CLASS);
+      }, CONTROLS_REST_MS);
+    },
+    [presentation],
+  );
   useEffect(
     () => () => {
       if (controlsRestTimer.current !== null)
@@ -899,6 +903,7 @@ export function MediaGallery({
       ) : (
         <section
           className={`media-gallery-carousel${readingFrame ? ' media-gallery-reader' : ''}`}
+          data-presentation={presentation}
           aria-label={t('gallery.aria')}
         >
           <div

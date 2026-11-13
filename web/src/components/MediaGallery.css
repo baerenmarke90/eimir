@@ -701,7 +701,9 @@
 
 /* The dots below the photos already show the position on touch screens. */
 @media (max-width: 839px), (hover: none), (pointer: coarse) {
-  .media-gallery-carousel:has(.media-gallery-position)
+  .media-gallery-carousel:not([data-presentation="composer"]):has(
+      .media-gallery-position
+    )
     .media-gallery-carousel-counter {
     position: absolute;
     inline-size: 1px;

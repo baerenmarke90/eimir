@@ -1,0 +1,10 @@
+/* Rediscovery secondary line (#1790 C2): variant text, separator, date. The
+   line may wrap between its parts, but a date never breaks inside itself. */
+.rediscovery-secondary {
+  display: inline;
+  min-width: 0;
+}
+
+.rediscovery-date {
+  white-space: nowrap;
+}

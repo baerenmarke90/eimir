@@ -1,0 +1,11 @@
+eimir. Android 0.2.0-test.81
+
+- See how far apart you are on Wir, such as "340 km zwischen euch", and open the "Wo wir gerade sind" map when your partner shares it. Set the sharing level and its duration under Settings, Relationship, "Standort & Entfernung", and stop sharing at any time. This is part of eimir. Pro and needs both of you to opt in.
+- Keep a plan discreet with the new "Diskret" switch: lists, search and the Wir agenda show only a neutral title with a lock until you tap "Anzeigen", and notifications and calendar exports carry no title or description.
+- Return to Wir from the background without it flickering or jumping, and find your place again after the app restarts.
+- Read diary entries, milestones, plans, heart moments and wishes with one header: round Back and Edit buttons, the content type as a quiet line in the middle and the same reading order.
+- Write titles and text on one calm writing surface in the plan, wish, diary and heart moment composers.
+- Watch the glow at the top of Wir fade in and out when you switch tabs instead of popping.
+
+The product changes come from main at 1f3a5561d487d6b1c8e9ee3945e42bd239497705.
+Install over test.80 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 81.

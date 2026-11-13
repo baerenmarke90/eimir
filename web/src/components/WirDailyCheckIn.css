@@ -350,8 +350,8 @@
   height: 6px;
   border-radius: var(--radius-pill);
   background:
-    linear-gradient(var(--color-action-emphasis), var(--color-action-emphasis)) 0
-    0 / var(--wir-checkin-energy-progress) 100% no-repeat,
+    linear-gradient(var(--color-action-emphasis), var(--color-action-emphasis))
+    0 0 / var(--wir-checkin-energy-progress) 100% no-repeat,
     var(--color-surface-subtle);
   transition: background-size var(--duration-transition) var(--easing-standard);
 }

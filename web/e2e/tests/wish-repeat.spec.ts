@@ -264,6 +264,9 @@ async function installMocks(page: Page): Promise<RepeatState> {
       });
       return json(state.repeated, 201, { ETag: '"1"' });
     }
+    // Open wishes read their personal reminder; none is set in this journey.
+    if (method === 'GET' && /\/wishes\/[^/]+\/reminder$/.test(pathname))
+      return json({ dueAt: null });
     const wishMatch = pathname.match(/\/wishes\/([^/]+)$/);
     if (method === 'GET' && wishMatch) {
       const wish = wishes(state).find((item) => item.id === wishMatch[1]);

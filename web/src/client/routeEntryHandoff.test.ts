@@ -71,11 +71,9 @@ describe('applyRouteEntryHandoff', () => {
       value: 548,
       configurable: true,
     });
-    window.matchMedia = vi
-      .fn()
-      .mockReturnValue({
-        matches: false,
-      }) as unknown as typeof window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: false,
+    }) as unknown as typeof window.matchMedia;
 
     applyRouteEntryHandoff('', { smooth: true });
     window.dispatchEvent(new Event('wheel'));

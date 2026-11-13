@@ -123,6 +123,7 @@ def engine() -> Iterator[Engine]:
     from eimir.photo_sources import models as _photo_sources  # noqa: F401
     from eimir.places import models as _places  # noqa: F401
     from eimir.plans import models as _plans  # noqa: F401
+    from eimir.presence import models as _presence  # noqa: F401
     from eimir.private_collections import models as _private_collections  # noqa: F401
     from eimir.private_notes import models as _private_notes  # noqa: F401
     from eimir.profiles import models as _profiles  # noqa: F401

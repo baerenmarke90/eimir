@@ -336,6 +336,19 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    if (
+      method === 'GET' &&
+      pathname === '/api/v1/push-endpoints/configuration'
+    ) {
+      await fulfillJson({
+        fcm: null,
+        unifiedPush: null,
+        webPush: null,
+        apns: null,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/notification-preferences') {
       await fulfillJson({
         catalogVersion: 6,

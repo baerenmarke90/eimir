@@ -24,6 +24,7 @@
     <string name="push_reminder_created_title">%1$s hat die Erinnerung „%2$s“ erstellt.</string>
     <string name="push_reminder_due">Eine Erinnerung ist fällig.</string>
     <string name="push_reminder_due_title">Deine Erinnerung „%2$s“ ist fällig.</string>
+    <string name="push_wish_reminder_due">Du wolltest dich an einen Wunsch erinnern lassen.</string>
     <string name="push_shared_moment">%1$s hat einen Moment mit dir geteilt.</string>
     <string name="push_shared_moment_title">%1$s hat den Moment „%2$s“ mit dir geteilt.</string>
     <string name="push_plan_created">%1$s hat einen gemeinsamen Termin geplant.</string>
@@ -47,6 +48,7 @@
     <string name="push_view_moment">Moment ansehen</string>
     <string name="push_view_comments">Kommentare ansehen</string>
     <string name="push_view_wish_selection">Wunschauswahl ansehen</string>
+    <string name="push_view_wish">Wunsch ansehen</string>
     <string name="push_view_transfer">Datentransfer ansehen</string>
     <string name="push_view">Ansehen</string>
     <string name="media_transfer_channel">Video-Uploads</string>

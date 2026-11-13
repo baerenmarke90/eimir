@@ -4,6 +4,11 @@ const DEVICE_ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
   NO_PUSH_DISTRIBUTOR: 'notificationSettings.deviceNoDistributor',
   NOTIFICATION_PERMISSION_DENIED: 'notificationSettings.devicePermissionDenied',
   PUSH_DEVICE_CLEANUP_PENDING: 'notificationSettings.deviceCleanupPending',
+  PUSH_BROWSER_PERMISSION_DENIED:
+    'notificationSettings.browserPermissionDenied',
+  PUSH_BROWSER_OFFLINE: 'notificationSettings.browserOffline',
+  PUSH_BROWSER_OTHER_ACCOUNT: 'notificationSettings.browserOtherAccount',
+  PUSH_BROWSER_UPDATE_PENDING: 'notificationSettings.browserUpdatePending',
   PUSH_DEVICE_DISABLE_FAILED: 'notificationSettings.deviceDisableFailed',
   PUSH_ENDPOINT_UNSUPPORTED: 'notificationSettings.deviceUnsupported',
   PUSH_DEVICE_STATUS_UNAVAILABLE:
@@ -37,6 +42,8 @@ export function devicePushAction(
     return 'openSettings';
   }
   if (devicePush.error === 'PUSH_ENDPOINT_UNSUPPORTED') return null;
+  if (devicePush.error === 'PUSH_BROWSER_PERMISSION_DENIED') return null;
+  if (devicePush.error === 'PUSH_BROWSER_OTHER_ACCOUNT') return null;
   return devicePush.state === 'off' || devicePush.state === 'error'
     ? 'enable'
     : null;

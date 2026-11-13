@@ -20,7 +20,7 @@ import {
   useDocumentLeaveBlocked,
 } from './useDocumentLeaveGuard';
 
-type ProviderKey = 'unifiedpush' | 'fcm';
+type ProviderKey = 'unifiedpush' | 'fcm' | 'apns';
 
 type ActivationEvent = {
   accountId: string;
@@ -44,6 +44,8 @@ type NativePushStatus = {
   fcmAvailable: boolean;
   firebaseProjectId: string | null;
   androidPackage: string;
+  iosBundleId?: string;
+  apnsEnvironment?: 'development' | 'production';
 };
 
 type SelectedConfiguration =
@@ -58,7 +60,13 @@ type SelectedConfiguration =
       firebaseProjectId: string;
       androidPackage: string;
       encryptedPreviewVersion?: 1 | 2;
+      neutralReferenceVersion?: 1;
       localeVersion?: 1;
+    }
+  | {
+      providerKey: 'apns';
+      bundleId: string;
+      environment: 'development' | 'production';
     };
 
 type RegistrationOptions = SelectedConfiguration & {
@@ -106,6 +114,8 @@ export interface DevicePushController {
   error: string | null;
   /** True only while this device is registered for this Account and API instance. */
   registered: boolean;
+  browser?: boolean;
+  neutralPreview?: boolean;
   enable(): Promise<void>;
   disable(): Promise<void>;
   openSettings(): Promise<void>;
@@ -242,7 +252,12 @@ function registeredFor(
   accountId: string,
   apiBaseUrl: string,
 ): boolean {
-  return state.enabled && ownsActivation(state, accountId, apiBaseUrl);
+  return (
+    state.enabled &&
+    ownsActivation(state, accountId, apiBaseUrl) &&
+    (state.providerKey !== 'apns' ||
+      readEndpointId(endpointIdKey(apiBaseUrl, accountId)) !== null)
+  );
 }
 
 function ownsActivation(
@@ -278,6 +293,18 @@ function selectConfiguration(
   nativeState: NativePushStatus,
   activeProvider: ProviderKey | null,
 ): SelectedConfiguration | null {
+  if (nativeState.iosBundleId !== undefined) {
+    const apns = available.apns;
+    return apns &&
+      apns.bundleId === nativeState.iosBundleId &&
+      apns.environment === nativeState.apnsEnvironment
+      ? {
+          providerKey: 'apns',
+          bundleId: apns.bundleId,
+          environment: apns.environment,
+        }
+      : null;
+  }
   const fcm =
     available.fcm &&
     nativeState.fcmAvailable &&
@@ -287,6 +314,9 @@ function selectConfiguration(
           providerKey: 'fcm' as const,
           firebaseProjectId: available.fcm.projectId,
           androidPackage: available.fcm.androidPackage,
+          ...(available.fcm.neutralReferenceVersion === 1
+            ? { neutralReferenceVersion: 1 as const }
+            : {}),
           ...(available.fcm.localeVersion === 1
             ? { localeVersion: 1 as const }
             : {}),
@@ -331,7 +361,7 @@ export function useDevicePush({
   notificationsApi: NotificationsApi;
   queryClient: QueryClient;
   spaceId: string;
-}): DevicePushController {
+}): DevicePushController & { openNotification(id?: string): void } {
   const native = isCapacitorNative();
   const navigate = useNavigate();
   const navigateRef = useRef(navigate);
@@ -347,6 +377,7 @@ export function useDevicePush({
   );
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
+  const [ios, setIos] = useState(false);
   const configuration = useRef<SelectedConfiguration | null>(null);
   const errorRef = useRef<string | null>(null);
   const key = endpointIdKey(apiBaseUrl, accountId);
@@ -547,6 +578,10 @@ export function useDevicePush({
                         ? (2 as const)
                         : (1 as const),
                     key: fcmSubscription.previewKey as string,
+                    ...(configuration.current.neutralReferenceVersion === 1 &&
+                    fcmSubscription.neutralReferenceVersion === 1
+                      ? { neutralReference: true }
+                      : {}),
                   }
                 : undefined;
             const registration = await notificationsApi.registerOwnPushEndpoint(
@@ -568,20 +603,25 @@ export function useDevicePush({
                             subscription.notificationReferenceVersion = 1;
                           else delete subscription.notificationReferenceVersion;
                           if (
-                            configuration.current?.localeVersion !== 1 ||
+                            configuration.current?.providerKey !==
+                              'unifiedpush' ||
+                            configuration.current.localeVersion !== 1 ||
                             subscription.localeVersion !== 1
                           )
                             delete subscription.localeVersion;
                           return JSON.stringify(subscription);
                         })()
-                      : JSON.stringify({
-                          fid: fcmSubscription.fid,
-                          activationId: fcmSubscription.activationId,
-                          ...(configuration.current?.localeVersion === 1 &&
-                          fcmSubscription.localeVersion === 1
-                            ? { localeVersion: 1 }
-                            : {}),
-                        }),
+                      : event.providerKey === 'apns'
+                        ? event.endpointValue
+                        : JSON.stringify({
+                            fid: fcmSubscription.fid,
+                            activationId: fcmSubscription.activationId,
+                            ...(configuration.current?.providerKey === 'fcm' &&
+                            configuration.current.localeVersion === 1 &&
+                            fcmSubscription.localeVersion === 1
+                              ? { localeVersion: 1 }
+                              : {}),
+                          }),
                 },
               },
             );
@@ -747,6 +787,7 @@ export function useDevicePush({
         await pendingSignOutDisable;
         const nativeState = await nativePush.status();
         if (!live) return;
+        setIos(nativeState.iosBundleId !== undefined);
         const otherOwner =
           nativeState.accountId !== null &&
           (nativeState.accountId !== accountId ||
@@ -1001,12 +1042,14 @@ export function useDevicePush({
 
   return {
     available: native,
+    neutralPreview: ios,
     state,
     error,
     registered,
     enable,
     disable,
     openSettings,
+    openNotification: openInbox,
   };
 }
 

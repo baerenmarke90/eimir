@@ -49,6 +49,7 @@ from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
+from eimir.wishes import reminders as wish_reminders
 from eimir.wishes.models import Wish, WishPayload, WishStatus, shared_privacy
 
 _RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.WISH.value
@@ -418,6 +419,7 @@ def complete_direct_wish(
         )
 
     wish.status = WishStatus.COMPLETED.value
+    wish_reminders.cancel_for_wish(session, wish.id)
     _flush(session)
     record_event(session, wish, context.account_id, EventType.WISH_COMPLETED)
     _flush(session)
@@ -432,6 +434,7 @@ def plan_created(session: Session, wish: Wish, actor_id: UUID) -> None:
             WISH_STATUS_TRANSITION_INVALID,
         )
     wish.status = WishStatus.PLANNED.value
+    wish_reminders.cancel_for_wish(session, wish.id)
     _flush(session)
     record_event(session, wish, actor_id, EventType.WISH_PLANNED)
     _flush(session)

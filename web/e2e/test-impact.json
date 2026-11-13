@@ -47,9 +47,11 @@
     },
     "android-push-onboarding.spec.ts": {
       "roots": [
+        "web/src/client/devicePush.ts",
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/OnceMessages.tsx",
         "web/src/components/SettingsPage.tsx"
       ]
     },
@@ -58,6 +60,16 @@
         "web/src/components/AppIconSettingsPanel.tsx",
         "web/src/components/ProfileAppearancePanel.tsx",
         "web/src/client/appIconContext.tsx"
+      ]
+    },
+    "browser-push.spec.ts": {
+      "roots": [
+        "web/src/client/browserPush.ts",
+        "web/src/client/devicePush.ts",
+        "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/client/m4Product.ts",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "automatic-recaps.spec.ts": {
@@ -563,6 +575,7 @@
       "roots": [
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishReminderAction.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/TodayPage.tsx"
       ]
@@ -820,8 +833,10 @@
     },
     "today-living-home.spec.ts": {
       "roots": [
+        "web/src/components/AppShell.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/M4ProductPages.tsx",
         "web/src/components/SharedStorySummary.tsx",
@@ -882,6 +897,8 @@
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx",
+        "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/client/browserPush.ts",
         "web/src/components/ProfilePage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx"
       ]
@@ -959,6 +976,7 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishReminderAction.tsx",
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/PrivatePartnerNotesPage.tsx"
@@ -969,6 +987,7 @@
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishReminderAction.tsx",
         "web/src/components/ContextTagEditor.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/StoryYearsPage.tsx",

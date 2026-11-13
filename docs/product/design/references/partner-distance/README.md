@@ -21,6 +21,6 @@ under the Partner-App Experience Standard section 9A.
 | `01-partner-distance-compact.jpg` | 1. Wir with the distance line. 2. One-time start sheet. 3. Settings › Relationship › Location & distance (Pro, stop always reachable, background toggle). 4. Prominent disclosure before "Allow all the time" (Google Play requirement, #1802). 5. "Where we are" map. |
 | `02-distance-line-states.jpg` | Distance line states: far, nearby (< 2 km), earlier value (> 2 h), own location missing (viewer only), unavailable (no line, no reason). |
 
-Copy shown is de-DE placeholder for i18n keys. The images guide composition and
+The distance line uses the wording chosen by the Product Owner on 2026-11-13 (variant V2, without "approximately"): de-DE "340 km zwischen euch" with a heart, and "Ihr seid gerade ganz nah beieinander" below 2 km. Values stay rounded bands. Other copy is de-DE placeholder for i18n keys. The images guide composition and
 hierarchy; they are not pixel locks. Dark, about 360 px, large text and Expanded
 evidence belong to the implementation PRs.

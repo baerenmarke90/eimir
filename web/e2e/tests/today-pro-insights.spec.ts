@@ -504,7 +504,7 @@ test('Pro insights are absent from Today and open from More on Compact', async (
   await signIn(page);
 
   // The free daily ritual stays on Today, but weekly insights do not.
-  await expect(page.getByTestId('daily-vibe-checkin')).toBeVisible();
+  await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
   await expect(
     page.getByRole('link', { name: dailyInsights.week.title }),
   ).toHaveCount(0);

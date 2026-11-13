@@ -764,19 +764,13 @@
         "web/src/components/SettingsPage.tsx"
       ]
     },
-    "today-daily-energy.spec.ts": {
+    "today-daily-checkin.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"
       ]
     },
     "today-daily-quote.spec.ts": {
-      "roots": [
-        "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx"
-      ]
-    },
-    "today-daily-vibe.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"

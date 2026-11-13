@@ -85,9 +85,7 @@ import {
   CouplePresence,
   type CouplePresenceAvatarAction,
 } from './CouplePresence';
-import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
-import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
@@ -99,6 +97,8 @@ import { OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
+import { WirPartnerDaySheet } from './WirPartnerDaySheet';
+import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { SharedExperienceReveal } from './SharedExperienceReveal';
@@ -885,6 +885,15 @@ export function TodayPage({
     partner?.displayName,
     t('m5s5.today.relationshipSignal.partnerFallback'),
   );
+  // Daily check-in on the couple avatars (#1790 slice A).
+  const dailyCheckIn = useWirDailyCheckIn({
+    api: dailyCheckInsApi,
+    accountId: partner ? account?.id : undefined,
+    spaceId,
+    partnerName,
+    vibeEnabled: vibeCheckEnabled,
+    energyEnabled: energyCheckInEnabled,
+  });
   const presenceQuery = usePartnerPresence({
     accountId: account?.id ?? '',
     spaceId,
@@ -1258,19 +1267,18 @@ export function TodayPage({
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
       avatarSize="hero"
-      avatarAction={avatarAction}
-      avatarOverlay={avatarOverlay}
-      avatarAdornment={
-        energyCheckInEnabled && account?.id ? (
-          <DailyEnergyCheckIn
-            key={`${account.id}:${spaceId}`}
-            api={dailyCheckInsApi}
-            accountId={account.id}
-            spaceId={spaceId}
-            partnerName={partner ? partnerName : undefined}
-          />
-        ) : undefined
+      avatarAction={
+        avatarAction && dailyCheckIn?.partnerAriaLabel
+          ? {
+              ...avatarAction,
+              label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+            }
+          : avatarAction
       }
+      avatarOverlay={avatarOverlay}
+      primaryAvatarAction={dailyCheckIn?.ownAction}
+      primaryAvatarAdornment={dailyCheckIn?.ownBadge}
+      secondaryAvatarAdornment={dailyCheckIn?.partnerBadge}
     />
   );
 
@@ -1284,18 +1292,6 @@ export function TodayPage({
         spaceId={spaceId}
         partnerName={partner ? partnerName : undefined}
         partnerNameIsResolved
-      />
-    ) : null;
-  const dailyVibe =
-    vibeCheckEnabled && partner && account?.id && dailyCheckInsApi ? (
-      <DailyVibeCheckIn
-        key={`vibe:${account.id}:${spaceId}`}
-        api={dailyCheckInsApi}
-        accountId={account.id}
-        spaceId={spaceId}
-        partnerName={partnerName}
-        partnerNameIsResolved
-        configuredEnabled
       />
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
@@ -1317,6 +1313,7 @@ export function TodayPage({
           supportGesturesEnabled && partner && account?.id ? (
             <PartnerQuickActions
               apis={apis}
+              header={dailyCheckIn?.partnerBlock}
               entitlementApi={entitlementApi}
               accountId={account.id}
               spaceId={spaceId}
@@ -1331,11 +1328,19 @@ export function TodayPage({
                 renderRelationshipHero(avatarAction, avatarOverlay)
               }
             </PartnerQuickActions>
+          ) : dailyCheckIn?.partnerBlock && partner ? (
+            <WirPartnerDaySheet
+              partnerName={partnerName}
+              block={dailyCheckIn.partnerBlock}
+            >
+              {(avatarAction) => renderRelationshipHero(avatarAction)}
+            </WirPartnerDaySheet>
           ) : (
             renderRelationshipHero()
           )
         ) : null}
-        {dailyVibe}
+        {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
+        {dailyCheckIn?.announcement}
         <OnceIncomingSignal />
       </>
     ),

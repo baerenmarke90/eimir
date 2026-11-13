@@ -54,6 +54,11 @@ export interface PartnerQuickActionsProps {
   partnerPhotoUrl?: string | null;
   partnerPhotoIdentity?: string;
   thinkingOfYouAvailableAt: Date | null;
+  /**
+   * Partner context shown above the unchanged quick actions, e.g. today's
+   * shared vibe and energy (#1790 slice A). Rendered only while open.
+   */
+  header?: ReactNode;
   children: (
     avatarAction: CouplePresenceAvatarAction,
     avatarOverlay: ReactNode,
@@ -76,6 +81,7 @@ export function PartnerQuickActions({
   thinkingOfYouAvailableAt,
   partnerPhotoUrl,
   partnerPhotoIdentity,
+  header,
   children,
 }: PartnerQuickActionsProps) {
   const { t } = useTranslation();
@@ -255,6 +261,7 @@ export function PartnerQuickActions({
 
   const actionList = (
     <div className="partner-quick-actions-content">
+      {header}
       {gesture.pendingAction ? (
         <p
           className="partner-quick-actions-pending"

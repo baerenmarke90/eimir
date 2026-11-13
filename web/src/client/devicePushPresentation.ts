@@ -4,6 +4,7 @@ const DEVICE_ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
   NO_PUSH_DISTRIBUTOR: 'notificationSettings.deviceNoDistributor',
   NOTIFICATION_PERMISSION_DENIED: 'notificationSettings.devicePermissionDenied',
   PUSH_DEVICE_CLEANUP_PENDING: 'notificationSettings.deviceCleanupPending',
+  PUSH_DEVICE_DISABLE_FAILED: 'notificationSettings.deviceDisableFailed',
   PUSH_ENDPOINT_UNSUPPORTED: 'notificationSettings.deviceUnsupported',
   PUSH_DEVICE_STATUS_UNAVAILABLE:
     'notificationSettings.deviceStatusUnavailable',

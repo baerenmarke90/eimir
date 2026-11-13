@@ -7,6 +7,7 @@ import de from '../../src/i18n/locales/de';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
+import { type MapTileMock, mockMapTiles } from '../support/mapTiles';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -34,15 +35,14 @@ async function expectSecondaryProIcons(page: Page) {
   }
 }
 
-async function exerciseMapTouchOwnership(page: Page) {
+async function exerciseMapTouchOwnership(page: Page, tiles: MapTileMock) {
   const sheet = page.getByRole('dialog', { name: mapCopy.title });
   const map = sheet.locator('.place-map-viewport');
   const bounds = await map.boundingBox();
   if (!bounds) throw new Error('Fullscreen map has no touch bounds');
-  const pane = map.locator('.leaflet-map-pane');
-  const beforePan = await pane.evaluate(
-    (node) => getComputedStyle(node).transform,
-  );
+  // Markers are anchored to the map, so panning moves them on screen.
+  const anchor = map.locator('.memory-map-marker').first();
+  const beforePan = await anchor.boundingBox();
   const touch = await page.context().newCDPSession(page);
   let touching = false;
   const x = bounds.x + bounds.width * 0.7;
@@ -70,20 +70,12 @@ async function exerciseMapTouchOwnership(page: Page) {
       touchPoints: [],
     });
     touching = false;
-    await expect(pane).not.toHaveCSS('transform', beforePan);
+    await expect
+      .poll(async () => (await anchor.boundingBox())?.y)
+      .not.toBe(beforePan?.y);
     await expect(sheet).toBeVisible();
 
-    const tileZooms = () =>
-      map
-        .locator('img.leaflet-tile')
-        .evaluateAll((images) =>
-          images.map((image) =>
-            Number(
-              new URL((image as HTMLImageElement).src).pathname.split('/')[1],
-            ),
-          ),
-        );
-    const beforeZoom = Math.max(...(await tileZooms()));
+    const beforeZoom = Math.max(...tiles.zooms());
     const centerX = bounds.x + bounds.width / 2;
     const centerY = bounds.y + bounds.height / 2;
     for (const [index, spread] of [35, 70, 110].entries()) {
@@ -104,7 +96,7 @@ async function exerciseMapTouchOwnership(page: Page) {
     });
     touching = false;
     await expect
-      .poll(async () => Math.max(...(await tileZooms())))
+      .poll(async () => Math.max(...tiles.zooms()))
       .toBeGreaterThan(beforeZoom);
     await expect(sheet).toBeVisible();
   } finally {
@@ -149,11 +141,7 @@ for (const [width, theme] of [
         ),
       });
     });
-    let tileReads = 0;
-    await page.route('https://tile.openstreetmap.org/**', async (route) => {
-      tileReads++;
-      await route.fulfill({ contentType: 'image/png', body: TINY_PNG });
-    });
+    const tiles = await mockMapTiles(page);
     await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
       route.fulfill({
         json: {
@@ -245,7 +233,7 @@ for (const [width, theme] of [
     // Initial layout/StrictMode admission may cancel a fetch before any body
     // arrives. Measure return continuity from the first confirmed ready view.
     const readyThumbnailReads = thumbnailReads;
-    await expect.poll(() => tileReads).toBeGreaterThan(0);
+    await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Karte laden' })).toHaveCount(
       0,
     );
@@ -269,21 +257,13 @@ for (const [width, theme] of [
     await expect
       .poll(async () => Math.round((await fullscreen.boundingBox())?.y ?? -1))
       .toBe(0);
-    await expect(page.locator('.leaflet-container')).toHaveCount(1);
-    // Real Leaflet tiles must use an overview zoom, including single-place maps.
+    await expect(page.locator('.maplibregl-map')).toHaveCount(1);
+    // Real vector tiles must use an overview zoom, including single-place maps.
     await expect
-      .poll(async () => {
-        const sources = await fullscreen
-          .locator('img.leaflet-tile')
-          .evaluateAll((images) =>
-            images.map((image) =>
-              Number(
-                new URL((image as HTMLImageElement).src).pathname.split('/')[1],
-              ),
-            ),
-          );
-        return sources.length > 0 && sources.every((zoom) => zoom <= 12);
-      })
+      .poll(
+        () =>
+          tiles.zooms().length > 0 && tiles.zooms().every((zoom) => zoom <= 11),
+      )
       .toBe(true);
     const viewport = await fullscreen
       .locator('.place-map-viewport')
@@ -312,7 +292,7 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
-    if (width < 840) await exerciseMapTouchOwnership(page);
+    if (width < 840) await exerciseMapTouchOwnership(page, tiles);
     await page.keyboard.press('Escape');
     await expect(fullscreen).toBeHidden();
     await expect(expand).toBeFocused();
@@ -383,9 +363,7 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
   await page.setViewportSize({ width: 320, height: 740 });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await installMocks(page);
-  await page.route('https://tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ status: 503, body: '' }),
-  );
+  await mockMapTiles(page, { fail: true });
   await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
     route.fulfill({
       json: {
@@ -562,11 +540,14 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
       page,
       browser,
     }, info) => {
+      // Two signed-in partners, five audited states and a reply hand-off.
+      test.slow();
       type Note = {
         id: string;
         title: string;
         body: string;
         experienceKind: string;
+        experienceQuestionId?: string;
         happenedOn: string | null;
         createdAt: string;
         updatedAt: string;
@@ -591,18 +572,34 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           const request = route.request();
           const url = new URL(request.url());
           const path = url.pathname;
-          if (path.endsWith('/questions') && path.includes('/experiences/'))
+          if (path.endsWith('/questions') && path.includes('/experiences/')) {
+            const questionIds = Object.keys(
+              experienceCopy.questions[kind],
+            ).slice(0, 3);
             return route.fulfill({
               json: {
                 kind: kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
                 localDate: '2026-11-01',
                 refreshAfterSeconds: 3600,
-                questionIds: Object.keys(experienceCopy.questions[kind]).slice(
-                  0,
-                  3,
-                ),
+                questionIds,
+                questionStates: questionIds.map((questionId) => {
+                  const thread = notes.filter(
+                    (note) => note.experienceQuestionId === questionId,
+                  );
+                  return {
+                    questionId,
+                    memoryId: thread[0]?.id ?? null,
+                    answeredByMe: thread.some(
+                      (note) => note.authorId === actor,
+                    ),
+                    answeredByPartner: thread.some(
+                      (note) => note.authorId !== actor,
+                    ),
+                  };
+                }),
               },
             });
+          }
 
           if (path === `/api/v1/spaces/${SPACE_ID}/entitlements`)
             return route.fulfill({
@@ -917,6 +914,9 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(page).toHaveURL(/\/story\/memories\/experience-/);
         await expect(page.getByText(words, { exact: true })).toBeVisible();
         expect(notes[0].title).toBe(question);
+        expect(notes[0].experienceQuestionId).toBe(
+          Object.keys(experienceCopy.questions[kind])[0],
+        );
         expect(
           notes.filter(
             (note) =>
@@ -936,8 +936,15 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(
           page
             .locator('.couple-experience-history-entry')
-            .getByRole('heading', { name: question }),
-        ).toBeVisible();
+            .locator('.couple-experience-entry-question'),
+        ).toHaveText(question);
+        // The author's own answered question no longer invites a new entry.
+        await expect(
+          page.locator('.couple-experience-questions a').first(),
+        ).toHaveAttribute(
+          'href',
+          new RegExp(`/story/memories/${notes[0].id}$`),
+        );
         await signIn(partnerPage);
         await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
         const reveal = partnerPage.locator('.shared-experience-reveal');
@@ -1009,6 +1016,37 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(
           partnerPage.locator('.shared-experience-reveal'),
         ).toHaveCount(0);
+        // The partner sees the answered question first and replies in its thread.
+        await partnerPage.goto(base, { waitUntil: 'domcontentloaded' });
+        const focus = partnerPage.locator('.experience-question-focus');
+        await expect(focus).toContainText(question);
+        await expect(
+          focus.getByRole('link', { name: experienceCopy.addOwnAnswer }),
+        ).toHaveAttribute(
+          'href',
+          `${base}/new?replyTo=${encodeURIComponent(notes[0].id)}`,
+        );
+        await expect(
+          partnerPage.locator('.couple-experience-questions li a'),
+        ).toHaveCount(2);
+        expect(
+          await partnerPage.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          partnerPage,
+          info,
+          `${kind}-awaiting-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        expect(
+          (
+            await new AxeBuilder({ page: partnerPage })
+              .include('.couple-experience-page')
+              .analyze()
+          ).violations,
+        ).toEqual([]);
       } finally {
         await partnerContext.close();
       }
@@ -1077,9 +1115,7 @@ for (const [width, colorScheme] of [
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const unknown = await installMocks(page, { strict: true });
-    await page.route('https://tile.openstreetmap.org/**', (route) =>
-      route.fulfill({ contentType: 'image/png', body: TINY_PNG }),
-    );
+    const tiles = await mockMapTiles(page);
     await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
       route.fulfill({
         json: {
@@ -1118,22 +1154,10 @@ for (const [width, colorScheme] of [
     await expect(page.locator('.memory-map-marker')).toHaveCount(1);
     await expect(page.locator('.memory-map-selection h2')).toHaveText('Lake');
     await expect
-      .poll(async () =>
-        page
-          .locator('img.leaflet-tile')
-          .evaluateAll(
-            (images) =>
-              images.length > 0 &&
-              images.every(
-                (image) =>
-                  Number(
-                    new URL((image as HTMLImageElement).src).pathname.split(
-                      '/',
-                    )[1],
-                  ) === 15,
-              ),
-          ),
-      )
+      .poll(() => {
+        const zooms = tiles.zooms();
+        return zooms.length > 0 && zooms[zooms.length - 1] === 14;
+      })
       .toBe(true);
     const filter = page.getByRole('button', {
       name: mapCopy.filter,
@@ -1169,3 +1193,128 @@ for (const [width, colorScheme] of [
     expect(unknown).toEqual([]);
   });
 }
+
+test('fullscreen map uses the whole landscape phone and puts memories beside the map', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installMocks(page);
+  const tiles = await mockMapTiles(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'Afternoon by the canal',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Lake',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect(page.locator('#momente-panel-map')).toBeVisible();
+  await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+  await expect(
+    page.getByRole('button', { name: de.story.addMoment }),
+  ).toHaveCount(0);
+  const expand = page.getByRole('button', {
+    name: mapCopy.fullscreen,
+    exact: true,
+  });
+  await expect(expand).toHaveText('');
+  await expand.click();
+  const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+  await expect(fullscreen).toBeVisible();
+
+  // Rotating while the map is open must give it the whole screen.
+  await page.setViewportSize({ width: 844, height: 390 });
+  const viewport = fullscreen.locator('.place-map-viewport');
+  await expect
+    .poll(async () => (await viewport.boundingBox())?.height)
+    .toBe(390);
+  expect((await viewport.boundingBox())?.width).toBe(844);
+
+  await fullscreen.locator('.memory-map-marker').click();
+  const selection = fullscreen.locator('.memory-map-selection');
+  await expect(selection).toBeVisible();
+  const [map, side] = await Promise.all([
+    viewport.boundingBox(),
+    selection.boundingBox(),
+  ]);
+  if (!map || !side) throw new Error('Map and selection must be measurable');
+  expect(map.height).toBe(390);
+  expect(map.x + map.width).toBeLessThanOrEqual(side.x + 1);
+  expect(side.y).toBe(0);
+  await expect(
+    fullscreen.getByRole('link', { name: /Afternoon by the canal/ }),
+  ).toBeInViewport();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
+test('map tools step aside while the map is panned and touch screens drop the zoom buttons', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installMocks(page);
+  const tiles = await mockMapTiles(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'Afternoon by the canal',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Lake',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+  const tools = page.locator('.memory-map-tools');
+  await expect(tools).toHaveCSS('opacity', '1');
+
+  // The zoom buttons leave the screen but stay reachable by keyboard.
+  const zoom = page.locator('.place-map-zoom');
+  const zoomIn = page.locator('.place-map-zoom-in');
+  expect((await zoom.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
+  await zoomIn.focus();
+  await expect(zoomIn).toBeFocused();
+  expect((await zoom.boundingBox())?.width ?? 0).toBeGreaterThan(20);
+  await zoomIn.blur();
+
+  const map = await page.locator('.place-map-viewport').boundingBox();
+  if (!map) throw new Error('The map must be measurable');
+  await page.mouse.move(map.x + map.width / 2, map.y + map.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(map.x + map.width / 2 - 60, map.y + map.height / 2, {
+    steps: 6,
+  });
+  await expect(tools).toHaveCSS('opacity', '0');
+  await page.mouse.up();
+  // The tools return once the gesture has rested.
+  await expect(tools).toHaveCSS('opacity', '1', { timeout: 5_000 });
+});

@@ -5,6 +5,7 @@ import m5s5 from '../../src/i18n/locales/m5s5';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import profiles from '../../src/i18n/locales/profiles';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { mockMapTiles } from '../support/mapTiles';
 import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -41,9 +42,7 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await installMocks(page);
   await installPhoto(page);
-  await page.route('https://tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ contentType: 'image/png', body: TINY_PNG }),
-  );
+  await mockMapTiles(page);
   await page.route(`**${base}/memory-map*`, (route) =>
     route.fulfill({
       json: {
@@ -78,7 +77,7 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
   });
   await page.getByRole('tab', { name: mapCopy.entry, exact: true }).click();
   await expect(page).toHaveURL(/\/story\/map\?type=MEMORY&year=2026$/);
-  const tiles = page.locator('.leaflet-tile-pane');
+  const tiles = page.locator('.place-map-viewport .maplibregl-canvas');
   const marker = page.locator('.memory-map-marker-photo img');
   await expect(marker).toBeVisible();
   await expect(tiles).not.toHaveCSS('filter', 'none');

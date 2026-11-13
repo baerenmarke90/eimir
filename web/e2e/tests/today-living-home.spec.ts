@@ -349,6 +349,69 @@ type Scenario = {
   } | null;
 };
 
+/** The lifeline slider value text, composed from the locale templates. */
+function lifelineValue(date: string, count: number, title: string): string {
+  return m5s5.dashboard.storyLifelineValue
+    .replace(
+      '{{period}}',
+      m5s5.dashboard.storyLifelineWeekOf.replace('{{date}}', date),
+    )
+    .replace(
+      '{{entries}}',
+      m5s5.dashboard.storyLifelineEntries_other.replace(
+        '{{count}}',
+        String(count),
+      ),
+    )
+    .replace('{{title}}', title);
+}
+
+/** A lifeline whose weekly parts add up exactly to the scenario totals. */
+function lifelineFor(scenario: Scenario) {
+  const summary = scenario.summary ?? {
+    memories: 0,
+    heartMoments: 0,
+    milestones: 0,
+  };
+  const split = (value: number) => {
+    const third = Math.floor(value / 3);
+    return [third, third, value - 2 * third];
+  };
+  const [memories, heartMoments, milestones] = [
+    split(summary.memories),
+    split(summary.heartMoments),
+    split(summary.milestones),
+  ];
+  const titles = [
+    'Our first walk',
+    'Picnic at the lake',
+    'An ordinary Tuesday',
+  ];
+  return {
+    startsOn: scenario.relationshipDuration?.startedOn ?? null,
+    today: scenario.viewerLocalDate ?? '2026-11-10',
+    weeks: ['2026-05-11', '2026-07-13', '2026-11-09'].map(
+      (weekStart, index) => ({
+        weekStart,
+        memories: memories[index],
+        heartMoments: heartMoments[index],
+        milestones: milestones[index],
+        highlight: {
+          type: 'MEMORY',
+          id: `lifeline-${index}`,
+          titleOrText: titles[index],
+          occurredOn: weekStart,
+          scheduledAt: null,
+          createdAt: null,
+          previewAttachmentId: index === 1 ? 'att-strip-2' : null,
+          previewIsSensitive: false,
+          previewHasThumbnail: false,
+        },
+      }),
+    ),
+  };
+}
+
 async function installMocks(
   page: Page,
   scenario: Scenario,
@@ -560,6 +623,13 @@ async function installMocks(
         items: scenario.activity,
         nextCursor: null,
       });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/story-lifeline`
+    ) {
+      await fulfillJson(lifelineFor(scenario));
       return;
     }
     if (
@@ -1762,13 +1832,19 @@ for (const [width, theme, largeText] of [
         page.locator('.today-section-monthly .today-section-link'),
       ).toHaveText('Alle Momente');
       const story = page.locator('.shared-story-summary');
-      await expect(
-        story.getByText(m5s5.dashboard.storySummaryIntro, { exact: true }),
-      ).toBeVisible();
-      await expect(story.locator('.shared-story-summary-line')).toHaveText(
-        '43 Erinnerungen',
+      // The caption total is exactly the sum of the three parts below it.
+      await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+        '43 gemeinsame Erinnerungen seit Mai',
       );
       await expect(story).not.toContainText('181 Tage');
+      const lifeline = story.getByRole('slider', {
+        name: m5s5.dashboard.storyLifelineAria,
+      });
+      await expect(lifeline).toBeVisible();
+      await expect(lifeline).toHaveAttribute(
+        'aria-valuetext',
+        lifelineValue('9. November', 17, 'An ordinary Tuesday'),
+      );
       await expect(story.locator('.shared-story-summary-row')).toHaveCount(3);
       for (const row of await story
         .locator('.shared-story-summary-row')
@@ -1859,6 +1935,36 @@ for (const [width, theme, largeText] of [
           `today-story-reference-${count}-${width}-${theme}.png`,
         ),
       });
+      if (count === 1) {
+        // Stepping back through the lifeline previews earlier weeks on demand.
+        await lifeline.focus();
+        await page.keyboard.press('ArrowLeft');
+        await page.keyboard.press('ArrowLeft');
+        const preview = story.getByRole('link', {
+          name: /Picnic at the lake/,
+        });
+        await expect(preview).toBeVisible();
+        await expect(preview).toHaveAttribute(
+          'href',
+          '/story/memories/lifeline-1',
+        );
+        await expect
+          .poll(() =>
+            preview
+              .locator('img')
+              .first()
+              .evaluate((img: HTMLImageElement) => img.naturalWidth),
+          )
+          .toBeGreaterThan(0);
+        await expectNoHorizontalOverflow(page);
+        await story.screenshot({
+          path: info.outputPath(
+            `today-story-lifeline-preview-${width}-${theme}.png`,
+          ),
+        });
+        await page.keyboard.press('Escape');
+        await expect(preview).toHaveCount(0);
+      }
     }
     scenario.summary = { memories: 3, heartMoments: 2, milestones: 0 };
     scenario.relationshipDuration = {
@@ -1875,13 +1981,11 @@ for (const [width, theme, largeText] of [
       });
     const story = page.locator('.shared-story-summary');
     await expect(duration).toHaveText('182 Tage zusammen');
-    await expect(story.locator('.shared-story-summary-line')).toHaveText(
-      '5 Erinnerungen',
+    await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+      '5 gemeinsame Erinnerungen seit Mai',
     );
     await expect(story.locator('.shared-story-summary-row')).toHaveCount(2);
-    await expect(story.locator('.shared-story-summary-bar > span')).toHaveCount(
-      2,
-    );
+    await expect(story.getByRole('slider')).toBeVisible();
     await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
     await story.screenshot({
       path: info.outputPath(`today-story-two-categories-${width}-${theme}.png`),
@@ -1893,8 +1997,8 @@ for (const [width, theme, largeText] of [
         content: 'html { font-size: 200% !important; }',
       });
     await expect(duration).toHaveCount(0);
-    await expect(story.locator('.shared-story-summary-line')).toHaveText(
-      '5 Erinnerungen',
+    await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+      '5 gemeinsame Erinnerungen seit Mai',
     );
     await expectNoHorizontalOverflow(page);
     await story.evaluate((node) => node.scrollIntoView({ block: 'center' }));
@@ -1906,8 +2010,109 @@ for (const [width, theme, largeText] of [
     await expect(page).toHaveURL(/\/story\?tab=timeline&type=MEMORY$/);
     await page.goBack();
     await expect(page).toHaveURL(/\/today$/);
-    await expect(story.locator('.shared-story-summary-line')).toHaveText(
-      '5 Erinnerungen',
+    await expect(story.locator('.shared-story-summary-caption')).toHaveText(
+      '5 gemeinsame Erinnerungen seit Mai',
     );
   });
 }
+
+for (const width of [390, 1280] as const) {
+  test(`Wir, Momente, Planen and Mehr share one title band at ${width}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page, { ...RICH_SPACE });
+    await signInAndOpenToday(page);
+    const bands = [];
+    for (const [tab, label, path] of [
+      ['Wir', 'Wir', '/today'],
+      ['Momente', 'Momente', '/story'],
+      ['Planen', 'Planen', '/plan'],
+      ['Mehr', 'Alles Weitere', '/more'],
+    ] as const) {
+      await page
+        .locator('a.shell-nav-link:visible')
+        .filter({ hasText: new RegExp(`^${tab}$`) })
+        .first()
+        .click();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      const title = page
+        .locator('.page-heading-root h1:visible')
+        .filter({ hasText: new RegExp(`^${label}$`) });
+      await expect(title).toBeVisible();
+      bands.push(
+        await title.evaluate((heading) => {
+          const header = heading.closest('header');
+          const next = header?.nextElementSibling;
+          const box = heading.getBoundingClientRect();
+          return {
+            label: heading.textContent,
+            x: Math.round(box.x),
+            y: Math.round(box.y),
+            height: Math.round(box.height),
+            fontFamily: getComputedStyle(heading).fontFamily,
+            fontSize: getComputedStyle(heading).fontSize,
+            headerHeight: Math.round(
+              header?.getBoundingClientRect().height ?? 0,
+            ),
+            gapToMenu: Math.round(
+              (next?.getBoundingClientRect().top ?? 0) -
+                (header?.getBoundingClientRect().bottom ?? 0),
+            ),
+          };
+        }),
+      );
+    }
+    const [wirBand, ...others] = bands.map(
+      ({ label: _label, ...band }) => band,
+    );
+    for (const band of others) {
+      // On Expanded, Mehr stays a centered reading column by design.
+      const { x, ...rest } = band;
+      const { x: wirX, ...wirRest } = wirBand;
+      expect(rest).toEqual(wirRest);
+      if (width < 840 || band !== others.at(-1)) expect(x).toBe(wirX);
+    }
+  });
+}
+
+test('the add action stays put while a tab slides in', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await installMocks(page, { ...RICH_SPACE });
+  await signInAndOpenToday(page);
+  await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+  for (const label of ['Momente', 'Planen', 'Wir']) {
+    await page.evaluate(() => {
+      const w = window as unknown as { __fab: string[]; __stop: boolean };
+      w.__fab = [];
+      w.__stop = false;
+      const tick = () => {
+        for (const node of document.querySelectorAll(
+          '[data-floating-create]',
+        )) {
+          const box = node.getBoundingClientRect();
+          if (box.width > 0 && getComputedStyle(node).visibility !== 'hidden')
+            w.__fab.push(`${Math.round(box.x)},${Math.round(box.y)}`);
+        }
+        if (!w.__stop) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await page
+      .locator('a.shell-nav-link:visible')
+      .filter({ hasText: new RegExp(`^${label}$`) })
+      .first()
+      .click();
+    await expect(page.locator('main[data-navigation-slide]')).toHaveCount(0);
+    await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+    const seen = await page.evaluate(() => {
+      const w = window as unknown as { __fab: string[]; __stop: boolean };
+      w.__stop = true;
+      return [...new Set(w.__fab)];
+    });
+    // Every frame, including the slide, shows the add action in one place.
+    expect(seen).toHaveLength(1);
+  }
+});

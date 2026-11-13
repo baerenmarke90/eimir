@@ -9,7 +9,8 @@
 .memory-map-page .place-map-viewport,
 .memory-map-placeholder,
 .memory-map-loading {
-  height: clamp(14rem, 30dvh, 22rem);
+  /* The map is the point of this view; the places below are a quiet list. */
+  height: clamp(16rem, 42dvh, 28rem);
   border-radius: var(--radius-media);
 }
 
@@ -114,6 +115,9 @@
 .memory-map-marker {
   display: grid;
   place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  cursor: pointer;
   background: transparent;
   color: var(--color-on-accent);
   border: 0;
@@ -316,6 +320,25 @@
   aspect-ratio: 2 / 1;
   border-radius: var(--radius-content) var(--radius-content) 0 0;
 }
+/* Places are compact rows, so the map keeps the dominant share of the screen. */
+.memory-map-places {
+  gap: var(--space-2);
+}
+.memory-map-places .memory-map-place {
+  grid-template-columns: var(--space-12) minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+.memory-map-places .memory-map-thumbnail {
+  width: var(--space-12);
+  height: var(--space-12);
+}
+.memory-map-places .memory-map-place-copy {
+  gap: 0;
+}
+.memory-map-places .memory-map-place-copy strong {
+  font: var(--font-action-label);
+}
 .memory-map-strip .memory-map-memory-copy {
   padding: 0 var(--space-4) var(--space-4);
 }
@@ -370,9 +393,6 @@
   padding-block-end: 0;
 }
 @container (width < 20rem) {
-  .memory-map-expand-label {
-    display: none;
-  }
   .memory-map-selection {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -388,6 +408,53 @@
   .memory-map-place-icon,
   .memory-map-date {
     display: none;
+  }
+}
+
+/*
+ * A phone in landscape is wider than 840px but barely 400px tall, so the
+ * fullscreen map must not spend height on the sheet header and title, and the
+ * selected place's memories sit beside the map instead of below it.
+ */
+@media (min-width: 840px) and (max-height: 540px) {
+  .short-task-sheet.memory-map-fullscreen {
+    padding-block: 0;
+  }
+  .memory-map-fullscreen .short-task-sheet-header {
+    position: absolute;
+    inset-block-start: calc(var(--space-3) + env(safe-area-inset-top, 0px));
+    inset-inline-start: calc(var(--space-3) + env(safe-area-inset-left, 0px));
+    z-index: 500;
+    min-height: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+  .memory-map-fullscreen .short-task-sheet-title {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .memory-map-fullscreen .short-task-sheet-body {
+    flex-direction: row;
+    padding: 0;
+  }
+  .memory-map-fullscreen .memory-map-fullscreen-surface {
+    padding-inline-start: env(safe-area-inset-left, 0px);
+  }
+  .memory-map-fullscreen .place-map-viewport {
+    min-height: 0;
+    border-radius: 0;
+  }
+  .memory-map-fullscreen .memory-map-selection {
+    flex: 0 0 min(22rem, 42vw);
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+    padding-inline-end: calc(var(--space-3) + env(safe-area-inset-right, 0px));
+    align-content: start;
   }
 }
 
@@ -512,11 +579,50 @@
 .memory-map-thumbnail .sensitive-media-label {
   padding: var(--space-1);
 }
-/* Leaflet resets marker images to intrinsic width; crop authored previews locally. */
+/* Crop authored marker previews locally so media keeps its square frame. */
 .place-map-viewport .memory-map-marker .memory-map-marker-photo img {
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
   object-fit: cover;
+}
+
+/* The tools step aside while the map is being panned or zoomed, and return on
+   focus so keyboard and assistive technology users never lose them. */
+.memory-map-tools,
+.memory-map-fullscreen-tools {
+  transition: opacity var(--duration-transition) var(--easing-standard);
+}
+[data-map-moving]
+  :is(.memory-map-tools, .memory-map-fullscreen-tools):not(:focus-within) {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Touch screens zoom by pinch and double tap; the zoom buttons stay reachable
+   by keyboard and assistive technology without sitting on the map. */
+@media (max-width: 839px), (hover: none), (pointer: coarse) {
+  .memory-map-surface .place-map-zoom,
+  .memory-map-fullscreen-surface .place-map-zoom {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .memory-map-surface .place-map-zoom:focus-within,
+  .memory-map-fullscreen-surface .place-map-zoom:focus-within {
+    inline-size: auto;
+    block-size: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-map-tools,
+  .memory-map-fullscreen-tools {
+    transition: none;
+  }
 }

@@ -152,6 +152,7 @@ import {
   NotificationsProductPage,
   SearchProductPage,
 } from './components/M4ProductPages';
+import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
 import { MemoryMapPage } from './components/MemoryMapPage';
 import { MemoryProductPage } from './components/MemoryProductPage';
@@ -163,6 +164,10 @@ import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
 import { PlanProductPage } from './components/PlanProductPage';
+import {
+  type PrimaryTabPanel,
+  PrimaryTabPanels,
+} from './components/PrimaryTabPanels';
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
@@ -174,7 +179,6 @@ import {
   ServerAdminPage,
 } from './components/ServerAdminPage';
 import { SettingsPage } from './components/SettingsPage';
-import { MediaOverviewPage } from './components/MediaOverviewPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
@@ -478,6 +482,81 @@ function AuthenticatedApp({
     accessToken: tokens.accessToken,
   };
 
+  const routeErrorFallback = (
+    <UiState
+      kind="error"
+      title={t('states.unexpected.title')}
+      body={t('states.unexpected.body')}
+      action={
+        <Link className="button-link secondary-link" to={DEFAULT_APP_ROUTE}>
+          {t('navigation.today')}
+        </Link>
+      }
+    />
+  );
+  // Visited primary tabs stay mounted; their routes above render nothing.
+  const primaryTabPanels: PrimaryTabPanel[] = [
+    {
+      path: appRoutePath('today'),
+      element: (
+        <TodayPage
+          apis={m4Apis}
+          recapMediaApis={apis}
+          apiBaseUrl={apiBaseUrl}
+          spaceId={spaceId}
+          spacesApi={spacesApi}
+          dailyCheckInsApi={dailyCheckInsApi}
+          dailyQuoteApi={dailyQuoteApi}
+          entitlementApi={entitlementApi}
+          collectionsApi={planningApis.collections}
+          loadMemoryImage={loadMemoryImage}
+          profilesApi={profilesApi}
+          account={account}
+        />
+      ),
+    },
+    {
+      path: appRoutePath('story'),
+      element: (
+        <StoryProductPage
+          apis={apis}
+          accountId={account.id}
+          spaceId={spaceId}
+          loadMemoryImage={loadMemoryImage}
+          profilesApi={profilesApi}
+          dashboardApi={m4Apis.dashboard}
+          startupReads={
+            storyStartupReads?.kind === 'diary' ? storyStartupReads : undefined
+          }
+        />
+      ),
+    },
+    {
+      path: appRoutePath('plan'),
+      element: (
+        <SharedPlanningOverviewPage
+          key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+          {...planningProductProps}
+          accountId={account.id}
+          apiBaseUrl={apiBaseUrl}
+          peopleApi={peopleApi}
+          profilesApi={profilesApi}
+        />
+      ),
+    },
+    {
+      path: appRoutePath('more'),
+      element: (
+        <MoreOverviewPage
+          apiBaseUrl={apiBaseUrl}
+          accessToken={tokens.accessToken}
+          account={account}
+          spaceId={spaceId}
+        />
+      ),
+    },
+  ];
+
   const relationshipContent = (
     <PartnerNicknameProvider
       profilesApi={profilesApi}
@@ -491,24 +570,16 @@ function AuthenticatedApp({
         account={account}
         spaceId={spaceId}
         serverAdmin={serverAdmin}
+        primaryTabs={
+          <PrimaryTabPanels
+            panels={primaryTabPanels}
+            fallback={routeErrorFallback}
+          />
+        }
       >
         <AppErrorBoundary
           resetKey={location.pathname}
-          fallback={
-            <UiState
-              kind="error"
-              title={t('states.unexpected.title')}
-              body={t('states.unexpected.body')}
-              action={
-                <Link
-                  className="button-link secondary-link"
-                  to={DEFAULT_APP_ROUTE}
-                >
-                  {t('navigation.today')}
-                </Link>
-              }
-            />
-          }
+          fallback={routeErrorFallback}
         >
           <Routes>
             <Route
@@ -527,24 +598,7 @@ function AuthenticatedApp({
               path="/"
               element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
-            <Route
-              path={appRoutePath('story')}
-              element={
-                <StoryProductPage
-                  apis={apis}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                  loadMemoryImage={loadMemoryImage}
-                  profilesApi={profilesApi}
-                  dashboardApi={m4Apis.dashboard}
-                  startupReads={
-                    storyStartupReads?.kind === 'diary'
-                      ? storyStartupReads
-                      : undefined
-                  }
-                />
-              }
-            />
+            <Route path={appRoutePath('story')} element={null} />
             <Route
               path={STORY_YEARS_ROUTE}
               element={
@@ -590,19 +644,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={appRoutePath('plan')}
-              element={
-                <SharedPlanningOverviewPage
-                  key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-                  {...planningProductProps}
-                  accountId={account.id}
-                  apiBaseUrl={apiBaseUrl}
-                  peopleApi={peopleApi}
-                  profilesApi={profilesApi}
-                />
-              }
-            />
+            <Route path={appRoutePath('plan')} element={null} />
             <Route
               path={PLAN_CREATE_ROUTE}
               element={
@@ -703,25 +745,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={appRoutePath('today')}
-              element={
-                <TodayPage
-                  apis={m4Apis}
-                  recapMediaApis={apis}
-                  apiBaseUrl={apiBaseUrl}
-                  spaceId={spaceId}
-                  spacesApi={spacesApi}
-                  dailyCheckInsApi={dailyCheckInsApi}
-                  dailyQuoteApi={dailyQuoteApi}
-                  entitlementApi={entitlementApi}
-                  collectionsApi={planningApis.collections}
-                  loadMemoryImage={loadMemoryImage}
-                  profilesApi={profilesApi}
-                  account={account}
-                />
-              }
-            />
+            <Route path={appRoutePath('today')} element={null} />
             <Route
               path={ACTIVITY_ROUTE}
               element={
@@ -751,6 +775,7 @@ function AuthenticatedApp({
                       accessToken={tokens.accessToken}
                       accountId={account.id}
                       spaceId={spaceId}
+                      profilesApi={profilesApi}
                     />
                   }
                 />
@@ -778,17 +803,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={appRoutePath('more')}
-              element={
-                <MoreOverviewPage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  account={account}
-                  spaceId={spaceId}
-                />
-              }
-            />
+            <Route path={appRoutePath('more')} element={null} />
             {(
               [
                 [MORE_INSIGHTS_ROUTE, 'week'],

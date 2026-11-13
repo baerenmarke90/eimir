@@ -16,7 +16,8 @@
   min-width: 0;
 }
 
-.product-main > .page {
+.product-main > .page,
+.product-main > .primary-tab-panel > .page {
   container-name: product-content;
   container-type: inline-size;
   min-width: 0;

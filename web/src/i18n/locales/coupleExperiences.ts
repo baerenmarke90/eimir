@@ -26,6 +26,17 @@ export default {
   shareHint:
     'Dein Partner wird benachrichtigt. Der Eintrag bleibt in euren Erinnerungen.',
   history: 'Bereits geteilt',
+  historyGroups: {
+    today: 'Heute',
+    yesterday: 'Gestern',
+    recent: 'Vor ein paar Tagen',
+  },
+  questionState: {
+    partnerAnswered: '{{name}} hat geantwortet',
+    open: 'Noch offen',
+    youAnswered: 'Du hast geantwortet',
+    bothAnswered: 'Ihr habt beide geantwortet',
+  },
   questionsTitle: 'Drei Fragen für heute',
   questionsUnavailable:
     'Die heutigen Fragen konnten nicht geladen werden. Du kannst frei schreiben.',

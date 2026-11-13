@@ -596,9 +596,26 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
+.primary-tab-panel {
+  /* Measured per peek by the tab panels; these are the neutral defaults. */
+  --primary-tab-peek-left: 0px;
+  --primary-tab-peek-width: 100%;
+  --primary-tab-peek-origin: 0px;
+
+  display: contents;
+}
+
+.primary-tab-panel[hidden],
+.product-main:not([data-primary-tab-dragging])
+  > .primary-tab-panel[data-primary-tab-peek] {
+  display: none;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
-  --primary-tab-opacity: 1;
+  --primary-tab-peek-offset: 0px;
+  --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
@@ -607,8 +624,62 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .product-main[data-primary-tab-dragging] {
-    opacity: var(--primary-tab-opacity);
+  /* A swipe drags the pages themselves, like a pager: the current page follows
+     the finger and the neighbouring tab travels beside it. */
+  .product-main[data-primary-tab-dragging] > .page,
+  .product-main[data-primary-tab-dragging]
+    > .primary-tab-panel:not([data-primary-tab-peek])
+    > .page {
+    /* Offset, don't transform: a transformed page would become the containing
+       block of its fixed add action, which then sits at the page's bottom edge
+       and snaps to the viewport corner once the page settles. */
+    position: relative;
+    left: var(--primary-tab-offset, 0px);
+  }
+
+  .product-main[data-navigation-slide] > .page,
+  .product-main[data-navigation-slide]
+    > .primary-tab-panel:not([hidden], [data-primary-tab-peek])
+    > .page {
+    position: relative;
+  }
+
+  /* Only the page that stays is a destination for the add action. */
+  .product-main
+    > .primary-tab-panel[data-primary-tab-peek]
+    [data-floating-create] {
+    visibility: hidden;
+  }
+
+  /* The neighbour is laid over the viewport at the reading position it was
+     left in, in the column the tab panels measured, and clipped to the screen
+     (not the column) so it travels in from the edge like a pager page. */
+  .product-main[data-primary-tab-dragging]
+  > .primary-tab-panel[data-primary-tab-peek] {
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .product-main[data-primary-tab-dragging]
+    > .primary-tab-panel[data-primary-tab-peek]
+    > .page {
+    width: var(--primary-tab-peek-width, 100%);
+    margin-top: var(--primary-tab-peek-origin, 0px);
+    margin-left: var(--primary-tab-peek-left, 0px);
+    transform: translate3d(var(--primary-tab-peek-offset, 0px), 0, 0);
+    will-change: transform;
+  }
+
+  .product-shell-body:has(.product-main[data-primary-tab-dragging]),
+  .product-shell-body:has(.product-main[data-navigation-slide]) {
+    overflow-x: clip;
   }
 
   .product-main[data-navigation-motion="create"]
@@ -866,6 +937,17 @@
 
 .mobile-bottom-nav .shell-nav-link-active .shell-nav-icon {
   color: var(--color-brand);
+}
+
+/* Give the selected destination a quiet, tactile lift; the dock stays fixed. */
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-bottom-nav .shell-nav-link .shell-nav-icon {
+    transition: transform var(--duration-transition) var(--easing-standard);
+  }
+
+  .mobile-bottom-nav .shell-nav-link-active .shell-nav-icon {
+    transform: translate3d(0, -2px, 0) scale(1.05);
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1192,4 +1274,19 @@ html.app-pull-refresh-enabled body {
   .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
     animation: none;
   }
+}
+
+/*
+ * The native app follows the platform convention for touch scrolling and shows
+ * no persistent scrollbar. Browsers keep their own scrollbars. The Android
+ * shell also disables the WebView's own root scrollbar.
+ */
+:root[data-runtime="native"],
+:root[data-runtime="native"] * {
+  scrollbar-width: none;
+}
+
+:root[data-runtime="native"]::-webkit-scrollbar,
+:root[data-runtime="native"] ::-webkit-scrollbar {
+  display: none;
 }

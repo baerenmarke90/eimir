@@ -1,6 +1,6 @@
-import composer from '../../src/i18n/locales/composer';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import mapCopy from '../../src/i18n/locales/memoryMap';
@@ -163,24 +163,17 @@ test('the contextual choice closes and restores focus for Escape and Back', asyn
   await expect(page.locator('.mobile-bottom-shell button')).toHaveCount(0);
 });
 
-test('discovery and selected map place survive opening and cancelling capture', async ({
-  page,
-}) => {
+test('discovery survives opening and cancelling capture', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
-  for (const origin of ['/story?tab=discover', '/story/map?place=49%3A7']) {
-    await page.goto(origin);
-    await choose(page, composer.diaryEntry);
-    await page.locator('.task-back-control').click();
-    await expect(page).toHaveURL(origin);
-    await expect(
-      page.getByRole('button', { name: de.story.addMoment }),
-    ).toBeFocused();
-    if (origin.includes('/map'))
-      await expect(
-        page.getByRole('tab', { name: mapCopy.entry }),
-      ).toHaveAttribute('aria-selected', 'true');
-  }
+  const origin = '/story?tab=discover';
+  await page.goto(origin);
+  await choose(page, composer.diaryEntry);
+  await page.locator('.task-back-control').click();
+  await expect(page).toHaveURL(origin);
+  await expect(
+    page.getByRole('button', { name: de.story.addMoment }),
+  ).toBeFocused();
 });
 
 test('a dirty local capture keeps its draft before deliberate discard and return', async ({
@@ -206,7 +199,7 @@ test('a dirty local capture keeps its draft before deliberate discard and return
   expect(created).toEqual([]);
 });
 
-test('the Core entry remains available with empty history, load errors, the Pro map gate and offline', async ({
+test('the Core entry remains available with empty history, load errors and offline, and stays off the map', async ({
   page,
   context,
 }) => {
@@ -230,11 +223,7 @@ test('the Core entry remains available with empty history, load errors, the Pro 
       json: { code: 'PREMIUM_ENTITLEMENT_REQUIRED' },
     }),
   );
-  for (const origin of [
-    '/story?tab=discover',
-    '/story?tab=timeline',
-    '/story/map',
-  ]) {
+  for (const origin of ['/story?tab=discover', '/story?tab=timeline']) {
     await page.goto(origin);
     await page.getByRole('button', { name: de.story.addMoment }).click();
     await expect(
@@ -242,6 +231,16 @@ test('the Core entry remains available with empty history, load errors, the Pro 
     ).toHaveCount(3);
     await page.keyboard.press('Escape');
   }
+  // The map is a view, not a place to add: no capture entry beside its title.
+  await page.goto('/story/map');
+  await expect(page.getByRole('tab', { name: mapCopy.entry })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(
+    page.getByRole('button', { name: de.story.addMoment }),
+  ).toHaveCount(0);
+  await page.goto('/story?tab=timeline');
   await context.setOffline(true);
   await page.getByRole('button', { name: de.story.addMoment }).click();
   await expect(

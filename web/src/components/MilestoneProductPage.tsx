@@ -32,6 +32,7 @@ import {
   milestoneDetailPath,
   milestoneEditPath,
 } from '../client/routes';
+import { formatRelativeElapsed } from '../client/relativeElapsed';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useApiRuntime } from '../client/apiRuntimeContext';
 import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
@@ -52,6 +53,7 @@ import {
 } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
+import './MilestoneProductPage.css';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
 
@@ -567,31 +569,67 @@ export function MilestoneProductPage({
     );
   }
 
-  const milestoneEyebrow = milestone.happenedOn
-    ? `${t('milestoneProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(milestone.happenedOn)}`
-    : t('milestoneProduct.detailEyebrow').toUpperCase();
+  const happenedOn = milestone.happenedOn;
+  const dateLine = happenedOn
+    ? `${formatDateOnly(happenedOn)} · ${formatRelativeElapsed(happenedOn, resolvedLocale())}`
+    : undefined;
 
   return (
     <StoryDetailPageShell
-      eyebrow={milestoneEyebrow}
-      title={milestone.title}
+      before={
+        <TaskBackButton inline onClick={() => requestReturn(originKey)} />
+      }
+      title={t('milestoneProduct.detailEyebrow')}
       titleAction={
         milestone.capabilities.canEdit && !offline ? (
           <StoryDetailEditLink
+            text
             to={milestoneEditPath(milestone.id)}
             label={t('milestoneProduct.edit')}
             state={{ taskOriginKey: originKey }}
           />
         ) : undefined
       }
+      metadata={
+        <>
+          <div className="milestone-hero">
+            <span className="milestone-hero-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+              </svg>
+            </span>
+            {dateLine ? (
+              <p className="milestone-hero-date">{dateLine}</p>
+            ) : null}
+          </div>
+          <h2 className="milestone-hero-title">{milestone.title}</h2>
+        </>
+      }
       offline={offline}
+      pageClassName="milestone-product-page page-composer-detail"
       containerClassName="milestone-detail-container"
     >
-      <ExpandableDescription
-        text={milestone.body || t('milestoneProduct.noBody')}
-        scope={milestone.id}
-        className="memory-detail-body"
-      />
+      {milestone.body ? (
+        <div className="milestone-keepsake">
+          <ExpandableDescription
+            text={milestone.body}
+            scope={milestone.id}
+            className="memory-detail-body"
+          />
+        </div>
+      ) : (
+        <ExpandableDescription
+          text={t('milestoneProduct.noBody')}
+          scope={milestone.id}
+          className="memory-detail-body"
+        />
+      )}
 
       {runtime ? (
         <StoryPlanningLinks
@@ -606,6 +644,7 @@ export function MilestoneProductPage({
         />
       ) : null}
       <CommentsPanel
+        inlineComposer
         commentsApi={apis.comments}
         spaceId={spaceId}
         parentKind="milestone"

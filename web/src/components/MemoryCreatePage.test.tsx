@@ -9,22 +9,23 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MemoryPlanningRelationsApi } from '../api/generated/apis/MemoryPlanningRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
-import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
-import { i18n } from '../i18n';
 import { PlansApi } from '../api/generated/apis/PlansApi';
-import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
   MEMORY_CREATE_RESULT_DELETED,
   RECONCILIATION_WINDOW_MS,
 } from '../client/memoryCreateIdentity';
 import { TaskOriginProvider } from '../client/taskOrigin';
-import de from '../i18n/locales/de';
+import { i18n } from '../i18n';
 import contextTags from '../i18n/locales/contextTags';
+import de from '../i18n/locales/de';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { MemoryCreatePage } from './MemoryCreatePage';
 
@@ -81,11 +82,13 @@ function Harness({
   account = 'account-1',
   entryState,
   onSaved,
+  experience,
 }: {
   client: QueryClient;
   account?: string;
   entryState?: object;
   onSaved: () => Promise<void>;
+  experience?: Partial<ComponentProps<typeof MemoryCreatePage>>;
 }) {
   return (
     <QueryClientProvider client={client}>
@@ -106,6 +109,7 @@ function Harness({
                   spaceId="space-1"
                   accountId={account}
                   onSaved={onSaved}
+                  {...experience}
                 />
               }
             />
@@ -738,5 +742,36 @@ describe('Confirmed Plan handoff to Memory capture', () => {
     expect(fixture.create.mock.calls[0][0].memoryCreate.placeIds).toEqual([
       place.id,
     ]);
+  });
+  it('sends the selected daily question key with a new guided experience', async () => {
+    fixture.create.mockResolvedValueOnce(confirmed);
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <Harness
+        client={client}
+        onSaved={vi.fn().mockResolvedValue(undefined)}
+        experience={{
+          experienceKind: 'HAPPINESS',
+          experienceQuestion: 'What made today light?',
+          experienceQuestionId: 'lightness',
+          partnerName: 'B',
+        }}
+      />,
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: /.+/u }), {
+      target: { value: 'Our walk.' },
+    });
+    submit();
+    await waitFor(() => expect(fixture.create).toHaveBeenCalledTimes(1));
+    expect(requestOf(0).memoryCreate).toMatchObject({
+      experienceKind: 'HAPPINESS',
+      experienceQuestionId: 'lightness',
+      title: 'What made today light?',
+    });
   });
 });

@@ -201,7 +201,6 @@ export function ComposerDateContext({
       >
         <EimirIcon name="kalender" />
         <span>{dateSummary}</span>
-        <EimirIcon name="chevron-right" />
       </button>
       {/* These native controls preserve FormData and constraint validation when the sheet unmounts. */}
       <input

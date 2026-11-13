@@ -103,7 +103,7 @@ These remain Account-scoped and cannot be changed by the Space manager for the p
 | Locale and Account timezone | Account preferences | Personal presentation/context. `dailyContextTimezone` is separately shared Space state. |
 | Appearance/theme selection where personal | appearance settings | Personal presentation must not become creator authority. |
 | Participation in Vibe/Energy/Daily Questions | owning M7 domain | Enabling a module permits participation; it never forces a person to submit personal relationship information. |
-| Daily Quote preferences (#1151) | `eimir.quotes.service` | Personal content/source/category selection (subject to Space Pro Entitlement); not Space-wide manager state. |
+| Daily Quote preferences (#1151) | `eimir.quotes.service` | Personal category selection, subject to the Space Pro entitlement. Each Account manages its own preferences. |
 
 ### 5.2 Always available / not Space-disableable
 
@@ -151,7 +151,7 @@ Some optional product capabilities are **not** added to the V1 Space-module cata
 | Annual video montage | Entitlement/action controlled, not a Space module | Same reason as printable artifacts. |
 | Surprise Mode (#514) | Entitlement/owning interaction controlled, not in v1 catalog | Specialized reveal action; underlying Privacy remains non-paywallable. |
 | Premium themes/covers | PERSONAL_CONFIGURABLE subject to Entitlement | Presentation choice should not let the creator style/control the partner's client. |
-| Daily Quote (#1151) | PERSONAL_CONFIGURABLE subject to Entitlement (`daily.quote`) | A personalized daily inspiration moment. Space manager cannot control or inspect partner's content sources/categories. Not a Space module switch in v1. |
+| Daily Quote (#1151) | PERSONAL_CONFIGURABLE subject to Entitlement (`daily.quote`) | A personalized daily inspiration moment. Category preferences are private to each partner. |
 | External integrations (M8) | Deferred to owning integration decision | Provider authorization, data flow and operator/user ownership need integration-specific semantics rather than a speculative generic Space switch. |
 
 ## 7. Disable / re-enable semantics

@@ -79,6 +79,14 @@ The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RES
   Vertical scrolling, galleries, horizontal content scrollers, controls, editing,
   text selection, modal/menu layers and system edge gestures retain ownership.
   Details, editors and secondary destinations do not swipe between primary tabs.
+  The swipe behaves like a pager (as in the RWN Messenger's tab host): the
+  current page follows the finger one to one while the adjacent destination
+  travels in beside it at the reading position it was left in. Release past the
+  distance/velocity threshold settles both pages and then selects the
+  destination; a shorter release settles back. The first and last destination
+  give only a small resisted offset and never reveal a neighbour. A touch during
+  the settle catches it. With reduced motion the pages do not move and a
+  qualifying swipe selects the destination immediately.
 - Badge counts are used only for current, actionable information.
 - On Web, every primary function is keyboard-accessible and focus remains
   visible.

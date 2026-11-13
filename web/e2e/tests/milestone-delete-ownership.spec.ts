@@ -197,7 +197,7 @@ async function openEditor(page: Page, largeText = false) {
     new RegExp(`/story/milestones/${milestone.id}$`),
   );
   await expect(
-    page.getByRole('heading', { name: milestone.title, exact: true, level: 1 }),
+    page.getByRole('heading', { name: milestone.title, exact: true, level: 2 }),
   ).toBeVisible();
   await page.getByRole('link', { name: copy.edit, exact: true }).click();
   if (largeText)

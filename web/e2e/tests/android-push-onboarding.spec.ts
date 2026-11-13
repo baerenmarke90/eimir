@@ -1,7 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import gentlePrompts from '../../src/i18n/locales/gentlePrompts';
 import copy from '../../src/i18n/locales/notificationSettings';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import {
   ACCOUNT_ID,
   SPACE_ID,
@@ -146,14 +148,16 @@ async function nativePush(page: Page, deny = false) {
   );
 }
 
-async function mocks(page: Page) {
+async function mocks(page: Page, deviceRegistered = () => false) {
   await installMocks(page);
   let gentle = false;
   await page.route('**/api/v1/notification-preferences', (route) =>
     route.fulfill({
       json: {
         catalogVersion: 1,
-        capabilities: [],
+        capabilities: deviceRegistered()
+          ? [{ channel: 'PUSH', available: true, reason: null }]
+          : [],
         items: [
           {
             kind: 'GENTLE_PROMPT',
@@ -164,8 +168,7 @@ async function mocks(page: Page) {
           enabled: false,
           start: '22:00',
           end: '08:00',
-          timezone: 'Europe/Berlin',
-          version: 0,
+          timeZone: 'Europe/Berlin',
         },
       },
     }),
@@ -186,6 +189,15 @@ async function mocks(page: Page) {
   );
   await page.route(`**/api/v1/spaces/${SPACE_ID}/activity?*`, (route) =>
     route.fulfill({ json: { items: [], hasMore: false, nextCursor: null } }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/rules/*/preference`, (route) =>
+    route.fulfill({
+      json: {
+        ruleKey: new URL(route.request().url()).pathname.split('/').at(-2),
+        enabled: false,
+        parameters: { daysBefore: [1], localTime: '09:00:00' },
+      },
+    }),
   );
   await page.route('**/api/v1/push-endpoints/configuration', (route) =>
     route.fulfill({
@@ -384,4 +396,104 @@ test('ordinary Web sign-in does not offer native notification setup', async ({
       ACCOUNT_ID,
     ),
   ).toBeNull();
+});
+
+test('the device switch confirms registration and revokes push from Settings', async ({
+  page,
+}, info) => {
+  await nativePush(page);
+  let deviceRegistered = false;
+  await mocks(page, () => deviceRegistered);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'dark'));
+  let registrations = 0;
+  let revocations = 0;
+  let preferenceWrites = 0;
+  let confirmRegistration!: () => void;
+  const registration = new Promise<void>((resolve) => {
+    confirmRegistration = resolve;
+  });
+  page.on('request', (request) => {
+    if (
+      request.method() === 'PATCH' &&
+      new URL(request.url()).pathname.startsWith(
+        '/api/v1/notification-preferences/',
+      )
+    ) {
+      preferenceWrites += 1;
+    }
+  });
+  await page.route('**/api/v1/push-endpoints', async (route) => {
+    expect(route.request().method()).toBe('POST');
+    registrations += 1;
+    await registration;
+    deviceRegistered = true;
+    await route.fulfill({ json: { id: 'registered-endpoint' } });
+  });
+  await page.route('**/api/v1/push-endpoints/registered-endpoint', (route) => {
+    expect(route.request().method()).toBe('DELETE');
+    revocations += 1;
+    deviceRegistered = false;
+    return route.fulfill({ status: 204 });
+  });
+
+  await signIn(page);
+  const consent = page.getByRole('dialog', { name: copy.onboardingTitle });
+  await expect(consent.getByText(copy.deviceIntro)).toBeVisible();
+  await consent.getByRole('button', { name: copy.onboardingLater }).click();
+  await expect(consent).toHaveCount(0);
+  await page.goto('/more/settings/notifications');
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: profileIdentity.settingsNotifications,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(profileIdentity.settingsNotificationsIntro),
+  ).toHaveCount(0);
+  await expect(page.getByText(copy.deviceIntro)).toHaveCount(0);
+  await expect(
+    page.locator('.notification-settings .settings-section-intro'),
+  ).toHaveCount(0);
+
+  const toggle = page.getByRole('switch', { name: copy.deviceToggle });
+  const prompts = page.getByRole('switch', { name: gentlePrompts.label });
+  await expect(toggle).toHaveClass('preference-switch-control');
+  await expect(prompts).toHaveClass('preference-switch-control');
+  await expect(toggle).toBeEnabled();
+  await expect(toggle).not.toBeChecked();
+  await expect(page.getByText(copy.deviceOff)).toHaveCount(0);
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect.poll(() => registrations).toBe(1);
+  await expect(toggle).not.toBeChecked();
+  await expect(toggle).toBeDisabled();
+  await expect(page.getByText(copy.deviceConnecting)).toBeVisible();
+  confirmRegistration();
+  await expect(toggle).toBeChecked();
+  await expect(toggle).toBeEnabled();
+  await expect(page.getByText(copy.deviceOn)).toHaveCount(0);
+  await expect(prompts).not.toBeChecked();
+  await expect(page.getByText(gentlePrompts.permissionHint)).toHaveCount(0);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include('#settings-notifications')
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await captureScreenshot(
+    page,
+    info,
+    'notification-settings-device-push-390-dark.png',
+  );
+
+  await toggle.click();
+  await expect.poll(() => revocations).toBe(1);
+  await expect(toggle).not.toBeChecked();
+  await expect(toggle).toBeEnabled();
+  await expect(prompts).not.toBeChecked();
+  expect(preferenceWrites).toBe(0);
 });

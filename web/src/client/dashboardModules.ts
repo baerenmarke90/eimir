@@ -11,9 +11,10 @@
  * modules: the App Shell is out of #817's scope entirely, and the empty state
  * only ever appears in place of the configurable module stack, never as one
  * of its members. `relationship_presence` (the Couple Presence hero) IS a
- * module like any other - #817 has no core/high-priority exception - it is
- * simply the one whose Today rendering doubles as the page's `<h1>`; see
- * `TodayPage.tsx` for how hiding it preserves an accessible heading.
+ * module in the persisted API contract. The Wir presentation now pins it at
+ * the top and always displays it, even for older saved preferences that hid or
+ * moved it; the other sections remain independently configurable.
+ * The page H1 stays in PageHeader rather than in the couple hero.
  *
  * This list must stay in sync with the backend catalog in
  * `backend/src/eimir/dashboard/preferences.py`. Both are tested against

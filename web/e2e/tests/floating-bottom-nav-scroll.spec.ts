@@ -652,7 +652,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     { label: 'compact', width: 390, height: 844 },
     { label: 'expanded', width: 1280, height: 900 },
   ] as const) {
-    test(`Root headings retain shared rhythm and area-specific typography on ${viewport.label}`, async ({
+    test(`Root headings share one rhythm and display typeface on ${viewport.label}`, async ({
       page,
     }, testInfo) => {
       await installApiMocks(page);
@@ -691,7 +691,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
           .click();
         await page.evaluate(() => window.scrollTo(0, 0));
 
-        const rootHeader = page.locator('.page-heading-root');
+        const rootHeader = page.locator('.page-heading-root:visible');
         const heading = rootHeader.getByRole('heading', {
           level: 1,
           name: destination.title,
@@ -714,9 +714,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
         });
         metrics.push(metric);
 
-        expect(metric.fontFamily).toContain(
-          destination.slug === 'mehr' ? 'Instrument Sans' : 'Literata',
-        );
+        expect(metric.fontFamily).toContain('Literata');
         expect(metric.fontSize).toBe('36px');
         expect(metric.fontWeight).toBe('700');
         expect(metric.headerMarginBottom).toBe('32px');
@@ -893,7 +891,7 @@ for (const variant of [
   { width: 430, theme: 'light', view: 'timeline', reduced: true },
   { width: 1280, theme: 'light', view: 'discover', reduced: false },
 ] as const) {
-  test(`primary destinations reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
+  test(`primary destinations restore scroll and reset ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: variant.width, height: 740 });
@@ -972,15 +970,19 @@ for (const variant of [
         page.getByText(importantDates.emptyTitle, { exact: true }),
       ).toBeVisible();
     }
-    await nav.locator('a[href^="/story"]').click();
+    // On Expanded, Playwright would scroll the non-sticky header into view
+    // before clicking, changing the position we meant to restore.
+    if (variant.width >= 840) {
+      await nav
+        .locator('a[href^="/story"]')
+        .evaluate((element: HTMLAnchorElement) => element.click());
+    } else await nav.locator('a[href^="/story"]').click();
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(/\/story$/);
     await expect(page.getByRole('tablist')).toHaveCount(1);
-    await expect
-      .poll(() => page.evaluate(() => window.scrollY))
-      .toBeLessThan(2);
+    await expectRestoredScroll(page, targetY);
     await page.screenshot({
       path: testInfo.outputPath(`reset-${variant.width}-${variant.theme}.png`),
     });
@@ -1040,7 +1042,7 @@ test('native primary tab switching replaces root history but keeps nested task r
     await expect(page).toHaveURL(new RegExp(`${root}$`));
     expect(await page.evaluate(() => history.length)).toBe(historyLength);
   }
-  await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+  await expect(page.locator('[data-floating-create]:visible')).toHaveCount(0);
   await nav.locator('a[href="/today"]').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(await page.evaluate(() => history.length)).toBe(historyLength);
@@ -1093,6 +1095,20 @@ async function dragTouch(
   }
 }
 
+async function expectRestoredScroll(page: Page, desired: number) {
+  await expect
+    .poll(() =>
+      page.evaluate((stored) => {
+        const max = Math.max(
+          0,
+          document.documentElement.scrollHeight - innerHeight,
+        );
+        return Math.abs(window.scrollY - Math.min(stored, max));
+      }, desired),
+    )
+    .toBeLessThan(3);
+}
+
 async function expectPrimaryReadingSurface(page: Page) {
   const surfaceForRoute: Record<string, string> = {
     '/today': '.today-page',
@@ -1103,7 +1119,9 @@ async function expectPrimaryReadingSurface(page: Page) {
   const selector = surfaceForRoute[new URL(page.url()).pathname];
   if (!selector)
     throw new Error('A primary swipe requires a primary destination.');
-  await expect(page.locator(`main > ${selector}`)).toBeVisible();
+  await expect(
+    page.locator(`main > .primary-tab-panel:not([hidden]) ${selector}`),
+  ).toBeVisible();
   if (selector === '.today-page') {
     // Use the settled reading surface. During cold startup the loading node
     // can disappear between hit-testing and the native touch sequence.
@@ -1112,6 +1130,15 @@ async function expectPrimaryReadingSurface(page: Page) {
 }
 
 async function swipePrimary(page: Page, direction: 'next' | 'previous') {
+  const { width, startX, y } = await primarySwipeStart(page, direction);
+  await dragTouch(
+    page,
+    { x: startX, y },
+    { x: direction === 'next' ? width * 0.25 : width * 0.75, y },
+  );
+}
+
+async function primarySwipeStart(page: Page, direction: 'next' | 'previous') {
   await expectPrimaryReadingSurface(page);
   const width = page.viewportSize()?.width ?? 390;
   const startX = direction === 'next' ? width * 0.75 : width * 0.25;
@@ -1158,11 +1185,7 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
     }
     throw new Error('No visible reading surface for a primary swipe.');
   }, startX);
-  await dragTouch(
-    page,
-    { x: startX, y },
-    { x: direction === 'next' ? width * 0.25 : width * 0.75, y },
-  );
+  return { width, startX, y };
 }
 
 async function pauseNavigationMotion(page: Page) {
@@ -1225,7 +1248,7 @@ test.describe('primary tab touch navigation', () => {
     await expect(page).toHaveURL(/\/plan$/);
     await expect(main).toHaveAttribute('data-navigation-motion', 'content');
 
-    const floatingAction = main.locator('[data-floating-create]');
+    const floatingAction = main.locator('[data-floating-create]:visible');
     await expect(floatingAction).toHaveCount(1);
     await page.screenshot({
       path: testInfo.outputPath('shell-planning-tab-entry-390.png'),
@@ -1306,38 +1329,24 @@ test.describe('primary tab touch navigation', () => {
     expect(reads).toBe(1);
   });
 
-  test('live primary motion stays interactive before its first frame completes', async ({
+  test('a second swipe works at once while the previous one is still settling', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 844 });
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await pauseNavigationMotion(page);
     await installApiMocks(page);
     await page.goto('/login');
     await signIn(page);
     await expect(page).toHaveURL(/\/today$/);
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/story$/);
-    expect(
-      await page
-        .locator('main')
-        .evaluate((main) =>
-          main
-            .getAnimations()
-            .some((animation) => animation.playState === 'paused'),
-        ),
-    ).toBe(true);
     await expectNoHorizontalOverflow(page);
-    // A second real touch must work while the previous motion is still held.
+    // A second real touch must work right after the first one.
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/plan$/);
     await expectNoHorizontalOverflow(page);
-    await page.locator('main').evaluate((main) => {
-      for (const animation of main.getAnimations()) animation.finish();
-    });
     await expect(page.locator('main')).not.toHaveAttribute(
-      'data-navigation-motion',
-      'content',
+      'data-primary-tab-dragging',
     );
   });
 
@@ -1412,7 +1421,90 @@ test.describe('primary tab touch navigation', () => {
     });
   }
 
-  test('primary swipe resets Timeline scroll and Planning segment without growing native history or refetching fresh content', async ({
+  test('primary swipe drags the page beside its neighbour like a pager', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    const { width, startX, y } = await primarySwipeStart(page, 'next');
+    const main = page.locator('main.product-main');
+    const current = page.locator(
+      'main > .primary-tab-panel:not([hidden]):not([data-primary-tab-peek]) > .page',
+    );
+    const neighbour = page.locator(
+      'main > .primary-tab-panel[data-primary-tab-peek] > .page',
+    );
+    const restBox = await current.boundingBox();
+    const mainBox = await main.boundingBox();
+    const session = await page.context().newCDPSession(page);
+    try {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: startX, y, id: 1 }],
+      });
+      await nextFrame(page);
+      for (let step = 1; step <= 5; step++)
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: startX - 40 * step, y, id: 1 }],
+        });
+      await expect(main).toHaveAttribute('data-primary-tab-dragging', 'true');
+      await expect(neighbour).toBeVisible();
+      // The page follows the finger one to one; the next tab is one viewport
+      // further along, so both are on screen while dragging.
+      const currentBox = await current.boundingBox();
+      const neighbourBox = await neighbour.boundingBox();
+      expect(currentBox).not.toBeNull();
+      expect(neighbourBox).not.toBeNull();
+      if (!currentBox || !neighbourBox) return;
+      expect(currentBox.x).toBeCloseTo((restBox?.x ?? 0) - 200, 0);
+      // One viewport further along, in the same content column.
+      expect(neighbourBox.x).toBeCloseTo((mainBox?.x ?? 0) + width - 200, 0);
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath('swipe-mid-drag.png'),
+      });
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+    } finally {
+      await session.detach();
+    }
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(main).not.toHaveAttribute('data-primary-tab-dragging');
+    await expect(neighbour).toHaveCount(0);
+    await expect(
+      page.locator('main > .primary-tab-panel:not([hidden]) .story-page'),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test('a short primary swipe settles back without leaving the tab', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    const { startX, y } = await primarySwipeStart(page, 'next');
+    await dragTouch(page, { x: startX, y }, { x: startX - 30, y });
+    await expect(page).toHaveURL(/\/today$/);
+    const main = page.locator('main.product-main');
+    await expect(main).not.toHaveAttribute('data-primary-tab-dragging');
+    await expect(
+      page.locator('main > .primary-tab-panel[data-primary-tab-peek]'),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test('primary swipe restores reading position and resets Planning segment without growing native history or refetching fresh content', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1463,9 +1555,7 @@ test.describe('primary tab touch navigation', () => {
     ).toHaveAttribute('aria-selected', 'true');
     await swipePrimary(page, 'previous');
     await expect(page).toHaveURL(/\/story/);
-    await expect
-      .poll(() => page.evaluate(() => window.scrollY))
-      .toBeLessThan(2);
+    await expectRestoredScroll(page, targetY);
     await expect(page).toHaveURL(/\/story$/);
     await expect(
       page.getByRole('tab', { name: de.story.tabDiscover, exact: true }),

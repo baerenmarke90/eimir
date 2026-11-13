@@ -138,7 +138,3 @@
   min-width: 0;
   width: 100%;
 }
-.today-section-link.once-compose-entry {
-  min-block-size: var(--touch-target-comfortable);
-  gap: var(--space-2);
-}

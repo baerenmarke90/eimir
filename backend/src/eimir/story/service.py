@@ -288,6 +288,49 @@ def read_shared_story_counts(
     )
 
 
+def read_shared_story_rows(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    through: date,
+) -> list[StoryRow]:
+    """Return the key of every relationship-shared Story entry up to a day.
+
+    Feeds the Wir lifeline (#1770), which draws the same `shared_only` set
+    that `read_shared_story_counts` counts, so its dots always add up to the
+    shared totals and a private HeartMoment never appears in it. Only the
+    sort key is projected; callers load the few entries they display.
+    """
+    experiences.reconcile(session, context)
+    combined = union_all(
+        *(_leg(kind, context, year=None, shared_only=True) for kind in StoryKind)
+    ).subquery("shared_story_rows")
+    rows = session.execute(
+        select(
+            combined.c.kind_rank,
+            combined.c.effective_date,
+            combined.c.created_at,
+            combined.c.id,
+        )
+        .where(combined.c.effective_date <= through)
+        .order_by(
+            combined.c.effective_date,
+            combined.c.created_at,
+            combined.c.kind_rank,
+            combined.c.id,
+        )
+    ).all()
+    return [
+        StoryRow(
+            kind=_kind_of_rank(int(kind_rank)),
+            effective_date=effective_date,
+            created_at=created_at,
+            id=item_id,
+        )
+        for kind_rank, effective_date, created_at, item_id in rows
+    ]
+
+
 def _cursor_binding(
     context: AuthorizationContext,
     kinds: tuple[StoryKind, ...],

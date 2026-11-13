@@ -3,16 +3,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import experiences from '../../src/i18n/locales/experiences';
 import composer from '../../src/i18n/locales/composer';
+import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localeFixture from '../fixtures/locales/de';
-import { fulfillDefaultProductContext } from '../support/productContext';
+import { mockMapTiles } from '../support/mapTiles';
 import { openComposerPlace } from '../support/memoryDiary';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -309,9 +310,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
     strict: true,
     withDetailComments: true,
   });
-  await page.route('https://tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ contentType: 'image/jpeg', body: PHOTO }),
-  );
+  await mockMapTiles(page);
   let preference = { enabled: true, version: 0 };
   let linked = true;
   let place = {

@@ -17,6 +17,7 @@ describe('applyRouteEntryHandoff', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('scrolls to the top of the page when there is no hash', () => {
@@ -25,21 +26,53 @@ describe('applyRouteEntryHandoff', () => {
     expect(scrollToSpy).toHaveBeenCalledWith(0, 0);
   });
 
-  it('glides back to the top when asked to, unless motion is reduced', () => {
-    const matchMedia = (reduce: boolean) =>
-      vi.fn().mockReturnValue({ matches: reduce });
-    window.matchMedia = matchMedia(
-      false,
-    ) as unknown as typeof window.matchMedia;
-    applyRouteEntryHandoff('', { smooth: true });
-    expect(scrollToSpy).toHaveBeenLastCalledWith({
-      top: 0,
-      behavior: 'smooth',
-    });
+  it('eases back to the top frame by frame, and jumps when motion is reduced', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+      frames.push(callback),
+    );
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    Object.defineProperty(window, 'scrollY', { value: 548, configurable: true });
+    const reduced = (matches: boolean) =>
+      (window.matchMedia = vi
+        .fn()
+        .mockReturnValue({ matches }) as unknown as typeof window.matchMedia);
 
-    window.matchMedia = matchMedia(true) as unknown as typeof window.matchMedia;
+    reduced(false);
     applyRouteEntryHandoff('', { smooth: true });
+    expect(scrollToSpy).not.toHaveBeenCalled();
+    frames.shift()?.(1000);
+    frames.shift()?.(1200);
+    const midway = scrollToSpy.mock.calls.at(-1)?.[1] as number;
+    expect(midway).toBeGreaterThan(0);
+    expect(midway).toBeLessThan(548);
+    frames.shift()?.(5000);
     expect(scrollToSpy).toHaveBeenLastCalledWith(0, 0);
+    expect(frames).toHaveLength(0);
+
+    scrollToSpy.mockClear();
+    reduced(true);
+    applyRouteEntryHandoff('', { smooth: true });
+    expect(scrollToSpy).toHaveBeenCalledOnce();
+    expect(scrollToSpy).toHaveBeenLastCalledWith(0, 0);
+  });
+
+  it('stops gliding as soon as the person scrolls', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+      frames.push(callback),
+    );
+    const cancel = vi.fn();
+    vi.stubGlobal('cancelAnimationFrame', cancel);
+    Object.defineProperty(window, 'scrollY', { value: 548, configurable: true });
+    window.matchMedia = vi
+      .fn()
+      .mockReturnValue({ matches: false }) as unknown as typeof window.matchMedia;
+
+    applyRouteEntryHandoff('', { smooth: true });
+    window.dispatchEvent(new Event('wheel'));
+
+    expect(cancel).toHaveBeenCalled();
   });
 
   it('hands a smooth entry request to exactly one route entry', () => {

@@ -69,14 +69,30 @@
   --shell-header-safe-top: 0px;
 }
 
-.product-shell[data-top-surface="today"] {
-  background:
-    radial-gradient(
-      120% 24rem at 30% 0%,
-      var(--color-brand-glow),
-      transparent 70%
-    )
-    top center / 100% 24rem no-repeat;
+/* The Today glow fades with the route handoff instead of popping in or out. */
+.product-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.product-shell::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 24rem;
+  background: radial-gradient(
+    120% 24rem at 30% 0%,
+    var(--color-brand-glow),
+    transparent 70%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
+.product-shell[data-top-surface="today"]::before {
+  opacity: 1;
 }
 
 .product-shell[data-top-surface="today"]

@@ -30,6 +30,7 @@ import notificationSettings from './locales/notificationSettings';
 import offlinePage from './locales/offlinePage';
 import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
+import partnerLocation from './locales/partnerLocation';
 import people from './locales/people';
 import photoPlaces from './locales/photoPlaces';
 import photoReactions from './locales/photoReactions';
@@ -96,6 +97,7 @@ export const germanResources = {
   memoryProduct,
   mediaDrop,
   partnerConnection,
+  partnerLocation,
   people,
   privateArea,
   profileIdentity,

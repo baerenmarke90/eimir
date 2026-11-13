@@ -1075,6 +1075,16 @@
         "web/src/components/PlaceMapCanvas.tsx",
         "web/src/components/MemoryProductPage.tsx"
       ]
+    },
+    "partner-location-settings.spec.ts": {
+      "roots": [
+        "web/src/components/PartnerLocationSettingsPage.tsx",
+        "web/src/components/PartnerLocationSettingsEntry.tsx",
+        "web/src/components/PartnerLocationOnboarding.tsx",
+        "web/src/components/PartnerLocationSync.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/DevicePushOnboarding.tsx"
+      ]
     }
   }
 }

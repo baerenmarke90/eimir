@@ -37,6 +37,7 @@ import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
+import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
@@ -129,6 +130,12 @@ export function SettingsPage(props: SettingsPageProps) {
       >
         <RelationshipSettingsSection
           spacesApi={spacesApi}
+          spaceId={props.spaceId}
+        />
+        <PartnerLocationSettingsEntry
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
           spaceId={props.spaceId}
         />
         <OccasionHolidaySettings

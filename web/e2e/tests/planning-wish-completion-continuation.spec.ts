@@ -7,6 +7,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -580,9 +581,12 @@ for (const scenario of pendingScenarios) {
       .filter({ hasText: m5s3.wish.completePending });
     await expect(status).toHaveCount(1);
     await expect(status).toBeVisible();
+    // #1790 F2: the journey path replaces the status word.
     await expect(
-      page.getByText(m5s3.wish.status.OPEN, { exact: true }),
-    ).toBeVisible();
+      page
+        .getByRole('list', { name: wishJourney.pathLabel })
+        .locator('[aria-current="step"]'),
+    ).toHaveText(wishJourney.stages.wished);
     await expect(
       page.getByRole('button', { name: m5s3.wish.completing, exact: true }),
     ).toBeFocused();
@@ -855,7 +859,7 @@ for (const [width, colorScheme] of [
     });
     await signIn(page);
     await page.goto('/plan#wishes');
-    await page.getByRole('link', { name: new RegExp(WISH_TITLE) }).click();
+    await page.getByRole('link', { name: WISH_TITLE, exact: true }).click();
     await page.getByText(m5s3.wish.actionsHeading, { exact: true }).click();
     await page
       .getByRole('button', { name: m5s3.wish.complete, exact: true })
@@ -870,7 +874,7 @@ for (const [width, colorScheme] of [
     await scope
       .getByRole('button', { name: m5s3.overview.fulfilledWishes, exact: true })
       .click();
-    const wish = page.getByRole('link', { name: new RegExp(WISH_TITLE) });
+    const wish = page.getByRole('link', { name: WISH_TITLE, exact: true });
     await expect(wish).toBeVisible();
     await expect(
       scope.getByRole('button', {

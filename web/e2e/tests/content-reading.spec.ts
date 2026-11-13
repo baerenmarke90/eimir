@@ -2,6 +2,7 @@ import { fulfillDefaultProductContext } from '../support/productContext';
 import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import {
   ACCOUNT_ID,
@@ -113,11 +114,12 @@ for (const [width, theme, large] of [
     });
     await expect(place).toHaveCount(1);
     await expect(place).toHaveAttribute('href', '/story/map?place=49.1%3A7.2');
+    // #1790 F2: the source wish is the origin line above the Plan title.
     await expect(
       page.locator('.planen-detail-context .plan-wish-source'),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await expect(
-      page.getByRole('link', { name: m5s3.plan.openWish }),
+      page.getByRole('link', { name: wishJourney.fromWish }),
     ).toHaveAttribute('href', '/plan/wishes/source-wish');
     await captureScreenshot(
       page,

@@ -533,8 +533,17 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     await expect(todayContent).toHaveCount(1);
     await expect(todayContent).toBeVisible();
     expect(await todayContent.innerText()).toBe(textBeforeResume);
+    if (sample === 3) {
+      await page.screenshot({
+        path: testInfo.outputPath('today-resume-in-flight-390-light.png'),
+      });
+    }
     await page.waitForTimeout(80);
   }
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.screenshot({
+    path: testInfo.outputPath('today-resume-settled-390-dark.png'),
+  });
   dashboardDelayMs = 0;
 
   // Step 8: Verify no unexpected network requests occurred

@@ -16,11 +16,16 @@ function growDescription(field: HTMLTextAreaElement) {
 export function ComposerDescriptionField({
   id,
   rows = 2,
+  hint,
   ...props
 }: Omit<
   ComponentProps<'textarea'>,
   'id' | 'name' | 'className' | 'onInput' | 'placeholder' | 'ref'
-> & { id: string }) {
+> & {
+  id: string;
+  /** Warm, domain-specific prompt shown in the empty field; the label stays generic. */
+  hint?: string;
+}) {
   const { t } = useTranslation();
   const label = t('m5s3.common.description');
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -40,7 +45,7 @@ export function ComposerDescriptionField({
         name="description"
         className="page-composer-prose"
         rows={rows}
-        placeholder={label}
+        placeholder={hint ?? label}
         onInput={(event) => growDescription(event.currentTarget)}
       />
     </>

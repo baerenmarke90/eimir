@@ -7,15 +7,17 @@ Responses are ``no-store`` so no intermediary or client HTTP cache keeps them.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
+from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Header, Path, Response, status
 from pydantic import ConfigDict, Field, model_validator
 
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.presence import geo, service
+from eimir.core.errors import ErrorCode, UnauthenticatedError
+from eimir.presence import device, geo, service
 from eimir.presence.models import SharingLevel
 
 router = APIRouter(tags=["partner-location"])
@@ -230,3 +232,102 @@ def get_partner_location_map(
         radius_meters=view.radius_meters,
         captured_at=view.captured_at,
     )
+
+
+class PresenceDeviceCredentialRequest(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: UUID = Field(description="Random installation identifier generated on the device.")
+
+
+class PresenceDeviceCredentialView(ApiModel):
+    """Returned once; only its hash is stored. It can only publish this owner's snapshot."""
+
+    credential: str
+    expires_at: datetime
+    consent_generation: int
+
+
+class PresenceDevicePublish(PresencePosition):
+    accuracy_meters: float = Field(ge=0, le=geo.MAX_ACCEPTED_ACCURACY_METERS)
+
+
+class PresenceDevicePublishResult(ApiModel):
+    active: bool = Field(
+        description="False when sharing stopped; the device must disable background updates."
+    )
+
+
+PRESENCE_SCHEME = "Presence "
+
+
+@router.put(
+    "/spaces/{spaceId}/partner-location/device-credential",
+    response_model=PresenceDeviceCredentialView,
+    operation_id="issuePartnerLocationDeviceCredential",
+    responses=problem_responses(401, 403, 404, 409, 422),
+)
+def issue_partner_location_device_credential(
+    body: PresenceDeviceCredentialRequest,
+    authorization: Authorization,
+    device_session: CurrentSession,
+    session: DbSession,
+    response: Response,
+) -> PresenceDeviceCredentialView:
+    """Issue this device's background-upload credential for the caller's active share."""
+    response.headers["Cache-Control"] = _NO_STORE
+    issued = device.issue(session, authorization, device_session, device_id=body.device_id)
+    return PresenceDeviceCredentialView(
+        credential=issued.credential,
+        expires_at=issued.expires_at,
+        consent_generation=issued.consent_generation,
+    )
+
+
+@router.delete(
+    "/spaces/{spaceId}/partner-location/device-credential/{deviceId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="revokePartnerLocationDeviceCredential",
+    responses=problem_responses(401, 403, 404, 422),
+)
+def revoke_partner_location_device_credential(
+    device_id: Annotated[UUID, Path(alias="deviceId")],
+    authorization: Authorization,
+    session: DbSession,
+) -> Response:
+    """Stop background uploads from this device; never requires Premium."""
+    device.revoke(session, authorization, device_id=device_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put(
+    "/partner-location/device-snapshot",
+    response_model=PresenceDevicePublishResult,
+    operation_id="publishPartnerLocationDeviceSnapshot",
+    responses=problem_responses(401, 422, 429),
+)
+def publish_partner_location_device_snapshot(
+    body: PresenceDevicePublish,
+    session: DbSession,
+    response: Response,
+    credential_header: Annotated[
+        str | None,
+        Header(
+            alias="Authorization",
+            description="`Presence <credential>` from issuePartnerLocationDeviceCredential.",
+        ),
+    ] = None,
+) -> PresenceDevicePublishResult:
+    """Background upload authorized only by a scoped presence device credential."""
+    response.headers["Cache-Control"] = _NO_STORE
+    if not credential_header or not credential_header.startswith(PRESENCE_SCHEME):
+        raise UnauthenticatedError("Authentication required.", ErrorCode.AUTHENTICATION_REQUIRED)
+    active = device.publish_with_credential(
+        session,
+        credential=credential_header[len(PRESENCE_SCHEME) :].strip(),
+        latitude=body.latitude,
+        longitude=body.longitude,
+        accuracy_meters=body.accuracy_meters,
+        captured_at=body.captured_at,
+    )
+    return PresenceDevicePublishResult(active=active)

@@ -97,16 +97,31 @@
       "chapters": "Chapters",
       "years": "Years",
       "recaps": "Recaps",
+      "yearsAndRecaps": "Years & recaps",
       "insights": "Insights",
       "lists": "Lists"
+    },
+    "subtitles": {
+      "private": "Notes and gift ideas · {{visibility}}",
+      "media": "All photos and videos",
+      "chapters": "Trips, moves, big chapters",
+      "yearsAndRecaps": "Your months and years at a glance",
+      "insights": "How you have been lately",
+      "lists": "Packing, shopping, checklists",
+      "places": "Your favourite places",
+      "people": "Family, friends and their important days",
+      "games": "Questions and games for the two of you"
+    },
+    "visibility": {
+      "onlyYou": "Only you can see this"
     },
     "eyebrow": "More",
     "title": "Everything else",
     "intro": "Personal details, shared lists and settings.",
     "groups": {
       "personal": "For you",
-      "shared": "Together",
-      "moments": "Moments",
+      "shared": "Your everyday",
+      "moments": "Your story",
       "utility": "App and account"
     },
     "people": {
@@ -374,6 +389,8 @@
     "title": "Our years",
     "intro": "Your shared story, year by year.",
     "listAria": "Shared years",
+    "recapsEntryTitle": "Your recaps",
+    "recapsEntryHint": "Months and years, put together for you",
     "currentYearLabel": "Our year so far",
     "currentYearHint": "The moments you have captured this year.",
     "pastYearLabel": "Our year {{year}}",

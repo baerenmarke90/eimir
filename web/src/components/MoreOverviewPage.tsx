@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 import { Link } from 'react-router-dom';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { loadInstanceAccessStatus } from '../client/instanceStatus';
@@ -22,7 +22,6 @@ import {
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
   STORY_PHOTOS_ROUTE,
-  STORY_RECAPS_ROUTE,
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
@@ -40,73 +39,87 @@ interface MoreDestination {
   path: string;
   icon: AppRouteIcon;
   titleKey: string;
+  /** Short localized line that tells what the destination holds. */
+  subtitleKey?: string;
   badgeKey?: string;
 }
 
-const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
-  {
-    path: PRIVATE_AREA_ROOT_PATH,
-    icon: 'private',
-    titleKey: 'more.private.title',
-  },
-];
+const PRIVATE_DESTINATION: MoreDestination = {
+  path: PRIVATE_AREA_ROOT_PATH,
+  icon: 'private',
+  titleKey: 'more.private.title',
+};
 
-const MOMENT_DESTINATIONS: readonly MoreDestination[] = [
+/**
+ * #1790 E1: years and recaps share one destination. It opens the Free years
+ * index, whose quiet entry leads on to the recaps, so no route is lost.
+ */
+const STORY_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: STORY_PHOTOS_ROUTE,
     icon: 'media',
     titleKey: 'more.destinations.media',
+    subtitleKey: 'more.subtitles.media',
   },
   {
     path: STORY_CHAPTERS_ROUTE,
     icon: 'chapter',
     titleKey: 'more.destinations.chapters',
+    subtitleKey: 'more.subtitles.chapters',
   },
   {
     path: STORY_YEARS_ROUTE,
     icon: 'plan',
-    titleKey: 'more.destinations.years',
-  },
-  {
-    path: STORY_RECAPS_ROUTE,
-    icon: 'chapter',
-    titleKey: 'more.destinations.recaps',
-    badgeKey: 'recaps.pro',
+    titleKey: 'more.destinations.yearsAndRecaps',
+    subtitleKey: 'more.subtitles.yearsAndRecaps',
   },
   {
     path: MORE_INSIGHTS_ROUTE,
     icon: 'activity',
     titleKey: 'more.destinations.insights',
+    subtitleKey: 'more.subtitles.insights',
     badgeKey: 'dailyInsights.pro',
   },
 ];
 
-const SHARED_DESTINATIONS: readonly MoreDestination[] = [
+const EVERYDAY_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: MORE_COLLECTIONS_ROUTE,
     icon: 'collections',
     titleKey: 'more.destinations.lists',
+    subtitleKey: 'more.subtitles.lists',
   },
-  { path: MORE_PLACES_ROUTE, icon: 'places', titleKey: 'more.places.title' },
-  { path: MORE_PEOPLE_ROUTE, icon: 'people', titleKey: 'more.people.title' },
+  {
+    path: MORE_PLACES_ROUTE,
+    icon: 'places',
+    titleKey: 'more.places.title',
+    subtitleKey: 'more.subtitles.places',
+  },
+  {
+    path: MORE_PEOPLE_ROUTE,
+    icon: 'people',
+    titleKey: 'more.people.title',
+    subtitleKey: 'more.subtitles.people',
+  },
   {
     path: appRoutePath('games'),
     icon: 'games',
     titleKey: 'navigation.games',
+    subtitleKey: 'more.subtitles.games',
     badgeKey: 'games.status.premium',
   },
 ];
 
 const UTILITY_DESTINATIONS: readonly MoreDestination[] = [
   {
-    path: ACTIVITY_ROUTE,
-    icon: 'activity',
-    titleKey: 'navigation.activity',
-  },
-  {
     path: MORE_SETTINGS_ROUTE,
     icon: 'settings',
     titleKey: 'navigation.settings',
+  },
+  {
+    path: ACTIVITY_ROUTE,
+    icon: 'activity',
+    titleKey: 'navigation.activity',
   },
 ];
 
@@ -125,6 +138,17 @@ function MoreDestinationRow({
 }) {
   const { t } = useTranslation();
   const hideProMarks = useHideProFeatureMarks();
+  const secondaryLine =
+    subtitle ??
+    (destination.subtitleKey ? t(destination.subtitleKey) : undefined);
+  const rowId = useId();
+  const showBadge = Boolean(destination.badgeKey) && !hideProMarks;
+  // The title (and Pro mark) stay the accessible name; the secondary line
+  // describes the destination instead of lengthening its name (#1790 E1).
+  const describeSecondary = Boolean(secondaryLine) && !leading;
+  const titleId = `${rowId}-title`;
+  const badgeId = `${rowId}-badge`;
+  const subtitleId = `${rowId}-subtitle`;
 
   return (
     <li>
@@ -136,6 +160,14 @@ function MoreDestinationRow({
             ? t('navigation.notificationsWithUnread', { count: unreadCount })
             : undefined
         }
+        ariaLabelledBy={
+          describeSecondary
+            ? showBadge
+              ? `${titleId} ${badgeId}`
+              : titleId
+            : undefined
+        }
+        ariaDescribedBy={describeSecondary ? subtitleId : undefined}
       >
         <span
           className={leading ? 'more-profile-avatar' : 'more-destination-icon'}
@@ -145,15 +177,22 @@ function MoreDestinationRow({
         </span>
         <span className="more-destination-copy">
           <span className="more-destination-title-row">
-            <strong>{label ?? t(destination.titleKey)}</strong>
-            {destination.badgeKey && !hideProMarks ? (
-              <span className="more-destination-badge">
+            <strong id={titleId}>{label ?? t(destination.titleKey)}</strong>
+            {showBadge && destination.badgeKey ? (
+              <span id={badgeId} className="more-destination-badge">
                 {t(destination.badgeKey)}
               </span>
             ) : null}
           </span>
-          {subtitle ? (
-            <span className="more-profile-label">{subtitle}</span>
+          {secondaryLine ? (
+            <span
+              id={subtitleId}
+              className={
+                leading ? 'more-profile-label' : 'more-destination-subtitle'
+              }
+            >
+              {secondaryLine}
+            </span>
           ) : null}
         </span>
         <span className="more-destination-trailing">
@@ -253,6 +292,12 @@ export function MoreOverviewPage({
             }
           />
           <MoreDestinationRow
+            destination={PRIVATE_DESTINATION}
+            subtitle={t('more.subtitles.private', {
+              visibility: t('more.visibility.onlyYou'),
+            })}
+          />
+          <MoreDestinationRow
             destination={{
               path: MORE_NOTIFICATIONS_ROUTE,
               icon: 'notifications',
@@ -260,16 +305,10 @@ export function MoreOverviewPage({
             }}
             unreadCount={unreadCount}
           />
-          {PERSONAL_DESTINATIONS.map((destination) => (
-            <MoreDestinationRow
-              key={destination.path}
-              destination={destination}
-            />
-          ))}
         </MoreDestinationGroup>
 
         <MoreDestinationGroup title={t('more.groups.moments')}>
-          {MOMENT_DESTINATIONS.map((destination) => (
+          {STORY_DESTINATIONS.map((destination) => (
             <MoreDestinationRow
               key={destination.path}
               destination={destination}
@@ -278,7 +317,7 @@ export function MoreOverviewPage({
         </MoreDestinationGroup>
 
         <MoreDestinationGroup title={t('more.groups.shared')}>
-          {SHARED_DESTINATIONS.map((destination) => (
+          {EVERYDAY_DESTINATIONS.map((destination) => (
             <MoreDestinationRow
               key={destination.path}
               destination={destination}

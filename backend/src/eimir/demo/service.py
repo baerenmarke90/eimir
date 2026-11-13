@@ -373,8 +373,8 @@ def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> 
         and configuration.shared_achievements_enabled
         and configuration.daily_questions_enabled
         and configuration.daily_context_timezone == _DEMO_DAILY_CONTEXT_TIMEZONE
-        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
-        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
+        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
+        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
     ):
         return
 
@@ -393,8 +393,9 @@ def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> 
         shared_achievements_enabled=True,
         daily_questions_enabled=True,
         daily_context_timezone=_DEMO_DAILY_CONTEXT_TIMEZONE,
-        vibe_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
-        energy_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+        # #1790: the demo shows the default couples get, immediate visibility.
+        vibe_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
+        energy_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
     )
 
 

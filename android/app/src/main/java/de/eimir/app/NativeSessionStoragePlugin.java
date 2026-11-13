@@ -70,7 +70,10 @@ public class NativeSessionStoragePlugin extends Plugin {
 
     static void clearSnapshot(Context context, String instance) throws Exception {
         AtomicFile snapshot = file(context, instance);
-        try { BackgroundMediaTransfers.cancelInstance(context, instance); }
+        try {
+            try { BackgroundMediaTransfers.cancelInstance(context, instance); }
+            finally { PresenceBackground.disableForInstance(context, instance); }
+        }
         finally { snapshot.delete(); }
         if (snapshot.getBaseFile().exists()) throw new Exception("Session deletion failed");
     }

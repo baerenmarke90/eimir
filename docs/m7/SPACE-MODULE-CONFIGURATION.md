@@ -251,12 +251,12 @@ supportGesturesEnabled = true
 sharedAchievementsEnabled = true
 dailyQuestionsEnabled = true
 dailyContextTimezone = Europe/Berlin
-vibeVisibilityMode = MUTUAL_REVEAL
-energyVisibilityMode = MUTUAL_REVEAL
+vibeVisibilityMode = IMMEDIATE
+energyVisibilityMode = IMMEDIATE
 ```
 
-The generic product default remains `IMMEDIATE`; the canonical Demo deliberately opts into
-`MUTUAL_REVEAL` for both dimensions so the current privacy interaction is directly demonstrable.
+The canonical Demo shows the generic product default `IMMEDIATE` for both dimensions (Product
+Owner decision in #1790, 2026-11-13). Mutual Reveal stays available in the Space settings.
 
 The canonical Demo also seeds bounded recent DailyCheckIn history and a shared Collection pinned to
 Today for both personas through their owning domain contracts. Those examples make the implemented

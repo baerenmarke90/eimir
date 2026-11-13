@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, ValidationError
@@ -16,7 +16,12 @@ from eimir.relationship.models import (
     Membership,
     SpaceConfiguration,
 )
-from tests.conftest import make_account, make_space, requires_database
+from tests.conftest import (
+    make_account,
+    make_space,
+    make_space_without_daily_context,
+    requires_database,
+)
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -25,7 +30,8 @@ pytestmark = [pytest.mark.integration, requires_database]
 def pair(session: Session):  # type: ignore[no-untyped-def]
     founder = make_account(session, "Founder")
     partner = make_account(session, "Partner")
-    space = make_space(session, founder)
+    # Configuration mechanics start from the stored state existing Spaces keep.
+    space = make_space_without_daily_context(session, founder)
     relationship_service.add_member(session, space.id, partner)
     session.flush()
 
@@ -84,21 +90,55 @@ def _update(
     )
 
 
-def test_new_space_has_typed_v1_defaults(session: Session) -> None:
+def test_new_space_starts_with_both_daily_check_ins_on(session: Session) -> None:
     founder = make_account(session, "Solo founder")
+    founder.timezone = "America/New_York"
+    session.flush()
     space = make_space(session, founder)
     configuration = _stored(session, space.id)
 
+    # #1790: Vibe and Energy are on for new Spaces, immediately visible, and the
+    # shared day starts in the founder's own time zone.
     assert configuration.version == 1
-    assert not configuration.vibe_check_enabled
-    assert not configuration.energy_check_in_enabled
+    assert configuration.vibe_check_enabled
+    assert configuration.energy_check_in_enabled
+    assert configuration.daily_context_timezone == "America/New_York"
+    assert configuration.vibe_visibility_mode == "IMMEDIATE"
+    assert configuration.energy_visibility_mode == "IMMEDIATE"
     assert not configuration.love_notes_enabled
     assert configuration.support_gestures_enabled
     assert not configuration.shared_achievements_enabled
     assert not configuration.daily_questions_enabled
+
+
+def test_new_space_without_a_usable_founder_zone_keeps_daily_check_ins_off(
+    session: Session,
+) -> None:
+    founder = make_account(session, "Founder with a broken zone")
+    founder.timezone = "Europe/Berlinn"
+    session.flush()
+    space = make_space(session, founder)
+    configuration = _stored(session, space.id)
+
     assert configuration.daily_context_timezone is None
-    assert configuration.vibe_visibility_mode == "IMMEDIATE"
-    assert configuration.energy_visibility_mode == "IMMEDIATE"
+    assert not configuration.vibe_check_enabled
+    assert not configuration.energy_check_in_enabled
+
+
+def test_recovered_configuration_of_an_existing_space_keeps_daily_check_ins_off(
+    session: Session,
+    pair,
+) -> None:  # type: ignore[no-untyped-def]
+    space, manager, _ = pair
+    session.execute(delete(SpaceConfiguration).where(SpaceConfiguration.space_id == space.id))
+    session.flush()
+
+    configuration_service.sync_system_timezone(session, space.id, manager, "Europe/Berlin")
+    configuration = _stored(session, space.id)
+
+    assert configuration.daily_context_timezone == "Europe/Berlin"
+    assert not configuration.vibe_check_enabled
+    assert not configuration.energy_check_in_enabled
 
 
 def test_manager_can_update_independent_typed_modules(

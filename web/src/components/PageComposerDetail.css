@@ -167,7 +167,13 @@
   clip-path: none;
   border-radius: var(--radius-pill);
 }
-.memory-product-page.page-composer-detail {
+.page-composer-detail:is(
+  .memory-product-page,
+  .milestone-product-page,
+  .heart-moment-product-page,
+  .page-plan-detail,
+  .wish-detail
+) {
   gap: var(--space-3);
 }
 .page-composer-detail .moment-metadata {
@@ -202,4 +208,163 @@
   flex: none;
   inline-size: var(--space-4);
   block-size: var(--space-4);
+}
+
+/* Diary detail header: two equal round controls with the entry type as a quiet
+   context line. With lead photography the controls float over the photo. */
+.page-composer-detail:is(
+  .memory-product-page,
+  .milestone-product-page,
+  .heart-moment-product-page,
+  .page-plan-detail,
+  .wish-detail
+) .composer-header {
+  --detail-control-size: var(--touch-target-web);
+  --detail-control-surface: var(--color-surface-subtle);
+  --detail-control-foreground: var(--color-text);
+
+  grid-template-columns: var(--detail-control-size) minmax(0, 1fr) var(
+      --detail-control-size
+    );
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header
+  .back-link.task-back-control,
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header
+  :is(.story-detail-edit-link, .composer-detail-edit) {
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--detail-control-size);
+  block-size: var(--detail-control-size);
+  min-inline-size: var(--detail-control-size);
+  min-block-size: var(--detail-control-size);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--detail-control-surface);
+  color: var(--detail-control-foreground);
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header
+  .story-detail-edit-link:hover:not(:disabled) {
+  background: var(--detail-control-surface);
+  color: var(--detail-control-foreground);
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header
+  .story-detail-edit-link
+  .list-entry-icon {
+  display: block;
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header
+  .story-detail-edit-label {
+  display: none;
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header
+  .page-heading-title-container {
+  justify-content: center;
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header.page-heading
+  h1 {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .moment-metadata-lead {
+  margin-block-start: 0;
+}
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .moment-metadata-lead
+  .moment-date {
+  flex-basis: 100%;
+  color: var(--color-text);
+  font: var(--font-composer-lead);
+}
+
+/* Detail reading order: headline, one quiet context line, media, then text. */
+.page-composer-detail .detail-headline {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+.page-composer-detail .detail-headline > * {
+  margin: 0;
+}
+
+/* Large-text reflow may move the title to its own row; the edit control stays
+   in the trailing corner of the first row at its control size. */
+.page-composer-detail:is(
+    .memory-product-page,
+    .milestone-product-page,
+    .heart-moment-product-page,
+    .page-plan-detail,
+    .wish-detail
+  )
+  .composer-header
+  > .page-heading-action {
+  grid-column: 3;
+  grid-row: 1;
+  inline-size: var(--detail-control-size);
+  justify-self: end;
 }

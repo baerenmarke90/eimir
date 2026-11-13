@@ -392,7 +392,7 @@ test.describe('repeat a completed wish (#1816)', () => {
     });
     expect(state.repeatRequests[0].key).toMatch(/^[0-9a-f-]{36}$/);
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Night train in winter' }),
+      page.getByRole('heading', { name: 'Night train in winter' }),
     ).toBeVisible();
 
     // Return: the open repeat carries the quiet time mark.
@@ -423,7 +423,7 @@ test.describe('repeat a completed wish (#1816)', () => {
     await link.click();
     await expect(page).toHaveURL(new RegExp(`/plan/wishes/${SEA_2}$`));
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Baltic Sea' }),
+      page.getByRole('heading', { name: 'Baltic Sea' }),
     ).toBeVisible();
     expect(state.unexpected).toEqual([]);
   });
@@ -528,6 +528,14 @@ test.describe('repeat a completed wish (#1816)', () => {
 
       await page.getByRole('button', { name: wishRepeat.action }).click();
       await expect(page.getByLabel(wishRepeat.sheet.titleLabel)).toBeVisible();
+      // Contrast is measured on the settled sheet, not mid-entry.
+      await page.locator('dialog[open]').evaluate(async (node) => {
+        await Promise.all(
+          node
+            .getAnimations({ subtree: true })
+            .map((running) => running.finished),
+        );
+      });
       await shoot('sheet');
 
       await page.goto(`/plan/reminders/${REMINDER}`);

@@ -207,9 +207,7 @@ def test_wir_upcoming_and_countdown_show_only_the_list_title(client, couple):  #
 def test_activity_titles_and_device_previews_stay_neutral(client, couple, session):  # type: ignore[no-untyped-def]
     plan = make_discreet(client, couple, create(client, couple))
     targets = {(EngagementTarget.PLAN, UUID(plan["id"]))}
-    context = AuthorizationContext(
-        account_id=couple["ben"].id, space_id=couple["space"].id
-    )
+    context = AuthorizationContext(account_id=couple["ben"].id, space_id=couple["space"].id)
     assert presentation.target_titles(session, context, targets) == {
         (EngagementTarget.PLAN, UUID(plan["id"])): "Weekend for two"
     }
@@ -235,9 +233,7 @@ def test_activity_titles_and_device_previews_stay_neutral(client, couple, sessio
 
     inbox = client.get(path(couple, "notifications"), headers=auth(couple["token_b"]))
     assert inbox.status_code == 200, inbox.text
-    [target] = [
-        item["target"] for item in inbox.json()["items"] if item["targetId"] == plan["id"]
-    ]
+    [target] = [item["target"] for item in inbox.json()["items"] if item["targetId"] == plan["id"]]
     assert target == {
         "targetType": "PLAN",
         "targetId": plan["id"],

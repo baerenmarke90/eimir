@@ -150,7 +150,10 @@ async function prepare(
   page: Page,
   scenario: { width: number; height: number; theme: 'light' | 'dark' },
 ) {
-  await page.setViewportSize({ width: scenario.width, height: scenario.height });
+  await page.setViewportSize({
+    width: scenario.width,
+    height: scenario.height,
+  });
   await page.emulateMedia({
     colorScheme: scenario.theme,
     reducedMotion: 'reduce',
@@ -229,9 +232,14 @@ for (const scenario of [
     });
     await expect(reveal).toBeVisible();
     await expectAccessible(page);
-    await captureScreenshot(page, info, `discreet-plans-concealed-${name}.png`, {
-      fullPage: true,
-    });
+    await captureScreenshot(
+      page,
+      info,
+      `discreet-plans-concealed-${name}.png`,
+      {
+        fullPage: true,
+      },
+    );
 
     await reveal.click();
     await expect(
@@ -334,7 +342,9 @@ test('either partner turns Diskret on in the editor and chooses the list title',
     previewTitle: discreetPlans.suggestions.EVENING,
   });
   // Original-title mode: the real title stays, the prose is concealed.
-  await expect(page.getByRole('heading', { name: TITLE, level: 2 })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: TITLE, level: 2 }),
+  ).toBeVisible();
   await expect(page.getByText(DESCRIPTION)).toHaveCount(0);
   expect(state.unexpected).toEqual([]);
 });

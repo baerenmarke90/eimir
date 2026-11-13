@@ -58,6 +58,7 @@ export const EIMIR_ICON_NAMES = [
   'trash',
   'filter',
   'chevron-right',
+  'sparkle',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
@@ -86,6 +87,14 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   ),
   filter: <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" />,
   'chevron-right': <path d="m9 5 7 7-7 7" />,
+  // #1790 F2: the quiet mark of a wish on its way; filled so it stays legible
+  // at caption size.
+  sparkle: (
+    <path
+      fill="currentColor"
+      d="M12 3.5c.6 4.6 2.3 6.4 7 7-4.7.6-6.4 2.4-7 7-.6-4.6-2.3-6.4-7-7 4.7-.6 6.4-2.4 7-7Z"
+    />
+  ),
   square: <rect x="5" y="5" width="14" height="14" rx="3" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   check: <path d="m5 12 4.5 4.5L19 7" />,

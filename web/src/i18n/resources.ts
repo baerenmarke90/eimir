@@ -53,6 +53,7 @@ import voiceNotes from './locales/voiceNotes';
 import weeklyInsights from './locales/weeklyInsights';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
+import wishJourney from './locales/wishJourney';
 
 export const germanResources = {
   ...de,
@@ -71,6 +72,7 @@ export const germanResources = {
   appIcon,
   wirDesign,
   wishSelection,
+  wishJourney,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
   demo,

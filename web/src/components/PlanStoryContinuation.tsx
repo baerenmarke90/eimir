@@ -9,7 +9,9 @@ import {
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { SharedAchievementCelebration } from './SharedAchievementCelebration';
+import { WishJourneyPath } from './WishJourney';
 import './PlanStoryContinuation.css';
 
 /**
@@ -82,13 +84,29 @@ export function PlanStoryContinuation({
   }
 
   if (dismissed) return null;
+  // #1790 F2: a Plan from a wish closes with the wish fulfilment moment.
+  const wishFulfilled = justCompleted && Boolean(plan.sourceWishId);
 
   return (
     <section
-      className={`${justCompleted ? 'plan-completed-celebration' : 'plan-story-saved'} plan-story-continuation`}
+      className={`${justCompleted ? 'plan-completed-celebration' : 'plan-story-saved'} plan-story-continuation${wishFulfilled ? ' plan-wish-fulfilled' : ''}`}
       aria-labelledby="plan-completed-heading"
     >
-      {sharedAchievementEnabled ? (
+      {wishFulfilled ? (
+        <>
+          <h2
+            id="plan-completed-heading"
+            ref={headingRef}
+            tabIndex={focusOnMount ? -1 : undefined}
+            className="plan-wish-fulfilled-heading"
+          >
+            {t('wishJourney.fulfilledTitle')}
+            <EimirIcon name="sparkle" />
+          </h2>
+          <p>{t('wishJourney.fulfilledBody', { title: plan.title })}</p>
+          <WishJourneyPath stage="experienced" tone="warm" advancing />
+        </>
+      ) : sharedAchievementEnabled ? (
         <SharedAchievementCelebration
           title={t('m5s3.plan.sharedAchievementTitle')}
           body={t('m5s3.plan.sharedAchievementBody', { title: plan.title })}
@@ -109,7 +127,7 @@ export function PlanStoryContinuation({
           )}
         </h2>
       )}
-      {justCompleted ? (
+      {justCompleted && !wishFulfilled ? (
         <>
           <p>{t('m5s3.plan.completedBody')}</p>
           <p className="plan-completed-intro">{t('m5s3.planStory.intro')}</p>

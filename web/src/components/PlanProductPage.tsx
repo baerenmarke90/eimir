@@ -27,7 +27,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -44,7 +44,7 @@ import {
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { createReferenceApis } from '../client/referenceFlow';
-import { appRoutePath } from '../client/routes';
+import { appRoutePath, wishDetailPath } from '../client/routes';
 import {
   dateFromInput,
   dateOnlyInput,
@@ -91,6 +91,7 @@ import { ContextTagList } from './ContextTagList';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { UiState } from './UiState';
 import { usePlanCompletion } from './usePlanCompletion';
+import { WishOriginMark } from './WishJourney';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -152,6 +153,7 @@ export function PlanProductPage({
   const tagEditor = useRef<ContextTagEditorHandle>(null);
   const [completionTarget, setCompletionTarget] = useState<string | null>(null);
   const completionTrigger = useRef<HTMLButtonElement>(null);
+  const wishOriginLink = useRef<HTMLAnchorElement>(null);
   const [completionSheetPresent, setCompletionSheetPresent] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanDetail | null>(null);
   const [editDirty, setEditDirty] = useState(false);
@@ -622,6 +624,17 @@ export function PlanProductPage({
             apiBaseUrl={apiBaseUrl}
             accessToken={accessToken}
           />
+          {plan.sourceWishId ? (
+            <Link
+              ref={wishOriginLink}
+              className="plan-wish-origin"
+              to={wishDetailPath(plan.sourceWishId)}
+            >
+              <WishOriginMark trailing>
+                {t('wishJourney.fromWish')}
+              </WishOriginMark>
+            </Link>
+          ) : null}
           <h2 className="page-composer-title plan-detail-title">
             {plan.title}
           </h2>
@@ -973,6 +986,7 @@ export function PlanProductPage({
               plan={plan}
               disabled={writesPending}
               onLinked={commitPlan}
+              sourceLinkRef={wishOriginLink}
             />
             {plan.status === 'COMPLETED' ? (
               <PlanStoryLinks

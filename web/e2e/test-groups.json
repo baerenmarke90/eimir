@@ -187,6 +187,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 10
     },
+    "wish-journey.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 8,
+      "reason": "Feature-owned #1790 F2 wish journey acceptance: Planning origin lines and quiet hint, open/planned/fulfilled wish scope, wish detail path and plan link, plan origin and the wish fulfilment moment, with 360/390/430 px, Light/Dark, 200% text, reduced motion and Expanded evidence."
+    },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 75

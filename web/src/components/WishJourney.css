@@ -1,0 +1,370 @@
+/* #1790 F2 wish journey. The warm role reuses the existing story accent on the
+ * brand surface (approved references); no new palette value. */
+:root {
+  --wish-journey-warm: var(--color-story-heart-moment);
+  --wish-journey-warm-surface: var(--color-brand-surface);
+  --wish-journey-track: var(--color-border-subtle);
+  --wish-journey-dot: var(--space-3);
+}
+
+/* The path stacks vertically when its labels would not fit side by side,
+ * e.g. at 200 % text on Compact; em follows the user's text size. */
+.wish-journey {
+  container: wish-journey / inline-size;
+  min-width: 0;
+}
+
+.wish-journey-path {
+  --wish-journey-tone: var(--color-brand-text);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wish-journey-tone-warm {
+  --wish-journey-tone: var(--wish-journey-warm);
+}
+
+.wish-journey-step {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  text-align: center;
+}
+
+/* The connector from the previous step ends at this step's dot. */
+.wish-journey-step + .wish-journey-step::before {
+  content: "";
+  position: absolute;
+  inset-block-start: calc(var(--wish-journey-dot) / 2 - 1px);
+  inset-inline-end: 50%;
+  inline-size: 100%;
+  block-size: 2px;
+  background: var(--wish-journey-track);
+  transform-origin: left center;
+}
+
+.wish-journey-step + .wish-journey-step:dir(rtl)::before {
+  transform-origin: right center;
+}
+
+.wish-journey-step.is-reached + .wish-journey-step.is-reached::before {
+  background: var(--wish-journey-tone);
+}
+
+.wish-journey-dot {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  inline-size: var(--wish-journey-dot);
+  block-size: var(--wish-journey-dot);
+  border-radius: var(--radius-pill);
+  background: var(--wish-journey-track);
+}
+
+.wish-journey-step.is-reached .wish-journey-dot {
+  background: var(--wish-journey-tone);
+}
+
+.wish-journey-step.is-current .wish-journey-dot {
+  border: 2px solid var(--wish-journey-tone);
+  background: var(--color-surface-raised);
+}
+
+.wish-journey-step.is-current {
+  color: var(--wish-journey-tone);
+  font-weight: 700;
+}
+
+.wish-journey-label {
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.wish-journey-path[data-advancing] .is-current::before {
+  animation: wish-journey-connect var(--duration-context) var(--easing-enter)
+    both;
+}
+
+.wish-journey-path[data-advancing] .is-current .wish-journey-dot,
+.wish-journey-path[data-advancing] .is-current .wish-journey-label {
+  animation: wish-journey-arrive var(--duration-transition) var(--easing-enter)
+    var(--duration-feedback) both;
+}
+
+@keyframes wish-journey-connect {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@container wish-journey (max-width: 16em) {
+  .wish-journey-path {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-2);
+  }
+
+  .wish-journey-step {
+    grid-template-columns: var(--wish-journey-dot) minmax(0, 1fr);
+    align-items: center;
+    justify-items: start;
+    column-gap: var(--space-3);
+    text-align: start;
+  }
+
+  .wish-journey-step + .wish-journey-step::before {
+    inset-block-start: calc(-50% - var(--space-2));
+    inset-inline-start: calc(var(--wish-journey-dot) / 2 - 1px);
+    inset-inline-end: auto;
+    inline-size: 2px;
+    block-size: calc(100% + var(--space-2));
+    transform-origin: center top;
+  }
+
+  .wish-journey-step + .wish-journey-step:dir(rtl)::before {
+    transform-origin: center top;
+  }
+
+  .wish-journey-path[data-advancing] .is-current::before {
+    animation-name: wish-journey-connect-down;
+  }
+}
+
+@keyframes wish-journey-connect-down {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes wish-journey-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wish-journey-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wish-journey-path[data-advancing] .is-current::before,
+  .wish-journey-path[data-advancing] .is-current .wish-journey-dot,
+  .wish-journey-path[data-advancing] .is-current .wish-journey-label {
+    animation: wish-journey-fade var(--duration-feedback) var(--easing-standard)
+      both;
+  }
+}
+
+.wish-origin-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--wish-journey-warm);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+}
+
+.wish-origin-mark > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wish-origin-mark > .eimir-icon {
+  flex: 0 0 auto;
+  inline-size: 1em;
+  block-size: 1em;
+}
+
+.wish-origin-mark > .eimir-icon-chevron-right {
+  inline-size: 0.875em;
+  block-size: 0.875em;
+}
+
+@media (forced-colors: active) {
+  .wish-journey-step.is-reached .wish-journey-dot,
+  .wish-journey-step.is-reached + .wish-journey-step.is-reached::before {
+    background: CanvasText;
+  }
+  .wish-journey-step.is-current .wish-journey-dot {
+    border-color: Highlight;
+    background: Canvas;
+  }
+}
+
+/* Planning: the single quiet hint above the Plans list. */
+.planen-wish-journey-hint {
+  display: inline-flex;
+  align-items: center;
+  max-inline-size: 100%;
+  min-block-size: var(--touch-target-web);
+  margin-block: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--wish-journey-warm-surface);
+  text-decoration: none;
+}
+
+.planen-wish-journey-hint .wish-origin-mark {
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+}
+
+.planen-wish-journey-hint:focus-visible,
+.planen-wish-journey-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.planen-undated-copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.planen-undated-link .planen-undated-copy > .wish-origin-mark,
+.planen-undated-link .planen-undated-copy > .wish-origin-mark span {
+  color: var(--wish-journey-warm);
+}
+
+/* Planned and fulfilled wishes: the wish stays the card, its journey a link. */
+.planen-wish-journey-intro {
+  margin: 0;
+  padding-inline: var(--space-1);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.planen-wish-journey {
+  gap: var(--space-3);
+}
+
+.planen-wish-journey-card {
+  display: grid;
+  min-width: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.planen-wish-journey-card > .planen-wish-link {
+  min-block-size: auto;
+  padding-block-end: var(--space-1);
+  background: transparent;
+}
+
+.planen-wish-journey-link {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--space-1);
+  min-block-size: var(--touch-target-web);
+  max-inline-size: 100%;
+  padding: 0 var(--space-5) var(--space-3);
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.planen-wish-journey-link.is-warm {
+  color: var(--wish-journey-warm);
+}
+
+.planen-wish-journey-link > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.planen-wish-journey-link > .eimir-icon {
+  flex: 0 0 auto;
+  inline-size: 0.875em;
+  block-size: 0.875em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .planen-wish-journey-link:hover > span,
+  .planen-wish-journey-hint:hover .wish-origin-mark > span {
+    text-decoration: underline;
+  }
+}
+
+/* Wish detail: the path sits where the status word was. */
+.wish-detail-journey {
+  margin-block: var(--space-1) var(--space-5);
+}
+
+.wish-detail-plan-action {
+  justify-self: start;
+  margin-block-end: var(--space-5);
+}
+
+/* Plan detail: origin above the title and the wish fulfilment moment. */
+.plan-wish-origin {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-block-size: var(--touch-target-web);
+  max-inline-size: 100%;
+  text-decoration: none;
+}
+
+.plan-wish-origin:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .plan-wish-origin:hover .wish-origin-mark > span {
+    text-decoration: underline;
+  }
+}
+
+.plan-story-continuation.plan-completed-celebration.plan-wish-fulfilled {
+  border-color: transparent;
+  background: var(--wish-journey-warm-surface);
+}
+
+.plan-wish-fulfilled-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--wish-journey-warm);
+}
+
+.plan-wish-fulfilled-heading > .eimir-icon {
+  flex: 0 0 auto;
+  inline-size: 0.75em;
+  block-size: 0.75em;
+}
+
+.plan-wish-fulfilled > p {
+  color: var(--color-text-secondary);
+}
+
+.plan-wish-fulfilled > .wish-journey {
+  margin-block: var(--space-2);
+}

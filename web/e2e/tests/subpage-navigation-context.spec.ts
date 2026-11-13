@@ -71,7 +71,7 @@ for (const width of [390, 1280]) {
     for (const name of [
       de.more.destinations.media,
       de.more.destinations.chapters,
-      de.more.destinations.years,
+      de.more.destinations.yearsAndRecaps,
     ]) {
       const entry = page.getByRole('link', { name, exact: true });
       await entry.click();
@@ -86,7 +86,10 @@ for (const width of [390, 1280]) {
     // Start the populated-server scenario without the previous empty query cache.
     await page.reload();
     await page
-      .getByRole('link', { name: de.more.destinations.years, exact: true })
+      .getByRole('link', {
+        name: de.more.destinations.yearsAndRecaps,
+        exact: true,
+      })
       .click();
     await page
       .getByRole('link', {

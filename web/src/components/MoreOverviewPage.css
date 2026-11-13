@@ -43,6 +43,14 @@
   font-size: 0.875rem;
 }
 
+.more-destination-subtitle {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
 .more-destination-trailing {
   display: inline-flex;
   align-items: center;

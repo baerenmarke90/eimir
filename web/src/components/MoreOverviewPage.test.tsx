@@ -11,7 +11,7 @@ import navigation from '../i18n/locales/navigation';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
 describe('MoreOverviewPage', () => {
-  it('renders a compact destination overview without descriptive sublines', () => {
+  it('renders the grouped destination overview with short secondary lines', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -41,6 +41,7 @@ describe('MoreOverviewPage', () => {
     expect(html).toContain(de.more.groups.personal);
     expect(html).toContain(de.more.groups.shared);
     expect(html).toContain(de.more.groups.utility);
+    expect(html).toContain(de.more.groups.moments);
 
     for (const href of [
       '/story/years',
@@ -65,21 +66,54 @@ describe('MoreOverviewPage', () => {
     expect(weeklyInsightsIndex).toBeGreaterThan(-1);
     expect(weeklyInsightsIndex).toBeLessThan(peopleIndex);
 
-    expect(html).toContain(de.more.yearsTitle);
+    // #1790 E1: years and recaps share one destination that opens the years.
+    expect(html).not.toContain('href="/more/passport"');
+    expect(html).toContain(
+      de.more.destinations.yearsAndRecaps.replace('&', '&amp;'),
+    );
+    for (const subtitle of [
+      de.more.subtitles.media,
+      de.more.subtitles.chapters,
+      de.more.subtitles.yearsAndRecaps,
+      de.more.subtitles.insights,
+      de.more.subtitles.lists,
+      de.more.subtitles.places,
+      de.more.subtitles.people,
+      de.more.subtitles.games,
+    ]) {
+      expect(html).toContain(subtitle);
+    }
+    // #1790 E2: the private area follows the profile and says who sees it.
+    expect(html).toContain(
+      de.more.subtitles.private.replace(
+        '{{visibility}}',
+        de.more.visibility.onlyYou,
+      ),
+    );
+    expect(html.indexOf('href="/more/profile"')).toBeLessThan(
+      html.indexOf('href="/more/private"'),
+    );
+    expect(html.indexOf('href="/more/private"')).toBeLessThan(
+      html.indexOf('href="/more/notifications"'),
+    );
+    expect(html.indexOf('href="/more/settings"')).toBeLessThan(
+      html.indexOf('href="/today/activity"'),
+    );
     expect(html).toContain('Alex');
     expect(html).not.toContain('href="/more/private/notes"');
     expect(html).not.toContain('more-destination-description');
     expect(html).not.toContain(de.more.intro);
+    expect(html).not.toContain(de.more.notifications.description);
 
     const rowMatches = html.match(
       /class="more-destination(?: more-profile-destination)?"/g,
     );
-    expect(rowMatches).toHaveLength(14);
+    expect(rowMatches).toHaveLength(13);
     expect(html).toContain('more-profile-avatar');
     expect(html).toContain('person-identity-avatar-medium');
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
-    expect(badgeMatches).toHaveLength(3);
+    expect(badgeMatches).toHaveLength(2);
     expect(html).toContain(games.status.premium);
     expect(html).toContain(de.more.destinations.insights);
     expect(html).toContain(dailyInsights.pro);

@@ -18,7 +18,8 @@ import {
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { storyYearPath } from '../client/routes';
+import { useHideProFeatureMarks } from '../client/proPresentation';
+import { MORE_PASSPORT_ROUTE, storyYearPath } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
@@ -37,6 +38,8 @@ import { storyItemKey } from '../client/storyProduct';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskListReturn } from '../client/useTaskListReturn';
 import { UiState } from './UiState';
+import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { TaskOriginLink } from './TodayDestinationLink';
 import './StoryYearsPage.css';
 
@@ -53,6 +56,35 @@ interface StoryYearsProps {
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   startupRead?: () => Promise<StoryPage> | undefined;
+}
+
+/**
+ * #1790 E1: Mehr opens years and recaps through one destination, so the
+ * years index offers the recaps as a quiet next step instead of a second row.
+ */
+function RecapsEntry() {
+  const { t } = useTranslation();
+  const hideProMarks = useHideProFeatureMarks();
+  return (
+    <TaskOriginLink
+      to={MORE_PASSPORT_ROUTE}
+      className="story-years-recaps-entry"
+    >
+      <span className="story-years-recaps-icon" aria-hidden="true">
+        <DestinationIcon icon="chapter" />
+      </span>
+      <span className="story-years-recaps-copy">
+        <span className="story-years-recaps-title">
+          <strong>{t('storyYears.recapsEntryTitle')}</strong>
+          {hideProMarks ? null : (
+            <span className="story-years-recaps-badge">{t('recaps.pro')}</span>
+          )}
+        </span>
+        <span>{t('storyYears.recapsEntryHint')}</span>
+      </span>
+      <EimirIcon name="chevron-right" className="story-years-recaps-chevron" />
+    </TaskOriginLink>
+  );
 }
 
 function EmptyYearsState() {
@@ -114,6 +146,8 @@ export function StoryYearsIndexPage({
   return (
     <div className="page page-reading story-years-page">
       <PageHeader title={t('storyYears.title')} />
+
+      <RecapsEntry />
 
       {offline ? (
         <div className="inline-message" role="status">

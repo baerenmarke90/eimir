@@ -104,6 +104,26 @@ describe('Story annual archive (#868)', () => {
     expect(html).not.toContain('href="/story/years/2025"');
   });
 
+  it('offers the recaps as a quiet next step, also before any year exists (#1790)', () => {
+    for (const availableYears of [[2026], []]) {
+      const html = renderYearsIndex({
+        items: [],
+        availableYears,
+        hasMore: false,
+        nextCursor: null,
+      });
+      expect(html).toContain('class="story-years-recaps-entry"');
+      expect(html).toContain('href="/more/passport"');
+      expect(html).toContain(de.storyYears.recapsEntryTitle);
+      expect(html).toContain(de.storyYears.recapsEntryHint);
+      expect(html.indexOf('story-years-recaps-entry')).toBeLessThan(
+        html.indexOf(
+          availableYears.length ? 'story-years-list' : 'story-years-empty',
+        ),
+      );
+    }
+  });
+
   it('renders one year oldest-first with month structure and existing source deep links', () => {
     const html = renderYearDetail(2025, {
       items: [

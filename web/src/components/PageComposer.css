@@ -19,6 +19,29 @@
   background: var(--color-surface-subtle);
   color: var(--color-text-secondary);
 }
+.page-composer .page-composer-writing {
+  display: grid;
+  gap: var(--space-2);
+}
+.page-composer
+  .page-composer-writing
+  :is(input.page-composer-title, textarea.page-composer-prose) {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  box-shadow: none;
+}
+.page-composer .page-composer-writing input.page-composer-title {
+  font: var(--font-composer-lead);
+  color: var(--color-text);
+  /* Keep the input's line box tall enough for the font's descenders. */
+  line-height: normal;
+}
 .page-composer :is(.composer-content, .composer-writing-surface) {
   padding: 0;
   border: 0;

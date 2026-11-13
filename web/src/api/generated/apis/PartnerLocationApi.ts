@@ -34,6 +34,26 @@ import {
     PartnerMapViewToJSON,
 } from '../models/PartnerMapView';
 import {
+    type PresenceDeviceCredentialRequest,
+    PresenceDeviceCredentialRequestFromJSON,
+    PresenceDeviceCredentialRequestToJSON,
+} from '../models/PresenceDeviceCredentialRequest';
+import {
+    type PresenceDeviceCredentialView,
+    PresenceDeviceCredentialViewFromJSON,
+    PresenceDeviceCredentialViewToJSON,
+} from '../models/PresenceDeviceCredentialView';
+import {
+    type PresenceDevicePublish,
+    PresenceDevicePublishFromJSON,
+    PresenceDevicePublishToJSON,
+} from '../models/PresenceDevicePublish';
+import {
+    type PresenceDevicePublishResult,
+    PresenceDevicePublishResultFromJSON,
+    PresenceDevicePublishResultToJSON,
+} from '../models/PresenceDevicePublishResult';
+import {
     type PresencePosition,
     PresencePositionFromJSON,
     PresencePositionToJSON,
@@ -62,9 +82,24 @@ export interface GetPartnerLocationSettingsRequest {
     spaceId: string;
 }
 
+export interface IssuePartnerLocationDeviceCredentialRequest {
+    spaceId: string;
+    presenceDeviceCredentialRequest: PresenceDeviceCredentialRequest;
+}
+
+export interface PublishPartnerLocationDeviceSnapshotRequest {
+    presenceDevicePublish: PresenceDevicePublish;
+    authorization?: string | null;
+}
+
 export interface PublishPartnerLocationSnapshotRequest {
     spaceId: string;
     presencePublish: PresencePublish;
+}
+
+export interface RevokePartnerLocationDeviceCredentialRequest {
+    deviceId: string;
+    spaceId: string;
 }
 
 export interface UpdatePartnerLocationSettingsRequest {
@@ -229,6 +264,116 @@ export class PartnerLocationApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for issuePartnerLocationDeviceCredential without sending the request
+     */
+    async issuePartnerLocationDeviceCredentialRequestOpts(requestParameters: IssuePartnerLocationDeviceCredentialRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling issuePartnerLocationDeviceCredential().'
+            );
+        }
+
+        if (requestParameters['presenceDeviceCredentialRequest'] == null) {
+            throw new runtime.RequiredError(
+                'presenceDeviceCredentialRequest',
+                'Required parameter "presenceDeviceCredentialRequest" was null or undefined when calling issuePartnerLocationDeviceCredential().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/partner-location/device-credential`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PresenceDeviceCredentialRequestToJSON(requestParameters['presenceDeviceCredentialRequest']),
+        };
+    }
+
+    /**
+     * Issue this device\'s background-upload credential for the caller\'s active share.
+     * Issue Partner Location Device Credential
+     */
+    async issuePartnerLocationDeviceCredentialRaw(requestParameters: IssuePartnerLocationDeviceCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PresenceDeviceCredentialView>> {
+        const requestOptions = await this.issuePartnerLocationDeviceCredentialRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PresenceDeviceCredentialViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Issue this device\'s background-upload credential for the caller\'s active share.
+     * Issue Partner Location Device Credential
+     */
+    async issuePartnerLocationDeviceCredential(requestParameters: IssuePartnerLocationDeviceCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PresenceDeviceCredentialView> {
+        const response = await this.issuePartnerLocationDeviceCredentialRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for publishPartnerLocationDeviceSnapshot without sending the request
+     */
+    async publishPartnerLocationDeviceSnapshotRequestOpts(requestParameters: PublishPartnerLocationDeviceSnapshotRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['presenceDevicePublish'] == null) {
+            throw new runtime.RequiredError(
+                'presenceDevicePublish',
+                'Required parameter "presenceDevicePublish" was null or undefined when calling publishPartnerLocationDeviceSnapshot().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['authorization'] != null) {
+            headerParameters['Authorization'] = String(requestParameters['authorization']);
+        }
+
+
+        let urlPath = `/api/v1/partner-location/device-snapshot`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PresenceDevicePublishToJSON(requestParameters['presenceDevicePublish']),
+        };
+    }
+
+    /**
+     * Background upload authorized only by a scoped presence device credential.
+     * Publish Partner Location Device Snapshot
+     */
+    async publishPartnerLocationDeviceSnapshotRaw(requestParameters: PublishPartnerLocationDeviceSnapshotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PresenceDevicePublishResult>> {
+        const requestOptions = await this.publishPartnerLocationDeviceSnapshotRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PresenceDevicePublishResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Background upload authorized only by a scoped presence device credential.
+     * Publish Partner Location Device Snapshot
+     */
+    async publishPartnerLocationDeviceSnapshot(requestParameters: PublishPartnerLocationDeviceSnapshotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PresenceDevicePublishResult> {
+        const response = await this.publishPartnerLocationDeviceSnapshotRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for publishPartnerLocationSnapshot without sending the request
      */
     async publishPartnerLocationSnapshotRequestOpts(requestParameters: PublishPartnerLocationSnapshotRequest): Promise<runtime.RequestOpts> {
@@ -283,6 +428,60 @@ export class PartnerLocationApi extends runtime.BaseAPI {
     async publishPartnerLocationSnapshot(requestParameters: PublishPartnerLocationSnapshotRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerLocationSettingsView> {
         const response = await this.publishPartnerLocationSnapshotRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for revokePartnerLocationDeviceCredential without sending the request
+     */
+    async revokePartnerLocationDeviceCredentialRequestOpts(requestParameters: RevokePartnerLocationDeviceCredentialRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['deviceId'] == null) {
+            throw new runtime.RequiredError(
+                'deviceId',
+                'Required parameter "deviceId" was null or undefined when calling revokePartnerLocationDeviceCredential().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling revokePartnerLocationDeviceCredential().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/partner-location/device-credential/{deviceId}`;
+        urlPath = urlPath.replace('{deviceId}', encodeURIComponent(String(requestParameters['deviceId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Stop background uploads from this device; never requires Premium.
+     * Revoke Partner Location Device Credential
+     */
+    async revokePartnerLocationDeviceCredentialRaw(requestParameters: RevokePartnerLocationDeviceCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.revokePartnerLocationDeviceCredentialRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Stop background uploads from this device; never requires Premium.
+     * Revoke Partner Location Device Credential
+     */
+    async revokePartnerLocationDeviceCredential(requestParameters: RevokePartnerLocationDeviceCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.revokePartnerLocationDeviceCredentialRaw(requestParameters, initOverrides);
     }
 
     /**

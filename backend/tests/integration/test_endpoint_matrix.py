@@ -302,6 +302,16 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"latitude": 50.94, "longitude": 6.96, "capturedAt": clock.now().isoformat()},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-location/map"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/device-credential",
+        body={"deviceId": str(uuid4())},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/partner-location/device-credential/{deviceId}",
+        fixture_aliases={"deviceId": "exportId"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/today"),
     Endpoint(
         "PATCH",
@@ -1323,6 +1333,11 @@ PLAYBACK_ENDPOINTS: tuple[tuple[str, str], ...] = (
 )
 """Video reads use a scoped grant, never general bearer/public authorization."""
 
+PRESENCE_DEVICE_ENDPOINTS: tuple[tuple[str, str], ...] = (
+    ("PUT", "/api/v1/partner-location/device-snapshot"),
+)
+"""Background uploads use a scoped presence credential, never bearer authorization."""
+
 PUBLIC_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/health"),
     ("GET", "/api/v1/health/ready"),
@@ -1746,3 +1761,24 @@ def test_playback_requires_its_scoped_grant(scenario, method: str, template: str
     invalid = client.request(method, path, params={"token": "x" * 48})
     assert invalid.status_code == 404
     assert invalid.json()["code"] == "RESOURCE_NOT_FOUND"
+
+
+@pytest.mark.parametrize(("method", "template"), PRESENCE_DEVICE_ENDPOINTS, ids=str)
+def test_presence_device_upload_requires_its_scoped_credential(  # type: ignore[no-untyped-def]
+    scenario, method: str, template: str
+) -> None:
+    client = scenario["client"]
+    body = {
+        "latitude": 53.55,
+        "longitude": 9.99,
+        "accuracyMeters": 1500,
+        "capturedAt": clock.now().isoformat(),
+    }
+    for headers in (
+        None,
+        scenario["owner_headers"],
+        {"Authorization": "Presence " + "x" * 43},
+    ):
+        response = client.request(method, template, json=body, headers=headers)
+        assert response.status_code == 401
+        assert response.json()["code"] == "AUTHENTICATION_REQUIRED"

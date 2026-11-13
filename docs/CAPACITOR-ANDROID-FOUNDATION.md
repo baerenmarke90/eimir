@@ -234,10 +234,19 @@ Mobile Web is the normative product reference. React product work reaches the An
 |---|---|---|
 | `android/app/src/main/java/de/eimir/app/MainActivity.java` | NATIVE_CAPABILITY_REQUIRED | Capacitor `BridgeActivity` host; starts the one-shot cleanup. No product logic. |
 | `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` | NATIVE_CAPABILITY_REQUIRED | Selected-photo original-file handoff (#1471): optional photo-metadata permission, read-only document grants, original MediaStore access, cancellation and Activity ownership. No independent upload or location-tracking pipeline. |
+| `android/app/src/main/java/de/eimir/app/ApproximateLocationPlugin.java`, `ApproximateLocationPolicy.java` | NATIVE_CAPABILITY_REQUIRED | Partner distance (#1792): one approximate position on request under `ACCESS_COARSE_LOCATION`, reusing a recent cached fix first. Network/fused providers only, never GPS, no listener, no storage, no upload; the Web client publishes through the API. |
 | `android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java` | NATIVE_CAPABILITY_REQUIRED / TEMPORARY_UPGRADE_MIGRATION | Deletes the retired Kotlin client's Room database, Space preference and Keystore key after an in-place update. One-shot: writes a completion marker after all three removals succeed; retries only while one fails. Temporary: remove in a later cleanup once no installation that predates the wrapper can remain (no issue tracks that yet). |
 | `AndroidManifest.xml`, `res/**`, Gradle files | NATIVE_CAPABILITY_REQUIRED | Launcher, OIDC deep link, FileProvider, icons/splash, build and verification metadata. |
 
 ## 9. Reuse-Before-Build Assessment
+
+### Approximate location for partner distance (#1792)
+
+Alternatives considered: the Web Geolocation API inside the WebView, `@capacitor/geolocation`, Google Play services `FusedLocationProviderClient` and the platform `LocationManager` with AndroidX `LocationManagerCompat`.
+
+The small `ApproximateLocation` plugin uses the platform `LocationManager` through `LocationManagerCompat.getCurrentLocation` (already on the classpath through AndroidX Core). It adds no dependency, works without Google Play services (Self-Hosted and de-Googled devices) and lets the app guarantee the energy contract in [PARTNER-LOCATION.md](m9/PARTNER-LOCATION.md) section 6. Only the network and fused providers are used, under the coarse permission. A cached fix younger than the requested maximum age (default 10 minutes) is returned without a new measurement. Otherwise one measurement runs with a 20-second limit. `@capacitor/geolocation` was not chosen because it adds a Google Play services location dependency (with new Gradle verification entries) and offers neither a provider restriction nor a passive mode. The WebView geolocation path would need an additional WebChromeClient permission bridge and cannot express the provider rule.
+
+The plugin never listens continuously, stores a position or uploads anything. The Web client decides when to publish (displacement of at least 1 km or a stale last publication) and calls the API itself. Background updates while the app is closed are not part of this capability: they would need native API calls when the short-lived access token has expired, and refreshing tokens natively would race the Web session's rotation. That decision is tracked in #1792.
 
 ### Selected-photo locations (#1471)
 

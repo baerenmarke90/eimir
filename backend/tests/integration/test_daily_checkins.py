@@ -8,7 +8,7 @@ from threading import Barrier
 from uuid import UUID
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -132,7 +132,15 @@ class TestAuthorityAndSpaceDay:
         assert foreign.status_code == nonexistent.status_code == 404
         assert foreign.json() == nonexistent.json()
 
-    def test_missing_shared_timezone_fails_closed(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+    def test_missing_shared_timezone_fails_closed(self, client, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
+        # An existing Space keeps its stored state without a shared time zone.
+        session.execute(
+            update(SpaceConfiguration)
+            .where(SpaceConfiguration.space_id == couple["space"].id)
+            .values(daily_context_timezone=None)
+            .execution_options(synchronize_session="fetch")
+        )
+        session.flush()
         response = client.get(
             path(couple["space"].id),
             headers=auth(couple["manager_token"]),
@@ -601,7 +609,7 @@ class TestVibeContract:
         assert cleared.json()["own"]["energyLevel"] == 60
         assert cleared.json()["energy"] is not None
 
-    def test_vibe_mutual_reveal_is_dimension_scoped_and_structurally_hidden(
+    def test_mutual_reveal_unlocks_both_dimensions_with_one_own_entry(
         self, client, session: Session, couple
     ) -> None:  # type: ignore[no-untyped-def]
         configure_daily(
@@ -628,7 +636,11 @@ class TestVibeContract:
         )
         partner_saved = client.patch(
             path(couple["space"].id),
-            json={"vibe": DailyVibe.SAD.value, "energyLevel": 70},
+            json={
+                "vibe": DailyVibe.SAD.value,
+                "vibeNote": "Long day, short fuse.",
+                "energyLevel": 70,
+            },
             headers={**auth(couple["partner_token"]), **if_match(partner_initial.headers["etag"])},
         )
         assert partner_saved.status_code == 200
@@ -647,7 +659,10 @@ class TestVibeContract:
         assert '"value"' not in hidden_json
         assert "hasPartnerCheckedIn" not in hidden_json
         assert "updatedAt" not in hidden_json
+        assert "Long day" not in hidden_json
 
+        # #1790 (ADR 0007 amendment): one own entry of any kind reveals every
+        # Mutual Reveal dimension together, including the partner's Vibe note.
         energy_only = client.patch(
             path(couple["space"].id),
             json={"energyLevel": 40},
@@ -655,7 +670,11 @@ class TestVibeContract:
         )
         assert energy_only.status_code == 200
         assert energy_only.json()["energy"]["partner"] == {"state": "VISIBLE", "value": 70}
-        assert energy_only.json()["vibe"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        assert energy_only.json()["vibe"]["partner"] == {
+            "state": "VISIBLE",
+            "value": DailyVibe.SAD.value,
+        }
+        assert energy_only.json()["vibe"]["partnerNote"] == "Long day, short fuse."
 
         vibe_added = client.patch(
             path(couple["space"].id),
@@ -675,7 +694,7 @@ class TestVibeContract:
             headers={**auth(couple["manager_token"]), **if_match(vibe_added.headers["etag"])},
         )
         assert energy_cleared.status_code == 200
-        assert energy_cleared.json()["energy"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        assert energy_cleared.json()["energy"]["partner"] == {"state": "VISIBLE", "value": 70}
         assert energy_cleared.json()["vibe"]["partner"] == {
             "state": "VISIBLE",
             "value": DailyVibe.SAD.value,
@@ -689,6 +708,7 @@ class TestVibeContract:
         assert vibe_cleared.status_code == 200
         assert vibe_cleared.json()["vibe"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
         assert vibe_cleared.json()["energy"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        assert vibe_cleared.json()["vibe"]["partnerNote"] is None
 
     def test_vibe_immediate_exposes_only_eligible_partner_state_and_keeps_owner_isolated(
         self, client, session: Session, couple

@@ -99,6 +99,7 @@ import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
+import { EditPencilIcon } from './ListEntryActions';
 import { ComposerHeader } from './StoryFormPageShell';
 import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
@@ -565,6 +566,8 @@ export function PlanProductPage({
                 type="button"
                 ref={editTrigger}
                 className="tertiary composer-detail-edit"
+                aria-label={t('common.edit')}
+                title={t('common.edit')}
                 disabled={writesPending}
                 onClick={() => {
                   if (isPlanWritePending()) return;
@@ -585,7 +588,10 @@ export function PlanProductPage({
                   setSelectedPlaceId(plan.placeId ?? '');
                 }}
               >
-                {t('common.edit')}
+                <EditPencilIcon className="list-entry-icon" />
+                <span className="story-detail-edit-label">
+                  {t('common.edit')}
+                </span>
               </button>
             ) : undefined
           }
@@ -596,6 +602,20 @@ export function PlanProductPage({
           <EimirIcon name="check" />
           {t('composer.saved')}
         </p>
+      ) : null}
+      {!isEditing ? (
+        plan.discreet ? (
+          <div className="discreet-title-row">
+            <h2 className="page-composer-title plan-detail-title">
+              {concealed ? planListTitle(plan, t) : plan.title}
+            </h2>
+            {concealed && !plan.coverAttachment ? <DiscreetLock /> : null}
+          </div>
+        ) : (
+          <h2 className="page-composer-title plan-detail-title">
+            {plan.title}
+          </h2>
+        )
       ) : null}
       {!isEditing ? (
         <section
@@ -705,18 +725,6 @@ export function PlanProductPage({
               </WishOriginMark>
             </Link>
           ) : null}
-          {plan.discreet ? (
-            <div className="discreet-title-row">
-              <h2 className="page-composer-title plan-detail-title">
-                {concealed ? planListTitle(plan, t) : plan.title}
-              </h2>
-              {concealed && !plan.coverAttachment ? <DiscreetLock /> : null}
-            </div>
-          ) : (
-            <h2 className="page-composer-title plan-detail-title">
-              {plan.title}
-            </h2>
-          )}
           {concealed ? (
             <section className="discreet-panel">
               <p>{t('discreetPlans.detail.concealedBody')}</p>

@@ -38,6 +38,7 @@ from eimir.api.v1 import (
     milestones,
     notification_preferences,
     once_messages,
+    partner_location,
     people,
     photo_sources,
     place_relations,
@@ -106,6 +107,7 @@ normal_router.include_router(once_messages.router)
 normal_router.include_router(comments.router)
 normal_router.include_router(link_previews.router)
 normal_router.include_router(daily_checkins.router)
+normal_router.include_router(partner_location.router)
 normal_router.include_router(daily_quote.router)
 normal_router.include_router(people.router)
 normal_router.include_router(profiles.router)

@@ -41,7 +41,7 @@ describe('discreet plan presentation (#1790 F3)', () => {
   it('exports only the list title and time to calendars', () => {
     const { plan: exported, location } = calendarPresentation(
       plan,
-      'Hotel am Seeufer',
+      'Lakeside hotel',
       t,
     );
     expect(location).toBeUndefined();

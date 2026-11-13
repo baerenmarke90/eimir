@@ -91,7 +91,7 @@ function renderPlan(overrides: Partial<PlanDetail> = {}) {
     plan,
   );
   queryClient.setQueryData(authorSummaryQueryKeys.placeOptions('space-1'), [
-    { id: 'place-1', name: 'Hotel am Seeufer' },
+    { id: 'place-1', name: 'Lakeside hotel' },
   ]);
   render(
     <QueryClientProvider client={queryClient}>
@@ -145,7 +145,7 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
       screen.getByRole('heading', { name: 'Hotel night just for us' }),
     ).toBeTruthy();
     expect(screen.getByText('Lake view room, sauna at seven')).toBeTruthy();
-    expect(screen.getByText('Hotel am Seeufer')).toBeTruthy();
+    expect(screen.getByText('Lakeside hotel')).toBeTruthy();
     const conceal = screen.getByRole('button', {
       name: t('discreetPlans.detail.conceal'),
     });
@@ -173,7 +173,7 @@ describe('PlanProductPage discreet plans (#1790 F3)', () => {
       screen.getByRole('heading', { name: 'Hotel night just for us' }),
     ).toBeTruthy();
     expect(document.body.textContent).not.toContain('sauna');
-    expect(document.body.textContent).not.toContain('Hotel am Seeufer');
+    expect(document.body.textContent).not.toContain('Lakeside hotel');
   });
 
   it('turns Diskret on below Vorfreude with a prefilled neutral suggestion', async () => {

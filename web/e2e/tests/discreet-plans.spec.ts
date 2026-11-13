@@ -20,10 +20,10 @@ import {
 const PLAN = '55555555-5555-4555-8555-555555555555';
 const PLACE = '66666666-6666-4666-8666-666666666666';
 const BASE = `/api/v1/spaces/${SPACE_ID}`;
-const TITLE = 'Hotelnacht nur für uns';
-const PREVIEW = 'Wochenende zu zweit';
-const DESCRIPTION = 'Zimmer mit Blick auf den See, ab 19 Uhr Sauna.';
-const PLACE_NAME = 'Hotel am Seeufer';
+const TITLE = 'Hotel night just for us';
+const PREVIEW = 'Weekend for two';
+const DESCRIPTION = 'Lake view room, sauna at seven.';
+const PLACE_NAME = 'Lakeside hotel';
 const cover = fileURLToPath(
   new URL('../fixtures/plan-cover-fit/landscape.png', import.meta.url),
 );
@@ -38,7 +38,7 @@ async function fixture(page: Page, overrides: Record<string, unknown> = {}) {
     creator: ME,
     title: TITLE,
     description: DESCRIPTION,
-    tags: ['Seeufer'],
+    tags: ['lakeside'],
     plannedOn: null,
     plannedStart: '2099-11-21T18:00:00Z',
     plannedEnd: '2099-11-22T10:00:00Z',
@@ -202,7 +202,7 @@ for (const scenario of [
     const card = page.locator('.planen-next-link');
     await expect(card).toContainText(PREVIEW);
     await expect(card).not.toContainText(TITLE);
-    await expect(card).not.toContainText('Sauna');
+    await expect(card).not.toContainText('sauna');
     await expect(card.locator('.discreet-lines')).toBeVisible();
     await expect(
       card.getByRole('img', { name: discreetPlans.lockLabel }),
@@ -218,7 +218,7 @@ for (const scenario of [
     await expect(
       page.getByRole('heading', { name: PREVIEW, level: 2 }),
     ).toBeVisible();
-    for (const hidden of [TITLE, 'Sauna', PLACE_NAME, 'Seeufer'])
+    for (const hidden of [TITLE, 'sauna', PLACE_NAME, 'lakeside'])
       await expect(page.locator('main')).not.toContainText(hidden);
     await expect(
       page.getByRole('button', { name: copy.plan.complete, exact: true }),

@@ -122,6 +122,12 @@ ActionState     = idle | submitting | success | error
   Place/Tag/List/Voice insertion pills, and selected values use quiet edit
   chips. Diary has one on-page media entry; HeartMoment and Plan use the Photo
   tool and shared source sheet. Other AddAction consumers retain their contract.
+- Product Owner decision #1790 D1 makes the diary entry the only one: diary
+  create and edit have no Photo tool and no separate external-source link. The
+  on-page intake opens the shared source sheet when an external source is
+  connected, and the device picker otherwise; a populated gallery adds through
+  its add tile. HeartMoment and Plan keep the Photo tool, where media stay
+  optional.
 - Hover feedback must keep the control's hit target stationary. Translating a
   button away from a pointer at its edge can alternate hover state indefinitely
   and prevent both a real click and native actionability checks. Reuse color

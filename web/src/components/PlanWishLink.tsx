@@ -5,7 +5,13 @@ import {
   useQueryClient,
   useQuery,
 } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
@@ -43,7 +49,14 @@ export function PlanWishLink({
   draftChoice,
   renderTrigger,
   presentation,
+  sourceLinkRef,
 }: {
+  /**
+   * The page already presents the source wish (#1790 F2 origin line above the
+   * Plan title). This component then renders no second link and returns focus
+   * to that one after linking.
+   */
+  sourceLinkRef?: RefObject<HTMLAnchorElement | null>;
   draftChoice?: {
     value: WishDetail | null;
     onChoose: (wish: WishDetail | null) => void;
@@ -62,7 +75,8 @@ export function PlanWishLink({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<WishDetail | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
-  const sourceLink = useRef<HTMLAnchorElement>(null);
+  const ownSourceLink = useRef<HTMLAnchorElement>(null);
+  const sourceLink = sourceLinkRef ?? ownSourceLink;
   const inFlight = useRef(false);
   const focusLinkedSource = useRef(false);
   const eligible =
@@ -208,7 +222,7 @@ export function PlanWishLink({
   }
   const sourceWish = useQuery({
     queryKey: ['m5-s3', 'wishes', spaceId, plan?.sourceWishId],
-    enabled: Boolean(plan?.sourceWishId),
+    enabled: Boolean(plan?.sourceWishId) && !sourceLinkRef,
     retry: false,
     queryFn: ({ signal }) => {
       if (!plan?.sourceWishId) throw new Error('Missing source Wish');
@@ -227,17 +241,19 @@ export function PlanWishLink({
   return (
     <section className="plan-wish-link">
       {plan?.sourceWishId ? (
-        <Link
-          ref={sourceLink}
-          className="button-link secondary-link plan-wish-source"
-          to={wishDetailPath(plan.sourceWishId)}
-        >
-          <EimirIcon name="wuensche" />
-          <span>
-            <span>{t('m5s3.plan.openWish')}</span>
-            {sourceWish.data ? <small>{sourceWish.data.title}</small> : null}
-          </span>
-        </Link>
+        sourceLinkRef ? null : (
+          <Link
+            ref={sourceLink}
+            className="button-link secondary-link plan-wish-source"
+            to={wishDetailPath(plan.sourceWishId)}
+          >
+            <EimirIcon name="wuensche" />
+            <span>
+              <span>{t('m5s3.plan.openWish')}</span>
+              {sourceWish.data ? <small>{sourceWish.data.title}</small> : null}
+            </span>
+          </Link>
+        )
       ) : renderTrigger ? (
         renderTrigger(() => {
           trigger.current =

@@ -34,6 +34,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { WishPlanReference } from './WishPlanReference';
+import {
+    WishPlanReferenceFromJSON,
+    WishPlanReferenceFromJSONTyped,
+    WishPlanReferenceToJSON,
+    WishPlanReferenceToJSONTyped,
+} from './WishPlanReference';
 
 /**
  * 
@@ -72,11 +79,23 @@ export interface WishDetail {
      */
     description?: string | null;
     /**
+     * Whether a Memory is linked to this PLANNED or COMPLETED Wish or to its originating Plan; always false for OPEN Wishes.
+     * @type {boolean}
+     * @memberof WishDetail
+     */
+    hasMemory: boolean;
+    /**
      * 
      * @type {string}
      * @memberof WishDetail
      */
     id: string;
+    /**
+     * Originating Plan of a PLANNED or COMPLETED Wish; null for OPEN, directly completed, or returned Wishes.
+     * @type {WishPlanReference}
+     * @memberof WishDetail
+     */
+    plan: WishPlanReference | null;
     /**
      * 
      * @type {string}
@@ -125,7 +144,9 @@ export function instanceOfWishDetail(value: object): value is WishDetail {
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('createdBy' in value) || value['createdBy'] === undefined) return false;
     if (!('creator' in value) || value['creator'] === undefined) return false;
+    if (!('hasMemory' in value) || value['hasMemory'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
+    if (!('plan' in value) || value['plan'] === undefined) return false;
     if (!('spaceId' in value) || value['spaceId'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
@@ -149,7 +170,9 @@ export function WishDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
+        'hasMemory': json['hasMemory'],
         'id': json['id'],
+        'plan': WishPlanReferenceFromJSON(json['plan']),
         'spaceId': json['spaceId'],
         'status': WishStatusFromJSON(json['status']),
         'tags': json['tags'] == null ? undefined : json['tags'],
@@ -175,7 +198,9 @@ export function WishDetailToJSONTyped(value?: WishDetail | null, ignoreDiscrimin
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
         'description': value['description'],
+        'hasMemory': value['hasMemory'],
         'id': value['id'],
+        'plan': WishPlanReferenceToJSON(value['plan']),
         'spaceId': value['spaceId'],
         'status': WishStatusToJSON(value['status']),
         'tags': value['tags'],

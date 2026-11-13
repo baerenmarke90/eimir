@@ -66,6 +66,29 @@ async function expectHiddenGeometry(input: Locator): Promise<void> {
 }
 
 async function expectKeyboardFilePicker(page: Page): Promise<void> {
+  // #1790 D1: without an external source the diary intake opens the device
+  // picker directly instead of the shared source sheet.
+  const directIntake = page.locator(
+    '.composer-diary-intake .media-intake-device:not([aria-haspopup="dialog"])',
+  );
+  if (await directIntake.isVisible()) {
+    const intakeInput = page.locator(
+      '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type="file"]',
+    );
+    await expect(intakeInput).toHaveCount(1);
+    await expectHiddenGeometry(intakeInput);
+    await expect(intakeInput).not.toHaveAccessibleName('');
+    await expect(intakeInput).toHaveAttribute('tabindex', '-1');
+    await directIntake.focus();
+    await expect(directIntake).toHaveCSS('outline-style', 'solid');
+    for (const key of ['Enter', 'Space']) {
+      const native = page.waitForEvent('filechooser');
+      await directIntake.press(key);
+      await (await native).setFiles([]);
+      await expect(directIntake).toBeFocused();
+    }
+    return;
+  }
   const trigger = page
     .locator('.composer-tool-row button')
     .filter({ has: page.locator('.eimir-icon-foto') })

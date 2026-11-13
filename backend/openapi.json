@@ -14561,10 +14561,26 @@
             ],
             "title": "Description"
           },
+          "hasMemory": {
+            "description": "Whether a Memory is linked to this PLANNED or COMPLETED Wish or to its originating Plan; always false for OPEN Wishes.",
+            "title": "Hasmemory",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WishPlanReference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Originating Plan of a PLANNED or COMPLETED Wish; null for OPEN, directly completed, or returned Wishes."
           },
           "spaceId": {
             "format": "uuid",
@@ -14608,7 +14624,9 @@
           "createdAt",
           "updatedAt",
           "creator",
-          "capabilities"
+          "capabilities",
+          "plan",
+          "hasMemory"
         ],
         "title": "WishDetail",
         "type": "object"
@@ -14644,6 +14662,64 @@
           "hasMore"
         ],
         "title": "WishPage",
+        "type": "object"
+      },
+      "WishPlanReference": {
+        "description": "The Plan that originated from this Wish (``Plan.sourceWishId``).\n\nRead-only journey context for presentation (#1790 F2). It carries only\nwhat a Wish surface needs to point to the Plan and show when it happens;\nthe Plan itself stays the source of truth. ``plannedOn`` is a date-only\nschedule and ``plannedStart`` an exact instant; at most one is set, and\nboth are null for a Plan without a date. ``experiencedOn`` is set once\nthe Plan was completed.",
+        "properties": {
+          "experiencedOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experiencedon"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "plannedOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plannedon"
+          },
+          "plannedStart": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plannedstart"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlanStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "plannedOn",
+          "plannedStart",
+          "experiencedOn"
+        ],
+        "title": "WishPlanReference",
         "type": "object"
       },
       "WishSelectionCandidateView": {

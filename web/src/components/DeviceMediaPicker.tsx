@@ -21,6 +21,8 @@ interface Props {
   onFiles: (files: FileList) => void;
   inSourceChooser?: boolean;
   intake?: boolean;
+  /** When set, the intake opens the shared source sheet instead of the device picker. */
+  onChooseSource?: () => void;
   renderTrigger?: (open: () => void) => ReactNode;
   actionContainer?: HTMLElement | null;
 }
@@ -120,6 +122,7 @@ function DeviceInput({
   inSourceChooser,
   actionContainer,
   intake = false,
+  onChooseSource,
   renderTrigger,
 }: Props & { videos: boolean }) {
   const { t } = useTranslation();
@@ -168,9 +171,13 @@ function DeviceInput({
                 ? // The native app has no drag-and-drop target, so it must not
                   // promise one; browsers keep the drop hint.
                   t(
-                    isCapacitorNativePlatform()
-                      ? 'composer.chooseFromDevice'
-                      : 'composer.chooseOrDrag',
+                    onChooseSource
+                      ? isCapacitorNativePlatform()
+                        ? 'composer.chooseSource'
+                        : 'composer.chooseSourceOrDrag'
+                      : isCapacitorNativePlatform()
+                        ? 'composer.chooseFromDevice'
+                        : 'composer.chooseOrDrag',
                   )
                 : inSourceChooser && videos
                   ? t('photoSources.deviceMedia')
@@ -179,7 +186,10 @@ function DeviceInput({
             icon="foto"
             variant={inSourceChooser || intake ? 'source' : 'entry'}
             disabled={disabled}
-            onClick={() => input.current?.click()}
+            aria-haspopup={onChooseSource ? 'dialog' : undefined}
+            onClick={() =>
+              onChooseSource ? onChooseSource() : input.current?.click()
+            }
           />
         ),
       )}

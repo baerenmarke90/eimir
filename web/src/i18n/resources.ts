@@ -53,8 +53,10 @@ import taskSheets from './locales/taskSheets';
 import video from './locales/video';
 import voiceNotes from './locales/voiceNotes';
 import weeklyInsights from './locales/weeklyInsights';
+import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
+import wishJourney from './locales/wishJourney';
 
 export const germanResources = {
   ...de,
@@ -71,8 +73,10 @@ export const germanResources = {
   taskSheets,
   accountSettings,
   appIcon,
+  wirCheckIn,
   wirDesign,
   wishSelection,
+  wishJourney,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
   demo,

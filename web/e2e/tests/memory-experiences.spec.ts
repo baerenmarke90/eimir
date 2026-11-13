@@ -14,7 +14,6 @@ import {
   expectInlineDraftActions,
   expectQuietComposerMedia,
 } from '../support/mediaDraft';
-import { openComposerMediaSources } from '../support/mediaIntake';
 import { closeComposerDate, showComposerDate } from '../support/memoryDiary';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
@@ -362,8 +361,8 @@ for (const [width, colorScheme] of [
     // The native date editor keeps calendar dates rather than timezone instants.
     await date.fill('2026-12-31');
     await closeComposerDate(page);
-    await openComposerMediaSources(page);
-    const input = page.locator('#memory-create-images-source');
+    // #1790 D1: without an external source the diary intake owns the input.
+    const input = page.locator('#memory-create-images');
     await expect(input).toBeAttached();
     await expect(input).toBeEnabled();
     const photoNames = [

@@ -1017,6 +1017,17 @@
   cursor: pointer;
 }
 
+.snackbar-action {
+  min-height: 44px;
+  border: 0;
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  color: var(--color-link-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .page-heading-action {
   flex: 0 0 auto;
 }

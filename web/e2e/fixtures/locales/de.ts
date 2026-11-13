@@ -1,4 +1,10 @@
 const de = {
+  wirCheckIn: {
+    ownNote: 'Endlich Wochenende, ich freu mich auf unseren Abend.',
+    ownShortNote: 'Endlich Wochenende.',
+    partnerNote: 'Schlecht geschlafen, Kaffee hilft. Heute Abend nur Sofa?',
+    partnerShortNote: 'Schlecht geschlafen, Kaffee hilft.',
+  },
   monthStory: {
     photoTitles: [
       'Mit Bruno im Wald',

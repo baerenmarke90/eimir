@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
@@ -19,6 +20,7 @@ export function usePlanCompletion({
   spaceId: string;
   planId: string | undefined;
 }) {
+  const queryClient = useQueryClient();
   const completion = usePlanningCompletion({
     spaceId,
     resourceId: planId,
@@ -32,8 +34,22 @@ export function usePlanCompletion({
         ifMatch: planningIfMatch(plan),
         planComplete: { experiencedOn },
       });
+      const completedPlan = await response.value();
+      // The source wish completed in the same server transaction (#1790 F2):
+      // its journey lists and detail must not keep showing it as planned.
+      if (completedPlan.sourceWishId) {
+        void queryClient.invalidateQueries({
+          queryKey: authorSummaryQueryKeys.wishes(spaceId),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: authorSummaryQueryKeys.wishDetail(
+            spaceId,
+            completedPlan.sourceWishId,
+          ),
+        });
+      }
       return {
-        completedPlan: await response.value(),
+        completedPlan,
         achievement: sharedAchievementKind(response.raw),
       };
     },

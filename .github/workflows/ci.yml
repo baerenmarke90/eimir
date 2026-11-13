@@ -360,7 +360,7 @@ jobs:
             -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
             web nginx -T 2>&1)
           printf '%s\n' "$rendered" \
-            | grep -Fq "connect-src 'self' https://api.example.test https://s3.example.test:9443;"
+            | grep -Fq "connect-src 'self' https://tiles.openfreemap.org https://api.example.test https://s3.example.test:9443;"
 
           set +e
           docker compose run --rm --no-deps \

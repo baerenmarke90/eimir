@@ -1,4 +1,3 @@
-import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useMemo, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -8,12 +7,11 @@ import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import {
-  dailyInsightsEntitlementQueryKey,
+  DAILY_INSIGHTS_CAPABILITY,
   dailyInsightsQueryKey,
   isInsightsContextUnavailable,
   isInsightsEntitlementRequired,
   loadDailyInsights,
-  loadDailyInsightsCapability,
 } from '../client/dailyInsights';
 import {
   addDays,
@@ -37,8 +35,13 @@ import {
   MORE_INSIGHTS_ROUTE,
   settingsCategoryPath,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
+import { TaskBackLink } from './TaskBackButton';
 import './DailyInsights.css';
 import {
   formatDayMonth,
@@ -188,13 +191,16 @@ export function DailyInsightsPage({
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
 
-  const capabilityQuery = useQuery({
-    queryKey: dailyInsightsEntitlementQueryKey(account.id, spaceId),
-    queryFn: ({ signal }) =>
-      loadDailyInsightsCapability(entitlementApi, spaceId, signal),
-    retry: false,
-    gcTime: 0,
-    refetchOnMount: 'always',
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementApi, spaceId),
+    [entitlementApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capabilityQuery = useSpaceCapability({
+    accountId: account.id,
+    spaceId,
+    load: loadEntitlement,
+    capability: DAILY_INSIGHTS_CAPABILITY,
   });
   const capable = capabilityQuery.data === true;
 

@@ -174,3 +174,29 @@ photos. A separate journey verifies the photo stays hidden while parent access
 is pending and that a 404 evicts its bytes. Representative Compact and Expanded
 renders are in [the startup evidence folder](evidence/story-startup/). The
 native session lifecycle is simulated in Chromium.
+
+## Kept primary tabs — 2026-11-12
+
+The Product Owner's screen recording of the Android test build showed every
+switch between Wir, Momente, Planen and Mehr rebuilding the destination:
+loading card, then the stored overview notice, then empty media frames, then
+photos popping in once their parent read-access returned. The byte and URL
+tiers were working; the views themselves were discarded on every tab change.
+
+Visited primary tabs now stay mounted, as on a native tab bar. The inactive
+tabs are `hidden` (out of layout, focus order and the accessibility tree) and
+see the location they last had, so they never react to another tab's route or
+publish task-origin metadata. Returning to a tab shows the same view, photos
+and scroll position immediately; a detail route opened from a tab returns to
+the kept view as well. Re-selecting the active tab still returns to its top.
+
+This does not change the authorization contract above: a kept view keeps its
+already authorized display handles, exactly as a view that stays on screen.
+Any new delivery (a newly mounted preview, a detail, an original) still checks
+parent read-access first. Hidden tabs keep their query observers, so the
+existing freshness, invalidation, revocation and logout/Space wipes apply to
+them unchanged. Memory is bounded by the four primary tabs.
+
+Images that do mount now fade in once decoded (`useMediaReveal`) instead of
+replacing the frame abruptly; the fade uses `--duration-context`, which is
+zero under reduced motion, and failed images settle visibly.

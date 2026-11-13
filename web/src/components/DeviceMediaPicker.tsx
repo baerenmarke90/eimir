@@ -1,5 +1,6 @@
 import { type ReactNode, useContext, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { isCapacitorNativePlatform } from '../client/config';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
 import { MediaIntakeButton } from './MediaIntakeButton';
@@ -164,7 +165,13 @@ function DeviceInput({
             className={intake ? 'media-intake-device' : undefined}
             description={
               intake
-                ? t('composer.chooseOrDrag')
+                ? // The native app has no drag-and-drop target, so it must not
+                  // promise one; browsers keep the drop hint.
+                  t(
+                    isCapacitorNativePlatform()
+                      ? 'composer.chooseFromDevice'
+                      : 'composer.chooseOrDrag',
+                  )
                 : inSourceChooser && videos
                   ? t('photoSources.deviceMedia')
                   : undefined

@@ -56,6 +56,7 @@ MAX_QUERY_LENGTH = 200
 _EXCERPT_LENGTH = 240
 _RANK_SCALE = 1_000_000
 _SORT_CONTRACT = "search-v1"
+_TAG_QUERY_PREFIX = "tag:"
 _WEIGHTS = {"A": 1.0, "B": 0.4}
 _TOKEN = re.compile(r"[^\W_]+")
 _QUERY_ITEM = re.compile(r'(-?)"([^"]*)"|(-?)(\S+)')
@@ -75,6 +76,16 @@ class SearchKind(StrEnum):
     GIFT_IDEA = "GIFT_IDEA"
     PRIVATE_COLLECTION = "PRIVATE_COLLECTION"
     PRIVATE_COLLECTION_ITEM = "PRIVATE_COLLECTION_ITEM"
+
+
+_TAGGED_KINDS = frozenset(
+    {
+        SearchKind.MEMORY,
+        SearchKind.HEART_MOMENT,
+        SearchKind.WISH,
+        SearchKind.PLAN,
+    }
+)
 
 
 class SearchScope(StrEnum):
@@ -111,6 +122,19 @@ def normalize_query(value: str) -> str:
             "SEARCH_QUERY_INVALID",
         )
     return normalized
+
+
+def tagged_query(query: str) -> str | None:
+    """Extract an exact authored tag query within the existing Search contract."""
+    if not query.casefold().startswith(_TAG_QUERY_PREFIX):
+        return None
+    tag = query[len(_TAG_QUERY_PREFIX) :].strip()
+    if not 1 <= len(tag) <= 40:
+        raise ValidationError(
+            "The selected tag is not valid.",
+            "SEARCH_QUERY_INVALID",
+        )
+    return tag.casefold()
 
 
 def tokenize(text: str) -> list[str]:
@@ -535,24 +559,35 @@ def search(
         else None
     )
 
-    groups = parse_query(normalized_query)
+    exact_tag = tagged_query(normalized_query)
+    groups = () if exact_tag is not None else parse_query(normalized_query)
     matches: list[SearchRow] = []
-    if groups:
+    if groups or exact_tag is not None:
         for kind in selected:
+            if exact_tag is not None and kind not in _TAGGED_KINDS:
+                continue
             for source in _SOURCES[kind]:
                 for row, parent_id in _authorized_rows(session, context, source):
-                    rank = score(
-                        groups,
-                        tuple(
-                            (
-                                " ".join(getattr(row.payload, name))
-                                if name == "tags"
-                                else getattr(row.payload, name),
-                                weight,
-                            )
-                            for name, weight in source.fields
-                        ),
-                    )
+                    if exact_tag is not None:
+                        # SQL authorization stays authoritative before reading
+                        # protected tags; unrelated prose cannot match.
+                        tags = getattr(row.payload, "tags", ()) or ()
+                        if not any(tag.casefold() == exact_tag for tag in tags):
+                            continue
+                        rank: int | None = _RANK_SCALE
+                    else:
+                        rank = score(
+                            groups,
+                            tuple(
+                                (
+                                    " ".join(getattr(row.payload, name))
+                                    if name == "tags"
+                                    else getattr(row.payload, name),
+                                    weight,
+                                )
+                                for name, weight in source.fields
+                            ),
+                        )
                     if rank is None:
                         continue
                     matches.append(

@@ -40,10 +40,14 @@ import {
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   MEMORY_CREATE_ROUTE,
-  MORE_PASSPORT_ROUTE,
   PRO_INFORMATION_ROUTE,
   recapDetailPath,
+  STORY_RECAPS_ROUTE,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
@@ -67,6 +71,9 @@ import './RelationshipRecapsPage.css';
 
 export type RecapsPageProps = ProfilePageProps & { mediaApis: ReferenceApis };
 const POLL_WINDOW_MS = 120_000;
+/** Earlier periods arrive in server-paced batches; a calm cadence is enough. */
+const PREPARING_POLL_MS = 15_000;
+const PREPARING_WINDOW_MS = 30 * 60_000;
 
 async function authorized<T>(operation: Promise<T>): Promise<T> {
   try {
@@ -134,7 +141,9 @@ function Cover({
       <div className="recap-cover-copy">
         <div className="recap-cover-kicker">
           <span>{label}</span>
-          {value.savedAt ? <span>{t('recaps.saved')}</span> : null}
+          {value.savedAt && value.isPartial ? (
+            <span>{t('recaps.saved')}</span>
+          ) : null}
         </div>
         <h2 lang={value.headline ? value.locale : undefined}>
           {value.status === 'EMPTY'
@@ -158,6 +167,33 @@ function Cover({
             : t('recaps.open')}
           <span aria-hidden="true"> →</span>
         </Link>
+      </div>
+    </article>
+  );
+}
+
+/** A period the server is still compiling; it becomes a cover without a request. */
+function PreparingCover({ value }: { value: RecapPeriod }) {
+  const { t } = useTranslation();
+  return (
+    <article className="recap-cover recap-cover-preparing">
+      <div className="recap-cover-art">
+        <div className="recap-cover-words">
+          <EimirIcon name="kapitel" />
+        </div>
+        <span className="recap-edition-mark" aria-hidden="true">
+          {value.kind === 'YEAR'
+            ? value.year
+            : new Intl.NumberFormat(resolvedLocale(), {
+                minimumIntegerDigits: 2,
+              }).format(value.month ?? 1)}
+        </span>
+      </div>
+      <div className="recap-cover-copy">
+        <div className="recap-cover-kicker">
+          <span>{recapPeriodLabel(value, resolvedLocale())}</span>
+        </div>
+        <p className="recap-period-note">{t('recaps.preparing')}</p>
       </div>
     </article>
   );
@@ -194,10 +230,8 @@ export function RelationshipRecapsPage(props: RecapsPageProps) {
 function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
   const { t } = useTranslation();
   const [search, setSearch] = useSearchParams();
-  const navigate = useNavigate();
   const client = useQueryClient();
   const [error, setError] = useState<Error | null>(null);
-  const [requesting, setRequesting] = useState(false);
   const started = useRef(Date.now());
   const prepared = useRef(false);
   const kind = search.get('tab') === 'years' ? 'YEAR' : 'MONTH';
@@ -220,14 +254,22 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
     retry: false,
     gcTime: 0,
     refetchOnMount: 'always',
-    refetchInterval: (state) =>
-      document.visibilityState !== 'hidden' &&
-      Date.now() - started.current < POLL_WINDOW_MS &&
-      state.state.data?.pages.some((page) =>
-        page.editions.some((item) => item.status === 'PENDING'),
+    refetchInterval: (state) => {
+      if (document.visibilityState === 'hidden') return false;
+      const pages = state.state.data?.pages ?? [];
+      const elapsed = Date.now() - started.current;
+      if (
+        elapsed < POLL_WINDOW_MS &&
+        pages.some((page) =>
+          page.editions.some((item) => item.status === 'PENDING'),
+        )
       )
-        ? 2500
-        : false,
+        return 2500;
+      return elapsed < PREPARING_WINDOW_MS &&
+        pages[0]?.periods.some((period) => period.kind === kind)
+        ? PREPARING_POLL_MS
+        : false;
+    },
   });
   const allowed = query.data?.pages[0]?.canCompose === true;
   useEffect(() => {
@@ -267,25 +309,6 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           (item) => recapPeriodKey(item) === recapPeriodKey(period),
         ),
     ) ?? [];
-  async function openPeriod(period: RecapPeriod) {
-    setRequesting(true);
-    setError(null);
-    try {
-      const result = await authorized(
-        api.requestRelationshipRecap({
-          spaceId: props.spaceId,
-          recapRequest: { ...period, variant: 0 },
-        }),
-      );
-      void navigate(
-        `${recapDetailPath(result.id)}${kind === 'YEAR' ? '?tab=years' : ''}`,
-      );
-    } catch (cause) {
-      setError(await normalizeClientError(cause));
-    } finally {
-      setRequesting(false);
-    }
-  }
   return (
     <div className="page recap-library">
       <PageHeader
@@ -353,23 +376,20 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           <>
             <p className="recap-section-label">{t('recaps.current')}</p>
             <Cover {...props} value={editions[0]} featured />
-            {editions.length > 1 ? (
-              <section
-                className="recap-archive"
-                aria-label={t('recaps.archive')}
-              >
-                <h2>{t('recaps.archive')}</h2>
-                {editions.slice(1).map((value) => (
-                  <Cover
-                    key={value.id}
-                    {...props}
-                    value={value}
-                    featured={false}
-                  />
-                ))}
-              </section>
-            ) : null}
           </>
+        ) : null}
+        {editions.length > 1 || (allowed && periods.length > 0) ? (
+          <section className="recap-archive" aria-label={t('recaps.archive')}>
+            <h2>{t('recaps.archive')}</h2>
+            {editions.slice(1).map((value) => (
+              <Cover key={value.id} {...props} value={value} featured={false} />
+            ))}
+            {allowed
+              ? periods.map((period) => (
+                  <PreparingCover key={recapPeriodKey(period)} value={period} />
+                ))
+              : null}
+          </section>
         ) : null}
         {allowed && !query.isPending && !editions.length && !periods.length ? (
           <UiState
@@ -382,23 +402,6 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
               </Link>
             }
           />
-        ) : null}
-        {allowed && periods.length > 0 ? (
-          <section className="recap-available">
-            <h2>{t('recaps.available')}</h2>
-            {periods.map((period) => (
-              <button
-                className="recap-period-button"
-                key={recapPeriodKey(period)}
-                type="button"
-                disabled={requesting}
-                onClick={() => void openPeriod(period)}
-              >
-                <span>{recapPeriodLabel(period, resolvedLocale())}</span>
-                <span>{t('recaps.create')} →</span>
-              </button>
-            ))}
-          </section>
         ) : null}
         {query.hasNextPage ? (
           <AutoLoadMore
@@ -443,9 +446,7 @@ function RecapReader({
   const location = useLocation();
   const navigate = useNavigate();
   const { requestReturn, captureOrigin, resolveOrigin } = useTaskOrigin();
-  const [task, setTask] = useState<'selection' | 'reflection' | 'save' | null>(
-    null,
-  );
+  const [task, setTask] = useState<'selection' | 'reflection' | null>(null);
   const started = useRef(Date.now());
   const key = ['relationship-recap', props.account.id, props.spaceId, recapId];
   const query = useQuery({
@@ -477,17 +478,16 @@ function RecapReader({
       ),
     [props.apiBaseUrl, props.accessToken],
   );
-  const capability = useQuery({
-    queryKey: ['recap-capability', props.account.id, props.spaceId],
-    queryFn: ({ signal }) =>
-      authorized(
-        entitlements.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-          { spaceId: props.spaceId },
-          { signal },
-        ),
-      ).then((view) => view.capabilities.includes('relationship.passport')),
-    retry: false,
-    gcTime: 0,
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlements, props.spaceId),
+    [entitlements, props.spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capability = useSpaceCapability({
+    accountId: props.account.id,
+    spaceId: props.spaceId,
+    load: loadEntitlement,
+    capability: 'relationship.passport',
   });
   const value = query.data;
   const scenes = useMemo(() => (value ? recapScenes(value) : []), [value]);
@@ -548,9 +548,11 @@ function RecapReader({
   const duration = storyReadingDuration(
     scene?.type === 'facts'
       ? 'count label '.repeat(scene.lines.length + 2)
-      : !scene || scene.type === 'cover'
-        ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
-        : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
+      : scene?.type === 'rhythm'
+        ? 'count label '.repeat(scene.buckets.length + 2)
+        : !scene || scene.type === 'cover'
+          ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
+          : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
   );
   const playback = useStoryPlayback({
     pageKey,
@@ -668,6 +670,7 @@ function RecapReader({
   const overlayPlay = Boolean(scene && scene.type !== 'closing');
   const centredOnStage =
     scene?.type === 'facts' ||
+    scene?.type === 'rhythm' ||
     (scene?.type === 'cover' && mosaic.length === 0) ||
     (scene?.type === 'highlight' && scene.layout !== 'photo');
   const toggleLabel = t(
@@ -677,11 +680,13 @@ function RecapReader({
         ? 'recaps.replay'
         : 'recaps.play',
   );
-  const playbackToggle = (overlay: boolean) =>
+  // Text-led scenes keep the toggle in the stage but below the copy, so a paused
+  // reader never covers the title or a quote.
+  const playbackToggle = (overlay: boolean, inline = false) =>
     value?.status === 'READY' ? (
       <button
         type="button"
-        className={`recap-playback-toggle${overlay ? ' recap-playback-overlay' : ''}`}
+        className={`recap-playback-toggle${overlay ? ' recap-playback-overlay' : ''}${inline ? ' recap-playback-inline' : ''}`}
         data-playing={playback.playing}
         onClick={() => {
           if (playback.playing) playback.pause();
@@ -698,7 +703,7 @@ function RecapReader({
   const back = () =>
     requestReturn(
       (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
-      `${MORE_PASSPORT_ROUTE}${search.get('tab') === 'years' ? '?tab=years' : ''}`,
+      `${STORY_RECAPS_ROUTE}${search.get('tab') === 'years' ? '?tab=years' : ''}`,
     );
   const returnsToWir =
     resolveOrigin(
@@ -809,7 +814,7 @@ function RecapReader({
                   count: pageCount,
                 })}
               >
-                {centredOnStage ? playbackToggle(true) : null}
+                {centredOnStage ? playbackToggle(true, true) : null}
                 {!scene || scene.type === 'cover' ? (
                   <>
                     {mosaic.length ? (
@@ -899,6 +904,73 @@ function RecapReader({
                     ) : null}
                     <p className="recap-period-note">{t('recaps.factsNote')}</p>
                   </div>
+                ) : scene.type === 'rhythm' ? (
+                  <div className="recap-scene-copy">
+                    <p className="eyebrow">
+                      {recapPeriodLabel(value, resolvedLocale())}
+                    </p>
+                    <h1>{t('recaps.rhythm.title')}</h1>
+                    <p className="recap-reader-intro">
+                      {t('recaps.rhythm.summary', { count: scene.total })}
+                    </p>
+                    <ol
+                      className="recap-rhythm"
+                      style={
+                        {
+                          '--recap-columns': scene.buckets.length,
+                        } as CSSProperties
+                      }
+                    >
+                      {scene.buckets.map((bucket) => (
+                        <li
+                          key={bucket.index}
+                          data-leading={bucket.index === scene.leading}
+                          style={
+                            {
+                              '--recap-share':
+                                bucket.goodDays /
+                                Math.max(
+                                  ...scene.buckets.map((item) => item.goodDays),
+                                ),
+                            } as CSSProperties
+                          }
+                        >
+                          <span
+                            className="recap-rhythm-bar"
+                            aria-hidden="true"
+                          />
+                          <span className="recap-rhythm-label">
+                            {value.kind === 'YEAR'
+                              ? new Intl.DateTimeFormat(resolvedLocale(), {
+                                  month: 'short',
+                                  timeZone: 'UTC',
+                                }).format(
+                                  new Date(
+                                    Date.UTC(value.year, bucket.index - 1, 1),
+                                  ),
+                                )
+                              : t('recaps.rhythm.week', {
+                                  count: bucket.index,
+                                })}
+                          </span>
+                          <strong>
+                            {new Intl.NumberFormat(resolvedLocale()).format(
+                              bucket.goodDays,
+                            )}
+                            <span className="sr-only">
+                              {' '}
+                              {t('recaps.rhythm.days', {
+                                count: bucket.goodDays,
+                              })}
+                            </span>
+                          </strong>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="recap-period-note">
+                      {t('recaps.rhythm.note')}
+                    </p>
+                  </div>
                 ) : source ? (
                   <>
                     {scene.type === 'highlight' && scene.layout === 'photo' ? (
@@ -943,6 +1015,40 @@ function RecapReader({
                       source.excerpt &&
                       source.excerpt !== source.title ? (
                         <p className="recap-original-text">{source.excerpt}</p>
+                      ) : null}
+                      {source.available && source.quote ? (
+                        <blockquote className="recap-quote">
+                          <p>
+                            {source.quote.authorName
+                              ? t('recaps.quote', {
+                                  name: source.quote.authorName,
+                                  text: source.quote.text,
+                                })
+                              : t('recaps.quoteAnonymous', {
+                                  text: source.quote.text,
+                                })}
+                          </p>
+                        </blockquote>
+                      ) : null}
+                      {source.available &&
+                      scene.type === 'highlight' &&
+                      scene.layout === 'photo' &&
+                      source.mutualReaction ? (
+                        <p className="recap-reaction-line">
+                          {source.mutualReaction === 'LOVE' ? (
+                            <svg
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                              focusable="false"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M12 21.2 10.6 20C5.4 15.3 2 12.2 2 8.4 2 5.4 4.4 3 7.4 3c1.7 0 3.4.8 4.6 2.1C13.2 3.8 14.9 3 16.6 3 19.6 3 22 5.4 22 8.4c0 3.8-3.4 6.9-8.6 11.6L12 21.2Z"
+                              />
+                            </svg>
+                          ) : null}
+                          {t(`recaps.mutualReaction.${source.mutualReaction}`)}
+                        </p>
                       ) : null}
                       {source.available ? (
                         <Link
@@ -996,7 +1102,7 @@ function RecapReader({
                         <p>{value.ownDraft.text}</p>
                       </div>
                     ) : null}
-                    {!value.savedAt && (capability.data || value.ownDraft) ? (
+                    {capability.data || value.ownDraft ? (
                       <button
                         type="button"
                         onClick={() => setTask('reflection')}
@@ -1019,14 +1125,6 @@ function RecapReader({
                       <p className="recap-period-note">
                         {t('recaps.savedHelp')}
                       </p>
-                    ) : capability.data ? (
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => setTask('save')}
-                      >
-                        {t('recaps.save')}
-                      </button>
                     ) : null}
                   </div>
                 )}
@@ -1066,15 +1164,17 @@ function RecapReader({
                   {t('recaps.gestureHint')}
                 </p>
               ) : null}
-              {!value.savedAt && capability.data ? (
+              {capability.data ? (
                 <div className="recap-reader-tools">
-                  <button
-                    type="button"
-                    className="recap-text-button"
-                    onClick={() => setTask('selection')}
-                  >
-                    {t('recaps.edit')}
-                  </button>
+                  {value.savedAt ? null : (
+                    <button
+                      type="button"
+                      className="recap-text-button"
+                      onClick={() => setTask('selection')}
+                    >
+                      {t('recaps.edit')}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="recap-text-button"

@@ -34,7 +34,8 @@ export function recapPeriodStatus(
   locale: string,
   translate: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  return value.savedAt
+  // A retained snapshot of a running period is the only "kept" state couples see.
+  return value.savedAt && value.isPartial
     ? translate('recaps.saved')
     : value.isPartial
       ? translate('recaps.partial', {
@@ -99,6 +100,30 @@ export function monthlyRecapInvitation(
     )[0];
 }
 
+/**
+ * The edition Momente points to: the newest ready one, else the newest still
+ * being prepared. Nothing is invented when there is none.
+ */
+export function recapEntryEdition(
+  editions: RecapView[],
+): RecapView | undefined {
+  const newest = (values: RecapView[]) =>
+    [...values].sort(
+      (a, b) =>
+        b.year * 12 + (b.month ?? 0) - (a.year * 12 + (a.month ?? 0)) ||
+        (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
+    )[0];
+  return (
+    newest(
+      editions.filter(
+        (edition) =>
+          edition.status === 'READY' &&
+          edition.sources.some((source) => source.available),
+      ),
+    ) ?? newest(editions.filter((edition) => edition.status === 'PENDING'))
+  );
+}
+
 /** Mirrors the server's bounded manual selection. */
 export const RECAP_SELECTION_LIMIT = 24;
 
@@ -109,6 +134,13 @@ export type RecapScene =
       key: string;
       lines: RecapFactLine[];
       busiestMonth: number | null;
+    }
+  | {
+      type: 'rhythm';
+      key: string;
+      buckets: { index: number; goodDays: number }[];
+      leading: number | null;
+      total: number;
     }
   | {
       type: 'highlight';
@@ -141,6 +173,25 @@ export function recapFactLines(value: RecapView): RecapFactLine[] {
     : lines;
 }
 
+/** Fewer good days are no rhythm worth a scene of their own. */
+export const RECAP_RHYTHM_MIN_GOOD_DAYS = 3;
+
+/** Days both partners marked a good day, per week (month) or month (year). */
+export function recapRhythm(
+  value: RecapView,
+): Extract<RecapScene, { type: 'rhythm' }> | null {
+  const mood = value.mood;
+  if (!mood) return null;
+  const buckets = mood.buckets.map(({ index, goodDays }) => ({
+    index,
+    goodDays,
+  }));
+  const total = buckets.reduce((sum, bucket) => sum + bucket.goodDays, 0);
+  return total >= RECAP_RHYTHM_MIN_GOOD_DAYS
+    ? { type: 'rhythm', key: 'rhythm', buckets, leading: mood.leading, total }
+    : null;
+}
+
 /** One ordered scene list drives pages, progress and playback. */
 export function recapScenes(value: RecapView): RecapScene[] {
   const lines = recapFactLines(value);
@@ -156,6 +207,7 @@ export function recapScenes(value: RecapView): RecapScene[] {
           },
         ]
       : []),
+    ...(recapRhythm(value) ? [recapRhythm(value) as RecapScene] : []),
     ...value.sources.map((source) => ({
       type: 'highlight' as const,
       key: source.key,

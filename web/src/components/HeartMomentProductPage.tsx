@@ -71,6 +71,7 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import { ContextTagList } from './ContextTagList';
 import {
   ComposerDateContext,
   type ComposerDateContextHandle,
@@ -204,7 +205,6 @@ export function HeartMomentProductPage({
     signal?: AbortSignal,
   ) => Promise<ObjectUrlSource>;
 }) {
-  const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
@@ -1789,17 +1789,11 @@ export function HeartMomentProductPage({
                     )
                   }
                   resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
-                  renderPhotoActions={(_item, openFullScreen, revealed) => (
-                    <>
-                      {revealed ? (
-                        <GalleryExpandAction onOpen={openFullScreen} />
-                      ) : null}
-                      <span
-                        className="media-comment-action"
-                        ref={setCommentHost}
-                      />
-                    </>
-                  )}
+                  renderPhotoActions={(_item, openFullScreen, revealed) =>
+                    revealed ? (
+                      <GalleryExpandAction onOpen={openFullScreen} />
+                    ) : null
+                  }
                 />
               </section>
             ) : null}
@@ -1833,19 +1827,17 @@ export function HeartMomentProductPage({
               />
             </div>
             {heartMoment.tags?.length ? (
-              <ul
-                className="memory-tag-summary"
-                aria-label={t('heartMomentProduct.tagsLabel')}
-              >
-                {heartMoment.tags.map((tag) => (
-                  <li key={tag}>
-                    <EimirIcon name="tag" />
-                    {(HEART_MOMENT_TAGS as readonly string[]).includes(tag)
+              <div>
+                <ContextTagList
+                  tags={heartMoment.tags}
+                  presentation="composer"
+                  labelForTag={(tag) =>
+                    (HEART_MOMENT_TAGS as readonly string[]).includes(tag)
                       ? t(`heartMomentProduct.tagLabels.${tag}`)
-                      : tag}
-                  </li>
-                ))}
-              </ul>
+                      : tag
+                  }
+                />
+              </div>
             ) : null}
             {shared && !changingVisibility ? (
               <StoryPlanningLinks
@@ -1867,7 +1859,6 @@ export function HeartMomentProductPage({
             ) : shared ? (
               <CommentsPanel
                 inlineComposer
-                triggerContainer={commentHost}
                 commentsApi={apis.comments}
                 spaceId={spaceId}
                 parentKind="heartMoment"

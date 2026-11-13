@@ -303,7 +303,8 @@
   max-width: 48rem;
   margin-inline: auto;
 }
-.product-main[data-area="more"] .page-heading h1 {
+/* The root title keeps the display face shared by Wir, Momente and Planen. */
+.product-main[data-area="more"] .page-heading:not(.page-heading-root) h1 {
   font-family: var(--font-ui);
   overflow-wrap: anywhere;
 }

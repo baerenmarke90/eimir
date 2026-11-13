@@ -9,6 +9,7 @@ Name | Type
 `attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
 `body` | string
 `experienceKind` | [ExperienceKind](ExperienceKind.md)
+`experienceQuestionId` | string
 `experienceReplyTo` | string
 `happenedOn` | Date
 `happenedUntil` | Date
@@ -28,6 +29,7 @@ const example = {
   "attachments": null,
   "body": null,
   "experienceKind": null,
+  "experienceQuestionId": null,
   "experienceReplyTo": null,
   "happenedOn": null,
   "happenedUntil": null,

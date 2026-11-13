@@ -150,6 +150,14 @@ async function installFixture(page: Page) {
       held.push(route);
       return;
     }
+    // Momente reads the recap overview for its own entry row; this fixture has none.
+    if (local === '/recaps' && method === 'GET')
+      return json({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
     unknown.push(`${method} ${pathname}`);
     return json({ code: 'UNEXPECTED_FIXTURE_REQUEST' }, 500);
   });
@@ -197,7 +205,7 @@ async function openEditor(page: Page, largeText = false) {
     new RegExp(`/story/milestones/${milestone.id}$`),
   );
   await expect(
-    page.getByRole('heading', { name: milestone.title, exact: true, level: 1 }),
+    page.getByRole('heading', { name: milestone.title, exact: true, level: 2 }),
   ).toBeVisible();
   await page.getByRole('link', { name: copy.edit, exact: true }).click();
   if (largeText)

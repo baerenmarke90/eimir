@@ -143,12 +143,11 @@ async function compose(page: Page, body: string) {
   return field;
 }
 
-async function expectSubmittedDraftCleared(page: Page, inline: boolean) {
+async function expectSubmittedDraftCleared(page: Page) {
   const field = page
     .locator('.comments-panel form.comment-form')
     .getByRole('textbox');
-  if (inline) await expect(field).toHaveValue('');
-  else await expect(field).toHaveCount(0);
+  await expect(field).toHaveValue('');
 }
 
 async function accessible(page: Page) {
@@ -185,7 +184,7 @@ for (const scenario of cases) {
       state.panel.getByRole('button', { name: copy.sending }),
     ).toBeDisabled();
     state.release();
-    await expectSubmittedDraftCleared(page, scenario.kind !== 'milestones');
+    await expectSubmittedDraftCleared(page);
     await expect(
       state.panel.getByText('The first submitted thought.', { exact: true }),
     ).toHaveCount(1);
@@ -265,7 +264,7 @@ for (const scenario of cases) {
     await state.panel
       .getByRole('button', { name: copy.send, exact: true })
       .click();
-    await expectSubmittedDraftCleared(page, scenario.kind !== 'milestones');
+    await expectSubmittedDraftCleared(page);
     await expect(
       state.panel.getByText('A new visit keeps its own words.', {
         exact: true,
@@ -318,7 +317,7 @@ test('comment create replaces the pending initial read without erasing later wor
   await state.panel
     .getByRole('button', { name: copy.send, exact: true })
     .click();
-  await expectSubmittedDraftCleared(page, true);
+  await expectSubmittedDraftCleared(page);
   await expect(
     state.panel.getByText('Later words stay in this task.', { exact: true }),
   ).toBeVisible();

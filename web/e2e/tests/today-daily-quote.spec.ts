@@ -299,18 +299,9 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
     if (method === 'GET' && pathname === `${space}/daily-quote/catalog`) {
       requests.catalog += 1;
       await json({
-        categories: [
-          {
-            id: 'love',
-            name: 'Love',
-            description: 'Relationship thoughts',
-          },
-          {
-            id: 'mindfulness',
-            name: 'Mindfulness',
-            description: 'Present-moment thoughts',
-          },
-        ],
+        categories: Object.entries(dailyQuote.catalog.categories).map(
+          ([id, name]) => ({ id, name, description: name }),
+        ),
         sources: [
           {
             id: 'classic_literature',
@@ -458,11 +449,11 @@ async function expectQuoteSurfaceAccessible(
     expect(geometry.outerBorder).toBe('0px');
     expect(geometry.outerBackground).toBe('rgba(0, 0, 0, 0)');
     expect(geometry.quoteScale).toBeLessThanOrEqual(1.25);
-    await expect(
-      page
-        .locator('.daily-quote-card')
-        .getByRole('heading', { level: 2, name: dailyQuote.title }),
-    ).toHaveClass('today-section-title');
+    // A modal settings sheet makes the background inaccessible by design.
+    // Verify the underlying heading semantics directly while it is inert.
+    const heading = card.locator('h2#daily-quote-title');
+    await expect(heading).toHaveText(dailyQuote.title);
+    await expect(heading).toHaveClass('sr-only');
     await expect(page.locator('.daily-quote-symbol')).toHaveCount(0);
   }
 
@@ -610,6 +601,14 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   await expect(page.getByText(dailyQuote.privacyFallback)).toBeVisible();
 
   const preferencesSheet = page.locator('.daily-quote-preferences-sheet');
+  const categories = preferencesSheet.getByRole('group', {
+    name: dailyQuote.categories,
+  });
+  const categoryCount = Object.keys(dailyQuote.catalog.categories).length;
+  await expect(categories.getByRole('checkbox')).toHaveCount(categoryCount);
+  await expect(preferencesSheet.getByRole('checkbox')).toHaveCount(
+    categoryCount,
+  );
   const mindfulness = preferencesSheet.getByRole('checkbox', {
     name: new RegExp(dailyQuote.catalog.categories.mindfulness, 'u'),
   });
@@ -629,12 +628,9 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
     page.getByRole('button', { name: dailyQuote.settingsAria }),
   ).toBeFocused();
   expect(requests.patches[0]?.ifMatch).toBe('"quote-pref:2"');
-  expect(requests.patches[0]?.body).toEqual(
-    expect.objectContaining({
-      selectedCategoryIds: ['love', 'mindfulness'],
-      selectedSourceIds: ['classic_literature'],
-    }),
-  );
+  expect(requests.patches[0]?.body).toEqual({
+    selectedCategoryIds: ['love', 'mindfulness'],
+  });
   expect(JSON.stringify(requests.patches)).not.toContain(PARTNER_ID);
 });
 
@@ -965,7 +961,7 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
   await signIn(page);
   const quote = page.locator('.daily-quote-card');
   await expect(quote.getByRole('heading')).toHaveText(dailyQuote.title);
-  await expect(quote.getByRole('heading')).toHaveClass('today-section-title');
+  await expect(quote.getByRole('heading')).toHaveClass('sr-only');
   await expect(quote.locator('.daily-quote-symbol')).toHaveCount(0);
   await expect(
     page.locator('.today-section-moment .today-section-kicker'),
@@ -1083,7 +1079,7 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const frames = await page
       .locator(
-        'button, .today-agenda-row, .short-task-sheet, .daily-quote-category, .daily-quote-source-check, .preference-switch-track',
+        'button, .today-agenda-row, .short-task-sheet, .daily-quote-category, .preference-switch-track',
       )
       .evaluateAll((elements) =>
         elements

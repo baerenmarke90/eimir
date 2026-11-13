@@ -1,4 +1,3 @@
-import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import {
   useInfiniteQuery,
   useQuery,
@@ -21,6 +20,7 @@ import {
 } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import {
@@ -74,24 +74,30 @@ import {
 } from '../client/storyProduct';
 import type { StoryStartupReads } from '../client/storyStartup';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { useTaskListReturn } from '../client/useTaskListReturn';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
+import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { EimirIcon } from './EimirIcon';
 import { ExperienceAnswers } from './ExperienceAnswers';
-import { MomentCreateMenu } from './MomentCreateMenu';
+import {
+  HeartEmotionBadge,
+  type HeartEmotionValue,
+} from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
+import { RecapEntry } from './RecapEntryLink';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
 import './PlanningReference.css';
-import { DiaryList } from './DiaryList';
 import { groupDiaryEntries } from '../client/diaryEntries';
+import { DiaryList } from './DiaryList';
 import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
@@ -138,8 +144,26 @@ interface TapestryEntry {
   dateTime: string;
   dateLabel: string;
   experience?: Extract<StoryItem, { kind: 'MEMORY' }>['memory'];
+  /** Feeling of a HeartMoment note; drives its surface, badge and name. */
+  emotion?: HeartEmotionValue;
   wide?: boolean;
   mediaShape?: 'landscape' | 'portrait' | 'square';
+}
+
+/**
+ * The link's name replaces its content for assistive technology, so the
+ * HeartMoment feeling shown by the badge has to be part of it.
+ */
+function tapestryAccessibleName(
+  t: TFunction,
+  role: TapestryEntry['role'],
+  title: string,
+  emotion: HeartEmotionValue | undefined,
+): string {
+  const name = `${t(`storyItem.${role}`)}: ${title}`;
+  return role === 'note' && emotion
+    ? `${name}. ${t('heartMomentProduct.emotionLabel')}: ${t(`heartEmotion.${emotion}`)}`
+    : name;
 }
 
 function buildTapestryEntry(
@@ -175,6 +199,8 @@ function buildTapestryEntry(
       item.kind === 'MEMORY' && item.memory.experienceKind
         ? item.memory
         : undefined,
+    emotion:
+      item.kind === 'HEART_MOMENT' ? item.heartMoment.emotion : undefined,
     path,
     memoryId,
     author,
@@ -228,6 +254,7 @@ export function StoryProductPage({
   loadMemoryImage,
   profilesApi,
   dashboardApi,
+  recapsApi,
   startupReads,
 }: {
   apis: ReferenceApis;
@@ -240,9 +267,19 @@ export function StoryProductPage({
   ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   dashboardApi?: DashboardApi;
+  recapsApi?: RecapsApi;
   startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
 }) {
   const { t } = useTranslation();
+  const recapEntry = (
+    <RecapEntry
+      api={recapsApi}
+      mediaApis={apis}
+      account={{ id: accountId }}
+      spaceId={spaceId}
+      onOpen={openDiscoverItem}
+    />
+  );
   const queryClient = useQueryClient();
   const [renewing, setRenewing] = useState(false);
   const [renewProblem, setRenewProblem] = useState<ClientProblemError | null>(
@@ -931,7 +968,10 @@ export function StoryProductPage({
               </article>
             ) : null}
 
-            <CoupleExperienceLinks onOpen={openDiscoverItem} />
+            <CoupleExperienceLinks
+              onOpen={openDiscoverItem}
+              extra={recapEntry}
+            />
 
             {/* 2. Keepsake / Editorial Tapestry — an asymmetric mixed archive,
               not a fixed-width carousel of equal cards. Column height is the
@@ -1030,9 +1070,17 @@ export function StoryProductPage({
                             }
                             to={path}
                             data-media-shape={entry.mediaShape}
+                            data-heart-emotion={
+                              role === 'note' ? entry.emotion : undefined
+                            }
                             className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
                             data-discover-reveal-key={`item:${entry.key}`}
-                            aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
+                            aria-label={tapestryAccessibleName(
+                              t,
+                              role,
+                              presentation.title,
+                              entry.emotion,
+                            )}
                             onClick={(event) => openDiscoverItem(event, path)}
                           >
                             {role === 'media' && entry.firstAttachment ? (
@@ -1052,16 +1100,20 @@ export function StoryProductPage({
                               </div>
                             ) : null}
                             <div className="momente-tapestry-body">
-                              <span
-                                className="momente-tapestry-kind"
-                                aria-hidden="true"
-                              >
-                                <EimirIcon
-                                  name={
-                                    role === 'note' ? 'momente' : 'erinnerungen'
-                                  }
-                                />
-                              </span>
+                              {role === 'note' && entry.emotion ? null : (
+                                <span
+                                  className="momente-tapestry-kind"
+                                  aria-hidden="true"
+                                >
+                                  <EimirIcon
+                                    name={
+                                      role === 'note'
+                                        ? 'momente'
+                                        : 'erinnerungen'
+                                    }
+                                  />
+                                </span>
+                              )}
                               {role === 'note' ? (
                                 <blockquote className="momente-tapestry-quote">
                                   "{presentation.title}"
@@ -1071,6 +1123,9 @@ export function StoryProductPage({
                                   {presentation.title}
                                 </h4>
                               )}
+                              {role === 'note' && entry.emotion ? (
+                                <HeartEmotionBadge emotion={entry.emotion} />
+                              ) : null}
                               {entry.experience?.experienceKind ? (
                                 <ExperienceAnswers
                                   answers={
@@ -1115,7 +1170,7 @@ export function StoryProductPage({
         {activeView === 'discover' &&
         !featuredItem &&
         discoverItems.length === 0 ? (
-          <CoupleExperienceLinks onOpen={openDiscoverItem} />
+          <CoupleExperienceLinks onOpen={openDiscoverItem} extra={recapEntry} />
         ) : null}
       </div>
       <div

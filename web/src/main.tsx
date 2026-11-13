@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
-import { useCapacitorShell } from './capacitorShell';
+import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
+import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
+import { startNativeSystemTheme } from './client/nativeSystemTheme';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
@@ -44,7 +46,9 @@ import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/identity-components.css';
 
+markNativeRuntime();
 initializeTheme();
+startNativeSystemTheme();
 registerProductionServiceWorker();
 
 const queryClient = new QueryClient({
@@ -81,6 +85,8 @@ function RootApp() {
   const { t } = useTranslation();
   useCapacitorShell();
   useControlPressFeedback();
+  // Startup placeholders hold the launch screen; anything else ends it.
+  useEffect(() => releaseLaunchScreenWhenPainted(), []);
   return (
     <NativeSessionGate
       restoration={nativeRestoration}

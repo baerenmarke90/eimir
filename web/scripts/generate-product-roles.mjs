@@ -67,8 +67,16 @@ for (const [name, role] of [
   ['story-summary-inset', 'storySummaryInset'],
   ['story-category-gap', 'storyCategoryGap'],
   ['story-bar-gap', 'storyBarGap'],
+  ['story-lifeline-dot', 'storyLifelineDot'],
+  ['story-lifeline-step', 'storyLifelineStep'],
+  ['story-lifeline-band', 'storyLifelineBand'],
 ])
   declare(`space-${name}`, rem(`spacing.${role}`));
+declare('opacity-story-chip-fill', `${value('storyChip.fillOpacity') * 100}%`);
+declare(
+  'opacity-story-chip-fill-active',
+  `${value('storyChip.activeFillOpacity') * 100}%`,
+);
 const storyColors = [
   ['memory', 'storyMemory'],
   ['heart-moment', 'storyHeartMoment'],
@@ -189,6 +197,7 @@ declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
 declare('duration-map-camera', value('motion.duration.mapCamera'));
 declare('duration-map-stack', value('motion.duration.mapStack'));
+declare('duration-controls-return', value('motion.duration.controlsReturn'));
 for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
@@ -285,6 +294,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-context: ${value('motion.duration.instant')};
     --duration-map-camera: ${value('motion.duration.instant')};
     --duration-map-stack: ${value('motion.duration.instant')};
+    --duration-controls-return: ${value('motion.duration.instant')};
   }
 }
 

@@ -19,6 +19,8 @@ import { ImportantDateType } from '../api/generated/models/ImportantDateType';
 import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { nextOccasionHolidays } from '../client/occasionHolidays';
+import { useOccasionHolidayPreference } from '../client/occasionHolidayPreferences';
 import {
   dateInputValueToApiDate,
   localDateInputValue,
@@ -601,6 +603,8 @@ export function ImportantDatesPanel({
   peopleApi,
   spaceId,
   people,
+  accountId = '',
+  instance = '',
   partnerBirthday = null,
   ownBirthday = null,
   relationshipStartedOn = null,
@@ -611,6 +615,8 @@ export function ImportantDatesPanel({
   peopleApi: PeopleApi;
   spaceId: string;
   people: RelatedPersonView[];
+  accountId?: string;
+  instance?: string;
   partnerBirthday?: PartnerBirthdayProjection | null;
   ownBirthday?: PartnerBirthdayProjection | null;
   relationshipStartedOn?: Date | null;
@@ -623,6 +629,11 @@ export function ImportantDatesPanel({
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
   const today = useLocalCalendarDay();
+  const holidayPreference = useOccasionHolidayPreference({
+    instance,
+    accountId,
+    spaceId,
+  });
   const readerRef = useRef<ShortTaskSheetHandle>(null);
   const readerReturnRef = useRef<HTMLButtonElement>(null);
   const [readingKey, setReadingKey] = useState<string | null>(null);
@@ -842,6 +853,28 @@ export function ImportantDatesPanel({
     setPendingDeleteFocus(null);
   }, [editorOpen, pendingDeleteFocus]);
 
+  const holidayEntries: OccasionEntry[] = holidayPreference.enabled
+    ? nextOccasionHolidays(today)
+        .filter(({ id, date }) => {
+          const label = t(`importantDates.holidays.${id}`)
+            .trim()
+            .toLocaleLowerCase(i18n.language);
+          return !(datesQuery.data ?? []).some(
+            (saved) =>
+              (saved.repeats === DateRepeat.ANNUALLY ||
+                saved.date.getUTCFullYear() === date.getUTCFullYear()) &&
+              saved.date.getUTCMonth() === date.getUTCMonth() &&
+              saved.date.getUTCDate() === date.getUTCDate() &&
+              saved.label.trim().toLocaleLowerCase(i18n.language) === label,
+          );
+        })
+        .map(({ key, id, date }) => ({
+          key,
+          date,
+          label: t(`importantDates.holidays.${id}`),
+          type: ImportantDateType.CUSTOM,
+        }))
+    : [];
   const entries: OccasionEntry[] = [
     ...(datesQuery.data ?? []).map((date) => ({
       key: date.id,
@@ -920,6 +953,7 @@ export function ImportantDatesPanel({
           },
         ]
       : []),
+    ...holidayEntries,
   ];
   const tomorrow = new Date(today);
   tomorrow.setUTCDate(today.getUTCDate() + 1);
@@ -1008,9 +1042,6 @@ export function ImportantDatesPanel({
                 ) : null}
               </span>
             ) : null}
-          </span>
-          <span className="people-chevron" aria-hidden="true">
-            ›
           </span>
         </button>
       </li>
@@ -1137,6 +1168,17 @@ export function ImportantDatesPanel({
                   name: selected.profileName,
                 })}
               </p>
+            ) : null}
+            {selected.key.startsWith('holiday:') ? (
+              <button
+                type="button"
+                className="tertiary"
+                onClick={() =>
+                  navigateFromReader(settingsCategoryPath('relationship'))
+                }
+              >
+                {t('importantDates.holidaySettings.manage')}
+              </button>
             ) : null}
             {selected.key === RELATIONSHIP_ANNIVERSARY_KEY ? (
               <button

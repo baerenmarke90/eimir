@@ -342,18 +342,18 @@ describe('task origin privacy and lifetime', () => {
   });
 
   it('preserves recap tab/page but strips private query input', () => {
-    expect(taskOriginPath('/more/passport', '?tab=years&text=private')).toBe(
-      '/more/passport?tab=years',
+    expect(taskOriginPath('/story/recaps', '?tab=years&text=private')).toBe(
+      '/story/recaps?tab=years',
     );
     expect(
       taskOriginPath(
-        '/more/passport/edition',
+        '/story/recaps/edition',
         '?page=2&tab=years&draft=private',
       ),
-    ).toBe('/more/passport/edition?tab=years&page=2');
+    ).toBe('/story/recaps/edition?tab=years&page=2');
     expect(
-      taskOriginPath('/more/passport/edition', '?page=999&tab=unknown'),
-    ).toBe('/more/passport/edition');
+      taskOriginPath('/story/recaps/edition', '?page=999&tab=unknown'),
+    ).toBe('/story/recaps/edition');
   });
 
   it('allowlists /search as a return origin without ever putting its query text in the path', () => {

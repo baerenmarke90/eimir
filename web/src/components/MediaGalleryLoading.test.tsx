@@ -510,3 +510,40 @@ for (const reducedMotion of [false, true]) {
     }
   });
 }
+
+it('hides the overlaid controls while the viewer swipes and restores them after a rest', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('URL', { revokeObjectURL: vi.fn() });
+  const view = render(
+    <MediaGallery
+      items={images}
+      loadMedia={vi.fn(() => new Promise<string>(() => {}))}
+    />,
+  );
+  const viewport = view.container.querySelector<HTMLElement>(
+    '.media-gallery-carousel-viewport',
+  );
+  const track = view.container.querySelector<HTMLDivElement>(
+    '.media-gallery-carousel-track',
+  );
+  try {
+    if (!viewport || !track) throw new Error('The carousel must be rendered.');
+    // Programmatic or layout scrolling is not the viewer browsing.
+    fireEvent.scroll(track);
+    expect(viewport.classList.contains('is-browsing')).toBe(false);
+
+    fireEvent.pointerDown(track);
+    expect(viewport.classList.contains('is-browsing')).toBe(false);
+    fireEvent.scroll(track);
+    expect(viewport.classList.contains('is-browsing')).toBe(true);
+    await act(async () => vi.advanceTimersByTime(1000));
+    fireEvent.scroll(track);
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(viewport.classList.contains('is-browsing')).toBe(true);
+    await act(async () => vi.advanceTimersByTime(600));
+    expect(viewport.classList.contains('is-browsing')).toBe(false);
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});

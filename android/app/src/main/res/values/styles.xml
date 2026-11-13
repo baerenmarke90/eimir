@@ -19,7 +19,7 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/eimir_startup_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/app_icon_original_mask_safe</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/launch_icon</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

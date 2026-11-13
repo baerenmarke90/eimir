@@ -56,6 +56,31 @@ const importantDates = {
   discardConfirm: 'Änderungen verwerfen',
   keepEditing: 'Weiter bearbeiten',
   closeDialogAria: 'Dialog schließen',
+  holidaySettings: {
+    title: 'Allgemeine Anlässe',
+    intro:
+      'Neben euren persönlichen Terminen könnt ihr auch wiederkehrende Feste anzeigen.',
+    toggle: 'Allgemeine Termine anzeigen',
+    description:
+      'Zum Beispiel Ostern, Weihnachten, Neujahr, Pfingsten und Valentinstag.',
+    deviceNote:
+      'Diese Auswahl gilt auf diesem Gerät. Eure gespeicherten Termine bleiben unverändert.',
+    manage: 'Allgemeine Anlässe einstellen',
+  },
+  holidays: {
+    newYear: 'Neujahr',
+    valentinesDay: 'Valentinstag',
+    goodFriday: 'Karfreitag',
+    easterSunday: 'Ostersonntag',
+    easterMonday: 'Ostermontag',
+    pentecostSunday: 'Pfingstsonntag',
+    pentecostMonday: 'Pfingstmontag',
+    stNicholas: 'Nikolaus',
+    christmasEve: 'Heiligabend',
+    christmasDay: '1. Weihnachtstag',
+    boxingDay: '2. Weihnachtstag',
+    newYearsEve: 'Silvester',
+  },
   type: {
     BIRTHDAY: 'Geburtstag',
     ANNIVERSARY: 'Jahrestag',

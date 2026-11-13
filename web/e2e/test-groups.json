@@ -418,7 +418,7 @@
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
-      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows for #1744."
+      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, and the Momente entry with its redirects from the former More addresses for #1744."
     },
     "places-and-lists-design.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -447,8 +447,8 @@
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, narrow/large-text theme and accessibility evidence; ordinary Web remains unchanged."
+      "baselineTests": 12,
+      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, independent registration and revocation through the device settings switch, and narrow/large-text theme and accessibility evidence."
     },
     "content-reading.spec.ts": {
       "disposition": "PR_CRITICAL",

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import { createReferenceApis } from '../client/referenceFlow';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
+import { createReferenceApis } from '../client/referenceFlow';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
+import { useMediaReveal } from '../client/useMediaReveal';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
 import { useTranslation } from '../i18n';
@@ -65,6 +66,7 @@ export function PlanCover({
       );
     },
   );
+  const reveal = useMediaReveal(image.url);
   const reveals = useSensitiveMediaReveals(
     `${scope}:${spaceId}:${plan.id}:${cover?.id}`,
     Boolean(cover),
@@ -79,6 +81,7 @@ export function PlanCover({
       height={cover.height ?? undefined}
       loading="lazy"
       decoding="async"
+      {...reveal}
     />
   ) : (
     <span

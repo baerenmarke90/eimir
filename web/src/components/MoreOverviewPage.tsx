@@ -5,6 +5,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
 import { useProductTour } from '../client/productTour';
+import { useHideProFeatureMarks } from '../client/proPresentation';
 import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
@@ -13,7 +14,6 @@ import {
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
-  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
@@ -22,10 +22,10 @@ import {
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
   STORY_PHOTOS_ROUTE,
+  STORY_RECAPS_ROUTE,
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
-import { useHideProFeatureMarks } from '../client/proPresentation';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
@@ -68,7 +68,7 @@ const MOMENT_DESTINATIONS: readonly MoreDestination[] = [
     titleKey: 'more.destinations.years',
   },
   {
-    path: MORE_PASSPORT_ROUTE,
+    path: STORY_RECAPS_ROUTE,
     icon: 'chapter',
     titleKey: 'more.destinations.recaps',
     badgeKey: 'recaps.pro',
@@ -220,7 +220,11 @@ export function MoreOverviewPage({
 
   return (
     <div className="page more-page">
-      <PageHeader variant="root" title={t('more.title')} />
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('more.title')}
+      />
 
       <Link className="more-search-entry" to={SEARCH_ROUTE}>
         <span className="shell-nav-icon" aria-hidden="true">

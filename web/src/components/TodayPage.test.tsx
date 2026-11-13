@@ -586,8 +586,16 @@ describe('TodayPage', () => {
     // It is not duplicated further down in the Shared Trace
     const keepsakeIndex = html.indexOf('today-section-moment');
     const traceIndex = html.indexOf('today-section-recent');
-    const photoOccurrences = html.split('Photo Memory').length - 1;
+    // Count visible text only; the card link also carries the title as its
+    // accessible name.
+    const photoOccurrences = html.split('>Photo Memory<').length - 1;
     expect(photoOccurrences).toBe(1);
+    // The link is named by its content, never by the destination resource ID
+    // (Android WebView otherwise announces the URL's last path segment).
+    expect(html).toMatch(
+      /class="today-moment today-moment-link"[^>]*aria-label="Photo Memory · [^"]+"/,
+    );
+    expect(html).not.toMatch(/aria-label="[^"]*mem-photo/);
     expect(keepsakeIndex).toBeGreaterThan(-1);
 
     // Domain history alone must not impersonate the authoritative event trace.
@@ -710,7 +718,7 @@ describe('TodayPage', () => {
     // The planning signal remains available after the personal focal content.
     expect(html).toContain('Beach Day');
     expect(html).toContain('Weekend trip');
-    expect(html.split('Beach Day').length - 1).toBe(1);
+    expect(html.split('>Beach Day<').length - 1).toBe(1);
   });
 
   it('keeps a generic Keepsake as the prominent focal point when no current/upcoming signal exists (#840)', () => {
@@ -2452,7 +2460,10 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
     ).filter(
-      ([key]) => key !== 'shared_story_summary' && key !== 'daily_quote',
+      ([key]) =>
+        key !== 'relationship_presence' &&
+        key !== 'shared_story_summary' &&
+        key !== 'daily_quote',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {
@@ -2465,8 +2476,10 @@ describe('formatRelationshipDuration', () => {
       ];
       const html = renderWithVisibility({}, order);
       expect(html.indexOf('today-section-upcoming')).toBeGreaterThan(0);
-      expect(html.indexOf('today-section-upcoming')).toBeLessThan(
-        html.indexOf('today-hero'),
+      // Older saved orders are preserved for personal sections, while the
+      // couple identity always precedes them.
+      expect(html.indexOf('today-hero')).toBeLessThan(
+        html.indexOf('today-section-upcoming'),
       );
     });
 
@@ -2524,33 +2537,24 @@ describe('formatRelationshipDuration', () => {
     });
 
     describe('relationship_presence (Couple Presence hero)', () => {
-      it('keeps the shared root heading when the configurable hero is hidden', () => {
+      it('keeps the shared hero and accessible heading with a legacy hidden choice', () => {
         const shown = renderWithVisibility({});
-        const hidden = renderWithVisibility({ relationship_presence: false });
-
-        expect(shown).toContain('today-hero');
-        expect(shown).toMatch(/<h2[^>]*class="couple-presence-title"/);
-        expect(hidden).not.toContain('today-hero');
-        expect(shown).toContain('<h1>Wir</h1>');
-        expect(hidden).toContain('<h1>Wir</h1>');
-        expect(shown).toContain('page-heading-root');
-        expect(hidden).toContain('page-heading-root');
-
-        // Exactly one stable page H1 whether the configurable hero is shown
-        // or hidden; the couple's name is a subordinate heading.
-        const h1Count = (html: string) =>
-          (html.match(/<h1[\s>]/g) ?? []).length;
-        expect(h1Count(shown)).toBe(1);
-        expect(h1Count(hidden)).toBe(1);
-        expect(hidden).not.toContain('<h1 class="sr-only">');
+        const legacyHidden = renderWithVisibility({
+          relationship_presence: false,
+        });
+        for (const html of [shown, legacyHidden]) {
+          expect(html).toContain('today-hero');
+          expect(html).toMatch(/<h2[^>]*class="couple-presence-title"/);
+          expect(html).toContain('<h1>Wir</h1>');
+          expect(html).toContain('page-heading-root');
+          expect((html.match(/<h1[\s>]/g) ?? []).length).toBe(1);
+        }
       });
 
-      it('leaves every other module unaffected when the hero is hidden', () => {
-        const hidden = renderWithVisibility({ relationship_presence: false });
-
-        for (const [key, sectionClass] of MODULE_SECTIONS) {
-          if (key === 'relationship_presence') continue;
-          expect(hidden).toContain(sectionClass);
+      it('leaves every personal section unaffected by an older hidden hero preference', () => {
+        const html = renderWithVisibility({ relationship_presence: false });
+        for (const [, sectionClass] of MODULE_SECTIONS) {
+          expect(html).toContain(sectionClass);
         }
       });
     });
@@ -2560,7 +2564,10 @@ describe('formatRelationshipDuration', () => {
         {
           ...allModulesEligibleDashboard(),
           modulePreferences: {
-            items: [{ moduleKey: 'relationship_presence', visible: false }],
+            items: [
+              { moduleKey: 'relationship_presence', visible: false },
+              { moduleKey: 'keepsake', visible: false },
+            ],
           },
         },
         undefined,
@@ -2568,7 +2575,8 @@ describe('formatRelationshipDuration', () => {
       );
       expect(html).toContain('today-content');
       expect(html).toContain('today-section-upcoming');
-      expect(html).not.toContain('today-hero');
+      expect(html).toContain('today-hero');
+      expect(html).not.toContain('today-section-moment');
       expect(html).not.toContain(de.states.loading.title);
     });
 
@@ -2598,8 +2606,8 @@ describe('formatRelationshipDuration', () => {
         </QueryClientProvider>,
       );
 
-      // Not one configurable module - hero included - renders as visible
-      // content while the authoritative preference state is still unknown.
+      // No modules (including the fixed hero) appear before preference
+      // resolution; this prevents other saved visibility choices flashing.
       for (const [, sectionClass] of MODULE_SECTIONS) {
         expect(html).not.toContain(sectionClass);
       }

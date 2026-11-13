@@ -49,7 +49,8 @@
       "roots": [
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
-        "web/src/components/NotificationSettingsPanel.tsx"
+        "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/SettingsPage.tsx"
       ]
     },
     "app-icon-selection.spec.ts": {
@@ -66,6 +67,9 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/RecapTasks.tsx",
         "web/src/components/RecapMedia.tsx",
+        "web/src/components/RecapEntryLink.tsx",
+        "web/src/components/CoupleExperienceLinks.tsx",
+        "web/src/components/StoryProductPage.tsx",
         "web/src/client/recaps.ts",
         "web/src/client/useStoryPlayback.ts",
         "web/src/components/MemoryProductPage.tsx",

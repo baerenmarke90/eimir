@@ -681,3 +681,45 @@
     overflow: visible;
   }
 }
+
+/* Overlaid controls step aside while the viewer swipes through the photos.
+   They stay in the document and return on focus, so keyboard and assistive
+   technology users never lose them. */
+.media-gallery-carousel-viewport
+> :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
+  /* Returning is the slow, arriving half of the pair. */
+  transition: opacity var(--duration-controls-return) var(--easing-enter);
+}
+.media-gallery-carousel-viewport.is-browsing
+  > :not(
+    .media-gallery-carousel-track,
+    .media-gallery-sensitive-control,
+    :focus-within
+  ) {
+  opacity: 0;
+  pointer-events: none;
+  /* Stepping aside is a calm fade, not a cut. */
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
+/* The dots below the photos already show the position on touch screens. */
+@media (max-width: 839px), (hover: none), (pointer: coarse) {
+  .media-gallery-carousel:not(.photo-draft-stage .media-gallery-carousel):has(
+      .media-gallery-position
+    )
+    .media-gallery-carousel-counter {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-gallery-carousel-viewport
+    > :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
+    transition: none;
+  }
+}

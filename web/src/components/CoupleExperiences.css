@@ -2,11 +2,6 @@
   margin-block: var(--space-6);
 }
 
-.couple-experience-history-entry h3 {
-  font: var(--font-content-heading);
-  overflow-wrap: anywhere;
-}
-
 .experience-create-action {
   margin-block: var(--space-4);
 }
@@ -17,7 +12,7 @@
 .couple-experience-questions li + li {
   border-block-start: 1px solid var(--color-border);
 }
-.couple-experience-questions a {
+.couple-experience-questions li > a {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -29,14 +24,14 @@
   overflow-wrap: anywhere;
   text-decoration: none;
 }
-.couple-experience-questions a > span:first-child {
+.couple-experience-questions li > a > span:first-child {
   min-width: 0;
 }
-.couple-experience-questions a > span:last-child {
+.couple-experience-questions li > a > span:last-child {
   flex-shrink: 0;
   color: var(--color-text-secondary);
 }
-.couple-experience-questions a:hover {
+.couple-experience-questions li > a:hover {
   color: var(--color-brand-text);
 }
 .experience-selected-question {
@@ -55,21 +50,84 @@
   list-style: none;
   padding: 0;
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
+}
+.couple-experience-history-group h3 {
+  margin: var(--space-6) 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+.couple-experience-history-group:first-of-type h3 {
+  margin-block-start: 0;
 }
 .couple-experience-history-entry {
-  display: block;
-  padding: var(--space-4);
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-card);
   background: var(--color-surface-raised);
-  color: var(--color-text);
-  text-decoration: none;
   overflow-wrap: anywhere;
 }
-.couple-experience-history-entry p {
+.couple-experience-history-link {
+  display: grid;
+  gap: var(--space-1);
+  inline-size: 100%;
+  min-width: 0;
+  color: var(--color-text);
+  text-decoration: none;
+}
+.couple-experience-entry-question {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.couple-experience-entry-words {
+  display: grid;
+  margin-block-start: var(--space-2);
+}
+.couple-experience-entry-words > span:last-child {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   white-space: pre-wrap;
   font-family: var(--font-display);
   font-size: 1.125rem;
+}
+.couple-experience-history-link time {
+  margin-block-start: var(--space-2);
+}
+.experience-question-focus {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--color-brand-surface);
+  overflow-wrap: anywhere;
+  animation: experience-note-enter calc(var(--duration-context) * 3)
+    var(--easing-standard);
+}
+.experience-question-focus-by {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.experience-question-focus-text {
+  margin: 0 0 var(--space-2);
+  font: var(--font-reading-body);
+}
+.experience-question-state {
+  display: block;
+  margin-block-start: var(--space-1);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
 }
 .couple-experience-author,
 .couple-experience-history-entry time,
@@ -154,7 +212,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .shared-experience-reveal,
-  .shared-experience-symbol {
+  .shared-experience-symbol,
+  .experience-question-focus {
     animation: none;
   }
 }
@@ -198,6 +257,28 @@
 }
 .couple-experience-links a > span > span {
   color: var(--color-text-secondary);
+}
+.couple-experience-links a.recap-entry {
+  /* A third row would leave an empty cell in the two-column Expanded grid. */
+  grid-column: 1 / -1;
+}
+.couple-experience-links a.recap-entry > .recap-entry-cover {
+  display: block;
+  flex: 0 0 4rem;
+  inline-size: 4rem;
+  block-size: 4rem;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+}
+.couple-experience-links a.recap-entry > .recap-entry-cover img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.couple-experience-links a.recap-entry .recap-entry-action {
+  color: var(--color-brand-text);
+  font-weight: 600;
 }
 .couple-experience-page {
   max-width: var(--reading-max);

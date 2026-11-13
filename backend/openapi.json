@@ -1659,6 +1659,43 @@
         "title": "ContextTagSuggestionsView",
         "type": "object"
       },
+      "CoupleExperienceQuestionState": {
+        "description": "Answer state of one daily question for the reading partner.",
+        "properties": {
+          "answeredByMe": {
+            "title": "Answeredbyme",
+            "type": "boolean"
+          },
+          "answeredByPartner": {
+            "title": "Answeredbypartner",
+            "type": "boolean"
+          },
+          "memoryId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shared experience to open or answer: the thread still waiting for the reader when the partner answered first, otherwise the latest thread for this question.",
+            "title": "Memoryid"
+          },
+          "questionId": {
+            "title": "Questionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "answeredByMe",
+          "answeredByPartner"
+        ],
+        "title": "CoupleExperienceQuestionState",
+        "type": "object"
+      },
       "CoupleExperienceQuestions": {
         "properties": {
           "kind": {
@@ -1674,6 +1711,13 @@
               "type": "string"
             },
             "title": "Questionids",
+            "type": "array"
+          },
+          "questionStates": {
+            "items": {
+              "$ref": "#/components/schemas/CoupleExperienceQuestionState"
+            },
+            "title": "Questionstates",
             "type": "array"
           },
           "refreshAfterSeconds": {
@@ -2920,6 +2964,57 @@
           "items"
         ],
         "title": "DiscoverSelection",
+        "type": "object"
+      },
+      "DistanceBandView": {
+        "properties": {
+          "approximateKm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approximatekm"
+          },
+          "kind": {
+            "enum": [
+              "NEARBY",
+              "RANGE",
+              "APPROXIMATE"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "maxKm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxkm"
+          },
+          "minKm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minkm"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "DistanceBandView",
         "type": "object"
       },
       "DurationDisplayMode": {
@@ -4862,6 +4957,19 @@
               }
             ]
           },
+          "experienceQuestionId": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Editorial key of the daily question this experience answers. Only valid together with `experienceKind` and without `experienceReplyTo`; a reply inherits the question of the experience it answers.",
+            "title": "Experiencequestionid"
+          },
           "experienceReplyTo": {
             "anyOf": [
               {
@@ -6470,6 +6578,43 @@
         "title": "OrderedAttachmentSummary",
         "type": "object"
       },
+      "PartnerDistanceView": {
+        "description": "Neutral when unavailable: no reason is ever disclosed.",
+        "properties": {
+          "asOf": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The older capture time of the two positions.",
+            "title": "Asof"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DistanceBandView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "PartnerDistanceView",
+        "type": "object"
+      },
       "PartnerEnergyHidden": {
         "description": "Mutual Reveal is closed and intentionally carries no partner side channel.",
         "properties": {
@@ -6539,6 +6684,155 @@
           "value"
         ],
         "title": "PartnerEnergyVisible",
+        "type": "object"
+      },
+      "PartnerLocationSettingsUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-authoritative end of a bounded share, at most 24 hours ahead.",
+            "title": "Expiresat"
+          },
+          "indefinite": {
+            "default": false,
+            "title": "Indefinite",
+            "type": "boolean"
+          },
+          "level": {
+            "$ref": "#/components/schemas/SharingLevel"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "title": "PartnerLocationSettingsUpdate",
+        "type": "object"
+      },
+      "PartnerLocationSettingsView": {
+        "description": "The caller's own sharing state; never the partner's.",
+        "properties": {
+          "available": {
+            "description": "Feature enabled on this deployment, Premium capability held and a partner present.",
+            "title": "Available",
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiresat"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "indefinite": {
+            "title": "Indefinite",
+            "type": "boolean"
+          },
+          "lastPublishedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastpublishedat"
+          },
+          "level": {
+            "$ref": "#/components/schemas/SharingLevel"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SharingState"
+          }
+        },
+        "required": [
+          "available",
+          "level",
+          "state",
+          "indefinite",
+          "expiresAt",
+          "generation",
+          "lastPublishedAt"
+        ],
+        "title": "PartnerLocationSettingsView",
+        "type": "object"
+      },
+      "PartnerMapView": {
+        "description": "An approximate area, not a precise position. Neutral when unavailable.",
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "capturedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capturedat"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "radiusMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Radiusmeters"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "PartnerMapView",
         "type": "object"
       },
       "PartnerNicknameUpdate": {
@@ -8150,6 +8444,77 @@
         "title": "PreferenceSentiment",
         "type": "string"
       },
+      "PresencePosition": {
+        "additionalProperties": false,
+        "properties": {
+          "capturedAt": {
+            "format": "date-time",
+            "title": "Capturedat",
+            "type": "string"
+          },
+          "latitude": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude",
+            "type": "number"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude",
+          "capturedAt"
+        ],
+        "title": "PresencePosition",
+        "type": "object"
+      },
+      "PresencePublish": {
+        "additionalProperties": false,
+        "properties": {
+          "accuracyMeters": {
+            "maximum": 50000.0,
+            "minimum": 0.0,
+            "title": "Accuracymeters",
+            "type": "number"
+          },
+          "capturedAt": {
+            "format": "date-time",
+            "title": "Capturedat",
+            "type": "string"
+          },
+          "consentGeneration": {
+            "minimum": 1.0,
+            "title": "Consentgeneration",
+            "type": "integer"
+          },
+          "latitude": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude",
+            "type": "number"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude",
+          "capturedAt",
+          "accuracyMeters",
+          "consentGeneration"
+        ],
+        "title": "PresencePublish",
+        "type": "object"
+      },
       "PrivateCollectionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -9046,6 +9411,59 @@
         "title": "RecapKind",
         "type": "string"
       },
+      "RecapMoodBucketView": {
+        "description": "Mutual check-in days of one week (month edition) or one month (year edition).",
+        "properties": {
+          "goodDays": {
+            "title": "Gooddays",
+            "type": "integer"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "mutualDays": {
+            "title": "Mutualdays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "mutualDays",
+          "goodDays"
+        ],
+        "title": "RecapMoodBucketView",
+        "type": "object"
+      },
+      "RecapMoodView": {
+        "description": "Frozen rhythm of days on which both partners marked a good Vibe.",
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/RecapMoodBucketView"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "leading": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leading"
+          }
+        },
+        "required": [
+          "buckets",
+          "leading"
+        ],
+        "title": "RecapMoodView",
+        "type": "object"
+      },
       "RecapOverview": {
         "properties": {
           "canCompose": {
@@ -9104,6 +9522,31 @@
           "year"
         ],
         "title": "RecapPeriod",
+        "type": "object"
+      },
+      "RecapQuoteView": {
+        "description": "One shared comment, shown as written and cut at a word boundary.",
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "authorName": {
+            "title": "Authorname",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "authorId",
+          "authorName"
+        ],
+        "title": "RecapQuoteView",
         "type": "object"
       },
       "RecapReflectionUpdate": {
@@ -9289,6 +9732,22 @@
           "kind": {
             "$ref": "#/components/schemas/RecapSourceKind"
           },
+          "mutualReaction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LOVE",
+                  "LAUGH",
+                  "CELEBRATE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mutualreaction"
+          },
           "occurredOn": {
             "anyOf": [
               {
@@ -9316,6 +9775,16 @@
           "previewIsSensitive": {
             "title": "Previewissensitive",
             "type": "boolean"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapQuoteView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "anyOf": [
@@ -9423,6 +9892,16 @@
             "minimum": 0.0,
             "title": "Month",
             "type": "integer"
+          },
+          "mood": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapMoodView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "ownDraft": {
             "anyOf": [
@@ -12337,6 +12816,26 @@
         "title": "SharedPhotoPage",
         "type": "object"
       },
+      "SharingLevel": {
+        "enum": [
+          "OFF",
+          "DISTANCE",
+          "DISTANCE_AND_MAP"
+        ],
+        "title": "SharingLevel",
+        "type": "string"
+      },
+      "SharingState": {
+        "enum": [
+          "OFF",
+          "ACTIVE",
+          "EXPIRED",
+          "SUSPENDED",
+          "PARTNER_CHANGED"
+        ],
+        "title": "SharingState",
+        "type": "string"
+      },
       "SignInRequest": {
         "properties": {
           "deviceName": {
@@ -12930,6 +13429,74 @@
         ],
         "title": "StoryKind",
         "type": "string"
+      },
+      "StoryLifelineView": {
+        "properties": {
+          "startsOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startson"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/StoryLifelineWeek"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "startsOn",
+          "today",
+          "weeks"
+        ],
+        "title": "StoryLifelineView",
+        "type": "object"
+      },
+      "StoryLifelineWeek": {
+        "properties": {
+          "heartMoments": {
+            "title": "Heartmoments",
+            "type": "integer"
+          },
+          "highlight": {
+            "$ref": "#/components/schemas/DashboardItem"
+          },
+          "memories": {
+            "title": "Memories",
+            "type": "integer"
+          },
+          "milestones": {
+            "title": "Milestones",
+            "type": "integer"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "memories",
+          "heartMoments",
+          "milestones",
+          "highlight"
+        ],
+        "title": "StoryLifelineWeek",
+        "type": "object"
       },
       "StoryMemoryItem": {
         "properties": {
@@ -30177,6 +30744,429 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/partner-location/distance": {
+      "post": {
+        "description": "Coarse distance band. The caller's position is a transient input only.",
+        "operationId": "getPartnerDistance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresencePosition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerDistanceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Get Partner Distance",
+        "tags": [
+          "partner-location"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-location/map": {
+      "get": {
+        "description": "Approximate partner area when the partner shares the map level.",
+        "operationId": "getPartnerLocationMap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerMapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Get Partner Location Map",
+        "tags": [
+          "partner-location"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-location/settings": {
+      "get": {
+        "description": "The caller's own sharing state; readable without Premium.",
+        "operationId": "getPartnerLocationSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerLocationSettingsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Partner Location Settings",
+        "tags": [
+          "partner-location"
+        ]
+      },
+      "put": {
+        "description": "Start, change or stop sharing. ``OFF`` never requires Premium.",
+        "operationId": "updatePartnerLocationSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerLocationSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerLocationSettingsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Partner Location Settings",
+        "tags": [
+          "partner-location"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-location/snapshot": {
+      "put": {
+        "description": "Replace the caller's snapped snapshot; returns the caller's settings.",
+        "operationId": "publishPartnerLocationSnapshot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresencePublish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerLocationSettingsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Publish Partner Location Snapshot",
+        "tags": [
+          "partner-location"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/partner-nickname": {
       "get": {
         "operationId": "getPartnerNickname",
@@ -38629,6 +39619,69 @@
         "summary": "Search Space Content",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/story-lifeline": {
+      "get": {
+        "description": "Return the shared Story bucketed by week for the Pro Wir lifeline.",
+        "operationId": "getStoryLifeline",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryLifelineView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Story Lifeline",
+        "tags": [
+          "dashboard"
         ]
       }
     },

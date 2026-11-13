@@ -15,6 +15,7 @@ Name | Type
 `kind` | [RecapKind](RecapKind.md)
 `locale` | string
 `month` | number
+`mood` | [RecapMoodView](RecapMoodView.md)
 `ownDraft` | [RecapDraftView](RecapDraftView.md)
 `reflections` | [Array&lt;RecapReflectionView&gt;](RecapReflectionView.md)
 `savedAt` | Date
@@ -43,6 +44,7 @@ const example = {
   "kind": null,
   "locale": null,
   "month": null,
+  "mood": null,
   "ownDraft": null,
   "reflections": null,
   "savedAt": null,

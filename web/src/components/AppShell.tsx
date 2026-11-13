@@ -12,7 +12,6 @@ import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
-import { ProPresentationProvider } from '../client/proPresentation';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
@@ -20,6 +19,7 @@ import {
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
 import { ProductTourProvider } from '../client/productTour';
+import { ProPresentationProvider } from '../client/proPresentation';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
   type AppRouteDefinition,
@@ -153,6 +153,8 @@ function useCachedReadTimestamp(): string | null {
 
 interface AppShellProps {
   children: ReactNode;
+  /** Kept primary tabs; rendered outside the subpage frame so they survive detail routes. */
+  primaryTabs?: ReactNode;
   onLogout: () => void | Promise<void>;
   apiBaseUrl: string;
   accessToken: string;
@@ -195,6 +197,7 @@ function AuthenticatedAppShell({
   account,
   spaceId,
   serverAdmin = false,
+  primaryTabs,
 }: AppShellProps) {
   const { t } = useTranslation();
   const online = useOnlineStatus();
@@ -236,7 +239,7 @@ function AuthenticatedAppShell({
   const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
-    /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
+    /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/story/heart-moments/new' ||
@@ -374,11 +377,13 @@ function AuthenticatedAppShell({
             tabIndex={-1}
           >
             <AppSurfacePullToRefresh pathname={location.pathname} />
+            {primaryTabs}
             <SubpageNavigation>
               {isGamesHub ? (
                 <GamesProductArea
                   apiBaseUrl={apiBaseUrl}
                   accessToken={accessToken}
+                  accountId={account.id}
                   spaceId={spaceId}
                 />
               ) : (

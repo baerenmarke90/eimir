@@ -2098,3 +2098,32 @@ test('sensitive photo editing retains a failed classification draft and saves on
     ),
   ).toBeVisible();
 });
+
+test('Memory carousel controls step aside while swiping and return after a rest', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installApiMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await openMemory(page);
+  await positionGalleryForReading(page);
+
+  const viewport = page.locator('.media-gallery-carousel-viewport');
+  const counter = page.locator('.media-gallery-carousel-counter');
+  await expect(counter).toHaveCSS('opacity', '1');
+  const box = await viewport.boundingBox();
+  if (!box) throw new Error('The carousel must be measurable');
+  // A horizontal gesture on the photos, then the track scrolls. The scroll is
+  // dispatched directly so the check does not depend on real layout widths.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(160, 0);
+  await page
+    .locator('.media-gallery-carousel-track')
+    .evaluate((track) => track.dispatchEvent(new Event('scroll')));
+  await expect(viewport).toHaveClass(/is-browsing/);
+  await expect(counter).toHaveCSS('opacity', '0');
+  await expect(viewport).not.toHaveClass(/is-browsing/, { timeout: 5_000 });
+  await expect(counter).toHaveCSS('opacity', '1');
+});

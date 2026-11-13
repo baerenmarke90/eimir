@@ -821,7 +821,7 @@ for (const viewport of [
     await expect(
       page.getByRole('heading', { name: 'Our next home' }),
     ).toBeVisible();
-    await page.locator('.shell-detail-back').click();
+    await page.locator('.composer-header .task-back-control').click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(trigger).toBeFocused();
 

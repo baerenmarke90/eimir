@@ -20,6 +20,7 @@ const composer = {
   addPhotos: 'Fotos hinzufügen',
   addMedia: 'Fotos oder Videos hinzufügen',
   chooseOrDrag: 'Vom Gerät auswählen oder hierher ziehen',
+  chooseFromDevice: 'Vom Gerät auswählen',
   newPlace: 'Neuer Ort',
   createPlace: 'Neuen Ort hinzufügen',
   createNamedPlace: '„{{name}}“ als neuen Ort erstellen',

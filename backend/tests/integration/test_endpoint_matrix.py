@@ -185,6 +185,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/memory-map"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/story-lifeline"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
@@ -278,6 +279,29 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"loveNotesEnabled": True},
         if_match=True,
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-location/settings"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/settings",
+        body={"level": "OFF"},
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/snapshot",
+        body={
+            "latitude": 53.55,
+            "longitude": 9.99,
+            "accuracyMeters": 1500,
+            "capturedAt": clock.now().isoformat(),
+            "consentGeneration": 1,
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/partner-location/distance",
+        body={"latitude": 50.94, "longitude": 6.96, "capturedAt": clock.now().isoformat()},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-location/map"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/today"),
     Endpoint(
         "PATCH",

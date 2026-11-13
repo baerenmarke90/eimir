@@ -168,3 +168,24 @@ Captured by `web/e2e/tests/automatic-recaps.spec.ts` (three journeys: 390 Light,
 - The photo scrim now holds stronger and longer (45 % / 82 % stops) so the eyebrow, title, quote and reaction line stay readable over a busy picture.
 - On text-led scenes (facts, words, titles, a cover without photos) the play toggle stays in the stage but sits below the copy (Product Owner decision of 2026-11-12), so a paused reader never covers the title or a quote. While playing it is invisible as before; on photography it stays centred on the picture. The text-scene captures in `evidence/` were refreshed for this. Large-text and Android device acceptance of these scenes have not been performed; the rhythm scene is not built yet.
 
+## Permanent entry in Momente (#1744, scene reference)
+
+Product Owner decisions of 2026-11-13: sharing a scene as an image is not built; the permanent entry to the recap library lives in Momente, the Wir invitation around a month change stays, and More stays as a second way in. The [generated Compact reference](momente-entry-compact-reference.png) (baseline `main@71f1680a2`, generated from the current Momente and recap library captures) shows one new row (`recaps.shortTitle`) in the `coupleExperiences.title` group of Momente and the library opened from it with Momente selected in the bottom bar.
+
+![Generated Compact reference for the Rückblicke entry in Momente](momente-entry-compact-reference.png)
+
+Decisions taken from it when building:
+
+- Exactly one new row below the time-travel row: a small rounded cover on the left, the period and a quiet text action; same width and radius as the existing rows, no badge, no banner.
+- The library and the reader live under Momente (`/story/recaps`, `/story/recaps/:recapId`) so the tab stays active; the former `/more/passport` addresses redirect and keep their query and return state.
+- States: cover of the newest ready edition; newest retained edition without composition language when the capability is missing; a quiet row without a cover while preparing; no row without editions and capability.
+
+### Implementation record: the Momente entry
+
+Built from the reference above (reviewed against `main@71f1680a2`, built on `main@91f264453`). Runtime captures from `automatic-recaps.spec.ts` (390 Light, 430 Dark, 1280 Dark; reduced motion, axe, no horizontal overflow): `evidence/recaps-momente-entry-*` (Momente with the new row) and `evidence/recaps-momente-library-*` (the library opened from it, Momente selected).
+
+- The row is rendered only where the `coupleExperiences.title` group appears (the Discover view), so the overview is read only there; the timeline tab, Wir and More cause no new read. It shows the newest ready edition with its cover, a quiet pending line (`recaps.entryPending`) while an edition is pending, and nothing without editions. Errors hide the row.
+- The library and the reader moved to `/story/recaps` and `/story/recaps/:recapId`; the former `/more/passport` addresses are legacy rewrites (query and hash kept), More and the Wir invitation link to the new route, and the shell treats the reader as a focused task as before. Back from the library returns to Momente.
+- On Expanded the row spans the full width of the two-column group so no cell stays empty.
+- Not performed: large-text capture of the new row, the Free/pending/no-edition states in the browser (selector covered by unit tests), and Android device acceptance.
+

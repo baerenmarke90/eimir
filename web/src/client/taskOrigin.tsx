@@ -14,11 +14,11 @@ import {
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
-  MORE_PASSPORT_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PRIVATE_ROUTE,
   PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
+  STORY_RECAPS_ROUTE,
   WISH_SELECTION_ROUTE,
 } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
@@ -106,7 +106,7 @@ export function taskOriginPath(
   const memoryEditor = /^\/story\/memories\/(?!new\/)[^/]+\/edit$/.test(
     pathname,
   );
-  const recapReader = /^\/more\/passport\/[^/]+$/.test(pathname);
+  const recapReader = /^\/story\/recaps\/[^/]+$/.test(pathname);
   const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
     !recapReader &&
@@ -129,20 +129,19 @@ export function taskOriginPath(
       '/plan',
       WISH_SELECTION_ROUTE,
       '/more',
-      MORE_PASSPORT_ROUTE,
+      STORY_RECAPS_ROUTE,
       '/search',
       ACTIVITY_ROUTE,
       MORE_NOTIFICATIONS_ROUTE,
-      MORE_PASSPORT_ROUTE,
     ].includes(pathname)
   )
     return null;
-  if (recapReader || pathname === MORE_PASSPORT_ROUTE) {
+  if (recapReader || pathname === STORY_RECAPS_ROUTE) {
     const input = new URLSearchParams(search);
     const safe = new URLSearchParams();
     if (input.get('tab') === 'years') safe.set('tab', 'years');
     if (
-      pathname === MORE_PASSPORT_ROUTE &&
+      pathname === STORY_RECAPS_ROUTE &&
       input.get('details') === 'relationship'
     )
       safe.set('details', 'relationship');

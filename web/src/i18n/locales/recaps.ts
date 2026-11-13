@@ -4,6 +4,8 @@ export default {
   pro: 'Pro',
   lead: 'Eure Geschichte. Neu erzählt.',
   intro: 'Eure Monats- und Jahresrückblicke. Aus euren gemeinsamen Momenten.',
+  entryAction: 'Rückblick ansehen',
+  entryPending: 'Wird für euch zusammengestellt',
   profileLink: 'Eure Monats- und Jahresrückblicke entdecken',
   months: 'Monate',
   years: 'Jahre',

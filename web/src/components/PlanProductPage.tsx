@@ -741,7 +741,7 @@ export function PlanProductPage({
                   setEditDirty(true);
                 }}
               />
-              <div className="page-composer-writing">
+              <div className="page-composer-writing composer-authored-surface">
                 <label className="sr-only" htmlFor="plan-edit-title">
                   {t('m5s3.common.title')}
                 </label>
@@ -753,6 +753,7 @@ export function PlanProductPage({
                   className="page-composer-title"
                   required
                   maxLength={200}
+                  placeholder={t('m5s3.plan.titleHint')}
                   defaultValue={plan.title}
                   onChange={(event) => {
                     setEditTitleValue(event.target.value);
@@ -762,6 +763,7 @@ export function PlanProductPage({
                 <ComposerDescriptionField
                   form="plan-edit-form"
                   id="plan-edit-description"
+                  hint={t('m5s3.plan.descriptionPlaceholder')}
                   rows={4}
                   defaultValue={plan.description ?? ''}
                 />

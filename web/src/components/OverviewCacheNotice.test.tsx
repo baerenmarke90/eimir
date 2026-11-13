@@ -5,15 +5,18 @@ import {
   REVEAL_AFTER_CACHE_MS,
   useRevealAfterCache,
 } from '../client/useRevealAfterCache';
-import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { NOTICE_COLLAPSE_MS, OverviewCacheNotice } from './OverviewCacheNotice';
 
 describe('OverviewCacheNotice', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
   it('renders nothing until a saved read exists', () => {
     const { container } = render(<OverviewCacheNotice />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('announces a saved read and collapses, not unmounts, once live', () => {
+  it('announces a saved read, collapses once live and then leaves the DOM', () => {
     const cachedAt = new Date('2026-11-13T08:00:00Z');
     const { container, rerender } = render(
       <OverviewCacheNotice cachedAt={cachedAt} />,
@@ -26,6 +29,14 @@ describe('OverviewCacheNotice', () => {
     expect(slot?.getAttribute('data-open')).toBe('false');
     expect(slot?.getAttribute('aria-hidden')).toBe('true');
     expect(screen.queryByRole('status')).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(NOTICE_COLLAPSE_MS + 1);
+    });
+    expect(container.querySelector('.overview-cache-notice')).toBeNull();
+
+    rerender(<OverviewCacheNotice cachedAt={cachedAt} />);
+    expect(screen.getByRole('status')).toBeTruthy();
   });
 });
 

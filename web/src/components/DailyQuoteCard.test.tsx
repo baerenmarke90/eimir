@@ -207,7 +207,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('today-section-title'),
+        .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
@@ -235,7 +235,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('today-section-title'),
+        .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
     expect(
@@ -373,7 +373,6 @@ describe('DailyQuoteCard', () => {
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
         },
       }),
       undefined,
@@ -436,10 +435,9 @@ describe('DailyQuoteCard', () => {
       expect.objectContaining({
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
-        dailyQuotePreferencePatch: expect.objectContaining({
+        dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
-        }),
+        },
       }),
       undefined,
     );

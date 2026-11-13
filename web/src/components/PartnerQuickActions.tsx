@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
 import {
   type ReactNode,
   type RefObject,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -12,12 +12,14 @@ import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { M4ProductApis } from '../client/m4Product';
 import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
 import {
-  loadPartnerQuickActionsCapability,
+  PARTNER_QUICK_ACTIONS_CAPABILITY,
   PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
-  partnerQuickActionsEntitlementQueryKey,
 } from '../client/partnerQuickActions';
-import { ClientProblemError } from '../client/problemDetails';
 import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
@@ -123,21 +125,19 @@ export function PartnerQuickActions({
   } = usePresentationPresence(desiredExpandedOpen);
   const compactOpen = isOpen && !isExpanded && !expandedPresent;
 
-  const capabilityQuery = useQuery({
-    queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
-    queryFn: ({ signal }) => {
-      if (!entitlementApi) {
-        throw new ClientProblemError(
-          'server',
-          undefined,
-          'ENTITLEMENT_API_UNAVAILABLE',
-        );
-      }
-      return loadPartnerQuickActionsCapability(entitlementApi, spaceId, signal);
-    },
+  const loadEntitlement = useMemo(
+    () =>
+      entitlementApi ? entitlementLoader(entitlementApi, spaceId) : undefined,
+    [entitlementApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start; opening the
+  // sheet only reads it when that startup read has not completed.
+  const capabilityQuery = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
     enabled: isOpen,
-    retry: false,
-    staleTime: 60_000,
+    capability: PARTNER_QUICK_ACTIONS_CAPABILITY,
   });
 
   const gesture = usePartnerGesture({

@@ -558,6 +558,29 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await settleDialogMotion();
     expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
 
+    // A pull may also start on a choice row. A settled pull must not follow
+    // the link it started on.
+    const choiceBox = await momentChoices.first().boundingBox();
+    expect(choiceBox).not.toBeNull();
+    if (!choiceBox) throw new Error('Missing moment choice bounds');
+    const choiceCenterX = choiceBox.x + choiceBox.width / 2;
+    const choiceCenterY = choiceBox.y + choiceBox.height / 2;
+    await page.mouse.move(choiceCenterX, choiceCenterY);
+    await page.mouse.down();
+    await page.mouse.move(choiceCenterX, choiceCenterY + 60, { steps: 4 });
+    expect(
+      await dialog.evaluate((element) => element.hasAttribute('data-dragging')),
+    ).toBe(true);
+    await page.screenshot({
+      path: testInfo.outputPath('shell-quick-create-sheet-row-pull-390.png'),
+    });
+    await page.mouse.move(choiceCenterX, choiceCenterY + 4, { steps: 4 });
+    await page.mouse.up();
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/today$/);
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
+
     // Surface-wide direct manipulation is not limited to the visible handle.
     // A fresh downward pull that starts on plain sheet content dismisses too.
     const surface = dialog.locator('.short-task-sheet-title');

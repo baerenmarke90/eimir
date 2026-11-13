@@ -438,14 +438,11 @@ test('Today and Activities show the same event titles and order in dark mode', a
   expect(traceTitles).toHaveLength(TRACE_TILE_COUNT);
   await page.getByRole('link', { name: /Alle Aktivitäten ansehen/ }).click();
   await expect(page).toHaveURL(/\/today\/activity$/);
-  await expect(page.locator('.activity-card-target-title')).toHaveCount(
-    ACTIVITY_ITEMS.length,
-  );
+  // The kept Today tab is hidden, not discarded.
+  const activityTitles = page.locator('.activity-card-target-title:visible');
+  await expect(activityTitles).toHaveCount(ACTIVITY_ITEMS.length);
   expect(
-    (await page.locator('.activity-card-target-title').allTextContents()).slice(
-      0,
-      TRACE_TILE_COUNT,
-    ),
+    (await activityTitles.allTextContents()).slice(0, TRACE_TILE_COUNT),
   ).toEqual(traceTitles);
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);

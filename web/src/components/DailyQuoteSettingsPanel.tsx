@@ -1,26 +1,30 @@
-import { useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import {
-  dailyQuoteEntitlementQueryKey,
+  DAILY_QUOTE_CAPABILITY,
+  type DailyQuotePreferenceSnapshot,
   dailyQuotePreferencesQueryKey,
   dailyQuoteQueryKey,
   isDailyQuoteConflict,
   isDailyQuoteEntitlementRequired,
-  loadDailyQuoteCapability,
   loadDailyQuotePreferences,
   saveDailyQuotePreferences,
-  type DailyQuotePreferenceSnapshot,
 } from '../client/dailyQuote';
 import {
   ClientProblemError,
   clientProblemKind,
 } from '../client/problemDetails';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+  withdrawSpaceCapability,
+} from '../client/spaceEntitlement';
 import { useTranslation } from '../i18n';
+import { DailyQuoteCard } from './DailyQuoteCard';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProMark } from './ProMark';
-import { DailyQuoteCard } from './DailyQuoteCard';
 
 export function DailyQuoteSettingsPanel({
   quoteApi,
@@ -33,14 +37,10 @@ export function DailyQuoteSettingsPanel({
   entitlementsApi: EntitlementsApi;
   accountId: string;
   spaceId: string;
-  variant?: 'section' | 'toggle' | 'sources';
+  variant?: 'section' | 'toggle' | 'categories';
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const entitlementKey = useMemo(
-    () => dailyQuoteEntitlementQueryKey(accountId, spaceId),
-    [accountId, spaceId],
-  );
   const preferencesKey = useMemo(
     () => dailyQuotePreferencesQueryKey(accountId, spaceId),
     [accountId, spaceId],
@@ -50,13 +50,16 @@ export function DailyQuoteSettingsPanel({
     [accountId, spaceId],
   );
 
-  const entitlementQuery = useQuery({
-    queryKey: entitlementKey,
-    queryFn: ({ signal }) =>
-      loadDailyQuoteCapability(entitlementsApi, spaceId, signal),
-    enabled: Boolean(accountId && spaceId),
-    retry: false,
-    gcTime: 0,
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementsApi, spaceId),
+    [entitlementsApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const entitlementQuery = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
+    capability: DAILY_QUOTE_CAPABILITY,
   });
   const hasCapability = entitlementQuery.data === true;
 
@@ -72,8 +75,13 @@ export function DailyQuoteSettingsPanel({
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-    queryClient.setQueryData(entitlementKey, false);
-  }, [entitlementKey, preferencesKey, preferencesQuery.error, queryClient]);
+    withdrawSpaceCapability(
+      queryClient,
+      accountId,
+      spaceId,
+      DAILY_QUOTE_CAPABILITY,
+    );
+  }, [accountId, spaceId, preferencesKey, preferencesQuery.error, queryClient]);
 
   const mutation = useMutation({
     mutationFn: (enabled: boolean) => {
@@ -93,7 +101,12 @@ export function DailyQuoteSettingsPanel({
     onError: (error) => {
       if (!isDailyQuoteEntitlementRequired(error)) return;
       queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
-      queryClient.setQueryData(entitlementKey, false);
+      withdrawSpaceCapability(
+        queryClient,
+        accountId,
+        spaceId,
+        DAILY_QUOTE_CAPABILITY,
+      );
     },
   });
 
@@ -166,7 +179,7 @@ export function DailyQuoteSettingsPanel({
         <h2 id="settings-daily-quote-heading">
           {t('dailyQuote.settingsTitle')}
         </h2>
-        {variant !== 'sources' ? (
+        {variant !== 'categories' ? (
           <p className="settings-section-intro">
             {t('dailyQuote.settingsIntro')}
           </p>
@@ -216,7 +229,7 @@ export function DailyQuoteSettingsPanel({
             {t('dailyQuote.retry')}
           </button>
         </div>
-      ) : preferencesQuery.data && variant !== 'sources' ? (
+      ) : preferencesQuery.data && variant !== 'categories' ? (
         <PreferenceSwitch
           label={t('dailyQuote.enabledLabel')}
           description={t('dailyQuote.enabledSettingsDescription')}

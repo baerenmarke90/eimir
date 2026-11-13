@@ -1,8 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ExperienceAnswer } from '../api/generated/models/ExperienceAnswer';
 import { ExperienceAnswers } from './ExperienceAnswers';
+
+const avatarUrl = vi.hoisted(() => vi.fn());
+vi.mock('../client/useProfileAvatarUrl', () => ({
+  useProfileAvatarUrl: avatarUrl,
+}));
 
 const answers: ExperienceAnswer[] = [
   {
@@ -63,5 +68,34 @@ describe('shared authored experience responses', () => {
     expect(html).toContain('Our coffee together.');
     expect(html).not.toContain('<a');
     expect(html).not.toContain('Your smile this morning.');
+  });
+
+  it("shows an author's profile photo in previews and initials without one", () => {
+    avatarUrl.mockImplementation(
+      (_api, _space, accountId: string, attachmentId?: string) => ({
+        avatarUrl: attachmentId ? `blob:photo-${accountId}` : null,
+        loadFailed: false,
+      }),
+    );
+    const withPhoto: ExperienceAnswer[] = [
+      {
+        ...answers[0],
+        author: { id: 'a', displayName: 'Alex', profileAttachmentId: 'att-a' },
+      },
+      answers[1],
+    ];
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ExperienceAnswers
+          kind="HAPPINESS"
+          answers={withPhoto}
+          preview
+          spaceId="space-1"
+        />
+      </MemoryRouter>,
+    );
+    expect(html).toContain('<img src="blob:photo-a" alt=""/>');
+    expect(html).not.toContain('blob:photo-b');
+    expect(html).toContain('>SA<');
   });
 });

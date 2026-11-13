@@ -99,3 +99,12 @@ input.visually-hidden-input {
     animation: none;
   }
 }
+
+/* Decoded media fades in over its frame instead of popping in. */
+img[data-media-reveal] {
+  transition: opacity var(--duration-context) var(--easing-enter);
+}
+
+img[data-media-reveal="pending"] {
+  opacity: 0;
+}

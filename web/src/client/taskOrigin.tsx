@@ -388,6 +388,36 @@ export function TaskOriginProvider({
   );
 }
 
+/**
+ * A kept, hidden primary tab must not publish return metadata or capture an
+ * origin for the destination that is currently visible.
+ */
+export function PrimaryTabTaskOriginScope({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
+  const context = useContext(TaskOriginContext);
+  const value = useMemo<TaskOriginContract | null>(
+    () =>
+      context && !active
+        ? {
+            ...context,
+            captureOrigin: () => null,
+            registerOriginMetadata: () => () => {},
+          }
+        : context,
+    [active, context],
+  );
+  return (
+    <TaskOriginContext.Provider value={value}>
+      {children}
+    </TaskOriginContext.Provider>
+  );
+}
+
 /** Isolated consumers without an authenticated scope retain canonical navigation. */
 export function useTaskOrigin(): TaskOriginContract {
   const context = useContext(TaskOriginContext);

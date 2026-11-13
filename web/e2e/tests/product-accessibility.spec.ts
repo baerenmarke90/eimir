@@ -1629,8 +1629,43 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(
     page.getByText('anna@example.org', { exact: false }),
   ).toBeVisible();
-  await expect(page.locator('.anniversary-reminder-form')).toHaveCount(2);
-  await expect(page.locator('.rule-reminder-form')).toHaveCount(2);
+  const reminderCards = page.locator('.important-date-reminder-card');
+  await expect(reminderCards).toHaveCount(2);
+  // The occasion timeline also uses "important date" terminology, but its
+  // three-column layout must never leak into reminder preferences.
+  const expectVerticallyStackedReminders = async () => {
+    const layouts = await reminderCards.evaluateAll((cards) =>
+      cards.map((card) => {
+        const header = card.querySelector('.important-date-card-head');
+        const schedule = card.querySelector('.important-date-details');
+        if (!header || !schedule) return null;
+        const headerBox = header.getBoundingClientRect();
+        const scheduleBox = schedule.getBoundingClientRect();
+        return {
+          stacked: scheduleBox.top >= headerBox.bottom - 1,
+          fullWidth: Math.abs(headerBox.width - scheduleBox.width) < 2,
+        };
+      }),
+    );
+    expect(layouts).toEqual([
+      { stacked: true, fullWidth: true },
+      { stacked: true, fullWidth: true },
+    ]);
+  };
+  await expectVerticallyStackedReminders();
+  await expect(
+    page.getByRole('heading', { name: notificationSettings.dates }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', {
+      name: profileIdentity.anniversaryReminderToggle,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', {
+      name: profileIdentity.partnerBirthdayReminderToggle,
+    }),
+  ).toBeVisible();
   await expect(
     page.getByRole('link', {
       name: profileIdentity.settingsNotificationsAction,
@@ -1720,6 +1755,7 @@ test('notification choices survive return and stay legible across themes and wid
   });
   await expectNoHorizontalOverflow(page);
   await expectSettingsControlsInsideViewport(page);
+  await expectVerticallyStackedReminders();
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '';
   });
@@ -1738,11 +1774,13 @@ test('notification choices survive return and stay legible across themes and wid
     .click();
   await page.locator('a[href="/more/settings"]').click();
   await expect(page).toHaveURL(/\/more\/settings$/);
-  await page
-    .getByRole('link', {
-      name: profileIdentity.settingsNotifications,
-    })
-    .click();
+  // The kept More tab also has a notification link, but this return must
+  // reopen the Settings category rather than the notification inbox.
+  const notificationSettingsLink = page.locator(
+    'a[href="/more/settings/notifications"]',
+  );
+  await expect(notificationSettingsLink).toBeVisible();
+  await notificationSettingsLink.click();
   await expect(
     page.locator('.notification-quiet-hours > summary'),
   ).toContainText('Täglich 22:00–07:00 Uhr.');
@@ -1944,6 +1982,8 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
   });
+  // Contrast is measured on the settled page, not mid route-entry fade.
+  await page.waitForFunction(() => document.getAnimations().length === 0);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

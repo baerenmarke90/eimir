@@ -1,11 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
-import { normalizeClientError } from './problemDetails';
 import {
   passportStatisticsKey,
   readPassportStatisticsPreference,
 } from './passportPreferences';
+import { entitlementLoader, useSpaceCapability } from './spaceEntitlement';
 
 const memoryPreferences = new Map<string, boolean>();
 const eventName = 'eimir-wir-statistics-preference';
@@ -36,25 +35,17 @@ export function useWirStatistics({
     () => memoryPreferences.get(key) ?? readPassportStatisticsPreference(key),
     () => false,
   );
-  const grant = useQuery({
-    queryKey: ['wir-statistics-grant', instance, accountId, spaceId],
-    enabled: Boolean(api && instance && accountId),
-    retry: false,
-    gcTime: 0,
-    refetchOnMount: 'always',
-    queryFn: async ({ signal }) => {
-      if (!api) return false;
-      try {
-        const view =
-          await api.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-            { spaceId },
-            { signal },
-          );
-        return view.capabilities.includes('relationship.passport');
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
+  const loadEntitlement = useMemo(
+    () => (api ? entitlementLoader(api, spaceId) : undefined),
+    [api, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const grant = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
+    enabled: Boolean(instance),
+    capability: 'relationship.passport',
   });
   return {
     enabled,

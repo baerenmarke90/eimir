@@ -9,7 +9,8 @@ free-form entries and repeated contributions by one author remain distinct.
 
 from __future__ import annotations
 
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, false, or_, update
@@ -21,6 +22,7 @@ from eimir.comments.models import Comment, CommentTarget
 from eimir.core import clock
 from eimir.core.errors import NotFoundError
 from eimir.db.locks import lock_subject
+from eimir.domain.experiences import ExperienceKind
 from eimir.memories.models import Memory
 
 
@@ -155,3 +157,76 @@ def before_delete(session: Session, context: AuthorizationContext, memory: Memor
             .values(target_id=replacement, updated_at=Comment.updated_at)
         )
         session.flush()
+
+
+@dataclass(frozen=True, slots=True)
+class DailyQuestionState:
+    """Who already answered one of today's questions, and where to add an answer."""
+
+    question_id: str
+    memory_id: UUID | None
+    answered_by_me: bool
+    answered_by_partner: bool
+
+
+def daily_question_states(
+    session: Session,
+    context: AuthorizationContext,
+    kind: ExperienceKind,
+    question_ids: list[str],
+    since: datetime,
+) -> list[DailyQuestionState]:
+    """Project today's answers onto today's questions through the decrypting ORM.
+
+    Only shared experiences started since the Space's local day began are
+    considered; their protected payload carries the question key. Entries
+    created before question keys existed are not linked to any question.
+    """
+    recent = list(
+        session.scalars(
+            readable(Memory, context)
+            .where(Memory.experience_kind == kind.value, Memory.created_at >= since)
+            .order_by(Memory.created_at, Memory.id)
+        )
+    )
+    groups = responses(session, context, recent)
+    for entry in recent:
+        groups.setdefault(entry.experience_root_id or entry.id, [entry])
+    by_question: dict[str, list[tuple[UUID, list[Memory]]]] = {}
+    for root, members in groups.items():
+        question = next(
+            (
+                member.payload.experience_question_id
+                for member in members
+                if member.payload.experience_question_id
+            ),
+            None,
+        )
+        if question is not None and question in question_ids:
+            by_question.setdefault(question, []).append((root, members))
+    states: list[DailyQuestionState] = []
+    for question in question_ids:
+        threads = by_question.get(question, [])
+        mine = any(m.owner_id == context.account_id for _, ms in threads for m in ms)
+        partner = any(m.owner_id != context.account_id for _, ms in threads for m in ms)
+        # Prefer the thread still waiting for this reader, so a reply lands there.
+        waiting = [
+            root
+            for root, members in threads
+            if all(member.owner_id != context.account_id for member in members)
+        ]
+        latest = max(
+            threads,
+            key=lambda thread: max(clock.ensure_utc(m.created_at) for m in thread[1]),
+            default=None,
+        )
+        memory_id = waiting[-1] if waiting and not mine else (latest[0] if latest else None)
+        states.append(
+            DailyQuestionState(
+                question_id=question,
+                memory_id=memory_id,
+                answered_by_me=mine,
+                answered_by_partner=partner,
+            )
+        )
+    return states

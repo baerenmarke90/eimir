@@ -17,9 +17,14 @@
   --space-story-summary-inset: 1.125rem;
   --space-story-category-gap: 0.625rem;
   --space-story-bar-gap: 0.1875rem;
+  --space-story-lifeline-dot: 0.625rem;
+  --space-story-lifeline-step: 0.75rem;
+  --space-story-lifeline-band: 4.5rem;
+  --opacity-story-chip-fill: 16%;
+  --opacity-story-chip-fill-active: 26%;
   --color-story-memory: #3055b8;
   --color-story-heart-moment: #9b2f6a;
-  --color-story-milestone: #2e8b7e;
+  --color-story-milestone: #2e7d45;
   --color-story-surface: #f3f5fc;
   --font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif;
   --tracking-page-heading: -0.015em;
@@ -120,7 +125,7 @@
 :root[data-theme="dark"] {
   --color-story-memory: #b7c8ff;
   --color-story-heart-moment: #f6c9e1;
-  --color-story-milestone: #72d8c4;
+  --color-story-milestone: #86db9c;
   --color-story-surface: #303751;
   --color-link-text: #b7c8ff;
   --color-action-primary: #354778;
@@ -134,7 +139,7 @@
   :root:not([data-theme]) {
     --color-story-memory: #b7c8ff;
     --color-story-heart-moment: #f6c9e1;
-    --color-story-milestone: #72d8c4;
+    --color-story-milestone: #86db9c;
     --color-story-surface: #303751;
     --color-link-text: #b7c8ff;
     --color-action-primary: #354778;

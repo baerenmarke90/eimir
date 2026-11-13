@@ -44,6 +44,10 @@ import {
   PRO_INFORMATION_ROUTE,
   recapDetailPath,
 } from '../client/routes';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+} from '../client/spaceEntitlement';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
@@ -474,17 +478,16 @@ function RecapReader({
       ),
     [props.apiBaseUrl, props.accessToken],
   );
-  const capability = useQuery({
-    queryKey: ['recap-capability', props.account.id, props.spaceId],
-    queryFn: ({ signal }) =>
-      authorized(
-        entitlements.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-          { spaceId: props.spaceId },
-          { signal },
-        ),
-      ).then((view) => view.capabilities.includes('relationship.passport')),
-    retry: false,
-    gcTime: 0,
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlements, props.spaceId),
+    [entitlements, props.spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capability = useSpaceCapability({
+    accountId: props.account.id,
+    spaceId: props.spaceId,
+    load: loadEntitlement,
+    capability: 'relationship.passport',
   });
   const value = query.data;
   const scenes = useMemo(() => (value ? recapScenes(value) : []), [value]);

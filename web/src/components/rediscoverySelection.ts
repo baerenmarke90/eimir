@@ -311,16 +311,20 @@ export function viewerToday(viewerLocalDate?: Date | null): CalendarDay {
     : localCalendarDay(new Date());
 }
 
-/** Wir rediscovery card source from the dashboard projection. */
+/**
+ * Wir rediscovery card source from the dashboard projection, or null when the
+ * item carries no date at all (wording is never synthesized from "now").
+ */
 export function dashboardRediscoverySource(
   item: DashboardItem,
   context?: RediscoveryContext | null,
-): RediscoverySource {
+): RediscoverySource | null {
+  if (!item.occurredOn && !item.createdAt) return null;
   return {
     cardKey: `${item.type}:${item.id}`,
     day: item.occurredOn
       ? calendarDayOf(item.occurredOn)
-      : localCalendarDay(item.createdAt ?? new Date()),
+      : localCalendarDay(item.createdAt as Date),
     authoredHeadline: item.titleOrText,
     context,
   };

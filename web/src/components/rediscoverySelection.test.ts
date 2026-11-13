@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
 import { i18n } from '../i18n';
+import copy from '../i18n/locales/rediscovery';
 import {
   availableVariants,
   phraseVariant,
@@ -15,10 +16,10 @@ const de = i18n.getFixedT('de');
 const en = i18n.getFixedT('en');
 
 const richContext: RediscoveryContext = {
-  placeName: 'Phoenix-See',
-  chapterTitle: 'Sommerurlaub',
-  tag: 'Sonnenuntergang',
-  excerpt: 'Wir sind einfach losgefahren',
+  placeName: 'Lake Phoenix',
+  chapterTitle: 'Summer holiday',
+  tag: 'Sunset',
+  excerpt: 'We just drove off',
   excerptTruncated: true,
   photoCount: 12,
   videoCount: 0,
@@ -35,6 +36,18 @@ function source(overrides: Partial<RediscoverySource> = {}): RediscoverySource {
     ...overrides,
   };
 }
+
+/** Fill a German template from the locale module, as i18next would. */
+function fill(template: string, values: Record<string, string | number> = {}) {
+  return template.replace(/\{\{(\w+)\}\}/gu, (_, key: string) =>
+    String(values[key]),
+  );
+}
+
+const sundayDe = new Intl.DateTimeFormat('de', {
+  weekday: 'long',
+  timeZone: 'UTC',
+}).format(new Date(Date.UTC(2025, 10, 16)));
 
 function addDays(day: string, days: number): string {
   const [y, m, d] = day.split('-').map(Number);
@@ -94,11 +107,11 @@ describe('rediscovery variant selection', () => {
           'mediaCount',
         ],
       },
-      de,
-      'de',
+      en,
+      'en',
     );
     expect(wording.variant).toBe('relativeTime');
-    expect(wording.headline).toBe('Heute vor einem Jahr');
+    expect(wording.headline).toBe('One year ago today');
   });
 
   it('honours an exclusion such as an "on this day" kicker', () => {
@@ -145,19 +158,19 @@ describe('rediscovery privacy filtering', () => {
         'de',
         '2026-11-13',
       ),
-    ).toBe('Ein Sonntag');
+    ).toBe(fill(copy.weekday.plain, { weekday: sundayDe }));
   });
 });
 
 describe('rediscovery headline rules', () => {
   it('keeps an authored title as the headline and varies the secondary line', () => {
     const wording = rediscoveryWording(
-      source({ authoredHeadline: 'Dieser Tag am See' }),
+      source({ authoredHeadline: 'That day by the lake' }),
       { today: '2026-11-13' },
       de,
       'de',
     );
-    expect(wording.headline).toBe('Dieser Tag am See');
+    expect(wording.headline).toBe('That day by the lake');
     expect(wording.headlineIsVariant).toBe(false);
     expect(wording.variantLine).toBeTruthy();
   });
@@ -188,21 +201,33 @@ describe('rediscovery phrasing', () => {
   const phrase = (variant: RediscoveryVariant, t = de, locale = 'de') =>
     phraseVariant(variant, source(), t, locale, '2026-11-13');
 
-  it('phrases every variant in German', () => {
-    expect(phrase('place')).toBe('Phoenix-See');
-    expect(phrase('excerpt')).toBe('„Wir sind einfach losgefahren …“');
-    expect(phrase('weekday')).toBe('Ein Sonntagnachmittag');
-    expect(phrase('season')).toBe('Herbst 2025');
-    expect(phrase('chapter')).toBe('Aus „Sommerurlaub“');
-    expect(phrase('tag')).toBe('Unter „Sonnenuntergang“');
-    expect(phrase('mediaCount')).toBe('12 Fotos von diesem Tag');
+  it('phrases every variant through the German locale templates', () => {
+    expect(phrase('place')).toBe('Lake Phoenix');
+    expect(phrase('excerpt')).toBe(
+      fill(copy.excerptTruncated, { text: 'We just drove off' }),
+    );
+    expect(phrase('weekday')).toBe(
+      fill(copy.weekday.AFTERNOON, { weekday: sundayDe }),
+    );
+    expect(phrase('season')).toBe(
+      fill(copy.season.line, { season: copy.season.autumn, year: 2025 }),
+    );
+    expect(phrase('chapter')).toBe(
+      fill(copy.chapter, { chapter: 'Summer holiday' }),
+    );
+    expect(phrase('tag')).toBe(fill(copy.tag, { tag: 'Sunset' }));
+    expect(phrase('mediaCount')).toBe(
+      fill(copy.media.photos_other, { count: 12 }),
+    );
   });
 
   it('phrases every variant in English', () => {
     expect(phrase('weekday', en, 'en')).toBe('A Sunday afternoon');
     expect(phrase('season', en, 'en')).toBe('Autumn 2025');
     expect(phrase('mediaCount', en, 'en')).toBe('12 photos from this day');
-    expect(phrase('chapter', en, 'en')).toBe('From “Sommerurlaub”');
+    expect(phrase('chapter', en, 'en')).toBe('From “Summer holiday”');
+    expect(phrase('tag', en, 'en')).toBe('Tagged “Sunset”');
+    expect(phrase('excerpt', en, 'en')).toBe('“We just drove off …”');
   });
 
   it('starts a generated English line with a capital', () => {
@@ -222,37 +247,43 @@ describe('rediscovery phrasing', () => {
       phraseVariant(
         'mediaCount',
         source({ context: { ...richContext, photoCount, videoCount } }),
-        de,
-        'de',
+        en,
+        'en',
         '2026-11-13',
       );
-    expect(media(3, 0)).toBe('3 Fotos von diesem Tag');
-    expect(media(0, 2)).toBe('2 Videos von diesem Tag');
-    expect(media(4, 1)).toBe('5 Fotos und Videos von diesem Tag');
+    expect(media(3, 0)).toBe('3 photos from this day');
+    expect(media(0, 2)).toBe('2 videos from this day');
+    expect(media(4, 1)).toBe('5 photos and videos from this day');
   });
 
   it('phrases relative time exactly when the day matches', () => {
+    const three = copy.numberWords[3];
     expect(relativeTimeLine(de, '2025-11-13', '2026-11-13')).toBe(
-      'Heute vor einem Jahr',
+      copy.relative.yearsExact_one,
     );
     expect(relativeTimeLine(de, '2023-11-13', '2026-11-13')).toBe(
-      'Heute vor drei Jahren',
+      fill(copy.relative.yearsExact_other, { countText: three }),
     );
     expect(relativeTimeLine(de, '2026-10-23', '2026-11-13')).toBe(
-      'Heute vor drei Wochen',
+      fill(copy.relative.weeksExact_other, { countText: three }),
     );
     expect(relativeTimeLine(de, '2026-10-20', '2026-11-13')).toBe(
-      'Vor drei Wochen',
+      fill(copy.relative.weeks_other, { countText: three }),
     );
     expect(relativeTimeLine(de, '2026-08-13', '2026-11-13')).toBe(
-      'Heute vor drei Monaten',
+      fill(copy.relative.monthsExact_other, { countText: three }),
     );
     expect(relativeTimeLine(de, '2024-02-01', '2026-11-13')).toBe(
-      'Vor zwei Jahren',
+      fill(copy.relative.years_other, { countText: copy.numberWords[2] }),
     );
-    expect(relativeTimeLine(de, '2026-11-12', '2026-11-13')).toBe('Gestern');
+    expect(relativeTimeLine(de, '2026-11-12', '2026-11-13')).toBe(
+      copy.relative.yesterday,
+    );
     expect(relativeTimeLine(en, '2025-11-13', '2026-11-13')).toBe(
       'One year ago today',
+    );
+    expect(relativeTimeLine(en, '2026-10-20', '2026-11-13')).toBe(
+      'three weeks ago',
     );
     expect(relativeTimeLine(en, '2010-11-13', '2026-11-13')).toBe(
       '16 years ago today',

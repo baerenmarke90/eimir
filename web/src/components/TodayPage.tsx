@@ -508,7 +508,9 @@ function TodayRetrospectiveCard({
             hasMedia ? '' : ' today-retrospective-text-only'
           }`}
         >
-          <span className="today-retrospective-title">{wording?.headline}</span>
+          <span className="today-retrospective-title">
+            {wording?.headline ?? dashboardItemTitle(item, t).title}
+          </span>
           <RediscoverySecondaryLine
             className="today-retrospective-date"
             variantLine={wording?.variantLine ?? null}

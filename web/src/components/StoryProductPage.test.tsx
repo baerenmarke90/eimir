@@ -91,7 +91,7 @@ describe('Momente #1790 C2 featured rediscovery wording', () => {
     },
   };
   const leadRediscovery = {
-    placeName: 'Phoenix-See',
+    placeName: 'Lake Phoenix',
     photoCount: 0,
     videoCount: 0,
   };

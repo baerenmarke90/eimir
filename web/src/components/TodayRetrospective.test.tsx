@@ -142,9 +142,9 @@ afterEach(() => {
 
 describe('Today #1790 C2 rediscovery wording', () => {
   const rediscovery = {
-    placeName: 'Phoenix-See',
-    chapterTitle: 'Sommerurlaub',
-    excerpt: 'Wir sind einfach losgefahren',
+    placeName: 'Lake Phoenix',
+    chapterTitle: 'Summer holiday',
+    excerpt: 'We just drove off',
     excerptTruncated: true,
     photoCount: 4,
     videoCount: 0,

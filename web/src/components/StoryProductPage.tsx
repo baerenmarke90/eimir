@@ -1033,6 +1033,12 @@ export function StoryProductPage({
                         <StoryRetrospective
                           compact
                           item={visibleRetrospective}
+                          rediscovery={
+                            retrospectiveQuery.data?.retrospectiveRediscovery
+                          }
+                          viewerLocalDate={
+                            retrospectiveQuery.data?.viewerLocalDate
+                          }
                           loadMemoryImage={loadMemoryImage}
                           onOpen={openDiscoverItem}
                         />

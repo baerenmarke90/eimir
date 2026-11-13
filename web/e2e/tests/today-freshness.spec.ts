@@ -544,6 +544,11 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await page.screenshot({
     path: testInfo.outputPath('today-resume-settled-390-dark.png'),
   });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(todayContent).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath('today-resume-settled-1280-dark.png'),
+  });
   dashboardDelayMs = 0;
 
   // Step 8: Verify no unexpected network requests occurred

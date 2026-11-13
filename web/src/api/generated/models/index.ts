@@ -260,6 +260,8 @@ export * from './Readiness';
 export * from './RecapDraftView';
 export * from './RecapFactsView';
 export * from './RecapKind';
+export * from './RecapMoodBucketView';
+export * from './RecapMoodView';
 export * from './RecapOverview';
 export * from './RecapPeriod';
 export * from './RecapReflectionUpdate';

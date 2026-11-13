@@ -1636,3 +1636,79 @@ test.describe('primary tab touch navigation', () => {
     await expect(page).toHaveURL(/\/today$/);
   });
 });
+
+test.describe('floating create action while scrolling (#1790)', () => {
+  for (const variant of [
+    { theme: 'light', motion: 'no-preference' },
+    { theme: 'dark', motion: 'reduce' },
+  ] as const) {
+    test(`tucks away on the viewer's own downward scroll and returns on the way up (${variant.theme}, ${variant.motion})`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({
+        colorScheme: variant.theme,
+        reducedMotion: variant.motion,
+      });
+      await installApiMocks(page);
+      await page.goto('/login');
+      await signIn(page);
+      await expect(page).toHaveURL(/\/today$/);
+      await page.evaluate((theme) => {
+        document.documentElement.dataset.theme = theme;
+      }, variant.theme);
+      const add = page.locator('[data-floating-create]');
+      await expect(add).toBeVisible();
+      await addScrollFixture(page);
+      const tucked = () =>
+        page.evaluate(() =>
+          document.documentElement.hasAttribute('data-floating-create-tucked'),
+        );
+      const opacity = () =>
+        add.evaluate((element) => getComputedStyle(element).opacity);
+      await page.screenshot({
+        path: testInfo.outputPath(`fab-rest-390-${variant.theme}.png`),
+      });
+
+      await page.mouse.move(195, 420);
+      await page.mouse.wheel(0, 600);
+      await expect.poll(tucked).toBe(true);
+      await expect.poll(opacity).toBe('0');
+      expect(
+        await add.evaluate(
+          (element) => getComputedStyle(element).pointerEvents,
+        ),
+      ).toBe('none');
+      await expect(page.locator('.mobile-bottom-shell')).toBeVisible();
+      await page.screenshot({
+        path: testInfo.outputPath(`fab-tucked-390-${variant.theme}.png`),
+      });
+
+      await page.mouse.wheel(0, -80);
+      await expect.poll(tucked).toBe(false);
+      await expect.poll(opacity).toBe('1');
+      await page.screenshot({
+        path: testInfo.outputPath(`fab-returned-390-${variant.theme}.png`),
+      });
+
+      // Keyboard focus always shows the tucked action.
+      await page.mouse.wheel(0, 600);
+      await expect.poll(opacity).toBe('0');
+      await page.keyboard.press('Shift');
+      await add.focus();
+      await expect.poll(opacity).toBe('1');
+      await add.blur();
+
+      // Programmatic scrolling, such as a restored position, shows it again.
+      await page.mouse.wheel(0, 300);
+      await expect.poll(tucked).toBe(true);
+      await page.waitForTimeout(1300);
+      await page.evaluate(() =>
+        window.scrollTo({ top: 200, behavior: 'instant' }),
+      );
+      await expect.poll(tucked).toBe(false);
+      await expect.poll(opacity).toBe('1');
+      await expectNoHorizontalOverflow(page);
+    });
+  }
+});

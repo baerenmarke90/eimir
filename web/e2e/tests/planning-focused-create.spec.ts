@@ -8,6 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import composer from '../../src/i18n/locales/composer';
+import contextTags from '../../src/i18n/locales/contextTags';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureR3Evidence } from './r3-evidence';
@@ -20,6 +21,8 @@ const TEST_NOW = '2026-09-01T10:00:00Z';
 
 type MockCalls = {
   wishCreates: number;
+  wishUpdates: number;
+  wishDeletes: number;
   planCreates: number;
   lastPlanBody?: Record<string, unknown>;
 };
@@ -28,7 +31,12 @@ async function installPlanningMocks(
   page: Page,
   options: { failFirstPlanSave?: boolean } = {},
 ): Promise<MockCalls> {
-  const calls: MockCalls = { wishCreates: 0, planCreates: 0 };
+  const calls: MockCalls = {
+    wishCreates: 0,
+    wishUpdates: 0,
+    wishDeletes: 0,
+    planCreates: 0,
+  };
   let failFirstPlanSave = options.failFirstPlanSave ?? false;
   const wishesPath = `/api/v1/spaces/${SPACE_ID}/wishes`;
   let wishContent: {
@@ -220,10 +228,18 @@ async function installPlanningMocks(
     if (
       wishContent &&
       pathname === `${wishesPath}/wish-created` &&
-      (method === 'GET' || method === 'PATCH')
+      (method === 'GET' || method === 'PATCH' || method === 'DELETE')
     ) {
+      if (method === 'DELETE') {
+        expect(request.headers()['if-match']).toBe(String(wishVersion));
+        calls.wishDeletes += 1;
+        wishContent = null;
+        await route.fulfill({ status: 204 });
+        return;
+      }
       if (method === 'PATCH') {
         expect(request.headers()['if-match']).toBe(String(wishVersion));
+        calls.wishUpdates += 1;
         wishContent = { ...wishContent, ...request.postDataJSON() };
         wishVersion += 1;
       }
@@ -352,7 +368,7 @@ for (const scenario of [
   });
 }
 
-test('focused Wish creation saves optional prose and opens its reader', async ({
+test('the Wish composer creates, edits and returns through the saved Wish', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -384,8 +400,15 @@ test('focused Wish creation saves optional prose and opens its reader', async ({
   ].join('\n\n');
   const titleField = page.getByLabel(m5s3.wish.intentionLabel);
   const descriptionField = page.getByLabel(m5s3.common.description);
+  const writing = page.locator('.wish-composer .page-composer-writing');
   await expect(titleField).not.toBeFocused();
   await expect(descriptionField).toBeEditable();
+  await expect(writing.getByLabel(m5s3.wish.intentionLabel)).toBeVisible();
+  await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
+  const tagTool = page
+    .locator('.composer-tool-row')
+    .getByRole('button', { name: composer.tag, exact: true });
+  await expectLabeledComposerTool(tagTool, 'tag');
   const emptyHeight = await descriptionField.evaluate(
     (field) => field.clientHeight,
   );
@@ -428,13 +451,87 @@ test('focused Wish creation saves optional prose and opens its reader', async ({
   await page.getByRole('link', { name: new RegExp(title) }).click();
   await expect(prose).toContainText(opening);
 
-  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
-  const editDescription = page.locator('#wish-edit-description');
+  const edit = page.getByRole('button', { name: de.common.edit, exact: true });
+  await edit.click();
+  const editTitle = writing.getByLabel(m5s3.common.title, { exact: true });
+  const editDescription = writing.getByLabel(m5s3.common.description);
+  const save = page.getByRole('button', { name: m5s3.common.saveChanges });
+  await expect(editTitle).toHaveValue(title);
+  await expect(editTitle).not.toBeFocused();
+  await expect(save).toHaveText(m5s3.common.save);
+  await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
+  await expect(page.getByText(m5s3.wish.actionsHeading)).toHaveCount(0);
   await expect(editDescription).toHaveValue(description);
+  expect(
+    await editDescription.evaluate(
+      (field) => field.scrollHeight - field.clientHeight,
+    ),
+  ).toBeLessThanOrEqual(1);
+  await expectNoHorizontalOverflow(page);
+  await captureR3Evidence(page, testInfo, 'wish-edit-390-light.png');
+
+  await tagTool.click();
+  const tagSheet = page.getByRole('dialog', { name: composer.tagsTitle });
+  const tag = 'Gemeinsame Abenteuer';
+  const tagField = tagSheet.getByLabel(contextTags.newLabel);
+  await tagField.fill(tag);
+  await tagField.press('Enter');
+  await page.keyboard.press('Escape');
+  await expect(tagSheet).toHaveCount(0);
+  await expect(tagTool).toBeFocused();
+  await expect(
+    page.getByRole('button', {
+      name: composer.editTag.replace('{{name}}', tag),
+    }),
+  ).toBeVisible();
+
   await editDescription.fill('');
-  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
+  await page.goBack();
+  const discard = page.getByRole('alertdialog', {
+    name: taskBoundary.discardTitle,
+  });
+  await expect(discard).toBeVisible();
+  await discard.getByRole('button', { name: taskBoundary.keepEditing }).click();
+  await expect(discard).toHaveCount(0);
+  await expect(editDescription).toHaveValue('');
+
+  await page.context().setOffline(true);
+  await save.click();
+  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  await expect(editDescription).toBeEditable();
+  expect(calls.wishUpdates).toBe(0);
+  await page.context().setOffline(false);
+  await save.click();
   await expect(editDescription).toHaveCount(0);
   await expect(prose).toHaveCount(0);
+  await expect(page.locator('.memory-tag-summary')).toContainText(tag);
+  await expect(edit).toBeFocused();
+  expect(calls.wishUpdates).toBe(1);
+
+  await edit.click();
+  const remove = page.getByRole('button', {
+    name: m5s3.common.delete,
+    exact: true,
+  });
+  const deleteConfirm = page.getByRole('alertdialog', {
+    name: m5s3.common.deleteHeading,
+  });
+  await remove.click();
+  await expect(deleteConfirm).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(deleteConfirm).toHaveCount(0);
+  await expect(remove).toBeFocused();
+  expect(calls.wishDeletes).toBe(0);
+  await remove.click();
+  await deleteConfirm
+    .getByRole('button', { name: m5s3.common.confirmDelete })
+    .click();
+  await expect(page).toHaveURL(/\/plan#wishes$/);
+  await expect(wishes).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('link', { name: new RegExp(title) })).toHaveCount(
+    0,
+  );
+  expect(calls.wishDeletes).toBe(1);
 });
 
 test('contextual Plan and Wish actions open directly and browser Back restores the active segment', async ({

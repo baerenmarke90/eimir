@@ -422,7 +422,7 @@
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
-      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows for #1744."
+      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, and the Momente entry with its redirects from the former More addresses for #1744."
     },
     "places-and-lists-design.spec.ts": {
       "disposition": "PR_CRITICAL",

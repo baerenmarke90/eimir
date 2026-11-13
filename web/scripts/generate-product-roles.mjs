@@ -197,6 +197,7 @@ declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
 declare('duration-map-camera', value('motion.duration.mapCamera'));
 declare('duration-map-stack', value('motion.duration.mapStack'));
+declare('duration-controls-return', value('motion.duration.controlsReturn'));
 for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
@@ -293,6 +294,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-context: ${value('motion.duration.instant')};
     --duration-map-camera: ${value('motion.duration.instant')};
     --duration-map-stack: ${value('motion.duration.instant')};
+    --duration-controls-return: ${value('motion.duration.instant')};
   }
 }
 

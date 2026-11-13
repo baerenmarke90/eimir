@@ -11,6 +11,7 @@ import { startNativeSystemTheme } from './client/nativeSystemTheme';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
+import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuck';
 import { DemoBanner } from './components/DemoBanner';
 import { NativeSessionGate } from './components/NativeSessionGate';
 import { useTranslation } from './i18n';
@@ -85,6 +86,7 @@ function RootApp() {
   const { t } = useTranslation();
   useCapacitorShell();
   useControlPressFeedback();
+  useFloatingCreateScrollTuck();
   // Startup placeholders hold the launch screen; anything else ends it.
   useEffect(() => releaseLaunchScreenWhenPainted(), []);
   return (

@@ -1982,6 +1982,13 @@ Short TTL.
 
 Dawarich remains a separate Location History integration.
 
+Reconciliation (#1524, #1792): the Product Owner approved bounded and
+indefinite partner sharing, an optional map area, an opt-in passive background
+update and a Premium classification. These remain consistent with this section
+and §42 because only one short-lived snapshot per person exists and no history
+is kept; there is still no permanent Cloud location tracking. The normative
+runtime contract is `docs/m9/PARTNER-LOCATION.md`.
+
 ---
 
 # 44. Shopping Domain – prepare for later

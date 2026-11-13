@@ -233,13 +233,19 @@ function AuthenticatedAppShell({
     routeKey: location.key,
     skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
     createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
+    // History Back (button, gesture, system Back) and explicit task returns.
+    returning:
+      navigationType === 'POP' ||
+      Boolean(
+        (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
+      ),
     onNavigate: navigatePrimary,
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
-    /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
+    /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/story/heart-moments/new' ||

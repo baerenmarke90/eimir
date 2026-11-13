@@ -172,7 +172,7 @@ async function setup(
     fail?: boolean;
     empty?: boolean;
     pending?: boolean;
-    start?: 'wir' | 'library';
+    start?: 'wir' | 'library' | 'momente';
     hideMonthly?: boolean;
     dense?: boolean;
     ownWords?: boolean;
@@ -470,6 +470,16 @@ async function setup(
       deniedOverview = true;
     },
   };
+  if (options.start === 'momente') {
+    await page
+      .locator(
+        '.mobile-bottom-nav a[href="/story"], .shell-nav a[href="/story"]',
+      )
+      .filter({ visible: true })
+      .click();
+    await expect(page.locator('.momente-discover-page')).toBeVisible();
+    return state;
+  }
   if (options.start === 'wir') {
     await page
       .locator(
@@ -484,8 +494,15 @@ async function setup(
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
     .click();
+  // #1790 E1: Mehr opens years and recaps together; the years index leads on.
   await page
-    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .getByRole('link', {
+      name: de.more.destinations.yearsAndRecaps,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
     .click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
@@ -570,7 +587,7 @@ test('Watch now advances automatically, resumes after a source, and finishes wit
     await page.clock.runFor(dwell + 1);
   }
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
-  await expect(page).toHaveURL(/\/more\/passport\/october$/);
+  await expect(page).toHaveURL(/\/story\/recaps\/october$/);
   await expect(page.locator('.recap-reader')).toHaveAttribute(
     'data-playing',
     'true',
@@ -589,7 +606,7 @@ test('Watch now advances automatically, resumes after a source, and finishes wit
     .getByRole('button', { name: new RegExp(taskBoundary.back) })
     .first()
     .click();
-  await expect(page).toHaveURL(/\/more\/passport\/october\?page=1/);
+  await expect(page).toHaveURL(/\/story\/recaps\/october\?page=1/);
   // Like a photo memory, playback resumes on the restored page after a source.
   await advanceSpread(fixtureCopy.photoTitle);
   await expect(page).toHaveURL(/page=2/);
@@ -817,7 +834,7 @@ for (const [width, theme] of [
       })
       .first()
       .click();
-    await expect(page).toHaveURL(/\/more\/passport\/october\?page=1/);
+    await expect(page).toHaveURL(/\/story\/recaps\/october\?page=1/);
     await expect(page.locator('.recap-spread h1')).toHaveText(
       fixtureCopy.photoTitle,
     );
@@ -1392,3 +1409,101 @@ for (const [width, theme] of [
     expect(state.unexpected).toEqual([]);
   });
 }
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`Momente links to the recap library, keeps Momente active and returns at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { start: 'momente' });
+    const entry = page.locator('.couple-experience-links a.recap-entry');
+    await expect(entry).toBeVisible();
+    await expect(entry).toContainText(copy.shortTitle);
+    await expect(entry).toContainText(copy.entryAction);
+    await expect(entry.locator('img')).toBeVisible();
+    await entry
+      .locator('img')
+      .evaluate((img: HTMLImageElement) => img.decode());
+    await entry.evaluate((element) =>
+      element.scrollIntoView({ block: 'center' }),
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-momente-entry-${width}-${theme}.png`,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    // The library opens under Momente, so that tab stays selected.
+    await entry.click();
+    await expect(page).toHaveURL(/\/story\/recaps$/);
+    await expect(
+      page.getByRole('heading', { name: copy.shortTitle }),
+    ).toBeVisible();
+    const navLink = (href: string) =>
+      page
+        .locator(
+          `.mobile-bottom-nav a[href="${href}"], .shell-nav a[href="${href}"]`,
+        )
+        .filter({ visible: true });
+    if (width < 1280) {
+      await expect(navLink('/story')).toHaveAttribute('aria-current', 'page');
+      await expect(navLink('/more')).not.toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+    }
+    const featured = page.locator('.recap-cover-featured');
+    await expect(featured.locator('img')).toBeVisible();
+    await featured
+      .locator('img')
+      .evaluate((img: HTMLImageElement) => img.decode());
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-momente-library-${width}-${theme}.png`,
+    );
+    // Back returns to Momente, where the entry came from.
+    await page
+      .getByRole('button', { name: new RegExp(taskBoundary.back) })
+      .click();
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(page.locator('.momente-discover-page')).toBeVisible();
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.couple-experience-links')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('the former More addresses of the recap library and reader redirect with their query', async ({
+  page,
+}) => {
+  await setup(page, { start: 'momente' });
+  const open = (path: string) =>
+    page.evaluate((target) => {
+      window.history.pushState({}, '', target);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, path);
+  await open('/more/passport?tab=years');
+  await expect(page).toHaveURL(/\/story\/recaps\?tab=years$/);
+  await open('/more/passport/october?page=2');
+  await expect(page).toHaveURL(/\/story\/recaps\/october\?page=2$/);
+});

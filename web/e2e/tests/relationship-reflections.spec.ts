@@ -469,8 +469,15 @@ for (const [width, theme, largeText] of [
       { fullPage: true },
     );
     await page.goto('/more');
+    // #1790 E1: Mehr opens years and recaps together; the years index leads on.
     await page
-      .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+      .getByRole('link', {
+        name: de.more.destinations.yearsAndRecaps,
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
       .click();
     await page.getByText(recapCopy.details, { exact: true }).click();
     if (largeText)
@@ -528,8 +535,15 @@ test('Free Passport remains reachable from More without requesting Pro counts', 
   await page.goto('/more/profile');
   await expect(page.locator('.profile-passport-entry')).toHaveCount(0);
   await page.goto('/more');
+  // #1790 E1: Mehr opens years and recaps together; the years index leads on.
   await page
-    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .getByRole('link', {
+      name: de.more.destinations.yearsAndRecaps,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
     .click();
   await expect(page.getByText(recapCopy.gateBody)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);

@@ -22,6 +22,15 @@ import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import { WishProductPage } from './WishProductPage';
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
 afterEach(() => {
   cleanup();
   onlineManager.setOnline(true);
@@ -301,7 +310,7 @@ it.each(['completion', 'conversion'])(
   },
 );
 it.each(['update', 'delete'])(
-  'prevents completion from racing a pending %s',
+  'prevents completion from racing a pending %s across a detail remount',
   async (kind) => {
     const h = setup();
     fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
@@ -316,12 +325,15 @@ it.each(['update', 'delete'])(
         screen.getByRole('button', { name: m5s3.common.confirmDelete }),
       );
     }
-    fireEvent.click(action());
     await waitFor(() =>
       expect(
         kind === 'update' ? h.updateWish : h.deleteWish,
       ).toHaveBeenCalledTimes(1),
     );
+    h.view.unmount();
+    render(h.tree());
+    expect(action().getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(action());
     expect(h.completeWish).not.toHaveBeenCalled();
   },
 );

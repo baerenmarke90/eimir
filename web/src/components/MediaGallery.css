@@ -687,7 +687,8 @@
    technology users never lose them. */
 .media-gallery-carousel-viewport
 > :not(.media-gallery-carousel-track, .media-gallery-sensitive-control) {
-  transition: opacity var(--duration-transition) var(--easing-standard);
+  /* Returning is the slow, arriving half of the pair. */
+  transition: opacity var(--duration-controls-return) var(--easing-enter);
 }
 .media-gallery-carousel-viewport.is-browsing
   > :not(
@@ -697,6 +698,8 @@
   ) {
   opacity: 0;
   pointer-events: none;
+  /* Stepping aside is a calm fade, not a cut. */
+  transition: opacity var(--duration-context) var(--easing-standard);
 }
 
 /* The dots below the photos already show the position on touch screens. */

@@ -77,6 +77,9 @@
         "web/src/components/TodayPage.tsx",
         "web/src/components/RecapTasks.tsx",
         "web/src/components/RecapMedia.tsx",
+        "web/src/components/RecapEntryLink.tsx",
+        "web/src/components/CoupleExperienceLinks.tsx",
+        "web/src/components/StoryProductPage.tsx",
         "web/src/client/recaps.ts",
         "web/src/client/useStoryPlayback.ts",
         "web/src/components/MemoryProductPage.tsx",
@@ -188,7 +191,8 @@
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/AddAction.tsx",
-        "web/src/components/MomentCreateMenu.tsx"
+        "web/src/components/MomentCreateMenu.tsx",
+        "web/src/client/useFloatingCreateScrollTuck.ts"
       ],
       "always": true
     },

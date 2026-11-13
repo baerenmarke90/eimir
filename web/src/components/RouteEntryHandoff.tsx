@@ -1,6 +1,9 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { applyRouteEntryHandoff } from '../client/routeEntryHandoff';
+import {
+  applyRouteEntryHandoff,
+  takeSmoothRouteEntry,
+} from '../client/routeEntryHandoff';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 
 /**
@@ -57,6 +60,7 @@ export function RouteEntryHandoff(): null {
   const completedOriginEntry = useRef<string | null>(null);
 
   useLayoutEffect(() => {
+    const smoothRequested = takeSmoothRouteEntry();
     const state = location.state as {
       taskReturnKey?: unknown;
       taskOriginKey?: unknown;
@@ -100,7 +104,11 @@ export function RouteEntryHandoff(): null {
       return () => window.cancelAnimationFrame(frame);
     }
     if (navigationType === 'POP' && !location.hash) return undefined;
-    applyRouteEntryHandoff(location.hash);
+    // Tapping the navigation item of the page already shown scrolls it back
+    // to the start; make that a glide rather than a jump.
+    applyRouteEntryHandoff(location.hash, {
+      smooth: samePath && smoothRequested,
+    });
     const cleanup = stabilizePlanRouteEntry(location.hash);
     // `location` (not just `.hash`) is the dependency: a pathname-only
     // change between two hash-less routes must still re-run the handoff.

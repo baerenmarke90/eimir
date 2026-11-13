@@ -40,9 +40,9 @@ import {
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   MEMORY_CREATE_ROUTE,
-  MORE_PASSPORT_ROUTE,
   PRO_INFORMATION_ROUTE,
   recapDetailPath,
+  STORY_RECAPS_ROUTE,
 } from '../client/routes';
 import {
   entitlementLoader,
@@ -703,7 +703,7 @@ function RecapReader({
   const back = () =>
     requestReturn(
       (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
-      `${MORE_PASSPORT_ROUTE}${search.get('tab') === 'years' ? '?tab=years' : ''}`,
+      `${STORY_RECAPS_ROUTE}${search.get('tab') === 'years' ? '?tab=years' : ''}`,
     );
   const returnsToWir =
     resolveOrigin(

@@ -42,6 +42,7 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | normal upper guardrail | `motion.duration.maximum` | 320 ms | no default alias; not a routine duration |
 | explicit map camera journey | `motion.duration.mapCamera` | 1100 ms | `--duration-map-camera` |
 | map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
+| overlaid controls returning after browsing (#1796) | `motion.duration.controlsReturn` | 480 ms | `--duration-controls-return` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |
 | exit / dismissal | `motion.easing.exit` | 0.4, 0, 1, 1 | `--easing-exit` |

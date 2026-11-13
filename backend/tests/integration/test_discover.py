@@ -129,7 +129,7 @@ def test_endpoint_is_finite_minimal_and_returns_eight_unique_items(
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert set(body) == {"selectionDate", "lead", "items", "leadContext"}
+    assert set(body) == {"selectionDate", "lead", "items", "leadContext", "leadRediscovery"}
     ids = _ordered_ids(body)
     assert len(ids) == 8
     assert len(set(ids)) == 8

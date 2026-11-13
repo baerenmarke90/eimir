@@ -2766,6 +2766,16 @@
               }
             ]
           },
+          "retrospectiveRediscovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RediscoveryContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sharedStorySummary": {
             "$ref": "#/components/schemas/DashboardSharedStorySummary"
           },
@@ -2946,6 +2956,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/DiscoverLeadContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "leadRediscovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RediscoveryContext"
               },
               {
                 "type": "null"
@@ -6578,6 +6598,16 @@
         "title": "OrderedAttachmentSummary",
         "type": "object"
       },
+      "PartOfDay": {
+        "enum": [
+          "MORNING",
+          "AFTERNOON",
+          "EVENING",
+          "NIGHT"
+        ],
+        "title": "PartOfDay",
+        "type": "string"
+      },
       "PartnerDistanceView": {
         "description": "Neutral when unavailable: no reason is ever disclosed.",
         "properties": {
@@ -10079,6 +10109,89 @@
           "newPassword"
         ],
         "title": "RecoveryConsumeRequest",
+        "type": "object"
+      },
+      "RediscoveryContext": {
+        "description": "Viewer-safe facts a rediscovery card may phrase as a varying line.",
+        "properties": {
+          "chapterTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First linked Chapter.",
+            "title": "Chaptertitle"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First words of a Memory or Milestone body; never the full body.",
+            "title": "Excerpt"
+          },
+          "excerptTruncated": {
+            "default": false,
+            "title": "Excerpttruncated",
+            "type": "boolean"
+          },
+          "partOfDay": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartOfDay"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Coarse capture part of day of a non-sensitive photo from the moment's day."
+          },
+          "photoCount": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Photocount",
+            "type": "integer"
+          },
+          "placeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First linked couple-shared Place.",
+            "title": "Placename"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First authored tag of a Memory.",
+            "title": "Tag"
+          },
+          "videoCount": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Videocount",
+            "type": "integer"
+          }
+        },
+        "title": "RediscoveryContext",
         "type": "object"
       },
       "RefreshRequest": {

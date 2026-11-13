@@ -124,6 +124,7 @@ Indefinite sharing must stay energy-efficient for unlimited duration.
   publication, or when the last publication is older than 6 hours. The server
   enforces at most 60 publications per Account and hour.
 - No push messages for distance changes; partners read on open/resume.
+- Background uploads use a **presence device credential** issued by the Web client for the active share. It authorizes only `PUT /partner-location/device-snapshot` for its owner and is stored only as a hash. It is bound to the issuing device session, so sign-out, revocation and session expiry end it. It is also bound to the consent generation, so any settings change ends it. It expires after at most 30 days and is limited to three devices per owner. The app rotates it on every open. When a share is inactive the server answers `active: false`, and the device then deletes the credential and unregisters. The device never refreshes the Web session.
 - Acceptance: on a real Android device over 24 hours with indefinite sharing
   and the background toggle on, the feature's attributed battery use stays at
   or below 1 % per day, Android's location access history shows no

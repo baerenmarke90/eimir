@@ -32,6 +32,7 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.people.models import DateRepeat, ImportantDate, RelatedPerson
 from eimir.places.models import Place
+from eimir.plans import discreet
 from eimir.plans.models import Plan, PlanStatus
 from eimir.relationship.models import (
     DurationDisplayMode,
@@ -89,6 +90,8 @@ class DashboardItem:
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
     preview_has_thumbnail: bool = False
+    concealed: bool = False
+    """Only the list title may show: a discreet Plan (#1790 F3)."""
 
 
 @dataclass(frozen=True)
@@ -165,6 +168,7 @@ class Anticipation:
     event_on: date
     days_remaining: int
     event_at: datetime | None = None
+    concealed: bool = False
 
 
 @dataclass(frozen=True)
@@ -373,10 +377,11 @@ def read_anticipation(
         day = clock.ensure_utc(plan.planned_start).astimezone(clock.resolve_zone(zone)).date()
     return Anticipation(
         plan_id=plan.id,
-        title=_bounded(plan.payload.title) or "",
+        title=_bounded(discreet.list_title(plan)) or "",
         event_on=day,
         days_remaining=(day - today).days,
         event_at=clock.ensure_utc(plan.planned_start) if plan.planned_start is not None else None,
+        concealed=plan.discreet,
     )
 
 
@@ -743,7 +748,8 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(plan.payload.title),
+                title_or_text=_bounded(discreet.list_title(plan)),
+                concealed=plan.discreet,
                 scheduled_at=clock.ensure_utc(plan.planned_start),
             )
         )
@@ -765,7 +771,8 @@ def _upcoming(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(plan.payload.title),
+                title_or_text=_bounded(discreet.list_title(plan)),
+                concealed=plan.discreet,
                 scheduled_on=plan.planned_on,
             )
         )
@@ -1001,7 +1008,8 @@ def _recent_shared(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
-                title_or_text=_bounded(plan.payload.title),
+                title_or_text=_bounded(discreet.list_title(plan)),
+                concealed=plan.discreet,
                 occurred_on=plan.planned_on,
                 scheduled_at=plan.planned_start,
                 created_at=plan.created_at,

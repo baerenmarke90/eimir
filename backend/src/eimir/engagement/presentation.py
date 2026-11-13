@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.engagement.models import EngagementTarget
+from eimir.plans import discreet
+from eimir.plans.models import Plan
 from eimir.reminders.models import Reminder, ReminderSource
 
 
@@ -38,6 +40,12 @@ def target_titles(
         if target_type is EngagementTarget.REMINDER:
             statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
         for row in session.scalars(statement):
+            if isinstance(row, Plan):
+                # A discreet Plan only ever presents its list title (#1790 F3).
+                plan_title = discreet.list_title(row)
+                if plan_title:
+                    titles[(target_type, row.id)] = plan_title
+                continue
             field = (
                 "text"
                 if target_type is EngagementTarget.HEART_MOMENT
@@ -49,3 +57,17 @@ def target_titles(
             if title:
                 titles[(target_type, row.id)] = title
     return titles
+
+
+def concealed_targets(
+    session: Session,
+    targets: set[tuple[EngagementTarget, UUID]],
+) -> set[tuple[EngagementTarget, UUID]]:
+    """Return the already-authorized targets that are discreet Plans (#1790 F3)."""
+    plan_ids = {
+        target_id for target_type, target_id in targets if target_type is EngagementTarget.PLAN
+    }
+    return {
+        (EngagementTarget.PLAN, plan_id)
+        for plan_id in discreet.discreet_plan_ids(session, plan_ids)
+    }

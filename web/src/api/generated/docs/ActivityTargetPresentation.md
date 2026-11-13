@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`concealed` | boolean
 `targetId` | string
 `targetType` | [EngagementTarget](EngagementTarget.md)
 `title` | string
@@ -17,6 +18,7 @@ import type { ActivityTargetPresentation } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "concealed": null,
   "targetId": null,
   "targetType": null,
   "title": null,

@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`concealed` | boolean
 `excerpt` | string
 `id` | string
 `occurredOn` | Date
@@ -21,6 +22,7 @@ import type { SearchResult } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "concealed": null,
   "excerpt": null,
   "id": null,
   "occurredOn": null,

@@ -39,7 +39,7 @@ from eimir.engagement.gentle import record_manual_save
 from eimir.plans import service
 from eimir.plans.files import files_of_plan
 from eimir.plans.media import PhotoSelection, photos_of_plans
-from eimir.plans.models import Plan, PlanStatus
+from eimir.plans.models import PREVIEW_TITLE_MAX_LENGTH, DiscreetTitleMode, Plan, PlanStatus
 from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["plans"])
@@ -192,6 +192,11 @@ class PlanUpdate(ApiModel):
     place_id: UUID | None = None
     experienced_on: date | SkipJsonSchema[None] = None
     anticipation_enabled: StrictBool | SkipJsonSchema[None] = None
+    discreet: StrictBool | SkipJsonSchema[None] = None
+    """Shared visual shield for overviews; never a permission (#1790 F3)."""
+    discreet_title_mode: DiscreetTitleMode | SkipJsonSchema[None] = None
+    preview_title: Annotated[str, Field(max_length=PREVIEW_TITLE_MAX_LENGTH)] | None = None
+    """Overview title while discreet; null or blank uses the neutral fallback."""
     schedule: PlanSchedule | None = None
     selected_cover_attachment_id: UUID | None = None
     cover_attachment_id: UUID | None = None
@@ -222,6 +227,10 @@ class PlanUpdate(ApiModel):
             raise ValueError("coverIsSensitive must not be null")
         if "anticipation_enabled" in self.model_fields_set and self.anticipation_enabled is None:
             raise ValueError("anticipationEnabled must not be null")
+        if "discreet" in self.model_fields_set and self.discreet is None:
+            raise ValueError("discreet must not be null")
+        if "discreet_title_mode" in self.model_fields_set and self.discreet_title_mode is None:
+            raise ValueError("discreetTitleMode must not be null")
         return self
 
 
@@ -290,6 +299,10 @@ class PlanDetail(ApiModel):
     status: PlanStatus
     planned_on: date | None = None
     anticipation_enabled: bool = False
+    discreet: bool = False
+    """Overviews conceal this Plan; both partners keep full access (#1790 F3)."""
+    discreet_title_mode: DiscreetTitleMode = DiscreetTitleMode.PREVIEW
+    preview_title: str | None = None
     planned_start: datetime | None
     planned_end: datetime | None
     experienced_on: date | None
@@ -384,6 +397,9 @@ def _plan_detail(
         status=PlanStatus(plan.status),
         planned_on=plan.planned_on,
         anticipation_enabled=plan.anticipation_enabled,
+        discreet=plan.discreet,
+        discreet_title_mode=DiscreetTitleMode(plan.discreet_title_mode),
+        preview_title=plan.payload.preview_title,
         planned_start=plan.planned_start,
         planned_end=plan.planned_end,
         experienced_on=plan.experienced_on,
@@ -545,6 +561,9 @@ def update_plan(
         place_id=body.place_id,
         experienced_on=body.experienced_on,
         anticipation_enabled=body.anticipation_enabled,
+        discreet=body.discreet,
+        discreet_title_mode=body.discreet_title_mode,
+        preview_title=body.preview_title,
         cover_attachment_id=body.cover_attachment_id,
         cover_is_sensitive=body.cover_is_sensitive,
         photos=_photo_selection(body.attachments),

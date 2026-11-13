@@ -302,6 +302,11 @@
       },
       "ActivityTargetPresentation": {
         "properties": {
+          "concealed": {
+            "default": false,
+            "title": "Concealed",
+            "type": "boolean"
+          },
           "targetId": {
             "format": "uuid",
             "title": "Targetid",
@@ -2301,6 +2306,11 @@
       },
       "DashboardAnticipation": {
         "properties": {
+          "concealed": {
+            "default": false,
+            "title": "Concealed",
+            "type": "boolean"
+          },
           "daysRemaining": {
             "title": "Daysremaining",
             "type": "integer"
@@ -2402,6 +2412,11 @@
       },
       "DashboardItem": {
         "properties": {
+          "concealed": {
+            "default": false,
+            "title": "Concealed",
+            "type": "boolean"
+          },
           "createdAt": {
             "anyOf": [
               {
@@ -2985,6 +3000,15 @@
         ],
         "title": "DiscoverSelection",
         "type": "object"
+      },
+      "DiscreetTitleMode": {
+        "description": "Which title a discreet Plan shows outside its detail view (#1790 F3).\n\n``PREVIEW`` shows the author-chosen preview title, or the client's neutral\nfallback when it is empty. ``ORIGINAL`` keeps the real title visible while\ndescription, place and photos stay concealed.",
+        "enum": [
+          "PREVIEW",
+          "ORIGINAL"
+        ],
+        "title": "DiscreetTitleMode",
+        "type": "string"
       },
       "DistanceBandView": {
         "properties": {
@@ -8036,6 +8060,15 @@
             ],
             "title": "Description"
           },
+          "discreet": {
+            "default": false,
+            "title": "Discreet",
+            "type": "boolean"
+          },
+          "discreetTitleMode": {
+            "$ref": "#/components/schemas/DiscreetTitleMode",
+            "default": "PREVIEW"
+          },
           "experiencedOn": {
             "anyOf": [
               {
@@ -8107,6 +8140,17 @@
               }
             ],
             "title": "Plannedstart"
+          },
+          "previewTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewtitle"
           },
           "selectedCoverAttachmentId": {
             "anyOf": [
@@ -8362,6 +8406,14 @@
             ],
             "title": "Description"
           },
+          "discreet": {
+            "title": "Discreet",
+            "type": "boolean"
+          },
+          "discreetTitleMode": {
+            "$ref": "#/components/schemas/DiscreetTitleMode",
+            "title": "Discreettitlemode"
+          },
           "experiencedOn": {
             "format": "date",
             "title": "Experiencedon",
@@ -8382,6 +8434,18 @@
               }
             ],
             "title": "Placeid"
+          },
+          "previewTitle": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewtitle"
           },
           "schedule": {
             "anyOf": [
@@ -11107,6 +11171,11 @@
       },
       "SearchResult": {
         "properties": {
+          "concealed": {
+            "default": false,
+            "title": "Concealed",
+            "type": "boolean"
+          },
           "excerpt": {
             "anyOf": [
               {

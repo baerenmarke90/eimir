@@ -47,9 +47,11 @@
     },
     "android-push-onboarding.spec.ts": {
       "roots": [
+        "web/src/client/devicePush.ts",
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/OnceMessages.tsx",
         "web/src/components/SettingsPage.tsx"
       ]
     },
@@ -58,6 +60,16 @@
         "web/src/components/AppIconSettingsPanel.tsx",
         "web/src/components/ProfileAppearancePanel.tsx",
         "web/src/client/appIconContext.tsx"
+      ]
+    },
+    "browser-push.spec.ts": {
+      "roots": [
+        "web/src/client/browserPush.ts",
+        "web/src/client/devicePush.ts",
+        "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/client/m4Product.ts",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "automatic-recaps.spec.ts": {
@@ -563,6 +575,7 @@
       "roots": [
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishReminderAction.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/TodayPage.tsx"
       ]

@@ -10,6 +10,7 @@ Name | Type
 `encryptedPreviewMaxVersion` | number
 `encryptedPreviewVersion` | number
 `localeVersion` | number
+`neutralReferenceVersion` | number
 `projectId` | string
 `providerKey` | string
 
@@ -24,6 +25,7 @@ const example = {
   "encryptedPreviewMaxVersion": null,
   "encryptedPreviewVersion": null,
   "localeVersion": null,
+  "neutralReferenceVersion": null,
   "projectId": null,
   "providerKey": null,
 } satisfies FcmConfiguration

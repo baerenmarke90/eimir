@@ -106,7 +106,11 @@ function DevicePushSetting({
   return (
     <div className="notification-device-push">
       <PreferenceSwitch
-        label={t('notificationSettings.deviceToggle')}
+        label={t(
+          devicePush.browser
+            ? 'notificationSettings.browserToggle'
+            : 'notificationSettings.deviceToggle',
+        )}
         checked={checked}
         disabled={disabled}
         onCheckedChange={(enabled) => {

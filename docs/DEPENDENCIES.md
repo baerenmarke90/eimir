@@ -209,6 +209,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
+| h2 / hpack / hyperframe | 4.4.1 / 4.2.0 / 6.1.0 | PyPI | MIT |
 | google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
@@ -414,6 +415,13 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
+
+## iOS — Capacitor wrapper runtime
+
+The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
+MIT) wrap the same React product. The existing Capacitor App and Browser packages
+provide platform integration. Apple Security and UserNotifications supply Keychain
+storage and remote notifications without another SDK.
 
 The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency. It
 holds no independent product state: cache and read models live in the Web client.

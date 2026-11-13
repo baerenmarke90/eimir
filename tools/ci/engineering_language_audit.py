@@ -346,6 +346,7 @@ ALLOWED_LOCALIZED_TEXTS = (
     "%1$s hat die Erinnerung „%2$s“ erstellt.",
     "Eine Erinnerung ist fällig.",
     "Deine Erinnerung „%2$s“ ist fällig.",
+    "Du wolltest dich an einen Wunsch erinnern lassen.",
     "%1$s hat einen Moment mit dir geteilt.",
     "%1$s hat den Moment „%2$s“ mit dir geteilt.",
     "%1$s hat einen Termin geändert.",

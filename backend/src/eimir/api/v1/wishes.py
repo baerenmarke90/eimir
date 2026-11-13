@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
-from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic import AwareDatetime, ConfigDict, Field, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
@@ -19,7 +19,7 @@ from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.core.context_tags import ContextTags, unique_tags
 from eimir.plans.models import PlanStatus
-from eimir.wishes import service
+from eimir.wishes import reminders, service
 from eimir.wishes.journey import NO_JOURNEY, WishJourney, journey_for, journeys_for
 from eimir.wishes.models import Wish, WishStatus
 
@@ -192,6 +192,71 @@ class WishPage(ApiModel):
     items: list[WishDetail]
     next_cursor: str | None
     has_more: bool
+
+
+class PersonalWishReminder(ApiModel):
+    """Current pending schedule visible only to its owner."""
+
+    due_at: datetime | None
+
+
+class PersonalWishReminderUpdate(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    due_at: AwareDatetime
+
+
+_PERSONAL_REMINDER_PATH = "/spaces/{spaceId}/wishes/{wishId}/reminder"
+
+
+@router.get(
+    _PERSONAL_REMINDER_PATH,
+    operation_id="getPersonalWishReminder",
+    responses=problem_responses(401, 404, 422),
+)
+def get_personal_wish_reminder(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    wish_id: Annotated[str, Path(alias="wishId")],
+) -> PersonalWishReminder:
+    reminder = reminders.get_own(session, authorization, wish_id)
+    response.headers["Cache-Control"] = "private, no-store"
+    return PersonalWishReminder(due_at=reminder.due_at if reminder is not None else None)
+
+
+@router.put(
+    _PERSONAL_REMINDER_PATH,
+    operation_id="setPersonalWishReminder",
+    responses=problem_responses(401, 404, 409, 422),
+)
+def set_personal_wish_reminder(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    wish_id: Annotated[str, Path(alias="wishId")],
+    body: PersonalWishReminderUpdate,
+) -> PersonalWishReminder:
+    reminder = reminders.set_own(session, authorization, wish_id, body.due_at)
+    response.headers["Cache-Control"] = "private, no-store"
+    return PersonalWishReminder(due_at=reminder.due_at)
+
+
+@router.delete(
+    _PERSONAL_REMINDER_PATH,
+    operation_id="clearPersonalWishReminder",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    responses=problem_responses(401, 404, 422),
+)
+def clear_personal_wish_reminder(
+    authorization: Authorization,
+    session: DbSession,
+    wish_id: Annotated[str, Path(alias="wishId")],
+) -> Response:
+    reminders.clear_own(session, authorization, wish_id)
+    return Response(
+        status_code=http_status.HTTP_204_NO_CONTENT, headers={"Cache-Control": "private, no-store"}
+    )
 
 
 def wish_detail(

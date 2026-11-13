@@ -142,3 +142,14 @@ a.partner-distance-line:focus-visible {
     transition: none;
   }
 }
+
+/* Moved away from the hero in Settings › Wir: the same chip in its own place. */
+.today-partner-distance {
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--page-gutter, var(--space-4));
+}
+
+.today-partner-distance .partner-distance-signal {
+  margin-top: 0;
+}

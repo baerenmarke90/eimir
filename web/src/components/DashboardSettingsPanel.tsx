@@ -39,6 +39,7 @@ import { ProMark } from './ProMark';
 
 const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
   relationship_presence: 'wir',
+  partner_distance: 'orte',
   shared_experience: 'nurfuer',
   daily_quote: 'quote',
   keepsake: 'momente',
@@ -56,6 +57,8 @@ export interface DashboardSettingsPanelProps {
   accountId: string;
   spaceId: string;
   moduleControls?: Partial<Record<DashboardModuleKey, ReactNode>>;
+  /** Modules this account cannot use here; they stay out of the list. */
+  unavailableModuleKeys?: readonly DashboardModuleKey[];
   /** Viewer-side controls for the always-visible couple hero. */
   heroControls?: ReactNode;
 }
@@ -179,6 +182,7 @@ function settlePreferenceFacetWrite(
 
 export function DashboardSettingsPanel({
   moduleControls,
+  unavailableModuleKeys,
   heroControls,
   dashboardApi,
   accountId,
@@ -563,8 +567,14 @@ export function DashboardSettingsPanel({
 
   // The couple identity is always first; hidden standard modules remain
   // available without crowding the everyday arrangement.
-  const personalKeys = orderedDashboardModuleKeys(preferencesQuery.data).filter(
-    (key) => key !== COUPLE_HERO_MODULE_KEY,
+  const allPersonalKeys = orderedDashboardModuleKeys(
+    preferencesQuery.data,
+  ).filter((key) => key !== COUPLE_HERO_MODULE_KEY);
+  const unavailableKeys = allPersonalKeys.filter((key) =>
+    unavailableModuleKeys?.includes(key),
+  );
+  const personalKeys = allPersonalKeys.filter(
+    (key) => !unavailableKeys.includes(key),
   );
   const hiddenKeys = personalKeys.filter(
     (key) =>
@@ -584,6 +594,8 @@ export function DashboardSettingsPanel({
         COUPLE_HERO_MODULE_KEY,
         ...keys,
         ...hiddenKeys,
+        // Unavailable modules keep their saved place behind the others.
+        ...unavailableKeys,
       ] as DashboardModuleKey[];
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
       const position = keys.indexOf(moved as DashboardModuleKey) + 1;
@@ -732,6 +744,12 @@ export function DashboardSettingsPanel({
             htmlFor={`dashboard-visible-${entry.key}`}
           >
             {t(entry.labelKey)}
+            {entry.key === 'partner_distance' ? (
+              <>
+                {' '}
+                <ProMark label={t('partnerLocation.pro')} />
+              </>
+            ) : null}
           </label>
         )}
         {hasDedicatedSetting ? (

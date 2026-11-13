@@ -96,6 +96,7 @@ def test_catalog_keys_are_stable_and_unique() -> None:
     keys = [definition.key.value for definition in CATALOG]
     assert keys == [
         "relationship_presence",
+        "partner_distance",
         "shared_experience",
         "daily_quote",
         "keepsake",
@@ -195,6 +196,7 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
     assert response.json() == {
         "items": [
             {"moduleKey": "relationship_presence", "visible": True},
+            {"moduleKey": "partner_distance", "visible": True},
             {"moduleKey": "shared_experience", "visible": True},
             {"moduleKey": "daily_quote", "visible": True},
             {"moduleKey": "keepsake", "visible": True},
@@ -696,3 +698,20 @@ def test_legacy_order_inserts_rediscovery_and_preserves_independent_visibility(
     partner = _preferences(client, space_id, couple["token_b"]).json()
     assert _item(partner, "retrospective")["visible"] is True
     assert _item(partner, "relationship_signal")["visible"] is True
+
+
+def test_older_clients_without_partner_distance_keep_their_order(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    """#1792 adds `partner_distance`; complete older orders stay valid."""
+    older = [key for key in ALL_MODULE_KEYS if key != "partner_distance"]
+    older = [older[0], *reversed(older[1:])]
+    response = client.put(
+        f"/api/v1/spaces/{couple['space'].id}/dashboard/preferences/order",
+        json={"moduleKeys": older},
+        headers=auth(couple["token_a"]),
+    )
+    assert response.status_code == 200, response.text
+    keys = [item["moduleKey"] for item in response.json()["items"]]
+    assert keys[:2] == ["relationship_presence", "partner_distance"]
+    assert [key for key in keys if key != "partner_distance"] == older

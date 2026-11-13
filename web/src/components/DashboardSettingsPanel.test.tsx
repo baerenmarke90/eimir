@@ -20,6 +20,7 @@ import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import m5s5 from '../i18n/locales/m5s5';
 import dailyQuote from '../i18n/locales/dailyQuote';
+import partnerLocation from '../i18n/locales/partnerLocation';
 import relationshipReflections from '../i18n/locales/relationshipReflections';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 
@@ -80,6 +81,7 @@ function moduleCheckbox(key: string): HTMLInputElement {
 function moduleLabel(moduleKey: string): string {
   if (moduleKey === 'shared_experience') return experienceCopy.incoming.title;
   if (moduleKey === 'daily_quote') return dailyQuote.title;
+  if (moduleKey === 'partner_distance') return partnerLocation.wirModuleLabel;
   if (moduleKey === 'shared_story_summary')
     return relationshipReflections.passport.wirStatisticsTitle;
   const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moduleKey);

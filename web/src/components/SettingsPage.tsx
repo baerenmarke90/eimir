@@ -37,7 +37,7 @@ import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
-import { PartnerDistanceWirSetting } from './PartnerDistanceWirSetting';
+import { usePartnerDistanceModuleUnavailable } from './PartnerDistanceWirSetting';
 import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
@@ -63,6 +63,12 @@ export function SettingsPage(props: SettingsPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { settingsCategory } = useParams<{ settingsCategory?: string }>();
+  const unavailableWirModules = usePartnerDistanceModuleUnavailable({
+    apiBaseUrl: props.apiBaseUrl,
+    accessToken: props.accessToken,
+    accountId: props.account.id,
+    spaceId: props.spaceId,
+  });
 
   const configuration = useMemo(
     () =>
@@ -204,14 +210,7 @@ export function SettingsPage(props: SettingsPageProps) {
           dashboardApi={dashboardApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
-          heroControls={
-            <PartnerDistanceWirSetting
-              apiBaseUrl={props.apiBaseUrl}
-              accessToken={props.accessToken}
-              accountId={props.account.id}
-              spaceId={props.spaceId}
-            />
-          }
+          unavailableModuleKeys={unavailableWirModules}
           moduleControls={{
             shared_story_summary: (
               <WirStatisticsSetting

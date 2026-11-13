@@ -79,6 +79,8 @@ export function orderedDashboardModuleKeys(
         key === 'daily_quote' ||
         key === 'shared_experience' ||
         key === 'retrospective' ||
+        // #1792: older saved orders predate the partner distance module.
+        key === 'partner_distance' ||
         keys.includes(key),
     );
   if (

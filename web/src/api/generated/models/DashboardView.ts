@@ -27,6 +27,13 @@ import {
     DashboardAnticipationToJSON,
     DashboardAnticipationToJSONTyped,
 } from './DashboardAnticipation';
+import type { RediscoveryContext } from './RediscoveryContext';
+import {
+    RediscoveryContextFromJSON,
+    RediscoveryContextFromJSONTyped,
+    RediscoveryContextToJSON,
+    RediscoveryContextToJSONTyped,
+} from './RediscoveryContext';
 import type { DashboardSharedStorySummary } from './DashboardSharedStorySummary';
 import {
     DashboardSharedStorySummaryFromJSON,
@@ -100,6 +107,12 @@ export interface DashboardView {
     retrospective: DashboardItem | null;
     /**
      * 
+     * @type {RediscoveryContext}
+     * @memberof DashboardView
+     */
+    retrospectiveRediscovery?: RediscoveryContext | null;
+    /**
+     * 
      * @type {DashboardSharedStorySummary}
      * @memberof DashboardView
      */
@@ -161,6 +174,7 @@ export function DashboardViewFromJSONTyped(json: any, ignoreDiscriminator: boole
         'recentShared': ((json['recentShared'] as Array<any>).map(DashboardItemFromJSON)),
         'relationshipDuration': DashboardRelationshipDurationFromJSON(json['relationshipDuration']),
         'retrospective': DashboardItemFromJSON(json['retrospective']),
+        'retrospectiveRediscovery': json['retrospectiveRediscovery'] === undefined ? undefined : json['retrospectiveRediscovery'] === null ? null : RediscoveryContextFromJSON(json['retrospectiveRediscovery']),
         'sharedStorySummary': DashboardSharedStorySummaryFromJSON(json['sharedStorySummary']),
         'space': DashboardSpaceSummaryFromJSON(json['space']),
         'thinkingOfYouAvailableAt': (json['thinkingOfYouAvailableAt'] == null ? null : new Date(json['thinkingOfYouAvailableAt'])),
@@ -186,6 +200,7 @@ export function DashboardViewToJSONTyped(value?: DashboardView | null, ignoreDis
         'recentShared': ((value['recentShared'] as Array<any>).map(DashboardItemToJSON)),
         'relationshipDuration': DashboardRelationshipDurationToJSON(value['relationshipDuration']),
         'retrospective': DashboardItemToJSON(value['retrospective']),
+        'retrospectiveRediscovery': RediscoveryContextToJSON(value['retrospectiveRediscovery']),
         'sharedStorySummary': DashboardSharedStorySummaryToJSON(value['sharedStorySummary']),
         'space': DashboardSpaceSummaryToJSON(value['space']),
         'thinkingOfYouAvailableAt': value['thinkingOfYouAvailableAt'] == null ? value['thinkingOfYouAvailableAt'] : value['thinkingOfYouAvailableAt'].toISOString(),

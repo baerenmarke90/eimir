@@ -21,7 +21,11 @@ const loadMemoryImage = async () => 'blob:test-image';
 function renderStoryPage(
   route: string,
   cachedData: unknown,
-  options?: { dashboard?: unknown; selectionDate?: Date },
+  options?: {
+    dashboard?: unknown;
+    selectionDate?: Date;
+    leadRediscovery?: unknown;
+  },
 ): string {
   const query = route.includes('?') ? route.slice(route.indexOf('?') + 1) : '';
   const filters = parseStoryFilters(new URLSearchParams(query));
@@ -46,6 +50,7 @@ function renderStoryPage(
         items: (cachedData as { items?: unknown[] }).items ?? [],
         lead: (cachedData as { items?: unknown[] }).items?.[0] ?? null,
         leadContext: null,
+        leadRediscovery: options?.leadRediscovery ?? null,
         selectionDate: options?.selectionDate,
       },
       source: 'network',
@@ -69,6 +74,68 @@ function renderStoryPage(
     </QueryClientProvider>,
   );
 }
+
+describe('Momente #1790 C2 featured rediscovery wording', () => {
+  const selectionDate = new Date('2026-08-24T00:00:00Z');
+  const untitled = {
+    kind: 'MEMORY',
+    effectiveDate: new Date('2025-08-24T00:00:00Z'),
+    memory: {
+      id: 'untitled-lead',
+      title: '',
+      happenedOn: new Date('2025-08-24T00:00:00Z'),
+      createdAt: selectionDate,
+      attachments: [],
+      author: { id: 'author-1', displayName: 'Lea' },
+      capabilities: { canEdit: true, canDelete: true, canComment: true },
+    },
+  };
+  const leadRediscovery = {
+    placeName: 'Lake Phoenix',
+    photoCount: 0,
+    videoCount: 0,
+  };
+
+  function headline(html: string): string {
+    return (
+      html.match(/<h3 class="momente-hero-title">([^<]*)<\/h3>/u)?.[1] ?? ''
+    );
+  }
+
+  it('gives an untitled entry a variant headline and moves the date to the meta line', () => {
+    const html = renderStoryPage(
+      '/story?tab=discover',
+      { items: [untitled], hasMore: false, nextCursor: null },
+      { selectionDate, leadRediscovery },
+    );
+    const title = headline(html);
+    expect(title).toBeTruthy();
+    // Never the bare date that the meta line now carries.
+    expect(html).not.toContain(
+      `<h3 class="momente-hero-title">${html.match(/dateTime="2025-08-24">([^<]*)</u)?.[1]}</h3>`,
+    );
+    expect(title).not.toMatch(/^\d/u);
+    expect(html).toContain(
+      '<time class="rediscovery-date" dateTime="2025-08-24">',
+    );
+    // The accessible name follows the visible headline.
+    expect(html).toContain(
+      `aria-label="${de.story.featuredHighlight}: ${title}"`,
+    );
+  });
+
+  it('is stable when the same selection is rendered again', () => {
+    const render = () =>
+      headline(
+        renderStoryPage(
+          '/story?tab=discover',
+          { items: [untitled], hasMore: false, nextCursor: null },
+          { selectionDate, leadRediscovery },
+        ),
+      );
+    expect(render()).toBe(render());
+  });
+});
 
 describe('Momente retrospective integration (#601)', () => {
   const selectionDate = new Date('2026-08-24T00:00:00Z');

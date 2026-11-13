@@ -12,6 +12,7 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
+import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
 import {
   readableActivityItems,
@@ -101,6 +102,14 @@ import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import {
+  RediscoverySecondaryLine,
+  useRediscoveryWording,
+} from './RediscoveryWording';
+import {
+  dashboardRediscoverySource,
+  viewerToday,
+} from './rediscoverySelection';
 import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -443,9 +452,13 @@ function TodayMomentFeature({
 /** Daily rediscovery has its own visibility, order and section heading. */
 function TodayRetrospectiveCard({
   item,
+  rediscovery,
+  viewerLocalDate,
   loadMemoryImage,
 }: {
   item: DashboardItem;
+  rediscovery?: RediscoveryContext | null;
+  viewerLocalDate?: Date | null;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -454,7 +467,11 @@ function TodayRetrospectiveCard({
 }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
-  const { title, titleIsDate } = dashboardItemTitle(item, t);
+  // #1790 C2: varying wording instead of a bare date as the title.
+  const wording = useRediscoveryWording(
+    dashboardRediscoverySource(item, rediscovery),
+    { today: viewerToday(viewerLocalDate) },
+  );
   const rawDate = item.occurredOn ?? item.createdAt;
   const meta = rawDate ? formatDate(rawDate) : null;
   const previewAttachmentId = item.previewAttachmentId;
@@ -491,12 +508,15 @@ function TodayRetrospectiveCard({
             hasMedia ? '' : ' today-retrospective-text-only'
           }`}
         >
-          <span className="today-retrospective-title">{title}</span>
-          {date && !titleIsDate ? (
-            <time className="today-retrospective-date" dateTime={dateTime}>
-              {date}
-            </time>
-          ) : null}
+          <span className="today-retrospective-title">
+            {wording?.headline ?? dashboardItemTitle(item, t).title}
+          </span>
+          <RediscoverySecondaryLine
+            className="today-retrospective-date"
+            variantLine={wording?.variantLine ?? null}
+            date={date}
+            dateTime={dateTime}
+          />
         </figcaption>
       </figure>
       {path ? (
@@ -1457,6 +1477,8 @@ export function TodayPage({
           >
             <TodayRetrospectiveCard
               item={retrospective}
+              rediscovery={dashboardQuery.data?.retrospectiveRediscovery}
+              viewerLocalDate={dashboardQuery.data?.viewerLocalDate}
               loadMemoryImage={loadMemoryImage}
             />
           </TodayModuleSection>

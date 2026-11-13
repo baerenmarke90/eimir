@@ -380,6 +380,11 @@
       "baselineTests": 10,
       "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility. Place addresses navigate to the existing map and return; draft trash remains beside the Place, and linked Plans identify their destination."
     },
+    "rediscovery-wording.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "#1790 C2 varying rediscovery wording on Wir and Momente: untitled entries get a stable variant headline with the date below, authored titles keep a variant secondary line; accessible name, reload stability, 360/390/430 px, Light/Dark and large text."
+    },
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 12,

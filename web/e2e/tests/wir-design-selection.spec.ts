@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
-import energyCopy from '../../src/i18n/locales/dailyEnergy';
+import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
@@ -584,22 +584,22 @@ for (const [width, theme, large] of [
           'background-color',
           'rgba(0, 0, 0, 0)',
         );
-        await expect(page.locator('.daily-vibe-person').first()).toHaveCSS(
-          'background-color',
-          'rgba(0, 0, 0, 0)',
-        );
       }
-      await expect(page.locator('.daily-vibe-checkin')).toBeVisible();
+      await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
       await expect(page.locator('.daily-quote-card')).toBeVisible();
       await expect(page.locator('.anticipation-card')).toBeVisible();
       await reflow(page);
-      const battery = page
+      const ownAvatar = page
         .locator('.today-hero')
-        .getByRole('button', { name: energyCopy.badgeAriaEmpty });
-      await battery.click();
-      await expect(page.getByTestId('daily-energy-popover')).toBeVisible();
+        .getByRole('button', { name: /^Dein Tag:/ });
+      await ownAvatar.click();
+      const dayPanel = page.getByRole('region', {
+        name: wirCheckInCopy.panelTitle,
+      });
+      await expect(dayPanel).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.getByTestId('daily-energy-popover')).toHaveCount(0);
+      await expect(dayPanel).toBeHidden();
+      await expect(ownAvatar).toBeFocused();
       await captureScreenshot(
         page,
         info,

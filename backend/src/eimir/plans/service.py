@@ -58,7 +58,13 @@ from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
 from eimir.plans.files import change_files, clear_files
 from eimir.plans.media import PhotoSelection, replace_cover, replace_photos, select_cover
-from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
+from eimir.plans.models import (
+    DiscreetTitleMode,
+    Plan,
+    PlanPayload,
+    PlanStatus,
+    shared_privacy,
+)
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import runtime as reminder_runtime
 from eimir.wishes import service as wish_service
@@ -118,6 +124,12 @@ def _normalize_title(value: str) -> str:
     if not cleaned:
         raise ValidationError("Plan title must not be blank.", PLAN_TITLE_REQUIRED)
     return cleaned
+
+
+def _normalize_preview_title(value: str | None) -> str | None:
+    """Blank preview titles fall back to the client's neutral list title."""
+    cleaned = (value or "").strip()
+    return cleaned or None
 
 
 def _flush(session: Session) -> None:
@@ -554,6 +566,9 @@ def update_plan(
     place_id: UUID | str | None,
     experienced_on: date | None,
     anticipation_enabled: bool | None = None,
+    discreet: bool | None = None,
+    discreet_title_mode: DiscreetTitleMode | None = None,
+    preview_title: str | None = None,
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
@@ -615,6 +630,14 @@ def update_plan(
     if "anticipation_enabled" in changed_fields:
         assert anticipation_enabled is not None
         plan.anticipation_enabled = anticipation_enabled
+    # Discreet presentation is shared state on the entry: either partner may
+    # set or clear it, exactly like any other collaborative Plan field.
+    if "discreet" in changed_fields:
+        assert discreet is not None
+        plan.discreet = discreet
+    if "discreet_title_mode" in changed_fields:
+        assert discreet_title_mode is not None
+        plan.discreet_title_mode = discreet_title_mode.value
 
     next_title = plan.payload.title
     next_description = plan.payload.description
@@ -631,7 +654,7 @@ def update_plan(
             )
         plan.experienced_on = _validate_experienced_on(session, context, experienced_on)
 
-    if "title" in changed_fields or "description" in changed_fields or "tags" in changed_fields:
+    if {"title", "description", "tags", "preview_title"} & changed_fields:
         plan.payload = plan.payload.model_copy(
             update={
                 "title": next_title,
@@ -639,6 +662,9 @@ def update_plan(
                 "tags": tags
                 if "tags" in changed_fields and tags is not None
                 else plan.payload.tags,
+                "preview_title": _normalize_preview_title(preview_title)
+                if "preview_title" in changed_fields
+                else plan.payload.preview_title,
             }
         )
 

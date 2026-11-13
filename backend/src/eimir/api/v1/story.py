@@ -45,6 +45,7 @@ from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.places.models import Place
+from eimir.plans import discreet
 from eimir.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
 from eimir.story import discover_service, photo_service, service, view_service
 from eimir.story.service import StoryKind, StoryOrder, StoryRow
@@ -237,7 +238,7 @@ def _authors(session: DbSession, owner_ids: set[UUID]) -> dict[UUID, AuthorSumma
     return resolve_author_summaries(session, owner_ids)
 
 
-def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
+def _attachment_summary(attachment: Attachment, *, conceal: bool = False) -> AttachmentSummary:
     return AttachmentSummary(
         id=attachment.id,
         status="PROCESSING" if attachment.status == "VALIDATING" else attachment.status,
@@ -249,7 +250,7 @@ def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
         height=attachment.height,
         has_thumbnail=attachment.has_thumbnail,
         duration_seconds=attachment.duration_seconds,
-        is_sensitive=attachment.payload.is_sensitive,
+        is_sensitive=attachment.payload.is_sensitive or conceal,
     )
 
 
@@ -338,13 +339,24 @@ def get_media_gallery(
     page = photo_service.read_media_gallery(
         session, authorization, visibility=visibility, cursor=cursor, limit=limit
     )
+    # Photos of a discreet Plan inherit its concealment (#1790 F3).
+    discreet_plans = discreet.discreet_plan_ids(
+        session,
+        (
+            row.parent_id
+            for row in page.items
+            if row.parent_type == photo_service.MediaGalleryParentType.PLAN
+        ),
+    )
     return MediaGalleryPage(
         items=[
             MediaGalleryItem(
                 parent_type=row.parent_type,
                 parent_id=row.parent_id,
                 effective_date=row.effective_date,
-                attachment=_attachment_summary(row.attachment),
+                attachment=_attachment_summary(
+                    row.attachment, conceal=row.parent_id in discreet_plans
+                ),
             )
             for row in page.items
         ],

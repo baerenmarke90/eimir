@@ -87,6 +87,7 @@ export * from './DeviceContextView';
 export * from './DevicePushConfiguration';
 export * from './DiscoverLeadContext';
 export * from './DiscoverSelection';
+export * from './DiscreetTitleMode';
 export * from './DistanceBandView';
 export * from './DurationDisplayMode';
 export * from './EimirApiV1AuthOidcCallbackRequest';

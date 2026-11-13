@@ -30,6 +30,7 @@ from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
+from eimir.plans import discreet
 from eimir.plans.media import photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
 from eimir.recaps import mood, words
@@ -588,6 +589,10 @@ def source_material(
         if item.kind == RecapSourceKind.HEART_MOMENT
         else getattr(payload, "body", None) or getattr(payload, "description", None)
     )
+    # A discreet Plan presents only its list title; photos stay concealed (#1790 F3).
+    concealed = isinstance(value, Plan) and value.discreet
+    if concealed:
+        title, excerpt = discreet.list_title(value), None
     attachment = None
     sensitive = False
     from eimir.attachments.binding import cover_of
@@ -606,7 +611,7 @@ def source_material(
         gallery.get(item.id, []), getattr(payload, "selected_cover_attachment_id", None)
     )
     if photo and photo.status == AttachmentStatus.READY:
-        attachment, sensitive = photo.id, photo.payload.is_sensitive
+        attachment, sensitive = photo.id, photo.payload.is_sensitive or concealed
     result = {
         "key": item.key,
         "kind": item.kind,

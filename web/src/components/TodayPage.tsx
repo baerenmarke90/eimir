@@ -13,8 +13,8 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
-import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
+import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
 import {
   readableActivityItems,
   useActivityQuery,
@@ -98,10 +98,8 @@ import {
 import { OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
-import { PartnerQuickActions } from './PartnerQuickActions';
-import { WirPartnerDaySheet } from './WirPartnerDaySheet';
-import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirPartnerDistance } from './PartnerDistanceLine';
+import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import {
@@ -117,8 +115,12 @@ import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
+import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import './TodayPage.css';
+import { concealedTitle } from '../client/discreetPlans';
 import { useWirDesign } from '../client/wirDesign';
+import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
 
 export function formatRelationshipDuration(
@@ -308,13 +310,14 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
               timeStyle: item.scheduledAt ? 'short' : undefined,
             }).format(rawDate)
           : null;
-  const title =
-    item.titleOrText?.trim() ||
-    t(
-      item.type === 'ANNIVERSARY'
-        ? 'm5s5.dashboard.anniversaryTitle'
-        : `m5s5.kind.${item.type}`,
-    );
+  const title = item.concealed
+    ? concealedTitle(item.titleOrText, t)
+    : item.titleOrText?.trim() ||
+      t(
+        item.type === 'ANNIVERSARY'
+          ? 'm5s5.dashboard.anniversaryTitle'
+          : `m5s5.kind.${item.type}`,
+      );
 
   const rowInner = (
     <>
@@ -322,7 +325,10 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
         <RecentItemTypeIcon type={item.type} />
       </span>
       <span className="today-agenda-copy">
-        <span className="today-agenda-title">{title}</span>
+        <span className="today-agenda-title">
+          {title}
+          {item.concealed ? <DiscreetLock /> : null}
+        </span>
         {date ? (
           <time
             className="today-agenda-date"

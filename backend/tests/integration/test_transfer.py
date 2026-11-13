@@ -39,6 +39,8 @@ from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders.runtime_models import RulePreference
 from eimir.transfer import jobs, service
 from eimir.transfer.models import ExportStatus, ImportStatus, TransferScope
+from eimir.wishes import service as wish_service
+from eimir.wishes.models import Wish
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -518,3 +520,59 @@ def test_expired_staged_import_is_physically_deleted_idempotently(session: Sessi
     assert transfer.status == ImportStatus.EXPIRED.value
     assert not store.exists(key)
     assert service.cleanup_expired(session) == 0
+
+
+def test_import_remaps_repeated_wish_links_and_series(
+    session: Session,
+) -> None:
+    """#1816: follow-up links and series IDs are remapped to the imported Wishes."""
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    source_space = make_space(session, anna)
+    relationship_service.add_member(session, source_space.id, ben)
+    target_space = make_space(session, anna)
+    relationship_service.add_member(session, target_space.id, ben)
+    source_authorization = AuthorizationContext(account_id=anna.id, space_id=source_space.id)
+    target_authorization = AuthorizationContext(account_id=anna.id, space_id=target_space.id)
+
+    first = wish_service.create_wish(session, source_authorization, title="Baltic Sea")
+    first = wish_service.complete_direct_wish(
+        session, source_authorization, first.id, expected_version=first.version
+    )
+    second = wish_service.repeat_wish_once(
+        session, source_authorization, first.id, idempotency_key=None
+    ).wish
+    second = wish_service.complete_direct_wish(
+        session, source_authorization, second.id, expected_version=second.version
+    )
+    third = wish_service.repeat_wish_once(
+        session, source_authorization, second.id, idempotency_key=None
+    ).wish
+    session.flush()
+
+    with service.build_export_archive(
+        session, source_authorization, TransferScope.SHARED
+    ) as bundle:
+        bundle.seek(0, io.SEEK_END)
+        size = bundle.tell()
+        bundle.seek(0)
+        transfer = service.create_import(session, target_authorization, bundle, size=size)
+    session.flush()
+    jobs.handle_validate_import(session, {"importId": str(transfer.id)})
+    session.flush()
+    service.request_apply(session, target_authorization, str(transfer.id))
+    session.flush()
+    jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+    session.flush()
+
+    assert transfer.status == ImportStatus.COMPLETED.value
+    imported = {
+        wish.series_position: wish
+        for wish in session.scalars(select(Wish).where(Wish.space_id == target_space.id))
+    }
+    assert set(imported) == {1, 2, 3}
+    assert imported[1].followed_from_wish_id is None
+    assert imported[2].followed_from_wish_id == imported[1].id
+    assert imported[3].followed_from_wish_id == imported[2].id
+    assert {wish.series_id for wish in imported.values()} == {imported[1].id}
+    assert imported[3].id != third.id

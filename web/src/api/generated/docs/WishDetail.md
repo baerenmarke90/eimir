@@ -11,9 +11,12 @@ Name | Type
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
 `description` | string
+`followedFromWishId` | string
 `hasMemory` | boolean
 `id` | string
 `plan` | [WishPlanReference](WishPlanReference.md)
+`seriesId` | string
+`seriesPosition` | number
 `spaceId` | string
 `status` | [WishStatus](WishStatus.md)
 `tags` | Array&lt;string&gt;
@@ -33,9 +36,12 @@ const example = {
   "createdBy": null,
   "creator": null,
   "description": null,
+  "followedFromWishId": null,
   "hasMemory": null,
   "id": null,
   "plan": null,
+  "seriesId": null,
+  "seriesPosition": null,
   "spaceId": null,
   "status": null,
   "tags": null,

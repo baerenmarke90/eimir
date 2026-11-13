@@ -231,6 +231,33 @@ def make_space(session: Session, founder):  # type: ignore[no-untyped-def]
     return create_space(session, founder)
 
 
+def make_space_without_daily_context(session: Session, founder):  # type: ignore[no-untyped-def]
+    """Create a Space in the state existing Spaces keep after #1790.
+
+    New Spaces start with both daily check-in dimensions on and the founder's time zone.
+    Spaces created before that keep the stored v1 state: daily check-in dimensions off
+    and no shared daily time zone. A bulk UPDATE leaves the row version at its
+    initial value, exactly like a row read from that earlier state.
+    """
+    from sqlalchemy import update
+
+    from eimir.relationship.models import SpaceConfiguration
+
+    space = make_space(session, founder)
+    session.execute(
+        update(SpaceConfiguration)
+        .where(SpaceConfiguration.space_id == space.id)
+        .values(
+            vibe_check_enabled=False,
+            energy_check_in_enabled=False,
+            daily_context_timezone=None,
+        )
+        .execution_options(synchronize_session="fetch")
+    )
+    session.flush()
+    return space
+
+
 def sign_in(session: Session, account) -> str:  # type: ignore[no-untyped-def]
     """Issue a real access token.
 

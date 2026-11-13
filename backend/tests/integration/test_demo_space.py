@@ -92,8 +92,8 @@ def _assert_demo_configuration(configuration: SpaceConfiguration) -> None:
     assert configuration.shared_achievements_enabled is True
     assert configuration.daily_questions_enabled is True
     assert configuration.daily_context_timezone == "Europe/Berlin"
-    assert configuration.vibe_visibility_mode == "MUTUAL_REVEAL"
-    assert configuration.energy_visibility_mode == "MUTUAL_REVEAL"
+    assert configuration.vibe_visibility_mode == "IMMEDIATE"
+    assert configuration.energy_visibility_mode == "IMMEDIATE"
 
 
 def test_create_is_idempotent_and_representative(session: Session) -> None:

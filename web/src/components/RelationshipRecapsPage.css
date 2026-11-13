@@ -418,6 +418,40 @@
 .recap-selection small {
   color: var(--color-text-secondary);
 }
+.recap-quote {
+  margin: var(--space-4) 0 0;
+  padding-inline-start: var(--space-4);
+  border-inline-start: 2px solid var(--color-shared);
+}
+.recap-quote p {
+  margin: 0;
+  font: var(--font-content-heading);
+  font-size: 1.0625rem;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.45;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.recap-reaction-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  font: var(--font-supporting-copy);
+}
+.recap-reaction-line svg {
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+.recap-layout-photo .recap-quote {
+  border-inline-start-color: var(--color-text-inverse-muted);
+  color: var(--color-text-inverse);
+}
+.recap-layout-photo .recap-reaction-line {
+  color: var(--color-text-inverse);
+}
 .recap-reflection-field {
   display: grid;
   gap: var(--space-3);
@@ -578,8 +612,8 @@
   padding-block-start: var(--space-12);
   background: linear-gradient(
     to top,
-    var(--color-media-scrim-strong) 35%,
-    var(--color-media-scrim-mid) 75%,
+    var(--color-media-scrim-strong) 45%,
+    var(--color-media-scrim-mid) 82%,
     var(--color-media-scrim-clear)
   );
   pointer-events: none;
@@ -691,6 +725,14 @@
   position: relative;
   inset: auto;
   place-self: center;
+  transform: none;
+}
+.recap-playback-overlay.recap-playback-inline {
+  position: relative;
+  inset: auto;
+  order: 2;
+  align-self: center;
+  margin-block: 0 var(--space-5);
   transform: none;
 }
 .recap-playback-overlay[data-playing="true"] {

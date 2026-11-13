@@ -169,6 +169,7 @@ async function setup(
     start?: 'wir' | 'library';
     hideMonthly?: boolean;
     dense?: boolean;
+    ownWords?: boolean;
     native?: boolean;
     earlier?: boolean;
   } = {},
@@ -184,9 +185,37 @@ async function setup(
   const unexpected = await installMocks(page);
   const month = initial();
   const year = initial('year', true);
+  if (options.dense && options.ownWords) {
+    const words = fixtureCopy.ownWords;
+    const decorate = (sources: ReturnType<typeof denseSources>) =>
+      sources.map((entry) =>
+        entry.id === 'mem-canal'
+          ? {
+              ...entry,
+              quote: {
+                text: words.photoQuote,
+                authorId: 'partner',
+                authorName: 'Ben',
+              },
+            }
+          : entry.id === 'mem-breakfast'
+            ? { ...entry, mutualReaction: 'LOVE' }
+            : entry.id === 'heart-thanks'
+              ? {
+                  ...entry,
+                  quote: {
+                    text: words.wordsQuote,
+                    authorId: 'partner',
+                    authorName: 'Anna',
+                  },
+                }
+              : entry,
+      );
+    month.sources = decorate(denseSources()) as typeof month.sources;
+  }
   if (options.dense)
     Object.assign(month, {
-      sources: denseSources(),
+      sources: options.ownWords ? month.sources : denseSources(),
       facts: DENSE_FACTS,
       headline: fixtureCopy.dense.headline,
       introduction: fixtureCopy.dense.introduction,
@@ -1201,3 +1230,78 @@ test('the native app hides the page arrows and turns pages by touch', async ({
   await expect(stage.locator('h1')).toHaveText(copy.factsTitle);
   expect(state.unexpected).toEqual([]);
 });
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+] as const) {
+  test(`quotes and the mutual-reaction line show the couple's own words at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const words = fixtureCopy.ownWords;
+    const state = await setup(page, { dense: true, ownWords: true });
+    await page
+      .getByRole('link', { name: new RegExp(copy.open) })
+      .first()
+      .click();
+    const stage = page.locator('.recap-spread');
+    const heading = stage.locator('h1');
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    const settle = async () => {
+      for (const image of await stage.locator('img').all())
+        await image.evaluate((img: HTMLImageElement) => img.decode());
+    };
+    const shot = async (name: string) => {
+      await settle();
+      await captureScreenshot(
+        page,
+        info,
+        `recaps-own-words-${name}-${width}-${theme}.png`,
+      );
+    };
+    await next.click();
+    await next.click();
+    // Photo scene: the newest foreign comment, quoted with its author and German marks.
+    await expect(heading).toHaveText(fixtureCopy.photoTitle);
+    await expect(stage.locator('.recap-quote')).toHaveText(
+      `Ben: „${words.photoQuote}“`,
+    );
+    await expect(stage.locator('.recap-reaction-line')).toHaveCount(0);
+    await shot('photo-quote');
+    // Photo scene with a mutual reaction: one calm line, no quote.
+    await next.click();
+    await next.click();
+    await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.breakfast);
+    await expect(stage.locator('.recap-reaction-line')).toHaveText(
+      words.reaction,
+    );
+    await expect(stage.locator('.recap-quote')).toHaveCount(0);
+    await shot('photo-reaction');
+    // Text-led scene with a quote.
+    for (let step = 0; step < 3; step++) await next.click();
+    await expect(heading).toHaveText(fixtureCopy.dense.thanks);
+    await expect(stage.locator('.recap-quote')).toHaveText(
+      `Anna: „${words.wordsQuote}“`,
+    );
+    await shot('words-quote');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include('.recap-reader').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}

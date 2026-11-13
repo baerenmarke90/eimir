@@ -133,3 +133,28 @@ edition readable after expiry. It replaces a manual Pro action with a scheduled
 one and lets words be added to retained editions under the existing rules (new
 words need the capability; own existing words stay editable and withdrawable).
 The matrix row records this.
+
+## The couple's own words (#1744, scene reference)
+
+Product Owner direction of 2026-11-12: recap texts come from the couple's own words and localised templates. The [generated Compact reference](own-words-compact-reference.png) shows four scenes of the focused native reader: a photo scene with a quoted comment, a photo scene with the mutual-reaction line, a words scene with a quote, and the rhythm scene "Gute Tage zusammen" (#1783).
+
+![Generated Compact reference for the quote, reaction line, words quote and rhythm scenes](own-words-compact-reference.png)
+
+The baseline was `main@ba3bd390d`. The board was generated from the existing photo, words, cover and facts captures in [`evidence/`](evidence/), so it keeps the reader's Back, period and segmented-progress rail, the centred play toggle and the absence of a tab bar and painted arrows. It is synthetic guidance, not a pixel lock; its [prompt](prompt.txt) and the project asset terms record its provenance.
+
+Decisions taken from it when building:
+
+- The quote is a quiet block under the authored copy (rule on photo scenes, italic serif on text scenes), always with the author's first name. German scenes use German quotation marks; the board shows an English closing mark.
+- The reaction line is one calm line with a filled heart, no badge, and at most three per edition.
+- The rhythm scene shows only counts per week or month with the leading bucket in the cobalt tone; zero buckets stay as a thin line. Every bar has a text equivalent. No score, percentage or line.
+- The second panel's eyebrow sits over a busy part of the photo: the scrim must be strengthened so the eyebrow, title and reaction line meet contrast, and the date line should carry the day when it is known.
+
+### Runtime evidence for the quote and reaction scenes
+
+Captured by `web/e2e/tests/automatic-recaps.spec.ts` (three journeys: 390 Light, 430 Dark, 1280 Dark, reduced motion, axe and overflow checks) from a dense fixture whose photo scene carries a quote, whose second photo scene carries a mutual reaction, and whose text-led scene carries a quote: `evidence/recaps-own-words-photo-quote-*`, `recaps-own-words-photo-reaction-*` and `recaps-own-words-words-quote-*`.
+
+- The quote is a quiet italic serif block with the author's first name and German quotation marks, inside the photo scrim or on the text-led surface.
+- The reaction line is one calm line with a filled heart; it only appears on a photo scene.
+- The photo scrim now holds stronger and longer (45 % / 82 % stops) so the eyebrow, title, quote and reaction line stay readable over a busy picture.
+- On text-led scenes (facts, words, titles, a cover without photos) the play toggle stays in the stage but sits below the copy (Product Owner decision of 2026-11-12), so a paused reader never covers the title or a quote. While playing it is invisible as before; on photography it stays centred on the picture. The text-scene captures in `evidence/` were refreshed for this. Large-text and Android device acceptance of these scenes have not been performed; the rhythm scene is not built yet.
+

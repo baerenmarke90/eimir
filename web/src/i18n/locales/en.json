@@ -2727,6 +2727,13 @@
       "DAYS_other": "days with entries"
     },
     "factsBusiest": "Most kept in {{month}}",
+    "quote": "{{name}}: “{{text}}”",
+    "quoteAnonymous": "“{{text}}”",
+    "mutualReaction": {
+      "LOVE": "You both loved this photo",
+      "LAUGH": "You both laughed at this photo",
+      "CELEBRATE": "You both celebrated this photo"
+    },
     "gestureHint": "Tap to turn the page · Hold to pause",
     "previous": "Previous page",
     "next": "Next page",

@@ -13,6 +13,7 @@ from eimir.recaps.models import RecapKind, RecapSourceKind
 # Bounded editorial volume: enough material for a story, never the whole archive.
 HIGHLIGHT_LIMITS = {RecapKind.MONTH: 8, RecapKind.YEAR: 24}
 MANUAL_SELECTION_LIMIT = 24
+LOVED_BONUS = 5
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,8 @@ class Candidate:
     occurred_on: date
     version: int
     group: str | None = None
+    # Both members reacted alike to the cover photo; a mild, deterministic bonus.
+    loved: bool = False
 
     @property
     def key(self) -> str:
@@ -64,6 +67,8 @@ def select_candidates(
             same_kind = sum(value.kind == item.kind for value in selected)
             same_group = sum(bool(item.group) and value.group == item.group for value in selected)
             score = weights[item.kind] - same_kind * 8 - same_group * 16
+            if item.loved:
+                score += LOVED_BONUS
             if kind == RecapKind.YEAR:
                 score -= same_month * 24
             tie = hashlib.sha256(f"{seed}:{variant}:{item.key}".encode()).hexdigest()

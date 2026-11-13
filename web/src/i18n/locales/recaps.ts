@@ -73,6 +73,13 @@ export default {
     DAYS_other: 'Tage mit Einträgen',
   },
   factsBusiest: 'Am meisten festgehalten im {{month}}',
+  quote: '{{name}}: „{{text}}“',
+  quoteAnonymous: '„{{text}}“',
+  mutualReaction: {
+    LOVE: 'Dieses Foto habt ihr beide geliebt',
+    LAUGH: 'Bei diesem Foto habt ihr beide gelacht',
+    CELEBRATE: 'Dieses Foto habt ihr beide gefeiert',
+  },
   gestureHint: 'Tippen zum Blättern · Halten zum Pausieren',
   previous: 'Vorherige Seite',
   next: 'Nächste Seite',

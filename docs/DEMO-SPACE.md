@@ -359,8 +359,8 @@ The canonical dataset is created through normal domain services and currently in
 - manual Place-to-Memory links for the café breakfast and lake walk (not invented photo GPS);
 - Chapters, including Place-linked content;
 - shared Collections/items, including a realistic shared checklist pinned to Today for both personas;
-- recent Daily Check-in history for both personas with Vibe and Energy/Battery values, intentional gaps,
-  and Mutual Reveal enabled so the current privacy interaction is demonstrable;
+- recent Daily Check-in history for both personas with Vibe and Energy/Battery values and intentional gaps,
+  shown with the immediate visibility that new Spaces get by default (#1790);
 - a recent completed shared Plan so completion/achievement surfaces have current content;
 - independent PrivateNote, GiftIdea, and PrivateCollection content for both Accounts;
 - Search-visible shared/private material;

@@ -36,7 +36,7 @@ export interface TaskOriginMetadata {
   searchKind?: string;
   /** Restores the Planning peer mode without publishing it in the URL. */
   planningSegment?: 'plans' | 'wishes' | 'dates';
-  planningWishStatus?: 'OPEN' | 'COMPLETED';
+  planningWishStatus?: 'OPEN' | 'PLANNED' | 'COMPLETED';
   planningPlanStatus?: 'OPEN' | 'COMPLETED';
   planningPlanSearch?: string;
   planningWishSearch?: string;

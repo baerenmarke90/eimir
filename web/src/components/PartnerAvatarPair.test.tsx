@@ -160,4 +160,39 @@ describe('PartnerAvatarPair', () => {
 
     expect(screen.getByText('PM')).toBeDefined();
   });
+
+  it('splits the pair into one tap target per person when the own avatar has a task', () => {
+    const openOwn = vi.fn();
+    const openPartner = vi.fn();
+    render(
+      <PartnerAvatarPair
+        primaryPerson={{ displayName: 'Lea' }}
+        secondaryPerson={{ displayName: 'Alex' }}
+        size="hero"
+        primaryAction={{
+          onActivate: openOwn,
+          label: 'Own day',
+          expanded: false,
+        }}
+        primaryAdornment={<span data-testid="own-badge" />}
+        secondaryAdornment={<span data-testid="partner-badge" />}
+        onActivate={openPartner}
+        actionLabel="Partner actions"
+        actionHasPopup="dialog"
+      />,
+    );
+
+    const own = screen.getByRole('button', { name: 'Own day' });
+    const partner = screen.getByRole('button', { name: 'Partner actions' });
+    expect(own.getAttribute('aria-expanded')).toBe('false');
+    expect(partner.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(own.contains(screen.getByTestId('own-badge'))).toBe(true);
+    expect(partner.contains(screen.getByTestId('partner-badge'))).toBe(true);
+
+    fireEvent.click(own);
+    expect(openOwn).toHaveBeenCalledTimes(1);
+    expect(openPartner).not.toHaveBeenCalled();
+    fireEvent.click(partner);
+    expect(openPartner).toHaveBeenCalledTimes(1);
+  });
 });

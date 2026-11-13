@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
@@ -476,8 +477,9 @@ for (const [width, theme] of [
     await expect(place).toHaveAttribute('href', '/story/map?place=49.1%3A7.2');
     await expect(place).toHaveText('Riverside park');
     await expect(place).not.toContainText(m5s3.common.place);
-    const wish = page.locator('a.plan-wish-source');
-    await expect(wish).toContainText(m5s3.plan.openWish);
+    // #1790 F2: the source wish is the quiet origin line above the title.
+    const wish = page.locator('a.plan-wish-origin');
+    await expect(wish).toHaveText(wishJourney.fromWish);
     await expect(wish).toHaveAttribute('href', '/plan/wishes/wish-outside');
     for (const control of [place, wish]) {
       const box = await control.boundingBox();
@@ -490,7 +492,7 @@ for (const [width, theme] of [
         await expect(control).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
         await expect(control).toHaveCSS('border-top-width', '0px');
         await expect(control).toHaveCSS('box-shadow', 'none');
-      } else expect(padding).toBeGreaterThan(0);
+      } else await expect(control).toHaveCSS('text-decoration-line', 'none');
     }
     await less.scrollIntoViewIfNeeded();
     await captureScreenshot(

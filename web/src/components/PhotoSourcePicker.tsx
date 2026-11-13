@@ -132,6 +132,7 @@ export function PhotoSourcePicker({
   devicePicker,
   unified = false,
   renderTrigger,
+  onExternalAvailability,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -147,6 +148,8 @@ export function PhotoSourcePicker({
   ) => ReactNode;
   unified?: boolean;
   renderTrigger?: (open: () => void, openExternal: () => void) => ReactNode;
+  /** Reports whether an external source (Immich, Google Photos) is offered. */
+  onExternalAvailability?: (available: boolean) => void;
 }) {
   const { t } = useTranslation();
   const { apiRef, availability, loading } = usePhotoSources({
@@ -155,6 +158,12 @@ export function PhotoSourcePicker({
     accountId,
     spaceId,
   });
+  const externalAvailable = Boolean(
+    availability?.enabled || availability?.immichConnected,
+  );
+  useEffect(() => {
+    onExternalAvailability?.(externalAvailable);
+  }, [externalAvailable, onExternalAvailability]);
   const [open, setOpen] = useState(false);
   const [externalOnly, setExternalOnly] = useState(false);
   const [busy, setBusy] = useState(false);

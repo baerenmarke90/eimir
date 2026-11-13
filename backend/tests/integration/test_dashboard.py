@@ -165,6 +165,7 @@ def test_dashboard_is_shared_only_and_private_no_store(
         "thinkingOfYouAvailableAt",
         "incomingExperience",
         "viewerLocalDate",
+        "retrospectiveRediscovery",
     }
     assert body["anticipation"] is None
     assert body["viewerLocalDate"] == "2026-08-30"

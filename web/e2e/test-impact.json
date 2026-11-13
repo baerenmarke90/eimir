@@ -557,6 +557,14 @@
         "web/src/components/MemoryCreatePage.tsx"
       ]
     },
+    "wish-journey.spec.ts": {
+      "roots": [
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/TodayPage.tsx"
+      ]
+    },
     "private-area-reference.spec.ts": {
       "roots": [
         "web/src/components/AppShell.tsx",
@@ -660,6 +668,15 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "rediscovery-wording.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/RediscoveryWording.tsx",
+        "web/src/components/rediscoverySelection.ts",
+        "web/src/i18n/locales/rediscovery.ts"
       ]
     },
     "relationship-reflections.spec.ts": {
@@ -774,19 +791,13 @@
         "web/src/components/SettingsPage.tsx"
       ]
     },
-    "today-daily-energy.spec.ts": {
+    "today-daily-checkin.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"
       ]
     },
     "today-daily-quote.spec.ts": {
-      "roots": [
-        "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx"
-      ]
-    },
-    "today-daily-vibe.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"

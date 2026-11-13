@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Self
 from uuid import UUID
 
@@ -18,7 +18,9 @@ from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.core.context_tags import ContextTags, unique_tags
+from eimir.plans.models import PlanStatus
 from eimir.wishes import service
+from eimir.wishes.journey import NO_JOURNEY, WishJourney, journey_for, journeys_for
 from eimir.wishes.models import Wish, WishStatus
 
 router = APIRouter(tags=["wishes"])
@@ -97,6 +99,24 @@ class WishUpdate(ApiModel):
         return self
 
 
+class WishPlanReference(ApiModel):
+    """The Plan that originated from this Wish (``Plan.sourceWishId``).
+
+    Read-only journey context for presentation (#1790 F2). It carries only
+    what a Wish surface needs to point to the Plan and show when it happens;
+    the Plan itself stays the source of truth. ``plannedOn`` is a date-only
+    schedule and ``plannedStart`` an exact instant; at most one is set, and
+    both are null for a Plan without a date. ``experiencedOn`` is set once
+    the Plan was completed.
+    """
+
+    id: UUID
+    status: PlanStatus
+    planned_on: date | None
+    planned_start: datetime | None
+    experienced_on: date | None
+
+
 class WishDetail(ApiModel):
     id: UUID
     space_id: UUID
@@ -110,6 +130,18 @@ class WishDetail(ApiModel):
     updated_at: datetime
     creator: AuthorSummary
     capabilities: ResourceCapabilities
+    plan: WishPlanReference | None = Field(
+        description=(
+            "Originating Plan of a PLANNED or COMPLETED Wish; null for OPEN, "
+            "directly completed, or returned Wishes."
+        ),
+    )
+    has_memory: bool = Field(
+        description=(
+            "Whether a Memory is linked to this PLANNED or COMPLETED Wish or to "
+            "its originating Plan; always false for OPEN Wishes."
+        ),
+    )
 
 
 class WishPage(ApiModel):
@@ -123,9 +155,13 @@ def wish_detail(
     authorization: Authorization,
     wish: Wish,
     creator: AuthorSummary | None = None,
+    journey: WishJourney | None = None,
 ) -> WishDetail:
     if creator is None:
         creator = resolve_author_summary(session, wish.owner_id, resource="Wish creator")
+    if journey is None:
+        journey = journey_for(session, authorization, wish)
+    plan = journey.plan
     return WishDetail(
         id=wish.id,
         space_id=wish.space_id,
@@ -148,6 +184,18 @@ def wish_detail(
             # M3 does not introduce Wish as a comment target.
             can_comment=False,
         ),
+        plan=(
+            WishPlanReference(
+                id=plan.id,
+                status=PlanStatus(plan.status),
+                planned_on=plan.planned_on,
+                planned_start=plan.planned_start,
+                experienced_on=plan.experienced_on,
+            )
+            if plan is not None
+            else None
+        ),
+        has_memory=journey.has_memory,
     )
 
 
@@ -212,9 +260,16 @@ def list_wishes(
         status=status,
     )
     creators = resolve_author_summaries(session, {wish.owner_id for wish in page.items})
+    journeys = journeys_for(session, authorization, page.items)
     return WishPage(
         items=[
-            wish_detail(session, authorization, wish, creator=creators.get(wish.owner_id))
+            wish_detail(
+                session,
+                authorization,
+                wish,
+                creator=creators.get(wish.owner_id),
+                journey=journeys.get(wish.id, NO_JOURNEY),
+            )
             for wish in page.items
         ],
         next_cursor=page.next_cursor,

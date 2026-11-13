@@ -12,6 +12,7 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
+import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
 import {
   readableActivityItems,
@@ -85,9 +86,7 @@ import {
   CouplePresence,
   type CouplePresenceAvatarAction,
 } from './CouplePresence';
-import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
-import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
@@ -99,8 +98,18 @@ import { OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
+import { WirPartnerDaySheet } from './WirPartnerDaySheet';
+import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import {
+  RediscoverySecondaryLine,
+  useRediscoveryWording,
+} from './RediscoveryWording';
+import {
+  dashboardRediscoverySource,
+  viewerToday,
+} from './rediscoverySelection';
 import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -443,9 +452,13 @@ function TodayMomentFeature({
 /** Daily rediscovery has its own visibility, order and section heading. */
 function TodayRetrospectiveCard({
   item,
+  rediscovery,
+  viewerLocalDate,
   loadMemoryImage,
 }: {
   item: DashboardItem;
+  rediscovery?: RediscoveryContext | null;
+  viewerLocalDate?: Date | null;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -454,7 +467,11 @@ function TodayRetrospectiveCard({
 }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
-  const { title, titleIsDate } = dashboardItemTitle(item, t);
+  // #1790 C2: varying wording instead of a bare date as the title.
+  const wording = useRediscoveryWording(
+    dashboardRediscoverySource(item, rediscovery),
+    { today: viewerToday(viewerLocalDate) },
+  );
   const rawDate = item.occurredOn ?? item.createdAt;
   const meta = rawDate ? formatDate(rawDate) : null;
   const previewAttachmentId = item.previewAttachmentId;
@@ -491,12 +508,15 @@ function TodayRetrospectiveCard({
             hasMedia ? '' : ' today-retrospective-text-only'
           }`}
         >
-          <span className="today-retrospective-title">{title}</span>
-          {date && !titleIsDate ? (
-            <time className="today-retrospective-date" dateTime={dateTime}>
-              {date}
-            </time>
-          ) : null}
+          <span className="today-retrospective-title">
+            {wording?.headline ?? dashboardItemTitle(item, t).title}
+          </span>
+          <RediscoverySecondaryLine
+            className="today-retrospective-date"
+            variantLine={wording?.variantLine ?? null}
+            date={date}
+            dateTime={dateTime}
+          />
         </figcaption>
       </figure>
       {path ? (
@@ -885,6 +905,15 @@ export function TodayPage({
     partner?.displayName,
     t('m5s5.today.relationshipSignal.partnerFallback'),
   );
+  // Daily check-in on the couple avatars (#1790 slice A).
+  const dailyCheckIn = useWirDailyCheckIn({
+    api: dailyCheckInsApi,
+    accountId: partner ? account?.id : undefined,
+    spaceId,
+    partnerName,
+    vibeEnabled: vibeCheckEnabled,
+    energyEnabled: energyCheckInEnabled,
+  });
   const presenceQuery = usePartnerPresence({
     accountId: account?.id ?? '',
     spaceId,
@@ -1258,19 +1287,18 @@ export function TodayPage({
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
       avatarSize="hero"
-      avatarAction={avatarAction}
-      avatarOverlay={avatarOverlay}
-      avatarAdornment={
-        energyCheckInEnabled && account?.id ? (
-          <DailyEnergyCheckIn
-            key={`${account.id}:${spaceId}`}
-            api={dailyCheckInsApi}
-            accountId={account.id}
-            spaceId={spaceId}
-            partnerName={partner ? partnerName : undefined}
-          />
-        ) : undefined
+      avatarAction={
+        avatarAction && dailyCheckIn?.partnerAriaLabel
+          ? {
+              ...avatarAction,
+              label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+            }
+          : avatarAction
       }
+      avatarOverlay={avatarOverlay}
+      primaryAvatarAction={dailyCheckIn?.ownAction}
+      primaryAvatarAdornment={dailyCheckIn?.ownBadge}
+      secondaryAvatarAdornment={dailyCheckIn?.partnerBadge}
     />
   );
 
@@ -1284,18 +1312,6 @@ export function TodayPage({
         spaceId={spaceId}
         partnerName={partner ? partnerName : undefined}
         partnerNameIsResolved
-      />
-    ) : null;
-  const dailyVibe =
-    vibeCheckEnabled && partner && account?.id && dailyCheckInsApi ? (
-      <DailyVibeCheckIn
-        key={`vibe:${account.id}:${spaceId}`}
-        api={dailyCheckInsApi}
-        accountId={account.id}
-        spaceId={spaceId}
-        partnerName={partnerName}
-        partnerNameIsResolved
-        configuredEnabled
       />
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
@@ -1317,6 +1333,7 @@ export function TodayPage({
           supportGesturesEnabled && partner && account?.id ? (
             <PartnerQuickActions
               apis={apis}
+              header={dailyCheckIn?.partnerBlock}
               entitlementApi={entitlementApi}
               accountId={account.id}
               spaceId={spaceId}
@@ -1331,11 +1348,19 @@ export function TodayPage({
                 renderRelationshipHero(avatarAction, avatarOverlay)
               }
             </PartnerQuickActions>
+          ) : dailyCheckIn?.partnerBlock && partner ? (
+            <WirPartnerDaySheet
+              partnerName={partnerName}
+              block={dailyCheckIn.partnerBlock}
+            >
+              {(avatarAction) => renderRelationshipHero(avatarAction)}
+            </WirPartnerDaySheet>
           ) : (
             renderRelationshipHero()
           )
         ) : null}
-        {dailyVibe}
+        {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
+        {dailyCheckIn?.announcement}
         <OnceIncomingSignal />
       </>
     ),
@@ -1457,6 +1482,8 @@ export function TodayPage({
           >
             <TodayRetrospectiveCard
               item={retrospective}
+              rediscovery={dashboardQuery.data?.retrospectiveRediscovery}
+              viewerLocalDate={dashboardQuery.data?.viewerLocalDate}
               loadMemoryImage={loadMemoryImage}
             />
           </TodayModuleSection>

@@ -42,6 +42,8 @@ const wish = (overrides: Partial<WishDetail> = {}): WishDetail => ({
   createdAt: new Date('2026-09-01T10:00:00Z'),
   createdBy: 'account-anna',
   creator: { id: 'account-anna', displayName: 'Anna' },
+  plan: null,
+  hasMemory: false,
   id: ID,
   spaceId: SPACE,
   status: 'OPEN',

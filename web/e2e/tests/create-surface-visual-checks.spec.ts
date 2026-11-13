@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoSources from '../../src/i18n/locales/photoSources';
@@ -492,10 +493,11 @@ for (const width of [390, 320] as const) {
         .locator('.composer-tool-row button')
         .filter({ has: page.locator('.eimir-icon-orte') });
       await expectLabeledComposerTool(places, 'orte');
-      await expect(page.locator('.composer-tool-row button')).toHaveCount(3);
+      // #1790 D1: Place and Tag remain; the on-page intake is the photo entry.
+      await expect(page.locator('.composer-tool-row button')).toHaveCount(2);
       await expect(
         page.locator('.composer-tool-row .eimir-icon-foto'),
-      ).toHaveCount(1);
+      ).toHaveCount(0);
       const saveButton = page.getByRole('button', { name: de.memory.save });
       const form = page.locator('.immersive-create-form');
       await expect(page.locator('[data-floating-create]')).toHaveCount(0);
@@ -552,44 +554,19 @@ for (const width of [390, 320] as const) {
       if (!addPlaceBox) throw new Error('Add Place did not render.');
       expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
-      // The intake keeps the source entry; unavailable providers remain absent.
+      // #1790 D1: the intake is the one diary entry. Without an external
+      // source it opens the device picker directly; no separate source link.
       await expect(mediaGroup).toHaveCSS('border-top-width', '0px');
       await expect(
         page.locator('.composer-content .media-action-group'),
       ).toHaveCount(1);
       await expect(media.locator('.media-gallery')).toHaveCount(0);
-      const otherSource = media.getByRole('button', {
-        name: photoSources.more,
-        exact: true,
-      });
-      await expect(otherSource).toBeVisible();
-      await expect(otherSource.locator('.pro-mark')).toBeVisible();
-      await otherSource.click();
-      const sourceSheet = page.getByRole('dialog', {
-        name: photoSources.title,
-        exact: true,
-      });
-      await expect(sourceSheet).toBeVisible();
       await expect(
-        sourceSheet.getByRole('button', {
-          name: photoSources.device,
-          exact: true,
-        }),
+        media.getByRole('button', { name: photoSources.more, exact: true }),
       ).toHaveCount(0);
       await expect(
-        sourceSheet.getByRole('button', {
-          name: photoSources.google,
-          exact: true,
-        }),
-      ).toHaveCount(0);
-      await expect(
-        sourceSheet.getByRole('button', {
-          name: photoSources.immich,
-          exact: true,
-        }),
-      ).toHaveCount(0);
-      await page.keyboard.press('Escape');
-      await expect(sourceSheet).toHaveCount(0);
+        media.getByRole('button', { name: composer.addPhotos, exact: true }),
+      ).not.toHaveAttribute('aria-haspopup', 'dialog');
       await expect(mediaGroup.locator('.media-action-group-label')).toHaveCount(
         0,
       );

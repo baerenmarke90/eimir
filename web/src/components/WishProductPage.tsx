@@ -17,7 +17,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import type { WishUpdate } from '../api/generated/models/WishUpdate';
@@ -40,6 +40,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { wishJourneyStage, wishPlanDateLabel } from '../client/wishJourney';
 import { useTranslation } from '../i18n';
 import { ExpandableDescription } from './ExpandableDescription';
 import { ListEntryIconButton } from './ListEntryActions';
@@ -53,6 +54,7 @@ import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 import { WishComposer } from './WishComposer';
+import { WishJourneyPath } from './WishJourney';
 import { useWishCompletion } from './useWishCompletion';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
@@ -490,7 +492,6 @@ export function WishProductPage({
         }
         eyebrow={t('m5s3.wish.detailEyebrow')}
         title={wish.title}
-        description={t(`m5s3.wish.status.${wish.status}`)}
         titleAction={
           wish.capabilities.canEdit ? (
             <ListEntryIconButton
@@ -512,6 +513,25 @@ export function WishProductPage({
           ) : undefined
         }
       />
+
+      <WishJourneyPath
+        className="wish-detail-journey"
+        stage={wishJourneyStage(wish)}
+        advancing={showCompletionContinuation}
+      />
+      {wish.status === 'PLANNED' && wish.plan ? (
+        <Link
+          className="button-link button-link-primary wish-detail-plan-action"
+          to={planDetailPath(wish.plan.id)}
+        >
+          {(() => {
+            const date = wishPlanDateLabel(wish.plan);
+            return date
+              ? t('wishJourney.openPlanOn', { date })
+              : t('wishJourney.openPlan');
+          })()}
+        </Link>
+      ) : null}
 
       {completion.pendingRequest ? (
         <p className="planen-detail-pending" role="status">

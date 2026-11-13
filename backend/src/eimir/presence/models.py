@@ -109,3 +109,45 @@ class PresenceSnapshot(IdMixin, TimestampMixin, Base):
         CheckConstraint("accuracy_meters >= 1000", name="accuracy_is_coarse"),
         Index("ix_presence_snapshots_expires_at", "expires_at"),
     )
+
+
+class PresenceDeviceCredential(IdMixin, TimestampMixin, Base):
+    """A narrow credential that lets one device publish its owner's snapshot.
+
+    It authorizes only the background snapshot upload. It is bound to the
+    issuing device session (revocation, expiry and sign-out end it), to the
+    consent generation it was issued for (any settings change ends it) and to
+    an absolute expiry. Only the token hash is stored.
+    """
+
+    __tablename__ = "presence_device_credentials"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("spaces.id", ondelete="CASCADE"), nullable=False
+    )
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    device_session_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    device_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    consent_generation: Mapped[int] = mapped_column(Integer, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_presence_device_credentials_token_hash"),
+        UniqueConstraint(
+            "space_id",
+            "account_id",
+            "device_id",
+            name="uq_presence_device_credentials_owner_device",
+        ),
+        Index("ix_presence_device_credentials_expires_at", "expires_at"),
+    )

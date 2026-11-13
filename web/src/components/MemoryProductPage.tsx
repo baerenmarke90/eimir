@@ -143,9 +143,6 @@ export function MemoryProductPage({
     null,
   );
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
-  const [photoToolHost, setPhotoToolHost] = useState<HTMLSpanElement | null>(
-    null,
-  );
   const [placeContextHost, setPlaceContextHost] =
     useState<HTMLSpanElement | null>(null);
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
@@ -825,20 +822,6 @@ export function MemoryProductPage({
                 presentation={!memory.experienceKind ? 'diary' : 'default'}
                 pageWideDrop={!memory.experienceKind}
                 hasMedia={photoItems.length > 0}
-                mediaTrigger={(open) =>
-                  photoToolHost
-                    ? createPortal(
-                        <ComposerTool
-                          icon="foto"
-                          label={t('composer.photo')}
-                          active={photoItems.length > 0}
-                          disabled={updateMutation.isPending}
-                          onClick={open}
-                        />,
-                        photoToolHost,
-                      )
-                    : null
-                }
                 sourceContext={{
                   apiBaseUrl,
                   accessToken,
@@ -1150,7 +1133,6 @@ export function MemoryProductPage({
             ) : null}
             {!memory.experienceKind ? (
               <ComposerToolRow>
-                <span className="composer-tool-slot" ref={setPhotoToolHost} />
                 <span className="composer-tool-slot" ref={setPlaceToolHost} />
                 <span className="composer-tool-slot" ref={setTagToolHost} />
               </ComposerToolRow>

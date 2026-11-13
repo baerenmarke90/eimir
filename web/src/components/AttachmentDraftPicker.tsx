@@ -7,8 +7,7 @@ import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { AttachmentMediaDropZone } from './MediaDropZone';
 import type { VideoCaptureContext } from './VideoUploadAction';
-import { type ReactNode, useRef } from 'react';
-import { MediaIntakeButton } from './MediaIntakeButton';
+import { type ReactNode, useRef, useState } from 'react';
 import { EimirIcon } from './EimirIcon';
 import { MediaActionGroup } from './MediaActionGroup';
 
@@ -67,6 +66,8 @@ export function AttachmentDraftPicker({
 }) {
   const { t } = useTranslation();
   const openSource = useRef<() => void>(() => {});
+  // #1790 D1: with an external source the diary intake opens the shared sheet.
+  const [externalSources, setExternalSources] = useState(false);
   const populated =
     hasMedia ?? (attachments.items.length > 0 || Boolean(gallery));
   const addAction =
@@ -191,6 +192,11 @@ export function AttachmentDraftPicker({
                 multiple={multiple}
                 disabled={disabled}
                 intake
+                onChooseSource={
+                  sourceContext && externalSources
+                    ? () => openSource.current()
+                    : undefined
+                }
                 context={videoContext}
                 onFiles={attachments.addFiles}
               />
@@ -199,26 +205,12 @@ export function AttachmentDraftPicker({
               <PhotoSourcePicker
                 {...sourceContext}
                 unified
+                onExternalAvailability={setExternalSources}
                 renderTrigger={
                   presentation !== 'default'
-                    ? (open, openExternal) => {
+                    ? (open) => {
                         openSource.current = open;
-                        return (
-                          <>
-                            {mediaTrigger?.(open)}
-                            {presentation === 'diary' && !populated ? (
-                              <MediaIntakeButton
-                                label={t('photoSources.more')}
-                                icon="photo-library"
-                                variant="source"
-                                proLabel={t('photoSources.pro')}
-                                className="photo-source-trigger"
-                                disabled={disabled}
-                                onClick={openExternal}
-                              />
-                            ) : null}
-                          </>
-                        );
+                        return mediaTrigger?.(open) ?? null;
                       }
                     : undefined
                 }

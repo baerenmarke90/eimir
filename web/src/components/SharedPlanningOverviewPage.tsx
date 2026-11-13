@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
@@ -18,6 +19,7 @@ import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
 import {
+  MEMORY_CREATE_ROUTE,
   PLAN_CREATE_ROUTE,
   planDetailPath,
   WISH_CREATE_ROUTE,
@@ -29,6 +31,11 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
+import {
+  sortPlannedWishes,
+  wishJourneyHint,
+  wishPlanDateLabel,
+} from '../client/wishJourney';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
@@ -37,14 +44,21 @@ import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
 import { PlanningOccasions } from './PlanningOccasions';
-import { type PlanningScope, PlanningStatusScope } from './PlanningStatusScope';
+import {
+  type PlanningScope,
+  PlanningStatusScope,
+  type WishScope,
+} from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
 const PAGE_SIZE = 20;
+const JOURNEY_PAGE_SIZE = 100;
+const JOURNEY_MAX_PAGES = 10;
 type PlanenSegment = 'wishes' | 'plans' | 'dates';
 type PageShape<T> = { items: T[]; nextCursor: string | null };
 
@@ -153,10 +167,24 @@ function segmentForHash(hash: string): PlanenSegment | null {
   if (
     hash === '#wish-title' ||
     hash === '#wishes' ||
+    hash === '#planned-wishes' ||
     hash === '#fulfilled-wishes'
   )
     return 'wishes';
   return null;
+}
+
+function wishScopeForHash(hash: string): WishScope | null {
+  if (hash === '#fulfilled-wishes') return 'COMPLETED';
+  if (hash === '#planned-wishes') return 'PLANNED';
+  if (hash === '#wishes' || hash === '#wish-title') return 'OPEN';
+  return null;
+}
+
+function wishScopeHash(status: WishScope): string {
+  if (status === 'COMPLETED') return '#fulfilled-wishes';
+  if (status === 'PLANNED') return '#planned-wishes';
+  return '#wishes';
 }
 
 function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
@@ -294,8 +322,8 @@ export function SharedPlanningOverviewPage({
   const [activeSegment, setActiveSegment] = useState<PlanenSegment>(
     () => segmentForHash(location.hash) ?? 'plans',
   );
-  const [wishStatus, setWishStatus] = useState<PlanningScope>(() =>
-    location.hash === '#fulfilled-wishes' ? 'COMPLETED' : 'OPEN',
+  const [wishStatus, setWishStatus] = useState<WishScope>(
+    () => wishScopeForHash(location.hash) ?? 'OPEN',
   );
   const [planStatus, setPlanStatus] = useState<PlanningScope>(() =>
     location.hash === '#experienced-plans' ? 'COMPLETED' : 'OPEN',
@@ -305,17 +333,16 @@ export function SharedPlanningOverviewPage({
   const [occasionActionHost, setOccasionActionHost] =
     useState<HTMLSpanElement | null>(null);
   const restoredOrigin = useRef<unknown>(null);
-  function changeStatus(kind: PlanenSegment, status: PlanningScope) {
-    if (kind === 'plans') setPlanStatus(status);
+  function changeStatus(kind: PlanenSegment, status: WishScope) {
+    if (kind === 'plans')
+      setPlanStatus(status === 'COMPLETED' ? status : 'OPEN');
     else setWishStatus(status);
     const hash =
       kind === 'plans'
         ? status === 'COMPLETED'
           ? '#experienced-plans'
           : '#plans'
-        : status === 'COMPLETED'
-          ? '#fulfilled-wishes'
-          : '#wishes';
+        : wishScopeHash(status);
     void navigate(
       { pathname: location.pathname, search: location.search, hash },
       { replace: true, state: location.state },
@@ -343,9 +370,8 @@ export function SharedPlanningOverviewPage({
     if (location.hash === '#experienced-plans') setPlanStatus('COMPLETED');
     else if (location.hash === '#plans' || location.hash === '#plan-title')
       setPlanStatus('OPEN');
-    if (location.hash === '#fulfilled-wishes') setWishStatus('COMPLETED');
-    else if (location.hash === '#wishes' || location.hash === '#wish-title')
-      setWishStatus('OPEN');
+    const hashWishScope = wishScopeForHash(location.hash);
+    if (hashWishScope) setWishStatus(hashWishScope);
   }, [location.hash]);
 
   useEffect(
@@ -396,9 +422,8 @@ export function SharedPlanningOverviewPage({
       setPlanStatus('OPEN');
     else if (origin.planningPlanStatus)
       setPlanStatus(origin.planningPlanStatus);
-    if (location.hash === '#fulfilled-wishes') setWishStatus('COMPLETED');
-    else if (location.hash === '#wishes' || location.hash === '#wish-title')
-      setWishStatus('OPEN');
+    const hashWishScope = wishScopeForHash(location.hash);
+    if (hashWishScope) setWishStatus(hashWishScope);
     else if (origin.planningWishStatus)
       setWishStatus(origin.planningWishStatus);
     window.requestAnimationFrame(() => {
@@ -418,7 +443,7 @@ export function SharedPlanningOverviewPage({
       'm5-s3',
       'wishes',
       spaceId,
-      ...(wishStatus === 'COMPLETED' ? [wishStatus] : []),
+      ...(wishStatus === 'OPEN' ? [] : [wishStatus]),
     ],
     enabled: activeSegment === 'wishes',
     queryFn: ({ pageParam, signal }) =>
@@ -483,6 +508,36 @@ export function SharedPlanningOverviewPage({
     { revalidateOnRestore: true },
   );
 
+  // #1790 F2: one quiet hint above the Plans list, derived from the wishes
+  // that left OPEN. Both lifecycle lists are small, so read them completely.
+  const journeyWishes = useQuery({
+    queryKey: ['m5-s3', 'wishes', spaceId, 'journey-hint'],
+    staleTime: OVERVIEW_STALE_TIME,
+    enabled: activeSegment === 'plans' && planStatus === 'OPEN',
+    retry: false,
+    queryFn: async ({ signal }) => {
+      const items: WishDetail[] = [];
+      for (const status of ['PLANNED', 'COMPLETED'] as const) {
+        let cursor: string | null = null;
+        for (let page = 0; page < JOURNEY_MAX_PAGES; page += 1) {
+          const result = await apiCall(() =>
+            apis.wishes.listWishes(
+              { spaceId, cursor, limit: JOURNEY_PAGE_SIZE, status },
+              { signal },
+            ),
+          );
+          items.push(...result.items);
+          if (!result.hasMore || !result.nextCursor) break;
+          cursor = result.nextCursor;
+        }
+      }
+      return items;
+    },
+  });
+  const journeyHint = journeyWishes.data
+    ? wishJourneyHint(journeyWishes.data)
+    : null;
+
   // A search must inspect the whole authorized scope, not just visible pages.
   useEffect(() => {
     if (
@@ -506,7 +561,7 @@ export function SharedPlanningOverviewPage({
     planSearch.trim() && plans.hasNextPage && !plans.error,
   );
 
-  const wishItems = sortByProductLabel(
+  const alphabeticalWishes = sortByProductLabel(
     [
       ...new Map(
         (wishes.data?.pages.flatMap((page) => page.items) ?? [])
@@ -520,6 +575,16 @@ export function SharedPlanningOverviewPage({
     (wish) => wish.title,
     resolvedLocale(),
   );
+  // Planned wishes read in the order they will happen; the others by title.
+  const wishItems =
+    wishStatus === 'PLANNED'
+      ? sortPlannedWishes(
+          alphabeticalWishes,
+          (left, right) =>
+            alphabeticalWishes.indexOf(left) -
+            alphabeticalWishes.indexOf(right),
+        )
+      : alphabeticalWishes;
   const wishGroups = new Map<string, WishDetail[]>();
   for (const wish of wishItems) {
     const initial = wishInitial(wish.title);
@@ -558,6 +623,7 @@ export function SharedPlanningOverviewPage({
     to: string,
     segment: PlanenSegment,
     selectedKey?: string,
+    extraState?: Record<string, unknown>,
   ) {
     if (isModifiedClick(event)) return;
     event.preventDefault();
@@ -570,8 +636,97 @@ export function SharedPlanningOverviewPage({
       selectedKey,
     });
     void navigate(to, {
-      state: taskOriginKey ? { taskOriginKey } : undefined,
+      state:
+        taskOriginKey || extraState
+          ? { ...(taskOriginKey ? { taskOriginKey } : {}), ...extraState }
+          : undefined,
     });
+  }
+
+  function openWishScope(
+    event: MouseEvent<HTMLAnchorElement>,
+    status: WishScope,
+  ) {
+    if (isModifiedClick(event)) return;
+    event.preventDefault();
+    setActiveSegment('wishes');
+    changeStatus('wishes', status);
+    window.requestAnimationFrame(() =>
+      document.getElementById(wishesTabId)?.focus(),
+    );
+  }
+
+  function renderWishJourneyLink(wish: WishDetail) {
+    const selectedKey = `${wish.id}:journey`;
+    if (wish.status === 'PLANNED') {
+      const date = wishPlanDateLabel(wish.plan);
+      const label = date
+        ? t('wishJourney.plannedOn', { date })
+        : t('wishJourney.plannedUndated');
+      const to = wish.plan
+        ? planDetailPath(wish.plan.id)
+        : wishDetailPath(wish.id);
+      return (
+        <Link
+          className="planen-wish-journey-link"
+          aria-label={`${label} – ${wish.title}`}
+          {...planningLinkProps(to, 'wishes', selectedKey)}
+        >
+          <span>{label}</span>
+          <EimirIcon name="chevron-right" />
+        </Link>
+      );
+    }
+    if (wish.hasMemory) {
+      const label = t('wishJourney.remembered');
+      const to = wish.plan
+        ? planDetailPath(wish.plan.id)
+        : wishDetailPath(wish.id);
+      return (
+        <Link
+          className="planen-wish-journey-link is-warm"
+          aria-label={`${label} – ${wish.title}`}
+          {...planningLinkProps(to, 'wishes', selectedKey)}
+        >
+          <span>{label}</span>
+          <EimirIcon name="chevron-right" />
+        </Link>
+      );
+    }
+    const label = t('wishJourney.captureMoment');
+    // The Plan's memory capture links the new Memory to the Plan, which is
+    // exactly what moves this wish on to "remembered".
+    const sourcePlan =
+      wish.plan && accountId && apiBaseUrl
+        ? {
+            sourcePlan: {
+              id: wish.plan.id,
+              spaceId,
+              accountId,
+              instance: apiBaseUrl,
+            },
+          }
+        : undefined;
+    return (
+      <Link
+        className="planen-wish-journey-link is-warm"
+        aria-label={`${label} – ${wish.title}`}
+        to={MEMORY_CREATE_ROUTE}
+        data-planning-key={selectedKey}
+        onClick={(event) =>
+          openFromOverview(
+            event,
+            MEMORY_CREATE_ROUTE,
+            'wishes',
+            selectedKey,
+            sourcePlan,
+          )
+        }
+      >
+        <span>{label}</span>
+        <EimirIcon name="chevron-right" />
+      </Link>
+    );
   }
 
   function planningLinkProps(
@@ -602,6 +757,9 @@ export function SharedPlanningOverviewPage({
           presentation="preview"
         />
         <span className={focal ? 'planen-next-copy' : 'planen-agenda-copy'}>
+          {plan.sourceWishId && plan.status !== 'COMPLETED' ? (
+            <WishOriginMark>{t('wishJourney.planOrigin')}</WishOriginMark>
+          ) : null}
           <strong className={focal ? undefined : 'planen-agenda-title'}>
             {plan.title}
           </strong>
@@ -734,6 +892,35 @@ export function SharedPlanningOverviewPage({
           </div>
         ) : null}
 
+        {planStatus === 'OPEN' &&
+        journeyHint &&
+        !planSearch.trim() &&
+        !plans.error ? (
+          <a
+            className="planen-wish-journey-hint"
+            href={
+              journeyHint.kind === 'underway'
+                ? '#planned-wishes'
+                : '#fulfilled-wishes'
+            }
+            onClick={(event) =>
+              openWishScope(
+                event,
+                journeyHint.kind === 'underway' ? 'PLANNED' : 'COMPLETED',
+              )
+            }
+          >
+            <WishOriginMark trailing>
+              {t(
+                journeyHint.kind === 'underway'
+                  ? 'wishJourney.hintUnderway'
+                  : 'wishJourney.hintAwaitingMemory',
+                { count: journeyHint.count },
+              )}
+            </WishOriginMark>
+          </a>
+        ) : null}
+
         {planStatus === 'OPEN' && planGroups.focal ? (
           <section
             className="planen-next"
@@ -781,7 +968,14 @@ export function SharedPlanningOverviewPage({
                       plan.id,
                     )}
                   >
-                    <strong>{plan.title}</strong>
+                    <span className="planen-undated-copy">
+                      {plan.sourceWishId ? (
+                        <WishOriginMark>
+                          {t('wishJourney.planOrigin')}
+                        </WishOriginMark>
+                      ) : null}
+                      <strong>{plan.title}</strong>
+                    </span>
                     <span>{t('m5s3.overview.undatedHeading')}</span>
                   </Link>
                 </li>
@@ -843,7 +1037,9 @@ export function SharedPlanningOverviewPage({
           value={wishStatus}
           onChange={(status) => changeStatus('wishes', status)}
         />
-        <WishSelectionEntry segment="wishes" compact />
+        {wishStatus === 'OPEN' ? (
+          <WishSelectionEntry segment="wishes" compact />
+        ) : null}
         {(wishes.isLoading && !wishes.data) || assemblingWishes ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
@@ -880,12 +1076,42 @@ export function SharedPlanningOverviewPage({
                   ? 'm5s3.overview.noSearchResults'
                   : wishStatus === 'COMPLETED'
                     ? 'm5s3.overview.fulfilledWishesEmpty'
-                    : 'm5s3.overview.wishesEmpty',
+                    : wishStatus === 'PLANNED'
+                      ? 'wishJourney.plannedEmpty'
+                      : 'm5s3.overview.wishesEmpty',
               )}
             </h2>
           </div>
         ) : null}
-        {!assemblingWishes && wishItems.length ? (
+        {!assemblingWishes && wishItems.length && wishStatus !== 'OPEN' ? (
+          <div className="planen-wish-groups planen-wish-journey">
+            {wishStatus === 'PLANNED' && !wishSearch.trim() ? (
+              <p className="planen-wish-journey-intro">
+                {t('wishJourney.plannedIntro')}
+              </p>
+            ) : null}
+            <ul className="planen-wish-list">
+              {wishItems.map((wish) => (
+                <li key={wish.id} className="planen-wish-journey-card">
+                  <Link
+                    className="planen-wish-link"
+                    {...planningLinkProps(
+                      wishDetailPath(wish.id),
+                      'wishes',
+                      wish.id,
+                    )}
+                  >
+                    <span className="planen-wish-copy">
+                      <strong>{wish.title}</strong>
+                    </span>
+                  </Link>
+                  {renderWishJourneyLink(wish)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {!assemblingWishes && wishItems.length && wishStatus === 'OPEN' ? (
           <div className="planen-wish-groups">
             {[...wishGroups].map(([initial, items]) => (
               <section

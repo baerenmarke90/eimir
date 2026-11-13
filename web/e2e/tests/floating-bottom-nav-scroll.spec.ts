@@ -754,11 +754,17 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     await expect(header).toBeHidden();
     await expect(hero).toBeVisible();
 
-    expect(
-      await shell.evaluate(
-        (element) => getComputedStyle(element).backgroundImage,
-      ),
-    ).toContain('radial-gradient');
+    // The glow is a faded layer so route changes can transition it.
+    const glow = () =>
+      shell.evaluate((element) => {
+        const style = getComputedStyle(element, '::before');
+        return {
+          backgroundImage: style.backgroundImage,
+          opacity: style.opacity,
+        };
+      });
+    expect((await glow()).backgroundImage).toContain('radial-gradient');
+    await expect.poll(async () => (await glow()).opacity).toBe('1');
 
     const headerMaterial = await header.evaluate((element) => {
       const style = getComputedStyle(element);

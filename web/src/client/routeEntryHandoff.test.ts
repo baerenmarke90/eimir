@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyRouteEntryHandoff } from './routeEntryHandoff';
+import {
+  applyRouteEntryHandoff,
+  requestSmoothRouteEntry,
+  takeSmoothRouteEntry,
+} from './routeEntryHandoff';
 
 describe('applyRouteEntryHandoff', () => {
   let scrollToSpy: ReturnType<typeof vi.fn>;
@@ -36,6 +40,13 @@ describe('applyRouteEntryHandoff', () => {
     window.matchMedia = matchMedia(true) as unknown as typeof window.matchMedia;
     applyRouteEntryHandoff('', { smooth: true });
     expect(scrollToSpy).toHaveBeenLastCalledWith(0, 0);
+  });
+
+  it('hands a smooth entry request to exactly one route entry', () => {
+    expect(takeSmoothRouteEntry()).toBe(false);
+    requestSmoothRouteEntry();
+    expect(takeSmoothRouteEntry()).toBe(true);
+    expect(takeSmoothRouteEntry()).toBe(false);
   });
 
   it('opens the ancestor <details> and reveals the anchor, without moving focus', () => {

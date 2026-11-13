@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isCapacitorNative } from '../pwa';
+import { requestSmoothRouteEntry } from './routeEntryHandoff';
 import { PRIMARY_APP_ROUTES } from './routes';
 import { useTaskOrigin } from './taskOrigin';
 
@@ -31,11 +32,13 @@ export function usePrimaryNavigation() {
     (root: string) => {
       const { to, ...options } = destinationFor(root);
       captureCurrent();
+      // Tapping the item of the page already shown glides back to its start.
+      if (root === location.pathname) requestSmoothRouteEntry();
       // Main-content motion is owned by the shell; navigation remains
       // immediately interactive even during rapid consecutive tab switches.
       void navigate(to, options);
     },
-    [captureCurrent, destinationFor, navigate],
+    [captureCurrent, destinationFor, location.pathname, navigate],
   );
 
   return { destinationFor, captureCurrent, navigatePrimary };

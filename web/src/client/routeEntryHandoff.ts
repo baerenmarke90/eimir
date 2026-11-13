@@ -1,3 +1,23 @@
+let smoothEntryRequested = false;
+
+/**
+ * The bottom bar calls this just before it reselects the page already shown.
+ * The next route entry then glides to the top instead of jumping. It is a
+ * one-shot request rather than navigation state because state set on a
+ * location is carried over by in-page navigations (story view tabs, Planning
+ * segments), which are not a reselection.
+ */
+export function requestSmoothRouteEntry(): void {
+  smoothEntryRequested = true;
+}
+
+/** Reads and clears the pending request from `requestSmoothRouteEntry`. */
+export function takeSmoothRouteEntry(): boolean {
+  const requested = smoothEntryRequested;
+  smoothEntryRequested = false;
+  return requested;
+}
+
 /**
  * Single shared destination handoff applied on every client-side route
  * entry (Quick Create targets, in-app links, and direct navigation alike):

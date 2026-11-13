@@ -2083,36 +2083,63 @@ test('the add action stays put while a tab slides in', async ({ page }) => {
   await installMocks(page, { ...RICH_SPACE });
   await signInAndOpenToday(page);
   await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
-  for (const label of ['Momente', 'Planen', 'Wir']) {
-    await page.evaluate(() => {
-      const w = window as unknown as { __fab: string[]; __stop: boolean };
-      w.__fab = [];
-      w.__stop = false;
-      const tick = () => {
+  // Keep the real slide observable even when Chromium misses a frame on CI.
+  await page.addStyleTag({
+    content: '.product-main { --duration-transition: 600ms; }',
+  });
+  for (const [label, destination] of [
+    ['Momente', '/story'],
+    ['Planen', '/plan'],
+    ['Wir', '/today'],
+  ]) {
+    const tab = page
+      .locator('a.shell-nav-link:visible')
+      .filter({ hasText: new RegExp(`^${label}$`) })
+      .first();
+    const samples = await tab.evaluate((anchor, nextPath) => {
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        throw new Error('Primary tab is missing its navigation link.');
+      }
+      const positions = new Set<string>();
+      let slidePositions = 0;
+      const sample = () => {
+        const sliding = document.querySelector('main[data-navigation-slide]');
         for (const node of document.querySelectorAll(
           '[data-floating-create]',
         )) {
           const box = node.getBoundingClientRect();
-          if (box.width > 0 && getComputedStyle(node).visibility !== 'hidden')
-            w.__fab.push(`${Math.round(box.x)},${Math.round(box.y)}`);
+          if (box.width > 0 && getComputedStyle(node).visibility !== 'hidden') {
+            positions.add(`${Math.round(box.x)},${Math.round(box.y)}`);
+            if (sliding) slidePositions++;
+          }
         }
-        if (!w.__stop) requestAnimationFrame(tick);
+        return sliding;
       };
-      requestAnimationFrame(tick);
-    });
-    await page
-      .locator('a.shell-nav-link:visible')
-      .filter({ hasText: new RegExp(`^${label}$`) })
-      .first()
-      .click();
+      sample();
+      anchor.click();
+      return new Promise<{ positions: string[]; slidePositions: number }>(
+        (resolve, reject) => {
+          let frame: number;
+          const timeout = window.setTimeout(() => {
+            cancelAnimationFrame(frame);
+            reject(new Error('The tab slide did not complete.'));
+          }, 5000);
+          const tick = () => {
+            if (!sample() && window.location.pathname === nextPath) {
+              clearTimeout(timeout);
+              resolve({ positions: [...positions], slidePositions });
+            } else {
+              frame = requestAnimationFrame(tick);
+            }
+          };
+          frame = requestAnimationFrame(tick);
+        },
+      );
+    }, destination);
+    await expect(page).toHaveURL(new RegExp(`${destination}$`));
     await expect(page.locator('main[data-navigation-slide]')).toHaveCount(0);
     await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
-    const seen = await page.evaluate(() => {
-      const w = window as unknown as { __fab: string[]; __stop: boolean };
-      w.__stop = true;
-      return [...new Set(w.__fab)];
-    });
-    // Every frame, including the slide, shows the add action in one place.
-    expect(seen).toHaveLength(1);
+    expect(samples.slidePositions).toBeGreaterThan(0);
+    expect(samples.positions).toHaveLength(1);
   }
 });

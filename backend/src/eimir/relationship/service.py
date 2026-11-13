@@ -387,8 +387,12 @@ def end_membership(
     from eimir.memories import create_receipts
     from eimir.story import view_service
     from eimir.wish_selections.service import purge_space
+    from eimir.wishes import reminders as wish_reminders
 
     gentle.purge_space_member(session, membership.account_id, membership.space_id)
+    wish_reminders.purge_member(
+        session, account_id=membership.account_id, space_id=membership.space_id
+    )
     view_service.purge_viewer_for_space(
         session,
         space_id=membership.space_id,

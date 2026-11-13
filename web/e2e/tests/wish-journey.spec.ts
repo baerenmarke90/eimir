@@ -40,7 +40,11 @@ const TODAY = isoDay(0);
 const capabilities = { canComment: true, canDelete: true, canEdit: true };
 const creator = { id: ACCOUNT_ID, displayName: 'Anna' };
 
-type JourneyState = { marketCompleted: boolean; unexpected: string[] };
+type JourneyState = {
+  marketCompleted: boolean;
+  reminderAt: string | null;
+  unexpected: string[];
+};
 
 function planBody(
   id: string,
@@ -143,7 +147,11 @@ function wishes(state: JourneyState) {
 }
 
 async function installMocks(page: Page): Promise<JourneyState> {
-  const state: JourneyState = { marketCompleted: false, unexpected: [] };
+  const state: JourneyState = {
+    marketCompleted: false,
+    reminderAt: null,
+    unexpected: [],
+  };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
@@ -287,6 +295,15 @@ async function installMocks(page: Page): Promise<JourneyState> {
         wishes(state).filter((wish) => !status || wish.status === status),
       );
     }
+    if (pathname === `${space}/wishes/${OPEN_WISH}/reminder`) {
+      if (method === 'PUT') state.reminderAt = request.postDataJSON().dueAt;
+      if (method === 'DELETE') {
+        state.reminderAt = null;
+        return route.fulfill({ status: 204 });
+      }
+      if (method === 'GET' || method === 'PUT')
+        return json({ dueAt: state.reminderAt });
+    }
     const wishMatch = pathname.match(/\/wishes\/([^/]+)$/);
     if (method === 'GET' && wishMatch) {
       const wish = wishes(state).find((item) => item.id === wishMatch[1]);
@@ -379,6 +396,54 @@ async function completeMarketPlan(page: Page): Promise<void> {
 }
 
 test.describe('wish journey (#1790 F2)', () => {
+  for (const { width, theme } of [
+    { width: 360, theme: 'light' },
+    { width: 430, theme: 'dark' },
+    { width: 1280, theme: 'light' },
+  ] as const) {
+    test(`personal reminder returns to its Wish at ${width}px ${theme}`, async ({
+      page,
+    }, info) => {
+      const copy = m5s3.wish.reminder;
+      await page.setViewportSize({ width, height: 844 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+      await page.addInitScript(
+        (choice) => localStorage.setItem('eimir.theme', choice),
+        theme,
+      );
+      const state = await installMocks(page);
+      await signIn(page);
+      await page.goto(`/plan/wishes/${OPEN_WISH}`);
+      const action = page.getByRole('button', { name: copy.action });
+      const sheet = page.getByRole('dialog', { name: copy.action });
+      await action.click();
+      await expect(sheet.getByText(copy.privacy)).toBeVisible();
+      await sheet.getByRole('button', { name: copy.nextWeek }).click();
+      const date = sheet.getByLabel(copy.when);
+      await expect(date).toHaveValue(`${isoDay(7)}T09:00`);
+      await captureScreenshot(
+        page,
+        info,
+        `wish-reminder-${width}-${theme}.png`,
+      );
+      await assertNoWcagViolations(page);
+      await sheet.getByRole('button', { name: copy.save }).click();
+      await expect(sheet).not.toBeVisible();
+      const change = page.getByRole('button', { name: copy.edit });
+      await expect(change).toBeFocused();
+      expect(state.reminderAt).toEqual(
+        new Date(`${isoDay(7)}T09:00`).toISOString(),
+      );
+      await page.reload();
+      await change.click();
+      await expect(date).toHaveValue(`${isoDay(7)}T09:00`);
+      await sheet.getByRole('button', { name: copy.remove }).click();
+      await expect(action).toBeFocused();
+      expect(state.reminderAt).toBeNull();
+      expect(state.unexpected).toEqual([]);
+    });
+  }
+
   test('follows a wish from planned to fulfilled and back to Planen', async ({
     page,
   }) => {

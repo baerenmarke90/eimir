@@ -3,17 +3,18 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import gentlePrompts from '../../src/i18n/locales/gentlePrompts';
 import copy from '../../src/i18n/locales/notificationSettings';
+import onceCopy from '../../src/i18n/locales/onceMessages';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  SPACE_ID,
 } from '../support/storyTimelineFixture';
 
-async function nativePush(page: Page, deny = false) {
+async function nativePush(page: Page, deny = false, ios = false) {
   await page.addInitScript(
-    ({ deny }) => {
+    ({ deny, ios }) => {
       const callbacks = new Map<
         string,
         { plugin: string; event: string; callback: (event: unknown) => void }
@@ -26,17 +27,34 @@ async function nativePush(page: Page, deny = false) {
         activationId: null as string | null,
         enabled: false,
         permissionGranted: false,
-        fcmAvailable: true,
-        firebaseProjectId: 'test-project',
-        androidPackage: 'de.eimir.app',
+        fcmAvailable: !ios,
+        firebaseProjectId: ios ? null : 'test-project',
+        androidPackage: ios ? '' : 'de.eimir.app',
+        ...(ios
+          ? { iosBundleId: 'de.eimir.app', apnsEnvironment: 'development' }
+          : {}),
       };
       const host = window as unknown as {
         CapacitorCustomPlatform: unknown;
         Capacitor: unknown;
         pushCalls: string[];
+        openNativeNotification(id: string, activationId?: string): void;
       };
-      host.CapacitorCustomPlatform = { name: 'android' };
+      host.CapacitorCustomPlatform = { name: ios ? 'ios' : 'android' };
       host.pushCalls = [];
+      host.openNativeNotification = (
+        id,
+        activationId = state.activationId ?? '',
+      ) => {
+        for (const listener of callbacks.values()) {
+          if (
+            listener.plugin === 'EimirPush' &&
+            listener.event === 'notificationOpen'
+          ) {
+            listener.callback({ ...state, activationId, notificationId: id });
+          }
+        }
+      };
       host.Capacitor = {
         PluginHeaders: [
           {
@@ -131,7 +149,9 @@ async function nativePush(page: Page, deny = false) {
                 listener.callback({
                   ...state,
                   endpointValue: JSON.stringify({
-                    fid: 'synthetic-fcm-token',
+                    ...(ios
+                      ? { token: 'f1'.repeat(32) }
+                      : { fid: 'synthetic-fcm-token' }),
                     activationId: state.activationId,
                   }),
                 });
@@ -144,7 +164,7 @@ async function nativePush(page: Page, deny = false) {
         },
       };
     },
-    { deny },
+    { deny, ios },
   );
 }
 
@@ -378,6 +398,102 @@ test('permission denial offers system settings and does not register an endpoint
   await expect(dialog).toHaveCount(0);
 });
 
+test('iOS opt-in registers APNs and a tap opens the sealed view without claiming it', async ({
+  page,
+}) => {
+  await nativePush(page, false, true);
+  await mocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/api/v1/push-endpoints/configuration', (route) =>
+    route.fulfill({
+      json: {
+        apns: {
+          providerKey: 'apns',
+          bundleId: 'de.eimir.app',
+          environment: 'development',
+        },
+      },
+    }),
+  );
+  const notificationId = '32479203-d3dd-45f7-b7e5-7ac173790c71';
+  const messageId = '01b874f2-efb2-4504-9eef-7293ebab6473';
+  const prefix = `/api/v1/spaces/${SPACE_ID}`;
+  await page.route(
+    `**${prefix}/notifications/${notificationId}/open`,
+    (route) =>
+      route.fulfill({
+        json: {
+          id: notificationId,
+          kind: 'ONCE_MESSAGE_RECEIVED',
+          targetType: 'ONCE_MESSAGE',
+          targetId: messageId,
+        },
+      }),
+  );
+  await page.route(`**${prefix}/once-messages/status`, (route) =>
+    route.fulfill({
+      json: {
+        canSend: false,
+        ownDeviceIds: [],
+        ownEnabled: true,
+        partner: null,
+        partnerEnabled: true,
+        receptionVersion: 1,
+        recipientDevices: [],
+      },
+    }),
+  );
+  await page.route(`**${prefix}/once-messages/${messageId}`, (route) =>
+    route.fulfill({
+      json: {
+        id: messageId,
+        requestId: messageId,
+        expiresAt: '2030-01-01T00:00:00Z',
+        sender: {
+          id: '22222222-2222-4222-8222-222222222222',
+          displayName: 'Alex',
+        },
+      },
+    }),
+  );
+  const protectedWrites: string[] = [];
+  page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      request.url().includes(`/once-messages/${messageId}`)
+    ) {
+      protectedWrites.push(request.url());
+    }
+  });
+  await signIn(page);
+  const dialog = page.getByRole('dialog', { name: copy.onboardingTitle });
+  await expect(dialog.getByText(copy.iosDeviceIntro)).toBeVisible();
+  const registered = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' && request.url().endsWith('/push-endpoints'),
+  );
+  await dialog.getByRole('button', { name: copy.onboardingActivate }).click();
+  const request = await registered;
+  expect(request.headers().authorization).toBe(
+    'Bearer timeline-ref-access-token',
+  );
+  const body = request.postDataJSON();
+  expect(body.providerKey).toBe('apns');
+  expect(body.encryptedPreview).toBeUndefined();
+  expect(JSON.parse(body.endpointValue).token).toBe('f1'.repeat(32));
+  await expect(dialog).toHaveCount(0);
+  await page.evaluate((id) => {
+    const host = window as unknown as {
+      openNativeNotification(id: string): void;
+    };
+    host.openNativeNotification(id);
+  }, notificationId);
+  await expect(page).toHaveURL(new RegExp(`/today/only-you/${messageId}$`));
+  await expect(page.getByText(onceCopy.openConsequence)).toBeVisible();
+  await expect(page.getByRole('button', { name: onceCopy.open })).toBeVisible();
+  expect(protectedWrites).toEqual([]);
+});
+
 test('ordinary Web sign-in does not offer native notification setup', async ({
   page,
 }) => {
@@ -459,6 +575,9 @@ test('the device switch confirms registration and revokes push from Settings', a
   ).toHaveCount(0);
 
   const toggle = page.getByRole('switch', { name: copy.deviceToggle });
+  await expect(
+    page.getByRole('switch', { name: copy.browserToggle }),
+  ).toHaveCount(0);
   const prompts = page.getByRole('switch', { name: gentlePrompts.label });
   await expect(toggle).toHaveClass('preference-switch-control');
   await expect(prompts).toHaveClass('preference-switch-control');

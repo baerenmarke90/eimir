@@ -799,6 +799,22 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/wishes/{wishId}/repeat",
         resource_absence="WISH_NOT_FOUND",
     ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        body={"dueAt": (clock.now() + timedelta(days=1)).isoformat()},
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        resource_absence="WISH_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
     Endpoint(
         "GET",

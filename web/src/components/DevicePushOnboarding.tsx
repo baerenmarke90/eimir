@@ -203,7 +203,13 @@ export function DevicePushOnboarding({
       }
     >
       <p>{t('notificationSettings.onboardingIntro')}</p>
-      <p className="muted">{t('notificationSettings.deviceIntro')}</p>
+      <p className="muted">
+        {t(
+          devicePush.neutralPreview
+            ? 'notificationSettings.iosDeviceIntro'
+            : 'notificationSettings.deviceIntro',
+        )}
+      </p>
       {promptError ? (
         <p role="alert">{t('notificationSettings.onboardingPromptsFailed')}</p>
       ) : null}

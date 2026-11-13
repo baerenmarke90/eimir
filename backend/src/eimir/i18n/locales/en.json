@@ -1,6 +1,7 @@
 {
   "notification.subject": "Something new in eimir.",
   "notification.body": "There is something new for you.\n\nOpen eimir.: {url}",
+  "push.neutral": "You have new messages.",
   "auth.magic.subject": "Your sign-in link for eimir.",
   "auth.magic.body": "Here is your sign-in link:\n\n{url}\n\nIt is valid for 15 minutes and can only be used once.\n\nIf you did not request it, you can ignore this message.",
   "auth.signup.subject": "Your link for eimir.",

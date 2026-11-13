@@ -129,6 +129,53 @@
       }
     },
     {
+      "id": "WISH_REMINDER_DUE-v1",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a71f1",
+        "kind": "WISH_REMINDER_DUE",
+        "name": "",
+        "title": "",
+        "targetType": "WISH",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..OShHtQCwnuBJBmVU.7Vj4JggxDtXKgV7dzurKBZrSxFjvaudYkE5WRr9JxaXiaGtZxkzBJuLaZBSAKf6sijJltYEkcGGDlF5Ilgpx5ZNIF5ALDWqQ122pRXPBK51-PlH2AOf-mDVUZukDXX4MFR48lTfc4UwIgijQl_UBKxIZtcfR_ObbLylXYb_N1RAADA4RI-Tmq8Bm7u5OuELVNVcKw2mqvmmafphhRmBqFQNC0nCLCdG4iYCxMU_1Hy__fiZy45jxHKn-c0rn0xZy7vAmfg.b7pbYrAPmxS654milCZozg",
+      "expectedBody": {
+        "de": "Du wolltest dich an einen Wunsch erinnern lassen.",
+        "en": "You asked to be reminded about a wish."
+      },
+      "expectedAction": {
+        "de": "Wunsch ansehen",
+        "en": "View wish"
+      }
+    },
+    {
+      "id": "WISH_REMINDER_DUE-v2-ignored-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a71f2",
+        "kind": "WISH_REMINDER_DUE",
+        "name": "",
+        "title": "Unser Spaziergang",
+        "targetType": "WISH",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "This text must stay out of the preview."
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..NnAzscNZosV9KD3A.BiGap3zfHoLtbRAPBjH2e033vQMsgqFrbRQMQJZay98-0gHDhABdwt2gzg7RYPvwdXoe5AfPP0QtWnU4frfry0uvKJ6vaFPCGpc4Gv1yEKIRHS-dOMRp5XBCQGWr-aXOE5XpszDNWrjHwXO2xVS_lV3UE-1FfXdCOg6dXMoCE8FYH4dnbCJ6G_lQJYt4uiSjAOldsM04U9rVVCL6EWIosRSkhkaT4BoSwBF_FbMjrIZQhHGSAajSN8oGuH38HBjwEYZmM8Xa0EajBUps50Uz73kH35weHALquKi6uU4uRKWAgqXJ8cjZrYvTfKcEsTbJAgTicAxaLO1yMT5bzpjQBnP5tXxyFPT2.o72ykmTb-Sr9fgRlTpfpmA",
+      "expectedBody": {
+        "de": "Du wolltest dich an einen Wunsch erinnern lassen.",
+        "en": "You asked to be reminded about a wish."
+      },
+      "expectedAction": {
+        "de": "Wunsch ansehen",
+        "en": "View wish"
+      }
+    },
+    {
       "id": "REMINDER_DUE-empty",
       "payload": {
         "v": 1,

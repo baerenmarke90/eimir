@@ -57,6 +57,7 @@ import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 import { WishComposer } from './WishComposer';
 import { WishJourneyPath } from './WishJourney';
+import { WishReminderAction } from './WishReminderAction';
 import { useWishCompletion } from './useWishCompletion';
 import { WishRepeatSheet } from './WishRepeatSheet';
 import './SharedPlanningPages.css';
@@ -557,6 +558,16 @@ export function WishProductPage({
         </div>
       ) : null}
       <ContextTagList tags={wish.tags} />
+      {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
+        <WishReminderAction
+          key={`${apiBaseUrl}:${accountId}:${spaceId}:${wish.id}`}
+          accountId={accountId}
+          apiBaseUrl={apiBaseUrl}
+          spaceId={spaceId}
+          wishId={wish.id}
+          api={apis.wishes}
+        />
+      ) : null}
       <div className="planning-detail-grid">
         {wish.status === 'COMPLETED' && showCompletionContinuation ? (
           <section

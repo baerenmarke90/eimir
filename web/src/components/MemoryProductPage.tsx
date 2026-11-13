@@ -967,7 +967,7 @@ export function MemoryProductPage({
               <div
                 className={
                   !memory.experienceKind
-                    ? 'composer-writing-surface'
+                    ? 'composer-writing-surface composer-authored-surface'
                     : undefined
                 }
               >

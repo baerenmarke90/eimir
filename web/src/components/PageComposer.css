@@ -667,3 +667,66 @@ body:has(.page-composer)
     );
   }
 }
+
+/*
+ * Authored writing surface. Title and prose sit on one calm, borderless
+ * surface so the field reads as an invitation to write, like the Milestone
+ * form. Surface contrast, not an outline, marks the boundary (#1574); the
+ * focus ring stays visible. The doubled class outranks the quiet-composer and
+ * page-composer resets that flatten the same containers.
+ */
+.page-composer.page-composer
+.composer-authored-surface.composer-authored-surface {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: none;
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+.page-composer.page-composer
+  .composer-authored-surface.composer-authored-surface:focus-within {
+  background: var(--color-surface-overlay);
+}
+.page-composer.page-composer
+  .composer-authored-surface
+  :is(input.page-composer-title, input[name="title"]) {
+  padding-block: var(--space-2) var(--space-3);
+  border-block-end: var(--border-divider-width) solid var(--color-border-subtle);
+}
+.page-composer.page-composer
+  .composer-authored-surface
+  :is(input.page-composer-title, input[name="title"])::placeholder {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+.page-composer.page-composer .composer-authored-surface .field-group {
+  margin: 0;
+  min-inline-size: 0;
+}
+.page-composer.page-composer
+  .composer-authored-surface
+  :is(textarea.page-composer-prose, textarea) {
+  min-block-size: 7rem;
+  padding-block: var(--space-2);
+  line-height: 1.6;
+}
+.page-composer.page-composer .composer-authored-surface textarea::placeholder {
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  opacity: 1;
+}
+/* HeartMoment keeps its feeling-colored ground; the writing surface lifts it. */
+.heart-emotion-page.page-composer.page-composer
+.composer-authored-surface.composer-authored-surface {
+  background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 45%,
+    var(--composer-ground)
+  );
+}

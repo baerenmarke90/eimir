@@ -1061,7 +1061,7 @@ export function HeartMomentProductPage({
                     }
                     onChange={() => setFormDirty(true)}
                   />
-                  <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface">
+                  <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface composer-authored-surface">
                     <label htmlFor="heart-moment-text">
                       {t('heartMomentProduct.textLabel')}
                     </label>
@@ -1930,7 +1930,7 @@ function HeartMomentFields({
       {visibility}
       <div className="composer-content">
         {children}
-        <div className="field-group composer-writing-surface">
+        <div className="field-group composer-writing-surface composer-authored-surface">
           <label htmlFor="heart-moment-text">
             {t('heartMomentProduct.textLabel')}
           </label>

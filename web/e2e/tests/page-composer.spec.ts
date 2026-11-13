@@ -109,6 +109,13 @@ async function expectMediaBeforeWriting(
   );
   const diagnostic = JSON.stringify(layout);
   expect(layout.media, diagnostic).toBeDefined();
+  if (!editing && !heart) {
+    // Detail reading order: the headline leads, then the media.
+    expect(layout.lead?.bottom, diagnostic).toBeLessThanOrEqual(
+      (layout.media?.top ?? 0) + 1,
+    );
+    return;
+  }
   expect(layout.media?.bottom, diagnostic).toBeLessThanOrEqual(
     (layout.voice?.top ?? layout.lead?.top ?? 0) + 1,
   );

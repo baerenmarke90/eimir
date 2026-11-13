@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { RemindersApi } from '../api/generated/apis/RemindersApi';
+import { WishesApi } from '../api/generated/apis/WishesApi';
 import type { ReminderDetail } from '../api/generated/models/ReminderDetail';
 import { ResponseError } from '../api/generated/runtime';
 import { ReminderReadPage } from './ReminderReadPage';
@@ -101,4 +102,57 @@ it('hides a previously cached title when the authoritative read is denied', asyn
   expect(
     await screen.findByText(i18n.t('states.permission.title')),
   ).toBeTruthy();
+});
+
+const withWish = {
+  ...reminder,
+  source: 'GENERATED' as const,
+  sourceType: 'PLAN',
+  sourceId: 'plan-a',
+  originWish: { wishId: 'wish-9', seriesPosition: 2 },
+};
+
+it('names the wish behind a plan reminder and links to it (#1816)', async () => {
+  vi.spyOn(RemindersApi.prototype, 'getReminder').mockResolvedValue(withWish);
+  const getWish = vi
+    .spyOn(WishesApi.prototype, 'getWish')
+    .mockResolvedValue({ title: 'Ostsee' } as never);
+  setup();
+  const link = await screen.findByRole('link', {
+    name: i18n.t('wishRepeat.reminder.fromWishTitledNth', {
+      title: 'Ostsee',
+      position: 2,
+    }),
+  });
+  expect(link.getAttribute('href')).toBe('/plan/wishes/wish-9');
+  expect(getWish).toHaveBeenCalledWith(
+    { spaceId: 'space-a', wishId: 'wish-9' },
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  );
+});
+
+it('keeps a generic wish line when the wish cannot be read (#1816)', async () => {
+  vi.spyOn(RemindersApi.prototype, 'getReminder').mockResolvedValue({
+    ...withWish,
+    originWish: { wishId: 'wish-9', seriesPosition: 1 },
+  });
+  vi.spyOn(WishesApi.prototype, 'getWish').mockRejectedValue(
+    new ResponseError(new Response('{}', { status: 404 })),
+  );
+  setup();
+  const link = await screen.findByRole('link', {
+    name: i18n.t('wishRepeat.reminder.fromWish'),
+  });
+  expect(link.getAttribute('href')).toBe('/plan/wishes/wish-9');
+});
+
+it('shows no wish line for a manual reminder (#1816)', async () => {
+  vi.spyOn(RemindersApi.prototype, 'getReminder').mockResolvedValue(reminder);
+  setup();
+  await screen.findByRole('heading', { level: 1, name: 'Einkaufen' });
+  expect(
+    screen.queryByRole('link', {
+      name: i18n.t('wishRepeat.reminder.fromWish'),
+    }),
+  ).toBeNull();
 });

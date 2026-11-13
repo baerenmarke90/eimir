@@ -106,6 +106,39 @@ const partnerLocation = {
     'Android zeigt danach „Immer zulassen“. Wähle dort diese Option.',
   disclosureContinue: 'Weiter zu den Einstellungen',
   disclosureForegroundOnly: 'Nur beim Öffnen',
+  distanceNear: 'Ihr seid gerade ganz nah beieinander',
+  distanceBetween: '{{distance}} zwischen euch',
+  distanceAsOfToday: 'heute, {{time}}',
+  distanceAsOfYesterday: 'gestern, {{time}}',
+  distanceAsOfDate: '{{date}}, {{time}}',
+  distanceAsOfLabel: 'Stand {{time}}',
+  distanceOpenMap: 'Auf der Karte ansehen',
+  distanceOwnMissing: 'Dein Standort fehlt',
+  distanceOwnMissingAction: 'Einschalten',
+  distanceOwnMissingLabel:
+    'Dein Standort fehlt. Nur du siehst diesen Hinweis. Einschalten',
+  wirToggleLabel: 'Entfernung auf „Wir“ zeigen',
+  wirToggleHint:
+    'Betrifft nur deine Ansicht. Was ihr teilt, ändert sich dadurch nicht.',
+  mapTitle: 'Wo wir gerade sind',
+  mapShowUs: 'Uns zeigen',
+  mapLoading: 'Karte wird geladen …',
+  mapPartnerArea: '{{partner}} · ungefährer Bereich',
+  mapPartnerAsOf: 'Stand: {{time}}',
+  mapYou: 'Du · nur für dich sichtbar',
+  mapYouMissing: 'Du · dein Standort fehlt',
+  mapOwnSharesMap: '{{partner}} sieht deinen ungefähren Bereich',
+  mapOwnSharesDistance: '{{partner}} sieht nur die Entfernung',
+  mapOwnSharesNothing: 'Du teilst gerade nichts',
+  mapAdjust: 'Mein Teilen anpassen',
+  mapUnavailableTitle: 'Gerade ist hier nichts zu sehen',
+  mapUnavailableBody:
+    'Ein ungefährer Bereich erscheint hier nur, solange er geteilt wird.',
+  mapAreaDescription:
+    '{{partner}} ist ungefähr in einem Bereich mit {{radius}} Radius. Stand: {{time}}.',
+  mapOwnDescription:
+    'Dein eigener ungefährer Standort ist nur für dich markiert.',
+  mapPeopleLabel: 'Ihr beide auf der Karte',
 } as const;
 
 export default partnerLocation;

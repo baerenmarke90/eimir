@@ -97,3 +97,49 @@
   background: var(--color-surface);
   color: var(--color-text);
 }
+
+/* Approximate areas (#1792): an area, never a precise pin. */
+.place-map-area {
+  --place-map-area-fill: color-mix(
+    in srgb,
+    var(--color-shared) 16%,
+    transparent
+  );
+  --place-map-area-ring: color-mix(
+    in srgb,
+    var(--color-shared) 45%,
+    transparent
+  );
+
+  position: relative;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.place-map-area-circle,
+.place-map-area-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.place-map-area-circle {
+  border-radius: 50%;
+  background: var(--place-map-area-fill);
+  box-shadow: inset 0 0 0 2px var(--place-map-area-ring);
+}
+
+.place-map-area.is-own .place-map-area-circle {
+  display: none;
+}
+
+.place-map-area-marker {
+  display: grid;
+  place-items: center;
+}
+
+.place-map-area-marker .partner-avatar {
+  box-shadow: 0 0 0 3px var(--color-surface);
+}

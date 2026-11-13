@@ -172,6 +172,9 @@ export const SETTINGS_CATEGORY_ROUTES = {
 /** Settings › Relationship › Location & distance (#1792). */
 export const PARTNER_LOCATION_SETTINGS_ROUTE = `${SETTINGS_CATEGORY_ROUTES.relationship}/location`;
 
+/** The dedicated "where we are" map task, reached from the Wir distance (#1792). */
+export const PARTNER_LOCATION_MAP_ROUTE = '/today/where-we-are';
+
 export function isSettingsCategoryId(
   value: string | undefined,
 ): value is SettingsCategoryId {

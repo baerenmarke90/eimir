@@ -1085,6 +1085,19 @@
         "web/src/components/SettingsPage.tsx",
         "web/src/components/DevicePushOnboarding.tsx"
       ]
+    },
+    "partner-distance-wir.spec.ts": {
+      "roots": [
+        "web/src/components/PartnerDistanceLine.tsx",
+        "web/src/components/PartnerDistanceWirSetting.tsx",
+        "web/src/components/PartnerLocationMapPage.tsx",
+        "web/src/client/partnerDistance.ts",
+        "web/src/components/CouplePresence.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/DashboardSettingsPanel.tsx",
+        "web/src/components/PlaceMapCanvas.tsx",
+        "web/src/components/PartnerLocationSync.tsx"
+      ]
     }
   }
 }

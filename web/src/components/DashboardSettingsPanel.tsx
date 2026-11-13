@@ -56,6 +56,8 @@ export interface DashboardSettingsPanelProps {
   accountId: string;
   spaceId: string;
   moduleControls?: Partial<Record<DashboardModuleKey, ReactNode>>;
+  /** Viewer-side controls for the always-visible couple hero. */
+  heroControls?: ReactNode;
 }
 
 type PreferenceQueryWrite = {
@@ -177,6 +179,7 @@ function settlePreferenceFacetWrite(
 
 export function DashboardSettingsPanel({
   moduleControls,
+  heroControls,
   dashboardApi,
   accountId,
   spaceId,
@@ -792,6 +795,7 @@ export function DashboardSettingsPanel({
           {t('profileIdentity.dashboardAlwaysVisible')}
         </span>
       </div>
+      {heroControls}
 
       <fieldset
         className="dashboard-module-preference"

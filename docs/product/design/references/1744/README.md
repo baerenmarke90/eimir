@@ -168,3 +168,15 @@ Captured by `web/e2e/tests/automatic-recaps.spec.ts` (three journeys: 390 Light,
 - The photo scrim now holds stronger and longer (45 % / 82 % stops) so the eyebrow, title, quote and reaction line stay readable over a busy picture.
 - On text-led scenes (facts, words, titles, a cover without photos) the play toggle stays in the stage but sits below the copy (Product Owner decision of 2026-11-12), so a paused reader never covers the title or a quote. While playing it is invisible as before; on photography it stays centred on the picture. The text-scene captures in `evidence/` were refreshed for this. Large-text and Android device acceptance of these scenes have not been performed; the rhythm scene is not built yet.
 
+## Permanent entry in Momente (#1744, scene reference)
+
+Product Owner decisions of 2026-11-13: sharing a scene as an image is not built; the permanent entry to the recap library lives in Momente, the Wir invitation around a month change stays, and More stays as a second way in. The [generated Compact reference](momente-entry-compact-reference.png) (baseline `main@71f1680a2`, generated from the current Momente and recap library captures) shows one new row "Eure Rückblicke" in the "Zeit für euch" group of Momente and the library opened from it with Momente selected in the bottom bar.
+
+![Generated Compact reference for the Rückblicke entry in Momente](momente-entry-compact-reference.png)
+
+Decisions taken from it when building:
+
+- Exactly one new row below "Zeitreise": a small rounded cover on the left, the period and a quiet text action; same width and radius as the existing rows, no badge, no banner.
+- The library and the reader live under Momente (`/story/recaps`, `/story/recaps/:recapId`) so the tab stays active; the former `/more/passport` addresses redirect and keep their query and return state.
+- States: cover of the newest ready edition; newest retained edition without composition language when the capability is missing; a quiet row without a cover while preparing; no row without editions and capability.
+

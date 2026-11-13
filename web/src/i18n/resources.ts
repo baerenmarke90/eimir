@@ -38,6 +38,7 @@ import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import recaps from './locales/recaps';
+import rediscovery from './locales/rediscovery';
 import relationshipComponents from './locales/relationshipComponents';
 import relationshipReflections from './locales/relationshipReflections';
 import sensitiveMedia from './locales/sensitiveMedia';
@@ -99,6 +100,7 @@ export const germanResources = {
   ...relationshipComponents,
   relationshipReflections,
   recaps,
+  rediscovery,
   ...snackbar,
   ...storyProducts,
   contextTags,

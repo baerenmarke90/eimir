@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { RediscoveryContext } from './RediscoveryContext';
+import {
+    RediscoveryContextFromJSON,
+    RediscoveryContextFromJSONTyped,
+    RediscoveryContextToJSON,
+    RediscoveryContextToJSONTyped,
+} from './RediscoveryContext';
 import type { DiscoverLeadContext } from './DiscoverLeadContext';
 import {
     DiscoverLeadContextFromJSON,
@@ -54,6 +61,12 @@ export interface DiscoverSelection {
     leadContext?: DiscoverLeadContext | null;
     /**
      * 
+     * @type {RediscoveryContext}
+     * @memberof DiscoverSelection
+     */
+    leadRediscovery?: RediscoveryContext | null;
+    /**
+     * 
      * @type {Date}
      * @memberof DiscoverSelection
      */
@@ -83,6 +96,7 @@ export function DiscoverSelectionFromJSONTyped(json: any, ignoreDiscriminator: b
         'items': ((json['items'] as Array<any>).map(StoryItemFromJSON)),
         'lead': StoryItemFromJSON(json['lead']),
         'leadContext': json['leadContext'] === undefined ? undefined : json['leadContext'] === null ? null : DiscoverLeadContextFromJSON(json['leadContext']),
+        'leadRediscovery': json['leadRediscovery'] === undefined ? undefined : json['leadRediscovery'] === null ? null : RediscoveryContextFromJSON(json['leadRediscovery']),
         'selectionDate': (new Date(json['selectionDate'])),
     };
 }
@@ -101,6 +115,7 @@ export function DiscoverSelectionToJSONTyped(value?: DiscoverSelection | null, i
         'items': ((value['items'] as Array<any>).map(StoryItemToJSON)),
         'lead': StoryItemToJSON(value['lead']),
         'leadContext': DiscoverLeadContextToJSON(value['leadContext']),
+        'leadRediscovery': RediscoveryContextToJSON(value['leadRediscovery']),
         'selectionDate': value['selectionDate'].toISOString().substring(0,10),
     };
 }

@@ -4,7 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
-import { openComposerMediaSources } from '../support/mediaIntake';
+import { addComposerMedia } from '../support/mediaIntake';
 import { showComposerDate, showMemoryDetails } from '../support/memoryDiary';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
@@ -321,10 +321,7 @@ test.describe('R1 Memory Create evidence', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
-    await openComposerMediaSources(page);
-    await page
-      .locator('#memory-create-images-source')
-      .setInputFiles(CABIN_FIXTURE);
+    await addComposerMedia(page, CABIN_FIXTURE);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toBeVisible();
@@ -340,10 +337,7 @@ test.describe('R1 Memory Create evidence', () => {
       await page.emulateMedia({ colorScheme });
       await page.setViewportSize({ width: 390, height: 1000 });
       await openMemoryCreate(page);
-      await openComposerMediaSources(page);
-      await page
-        .locator('#memory-create-images-source')
-        .setInputFiles(CABIN_FIXTURE);
+      await addComposerMedia(page, CABIN_FIXTURE);
       await expect(
         page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
       ).toBeVisible();

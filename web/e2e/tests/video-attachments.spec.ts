@@ -10,7 +10,7 @@ import taskSheets from '../../src/i18n/locales/taskSheets';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
-import { openComposerMediaSources } from '../support/mediaIntake';
+import { addComposerMedia } from '../support/mediaIntake';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -520,19 +520,16 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    const sources = await openComposerMediaSources(page);
+    // #1790 D1: without an external source the diary intake owns the device input.
     const device = page.locator(
-      '.media-device-choice--chooser input[type=file][accept^="image/"]',
+      '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type=file]',
     );
     await expect(device).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
-    await expect(
-      page.locator('.media-device-choice--chooser input[type=file]'),
-    ).toHaveCount(1);
+    await expect(device).toHaveCount(1);
     await device.setInputFiles([
       { name: 'sunrise.jpg', mimeType: 'image/jpeg', buffer: image },
       { name: 'jump.mp4', mimeType: 'video/mp4', buffer: movie },
     ]);
-    await expect(sources).toHaveCount(0);
     await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
@@ -698,8 +695,11 @@ test('source selection waits for video eligibility and preserves photo fallback 
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
   await expect(page.locator('#memory-create-images')).toBeDisabled();
-  const sources = await openComposerMediaSources(page);
-  const input = page.locator('.media-device-choice--chooser input[type=file]');
+  // #1790 D1: the diary intake shows video availability states inline.
+  const sources = page.locator('.composer-diary-intake');
+  const input = page.locator(
+    '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type=file]',
+  );
   await expect(input).toBeDisabled();
   release();
   await expect(
@@ -715,17 +715,7 @@ test('source selection waits for video eligibility and preserves photo fallback 
     .click();
   await expect(input).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
   expect(requests).toBe(2);
-  await expect(sources).toBeVisible();
-  await sources
-    .getByRole('button', { name: taskSheets.close, exact: true })
-    .last()
-    .click();
   await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
-  await expect(
-    page
-      .locator('.composer-tool-row button')
-      .filter({ has: page.locator('.eimir-icon-foto') }),
-  ).toBeFocused();
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);
 });
@@ -736,8 +726,9 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  const sources = await openComposerMediaSources(page);
-  await sources
+  // #1790 D1: the diary intake offers the Pro video explanation inline.
+  await page
+    .locator('.composer-diary-intake')
     .getByRole('button', { name: new RegExp(videoCopy.add) })
     .click();
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
@@ -832,15 +823,11 @@ test('an interrupted local journal does not block an atomic save while video byt
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    const sources = await openComposerMediaSources(page);
-    await page
-      .locator('.media-device-choice--chooser input[type=file]')
-      .setInputFiles({
-        name: 'private-video.mp4',
-        mimeType: 'video/mp4',
-        buffer: movie,
-      });
-    await expect(sources).toHaveCount(0);
+    await addComposerMedia(page, {
+      name: 'private-video.mp4',
+      mimeType: 'video/mp4',
+      buffer: movie,
+    });
     await expect.poll(() => state.uploads).toBe(1);
     await expect(
       page.getByRole('button', { name: de.memory.save, exact: true }),
@@ -886,15 +873,11 @@ test('a saved interrupted video resumes the same upload without recreating its p
   await signIn(page);
   await page.goto('/story/memories/new');
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(momentBody);
-  const sources = await openComposerMediaSources(page);
-  await page
-    .locator('.media-device-choice--chooser input[type=file]')
-    .setInputFiles({
-      name: 'our-video.mp4',
-      mimeType: 'video/mp4',
-      buffer: movie,
-    });
-  await expect(sources).toHaveCount(0);
+  await addComposerMedia(page, {
+    name: 'our-video.mp4',
+    mimeType: 'video/mp4',
+    buffer: movie,
+  });
   await expect(
     page.getByRole('button', { name: videoCopy.retryUpload, exact: true }),
   ).toBeVisible();
@@ -946,15 +929,11 @@ for (const [width, colorScheme] of [
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
         .fill(momentBody);
-      const sources = await openComposerMediaSources(page);
-      await page
-        .locator('.media-device-choice--chooser input[type=file]')
-        .setInputFiles({
-          name: `eimir-selected-${VIDEO}.mp4`,
-          mimeType: 'video/mp4',
-          buffer: movie,
-        });
-      await expect(sources).toHaveCount(0);
+      await addComposerMedia(page, {
+        name: `eimir-selected-${VIDEO}.mp4`,
+        mimeType: 'video/mp4',
+        buffer: movie,
+      });
       await page
         .getByRole('button', {
           name: de.memory.photoReviewFailure,

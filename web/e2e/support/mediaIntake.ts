@@ -81,7 +81,12 @@ export async function expectMediaIntakeAction(
   await expect(icon).toHaveAttribute('focusable', 'false');
 }
 
-/** The combined Core entry owns the modal; source buttons stay in its sheet. */
+/**
+ * The combined Core entry owns the modal; source buttons stay in its sheet.
+ * Heart moments and Plans open it from the photo tool, a populated gallery
+ * from its add tile, and the diary intake opens it when an external source is
+ * connected (#1790 D1).
+ */
 export async function openComposerMediaSources(page: Page) {
   const tool = page
     .locator('.composer-tool-row button')
@@ -93,6 +98,7 @@ export async function openComposerMediaSources(page: Page) {
         exact: true,
       }),
     )
+    .or(page.locator('.composer-diary-intake [aria-haspopup="dialog"]'))
     .first()
     .click();
   const sheet = page.getByRole('dialog', {
@@ -101,4 +107,31 @@ export async function openComposerMediaSources(page: Page) {
   });
   await expect(sheet).toBeVisible();
   return sheet;
+}
+
+/**
+ * Adds files through the composer's photo entry. Without an external source
+ * the diary intake opens the device picker directly (#1790 D1); every other
+ * entry goes through the shared source sheet.
+ */
+export async function addComposerMedia(
+  page: Page,
+  files: Parameters<Locator['setInputFiles']>[0],
+) {
+  const directIntake = page.locator(
+    '.composer-diary-intake .media-intake-device:not([aria-haspopup="dialog"])',
+  );
+  if (await directIntake.isVisible()) {
+    await page
+      .locator(
+        '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type="file"]',
+      )
+      .setInputFiles(files);
+    return;
+  }
+  const sheet = await openComposerMediaSources(page);
+  await page
+    .locator('.media-device-choice--chooser input[type=file]')
+    .setInputFiles(files);
+  await expect(sheet).toHaveCount(0);
 }

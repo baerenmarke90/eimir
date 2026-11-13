@@ -238,6 +238,65 @@ def test_changed_or_withdrawn_source_scrubs_derived_prose(client, session, conte
     assert "Formerly shared words" not in str(result)
 
 
+def test_a_changed_source_queues_one_delayed_rewrite_of_an_automatic_proposal(
+    client, session, context, monkeypatch
+):  # type: ignore[no-untyped-def]
+    from types import SimpleNamespace
+
+    from eimir.recaps import invalidation, local_ai
+
+    enabled = SimpleNamespace(recap_ai_url="http://recap-ai:11434")
+    monkeypatch.setattr(invalidation, "get_settings", lambda: enabled)
+    item = memory(session, context)
+    proposed = request(client, context).json()
+    generate(session, context, proposed)
+    stored = session.get(RecapEdition, UUID(proposed["id"]))
+    stored.payload = RecapPayload(headline="Derived words", introduction="An introduction")
+    session.flush()
+
+    def rewrites():  # type: ignore[no-untyped-def]
+        queued = session.scalars(select(Job).where(Job.kind == service.GENERATE_JOB)).all()
+        return [job for job in queued if "account_id" not in job.payload]
+
+    item.payload = MemoryPayload(title="A corrected title", body="Corrected shared words")
+    session.flush()
+    assert stored.payload.headline is None and stored.status == "READY"
+    (job,) = rewrites()
+    requested = session.scalars(select(Job).where(Job.id != job.id)).first()
+    assert job.run_after - requested.run_after >= invalidation.REWRITE_DELAY
+    assert job.payload["request_token"] == str(stored.request_token)
+    # Further edits before the rewrite do not queue more inference.
+    item.payload = MemoryPayload(title="A second correction", body="Corrected shared words")
+    session.flush()
+    assert len(rewrites()) == 1
+
+    monkeypatch.setattr(jobs, "get_settings", lambda: enabled)
+    seen: list[str] = []
+
+    def compose(evidence, locale, period):  # type: ignore[no-untyped-def]
+        seen.extend(entry["title"] for entry in evidence)
+        return local_ai.Narration(
+            title="Rewritten", introduction="From the corrected words.", source_keys=["x"]
+        )
+
+    monkeypatch.setattr(local_ai, "compose", compose)
+    # The job releases its read transaction before inference; the fixture's must survive.
+    monkeypatch.setattr(session, "rollback", lambda: None)
+    jobs.generate(session, dict(job.payload))
+    session.flush()
+    assert seen == ["A second correction"]
+    result = read(client, context, proposed, partner=True).json()
+    assert result["headline"] == "Rewritten"
+    assert result["sources"][0]["title"] == "A second correction"
+
+    # A retained edition keeps the factual template; its wording stays frozen.
+    stored.saved_at = NOW
+    session.flush()
+    item.payload = MemoryPayload(title="A third correction", body="Corrected shared words")
+    session.flush()
+    assert stored.payload.headline is None and len(rewrites()) == 1
+
+
 def test_optimistic_selection_and_foreign_recap_protection(client, session, context):  # type: ignore[no-untyped-def]
     memory(session, context)
     proposed = request(client, context).json()

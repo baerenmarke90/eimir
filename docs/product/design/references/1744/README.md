@@ -75,6 +75,13 @@ No new dependency or provider.
   "completed period"; the "kept" mark remains only on earlier manual snapshots of
   a running period. `POST .../save` stays in the contract for older clients.
 
+- **Wording resilience (Phase 2, model unchanged):** a narration the editorial
+  checks reject gets one retry that names the broken rule; the rejected draft is
+  not sent back, and transport failures are not retried. When a source of an
+  unretained automatic proposal changes, its prose is still scrubbed at once and
+  one rewrite is queued ten minutes later, so several edits cost one inference.
+  Retained and curated editions keep the factual template.
+
 ## States, motion and accessibility
 
 Reduced motion keeps the reader paused on open and removes scene, drift and stagger

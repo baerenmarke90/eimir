@@ -228,6 +228,51 @@ def test_editorial_checks_accept_a_short_caption_using_only_cited_numbers() -> N
     )
 
 
+def test_a_rejected_narration_gets_one_retry_with_the_broken_rule(monkeypatch):  # type: ignore[no-untyped-def]
+    import json
+
+    monkeypatch.setattr(
+        local_ai,
+        "get_settings",
+        lambda: SimpleNamespace(
+            recap_ai_url="http://recap-ai:11434",
+            recap_ai_model="qwen3:1.7b-q4_K_M",
+            recap_ai_timeout_seconds=5,
+        ),
+    )
+    actual = httpx.Client
+    requests: list[list[dict[str, str]]] = []
+    answers = [
+        {"title": "A walk", "introduction": "100 steps by the lake.", "source_keys": ["m"]},
+        {"title": "A walk", "introduction": "A walk by the lake.", "source_keys": ["m"]},
+        {"title": "Never", "introduction": "Asked a third time.", "source_keys": ["m"]},
+    ]
+
+    def respond(request):  # type: ignore[no-untyped-def]
+        requests.append(json.loads(request.content)["messages"])
+        content = json.dumps(answers[len(requests) - 1])
+        return httpx.Response(200, json={"done": True, "message": {"content": content}})
+
+    monkeypatch.setattr(
+        local_ai.httpx,
+        "Client",
+        lambda **kwargs: actual(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    evidence = [{"key": "m", "title": "A walk by the lake"}]
+    result = local_ai.compose(evidence, "en", "2026-10")
+    assert result is not None and result.introduction == "A walk by the lake."
+    assert len(requests) == 2 and len(requests[1]) == len(requests[0]) + 1
+    feedback = requests[1][-1]
+    assert feedback["role"] == "user" and "numbers" in feedback["content"]
+    # The rejected draft itself is never sent back.
+    assert "100 steps" not in feedback["content"]
+
+    requests.clear()
+    answers[1] = answers[0]
+    assert local_ai.compose(evidence, "en", "2026-10") is None
+    assert len(requests) == 2
+
+
 def test_overlong_model_prose_is_rejected_instead_of_truncated() -> None:
     from pydantic import ValidationError
 
@@ -237,3 +282,22 @@ def test_overlong_model_prose_is_rejected_instead_of_truncated() -> None:
             introduction="A perfect day full of love and happiness. " * 8,
             source_keys=["note"],
         )
+
+
+@pytest.mark.parametrize(
+    "locale,language,example",
+    [
+        ("de-DE", "German", "Frühstück am Morgen"),
+        ("de", "German", "Frühstück am Morgen"),
+        ("en_GB", "English", "Breakfast in the morning"),
+        ("fr-FR", "English", "Breakfast in the morning"),
+        ("", "English", "Breakfast in the morning"),
+    ],
+)
+def test_editorial_instruction_asks_for_the_couples_language_with_a_matching_example(
+    locale, language, example
+):  # type: ignore[no-untyped-def]
+    prompt = local_ai.editorial_instruction(locale)
+    assert f"in {language}" in prompt and f"Title: '{example}'" in prompt
+    other = "Breakfast in the morning" if language == "German" else "Frühstück am Morgen"
+    assert other not in prompt

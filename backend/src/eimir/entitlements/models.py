@@ -71,6 +71,7 @@ class Capability(StrEnum):
     PARTNER_QUICK_ACTIONS_EXTENDED = "partner.quick_actions.extended"
     RELATIONSHIP_PASSPORT = "relationship.passport"
     MEMORIES_MAP = "memories.map"
+    PRESENCE_LOCATION = "presence.location"
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):

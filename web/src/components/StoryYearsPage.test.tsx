@@ -113,7 +113,7 @@ describe('Story annual archive (#868)', () => {
         nextCursor: null,
       });
       expect(html).toContain('class="story-years-recaps-entry"');
-      expect(html).toContain('href="/more/passport"');
+      expect(html).toContain('href="/story/recaps"');
       expect(html).toContain(de.storyYears.recapsEntryTitle);
       expect(html).toContain(de.storyYears.recapsEntryHint);
       expect(html.indexOf('story-years-recaps-entry')).toBeLessThan(

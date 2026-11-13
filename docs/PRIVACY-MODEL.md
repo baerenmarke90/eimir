@@ -111,7 +111,9 @@ Server-side location data uses the minimum required precision, short retention,
 no location data in normal logs, and can be revoked at any time.
 
 Optional partner distance remains off until deliberately enabled and does not
-create a persistent history.
+create a persistent history. Its runtime contract — sharing levels, recipient
+binding, snapped precision, 24-hour snapshot expiry, energy rules and the
+Premium boundary — is [PARTNER-LOCATION.md](m9/PARTNER-LOCATION.md) (#1792).
 
 ### Selected-photo places and readable addresses (#1459 / #1478)
 

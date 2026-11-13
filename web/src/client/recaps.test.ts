@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RecapViewFromJSON } from '../api/generated/models/RecapView';
 import {
   monthlyRecapInvitation,
+  recapEntryEdition,
   recapPeriodStatus,
   recapRhythm,
   recapScenes,
@@ -140,5 +141,34 @@ describe('recap rhythm scene', () => {
         (scene) => scene.type,
       ),
     ).not.toContain('rhythm');
+  });
+});
+
+describe('recap entry in Momente', () => {
+  const ready = (id: string, year: number, month: number) =>
+    edition(year, month, { id });
+  it('points to the newest ready edition, else the newest pending one', () => {
+    expect(
+      recapEntryEdition([
+        ready('old', 2026, 8),
+        ready('new', 2026, 10),
+        edition(2026, 11, { id: 'pending', status: 'PENDING', sources: [] }),
+      ])?.id,
+    ).toBe('new');
+    expect(
+      recapEntryEdition([
+        edition(2026, 9, { id: 'a', status: 'PENDING', sources: [] }),
+        edition(2026, 10, { id: 'b', status: 'PENDING', sources: [] }),
+      ])?.id,
+    ).toBe('b');
+  });
+
+  it('invents nothing without editions or readable sources', () => {
+    expect(recapEntryEdition([])).toBeUndefined();
+    expect(
+      recapEntryEdition([
+        edition(2026, 10, { id: 'empty', status: 'EMPTY', sources: [] }),
+      ]),
+    ).toBeUndefined();
   });
 });

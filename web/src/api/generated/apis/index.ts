@@ -25,6 +25,7 @@ export * from './MemoryPlanningRelationsApi';
 export * from './MilestonesApi';
 export * from './NotificationsApi';
 export * from './OnceMessagesApi';
+export * from './PartnerLocationApi';
 export * from './PeopleApi';
 export * from './PhotoSourcesApi';
 export * from './PlaceRelationsApi';

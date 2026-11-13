@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { HAPPINESS_ROUTE, TIME_TRAVEL_ROUTE } from '../client/routes';
 import { useTranslation } from '../i18n';
@@ -8,8 +8,11 @@ import './CoupleExperiences.css';
 
 export function CoupleExperienceLinks({
   onOpen,
+  extra,
 }: {
   onOpen: (event: MouseEvent<HTMLAnchorElement>, to: string) => void;
+  /** Further rows of the same group, such as the recap entry. */
+  extra?: ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -37,6 +40,7 @@ export function CoupleExperienceLinks({
             </Link>
           );
         })}
+        {extra}
       </div>
     </section>
   );

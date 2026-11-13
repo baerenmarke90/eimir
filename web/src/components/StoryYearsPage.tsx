@@ -19,7 +19,7 @@ import {
 } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { useHideProFeatureMarks } from '../client/proPresentation';
-import { MORE_PASSPORT_ROUTE, storyYearPath } from '../client/routes';
+import { STORY_RECAPS_ROUTE, storyYearPath } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
@@ -67,7 +67,7 @@ function RecapsEntry() {
   const hideProMarks = useHideProFeatureMarks();
   return (
     <TaskOriginLink
-      to={MORE_PASSPORT_ROUTE}
+      to={STORY_RECAPS_ROUTE}
       className="story-years-recaps-entry"
     >
       <span className="story-years-recaps-icon" aria-hidden="true">

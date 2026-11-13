@@ -234,6 +234,8 @@ class Settings(IdentityCompatibleSettings):
     # Only canonical saved photo coordinates and language reach this service.
     photo_place_geocoding_url: str = "https://photon.komoot.io"
     place_search_url: str = "https://photon.komoot.io"
+    # Operator switch for M9 partner location (#1792). OFF writes stay accepted.
+    partner_location_enabled: bool = True
 
     # Optional local-only recap wording. Selection and complete fallback stay in Core.
     recap_ai_url: str = ""

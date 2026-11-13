@@ -100,6 +100,30 @@ export function monthlyRecapInvitation(
     )[0];
 }
 
+/**
+ * The edition Momente points to: the newest ready one, else the newest still
+ * being prepared. Nothing is invented when there is none.
+ */
+export function recapEntryEdition(
+  editions: RecapView[],
+): RecapView | undefined {
+  const newest = (values: RecapView[]) =>
+    [...values].sort(
+      (a, b) =>
+        b.year * 12 + (b.month ?? 0) - (a.year * 12 + (a.month ?? 0)) ||
+        (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
+    )[0];
+  return (
+    newest(
+      editions.filter(
+        (edition) =>
+          edition.status === 'READY' &&
+          edition.sources.some((source) => source.available),
+      ),
+    ) ?? newest(editions.filter((edition) => edition.status === 'PENDING'))
+  );
+}
+
 /** Mirrors the server's bounded manual selection. */
 export const RECAP_SELECTION_LIMIT = 24;
 

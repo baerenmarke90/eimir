@@ -17,3 +17,7 @@ Own-words scenes generation (2026-11-12)
 
 Use case: ui-mockup. Four straight-on, equal-width 390 CSS px Compact compositions of the focused native reader, using the existing photo, words, cover and facts runtime captures as layout guidance: (1) photo scene with a quote block 'Ben: "Ich denke so oft an diesen Abend am Wasser."', (2) photo scene with the calm line 'Dieses Foto habt ihr beide geliebt' and a filled heart glyph, (3) words scene with the quote 'Anna: "Das war der schönste Abend der Woche."', (4) rhythm scene 'Gute Tage zusammen' with five quiet bars 'Woche 1' to 'Woche 5' and the counts 3, 2, 4, 0, 0, the leading week in cobalt. Light palette, no tab bar, no painted Previous/Next arrows, no line chart, scores, percentages or emoji. The complete prompt is recorded in issue #1744.
 
+Momente entry generation (2026-11-13)
+
+Use case: ui-mockup. Two straight-on, equal-width 390 CSS px Compact compositions side by side, using the current Momente screen and the current recap library as layout guidance: (1) Momente, tab Erinnerungen, keeping everything and adding exactly one row 'Eure Rückblicke' below 'Zeitreise' in the 'Zeit für euch' group (small rounded lake photo on the left, 'Oktober 2026', quiet cobalt text action 'Rückblick ansehen'), (2) the recap library opened from that row with the bottom bar showing 'Momente' selected instead of 'Mehr'. Light palette, no badge or banner, no extra features. The complete prompt is recorded in issue #1744.
+

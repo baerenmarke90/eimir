@@ -68,6 +68,7 @@ describe('MoreOverviewPage', () => {
 
     // #1790 E1: years and recaps share one destination that opens the years.
     expect(html).not.toContain('href="/more/passport"');
+    expect(html).not.toContain('href="/story/recaps"');
     expect(html).toContain(
       de.more.destinations.yearsAndRecaps.replaceAll('&', '&amp;'),
     );

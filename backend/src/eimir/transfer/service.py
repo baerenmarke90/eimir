@@ -127,7 +127,9 @@ RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
         ("heart_moment_id", "heart_moments"),
     ),
 }
-ACCOUNT_REFERENCE_COLUMNS = frozenset({"owner_id", "created_by", "account_id"})
+# Columns that reference a member account. ``completed_by`` is optional (#1808):
+# an item completed before the actor was recorded has none.
+ACCOUNT_REFERENCE_COLUMNS = frozenset({"owner_id", "created_by", "account_id", "completed_by"})
 INSERT_ORDER = (
     "space_profiles",
     "partner_profiles",
@@ -1913,12 +1915,14 @@ def _prepare_row(
         if name == "space_id":
             value = authorization.space_id
         elif name in ACCOUNT_REFERENCE_COLUMNS:
-            source = _uuid(value, ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
-            if source not in graph.mapping:
-                raise TransferArchiveError(
-                    "Transfer member mapping is invalid.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
-                )
-            value = graph.mapping[source]
+            if value is not None:
+                source = _uuid(value, ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
+                if source not in graph.mapping:
+                    raise TransferArchiveError(
+                        "Transfer member mapping is invalid.",
+                        ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID,
+                    )
+                value = graph.mapping[source]
         elif name == "id":
             source = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
             value = ids[source]

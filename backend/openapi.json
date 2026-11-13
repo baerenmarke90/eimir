@@ -1299,6 +1299,10 @@
       "CollectionCreate": {
         "additionalProperties": false,
         "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/CollectionKind",
+            "default": "GENERIC"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -1339,6 +1343,10 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CollectionKind",
+            "default": "GENERIC"
           },
           "spaceId": {
             "format": "uuid",
@@ -1382,6 +1390,17 @@
             "title": "Completed",
             "type": "boolean"
           },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -1407,6 +1426,40 @@
             "title": "Completed",
             "type": "boolean"
           },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedat"
+          },
+          "completedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedby"
+          },
+          "completer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -1428,6 +1481,17 @@
           "position": {
             "title": "Position",
             "type": "integer"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
           },
           "title": {
             "title": "Title",
@@ -1466,6 +1530,17 @@
             "title": "Completed",
             "type": "boolean"
           },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -1473,6 +1548,15 @@
         },
         "title": "CollectionItemUpdate",
         "type": "object"
+      },
+      "CollectionKind": {
+        "description": "Presentation variant of a Collection, fixed when it is created (#1808).",
+        "enum": [
+          "GENERIC",
+          "SHOPPING"
+        ],
+        "title": "CollectionKind",
+        "type": "string"
       },
       "CollectionOrder": {
         "additionalProperties": false,
@@ -2619,6 +2703,15 @@
             ],
             "title": "Selectedcollectionid"
           },
+          "selectedCollectionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Selectedcollectionids",
+            "type": "array"
+          },
           "visible": {
             "title": "Visible",
             "type": "boolean"
@@ -2646,6 +2739,14 @@
             "format": "uuid",
             "title": "Selectedcollectionid",
             "type": "string"
+          },
+          "selectedCollectionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Selectedcollectionids",
+            "type": "array"
           },
           "visible": {
             "title": "Visible",
@@ -22801,6 +22902,29 @@
             "schema": {
               "$ref": "#/components/schemas/CollectionScope",
               "default": "ALL"
+            }
+          },
+          {
+            "description": "Return only these Collections, so several known lists need one request.",
+            "in": "query",
+            "name": "ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "maxItems": 50,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Return only these Collections, so several known lists need one request.",
+              "title": "Ids"
             }
           }
         ],

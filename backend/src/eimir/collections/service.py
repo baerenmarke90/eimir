@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -23,6 +23,7 @@ from eimir.collections.models import (
     Collection,
     CollectionItem,
     CollectionItemPayload,
+    CollectionKind,
     CollectionPayload,
     shared_privacy,
 )
@@ -40,6 +41,11 @@ COLLECTION_ITEM_TITLE_REQUIRED = "COLLECTION_ITEM_TITLE_REQUIRED"
 COLLECTION_ITEM_NOT_FOUND = "COLLECTION_ITEM_NOT_FOUND"
 COLLECTION_ORDER_INVALID = "COLLECTION_ORDER_INVALID"
 COLLECTION_ORDER_CONFLICT = "COLLECTION_ORDER_CONFLICT"
+COLLECTION_ITEM_QUANTITY_TOO_LONG = "COLLECTION_ITEM_QUANTITY_TOO_LONG"
+COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED = "COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED"
+
+# Display text such as "2 l" or "500 g"; a technical bound, not a product limit.
+ITEM_QUANTITY_MAX_LENGTH = 40
 
 
 class CollectionScope(StrEnum):
@@ -68,6 +74,30 @@ def _normalize_title(value: str, *, item: bool = False) -> str:
         noun = "Collection Item" if item else "Collection"
         raise ValidationError(f"{noun} title must not be blank.", code)
     return cleaned
+
+
+def normalize_quantity(value: str | None) -> str | None:
+    """Trim free-text quantity; blank means none. Never parsed or converted."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    if len(cleaned) > ITEM_QUANTITY_MAX_LENGTH:
+        raise ValidationError(
+            f"Collection Item quantity must be at most {ITEM_QUANTITY_MAX_LENGTH} characters.",
+            COLLECTION_ITEM_QUANTITY_TOO_LONG,
+        )
+    return cleaned
+
+
+def _require_quantity_support(collection: Collection, quantity: str | None) -> None:
+    """Only the shopping variant carries quantities; clearing one is always allowed."""
+    if quantity is not None and collection.kind != CollectionKind.SHOPPING.value:
+        raise ValidationError(
+            "Only shopping lists support item quantities.",
+            COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED,
+        )
 
 
 def _flush(session: Session) -> None:
@@ -166,11 +196,13 @@ def create_collection(
     context: AuthorizationContext,
     *,
     title: str,
+    kind: CollectionKind = CollectionKind.GENERIC,
 ) -> Collection:
     collection = Collection(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
+        kind=kind.value,
         payload=CollectionPayload(title=_normalize_title(title)),
     )
     session.add(collection)
@@ -228,10 +260,16 @@ def delete_collection(
     _flush(session)
 
 
-def _cursor_binding(context: AuthorizationContext, scope: CollectionScope) -> dict[str, Any]:
+def _cursor_binding(
+    context: AuthorizationContext,
+    scope: CollectionScope,
+    ids: Iterable[UUID] | None = None,
+) -> dict[str, Any]:
     binding = {"collection": "collections", "spaceId": str(context.space_id)}
     if scope != CollectionScope.ALL:
         binding["scope"] = scope.value
+    if ids is not None:
+        binding["ids"] = ",".join(sorted(str(identifier) for identifier in ids))
     return binding
 
 
@@ -241,9 +279,10 @@ def _encode_cursor(
     created_at: datetime,
     collection_id: UUID,
     scope: CollectionScope,
+    ids: Iterable[UUID] | None = None,
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context, scope),
+        binding=_cursor_binding(context, scope, ids),
         position={
             "createdAt": created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(collection_id),
@@ -252,9 +291,13 @@ def _encode_cursor(
 
 
 def _decode_cursor(
-    token: str, *, context: AuthorizationContext, scope: CollectionScope
+    token: str,
+    *,
+    context: AuthorizationContext,
+    scope: CollectionScope,
+    ids: Iterable[UUID] | None = None,
 ) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(context, scope))
+    position = cursor_codec.decode(token, binding=_cursor_binding(context, scope, ids))
     created_raw = position.get("createdAt")
     collection_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(collection_raw, str):
@@ -276,8 +319,16 @@ def list_collections(
     cursor: str | None,
     limit: int,
     scope: CollectionScope = CollectionScope.ALL,
+    ids: Sequence[UUID] | None = None,
 ) -> CollectionPageResult:
+    """Page readable Collections, optionally limited to the given identifiers.
+
+    ``ids`` lets a client read several known lists (for example the ones shown
+    on Wir) in one request instead of one request per list.
+    """
     statement = readable(Collection, context)
+    if ids is not None:
+        statement = statement.where(Collection.id.in_(ids))
     if scope != CollectionScope.ALL:
         has_items = (
             select(CollectionItem.id).where(CollectionItem.collection_id == Collection.id).exists()
@@ -293,7 +344,7 @@ def list_collections(
         completed = and_(has_items, ~has_unchecked)
         statement = statement.where(completed if scope == CollectionScope.COMPLETED else ~completed)
     if cursor is not None:
-        created_at, collection_id = _decode_cursor(cursor, context=context, scope=scope)
+        created_at, collection_id = _decode_cursor(cursor, context=context, scope=scope, ids=ids)
         statement = statement.where(
             or_(
                 Collection.created_at < created_at,
@@ -315,6 +366,7 @@ def list_collections(
             created_at=last.created_at,
             collection_id=last.id,
             scope=scope,
+            ids=ids,
         )
     return CollectionPageResult(items=items, next_cursor=next_cursor, has_more=has_more)
 
@@ -382,8 +434,11 @@ def create_item(
     *,
     title: str,
     completed: bool,
+    quantity: str | None = None,
 ) -> CollectionItem:
     collection = require_writable_locked(session, Collection, context, collection_id)
+    normalized_quantity = normalize_quantity(quantity)
+    _require_quantity_support(collection, normalized_quantity)
     position = session.execute(
         select(func.count(CollectionItem.id)).where(CollectionItem.collection_id == collection.id)
     ).scalar_one()
@@ -391,8 +446,12 @@ def create_item(
         collection_id=collection.id,
         created_by=context.account_id,
         completed=completed,
+        completed_by=context.account_id if completed else None,
+        completed_at=datetime.now(UTC) if completed else None,
         position=position,
-        payload=CollectionItemPayload(title=_normalize_title(title, item=True)),
+        payload=CollectionItemPayload(
+            title=_normalize_title(title, item=True), quantity=normalized_quantity
+        ),
     )
     session.add(item)
     _touch_collection(collection)
@@ -413,17 +472,32 @@ def update_item_with_completion_transition(
     changed_fields: frozenset[str],
     title: str | None,
     completed: bool | None,
+    quantity: str | None = None,
 ) -> CollectionItemUpdateResult:
     collection = require_writable_locked(session, Collection, context, collection_id)
     item = _require_item_locked(session, collection, item_id)
     _ensure_expected_version(item, expected_version)
 
     was_completed = item.completed
-    if "title" in changed_fields:
-        assert title is not None
-        item.payload = CollectionItemPayload(title=_normalize_title(title, item=True))
+    if "title" in changed_fields or "quantity" in changed_fields:
+        next_title = item.payload.title
+        next_quantity = item.payload.quantity
+        if "title" in changed_fields:
+            assert title is not None
+            next_title = _normalize_title(title, item=True)
+        if "quantity" in changed_fields:
+            next_quantity = normalize_quantity(quantity)
+            _require_quantity_support(collection, next_quantity)
+        # Rebuild the whole protected payload so changing one field keeps the other.
+        item.payload = CollectionItemPayload(title=next_title, quantity=next_quantity)
     if "completed" in changed_fields:
         assert completed is not None
+        if completed and not was_completed:
+            item.completed_by = context.account_id
+            item.completed_at = datetime.now(UTC)
+        elif not completed:
+            item.completed_by = None
+            item.completed_at = None
         item.completed = completed
 
     _flush(session)
@@ -456,6 +530,7 @@ def update_item(
     changed_fields: frozenset[str],
     title: str | None,
     completed: bool | None,
+    quantity: str | None = None,
 ) -> CollectionItem:
     return update_item_with_completion_transition(
         session,
@@ -466,6 +541,7 @@ def update_item(
         changed_fields=changed_fields,
         title=title,
         completed=completed,
+        quantity=quantity,
     ).item
 
 
@@ -568,10 +644,13 @@ def reorder_items(
 
 __all__ = [
     "COLLECTION_ITEM_NOT_FOUND",
+    "COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED",
+    "COLLECTION_ITEM_QUANTITY_TOO_LONG",
     "COLLECTION_ITEM_TITLE_REQUIRED",
     "COLLECTION_ORDER_CONFLICT",
     "COLLECTION_ORDER_INVALID",
     "COLLECTION_TITLE_REQUIRED",
+    "ITEM_QUANTITY_MAX_LENGTH",
     "CollectionItemUpdateResult",
     "CollectionPageResult",
     "create_collection",
@@ -581,6 +660,7 @@ __all__ = [
     "get_collection",
     "list_collections",
     "list_items",
+    "normalize_quantity",
     "reorder_items",
     "update_collection",
     "update_item",

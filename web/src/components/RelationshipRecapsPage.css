@@ -637,7 +637,8 @@
 }
 .recap-layout-words,
 .recap-layout-title,
-.recap-scene-facts {
+.recap-scene-facts,
+.recap-scene-rhythm {
   justify-content: center;
   background: var(--color-shared-surface);
 }
@@ -683,6 +684,49 @@
 .recap-facts span,
 .recap-facts-busiest {
   font: var(--font-section-heading);
+}
+.recap-rhythm {
+  --recap-rhythm-quiet: color-mix(
+    in srgb,
+    var(--color-shared) 32%,
+    transparent
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--recap-columns, 5), minmax(0, 1fr));
+  grid-template-rows: 9rem auto auto;
+  column-gap: var(--space-1);
+  row-gap: var(--space-2);
+  margin: var(--space-6) 0;
+  padding: 0;
+  list-style: none;
+}
+.recap-rhythm li {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  justify-items: center;
+  min-inline-size: 0;
+}
+.recap-rhythm-bar {
+  align-self: end;
+  inline-size: 100%;
+  max-inline-size: 3rem;
+  block-size: max(2px, calc(var(--recap-share, 0) * 9rem));
+  border-radius: var(--radius-medium) var(--radius-medium) 0 0;
+  background: var(--recap-rhythm-quiet);
+}
+.recap-rhythm li[data-leading="true"] .recap-rhythm-bar {
+  background: var(--color-shared);
+}
+.recap-rhythm-label {
+  font: var(--font-supporting-copy);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+.recap-rhythm strong {
+  font: var(--font-section-heading);
+  font-variant-numeric: tabular-nums;
 }
 .recap-gesture-hint {
   display: none;

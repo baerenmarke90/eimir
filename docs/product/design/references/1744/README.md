@@ -134,6 +134,16 @@ one and lets words be added to retained editions under the existing rules (new
 words need the capability; own existing words stay editable and withdrawable).
 The matrix row records this.
 
+## Rhythm scene "Gute Tage zusammen" (#1744)
+
+The scene follows the counted facts and shows how many days **both** partners marked a good day (`VERY_GOOD` or `GOOD`), per week for a month and per month for a year (backend contract in #1783). It appears only when the edition carries the frozen rhythm and at least three good days were counted; otherwise no scene is added. It is the fourth panel of the [generated Compact reference](own-words-compact-reference.png) (baseline `main@ba3bd390d`).
+
+- Quiet vertical bars sized relative to the strongest bucket, the strictly leading bucket in the cobalt tone, the others in a pale tint, a thin line for zero. No line, axis, score, percentage or emoji.
+- Every bucket has a visible label and count plus a screen-reader text ("3 gute Tage"); the bars are decorative. The columns share one grid so labels and counts align even when text wraps.
+- It is text-led, so the play toggle sits below the copy like on the facts scene. Reduced motion changes nothing; no motion was added.
+- Runtime captures from `automatic-recaps.spec.ts` (390 Light, 430 Dark, 1280 Dark, axe and overflow checks): `evidence/recaps-rhythm-*`.
+- Not performed: large-text capture, a year edition capture (12 buckets), and Android device acceptance.
+
 ## The couple's own words (#1744, scene reference)
 
 Product Owner direction of 2026-11-12: recap texts come from the couple's own words and localised templates. The [generated Compact reference](own-words-compact-reference.png) shows four scenes of the focused native reader: a photo scene with a quoted comment, a photo scene with the mutual-reaction line, a words scene with a quote, and the rhythm scene "Gute Tage zusammen" (#1783).

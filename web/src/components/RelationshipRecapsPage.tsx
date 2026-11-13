@@ -548,9 +548,11 @@ function RecapReader({
   const duration = storyReadingDuration(
     scene?.type === 'facts'
       ? 'count label '.repeat(scene.lines.length + 2)
-      : !scene || scene.type === 'cover'
-        ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
-        : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
+      : scene?.type === 'rhythm'
+        ? 'count label '.repeat(scene.buckets.length + 2)
+        : !scene || scene.type === 'cover'
+          ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
+          : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
   );
   const playback = useStoryPlayback({
     pageKey,
@@ -668,6 +670,7 @@ function RecapReader({
   const overlayPlay = Boolean(scene && scene.type !== 'closing');
   const centredOnStage =
     scene?.type === 'facts' ||
+    scene?.type === 'rhythm' ||
     (scene?.type === 'cover' && mosaic.length === 0) ||
     (scene?.type === 'highlight' && scene.layout !== 'photo');
   const toggleLabel = t(
@@ -900,6 +903,73 @@ function RecapReader({
                       </p>
                     ) : null}
                     <p className="recap-period-note">{t('recaps.factsNote')}</p>
+                  </div>
+                ) : scene.type === 'rhythm' ? (
+                  <div className="recap-scene-copy">
+                    <p className="eyebrow">
+                      {recapPeriodLabel(value, resolvedLocale())}
+                    </p>
+                    <h1>{t('recaps.rhythm.title')}</h1>
+                    <p className="recap-reader-intro">
+                      {t('recaps.rhythm.summary', { count: scene.total })}
+                    </p>
+                    <ol
+                      className="recap-rhythm"
+                      style={
+                        {
+                          '--recap-columns': scene.buckets.length,
+                        } as CSSProperties
+                      }
+                    >
+                      {scene.buckets.map((bucket) => (
+                        <li
+                          key={bucket.index}
+                          data-leading={bucket.index === scene.leading}
+                          style={
+                            {
+                              '--recap-share':
+                                bucket.goodDays /
+                                Math.max(
+                                  ...scene.buckets.map((item) => item.goodDays),
+                                ),
+                            } as CSSProperties
+                          }
+                        >
+                          <span
+                            className="recap-rhythm-bar"
+                            aria-hidden="true"
+                          />
+                          <span className="recap-rhythm-label">
+                            {value.kind === 'YEAR'
+                              ? new Intl.DateTimeFormat(resolvedLocale(), {
+                                  month: 'short',
+                                  timeZone: 'UTC',
+                                }).format(
+                                  new Date(
+                                    Date.UTC(value.year, bucket.index - 1, 1),
+                                  ),
+                                )
+                              : t('recaps.rhythm.week', {
+                                  count: bucket.index,
+                                })}
+                          </span>
+                          <strong>
+                            {new Intl.NumberFormat(resolvedLocale()).format(
+                              bucket.goodDays,
+                            )}
+                            <span className="sr-only">
+                              {' '}
+                              {t('recaps.rhythm.days', {
+                                count: bucket.goodDays,
+                              })}
+                            </span>
+                          </strong>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="recap-period-note">
+                      {t('recaps.rhythm.note')}
+                    </p>
                   </div>
                 ) : source ? (
                   <>

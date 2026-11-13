@@ -80,7 +80,6 @@ import {
   MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
-  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
@@ -95,6 +94,7 @@ import {
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
   STORY_PHOTOS_ROUTE,
+  STORY_RECAPS_ROUTE,
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
   TIME_TRAVEL_ROUTE,
@@ -525,6 +525,7 @@ function AuthenticatedApp({
           loadMemoryImage={loadMemoryImage}
           profilesApi={profilesApi}
           dashboardApi={m4Apis.dashboard}
+          recapsApi={m4Apis.recaps}
           startupReads={
             storyStartupReads?.kind === 'diary' ? storyStartupReads : undefined
           }
@@ -829,7 +830,7 @@ function AuthenticatedApp({
                 }
               />
             ))}
-            {[MORE_PASSPORT_ROUTE, RECAP_DETAIL_ROUTE_PATTERN].map((path) => (
+            {[STORY_RECAPS_ROUTE, RECAP_DETAIL_ROUTE_PATTERN].map((path) => (
               <Route
                 key={path}
                 path={path}

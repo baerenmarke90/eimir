@@ -180,3 +180,12 @@ Decisions taken from it when building:
 - The library and the reader live under Momente (`/story/recaps`, `/story/recaps/:recapId`) so the tab stays active; the former `/more/passport` addresses redirect and keep their query and return state.
 - States: cover of the newest ready edition; newest retained edition without composition language when the capability is missing; a quiet row without a cover while preparing; no row without editions and capability.
 
+### Implementation record: the Momente entry
+
+Built from the reference above (reviewed against `main@71f1680a2`, built on `main@91f264453`). Runtime captures from `automatic-recaps.spec.ts` (390 Light, 430 Dark, 1280 Dark; reduced motion, axe, no horizontal overflow): `evidence/recaps-momente-entry-*` (Momente with the new row) and `evidence/recaps-momente-library-*` (the library opened from it, Momente selected).
+
+- The row is rendered only where the "Zeit für euch" group appears (the Discover view), so the overview is read only there; the timeline tab, Wir and More cause no new read. It shows the newest ready edition with its cover, a quiet "being put together" line while an edition is pending, and nothing without editions. Errors hide the row.
+- The library and the reader moved to `/story/recaps` and `/story/recaps/:recapId`; the former `/more/passport` addresses are legacy rewrites (query and hash kept), More and the Wir invitation link to the new route, and the shell treats the reader as a focused task as before. Back from the library returns to Momente.
+- On Expanded the row spans the full width of the two-column group so no cell stays empty.
+- Not performed: large-text capture of the new row, the Free/pending/no-edition states in the browser (selector covered by unit tests), and Android device acceptance.
+

@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import type { RecapView } from '../api/generated/models/RecapView';
-import { normalizeClientError } from '../client/problemDetails';
 import { useAttentionReceipt } from '../client/attentionReceipt';
+import { normalizeClientError } from '../client/problemDetails';
 import {
   monthlyRecapInvitation,
   recapPeriodLabel,
   recapPeriodStatus,
 } from '../client/recaps';
-import { MORE_PASSPORT_ROUTE, recapDetailPath } from '../client/routes';
+import { recapDetailPath, STORY_RECAPS_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -113,7 +113,7 @@ export function MonthlyRecapInvitation({
       ) : null}
       {!value ? (
         <TodayDestinationLink
-          to={MORE_PASSPORT_ROUTE}
+          to={STORY_RECAPS_ROUTE}
           className="monthly-recap-library-link"
         >
           {t('recaps.profileLink')} <span aria-hidden="true">→</span>

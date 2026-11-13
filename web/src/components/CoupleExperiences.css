@@ -258,6 +258,28 @@
 .couple-experience-links a > span > span {
   color: var(--color-text-secondary);
 }
+.couple-experience-links a.recap-entry {
+  /* A third row would leave an empty cell in the two-column Expanded grid. */
+  grid-column: 1 / -1;
+}
+.couple-experience-links a.recap-entry > .recap-entry-cover {
+  display: block;
+  flex: 0 0 4rem;
+  inline-size: 4rem;
+  block-size: 4rem;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+}
+.couple-experience-links a.recap-entry > .recap-entry-cover img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.couple-experience-links a.recap-entry .recap-entry-action {
+  color: var(--color-brand-text);
+  font-weight: 600;
+}
 .couple-experience-page {
   max-width: var(--reading-max);
   margin-inline: auto;

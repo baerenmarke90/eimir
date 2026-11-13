@@ -14,7 +14,6 @@ import {
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
-  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
@@ -23,6 +22,7 @@ import {
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
   STORY_PHOTOS_ROUTE,
+  STORY_RECAPS_ROUTE,
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
@@ -68,7 +68,7 @@ const MOMENT_DESTINATIONS: readonly MoreDestination[] = [
     titleKey: 'more.destinations.years',
   },
   {
-    path: MORE_PASSPORT_ROUTE,
+    path: STORY_RECAPS_ROUTE,
     icon: 'chapter',
     titleKey: 'more.destinations.recaps',
     badgeKey: 'recaps.pro',

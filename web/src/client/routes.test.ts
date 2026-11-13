@@ -242,6 +242,14 @@ describe('legacy paths', () => {
     expect(rewriteLegacyPath('/profile')).toBe('/more/profile');
   });
 
+  it('moves the recap library and reader from More to Momente', () => {
+    expect(rewriteLegacyPath('/more/passport')).toBe('/story/recaps');
+    expect(rewriteLegacyPath('/more/passport/edition-1')).toBe(
+      '/story/recaps/edition-1',
+    );
+    expect(rewriteLegacyPath('/more/passport-notes')).toBeNull();
+  });
+
   it('keeps shared content deep links working', () => {
     expect(rewriteLegacyPath('/memory/memory-1')).toBe(
       '/story/memories/memory-1',

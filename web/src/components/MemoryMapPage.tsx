@@ -34,7 +34,6 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MemoryMapMemories, MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryPreview } from './MemoryPreview';
-import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import type { MapLocation, MapViewport } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -121,6 +120,8 @@ export function MemoryMapPage({
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Overlaid tools step aside while the viewer pans or zooms the map.
+  const [mapMoving, setMapMoving] = useState(false);
   const filterTrigger = useRef<HTMLButtonElement>(null);
   const fullscreenFilterTrigger = useRef<HTMLButtonElement>(null);
   const filterSheet = useRef<ShortTaskSheetHandle>(null);
@@ -425,7 +426,6 @@ export function MemoryMapPage({
         variant="root"
         className="content-overview-heading"
         title={t('story.timelineTitle')}
-        action={<MomentCreateMenu />}
         before={
           hasOrigin ? (
             <TaskBackButton
@@ -462,7 +462,10 @@ export function MemoryMapPage({
         ) : (
           <>
             {locations.length || focusPoint ? (
-              <div className="memory-map-surface">
+              <div
+                className="memory-map-surface"
+                data-map-moving={mapMoving || undefined}
+              >
                 <div className="memory-map-tools">
                   <button
                     ref={filterTrigger}
@@ -482,12 +485,10 @@ export function MemoryMapPage({
                     type="button"
                     className="secondary memory-map-expand"
                     aria-label={t('memoryMap.fullscreen')}
+                    title={t('memoryMap.fullscreen')}
                     onClick={() => setExpanded(true)}
                   >
                     <EimirIcon name="expand" />
-                    <span className="memory-map-expand-label">
-                      {t('memoryMap.fullscreen')}
-                    </span>
                   </button>
                 </div>
                 <AppErrorBoundary
@@ -511,6 +512,7 @@ export function MemoryMapPage({
                         key={`${fullscreenScope}:inline`}
                         initialViewport={viewport.current.value}
                         onViewportChange={rememberViewport}
+                        onUserMotionChange={setMapMoving}
                         locations={visiblePoints}
                         focus={focusPoint}
                         value={selectedId && !selected ? focusPoint : undefined}
@@ -529,7 +531,10 @@ export function MemoryMapPage({
                   restoreFocusRef={fullscreenTrigger}
                   className="memory-map-fullscreen"
                 >
-                  <div className="memory-map-fullscreen-surface">
+                  <div
+                    className="memory-map-fullscreen-surface"
+                    data-map-moving={mapMoving || undefined}
+                  >
                     {expanded ? (
                       <div className="memory-map-fullscreen-tools">
                         <button
@@ -565,6 +570,7 @@ export function MemoryMapPage({
                             key={`${fullscreenScope}:fullscreen`}
                             initialViewport={viewport.current.value}
                             onViewportChange={rememberViewport}
+                            onUserMotionChange={setMapMoving}
                             locations={visiblePoints}
                             focus={focusPoint}
                             value={

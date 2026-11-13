@@ -630,8 +630,25 @@
   .product-main[data-primary-tab-dragging]
     > .primary-tab-panel:not([data-primary-tab-peek])
     > .page {
-    transform: translate3d(var(--primary-tab-offset, 0px), 0, 0);
-    will-change: transform;
+    /* Offset, don't transform: a transformed page would become the containing
+       block of its fixed add action, which then sits at the page's bottom edge
+       and snaps to the viewport corner once the page settles. */
+    position: relative;
+    left: var(--primary-tab-offset, 0px);
+  }
+
+  .product-main[data-navigation-slide] > .page,
+  .product-main[data-navigation-slide]
+    > .primary-tab-panel:not([hidden], [data-primary-tab-peek])
+    > .page {
+    position: relative;
+  }
+
+  /* Only the page that stays is a destination for the add action. */
+  .product-main
+    > .primary-tab-panel[data-primary-tab-peek]
+    [data-floating-create] {
+    visibility: hidden;
   }
 
   /* The neighbour is laid over the viewport at the reading position it was

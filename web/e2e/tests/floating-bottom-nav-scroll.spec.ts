@@ -652,7 +652,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     { label: 'compact', width: 390, height: 844 },
     { label: 'expanded', width: 1280, height: 900 },
   ] as const) {
-    test(`Root headings retain shared rhythm and area-specific typography on ${viewport.label}`, async ({
+    test(`Root headings share one rhythm and display typeface on ${viewport.label}`, async ({
       page,
     }, testInfo) => {
       await installApiMocks(page);
@@ -714,9 +714,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
         });
         metrics.push(metric);
 
-        expect(metric.fontFamily).toContain(
-          destination.slug === 'mehr' ? 'Instrument Sans' : 'Literata',
-        );
+        expect(metric.fontFamily).toContain('Literata');
         expect(metric.fontSize).toBe('36px');
         expect(metric.fontWeight).toBe('700');
         expect(metric.headerMarginBottom).toBe('32px');

@@ -316,3 +316,43 @@ it('restores a saved camera after a fullscreen dialog first becomes measurable',
   act(() => state.resize());
   expect(state.jump).toHaveBeenCalledTimes(calls);
 });
+
+it("reports only the viewer's own gestures and settles after they rest", () => {
+  vi.useFakeTimers();
+  try {
+    state.width = 390;
+    state.height = 740;
+    const onUserMotionChange = vi.fn();
+    render(
+      <PlaceMapCanvas
+        onUserMotionChange={onUserMotionChange}
+        locations={[
+          { id: 'south', label: 'South', latitude: 49, longitude: 7, count: 1 },
+        ]}
+      />,
+    );
+    // Framing and place flights carry no original input event.
+    act(() => state.events.movestart({}));
+    act(() => state.events.moveend());
+    act(() => vi.advanceTimersByTime(5000));
+    expect(onUserMotionChange).not.toHaveBeenCalled();
+
+    act(() =>
+      state.events.movestart({ originalEvent: new Event('touchmove') }),
+    );
+    expect(onUserMotionChange).toHaveBeenLastCalledWith(true);
+    act(() => state.events.moveend());
+    act(() => vi.advanceTimersByTime(1000));
+    expect(onUserMotionChange).toHaveBeenCalledTimes(1);
+    // A new gesture within the rest period keeps the tools hidden.
+    act(() =>
+      state.events.movestart({ originalEvent: new Event('touchmove') }),
+    );
+    act(() => state.events.moveend());
+    act(() => vi.advanceTimersByTime(1500));
+    expect(onUserMotionChange).toHaveBeenCalledTimes(2);
+    expect(onUserMotionChange).toHaveBeenLastCalledWith(false);
+  } finally {
+    vi.useRealTimers();
+  }
+});

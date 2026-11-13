@@ -189,10 +189,7 @@ describe('primary tab slide feedback', () => {
     // Both pages finish their travel first; the route follows the settle.
     expect(navigate).not.toHaveBeenCalled();
     expect(currentAnimate).toHaveBeenCalledWith(
-      [
-        { transform: 'translate3d(-190px, 0, 0)' },
-        { transform: 'translate3d(-390px, 0, 0)' },
-      ],
+      [{ left: '-190px' }, { left: '-390px' }],
       expect.objectContaining({ duration: 180, fill: 'forwards' }),
     );
     expect(peekAnimate).toHaveBeenCalledWith(
@@ -287,10 +284,7 @@ describe('primary tab slide feedback', () => {
       });
       view.rerender(<PageMotionHarness pathname={to} onNavigate={navigate} />);
       expect(animate).toHaveBeenCalledWith(
-        [
-          { transform: `translate3d(${offset}px, 0, 0)` },
-          { transform: 'translate3d(0, 0, 0)' },
-        ],
+        [{ left: `${offset}px` }, { left: '0px' }],
         expect.objectContaining({ easing: expect.any(String) }),
       );
       expect(surface.dataset.navigationSlide).toBe('true');
@@ -378,10 +372,7 @@ describe('primary tab slide feedback', () => {
     });
     expect(navigate).not.toHaveBeenCalled();
     expect(animate).toHaveBeenCalledWith(
-      [
-        { transform: 'translate3d(-25px, 0, 0)' },
-        { transform: 'translate3d(0px, 0, 0)' },
-      ],
+      [{ left: '-25px' }, { left: '0px' }],
       expect.anything(),
     );
     expect(surface.style.transform).toBe('');

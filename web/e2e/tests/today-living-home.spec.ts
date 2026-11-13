@@ -2015,3 +2015,104 @@ for (const [width, theme, largeText] of [
     );
   });
 }
+
+for (const width of [390, 1280] as const) {
+  test(`Wir, Momente, Planen and Mehr share one title band at ${width}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page, { ...RICH_SPACE });
+    await signInAndOpenToday(page);
+    const bands = [];
+    for (const [tab, label, path] of [
+      ['Wir', 'Wir', '/today'],
+      ['Momente', 'Momente', '/story'],
+      ['Planen', 'Planen', '/plan'],
+      ['Mehr', 'Alles Weitere', '/more'],
+    ] as const) {
+      await page
+        .locator('a.shell-nav-link:visible')
+        .filter({ hasText: new RegExp(`^${tab}$`) })
+        .first()
+        .click();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      const title = page
+        .locator('.page-heading-root h1:visible')
+        .filter({ hasText: new RegExp(`^${label}$`) });
+      await expect(title).toBeVisible();
+      bands.push(
+        await title.evaluate((heading) => {
+          const header = heading.closest('header');
+          const next = header?.nextElementSibling;
+          const box = heading.getBoundingClientRect();
+          return {
+            label: heading.textContent,
+            x: Math.round(box.x),
+            y: Math.round(box.y),
+            height: Math.round(box.height),
+            fontFamily: getComputedStyle(heading).fontFamily,
+            fontSize: getComputedStyle(heading).fontSize,
+            headerHeight: Math.round(
+              header?.getBoundingClientRect().height ?? 0,
+            ),
+            gapToMenu: Math.round(
+              (next?.getBoundingClientRect().top ?? 0) -
+                (header?.getBoundingClientRect().bottom ?? 0),
+            ),
+          };
+        }),
+      );
+    }
+    const [wirBand, ...others] = bands.map(
+      ({ label: _label, ...band }) => band,
+    );
+    for (const band of others) {
+      // On Expanded, Mehr stays a centered reading column by design.
+      const { x, ...rest } = band;
+      const { x: wirX, ...wirRest } = wirBand;
+      expect(rest).toEqual(wirRest);
+      if (width < 840 || band !== others.at(-1)) expect(x).toBe(wirX);
+    }
+  });
+}
+
+test('the add action stays put while a tab slides in', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await installMocks(page, { ...RICH_SPACE });
+  await signInAndOpenToday(page);
+  await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+  for (const label of ['Momente', 'Planen', 'Wir']) {
+    await page.evaluate(() => {
+      const w = window as unknown as { __fab: string[]; __stop: boolean };
+      w.__fab = [];
+      w.__stop = false;
+      const tick = () => {
+        for (const node of document.querySelectorAll(
+          '[data-floating-create]',
+        )) {
+          const box = node.getBoundingClientRect();
+          if (box.width > 0 && getComputedStyle(node).visibility !== 'hidden')
+            w.__fab.push(`${Math.round(box.x)},${Math.round(box.y)}`);
+        }
+        if (!w.__stop) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await page
+      .locator('a.shell-nav-link:visible')
+      .filter({ hasText: new RegExp(`^${label}$`) })
+      .first()
+      .click();
+    await expect(page.locator('main[data-navigation-slide]')).toHaveCount(0);
+    await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
+    const seen = await page.evaluate(() => {
+      const w = window as unknown as { __fab: string[]; __stop: boolean };
+      w.__stop = true;
+      return [...new Set(w.__fab)];
+    });
+    // Every frame, including the slide, shows the add action in one place.
+    expect(seen).toHaveLength(1);
+  }
+});

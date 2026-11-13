@@ -68,7 +68,6 @@ for (const [name, role] of [
   ['story-category-gap', 'storyCategoryGap'],
   ['story-bar-gap', 'storyBarGap'],
   ['story-lifeline-dot', 'storyLifelineDot'],
-  ['story-lifeline-landmark', 'storyLifelineLandmark'],
   ['story-lifeline-step', 'storyLifelineStep'],
   ['story-lifeline-band', 'storyLifelineBand'],
 ])

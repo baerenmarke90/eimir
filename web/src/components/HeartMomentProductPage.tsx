@@ -205,7 +205,6 @@ export function HeartMomentProductPage({
     signal?: AbortSignal,
   ) => Promise<ObjectUrlSource>;
 }) {
-  const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
@@ -1790,17 +1789,11 @@ export function HeartMomentProductPage({
                     )
                   }
                   resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
-                  renderPhotoActions={(_item, openFullScreen, revealed) => (
-                    <>
-                      {revealed ? (
-                        <GalleryExpandAction onOpen={openFullScreen} />
-                      ) : null}
-                      <span
-                        className="media-comment-action"
-                        ref={setCommentHost}
-                      />
-                    </>
-                  )}
+                  renderPhotoActions={(_item, openFullScreen, revealed) =>
+                    revealed ? (
+                      <GalleryExpandAction onOpen={openFullScreen} />
+                    ) : null
+                  }
                 />
               </section>
             ) : null}
@@ -1866,7 +1859,6 @@ export function HeartMomentProductPage({
             ) : shared ? (
               <CommentsPanel
                 inlineComposer
-                triggerContainer={commentHost}
                 commentsApi={apis.comments}
                 spaceId={spaceId}
                 parentKind="heartMoment"

@@ -1982,6 +1982,8 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
   });
+  // Contrast is measured on the settled page, not mid route-entry fade.
+  await page.waitForFunction(() => document.getAnimations().length === 0);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

@@ -32,7 +32,10 @@ describe('applyRouteEntryHandoff', () => {
       frames.push(callback),
     );
     vi.stubGlobal('cancelAnimationFrame', () => {});
-    Object.defineProperty(window, 'scrollY', { value: 548, configurable: true });
+    Object.defineProperty(window, 'scrollY', {
+      value: 548,
+      configurable: true,
+    });
     const reduced = (matches: boolean) =>
       (window.matchMedia = vi
         .fn()
@@ -64,10 +67,15 @@ describe('applyRouteEntryHandoff', () => {
     );
     const cancel = vi.fn();
     vi.stubGlobal('cancelAnimationFrame', cancel);
-    Object.defineProperty(window, 'scrollY', { value: 548, configurable: true });
+    Object.defineProperty(window, 'scrollY', {
+      value: 548,
+      configurable: true,
+    });
     window.matchMedia = vi
       .fn()
-      .mockReturnValue({ matches: false }) as unknown as typeof window.matchMedia;
+      .mockReturnValue({
+        matches: false,
+      }) as unknown as typeof window.matchMedia;
 
     applyRouteEntryHandoff('', { smooth: true });
     window.dispatchEvent(new Event('wheel'));

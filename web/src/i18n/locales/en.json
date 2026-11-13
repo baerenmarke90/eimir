@@ -18,6 +18,8 @@
     "addMedia": "Add photos or videos",
     "chooseOrDrag": "Choose from device or drag here",
     "chooseFromDevice": "Choose from device",
+    "chooseSource": "From your device or your photo source",
+    "chooseSourceOrDrag": "From your device or your photo source, or drag here",
     "newPlace": "New place",
     "createPlace": "Add a new place",
     "createNamedPlace": "Create “{{name}}” as a new place",

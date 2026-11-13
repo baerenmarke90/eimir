@@ -586,8 +586,16 @@ describe('TodayPage', () => {
     // It is not duplicated further down in the Shared Trace
     const keepsakeIndex = html.indexOf('today-section-moment');
     const traceIndex = html.indexOf('today-section-recent');
-    const photoOccurrences = html.split('Photo Memory').length - 1;
+    // Count visible text only; the card link also carries the title as its
+    // accessible name.
+    const photoOccurrences = html.split('>Photo Memory<').length - 1;
     expect(photoOccurrences).toBe(1);
+    // The link is named by its content, never by the destination resource ID
+    // (Android WebView otherwise announces the URL's last path segment).
+    expect(html).toMatch(
+      /class="today-moment today-moment-link"[^>]*aria-label="Photo Memory · [^"]+"/,
+    );
+    expect(html).not.toMatch(/aria-label="[^"]*mem-photo/);
     expect(keepsakeIndex).toBeGreaterThan(-1);
 
     // Domain history alone must not impersonate the authoritative event trace.
@@ -710,7 +718,7 @@ describe('TodayPage', () => {
     // The planning signal remains available after the personal focal content.
     expect(html).toContain('Beach Day');
     expect(html).toContain('Weekend trip');
-    expect(html.split('Beach Day').length - 1).toBe(1);
+    expect(html.split('>Beach Day<').length - 1).toBe(1);
   });
 
   it('keeps a generic Keepsake as the prominent focal point when no current/upcoming signal exists (#840)', () => {

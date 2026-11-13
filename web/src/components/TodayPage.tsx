@@ -421,6 +421,17 @@ function TodayMomentFeature({
         to={path}
         className="today-moment today-moment-link"
         previewControls={hasImage && item.previewIsSensitive === true}
+        // An explicit name keeps Android WebView from announcing the
+        // destination's resource ID when the card is only partly on screen.
+        ariaLabel={[
+          title,
+          date && !titleIsDate ? date : null,
+          hasImage && item.previewIsSensitive
+            ? t('sensitiveMedia.label')
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
       >
         {feature}
       </TodayDestinationLink>

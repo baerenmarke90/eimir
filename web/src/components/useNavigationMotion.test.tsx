@@ -82,10 +82,12 @@ function PageMotionHarness({
   pathname = '/story',
   onNavigate,
   loading = false,
+  returning = false,
 }: {
   pathname?: string;
   onNavigate: (path: string) => void;
   loading?: boolean;
+  returning?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   const peek = usePrimaryTabPeek();
@@ -93,6 +95,7 @@ function PageMotionHarness({
     surfaceRef: ref,
     pathname,
     routeKey: pathname,
+    returning,
     onNavigate,
   });
   return (
@@ -343,6 +346,38 @@ describe('primary tab slide feedback', () => {
       removeEventListener: vi.fn(),
     }));
     view.rerender(<PageMotionHarness pathname="/plan" onNavigate={navigate} />);
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('slides a page back in when returning, but not for a forward step', () => {
+    const navigate = vi.fn();
+    const view = render(
+      <PageMotionHarness
+        pathname="/story/memories/example"
+        onNavigate={navigate}
+      />,
+    );
+    const page = screen.getByTestId('motion-page');
+    const animate = vi.fn().mockReturnValue({ cancel: vi.fn() });
+    Object.defineProperty(page, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    view.rerender(
+      <PageMotionHarness pathname="/story" onNavigate={navigate} returning />,
+    );
+    expect(animate).toHaveBeenCalledWith(
+      [{ left: '-32px' }, { left: '0px' }],
+      expect.anything(),
+    );
+
+    animate.mockClear();
+    view.rerender(
+      <PageMotionHarness
+        pathname="/story/memories/example"
+        onNavigate={navigate}
+      />,
+    );
     expect(animate).not.toHaveBeenCalled();
   });
 

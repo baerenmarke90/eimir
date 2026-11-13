@@ -233,6 +233,12 @@ function AuthenticatedAppShell({
     routeKey: location.key,
     skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
     createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
+    // History Back (button, gesture, system Back) and explicit task returns.
+    returning:
+      navigationType === 'POP' ||
+      Boolean(
+        (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
+      ),
     onNavigate: navigatePrimary,
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');

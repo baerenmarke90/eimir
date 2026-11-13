@@ -19,6 +19,7 @@ import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { Configuration } from './client/apiConfiguration';
 import { AppIconProvider } from './client/appIconContext';
+import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import { loadReferenceClientConfig } from './client/config';
 import { invalidateDashboard } from './client/dashboardQueries';
@@ -85,6 +86,7 @@ import {
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
+  PARTNER_LOCATION_SETTINGS_ROUTE,
   PLACE_DETAIL_ROUTE_PATTERN,
   PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
@@ -160,6 +162,9 @@ import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { OnceMessagesPage } from './components/OnceMessages';
 import { OurMomentsGamePage } from './components/OurMomentsGamePage';
+import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
+import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
+import { PartnerLocationSync } from './components/PartnerLocationSync';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
@@ -316,6 +321,9 @@ function AuthenticatedApp({
     () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
     [queryClient, m4Apis.notifications, account.id],
   );
+  // The partner-distance start sheet follows the push start prompt.
+  const [pushPromptSettled, setPushPromptSettled] = useState(false);
+  const settlePushPrompt = useCallback(() => setPushPromptSettled(true), []);
   const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,
@@ -398,6 +406,7 @@ function AuthenticatedApp({
     if (previousSpaceId.current === spaceId) return;
     queryClient.clear();
     clearProductReadCacheInBackground();
+    clearPublicationMemory();
     previousSpaceId.current = spaceId;
   }, [queryClient, spaceId]);
 
@@ -893,6 +902,17 @@ function AuthenticatedApp({
               }
             />
             <Route
+              path={PARTNER_LOCATION_SETTINGS_ROUTE}
+              element={
+                <PartnerLocationSettingsPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
               path={MORE_SETTINGS_CATEGORY_ROUTE_PATTERN}
               element={
                 <SettingsPage
@@ -1036,6 +1056,21 @@ function AuthenticatedApp({
           </Routes>
         </AppErrorBoundary>
       </AppShell>
+      <PartnerLocationSync
+        key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        accountId={account.id}
+        spaceId={spaceId}
+      />
+      <PartnerLocationOnboarding
+        key={`location:${apiBaseUrl}:${account.id}:${spaceId}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        accountId={account.id}
+        spaceId={spaceId}
+        ready={pushPromptSettled}
+      />
     </PartnerNicknameProvider>
   );
   return (
@@ -1074,6 +1109,7 @@ function AuthenticatedApp({
           accountId={account.id}
           apiBaseUrl={apiBaseUrl}
           onEnablePrompts={enableOnboardingPrompts}
+          onSettled={settlePushPrompt}
         />
       </WirDesignProvider>
     </AppIconProvider>
@@ -1140,6 +1176,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     restoredAuthReturnForAccountId.current = null;
     queryClient.clear();
     clearProductReadCacheInBackground();
+    clearPublicationMemory();
     return cleared;
   }, [cancelStoryStartupReads, queryClient]);
 
@@ -1380,6 +1417,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     cancelStoryStartupReads();
     queryClient.clear();
     clearProductReadCacheInBackground();
+    clearPublicationMemory();
     setSpaceId(selectedSpaceId);
     if (account && tokens) {
       storeSession({ account, tokens, spaceId: selectedSpaceId });

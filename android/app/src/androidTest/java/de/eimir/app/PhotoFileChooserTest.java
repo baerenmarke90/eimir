@@ -361,10 +361,19 @@ public class PhotoFileChooserTest {
             + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>`;"
             + "document.getElementById('photo').onchange=async(e)=>{"
             + "window.photoFileEvents=(window.photoFileEvents||0)+1;"
-            + "window.photoSelectedCount=e.target.files.length;try{"
-            + "const bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
+            + "window.photoSelectedCount=e.target.files.length;"
+            // The first read of a freshly granted picker URI can race the
+            // MediaProvider preparing its synthetic picker path on a just-booted
+            // API 37.1 image (NotFoundError). Retry a bounded number of times and
+            // record the attempts so a persistent failure stays diagnosable.
+            + "let bytes=null;window.photoReadAttempts=0;"
+            + "while(!bytes&&window.photoReadAttempts<6){window.photoReadAttempts++;try{"
+            + "bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
+            + "window.photoReadError=undefined;}catch(error){window.photoReadError=error.name;"
+            + "await new Promise(done=>setTimeout(done,500));}}"
+            + "if(!bytes)return;"
             + "let binary='';for(const value of bytes)binary+=String.fromCharCode(value);"
-            + "window.selectedPhotoBytes=btoa(binary);}catch(error){window.photoReadError=error.name;}};"
+            + "window.selectedPhotoBytes=btoa(binary);};"
             + "return document.getElementById('photo').type==='file';})()";
         assertEquals("Chromium creates the live multiple-photo input", "true",
             javascriptValue(view, fixtureScript));
@@ -614,7 +623,8 @@ public class PhotoFileChooserTest {
         throw new AssertionError("The selected media never reached the Web File intake: "
             + javascriptValue(view, "JSON.stringify({handler:typeof document.getElementById('photo').onchange,"
                 + "events:window.photoFileEvents,count:window.photoSelectedCount,"
-                + "file:window.photoDescriptor,error:window.photoReadError})"));
+                + "file:window.photoDescriptor,error:window.photoReadError,"
+                + "attempts:window.photoReadAttempts})"));
     }
 
     private void awaitPhotoInput(WebView view) throws Exception {

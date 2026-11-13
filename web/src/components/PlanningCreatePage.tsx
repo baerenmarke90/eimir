@@ -533,7 +533,7 @@ export function PlanningCreatePage({
               }
               onChange={() => setEnrichmentDirty(true)}
             />
-            <div className="page-composer-writing">
+            <div className="page-composer-writing composer-authored-surface">
               <label className="sr-only" htmlFor="planning-create-title">
                 {t('m5s3.plan.intentionLabel')}
               </label>
@@ -545,10 +545,11 @@ export function PlanningCreatePage({
                 maxLength={200}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder={t('m5s3.common.title')}
+                placeholder={t('m5s3.plan.titleHint')}
               />
               <ComposerDescriptionField
                 id="planning-create-description"
+                hint={t('m5s3.plan.descriptionPlaceholder')}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
               />

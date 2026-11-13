@@ -128,14 +128,37 @@ class DashboardModulePreferenceUpdate(ApiModel):
     visible: bool | SkipJsonSchema[None] = None
     item_limit: preferences.DashboardItemLimit | SkipJsonSchema[None] = None
     selected_collection_id: UUID | None = None
+    # Replaces the whole selection (order matters); an empty list clears it.
+    selected_collection_ids: (
+        Annotated[list[UUID], Field(max_length=preferences.MAX_SELECTED_COLLECTIONS)]
+        | SkipJsonSchema[None]
+    ) = None
 
     @model_validator(mode="after")
     def _require_at_least_one_facet(self) -> Self:
         if not self.model_fields_set:
             raise ValueError(
-                "at least one of visible, itemLimit or selectedCollectionId must be supplied"
+                "at least one of visible, itemLimit, selectedCollectionId or "
+                "selectedCollectionIds must be supplied"
             )
+        if "selected_collection_id" in self.model_fields_set and (
+            "selected_collection_ids" in self.model_fields_set
+        ):
+            raise ValueError("send either selectedCollectionId or selectedCollectionIds, not both")
+        if (
+            "selected_collection_ids" in self.model_fields_set
+            and self.selected_collection_ids is None
+        ):
+            raise ValueError("selectedCollectionIds must not be null; send an empty list to clear")
         return self
+
+    def selection_changed(self) -> bool:
+        return bool(self.model_fields_set & {"selected_collection_id", "selected_collection_ids"})
+
+    def selection(self) -> list[UUID]:
+        if "selected_collection_ids" in self.model_fields_set:
+            return list(self.selected_collection_ids or [])
+        return [self.selected_collection_id] if self.selected_collection_id is not None else []
 
 
 class DashboardModulePreferenceView(ApiModel):
@@ -146,6 +169,12 @@ class DashboardModulePreferenceView(ApiModel):
         exclude_if=lambda value: value is None,
     )
     selected_collection_id: UUID | SkipJsonSchema[None] = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
+    # Additive (#1808): every selected list in the person's order. The single
+    # field above is its first entry, kept for clients that predate this one.
+    selected_collection_ids: list[UUID] | SkipJsonSchema[None] = Field(
         default=None,
         exclude_if=lambda value: value is None,
     )
@@ -161,6 +190,13 @@ class DashboardModuleOrderUpdate(ApiModel):
     module_keys: list[str]
 
 
+def _selection_ids(state: preferences.DashboardModuleState) -> list[UUID] | None:
+    """The selection in order, omitted while nothing is selected (like the single field)."""
+    if not preferences.module_definition(state.key.value).selects_collection:
+        return None
+    return list(state.selected_collection_ids) or None
+
+
 def _preference_list(
     states: list[preferences.DashboardModuleState],
 ) -> DashboardModulePreferenceList:
@@ -171,6 +207,7 @@ def _preference_list(
                 visible=state.visible,
                 item_limit=state.item_limit,
                 selected_collection_id=state.selected_collection_id,
+                selected_collection_ids=_selection_ids(state),
             )
             for state in states
         ]
@@ -364,8 +401,8 @@ def update_dashboard_module_preference(
         module_key=module_key,
         visible=body.visible,
         item_limit=body.item_limit,
-        selected_collection_id=body.selected_collection_id,
-        selected_collection_id_changed="selected_collection_id" in body.model_fields_set,
+        selected_collection_ids=body.selection(),
+        selected_collection_ids_changed=body.selection_changed(),
     )
     response.headers["Cache-Control"] = "private, no-store"
     return DashboardModulePreferenceView(
@@ -373,6 +410,7 @@ def update_dashboard_module_preference(
         visible=state.visible,
         item_limit=state.item_limit,
         selected_collection_id=state.selected_collection_id,
+        selected_collection_ids=_selection_ids(state),
     )
 
 

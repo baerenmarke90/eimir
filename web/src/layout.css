@@ -274,8 +274,19 @@
  * single title scale and one header-to-content spacing contract.
  */
 .page-heading-root {
+  align-items: center;
+  /* One header band for Wir, Momente, Planen and Mehr, so the title sits at the
+     same height and position whatever action or tabs follow it. */
+  min-block-size: var(--touch-target-comfortable);
   margin-bottom: var(--space-section);
   padding-bottom: 0;
+}
+
+@media (max-width: 839px) {
+  /* One taller band on Compact, shared by all root destinations. */
+  .page-heading-root {
+    min-block-size: calc(var(--touch-target-comfortable) + var(--space-1));
+  }
 }
 
 .page-heading-root .page-heading-title-container {

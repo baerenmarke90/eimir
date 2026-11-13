@@ -574,7 +574,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
     await expect(
-      page.getByRole('heading', { name: 'Two years together', level: 1 }),
+      page.getByRole('heading', { name: 'Two years together', level: 2 }),
     ).toBeVisible();
     const provenance = page.locator('.milestone-provenance-footer');
     await expect(provenance).toBeVisible();

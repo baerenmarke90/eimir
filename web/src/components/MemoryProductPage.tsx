@@ -1338,7 +1338,9 @@ export function MemoryProductPage({
       boundAttachments.length > 0 ? (
         <section aria-label={t('memory.photoLabel')}>
           <MemoryPhotoGallery
-            commentTriggerRef={setCommentHost}
+            commentTriggerRef={
+              memory.experienceKind ? setCommentHost : undefined
+            }
             key={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
             memory={memory}
             apis={apis}
@@ -1537,7 +1539,8 @@ export function MemoryProductPage({
       ) : null}
       <CommentsPanel
         inlineComposer={!memory.experienceKind}
-        triggerContainer={commentHost}
+        // The photo carries a comment shortcut only without an inline composer.
+        triggerContainer={memory.experienceKind ? commentHost : null}
         commentsApi={apis.comments}
         spaceId={spaceId}
         parentKind="memory"

@@ -1,0 +1,14 @@
+eimir. Android 0.2.0-test.78
+
+- Read a milestone like a memory: back button, a written-out Edit action, the date with its relative time, the milestone text on a keepsake surface and the comment field right below.
+- See the heart moment notes on Erinnerungen with their emotion, in the same style as the diary.
+- Milestones in "Eure Geschichte" on Wir are now green dots of the same size as the others.
+- Wir, Momente, Planen and Mehr share one title size, typeface and position, and the same distance to their menus.
+- Browse the Karte tab with a taller map and compact place rows, without an add button, with an icon-only fullscreen button, and use the fullscreen map in landscape.
+- See profile photos instead of initials in the Glücksmomente and Zeitreise histories.
+- The add button in the bottom right stays in place when you switch tabs instead of jumping into view.
+- Photos no longer carry a comment button, because the comment field is right below them.
+- Controls on photos and the map step aside while you swipe or pan, and the zoom buttons no longer cover the map on touch screens.
+
+The product changes come from main at 9c604db29c82db806de101250cb3a415b8c9f605.
+Install over test.77 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 78.

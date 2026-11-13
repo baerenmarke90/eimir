@@ -1,13 +1,50 @@
+import { useState } from 'react';
+import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { ExperienceAnswer } from '../api/generated/models/ExperienceAnswer';
 import type { ExperienceKind } from '../api/generated/models/ExperienceKind';
-import { authorDisplayName } from '../client/authorPresentation';
+import {
+  authorDisplayName,
+  authorProfileAttachmentId,
+} from '../client/authorPresentation';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { memoryEditPath } from '../client/routes';
+import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { personInitials } from './PersonIdentity';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import './ExperienceAnswers.css';
+
+/** The author's profile photo when one is available, else their initials. */
+function AnswerAvatar({
+  answer,
+  name,
+  profilesApi,
+  spaceId,
+}: {
+  answer: ExperienceAnswer;
+  name: string;
+  profilesApi?: ProfilesApi | null;
+  spaceId?: string | null;
+}) {
+  const { avatarUrl } = useProfileAvatarUrl(
+    profilesApi,
+    spaceId ?? '',
+    answer.author.id,
+    authorProfileAttachmentId(answer.author),
+  );
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showImage = avatarUrl !== null && avatarUrl !== failedUrl;
+  return (
+    <span className="experience-answer-avatar" aria-hidden="true">
+      {showImage ? (
+        <img src={avatarUrl} alt="" onError={() => setFailedUrl(avatarUrl)} />
+      ) : (
+        personInitials(name)
+      )}
+    </span>
+  );
+}
 
 export function ExperienceAnswers({
   answers,
@@ -18,6 +55,8 @@ export function ExperienceAnswers({
   originKey,
   preview = false,
   viewerId,
+  profilesApi,
+  spaceId,
 }: {
   answers: readonly ExperienceAnswer[];
   kind: ExperienceKind;
@@ -29,6 +68,9 @@ export function ExperienceAnswers({
   preview?: boolean;
   /** Lets a preview tell the reader's own words from the partner's. */
   viewerId?: string;
+  /** With a space, previews show authors' profile photos instead of initials. */
+  profilesApi?: ProfilesApi | null;
+  spaceId?: string | null;
 }) {
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
@@ -45,9 +87,12 @@ export function ExperienceAnswers({
             className="experience-answer-preview"
             data-own={answer.author.id === viewerId || undefined}
           >
-            <span className="experience-answer-avatar" aria-hidden="true">
-              {personInitials(nameOf(answer))}
-            </span>
+            <AnswerAvatar
+              answer={answer}
+              name={nameOf(answer)}
+              profilesApi={profilesApi}
+              spaceId={spaceId}
+            />
             <span className="experience-answer-preview-words">
               <strong>{nameOf(answer)}</strong>
               <span>{answer.body}</span>

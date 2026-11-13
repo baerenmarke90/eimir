@@ -49,6 +49,9 @@ export interface MapLocation extends MapPoint {
   preview?: ReactNode;
 }
 
+/** How long overlaid map tools stay hidden after the last gesture. */
+const USER_MOTION_REST_MS = 1500;
+
 type LngLat = [number, number];
 const lngLat = (point: MapPoint): LngLat => [point.longitude, point.latitude];
 
@@ -109,6 +112,7 @@ export default function PlaceMapCanvas({
   onLocationSelect,
   initialViewport,
   onViewportChange,
+  onUserMotionChange,
 }: {
   value?: MapPoint;
   focus?: MapPoint;
@@ -117,6 +121,8 @@ export default function PlaceMapCanvas({
   onLocationSelect?: (id: string) => void;
   initialViewport?: MapViewport;
   onViewportChange?: (viewport: MapViewport) => void;
+  /** True while the viewer pans or zooms, and for a moment after they stop. */
+  onUserMotionChange?: (moving: boolean) => void;
 }) {
   const { t } = useTranslation();
   const container = useRef<HTMLDivElement>(null);
@@ -132,6 +138,8 @@ export default function PlaceMapCanvas({
   const restoredViewport = useRef(initialViewport);
   const viewportChangeRef = useRef(onViewportChange);
   viewportChangeRef.current = onViewportChange;
+  const userMotionRef = useRef(onUserMotionChange);
+  userMotionRef.current = onUserMotionChange;
   const focusRef = useRef(focus);
   const lastFocus = useRef(focus);
   focusRef.current = focus;
@@ -236,10 +244,28 @@ export default function PlaceMapCanvas({
       }
     };
     updateFrame.current = frame;
-    map.on('movestart', () => {
+    let userMoving = false;
+    let restTimer: number | undefined;
+    const settleUserMotion = () => {
+      window.clearTimeout(restTimer);
+      restTimer = window.setTimeout(() => {
+        if (!userMoving) return;
+        userMoving = false;
+        userMotionRef.current?.(false);
+      }, USER_MOTION_REST_MS);
+    };
+    map.on('movestart', (event) => {
       if (!framing) autoFrame.current = false;
+      // Only the viewer's own gestures count, not framing or place flights.
+      if (!event?.originalEvent) return;
+      window.clearTimeout(restTimer);
+      if (!userMoving) {
+        userMoving = true;
+        userMotionRef.current?.(true);
+      }
     });
     map.on('moveend', () => {
+      if (userMoving) settleUserMotion();
       cameraMoving.current = false;
       finishCamera.current = null;
       setMoving(false);
@@ -270,6 +296,8 @@ export default function PlaceMapCanvas({
     resize.observe(container.current);
     return () => {
       resize.disconnect();
+      window.clearTimeout(restTimer);
+      if (userMoving) userMotionRef.current?.(false);
       for (const event of ['pointerdown', 'wheel', 'keydown'])
         element.removeEventListener(event, interrupt);
       motion?.removeEventListener('change', motionChanged);

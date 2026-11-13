@@ -28,7 +28,7 @@ Visual preflight and alternatives are in #1770 and on the branch
   the start month. The year is added when the start lies in another year.
 - **The band** runs from the start (left) to today (right). Each column holds
   one period's dots, stacked bottom to top: memories, heart moments, then
-  milestones as larger hollow rings that read as landmarks.
+  milestones: filled green dots of the same size as every other dot.
 - **Axis:** month labels below, plus `m5s5.dashboard.storyLifelineToday` at
   the end.
 - **Legend:** the three counts as links into the filtered timeline. Only

@@ -157,9 +157,13 @@ for (const scenario of [
     await expect(page.locator('.momente-tapestry-item')).toHaveCount(
       getTimelineItems().length - 1,
     );
+    // The HeartMoment note shows its emotion badge instead of a corner glyph (#1784).
     expect(
       await page.locator('.momente-tapestry-kind').allTextContents(),
-    ).toEqual(['', '', '']);
+    ).toEqual(['', '']);
+    await expect(
+      page.locator('.momente-tapestry-note .heart-emotion-badge'),
+    ).toHaveCount(1);
     const overflowDetails = await page.evaluate(() =>
       Array.from(document.querySelectorAll('main *'))
         .filter((node) => {

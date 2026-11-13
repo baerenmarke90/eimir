@@ -80,13 +80,6 @@
   background: var(--story-category-color);
   transition: transform var(--duration-feedback) var(--easing-standard);
 }
-/* Milestones read as landmarks: a larger hollow ring in their color. */
-.shared-story-lifeline-dot.shared-story-summary-category-milestones {
-  inline-size: var(--space-story-lifeline-landmark);
-  block-size: var(--space-story-lifeline-landmark);
-  background: var(--color-background);
-  box-shadow: inset 0 0 0 3px var(--story-category-color);
-}
 .shared-story-lifeline.is-active
   .shared-story-lifeline-column:not(.is-current) {
   opacity: 0.35;
@@ -260,10 +253,6 @@
   flex: none;
   border-radius: var(--radius-pill);
   background: var(--story-category-color);
-}
-.shared-story-summary-category-milestones .shared-story-summary-dot {
-  background: transparent;
-  box-shadow: inset 0 0 0 2px var(--story-category-color);
 }
 .shared-story-summary-row:is(:hover, :active) {
   background: color-mix(

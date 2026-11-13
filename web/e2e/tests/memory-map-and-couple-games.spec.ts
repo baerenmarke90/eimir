@@ -1193,3 +1193,128 @@ for (const [width, colorScheme] of [
     expect(unknown).toEqual([]);
   });
 }
+
+test('fullscreen map uses the whole landscape phone and puts memories beside the map', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installMocks(page);
+  const tiles = await mockMapTiles(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'Afternoon by the canal',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Lake',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect(page.locator('#momente-panel-map')).toBeVisible();
+  await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+  await expect(
+    page.getByRole('button', { name: de.story.addMoment }),
+  ).toHaveCount(0);
+  const expand = page.getByRole('button', {
+    name: mapCopy.fullscreen,
+    exact: true,
+  });
+  await expect(expand).toHaveText('');
+  await expand.click();
+  const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+  await expect(fullscreen).toBeVisible();
+
+  // Rotating while the map is open must give it the whole screen.
+  await page.setViewportSize({ width: 844, height: 390 });
+  const viewport = fullscreen.locator('.place-map-viewport');
+  await expect
+    .poll(async () => (await viewport.boundingBox())?.height)
+    .toBe(390);
+  expect((await viewport.boundingBox())?.width).toBe(844);
+
+  await fullscreen.locator('.memory-map-marker').click();
+  const selection = fullscreen.locator('.memory-map-selection');
+  await expect(selection).toBeVisible();
+  const [map, side] = await Promise.all([
+    viewport.boundingBox(),
+    selection.boundingBox(),
+  ]);
+  if (!map || !side) throw new Error('Map and selection must be measurable');
+  expect(map.height).toBe(390);
+  expect(map.x + map.width).toBeLessThanOrEqual(side.x + 1);
+  expect(side.y).toBe(0);
+  await expect(
+    fullscreen.getByRole('link', { name: /Afternoon by the canal/ }),
+  ).toBeInViewport();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
+test('map tools step aside while the map is panned and touch screens drop the zoom buttons', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installMocks(page);
+  const tiles = await mockMapTiles(page);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'Afternoon by the canal',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Lake',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
+  await expect.poll(() => tiles.reads()).toBeGreaterThan(0);
+  const tools = page.locator('.memory-map-tools');
+  await expect(tools).toHaveCSS('opacity', '1');
+
+  // The zoom buttons leave the screen but stay reachable by keyboard.
+  const zoom = page.locator('.place-map-zoom');
+  const zoomIn = page.locator('.place-map-zoom-in');
+  expect((await zoom.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
+  await zoomIn.focus();
+  await expect(zoomIn).toBeFocused();
+  expect((await zoom.boundingBox())?.width ?? 0).toBeGreaterThan(20);
+  await zoomIn.blur();
+
+  const map = await page.locator('.place-map-viewport').boundingBox();
+  if (!map) throw new Error('The map must be measurable');
+  await page.mouse.move(map.x + map.width / 2, map.y + map.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(map.x + map.width / 2 - 60, map.y + map.height / 2, {
+    steps: 6,
+  });
+  await expect(tools).toHaveCSS('opacity', '0');
+  await page.mouse.up();
+  // The tools return once the gesture has rested.
+  await expect(tools).toHaveCSS('opacity', '1', { timeout: 5_000 });
+});

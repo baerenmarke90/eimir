@@ -451,6 +451,11 @@ for (const variant of evidence) {
     });
     await expect(line).toBeVisible();
     await expectNoHorizontalOverflow(page);
+    // At 200 % text the line sits below the first screen and the fixed
+    // navigation; centre it for the capture.
+    await line.evaluate((element) =>
+      element.scrollIntoView({ block: 'center' }),
+    );
     await captureScreenshot(page, info, `partner-distance-wir-${name}.png`);
 
     await line.click();

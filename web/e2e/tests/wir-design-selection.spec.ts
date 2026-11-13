@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
-import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
 import reflections from '../../src/i18n/locales/relationshipReflections';
+import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
 import copy from '../../src/i18n/locales/wirDesign';
 import { expectFloatingAddAction } from '../support/addAction';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -34,6 +34,20 @@ async function fixture(
     if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // Settings › Wir reads the owner's partner-distance view (#1792) to
+    // decide on the display toggle; a Space without it shares nothing.
+    if (path === `${base}/partner-location/settings`)
+      return route.fulfill({
+        json: {
+          available: false,
+          level: 'OFF',
+          state: 'OFF',
+          indefinite: false,
+          expiresAt: null,
+          generation: 0,
+          lastPublishedAt: null,
+        },
+      });
     // The opted-in story lifeline (#1770) with no shared history yet.
     if (path === `${base}/story-lifeline`)
       return route.fulfill({

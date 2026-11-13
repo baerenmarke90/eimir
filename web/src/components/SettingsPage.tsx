@@ -42,6 +42,8 @@ import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
+import { PartnerDistanceWirSetting } from './PartnerDistanceWirSetting';
+import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
@@ -147,6 +149,12 @@ export function SettingsPage(props: SettingsPageProps) {
           spacesApi={spacesApi}
           spaceId={props.spaceId}
         />
+        <PartnerLocationSettingsEntry
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
         <OccasionHolidaySettings
           instance={props.apiBaseUrl}
           accountId={props.account.id}
@@ -212,6 +220,14 @@ export function SettingsPage(props: SettingsPageProps) {
           dashboardApi={dashboardApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
+          heroControls={
+            <PartnerDistanceWirSetting
+              apiBaseUrl={props.apiBaseUrl}
+              accessToken={props.accessToken}
+              accountId={props.account.id}
+              spaceId={props.spaceId}
+            />
+          }
           moduleControls={{
             shared_story_summary: (
               <WirStatisticsSetting

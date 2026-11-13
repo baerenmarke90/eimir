@@ -77,6 +77,7 @@ interface ApproximateLocationPlugin {
     expiresAt: string;
   }): Promise<void>;
   disableBackground(): Promise<void>;
+  openAppSettings(): Promise<void>;
 }
 
 const nativeLocation = registerPlugin<ApproximateLocationPlugin>(
@@ -310,6 +311,22 @@ export interface BackgroundLocationStatus {
   /** Android only; browsers and other platforms report `unsupported`. */
   permission: LocationPermission;
   enabled: boolean;
+}
+
+/** Whether location access is managed by the Android app settings here. */
+export function usesNativeLocationSettings(): boolean {
+  return usesNativePlugin();
+}
+
+/** Opens the Android app settings; browsers keep their own site settings. */
+export async function openLocationSettings(): Promise<boolean> {
+  if (!usesNativePlugin()) return false;
+  try {
+    await nativeLocation.openAppSettings();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function backgroundLocationStatus(): Promise<BackgroundLocationStatus> {

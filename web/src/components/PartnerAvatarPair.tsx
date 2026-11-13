@@ -46,7 +46,7 @@ export interface PartnerAvatarPairProps {
   secondaryAdornment?: ReactNode;
 }
 
-function SingleAvatar({
+export function SingleAvatar({
   person,
   size,
   className = '',

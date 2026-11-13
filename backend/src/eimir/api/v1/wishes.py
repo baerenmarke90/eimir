@@ -66,6 +66,37 @@ class WishCreate(ApiModel):
         return value
 
 
+class WishRepeat(ApiModel):
+    """Optional overrides for "Nochmal erleben" (#1816).
+
+    Anything omitted is copied from the completed source Wish. Status, the
+    follow-up link, and the series fields are server-controlled and rejected.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | SkipJsonSchema[None] = None
+    description: str | SkipJsonSchema[None] = None
+    tags: ContextTags | SkipJsonSchema[None] = None
+
+    @field_validator("title")
+    @classmethod
+    def _title_not_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("must not be blank")
+        return cleaned
+
+    @field_validator("tags")
+    @classmethod
+    def _tags_unique(cls, value: ContextTags | None) -> ContextTags | None:
+        if value is not None:
+            unique_tags(value)
+        return value
+
+
 class WishUpdate(ApiModel):
     """Wish content correction. Explicit null clears the description.
 
@@ -130,6 +161,19 @@ class WishDetail(ApiModel):
     updated_at: datetime
     creator: AuthorSummary
     capabilities: ResourceCapabilities
+    followed_from_wish_id: UUID | None = Field(
+        description=(
+            'The completed Wish this one repeats ("Nochmal erleben"); null for a first '
+            "Wish or after the source was deleted."
+        ),
+    )
+    series_id: UUID = Field(
+        description="Groups a Wish with its repeats; equals the first Wish's ID.",
+    )
+    series_position: int = Field(
+        ge=1,
+        description="1 for the first Wish of a series, 2 for its first repeat, and so on.",
+    )
     plan: WishPlanReference | None = Field(
         description=(
             "Originating Plan of a PLANNED or COMPLETED Wish; null for OPEN, "
@@ -174,6 +218,9 @@ def wish_detail(
         created_at=wish.created_at,
         updated_at=wish.updated_at,
         creator=creator,
+        followed_from_wish_id=wish.followed_from_wish_id,
+        series_id=wish.series_id,
+        series_position=wish.series_position,
         capabilities=ResourceCapabilities(
             # M3-D01: a wish belongs to the couple. ``createdBy`` is
             # attribution, not an ACL; both partners may edit it.
@@ -315,6 +362,49 @@ def complete_wish(
     )
     response.headers["ETag"] = etag_for(wish.version)
     return wish_detail(session, authorization, wish)
+
+
+@router.post(
+    "/spaces/{spaceId}/wishes/{wishId}/repeat",
+    response_model=WishDetail,
+    status_code=http_status.HTTP_201_CREATED,
+    operation_id="repeatWish",
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the Wish the first request "
+                "created; no second Wish is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": WishDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
+)
+def repeat_wish(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+    wish_id: Annotated[str, Path(alias="wishId")],
+    body: WishRepeat | None = None,
+) -> WishDetail:
+    repeat = body or WishRepeat()
+    result = service.repeat_wish_once(
+        session,
+        authorization,
+        wish_id,
+        idempotency_key=idempotency_key,
+        title=repeat.title,
+        description=repeat.description,
+        tags=repeat.tags,
+    )
+    if not result.created:
+        response.status_code = http_status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.wish.version)
+    return wish_detail(session, authorization, result.wish)
 
 
 @router.patch(

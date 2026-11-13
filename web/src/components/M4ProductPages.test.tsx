@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SearchPage } from '../api/generated/models/SearchPage';
 import type { M4ProductApis } from '../client/m4Product';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { i18n } from '../i18n';
 import contextTags from '../i18n/locales/contextTags';
 import { ActivityProductPage, SearchProductPage } from './M4ProductPages';
 
@@ -285,5 +286,39 @@ describe('ActivityProductPage task origin (#1084)', () => {
 
     await act(async () => probeOrigin.requestReturn(key));
     expect(probeLocation.pathname).toBe('/today/activity');
+  });
+});
+
+describe('Search discreet plans (#1790 F3)', () => {
+  it('shows the list title, lock and neutral lines for a concealed hit', async () => {
+    const searchSpaceContent = vi.fn(
+      async (_q: string): Promise<SearchPage> => ({
+        items: [
+          {
+            id: 'plan-1',
+            type: 'PLAN',
+            title: null,
+            excerpt: null,
+            occurredOn: null,
+            parentId: null,
+            scope: 'SHARED',
+            concealed: true,
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    const user = userEvent.setup();
+    renderSearch(searchSpaceContent);
+    await user.type(screen.getByLabelText(/Suchbegriff/i), 'hotel');
+    await user.click(screen.getByRole('button', { name: /^Suchen$/i }));
+
+    expect(
+      await screen.findByText(i18n.t('discreetPlans.fallbackTitle')),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('img', { name: i18n.t('discreetPlans.lockLabel') }),
+    ).toBeTruthy();
+    expect(document.querySelector('.discreet-lines')).toBeTruthy();
   });
 });

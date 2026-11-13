@@ -1,10 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Fragment, type ReactNode, useEffect, useState } from 'react';
+import {
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -12,8 +19,8 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
-import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
+import type { RediscoveryContext } from '../api/generated/models/RediscoveryContext';
 import {
   readableActivityItems,
   useActivityQuery,
@@ -77,6 +84,12 @@ import {
   retrospectiveDismissalToken,
 } from '../client/todayRetrospectiveDismissal';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
+import { useRevealAfterCache } from '../client/useRevealAfterCache';
+import { useHeldQuery, useResumeSettling } from '../client/useResumeSettling';
+import {
+  rememberWirScroll,
+  takeColdStartWirScroll,
+} from '../client/wirScrollMemory';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useWirStatistics } from '../client/useWirStatistics';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -97,9 +110,8 @@ import {
 import { OnceIncomingSignal } from './OnceMessages';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
+import { WirPartnerDistance } from './PartnerDistanceLine';
 import { PartnerQuickActions } from './PartnerQuickActions';
-import { WirPartnerDaySheet } from './WirPartnerDaySheet';
-import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import {
@@ -115,8 +127,12 @@ import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
+import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import './TodayPage.css';
+import { concealedTitle } from '../client/discreetPlans';
 import { useWirDesign } from '../client/wirDesign';
+import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
 
 export function formatRelationshipDuration(
@@ -157,6 +173,24 @@ export type TodayPresentationRole =
   | 'relationship_signal' // 0-1 partner interaction signal (e.g. partner commented on memory)
   | 'shared_content' // Recent shared relationship moments
   | 'editorial_highlight'; // Retrospective discovery (e.g. "Weißt du noch?")
+
+/**
+ * Holds the place of a module that only renders from live data while the page
+ * still shows its saved read, so the live arrival does not shove content down.
+ */
+function TodayModulePlaceholder({
+  kind,
+}: {
+  kind: 'shared-experience' | 'pinned-collection' | 'story-summary';
+}) {
+  return (
+    <div
+      className="today-module-placeholder"
+      data-kind={kind}
+      aria-hidden="true"
+    />
+  );
+}
 
 export function TodayModuleSection({
   id,
@@ -306,13 +340,14 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
               timeStyle: item.scheduledAt ? 'short' : undefined,
             }).format(rawDate)
           : null;
-  const title =
-    item.titleOrText?.trim() ||
-    t(
-      item.type === 'ANNIVERSARY'
-        ? 'm5s5.dashboard.anniversaryTitle'
-        : `m5s5.kind.${item.type}`,
-    );
+  const title = item.concealed
+    ? concealedTitle(item.titleOrText, t)
+    : item.titleOrText?.trim() ||
+      t(
+        item.type === 'ANNIVERSARY'
+          ? 'm5s5.dashboard.anniversaryTitle'
+          : `m5s5.kind.${item.type}`,
+      );
 
   const rowInner = (
     <>
@@ -320,7 +355,10 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
         <RecentItemTypeIcon type={item.type} />
       </span>
       <span className="today-agenda-copy">
-        <span className="today-agenda-title">{title}</span>
+        <span className="today-agenda-title">
+          {title}
+          {item.concealed ? <DiscreetLock /> : null}
+        </span>
         {date ? (
           <time
             className="today-agenda-date"
@@ -751,6 +789,7 @@ export function TodayPage({
   collectionsApi,
   account,
   recapMediaApis,
+  partnerLocationApi,
 }: {
   apis: M4ProductApis;
   apiBaseUrl?: string;
@@ -768,18 +807,26 @@ export function TodayPage({
   profilesApi?: ProfilesApi;
   account?: AccountView | null;
   recapMediaApis?: ReferenceApis;
+  /** Partner distance on the couple hero (#1792). */
+  partnerLocationApi?: Pick<
+    PartnerLocationApi,
+    'getPartnerDistance' | 'getPartnerLocationMap'
+  >;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const queryClient = useQueryClient();
+  // After the app regains focus, refreshed reads land together instead of one
+  // module at a time (see useResumeSettling).
+  const resumeSettling = useResumeSettling();
   const wirStatistics = useWirStatistics({
     api: entitlementApi,
     instance: apiBaseUrl ?? '',
     accountId: account?.id ?? '',
     spaceId,
   });
-  const dashboardQuery = useWarmOverviewQuery({
+  const liveDashboardQuery = useWarmOverviewQuery({
     queryKey: dashboardQueryKey(spaceId),
     accountId: account?.id,
     apiBaseUrl,
@@ -825,12 +872,17 @@ export function TodayPage({
     }),
     deserialize: (payload) => decodeDashboardOverview(payload, spaceId),
   });
-  const spaceConfigurationQuery = useQuery(
+  const dashboardQuery = useHeldQuery(liveDashboardQuery, resumeSettling);
+  const liveSpaceConfigurationQuery = useQuery(
     spaceConfigurationQueryOptions(
       dashboardQuery.data?.space.partner ? spacesApi : undefined,
       account?.id ?? '',
       spaceId,
     ),
+  );
+  const spaceConfigurationQuery = useHeldQuery(
+    liveSpaceConfigurationQuery,
+    resumeSettling,
   );
   const supportGesturesEnabled =
     !dashboardQuery.isCached &&
@@ -844,7 +896,7 @@ export function TodayPage({
   const sharedAchievementsEnabled =
     spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
     true;
-  const dashboardPreferencesQuery = useQuery({
+  const liveDashboardPreferencesQuery = useQuery({
     queryKey: dashboardPreferencesQueryKey(account?.id ?? '', spaceId),
     queryFn: () =>
       apiCall(() => apis.dashboard.listDashboardModulePreferences({ spaceId })),
@@ -852,6 +904,10 @@ export function TodayPage({
     retry: false,
     staleTime: 60_000,
   });
+  const dashboardPreferencesQuery = useHeldQuery(
+    liveDashboardPreferencesQuery,
+    resumeSettling,
+  );
 
   const dashboardPreferences =
     dashboardPreferencesQuery.data ?? dashboardQuery.data?.modulePreferences;
@@ -864,7 +920,7 @@ export function TodayPage({
     dashboardPreferences,
     'pinned_collection',
   );
-  const pinnedCollectionQuery = useQuery({
+  const livePinnedCollectionQuery = useQuery({
     queryKey: authorSummaryQueryKeys.collectionDetail(
       spaceId,
       pinnedCollectionId ?? undefined,
@@ -888,8 +944,15 @@ export function TodayPage({
     ),
     retry: false,
   });
+  const pinnedCollectionQuery = useHeldQuery(
+    livePinnedCollectionQuery,
+    resumeSettling,
+  );
 
-  const activityQuery = useActivityQuery(apis.activity, spaceId, account?.id);
+  const activityQuery = useHeldQuery(
+    useActivityQuery(apis.activity, spaceId, account?.id),
+    resumeSettling,
+  );
   const activityItems = readableActivityItems(activityQuery);
   const signalReceipts = useAttentionReceipts(
     [apiBaseUrl ?? '', account?.id ?? '', spaceId, 'partner-signals'],
@@ -1170,6 +1233,45 @@ export function TodayPage({
     !preferencesDenied &&
     (!preferencesUnresolved || Boolean(dashboardPreferences));
 
+  const revealAfterCache = useRevealAfterCache(dashboardQuery.isCached);
+
+  // A cold start (the OS dropped the WebView in the background) returns to the
+  // remembered position once there is content to scroll through.
+  const accountId = account?.id ?? '';
+  const [coldStartScroll] = useState(() =>
+    takeColdStartWirScroll(accountId, spaceId),
+  );
+  const [coldStartScrollSettled, setColdStartScrollSettled] = useState(false);
+  useLayoutEffect(() => {
+    if (!contentReady || coldStartScrollSettled) return;
+    setColdStartScrollSettled(true);
+    if (coldStartScroll) window.scrollTo(0, coldStartScroll);
+  }, [contentReady, coldStartScroll, coldStartScrollSettled]);
+  useEffect(() => {
+    // Never record before the restore had its chance, or a background right
+    // after launch would overwrite the position with the top.
+    if (!accountId || !contentReady || !coldStartScrollSettled) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const save = () => rememberWirScroll(accountId, spaceId, window.scrollY);
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(save, 400);
+    };
+    const flush = () => {
+      clearTimeout(timer);
+      if (document.visibilityState === 'hidden') save();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('visibilitychange', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, [accountId, spaceId, contentReady, coldStartScrollSettled]);
+
   const relationshipPresenceVisible = isDashboardModuleVisible(
     dashboardPreferences,
     'relationship_presence',
@@ -1299,6 +1401,17 @@ export function TodayPage({
       primaryAvatarAction={dailyCheckIn?.ownAction}
       primaryAvatarAdornment={dailyCheckIn?.ownBadge}
       secondaryAvatarAdornment={dailyCheckIn?.partnerBadge}
+      signal={
+        partner && account?.id && partnerLocationApi ? (
+          <WirPartnerDistance
+            api={partnerLocationApi}
+            entitlementApi={entitlementApi}
+            instance={apiBaseUrl ?? ''}
+            accountId={account.id}
+            spaceId={spaceId}
+          />
+        ) : undefined
+      }
     />
   );
 
@@ -1323,6 +1436,12 @@ export function TodayPage({
           entry={incomingExperience}
           partnerName={relationshipLabel(partner?.id, partner?.displayName, '')}
         />
+      ) : dashboardQuery.isCached &&
+        !dashboardQuery.error &&
+        partner &&
+        incomingCandidate?.authorId === partner.id &&
+        isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
+        <TodayModulePlaceholder kind="shared-experience" />
       ) : null,
     daily_quote: dailyQuote,
     relationship_presence: (
@@ -1420,7 +1539,11 @@ export function TodayPage({
         pinnedCollectionId &&
         pinnedCollectionQuery.data ? (
           <TodayModuleSection
-            className="today-section-pinned-collection"
+            className={
+              revealAfterCache
+                ? 'today-section-pinned-collection today-module-reveal'
+                : 'today-section-pinned-collection'
+            }
             title={pinnedCollectionQuery.data.title}
             headerAction={
               <TodayDestinationLink
@@ -1444,6 +1567,10 @@ export function TodayPage({
               />
             ) : null}
           </TodayModuleSection>
+        ) : dashboardQuery.isCached &&
+          pinnedCollectionVisible &&
+          pinnedCollectionId ? (
+          <TodayModulePlaceholder kind="pinned-collection" />
         ) : null}
 
         {pinnedCollectionVisible &&
@@ -1625,6 +1752,11 @@ export function TodayPage({
             dashboardApi={apis.dashboard}
             loadMemoryImage={loadMemoryImage}
           />
+        ) : dashboardQuery.isCached &&
+          wirStatistics.allowed &&
+          wirStatistics.enabled &&
+          dashboardQuery.data?.sharedStorySummary ? (
+          <TodayModulePlaceholder kind="story-summary" />
         ) : null}
       </>
     ),
@@ -1659,9 +1791,9 @@ export function TodayPage({
           onRetry={() => dashboardQuery.refetch()}
         />
       )}
-      {dashboardQuery.isCached ? (
-        <OverviewCacheNotice cachedAt={dashboardQuery.cachedAt} />
-      ) : null}
+      <OverviewCacheNotice
+        cachedAt={dashboardQuery.isCached ? dashboardQuery.cachedAt : undefined}
+      />
       {/* A failed preferences fetch does not block Today: the configurable
           module stack proceeds with product defaults (visible) rather than
           holding the whole page hostage on a secondary, non-critical

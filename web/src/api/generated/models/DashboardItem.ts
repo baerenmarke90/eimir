@@ -29,6 +29,12 @@ import {
 export interface DashboardItem {
     /**
      * 
+     * @type {boolean}
+     * @memberof DashboardItem
+     */
+    concealed?: boolean;
+    /**
+     * 
      * @type {Date}
      * @memberof DashboardItem
      */
@@ -114,6 +120,7 @@ export function DashboardItemFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
+        'concealed': json['concealed'] == null ? undefined : json['concealed'],
         'createdAt': (json['createdAt'] == null ? null : new Date(json['createdAt'])),
         'id': json['id'],
         'occurredOn': (json['occurredOn'] == null ? null : new Date(json['occurredOn'])),
@@ -138,6 +145,7 @@ export function DashboardItemToJSONTyped(value?: DashboardItem | null, ignoreDis
 
     return {
         
+        'concealed': value['concealed'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
         'id': value['id'],
         'occurredOn': value['occurredOn'] == null ? value['occurredOn'] : value['occurredOn'].toISOString().substring(0,10),

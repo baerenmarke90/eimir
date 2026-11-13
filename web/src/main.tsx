@@ -46,6 +46,7 @@ import './components/FreeComposer.css';
 import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/identity-components.css';
+import { dateAwareStructuralSharing } from './client/structuralSharing';
 
 markNativeRuntime();
 initializeTheme();
@@ -62,6 +63,8 @@ const queryClient = new QueryClient({
       refetchOnMount: true,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
+      // Equal refetches keep their references, dates included.
+      structuralSharing: dateAwareStructuralSharing,
     },
   },
 });

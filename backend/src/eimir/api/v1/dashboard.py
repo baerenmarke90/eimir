@@ -51,6 +51,8 @@ class DashboardItem(ApiModel):
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
     preview_has_thumbnail: bool = False
+    concealed: bool = False
+    """Show only the list title with neutral lines: a discreet Plan (#1790 F3)."""
 
 
 class DashboardSharedStorySummary(ApiModel):
@@ -79,6 +81,8 @@ class DashboardAnticipation(ApiModel):
     event_on: date
     days_remaining: int
     event_at: datetime | None = None
+    concealed: bool = False
+    """``title`` is the list title; an empty one uses the neutral fallback."""
 
 
 class RelationshipPassportView(ApiModel):
@@ -247,6 +251,7 @@ def get_dashboard(
                 event_on=anticipation.event_on,
                 days_remaining=anticipation.days_remaining,
                 event_at=anticipation.event_at,
+                concealed=anticipation.concealed,
             )
             if anticipation is not None
             else None
@@ -416,4 +421,5 @@ def _project_item(item: service.DashboardItem) -> DashboardItem:
         preview_attachment_id=item.preview_attachment_id,
         preview_is_sensitive=item.preview_is_sensitive,
         preview_has_thumbnail=item.preview_has_thumbnail,
+        concealed=item.concealed,
     )

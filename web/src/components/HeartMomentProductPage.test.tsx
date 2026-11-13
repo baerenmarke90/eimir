@@ -744,7 +744,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       screen.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
     ).toBeTruthy();
   });
-  it('keeps a quiet visible text action for editing in the read header', async () => {
+  it('offers editing as the shared round pencil control in the read header', async () => {
     renderDetail();
     const editLink = await screen.findByRole('link', {
       name: storyProducts.heartMomentProduct.edit,
@@ -752,10 +752,8 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     expect(editLink.getAttribute('href')).toBe(
       '/story/heart-moments/heart-1/edit',
     );
-    expect(editLink.textContent?.trim()).toBe(
-      storyProducts.heartMomentProduct.edit,
-    );
-    expect(editLink.className).toContain('tertiary');
+    expect(editLink.className).toContain('story-detail-edit-link');
+    expect(editLink.querySelector('svg')).not.toBeNull();
     expect(editLink.className).not.toContain('secondary-link');
   });
 

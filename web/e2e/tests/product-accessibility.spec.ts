@@ -232,6 +232,23 @@ async function installAuthorizedApiMocks(page: Page): Promise<
       return;
     }
 
+    // Partner distance (#1792): an unpaired Free Space shares nothing.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-location/settings`
+    ) {
+      await fulfillJson({
+        available: false,
+        level: 'OFF',
+        state: 'OFF',
+        indefinite: false,
+        expiresAt: null,
+        generation: 0,
+        lastPublishedAt: null,
+      });
+      return;
+    }
+
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/configuration`

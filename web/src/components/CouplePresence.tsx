@@ -41,6 +41,8 @@ export interface CouplePresenceProps {
   primaryAvatarAdornment?: ReactNode;
   secondaryAvatarAdornment?: ReactNode;
   actions?: ReactNode;
+  /** A quiet relationship signal directly under the duration line (#1792). */
+  signal?: ReactNode;
   context?: ReactNode;
   headingLevel?: 'h1' | 'h2';
   eyebrow?: string;
@@ -67,6 +69,7 @@ export function CouplePresence({
   primaryAvatarAdornment,
   secondaryAvatarAdornment,
   actions,
+  signal,
   context,
   headingLevel = 'h2',
   eyebrow,
@@ -220,6 +223,8 @@ export function CouplePresence({
               </>
             )}
           </div>
+
+          {signal}
 
           {context ? (
             <div className="couple-presence-context">{context}</div>

@@ -2,12 +2,15 @@ package de.eimir.app;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import androidx.core.content.ContextCompat;
 import androidx.core.location.LocationManagerCompat;
 import com.getcapacitor.JSObject;
@@ -112,6 +115,19 @@ public class ApproximateLocationPlugin extends Plugin {
             PresenceBackground.disable(getContext());
             call.resolve();
         });
+    }
+
+    /** Opens this app's system settings, where location access is changed. */
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        try {
+            getContext().startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.fromParts("package", getContext().getPackageName(), null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            call.resolve();
+        } catch (RuntimeException unavailable) {
+            call.reject("App settings are unavailable", "SETTINGS_UNAVAILABLE");
+        }
     }
 
     @PluginMethod

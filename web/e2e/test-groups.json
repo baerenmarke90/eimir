@@ -410,6 +410,11 @@
       "baselineTests": 5,
       "reason": "Headerless Compact navigation, More utility discovery, authoritative unread status, safe areas, sign-out and capability gating."
     },
+    "discreet-plans.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "#1790 F3 discreet Plans: Planen shows only the list title, date, lock, neutral lines and a blurred cover; the detail conceals place, prose, tags and comments until a per-view reveal that conceals again in the background; the editor switch below Vorfreude saves preview/original title modes. 360/390/430/1280 px, Light/Dark, large text, reduced motion and axe."
+    },
     "plan-cover-layout.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,
@@ -548,6 +553,16 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
       "reason": "Feature-owned map photo stacks, real camera motion, finite touch/button browsing, protected/text previews and fullscreen/detail scope return. No always-run expansion."
+    },
+    "partner-location-settings.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 10,
+      "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
+    },
+    "partner-distance-wir.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11,
+      "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     }
   }
 }

@@ -83,7 +83,7 @@ export function WishComposer({
       <form id={formId} className="planning-intention-form" onSubmit={onSubmit}>
         <fieldset disabled={disabled}>
           <legend className="sr-only">{heading}</legend>
-          <div className="page-composer-writing">
+          <div className="page-composer-writing composer-authored-surface">
             <label className="sr-only" htmlFor={`${idPrefix}-title`}>
               {t(wishId ? 'm5s3.common.title' : 'm5s3.wish.intentionLabel')}
             </label>
@@ -95,10 +95,11 @@ export function WishComposer({
               maxLength={200}
               value={title}
               onChange={(event) => onTitleChange(event.target.value)}
-              placeholder={t('m5s3.common.title')}
+              placeholder={t('m5s3.wish.titleHint')}
             />
             <ComposerDescriptionField
               id={`${idPrefix}-description`}
+              hint={t('m5s3.wish.descriptionPlaceholder')}
               value={description}
               onChange={(event) => onDescriptionChange(event.target.value)}
             />

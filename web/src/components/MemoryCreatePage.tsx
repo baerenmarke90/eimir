@@ -1131,7 +1131,7 @@ export function MemoryCreatePage({
                     multiple
                   />
                 </div>
-                <div className="composer-writing-surface">
+                <div className="composer-writing-surface composer-authored-surface">
                   <div className="field-group immersive-create-title-field">
                     <label htmlFor="title">
                       {t('memory.titleLabelOptional')}

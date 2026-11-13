@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-block-start: var(--space-2);
+  margin-block: 0;
 }
 
 .milestone-hero-icon {
@@ -39,7 +39,7 @@
 }
 
 .milestone-hero-title {
-  margin: var(--space-3) 0 var(--space-4);
+  margin: 0;
   color: var(--color-text);
   font-family: var(--font-display);
   font-size: clamp(1.6rem, 7vw, 2rem);

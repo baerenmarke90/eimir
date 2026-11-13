@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Annotated
 from uuid import UUID
@@ -33,6 +34,8 @@ class ActivityTargetPresentation(ApiModel):
     target_type: EngagementTarget
     target_id: UUID
     title: str | None = None
+    concealed: bool = False
+    """``title`` is the list title of a discreet Plan; show no other content."""
 
 
 class ActivityItem(ApiModel):
@@ -227,7 +230,7 @@ def _present_opened_notification(
         if notification.actor_id is not None
         else {}
     )
-    target_titles = {}
+    target_titles = None
     if notification.target_type is not None and notification.target_id is not None:
         with contextlib.suppress(ValueError):
             target_titles = _resolve_target_titles(
@@ -371,23 +374,38 @@ def _resolve_target_titles(
     session: DbSession,
     authorization: Authorization,
     targets: set[tuple[EngagementTarget, UUID]],
-) -> dict[tuple[EngagementTarget, UUID], str]:
-    return presentation.target_titles(session, authorization, targets)
+) -> TargetTitles:
+    titles = presentation.target_titles(session, authorization, targets)
+    return TargetTitles(titles, presentation.concealed_targets(session, targets))
+
+
+@dataclass(frozen=True)
+class TargetTitles:
+    titles: dict[tuple[EngagementTarget, UUID], str]
+    concealed: set[tuple[EngagementTarget, UUID]]
+
+    def presentation(
+        self, target_type: EngagementTarget, target_id: UUID
+    ) -> ActivityTargetPresentation:
+        key = (target_type, target_id)
+        return ActivityTargetPresentation(
+            target_type=target_type,
+            target_id=target_id,
+            title=self.titles.get(key),
+            concealed=key in self.concealed,
+        )
 
 
 def _activity_item(
     item: Activity,
     actors: dict[UUID, AuthorSummary],
-    target_titles: dict[tuple[EngagementTarget, UUID], str],
+    target_titles: TargetTitles,
 ) -> ActivityItem:
     target_presentation = None
     if item.target_type is not None and item.target_id is not None:
         with contextlib.suppress(ValueError):
-            target_type = EngagementTarget(item.target_type)
-            target_presentation = ActivityTargetPresentation(
-                target_type=target_type,
-                target_id=item.target_id,
-                title=target_titles.get((target_type, item.target_id)),
+            target_presentation = target_titles.presentation(
+                EngagementTarget(item.target_type), item.target_id
             )
 
     return ActivityItem(
@@ -407,16 +425,13 @@ def _activity_item(
 def _notification_item(
     item: Notification,
     actors: dict[UUID, AuthorSummary] | None = None,
-    target_titles: dict[tuple[EngagementTarget, UUID], str] | None = None,
+    target_titles: TargetTitles | None = None,
 ) -> NotificationItem:
     target_presentation = None
     if item.target_type is not None and item.target_id is not None:
         with contextlib.suppress(ValueError):
-            target_type = EngagementTarget(item.target_type)
-            target_presentation = ActivityTargetPresentation(
-                target_type=target_type,
-                target_id=item.target_id,
-                title=target_titles.get((target_type, item.target_id)) if target_titles else None,
+            target_presentation = (target_titles or TargetTitles({}, set())).presentation(
+                EngagementTarget(item.target_type), item.target_id
             )
     return NotificationItem(
         id=item.id,

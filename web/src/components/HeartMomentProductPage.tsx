@@ -119,6 +119,7 @@ import {
   type StoryPlanningTarget,
 } from './StoryPlanningLinks';
 import { storyAuthorLabel } from './storyPresentation';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
@@ -1061,7 +1062,7 @@ export function HeartMomentProductPage({
                     }
                     onChange={() => setFormDirty(true)}
                   />
-                  <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface">
+                  <div className="field-group heart-moment-create-field heart-moment-create-note composer-writing-surface composer-authored-surface">
                     <label htmlFor="heart-moment-text">
                       {t('heartMomentProduct.textLabel')}
                     </label>
@@ -1692,13 +1693,11 @@ export function HeartMomentProductPage({
           title={t('heartMomentProduct.detailEyebrow')}
           action={
             heartMoment.capabilities.canEdit && !offline ? (
-              <Link
-                className="button-link tertiary story-detail-edit-text"
+              <StoryDetailEditLink
                 to={heartMomentEditPath(heartMoment.id)}
+                label={t('heartMomentProduct.edit')}
                 state={{ taskOriginKey: originKey }}
-              >
-                {t('heartMomentProduct.edit')}
-              </Link>
+              />
             ) : undefined
           }
         />
@@ -1713,36 +1712,38 @@ export function HeartMomentProductPage({
             {t('offlineCache.banner')}
           </p>
         ) : null}
-        <div className="moment-metadata">
-          {heartMoment.happenedOn ? (
-            <MomentDate
-              dateTime={heartMoment.happenedOn.toISOString().slice(0, 10)}
-            >
-              {formatDateOnly(heartMoment.happenedOn)}
-            </MomentDate>
-          ) : null}
-          {heartMoment.location && !changingVisibility ? (
-            <HeartMomentLocationSummary location={heartMoment.location} />
-          ) : null}
-          {shared && !changingVisibility ? (
-            <MomentPlaces
-              key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${heartMoment.id}`}
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              accountId={currentAccountId}
-              spaceId={spaceId}
-              targetId={heartMoment.id}
-              canManage={false}
-              kind="heart-moments"
-              offline={offline}
-              inline
+        <div className="detail-headline">
+          <div className="moment-metadata moment-metadata-lead">
+            {heartMoment.happenedOn ? (
+              <MomentDate
+                dateTime={heartMoment.happenedOn.toISOString().slice(0, 10)}
+              >
+                {formatDateOnly(heartMoment.happenedOn)}
+              </MomentDate>
+            ) : null}
+            {heartMoment.location && !changingVisibility ? (
+              <HeartMomentLocationSummary location={heartMoment.location} />
+            ) : null}
+            {shared && !changingVisibility ? (
+              <MomentPlaces
+                key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${heartMoment.id}`}
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                targetId={heartMoment.id}
+                canManage={false}
+                kind="heart-moments"
+                offline={offline}
+                inline
+              />
+            ) : null}
+            <VisibilityBadge
+              visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
+              size="small"
+              variant="subtle"
             />
-          ) : null}
-          <VisibilityBadge
-            visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
-            size="small"
-            variant="subtle"
-          />
+          </div>
         </div>
         <div
           className="heart-moment-detail-container"
@@ -1930,7 +1931,7 @@ function HeartMomentFields({
       {visibility}
       <div className="composer-content">
         {children}
-        <div className="field-group composer-writing-surface">
+        <div className="field-group composer-writing-surface composer-authored-surface">
           <label htmlFor="heart-moment-text">
             {t('heartMomentProduct.textLabel')}
           </label>

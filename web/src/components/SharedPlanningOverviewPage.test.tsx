@@ -562,3 +562,72 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
     );
   });
 });
+
+describe('SharedPlanningOverviewPage discreet plans (#1790 F3)', () => {
+  it('shows only the list title, date, lock and neutral lines', () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const secret = {
+      ...plan({
+        id: 'hotel',
+        title: 'Hotel night just for us',
+        status: 'PLANNED',
+        plannedStart: new Date('2099-11-21T18:00:00Z'),
+      }),
+      description: 'Lake view room, sauna at seven',
+      discreet: true,
+      discreetTitleMode: 'PREVIEW',
+      previewTitle: 'Weekend for two',
+    };
+    client.setQueryData(
+      ['m5-s3', 'plans', 'space-1', 'overview', 'OPEN'],
+      infinitePage([
+        secret,
+        {
+          ...plan({
+            id: 'concert',
+            title: 'Autumn concert',
+            status: 'PLANNED',
+            plannedStart: new Date('2099-12-17T19:00:00Z'),
+          }),
+          description: 'Tickets are ready',
+          discreet: true,
+          discreetTitleMode: 'ORIGINAL',
+        },
+        {
+          ...plan({ id: 'idea', title: 'Spa idea', status: 'IDEA' }),
+          discreet: true,
+          discreetTitleMode: 'PREVIEW',
+          previewTitle: null,
+        },
+      ]),
+    );
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/plan']}>
+          <SharedPlanningOverviewPage
+            apis={{} as SharedPlanningApis}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(html).toContain('Weekend for two');
+    expect(html).not.toContain('Hotel night');
+    expect(html).not.toContain('sauna');
+    expect(html).toContain('Autumn concert');
+    expect(html).not.toContain('Tickets are ready');
+    expect(html).not.toContain('Spa idea');
+    expect(html).toContain(i18n.t('discreetPlans.fallbackTitle'));
+    expect(html.match(/class="discreet-lines/g)).toHaveLength(2);
+    expect(
+      html.match(
+        new RegExp(`aria-label="${i18n.t('discreetPlans.lockLabel')}"`, 'g'),
+      ),
+    ).toHaveLength(3);
+    expect(html).toContain(i18n.t('discreetPlans.openHint'));
+    expect(html).not.toContain(i18n.t('discreetPlans.editor.label'));
+  });
+});

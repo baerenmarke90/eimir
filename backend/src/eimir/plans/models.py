@@ -17,6 +17,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     SmallInteger,
+    String,
     UniqueConstraint,
     text,
 )
@@ -67,6 +68,21 @@ def plan_status_type() -> SqlEnum:
     )
 
 
+class DiscreetTitleMode(StrEnum):
+    """Which title a discreet Plan shows outside its detail view (#1790 F3).
+
+    ``PREVIEW`` shows the author-chosen preview title, or the client's neutral
+    fallback when it is empty. ``ORIGINAL`` keeps the real title visible while
+    description, place and photos stay concealed.
+    """
+
+    PREVIEW = "PREVIEW"
+    ORIGINAL = "ORIGINAL"
+
+
+PREVIEW_TITLE_MAX_LENGTH = 200
+
+
 class PlanPayload(ProtectedPayload):
     """Protected content of a plan.
 
@@ -79,6 +95,12 @@ class PlanPayload(ProtectedPayload):
     selected_cover_attachment_id: UUID | None = None
     description: str | None = None
     tags: ContextTags = Field(default_factory=list)
+    preview_title: str | None = None
+    """Title shown in overviews while the Plan is discreet (#1790 F3).
+
+    It is authored content like ``title`` and therefore stays behind the
+    protected boundary. ``None`` means the neutral localized fallback.
+    """
 
 
 class Plan(
@@ -144,6 +166,23 @@ class Plan(
     anticipation_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
+    discreet: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    """Shared visual shield against onlookers, never a permission (#1790 F3).
+
+    Both partners keep full read and write access; overviews, search, activity
+    and push only present the list title and conceal everything else.
+    """
+
+    discreet_title_mode: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default=DiscreetTitleMode.PREVIEW.value,
+        server_default=text("'PREVIEW'"),
+    )
+    """Kept when ``discreet`` is cleared so a later re-enable restores the choice."""
+
     experienced_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day on which the experience happened, not an instant.
 
@@ -167,6 +206,10 @@ class Plan(
         UniqueConstraint("id", "space_id", name="uq_plans_id_space_id"),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
+        CheckConstraint(
+            "discreet_title_mode IN ('PREVIEW', 'ORIGINAL')",
+            name="discreet_title_mode_is_known",
+        ),
         # A schedule has exactly one semantic start representation. Keeping the
         # two columns mutually exclusive makes date-only versus timed explicit
         # at the persistence boundary and prevents timezone inference later.

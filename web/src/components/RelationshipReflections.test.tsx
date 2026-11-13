@@ -431,3 +431,27 @@ describe('Pro relationship passport', () => {
     ).toBeTruthy();
   });
 });
+
+describe('Discreet Plan countdown (#1790 F3)', () => {
+  it('shows the neutral list title and the lock only', () => {
+    render(
+      <MemoryRouter>
+        <AnticipationCard
+          value={{
+            planId: 'plan-1',
+            title: '',
+            daysRemaining: 8,
+            eventOn: new Date('2099-11-21'),
+            concealed: true,
+          }}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(i18n.t('discreetPlans.fallbackTitle')),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('img', { name: i18n.t('discreetPlans.lockLabel') }),
+    ).toBeTruthy();
+  });
+});

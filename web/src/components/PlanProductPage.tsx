@@ -1,17 +1,6 @@
 import './FreeComposer.css';
 import './PagePlanComposer.css';
 import './PageComposerDetail.css';
-import { createPortal } from 'react-dom';
-import {
-  ComposerDescriptionField,
-  ComposerTool,
-  ComposerToolRow,
-} from './PageComposer';
-import { PlaceChoicePicker } from './PlaceChoicePicker';
-import { MomentMapLink } from './MomentMapLink';
-import { photoPlaceMapUrl } from '../client/photoPlaces';
-import { useTransientFlag } from './useTransientFlag';
-import { NativeDateInput } from './NativeDateField';
 import {
   onlineManager,
   useIsMutating,
@@ -22,18 +11,26 @@ import {
 import {
   type FormEvent,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import {
+  calendarPresentation,
+  discreetTitleSuggestions,
+  planListTitle,
+} from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
+import { photoPlaceMapUrl } from '../client/photoPlaces';
 import {
   planScheduleLabel,
   planStatusWord,
@@ -62,11 +59,29 @@ import { usePlanFileDrafts } from '../client/usePlanFileDrafts';
 import { planPhotos, usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import { ComposerDateContext } from './ComposerDateContext';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { ContextTagList } from './ContextTagList';
+import {
+  type DiscreetDraft,
+  DiscreetLock,
+  DiscreetPlanEditor,
+  useDiscreetReveal,
+} from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { ExpandableDescription } from './ExpandableDescription';
-import { ComposerHeader } from './StoryFormPageShell';
-import { ComposerDateContext } from './ComposerDateContext';
+import { MemoryTagChoices } from './MemoryTagChoices';
+import { MomentMapLink } from './MomentMapLink';
+import { NativeDateInput } from './NativeDateField';
+import {
+  ComposerDescriptionField,
+  ComposerTool,
+  ComposerToolRow,
+} from './PageComposer';
+import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanCalendarAction } from './PlanCalendarAction';
+import { PlanCollectionLinks } from './PlanCollectionLinks';
+import { PlanCover } from './PlanCover';
 import { PlanFilesEditor, PlanFilesList } from './PlanFiles';
 import {
   PlanningDiscardConfirmation,
@@ -78,19 +93,18 @@ import {
   PlanScheduleFields,
   type PlanScheduleFieldsHandle,
 } from './PlanScheduleFields';
-import { PlanCollectionLinks } from './PlanCollectionLinks';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PlanStoryLinks } from './PlanStoryLinks';
 import { PlanWishLink } from './PlanWishLink';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
+import { EditPencilIcon } from './ListEntryActions';
+import { ComposerHeader } from './StoryFormPageShell';
 import { TaskBackButton } from './TaskBackButton';
-import { MemoryTagChoices } from './MemoryTagChoices';
-import { ContextTagList } from './ContextTagList';
-import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { UiState } from './UiState';
 import { usePlanCompletion } from './usePlanCompletion';
+import { useTransientFlag } from './useTransientFlag';
 import { WishOriginMark } from './WishJourney';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
@@ -177,6 +191,11 @@ export function PlanProductPage({
     () => true,
   );
   const [anticipation, setAnticipation] = useState(false);
+  const [discreetDraft, setDiscreetDraft] = useState<DiscreetDraft>({
+    discreet: false,
+    titleMode: 'PREVIEW',
+    previewTitle: '',
+  });
   const [selectedPlaceId, setSelectedPlaceId] = useState('');
   const editTitle = useRef<HTMLInputElement>(null);
   const scheduleFields = useRef<PlanScheduleFieldsHandle>(null);
@@ -194,6 +213,18 @@ export function PlanProductPage({
     },
     enabled: Boolean(planId),
     retry: false,
+  });
+  // Per-view reveal: never persisted; conceals again on leave or background.
+  const discreetReveal = useDiscreetReveal(
+    `plan:${spaceId}:${planId}`,
+    Boolean(planQuery.data?.discreet) && !isEditing,
+  );
+  const revealToggle = useRef<HTMLButtonElement>(null);
+  const focusRevealToggle = useRef(false);
+  useLayoutEffect(() => {
+    if (!focusRevealToggle.current) return;
+    focusRevealToggle.current = false;
+    revealToggle.current?.focus();
   });
   const placesQuery = useQuery({
     queryKey: authorSummaryQueryKeys.placeOptions(spaceId),
@@ -403,6 +434,13 @@ export function PlanProductPage({
         placeId: placeId || null,
         experiencedOn: experiencedOn ? dateFromInput(experiencedOn) : undefined,
         anticipationEnabled: anticipation,
+        ...(discreetDraft.discreet || plan.discreet
+          ? {
+              discreet: discreetDraft.discreet,
+              discreetTitleMode: discreetDraft.titleMode,
+              previewTitle: discreetDraft.previewTitle.trim() || null,
+            }
+          : {}),
         ...(plan.status !== 'COMPLETED'
           ? {
               schedule:
@@ -442,10 +480,18 @@ export function PlanProductPage({
   }
 
   const lifecycleError = completion.error || returnMutation.error;
+  // Discreet (#1790 F3): place, description, media, lists and comments stay
+  // out of the DOM until this view is revealed; schedule actions remain.
+  const concealed = discreetReveal.concealed;
+  const toggleReveal = () => {
+    focusRevealToggle.current = true;
+    discreetReveal.toggle();
+  };
 
   const place = listedPlace ?? linkedPlaceQuery.data;
   const placeName = place?.name ?? null;
   const scheduleLabel = planScheduleLabel(plan);
+  const calendar = calendarPresentation(plan, placeName ?? undefined, t);
   const hasSubfacts = Boolean(plan.experiencedOn);
   const showsLifecycle =
     plan.capabilities.canEdit && plan.status !== 'COMPLETED';
@@ -520,6 +566,8 @@ export function PlanProductPage({
                 type="button"
                 ref={editTrigger}
                 className="tertiary composer-detail-edit"
+                aria-label={t('common.edit')}
+                title={t('common.edit')}
                 disabled={writesPending}
                 onClick={() => {
                   if (isPlanWritePending()) return;
@@ -532,10 +580,18 @@ export function PlanProductPage({
                   setPhotosChanged(false);
                   setRemovedFileIds([]);
                   setAnticipation(plan.anticipationEnabled ?? false);
+                  setDiscreetDraft({
+                    discreet: plan.discreet ?? false,
+                    titleMode: plan.discreetTitleMode ?? 'PREVIEW',
+                    previewTitle: plan.previewTitle ?? '',
+                  });
                   setSelectedPlaceId(plan.placeId ?? '');
                 }}
               >
-                {t('common.edit')}
+                <EditPencilIcon className="list-entry-icon" />
+                <span className="story-detail-edit-label">
+                  {t('common.edit')}
+                </span>
               </button>
             ) : undefined
           }
@@ -548,6 +604,20 @@ export function PlanProductPage({
         </p>
       ) : null}
       {!isEditing ? (
+        plan.discreet ? (
+          <div className="discreet-title-row">
+            <h2 className="page-composer-title plan-detail-title">
+              {concealed ? planListTitle(plan, t) : plan.title}
+            </h2>
+            {concealed && !plan.coverAttachment ? <DiscreetLock /> : null}
+          </div>
+        ) : (
+          <h2 className="page-composer-title plan-detail-title">
+            {plan.title}
+          </h2>
+        )
+      ) : null}
+      {!isEditing ? (
         <section
           className="planning-facts planen-detail-summary"
           aria-label={t('m5s3.plan.scheduleFacts')}
@@ -557,7 +627,13 @@ export function PlanProductPage({
               <EimirIcon name="kalender" />
               {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
             </p>
-            {!isEditing && placeName
+            {!isEditing && placeName && concealed ? (
+              <span className="planen-schedule-place">
+                <EimirIcon name="orte" />
+                <span className="discreet-place-bar" aria-hidden="true" />
+              </span>
+            ) : null}
+            {!isEditing && placeName && !concealed
               ? (() => {
                   const destination = photoPlaceMapUrl(
                     place?.latitude ?? null,
@@ -591,7 +667,10 @@ export function PlanProductPage({
             />
           ) : null}
           {!isEditing && plan.status !== 'COMPLETED' ? (
-            <PlanCalendarAction plan={plan} location={placeName ?? undefined} />
+            <PlanCalendarAction
+              plan={calendar.plan}
+              location={calendar.location}
+            />
           ) : null}
           {plan.status === 'COMPLETED' ? (
             <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
@@ -618,12 +697,23 @@ export function PlanProductPage({
 
       {!isEditing ? (
         <>
-          <PlanPhotoGallery
-            plan={plan}
-            spaceId={spaceId}
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
-          />
+          {concealed ? (
+            <PlanCover
+              plan={plan}
+              spaceId={spaceId}
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              interactive={false}
+              discreet
+            />
+          ) : (
+            <PlanPhotoGallery
+              plan={plan}
+              spaceId={spaceId}
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+            />
+          )}
           {plan.sourceWishId ? (
             <Link
               ref={wishOriginLink}
@@ -635,9 +725,39 @@ export function PlanProductPage({
               </WishOriginMark>
             </Link>
           ) : null}
-          <h2 className="page-composer-title plan-detail-title">
-            {plan.title}
-          </h2>
+          {concealed ? (
+            <section className="discreet-panel">
+              <p>{t('discreetPlans.detail.concealedBody')}</p>
+              <button
+                ref={revealToggle}
+                type="button"
+                className="discreet-reveal-action"
+                onClick={toggleReveal}
+              >
+                <EimirIcon name="eye" />
+                {t('discreetPlans.detail.reveal')}
+              </button>
+            </section>
+          ) : plan.discreet ? (
+            <div className="discreet-conceal-row discreet-revealable">
+              <button
+                ref={revealToggle}
+                type="button"
+                className="secondary discreet-reveal-action"
+                onClick={toggleReveal}
+              >
+                <EimirIcon name="lock" />
+                {t('discreetPlans.detail.conceal')}
+              </button>
+            </div>
+          ) : null}
+          {plan.discreet ? (
+            <p className="sr-only" role="status">
+              {concealed
+                ? t('discreetPlans.detail.concealed')
+                : t('discreetPlans.detail.revealed')}
+            </p>
+          ) : null}
         </>
       ) : null}
       <div className="planning-detail-grid">
@@ -741,7 +861,7 @@ export function PlanProductPage({
                   setEditDirty(true);
                 }}
               />
-              <div className="page-composer-writing">
+              <div className="page-composer-writing composer-authored-surface">
                 <label className="sr-only" htmlFor="plan-edit-title">
                   {t('m5s3.common.title')}
                 </label>
@@ -753,6 +873,7 @@ export function PlanProductPage({
                   className="page-composer-title"
                   required
                   maxLength={200}
+                  placeholder={t('m5s3.plan.titleHint')}
                   defaultValue={plan.title}
                   onChange={(event) => {
                     setEditTitleValue(event.target.value);
@@ -762,6 +883,7 @@ export function PlanProductPage({
                 <ComposerDescriptionField
                   form="plan-edit-form"
                   id="plan-edit-description"
+                  hint={t('m5s3.plan.descriptionPlaceholder')}
                   rows={4}
                   defaultValue={plan.description ?? ''}
                 />
@@ -863,6 +985,15 @@ export function PlanProductPage({
                   }}
                 />
               ) : null}
+              <DiscreetPlanEditor
+                value={discreetDraft}
+                suggestions={discreetTitleSuggestions(editingPlan ?? plan, t)}
+                disabled={writesPending}
+                onChange={(value) => {
+                  setDiscreetDraft(value);
+                  setEditDirty(true);
+                }}
+              />
               {updateMutation.error ? (
                 <ProblemState
                   error={updateMutation.error}
@@ -938,7 +1069,7 @@ export function PlanProductPage({
           </section>
         ) : null}
 
-        {!isEditing && plan.description ? (
+        {!isEditing && !concealed && plan.description ? (
           <div className="planen-section planen-section-content">
             <ExpandableDescription
               text={plan.description}
@@ -950,7 +1081,7 @@ export function PlanProductPage({
           </div>
         ) : null}
 
-        {!isEditing && accessToken ? (
+        {!isEditing && !concealed && accessToken ? (
           <PlanFilesList
             key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
             attachments={mediaApis.attachments}
@@ -961,10 +1092,10 @@ export function PlanProductPage({
             online={online}
           />
         ) : null}
-        {!isEditing ? (
+        {!isEditing && !concealed ? (
           <ContextTagList tags={plan.tags} presentation="composer" />
         ) : null}
-        {!isEditing ? (
+        {!isEditing && !concealed ? (
           <div className="planen-detail-context">
             <PlanCollectionLinks
               key={JSON.stringify([
@@ -1004,7 +1135,7 @@ export function PlanProductPage({
             ) : null}
           </div>
         ) : null}
-        <div hidden={isEditing} className="plan-discussion">
+        <div hidden={isEditing || concealed} className="plan-discussion">
           <CommentsPanel
             inlineComposer
             key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}

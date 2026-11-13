@@ -967,7 +967,7 @@ export function MemoryProductPage({
               <div
                 className={
                   !memory.experienceKind
-                    ? 'composer-writing-surface'
+                    ? 'composer-writing-surface composer-authored-surface'
                     : undefined
                 }
               >
@@ -1359,9 +1359,16 @@ export function MemoryProductPage({
       }
       metadata={
         !memory.experienceKind || hasAuthoredTitle ? (
-          <div className="moment-metadata">
-            {dateContext}
-            {placeContext}
+          <div className="detail-headline">
+            {!memory.experienceKind && hasAuthoredTitle ? (
+              <h2 className="detail-content-title">{memory.title}</h2>
+            ) : null}
+            <div
+              className={`moment-metadata${!memory.experienceKind && !hasAuthoredTitle ? ' moment-metadata-lead' : ''}`}
+            >
+              {dateContext}
+              {placeContext}
+            </div>
           </div>
         ) : undefined
       }
@@ -1429,9 +1436,6 @@ export function MemoryProductPage({
         </TaskOriginLink>
       ) : null}
       {!memory.experienceKind ? mediaContext : null}
-      {!memory.experienceKind && hasAuthoredTitle ? (
-        <h2 className="detail-content-title">{memory.title}</h2>
-      ) : null}
       {(!memory.experienceKind || !memory.experienceAnswers?.length) &&
       memory.body.trim() ? (
         <ExpandableDescription

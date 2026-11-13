@@ -1315,6 +1315,32 @@ code {
   }
 }
 /* A saved read remains understandable while authoritative data refreshes. */
+/* The notice eases closed when live data replaces the saved read. */
+.overview-cache-notice-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--duration-context) var(--easing-standard),
+    opacity var(--duration-context) var(--easing-standard);
+}
+
+.overview-cache-notice-slot[data-open="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.overview-cache-notice-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-cache-notice-slot {
+    transition: none;
+  }
+}
+
 .overview-cache-notice {
   margin-block: var(--space-3);
   padding: var(--space-3) var(--space-4);

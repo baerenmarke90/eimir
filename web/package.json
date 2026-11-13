@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@capacitor/app": "8.1.1",
-    "@capacitor/browser": "8.0.4",
+    "@capacitor/browser": "8.0.5",
     "@capacitor/core": "8.5.2",
     "@dnd-kit/dom": "0.5.3",
     "@dnd-kit/react": "0.5.3",

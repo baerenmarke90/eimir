@@ -8,16 +8,26 @@ import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import './PageComposer.css';
 
+function growDescription(field: HTMLTextAreaElement) {
+  field.style.height = 'auto';
+  field.style.height = `${field.scrollHeight}px`;
+}
+
 export function ComposerDescriptionField({
   id,
   rows = 2,
   ...props
 }: Omit<
   ComponentProps<'textarea'>,
-  'id' | 'name' | 'className' | 'onInput' | 'placeholder'
+  'id' | 'name' | 'className' | 'onInput' | 'placeholder' | 'ref'
 > & { id: string }) {
   const { t } = useTranslation();
   const label = t('m5s3.common.description');
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    if (field?.value) growDescription(field);
+  }, []);
   return (
     <>
       <label className="sr-only" htmlFor={id}>
@@ -25,16 +35,13 @@ export function ComposerDescriptionField({
       </label>
       <textarea
         {...props}
+        ref={fieldRef}
         id={id}
         name="description"
         className="page-composer-prose"
         rows={rows}
         placeholder={label}
-        onInput={(event) => {
-          const field = event.currentTarget;
-          field.style.height = 'auto';
-          field.style.height = `${field.scrollHeight}px`;
-        }}
+        onInput={(event) => growDescription(event.currentTarget)}
       />
     </>
   );

@@ -36,7 +36,7 @@ function startOfDay(value: Date): number {
   return day.getTime();
 }
 
-/** "heute, 9:40" / "gestern, 21:15" for an earlier sample time. */
+/** A today/yesterday label with the time for an earlier sample. */
 export function useDistanceAsOfLabel() {
   const { t } = useTranslation();
   return (asOf: Date, now: Date = new Date()) => {
@@ -56,7 +56,7 @@ export function useDistanceAsOfLabel() {
   };
 }
 
-/** The band as the localized "… zwischen euch" sentence. */
+/** The band as the localized `partnerLocation.distanceBetween` sentence. */
 export function useDistanceText() {
   const { t } = useTranslation();
   return (band: Parameters<typeof formatDistanceBand>[0]) => {

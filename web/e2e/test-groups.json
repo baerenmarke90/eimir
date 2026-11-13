@@ -544,6 +544,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
       "reason": "Feature-owned map photo stacks, real camera motion, finite touch/button browsing, protected/text previews and fullscreen/detail scope return. No always-run expansion."
+    },
+    "partner-location-settings.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 10,
+      "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     }
   }
 }

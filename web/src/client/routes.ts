@@ -169,6 +169,9 @@ export const SETTINGS_CATEGORY_ROUTES = {
   account: `${MORE_SETTINGS_ROUTE}/account`,
 } as const satisfies Record<SettingsCategoryId, string>;
 
+/** Settings › Relationship › Location & distance (#1792). */
+export const PARTNER_LOCATION_SETTINGS_ROUTE = `${SETTINGS_CATEGORY_ROUTES.relationship}/location`;
+
 export function isSettingsCategoryId(
   value: string | undefined,
 ): value is SettingsCategoryId {

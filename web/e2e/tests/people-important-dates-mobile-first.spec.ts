@@ -564,6 +564,24 @@ async function installPeopleApiMocks(
       return;
     }
 
+    // Partner distance (#1792): the Relationship settings read the owner's
+    // own sharing state; a Free Space shares nothing.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-location/settings`
+    ) {
+      await fulfillJson({
+        available: false,
+        level: 'OFF',
+        state: 'OFF',
+        indefinite: false,
+        expiresAt: null,
+        generation: 0,
+        lastPublishedAt: null,
+      });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

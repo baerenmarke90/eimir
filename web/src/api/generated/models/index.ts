@@ -403,6 +403,7 @@ export * from './WirDesignPreferenceView';
 export * from './WishCreate';
 export * from './WishDetail';
 export * from './WishPage';
+export * from './WishPlanReference';
 export * from './WishSelectionCandidateView';
 export * from './WishSelectionOwnView';
 export * from './WishSelectionRoundUpdate';

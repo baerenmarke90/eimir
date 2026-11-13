@@ -62,6 +62,7 @@ export function RouteEntryHandoff(): null {
       taskOriginKey?: unknown;
       inPlaceRouteUpdate?: boolean;
       focusStoryView?: boolean;
+      primaryRootEntry?: boolean;
     } | null;
     const samePath = previousPath.current === location.pathname;
     previousPath.current = location.pathname;
@@ -100,7 +101,11 @@ export function RouteEntryHandoff(): null {
       return () => window.cancelAnimationFrame(frame);
     }
     if (navigationType === 'POP' && !location.hash) return undefined;
-    applyRouteEntryHandoff(location.hash);
+    // Tapping the navigation item of the page already shown scrolls it back
+    // to the start; make that a glide rather than a jump.
+    applyRouteEntryHandoff(location.hash, {
+      smooth: samePath && state?.primaryRootEntry === true,
+    });
     const cleanup = stabilizePlanRouteEntry(location.hash);
     // `location` (not just `.hash`) is the dependency: a pathname-only
     // change between two hash-less routes must still re-run the handoff.

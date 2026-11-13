@@ -21,6 +21,23 @@ describe('applyRouteEntryHandoff', () => {
     expect(scrollToSpy).toHaveBeenCalledWith(0, 0);
   });
 
+  it('glides back to the top when asked to, unless motion is reduced', () => {
+    const matchMedia = (reduce: boolean) =>
+      vi.fn().mockReturnValue({ matches: reduce });
+    window.matchMedia = matchMedia(
+      false,
+    ) as unknown as typeof window.matchMedia;
+    applyRouteEntryHandoff('', { smooth: true });
+    expect(scrollToSpy).toHaveBeenLastCalledWith({
+      top: 0,
+      behavior: 'smooth',
+    });
+
+    window.matchMedia = matchMedia(true) as unknown as typeof window.matchMedia;
+    applyRouteEntryHandoff('', { smooth: true });
+    expect(scrollToSpy).toHaveBeenLastCalledWith(0, 0);
+  });
+
   it('opens the ancestor <details> and reveals the anchor, without moving focus', () => {
     document.body.innerHTML = `
       <details>

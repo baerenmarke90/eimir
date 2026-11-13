@@ -13,10 +13,20 @@
  * choosing a destination must reveal the right create composition without
  * forcing an unrelated focus target or the on-screen keyboard.
  */
-export function applyRouteEntryHandoff(hash: string): void {
+export function applyRouteEntryHandoff(
+  hash: string,
+  { smooth = false }: { smooth?: boolean } = {},
+): void {
   const targetId = hash.replace(/^#/, '');
   if (!targetId) {
-    window.scrollTo(0, 0);
+    // Reselecting the page already shown glides back to its start instead of
+    // jumping; reduced motion keeps the immediate jump.
+    if (
+      smooth &&
+      !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    )
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    else window.scrollTo(0, 0);
     return;
   }
 

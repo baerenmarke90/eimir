@@ -968,8 +968,8 @@ def _seed_planning(
             module_key=dashboard_preferences.DashboardModuleKey.PINNED_COLLECTION.value,
             visible=True,
             item_limit=None,
-            selected_collection_id=weekend.id,
-            selected_collection_id_changed=True,
+            selected_collection_ids=[weekend.id],
+            selected_collection_ids_changed=True,
         )
 
     recipes = collection_service.create_collection(

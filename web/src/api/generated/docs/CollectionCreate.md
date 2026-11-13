@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`kind` | [CollectionKind](CollectionKind.md)
 `title` | string
 
 ## Example
@@ -15,6 +16,7 @@ import type { CollectionCreate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "kind": null,
   "title": null,
 } satisfies CollectionCreate
 

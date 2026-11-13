@@ -98,6 +98,7 @@ export interface ListCollectionsRequest {
     cursor?: string | null;
     limit?: number;
     scope?: CollectionScope;
+    ids?: Array<string> | null;
 }
 
 export interface ReorderCollectionItemsRequest {
@@ -455,6 +456,10 @@ export class CollectionsApi extends runtime.BaseAPI {
 
         if (requestParameters['scope'] != null) {
             queryParameters['scope'] = requestParameters['scope'];
+        }
+
+        if (requestParameters['ids'] != null) {
+            queryParameters['ids'] = requestParameters['ids'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

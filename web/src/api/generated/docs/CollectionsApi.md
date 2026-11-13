@@ -386,7 +386,7 @@ No authorization required
 
 ## listCollections
 
-> CollectionPage listCollections(spaceId, cursor, limit, scope)
+> CollectionPage listCollections(spaceId, cursor, limit, scope, ids)
 
 List Collections
 
@@ -412,6 +412,8 @@ async function example() {
     limit: 56,
     // CollectionScope (optional)
     scope: ...,
+    // Array<string> | Return only these Collections, so several known lists need one request. (optional)
+    ids: ...,
   } satisfies ListCollectionsRequest;
 
   try {
@@ -435,6 +437,7 @@ example().catch(console.error);
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **scope** | `CollectionScope` |  | [Optional] [Defaults to `undefined`] [Enum: OPEN, COMPLETED, ALL] |
+| **ids** | `Array<string>` | Return only these Collections, so several known lists need one request. | [Optional] |
 
 ### Return type
 

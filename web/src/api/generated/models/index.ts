@@ -40,6 +40,7 @@ export * from './CollectionDetail';
 export * from './CollectionItemCreate';
 export * from './CollectionItemDetail';
 export * from './CollectionItemUpdate';
+export * from './CollectionKind';
 export * from './CollectionOrder';
 export * from './CollectionPage';
 export * from './CollectionScope';

@@ -33,6 +33,12 @@ export interface DashboardModulePreferenceUpdate {
     selectedCollectionId?: string | null;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof DashboardModulePreferenceUpdate
+     */
+    selectedCollectionIds?: Array<string>;
+    /**
+     * 
      * @type {boolean}
      * @memberof DashboardModulePreferenceUpdate
      */
@@ -70,6 +76,7 @@ export function DashboardModulePreferenceUpdateFromJSONTyped(json: any, ignoreDi
         
         'itemLimit': json['itemLimit'] == null ? undefined : json['itemLimit'],
         'selectedCollectionId': json['selectedCollectionId'] === undefined ? undefined : json['selectedCollectionId'] === null ? null : json['selectedCollectionId'],
+        'selectedCollectionIds': json['selectedCollectionIds'] == null ? undefined : json['selectedCollectionIds'],
         'visible': json['visible'] == null ? undefined : json['visible'],
     };
 }
@@ -87,6 +94,7 @@ export function DashboardModulePreferenceUpdateToJSONTyped(value?: DashboardModu
         
         'itemLimit': value['itemLimit'],
         'selectedCollectionId': value['selectedCollectionId'],
+        'selectedCollectionIds': value['selectedCollectionIds'],
         'visible': value['visible'],
     };
 }

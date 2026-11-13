@@ -18,6 +18,7 @@ import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/Atta
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { Configuration } from './client/apiConfiguration';
+import { createPartnerLocationApi } from './client/partnerLocation';
 import { AppIconProvider } from './client/appIconContext';
 import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
@@ -86,6 +87,7 @@ import {
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
+  PARTNER_LOCATION_MAP_ROUTE,
   PARTNER_LOCATION_SETTINGS_ROUTE,
   PLACE_DETAIL_ROUTE_PATTERN,
   PLAN_CREATE_ROUTE,
@@ -162,6 +164,7 @@ import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { OnceMessagesPage } from './components/OnceMessages';
 import { OurMomentsGamePage } from './components/OurMomentsGamePage';
+import { PartnerLocationMapPage } from './components/PartnerLocationMapPage';
 import { PartnerLocationOnboarding } from './components/PartnerLocationOnboarding';
 import { PartnerLocationSettingsPage } from './components/PartnerLocationSettingsPage';
 import { PartnerLocationSync } from './components/PartnerLocationSync';
@@ -369,6 +372,10 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const partnerLocationApi = useMemo(
+    () => createPartnerLocationApi(apiBaseUrl, tokens.accessToken),
+    [apiBaseUrl, tokens.accessToken],
+  );
   const dailyCheckInsApi = useMemo(
     () =>
       new DailyCheckInsApi(
@@ -521,6 +528,7 @@ function AuthenticatedApp({
           loadMemoryImage={loadMemoryImage}
           profilesApi={profilesApi}
           account={account}
+          partnerLocationApi={partnerLocationApi}
         />
       ),
     },
@@ -898,6 +906,18 @@ function AuthenticatedApp({
                   account={account}
                   spaceId={spaceId}
                   devicePush={devicePush}
+                />
+              }
+            />
+            <Route
+              path={PARTNER_LOCATION_MAP_ROUTE}
+              element={
+                <PartnerLocationMapPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                  profilesApi={profilesApi}
                 />
               }
             />

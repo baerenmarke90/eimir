@@ -1,0 +1,144 @@
+/* Partner distance signal inside the Wir couple hero (#1792). */
+
+.partner-distance-signal {
+  --partner-distance-current-surface: var(--color-shared-surface);
+  --partner-distance-current-accent: var(--color-shared);
+  --partner-distance-earlier-surface: var(--color-surface-subtle);
+  --partner-distance-missing-surface: color-mix(
+    in srgb,
+    var(--color-warning) 16%,
+    var(--color-surface)
+  );
+  --partner-distance-missing-accent: var(--color-warning);
+
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+  margin-top: var(--space-2);
+  animation: partner-distance-enter var(--duration-transition)
+    var(--easing-enter) both;
+}
+
+.partner-distance-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1) var(--space-2);
+  max-width: 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--partner-distance-current-surface);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+
+.partner-distance-visual {
+  display: contents;
+}
+
+.partner-distance-value {
+  font-weight: 650;
+}
+
+.partner-distance-meta {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.partner-distance-glyph {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.partner-distance-glyph.is-heart {
+  fill: var(--partner-distance-current-accent);
+  stroke: none;
+  color: var(--partner-distance-current-accent);
+}
+
+.partner-distance-glyph.is-chevron {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.partner-distance-line.is-earlier {
+  background: var(--partner-distance-earlier-surface);
+  color: var(--color-text-secondary);
+}
+
+.partner-distance-line.is-earlier .partner-distance-value {
+  font-weight: 550;
+}
+
+.partner-distance-line.is-own-missing {
+  background: var(--partner-distance-missing-surface);
+}
+
+.partner-distance-line.is-own-missing .partner-distance-glyph {
+  color: var(--partner-distance-missing-accent);
+}
+
+a.partner-distance-line:hover {
+  background: color-mix(
+    in srgb,
+    var(--color-text) 6%,
+    var(--partner-distance-current-surface)
+  );
+}
+
+a.partner-distance-line.is-earlier:hover {
+  background: color-mix(
+    in srgb,
+    var(--color-text) 6%,
+    var(--partner-distance-earlier-surface)
+  );
+}
+
+a.partner-distance-line.is-own-missing:hover {
+  background: color-mix(
+    in srgb,
+    var(--color-text) 6%,
+    var(--partner-distance-missing-surface)
+  );
+}
+
+a.partner-distance-line:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@keyframes partner-distance-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-distance-signal {
+    animation: none;
+  }
+
+  .partner-distance-line {
+    transition: none;
+  }
+}

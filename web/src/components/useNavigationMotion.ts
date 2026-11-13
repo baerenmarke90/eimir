@@ -8,6 +8,7 @@ const EDGE_INSET = 24;
 const DIRECTION_SLOP = 10;
 const HORIZONTAL_BIAS = 1.25;
 const ENTRY_OPACITY = 0.92;
+const RETURN_SLIDE = 32;
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 // Count only page-level loading states and the visible overview panel.
 // A kept primary tab renders its page inside a visible tab panel.
@@ -270,6 +271,7 @@ export function useNavigationMotion({
   routeKey,
   skipEntry = false,
   createEntry = false,
+  returning = false,
   onNavigate,
 }: {
   surfaceRef: RefObject<HTMLElement | null>;
@@ -277,12 +279,17 @@ export function useNavigationMotion({
   routeKey: string;
   skipEntry?: boolean;
   createEntry?: boolean;
+  /** The route change is a Back/return to where the person came from. */
+  returning?: boolean;
   onNavigate: (root: string) => void;
 }): void {
   const navigateRef = useRef(onNavigate);
   navigateRef.current = onNavigate;
   const currentRoute = useRef(routeKey);
   currentRoute.current = routeKey;
+  // Read when the route changes; it must not restart a running motion itself.
+  const returningRef = useRef(returning);
+  returningRef.current = returning;
   const suppressClick = useRef(false);
   const previousPath = useRef(pathname);
   const mainMotionCleanup = useRef<(() => void) | null>(null);
@@ -321,8 +328,13 @@ export function useNavigationMotion({
 
     // Start the root handoff on the committed destination, even if it still
     // displays loading UI. The content reveal below waits for usable data.
+    // Going back mirrors going forward: the page comes in from the side it
+    // was left on instead of cutting in. Only the page's horizontal offset
+    // moves, so scroll restoration keeps its own coordinates.
     if (tabDirection)
       animatePageSlide(surface, pageSlideCleanup, tabDirection * 32);
+    else if (returningRef.current)
+      animatePageSlide(surface, pageSlideCleanup, -RETURN_SLIDE);
 
     const arrive = () => {
       if (surface.hasAttribute('data-primary-tab-dragging')) return;

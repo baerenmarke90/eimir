@@ -2736,6 +2736,13 @@
       "days_other": "{{count}} good days",
       "note": "Only days you both checked in are counted."
     },
+    "quote": "{{name}}: “{{text}}”",
+    "quoteAnonymous": "“{{text}}”",
+    "mutualReaction": {
+      "LOVE": "You both loved this photo",
+      "LAUGH": "You both laughed at this photo",
+      "CELEBRATE": "You both celebrated this photo"
+    },
     "gestureHint": "Tap to turn the page · Hold to pause",
     "previous": "Previous page",
     "next": "Next page",

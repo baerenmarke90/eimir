@@ -264,6 +264,7 @@ export * from './RecapMoodBucketView';
 export * from './RecapMoodView';
 export * from './RecapOverview';
 export * from './RecapPeriod';
+export * from './RecapQuoteView';
 export * from './RecapReflectionUpdate';
 export * from './RecapReflectionView';
 export * from './RecapRequest';

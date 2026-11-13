@@ -1016,6 +1016,40 @@ function RecapReader({
                       source.excerpt !== source.title ? (
                         <p className="recap-original-text">{source.excerpt}</p>
                       ) : null}
+                      {source.available && source.quote ? (
+                        <blockquote className="recap-quote">
+                          <p>
+                            {source.quote.authorName
+                              ? t('recaps.quote', {
+                                  name: source.quote.authorName,
+                                  text: source.quote.text,
+                                })
+                              : t('recaps.quoteAnonymous', {
+                                  text: source.quote.text,
+                                })}
+                          </p>
+                        </blockquote>
+                      ) : null}
+                      {source.available &&
+                      scene.type === 'highlight' &&
+                      scene.layout === 'photo' &&
+                      source.mutualReaction ? (
+                        <p className="recap-reaction-line">
+                          {source.mutualReaction === 'LOVE' ? (
+                            <svg
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                              focusable="false"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M12 21.2 10.6 20C5.4 15.3 2 12.2 2 8.4 2 5.4 4.4 3 7.4 3c1.7 0 3.4.8 4.6 2.1C13.2 3.8 14.9 3 16.6 3 19.6 3 22 5.4 22 8.4c0 3.8-3.4 6.9-8.6 11.6L12 21.2Z"
+                              />
+                            </svg>
+                          ) : null}
+                          {t(`recaps.mutualReaction.${source.mutualReaction}`)}
+                        </p>
+                      ) : null}
                       {source.available ? (
                         <Link
                           className="recap-text-link"

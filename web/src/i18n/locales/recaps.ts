@@ -82,6 +82,13 @@ export default {
     days_other: '{{count}} gute Tage',
     note: 'Gezählt werden nur Tage, an denen ihr beide euren Tag festgehalten habt.',
   },
+  quote: '{{name}}: „{{text}}“',
+  quoteAnonymous: '„{{text}}“',
+  mutualReaction: {
+    LOVE: 'Dieses Foto habt ihr beide geliebt',
+    LAUGH: 'Bei diesem Foto habt ihr beide gelacht',
+    CELEBRATE: 'Dieses Foto habt ihr beide gefeiert',
+  },
   gestureHint: 'Tippen zum Blättern · Halten zum Pausieren',
   previous: 'Vorherige Seite',
   next: 'Nächste Seite',

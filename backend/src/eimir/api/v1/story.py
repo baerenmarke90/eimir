@@ -33,6 +33,7 @@ from eimir.api.v1.memories import (
     MemoryAttachmentSummary,
     project_experience_answers,
 )
+from eimir.api.v1.rediscovery import RediscoveryContext, project_rediscovery
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, readable, visibility_of
@@ -194,6 +195,8 @@ class DiscoverSelection(ApiModel):
     lead: StoryItem | None
     items: list[StoryItem]
     lead_context: DiscoverLeadContext | None = None
+    # Additive (#1790 C2): wording facts for the featured lead card.
+    lead_rediscovery: RediscoveryContext | None = None
 
 
 class StoryViewReceipt(ApiModel):
@@ -383,6 +386,7 @@ def get_story_discover(
         lead=lead,
         items=items,
         lead_context=lead_context,
+        lead_rediscovery=_lead_rediscovery(session, authorization, lead),
     )
 
 
@@ -410,6 +414,7 @@ def renew_story_discover(
         lead=lead,
         items=projected[1:] if projected else [],
         lead_context=_lead_context(result.selection_date, lead, result.rows),
+        lead_rediscovery=_lead_rediscovery(session, authorization, lead),
     )
 
 
@@ -732,6 +737,17 @@ def _story_item_identity(item: StoryItem) -> tuple[StoryKind, UUID]:
     if item.root.kind is StoryKind.HEART_MOMENT:
         return item.root.kind, item.root.heart_moment.id
     return item.root.kind, item.root.milestone.id
+
+
+def _lead_rediscovery(
+    session: DbSession,
+    authorization: Authorization,
+    lead: StoryItem | None,
+) -> RediscoveryContext | None:
+    if lead is None:
+        return None
+    kind, item_id = _story_item_identity(lead)
+    return project_rediscovery(session, authorization, kind.value, item_id)
 
 
 def _lead_context(

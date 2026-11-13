@@ -18,6 +18,7 @@ def test_discover_contract_is_finite_and_minimal() -> None:
         "lead",
         "items",
         "leadContext",
+        "leadRediscovery",
     }
     assert selection["properties"]["lead"]["anyOf"][0] == {"$ref": "#/components/schemas/StoryItem"}
     assert selection["properties"]["items"]["items"] == {"$ref": "#/components/schemas/StoryItem"}

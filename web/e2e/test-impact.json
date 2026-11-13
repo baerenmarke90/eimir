@@ -652,6 +652,15 @@
         "web/src/components/MilestoneProductPage.tsx"
       ]
     },
+    "rediscovery-wording.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/RediscoveryWording.tsx",
+        "web/src/components/rediscoverySelection.ts",
+        "web/src/i18n/locales/rediscovery.ts"
+      ]
+    },
     "relationship-reflections.spec.ts": {
       "roots": [
         "web/src/components/RelationshipPassport.tsx",

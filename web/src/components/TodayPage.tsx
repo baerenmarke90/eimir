@@ -5,6 +5,7 @@ import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -100,6 +101,7 @@ import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import { WirPartnerDistance } from './PartnerDistanceLine';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import {
@@ -751,6 +753,7 @@ export function TodayPage({
   collectionsApi,
   account,
   recapMediaApis,
+  partnerLocationApi,
 }: {
   apis: M4ProductApis;
   apiBaseUrl?: string;
@@ -768,6 +771,11 @@ export function TodayPage({
   profilesApi?: ProfilesApi;
   account?: AccountView | null;
   recapMediaApis?: ReferenceApis;
+  /** Partner distance on the couple hero (#1792). */
+  partnerLocationApi?: Pick<
+    PartnerLocationApi,
+    'getPartnerDistance' | 'getPartnerLocationMap'
+  >;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
@@ -1299,6 +1307,17 @@ export function TodayPage({
       primaryAvatarAction={dailyCheckIn?.ownAction}
       primaryAvatarAdornment={dailyCheckIn?.ownBadge}
       secondaryAvatarAdornment={dailyCheckIn?.partnerBadge}
+      signal={
+        partner && account?.id && partnerLocationApi ? (
+          <WirPartnerDistance
+            api={partnerLocationApi}
+            entitlementApi={entitlementApi}
+            instance={apiBaseUrl ?? ''}
+            accountId={account.id}
+            spaceId={spaceId}
+          />
+        ) : undefined
+      }
     />
   );
 

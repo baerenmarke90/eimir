@@ -549,6 +549,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 10,
       "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
+    },
+    "partner-distance-wir.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11,
+      "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     }
   }
 }

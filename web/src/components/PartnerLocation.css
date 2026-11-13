@@ -374,3 +374,19 @@
     animation: none;
   }
 }
+
+/* Settings › Wir: viewer-side distance display preference. */
+.partner-distance-wir-option {
+  margin-top: var(--space-3);
+}
+
+.partner-distance-wir-label {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.partner-distance-wir-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}

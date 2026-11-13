@@ -49,6 +49,57 @@ export interface MapLocation extends MapPoint {
   preview?: ReactNode;
 }
 
+/**
+ * An approximate area, not a pin (#1792): a circle of at least the disclosed
+ * radius with an optional decorative marker in its centre. Areas frame the
+ * map once; later updates never move the camera.
+ */
+export interface MapArea extends MapPoint {
+  id: string;
+  radiusMeters: number;
+  marker?: ReactNode;
+  tone: 'partner' | 'own';
+}
+
+const EARTH_CIRCUMFERENCE_M = 40_075_016.686;
+const VECTOR_TILE_SIZE = 512;
+const METERS_PER_DEGREE_LATITUDE = 111_320;
+/** Keeps area avatars clear of the edges and of a top-right map tool. */
+const AREA_PADDING = { top: 88, right: 56, bottom: 56, left: 56 };
+
+/**
+ * A far-out camera never shrinks an area below a visible halo around its
+ * marker; that only ever looks coarser than the disclosed radius.
+ */
+const MIN_AREA_DIAMETER_PX = 76;
+
+/** On-screen diameter of a ground radius at the current camera. */
+function areaDiameterPx(map: MapLibreMap, area: MapArea): number {
+  if (area.radiusMeters <= 0) return 0;
+  const metersPerPixel =
+    (EARTH_CIRCUMFERENCE_M * Math.cos((area.latitude * Math.PI) / 180)) /
+    (VECTOR_TILE_SIZE * 2 ** map.getZoom());
+  return Math.max(
+    MIN_AREA_DIAMETER_PX,
+    (2 * area.radiusMeters) / metersPerPixel,
+  );
+}
+
+function areaBounds(areas: readonly MapArea[]): LngLatBounds | null {
+  if (!areas.length) return null;
+  const bounds = new LngLatBounds();
+  for (const area of areas) {
+    const dLat = area.radiusMeters / METERS_PER_DEGREE_LATITUDE;
+    const dLng =
+      area.radiusMeters /
+      (METERS_PER_DEGREE_LATITUDE *
+        Math.max(0.01, Math.cos((area.latitude * Math.PI) / 180)));
+    bounds.extend([area.longitude - dLng, area.latitude - dLat]);
+    bounds.extend([area.longitude + dLng, area.latitude + dLat]);
+  }
+  return bounds;
+}
+
 /** How long overlaid map tools stay hidden after the last gesture. */
 const USER_MOTION_REST_MS = 1500;
 
@@ -113,6 +164,9 @@ export default function PlaceMapCanvas({
   initialViewport,
   onViewportChange,
   onUserMotionChange,
+  areas,
+  showAreasRequest = 0,
+  ariaLabel,
 }: {
   value?: MapPoint;
   focus?: MapPoint;
@@ -123,6 +177,10 @@ export default function PlaceMapCanvas({
   onViewportChange?: (viewport: MapViewport) => void;
   /** True while the viewer pans or zooms, and for a moment after they stop. */
   onUserMotionChange?: (moving: boolean) => void;
+  areas?: readonly MapArea[];
+  /** Increment to frame all areas again (an explicit "show us"). */
+  showAreasRequest?: number;
+  ariaLabel?: string;
 }) {
   const { t } = useTranslation();
   const container = useRef<HTMLDivElement>(null);
@@ -152,6 +210,16 @@ export default function PlaceMapCanvas({
   const updateFrame = useRef<(() => void) | null>(null);
   const cameraMoving = useRef(false);
   const finishCamera = useRef<(() => void) | null>(null);
+  const [areaHosts, setAreaHosts] = useState<
+    { id: string; host: HTMLElement; marker: ReactNode }[]
+  >([]);
+  const areaEntries = useRef(
+    new Map<string, { marker: Marker; circle: HTMLElement; area: MapArea }>(),
+  );
+  const areasFramed = useRef(false);
+  const framePadding = useRef<number | typeof AREA_PADDING>(40);
+  const areasRef = useRef(areas);
+  areasRef.current = areas;
   const markers = useRef(
     new Map<
       string,
@@ -189,6 +257,14 @@ export default function PlaceMapCanvas({
       }),
       'bottom-right',
     );
+    const sizeAreas = () => {
+      for (const entry of areaEntries.current.values()) {
+        const diameter = areaDiameterPx(map, entry.area);
+        entry.circle.style.width = `${diameter}px`;
+        entry.circle.style.height = `${diameter}px`;
+      }
+    };
+    map.on('zoom', sizeAreas);
     // A missing tile (HTTP 404) is an empty area; aborted requests are
     // ordinary pan/zoom cancellation. Everything else is a real outage.
     map.on('error', (event: ErrorEvent) => {
@@ -235,7 +311,7 @@ export default function PlaceMapCanvas({
           });
         else if (bounds.current && autoFrame.current)
           map.fitBounds(bounds.current, {
-            padding: 40,
+            padding: framePadding.current,
             maxZoom: toMapZoom(OVERVIEW_MAX_ZOOM),
             animate: false,
           });
@@ -303,6 +379,8 @@ export default function PlaceMapCanvas({
       motion?.removeEventListener('change', motionChanged);
       map.remove();
       markers.current.clear();
+      areaEntries.current.clear();
+      areasFramed.current = false;
       cameraMoving.current = false;
       finishCamera.current = null;
       mapRef.current = null;
@@ -411,6 +489,89 @@ export default function PlaceMapCanvas({
     fittedGeometry.current = geometry;
   }, [locations, t]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Locale changes recreate the map and must restore its areas.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const liveIds = new Set(areas?.map(({ id }) => id));
+    for (const [id, entry] of areaEntries.current) {
+      if (liveIds.has(id)) continue;
+      entry.marker.remove();
+      areaEntries.current.delete(id);
+    }
+    const hosts = [];
+    for (const area of areas ?? []) {
+      let entry = areaEntries.current.get(area.id);
+      if (!entry) {
+        const element = document.createElement('div');
+        element.className = `place-map-area is-${area.tone}`;
+        // The page carries the text alternative; the drawing is decorative.
+        element.setAttribute('aria-hidden', 'true');
+        const circle = document.createElement('span');
+        circle.className = 'place-map-area-circle';
+        const host = document.createElement('span');
+        host.className = 'place-map-area-marker';
+        element.append(circle, host);
+        const marker = new Marker({ element })
+          .setLngLat(lngLat(area))
+          .addTo(map);
+        entry = { marker, circle, area };
+        areaEntries.current.set(area.id, entry);
+      }
+      entry.area = area;
+      entry.marker.setLngLat(lngLat(area));
+      const diameter = areaDiameterPx(map, area);
+      entry.circle.style.width = `${diameter}px`;
+      entry.circle.style.height = `${diameter}px`;
+      const host = entry.marker
+        .getElement()
+        .querySelector<HTMLElement>('.place-map-area-marker');
+      if (host) hosts.push({ id: area.id, host, marker: area.marker });
+    }
+    setAreaHosts(hosts);
+    // Frame the first areas once; data refreshes never re-centre the map.
+    if (
+      !areasFramed.current &&
+      areas?.length &&
+      !locations?.length &&
+      !focusRef.current &&
+      !restoredViewport.current
+    ) {
+      areasFramed.current = true;
+      framePadding.current = AREA_PADDING;
+      bounds.current = areaBounds(areas);
+      autoFrame.current = true;
+      updateFrame.current?.();
+    }
+  }, [areas, t]);
+
+  // An explicit "show us" frames the areas again, with reduced-motion snap.
+  useEffect(() => {
+    const map = mapRef.current;
+    const current = areasRef.current;
+    if (!map || !showAreasRequest || !current?.length) return;
+    const target = areaBounds(current);
+    if (!target) return;
+    map.stop();
+    const options = {
+      padding: AREA_PADDING,
+      maxZoom: toMapZoom(OVERVIEW_MAX_ZOOM),
+    };
+    const duration = container.current
+      ? cssDurationMilliseconds(
+          getComputedStyle(container.current).getPropertyValue(
+            '--duration-map-camera',
+          ),
+        )
+      : 0;
+    const reduced = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    if (reduced || !duration)
+      map.fitBounds(target, { ...options, animate: false });
+    else map.fitBounds(target, { ...options, duration, essential: true });
+  }, [showAreasRequest]);
+
   // An explicit Place selection owns the frame. User panning and later layout
   // changes do not repeatedly steal it; clearing the filter restores bounds.
   // biome-ignore lint/correctness/useExhaustiveDependencies: Locale changes recreate the map instance.
@@ -471,13 +632,17 @@ export default function PlaceMapCanvas({
       {markerHosts.map(({ id, host, preview }) =>
         createPortal(preview, host, id),
       )}
+      {areaHosts.map(({ id, host, marker }) =>
+        createPortal(marker, host, `area:${id}`),
+      )}
       <div
         ref={container}
         className="place-map-viewport"
         role="application"
-        aria-label={t(
-          onSelect ? 'm5s3.map.keyboardHelp' : 'memoryMap.keyboardHelp',
-        )}
+        aria-label={
+          ariaLabel ??
+          t(onSelect ? 'm5s3.map.keyboardHelp' : 'memoryMap.keyboardHelp')
+        }
       />
       {onSelect ? (
         <button

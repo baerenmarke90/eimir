@@ -8444,6 +8444,97 @@
         "title": "PreferenceSentiment",
         "type": "string"
       },
+      "PresenceDeviceCredentialRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "description": "Random installation identifier generated on the device.",
+            "format": "uuid",
+            "title": "Deviceid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceId"
+        ],
+        "title": "PresenceDeviceCredentialRequest",
+        "type": "object"
+      },
+      "PresenceDeviceCredentialView": {
+        "description": "Returned once; only its hash is stored. It can only publish this owner's snapshot.",
+        "properties": {
+          "consentGeneration": {
+            "title": "Consentgeneration",
+            "type": "integer"
+          },
+          "credential": {
+            "title": "Credential",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "credential",
+          "expiresAt",
+          "consentGeneration"
+        ],
+        "title": "PresenceDeviceCredentialView",
+        "type": "object"
+      },
+      "PresenceDevicePublish": {
+        "additionalProperties": false,
+        "properties": {
+          "accuracyMeters": {
+            "maximum": 50000.0,
+            "minimum": 0.0,
+            "title": "Accuracymeters",
+            "type": "number"
+          },
+          "capturedAt": {
+            "format": "date-time",
+            "title": "Capturedat",
+            "type": "string"
+          },
+          "latitude": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude",
+            "type": "number"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude",
+          "capturedAt",
+          "accuracyMeters"
+        ],
+        "title": "PresenceDevicePublish",
+        "type": "object"
+      },
+      "PresenceDevicePublishResult": {
+        "properties": {
+          "active": {
+            "description": "False when sharing stopped; the device must disable background updates.",
+            "title": "Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active"
+        ],
+        "title": "PresenceDevicePublishResult",
+        "type": "object"
+      },
       "PresencePosition": {
         "additionalProperties": false,
         "properties": {
@@ -17521,6 +17612,88 @@
         "summary": "Update Own Notification Preference",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/partner-location/device-snapshot": {
+      "put": {
+        "description": "Background upload authorized only by a scoped presence device credential.",
+        "operationId": "publishPartnerLocationDeviceSnapshot",
+        "parameters": [
+          {
+            "description": "`Presence <credential>` from issuePartnerLocationDeviceCredential.",
+            "in": "header",
+            "name": "Authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`Presence <credential>` from issuePartnerLocationDeviceCredential.",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresenceDevicePublish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresenceDevicePublishResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Publish Partner Location Device Snapshot",
+        "tags": [
+          "partner-location"
         ]
       }
     },
@@ -30741,6 +30914,175 @@
         "summary": "Open Message",
         "tags": [
           "once-messages"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-location/device-credential": {
+      "put": {
+        "description": "Issue this device's background-upload credential for the caller's active share.",
+        "operationId": "issuePartnerLocationDeviceCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresenceDeviceCredentialRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresenceDeviceCredentialView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Issue Partner Location Device Credential",
+        "tags": [
+          "partner-location"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-location/device-credential/{deviceId}": {
+      "delete": {
+        "description": "Stop background uploads from this device; never requires Premium.",
+        "operationId": "revokePartnerLocationDeviceCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Deviceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Revoke Partner Location Device Credential",
+        "tags": [
+          "partner-location"
         ]
       }
     },

@@ -25,7 +25,12 @@ from eimir.core.errors import ConflictError, PremiumEntitlementRequiredError, Va
 from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import Capability
 from eimir.presence import geo
-from eimir.presence.models import PartnerLocationConsent, PresenceSnapshot, SharingLevel
+from eimir.presence.models import (
+    PartnerLocationConsent,
+    PresenceDeviceCredential,
+    PresenceSnapshot,
+    SharingLevel,
+)
 from eimir.relationship.models import Membership, MembershipStatus
 
 CAPABILITY = Capability.PRESENCE_LOCATION.value
@@ -53,6 +58,7 @@ class PartnerLocationErrorCode:
     INVALID_DURATION = "partner_location_invalid_duration"
     INVALID_CAPTURE_TIME = "partner_location_invalid_capture_time"
     FEATURE_DISABLED = "partner_location_disabled"
+    NOT_SHARING = "partner_location_not_sharing"
 
 
 @dataclass(frozen=True)
@@ -90,9 +96,7 @@ def feature_enabled() -> bool:
     return get_settings().partner_location_enabled
 
 
-def _active_partner_account_id(
-    session: Session, authorization: AuthorizationContext
-) -> UUID | None:
+def active_partner_account_id(session: Session, authorization: AuthorizationContext) -> UUID | None:
     return session.execute(
         select(Membership.account_id)
         .where(
@@ -105,7 +109,7 @@ def _active_partner_account_id(
     ).scalar_one_or_none()
 
 
-def _consent(
+def consent_row(
     session: Session, space_id: UUID, account_id: UUID, *, lock: bool = False
 ) -> PartnerLocationConsent | None:
     statement = select(PartnerLocationConsent).where(
@@ -126,11 +130,18 @@ def _snapshot(session: Session, space_id: UUID, account_id: UUID) -> PresenceSna
     ).scalar_one_or_none()
 
 
-def _delete_snapshot(session: Session, space_id: UUID, account_id: UUID) -> None:
+def delete_owner_presence(session: Session, space_id: UUID, account_id: UUID) -> None:
+    """Remove the owner's snapshot and every background credential for it."""
     session.execute(
         delete(PresenceSnapshot).where(
             PresenceSnapshot.space_id == space_id,
             PresenceSnapshot.account_id == account_id,
+        )
+    )
+    session.execute(
+        delete(PresenceDeviceCredential).where(
+            PresenceDeviceCredential.space_id == space_id,
+            PresenceDeviceCredential.account_id == account_id,
         )
     )
 
@@ -152,7 +163,7 @@ def consent_state(
     return SharingState.ACTIVE
 
 
-def _entitled(session: Session, space_id: UUID, *, lock: bool) -> bool:
+def has_presence_capability(session: Session, space_id: UUID, *, lock: bool) -> bool:
     return entitlement_service.has_capability(session, space_id, CAPABILITY, lock_grants=lock)
 
 
@@ -177,6 +188,9 @@ def suspend_space(session: Session, space_id: UUID, *, at: datetime) -> int:
         consent.suspended_at = at
         consent.generation += 1
     session.execute(delete(PresenceSnapshot).where(PresenceSnapshot.space_id == space_id))
+    session.execute(
+        delete(PresenceDeviceCredential).where(PresenceDeviceCredential.space_id == space_id)
+    )
     session.flush()
     return len(consents)
 
@@ -189,7 +203,7 @@ def _settings_view(
     at: datetime,
     entitled: bool,
 ) -> SettingsView:
-    partner_id = _active_partner_account_id(session, authorization)
+    partner_id = active_partner_account_id(session, authorization)
     own_snapshot = _snapshot(session, authorization.space_id, authorization.account_id)
     return SettingsView(
         available=feature_enabled() and entitled and partner_id is not None,
@@ -209,8 +223,8 @@ def _settings_view(
 def get_settings_view(session: Session, authorization: AuthorizationContext) -> SettingsView:
     """The owner's own sharing state; readable without entitlement."""
     at = now()
-    entitled = _entitled(session, authorization.space_id, lock=False)
-    consent = _consent(session, authorization.space_id, authorization.account_id)
+    entitled = has_presence_capability(session, authorization.space_id, lock=False)
+    consent = consent_row(session, authorization.space_id, authorization.account_id)
     return _settings_view(session, authorization, consent, at=at, entitled=entitled)
 
 
@@ -224,20 +238,20 @@ def update_settings(
 ) -> SettingsView:
     """Set the owner's sharing level. ``OFF`` is always accepted (non-paywallable)."""
     at = now()
-    consent = _consent(session, authorization.space_id, authorization.account_id, lock=True)
+    consent = consent_row(session, authorization.space_id, authorization.account_id, lock=True)
 
     if level is SharingLevel.OFF:
-        entitled = _entitled(session, authorization.space_id, lock=False)
+        entitled = has_presence_capability(session, authorization.space_id, lock=False)
         if consent is None:
             # Nothing was ever shared: stopping needs no stored decision.
-            _delete_snapshot(session, authorization.space_id, authorization.account_id)
+            delete_owner_presence(session, authorization.space_id, authorization.account_id)
             return _settings_view(session, authorization, None, at=at, entitled=entitled)
         consent.level = SharingLevel.OFF.value
         consent.indefinite = False
         consent.expires_at = None
         consent.suspended_at = None
         consent.generation += 1
-        _delete_snapshot(session, authorization.space_id, authorization.account_id)
+        delete_owner_presence(session, authorization.space_id, authorization.account_id)
         session.flush()
         return _settings_view(session, authorization, consent, at=at, entitled=entitled)
 
@@ -246,9 +260,9 @@ def update_settings(
             "Partner location is disabled on this deployment.",
             code=PartnerLocationErrorCode.FEATURE_DISABLED,
         )
-    if not _entitled(session, authorization.space_id, lock=True):
+    if not has_presence_capability(session, authorization.space_id, lock=True):
         raise PremiumEntitlementRequiredError(CAPABILITY)
-    partner_id = _active_partner_account_id(session, authorization)
+    partner_id = active_partner_account_id(session, authorization)
     if partner_id is None:
         raise ConflictError(
             "Sharing needs a partner in this Space.", code=PartnerLocationErrorCode.NO_PARTNER
@@ -278,7 +292,7 @@ def update_settings(
     consent.indefinite = indefinite
     consent.expires_at = expires_at
     consent.suspended_at = None
-    _delete_snapshot(session, authorization.space_id, authorization.account_id)
+    delete_owner_presence(session, authorization.space_id, authorization.account_id)
     session.flush()
     return _settings_view(session, authorization, consent, at=at, entitled=True)
 
@@ -300,6 +314,7 @@ def publish_snapshot(
     accuracy_meters: float,
     captured_at: datetime,
     consent_generation: int,
+    stale_generation_is_inactive: bool = False,
 ) -> SettingsView:
     """Replace the owner's snapshot when its share is active.
 
@@ -308,18 +323,20 @@ def publish_snapshot(
     """
     at = now()
     _validate_capture_time(captured_at, at)
-    consent = _consent(session, authorization.space_id, authorization.account_id, lock=True)
-    entitled = _entitled(session, authorization.space_id, lock=True)
+    consent = consent_row(session, authorization.space_id, authorization.account_id, lock=True)
+    entitled = has_presence_capability(session, authorization.space_id, lock=True)
     if not feature_enabled():
         return _settings_view(session, authorization, consent, at=at, entitled=entitled)
     if not entitled:
         suspend_space(session, authorization.space_id, at=at)
         return _settings_view(session, authorization, consent, at=at, entitled=False)
-    partner_id = _active_partner_account_id(session, authorization)
+    partner_id = active_partner_account_id(session, authorization)
     if consent_state(consent, current_partner_id=partner_id, at=at) is not SharingState.ACTIVE:
         return _settings_view(session, authorization, consent, at=at, entitled=True)
     assert consent is not None
     if consent.generation != consent_generation:
+        if stale_generation_is_inactive:
+            return _settings_view(session, authorization, consent, at=at, entitled=True)
         raise ConflictError(
             "Sharing settings changed; reload them before publishing.",
             code=PartnerLocationErrorCode.GENERATION_STALE,
@@ -354,10 +371,10 @@ def _readable_partner_snapshot(
     levels: frozenset[str],
     at: datetime,
 ) -> PresenceSnapshot | None:
-    partner_id = _active_partner_account_id(session, authorization)
+    partner_id = active_partner_account_id(session, authorization)
     if partner_id is None:
         return None
-    consent = _consent(session, authorization.space_id, partner_id)
+    consent = consent_row(session, authorization.space_id, partner_id)
     if consent is None or consent.level not in levels:
         return None
     # The partner's consent must name the viewer; consent_state compares the
@@ -379,7 +396,7 @@ def _readable_partner_snapshot(
 def _guard_read(session: Session, authorization: AuthorizationContext, at: datetime) -> bool:
     if not feature_enabled():
         return False
-    if not _entitled(session, authorization.space_id, lock=False):
+    if not has_presence_capability(session, authorization.space_id, lock=False):
         suspend_space(session, authorization.space_id, at=at)
         return False
     return True

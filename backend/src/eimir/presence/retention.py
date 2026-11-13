@@ -21,7 +21,12 @@ from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
 from eimir.presence import service
-from eimir.presence.models import PartnerLocationConsent, PresenceSnapshot, SharingLevel
+from eimir.presence.models import (
+    PartnerLocationConsent,
+    PresenceDeviceCredential,
+    PresenceSnapshot,
+    SharingLevel,
+)
 from eimir.relationship.models import Membership, MembershipStatus
 
 log = logging.getLogger(__name__)
@@ -80,6 +85,10 @@ def purge(
     """Delete unreadable snapshots and suspend unentitled shares; return rows touched."""
     at = current_time or now()
     touched = _deleted(session, delete(PresenceSnapshot).where(PresenceSnapshot.expires_at <= at))
+    touched += _deleted(
+        session,
+        delete(PresenceDeviceCredential).where(PresenceDeviceCredential.expires_at <= at),
+    )
 
     candidates = list(
         session.execute(
@@ -106,13 +115,16 @@ def purge(
         partner_id = _partner_of(session, consent.space_id, consent.account_id)
         state = service.consent_state(consent, current_partner_id=partner_id, at=at)
         if state is not service.SharingState.ACTIVE:
-            touched += _deleted(
-                session,
-                delete(PresenceSnapshot).where(
+            before = session.execute(
+                select(func.count())
+                .select_from(PresenceSnapshot)
+                .where(
                     PresenceSnapshot.space_id == consent.space_id,
                     PresenceSnapshot.account_id == consent.account_id,
-                ),
-            )
+                )
+            ).scalar_one()
+            service.delete_owner_presence(session, consent.space_id, consent.account_id)
+            touched += int(before)
     session.flush()
     return touched
 

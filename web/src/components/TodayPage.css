@@ -1208,6 +1208,47 @@
 }
 
 /*
+ * Cache-to-live continuity. While the page shows its saved read, modules that
+ * only exist for live data keep their place so the authoritative arrival does
+ * not push the content below them down. Heights are estimates of the live
+ * module on a compact screen; they only need to be close.
+ */
+.today-module-placeholder {
+  margin-bottom: var(--space-section);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.today-module-placeholder[data-kind="shared-experience"] {
+  min-height: 11rem;
+}
+
+.today-module-placeholder[data-kind="pinned-collection"] {
+  min-height: 9rem;
+}
+
+.today-module-placeholder[data-kind="story-summary"] {
+  min-height: 7rem;
+}
+
+@keyframes today-module-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.today-module-reveal {
+  animation: today-module-reveal var(--duration-context) var(--easing-enter)
+    both;
+}
+
+/*
  * Reduced motion, last in the file on purpose.
  *
  * `@media` adds no specificity, so this block only wins over the module
@@ -1215,6 +1256,10 @@
  * whenever a new transition is added.
  */
 @media (prefers-reduced-motion: reduce) {
+  .today-module-reveal {
+    animation: none;
+  }
+
   .today-hero-action.active {
     animation: none;
   }

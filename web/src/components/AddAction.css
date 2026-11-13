@@ -128,7 +128,7 @@ button.add-action:disabled {
 
 @media (max-width: 839px) and (prefers-reduced-motion: reduce) {
   :is(button, a).add-action[data-floating-create] {
-    transition: opacity var(--duration-feedback) linear;
+    transition: opacity var(--duration-feedback) var(--easing-standard);
   }
 
   :root[data-floating-create-tucked]

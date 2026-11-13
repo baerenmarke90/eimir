@@ -390,8 +390,7 @@ for (const view of [
     ).toEqual([
       de.more.destinations.media,
       de.more.destinations.chapters,
-      de.more.destinations.years,
-      de.more.destinations.recaps,
+      de.more.destinations.yearsAndRecaps,
       de.more.destinations.insights,
     ]);
     await captureScreenshot(

@@ -816,7 +816,7 @@ test('Diary uses its filter and keeps annual history reachable under More', asyn
     .getByRole('button', { name: productTour.later, exact: true })
     .click();
   const years = page.getByRole('link', {
-    name: de.more.yearsTitle,
+    name: de.more.destinations.yearsAndRecaps,
     exact: true,
   });
   await expect(years).toHaveAttribute('href', '/story/years');

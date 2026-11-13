@@ -379,8 +379,9 @@ for (const premium of [false, true]) {
     await page.setViewportSize({ width: 390, height: 844 });
     await setup(page, premium);
     await page.goto('/more');
+    // #1790 E1: the recaps Pro mark moved to the years index entry.
     await expect(page.locator('.more-destination-badge')).toHaveCount(
-      premium ? 0 : 3,
+      premium ? 0 : 2,
     );
     await expect(page.locator('a[href="/more/insights"]')).toBeVisible();
     await page.locator('h1').click();

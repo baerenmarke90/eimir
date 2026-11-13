@@ -494,8 +494,15 @@ async function setup(
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
     .click();
+  // #1790 E1: Mehr opens years and recaps together; the years index leads on.
   await page
-    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .getByRole('link', {
+      name: de.more.destinations.yearsAndRecaps,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
     .click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),

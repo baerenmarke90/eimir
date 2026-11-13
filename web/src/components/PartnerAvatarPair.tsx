@@ -188,8 +188,7 @@ export function PartnerAvatarPair({
       </>
     );
     return (
-      <div
-        role="group"
+      <section
         className={`partner-avatar-pair partner-avatar-pair-split partner-avatar-pair-${size} status-${status} ${className}`}
         aria-label={accessibleGroupLabel}
       >
@@ -233,14 +232,14 @@ export function PartnerAvatarPair({
           ) : (
             <span
               className="partner-avatar-slot partner-avatar-slot-secondary"
-              role={actionLabel ? 'img' : undefined}
-              aria-label={actionLabel}
+              role="img"
+              aria-label={actionLabel ?? secondaryPerson.displayName}
             >
               {secondaryContent}
             </span>
           )}
         </span>
-      </div>
+      </section>
     );
   }
 

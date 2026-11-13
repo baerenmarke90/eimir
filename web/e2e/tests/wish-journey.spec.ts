@@ -119,7 +119,7 @@ function wishes(state: JourneyState) {
         experiencedOn: state.marketCompleted ? TODAY : null,
       },
     ),
-    wishBody(TRAIN_WISH, 'Mit dem Nachtzug ans Meer', 'PLANNED', {
+    wishBody(TRAIN_WISH, 'Nachtzug-Abenteuer', 'PLANNED', {
       id: TRAIN_PLAN,
       status: 'IDEA',
       plannedOn: null,
@@ -271,7 +271,7 @@ async function installMocks(page: Page): Promise<JourneyState> {
       const scope = url.searchParams.get('overviewScope') ?? 'OPEN';
       const all = [
         marketPlan(state),
-        planBody(TRAIN_PLAN, 'Mit dem Nachtzug ans Meer', TRAIN_WISH),
+        planBody(TRAIN_PLAN, 'Nachtzug-Abenteuer', TRAIN_WISH),
       ];
       return page_(
         all.filter((plan) =>

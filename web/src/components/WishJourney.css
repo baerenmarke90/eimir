@@ -7,7 +7,7 @@
   --wish-journey-dot: var(--space-3);
 }
 
-/* The path stacks vertically when its labels would not fit side by side,
+/* The path stacks vertically when its labels would not fit in one row,
  * e.g. at 200 % text on Compact; em follows the user's text size. */
 .wish-journey {
   container: wish-journey / inline-size;

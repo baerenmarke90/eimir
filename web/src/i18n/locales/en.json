@@ -4551,5 +4551,47 @@
       "mixed_other": "{{count}} photos and videos from this day"
     },
     "separator": " · "
+  },
+  "discreetPlans": {
+    "lockLabel": "Concealed",
+    "fallbackTitle": "Our plan",
+    "openHint": "Open to show",
+    "editor": {
+      "label": "Discreet",
+      "help": "Previews stay concealed until you tap. You both still see everything.",
+      "titleChoice": "Title in lists",
+      "preview": "Preview title",
+      "original": "Original title",
+      "previewTitle": "Preview title",
+      "previewPlaceholder": "Our plan",
+      "suggestionsLabel": "Suggestions",
+      "suggestionsHelp": "Suggestions use only the day, time and duration. Title and description are never read for them.",
+      "originalHelp": "The title stays visible everywhere. Description, place and photos stay concealed until you tap."
+    },
+    "detail": {
+      "concealedBody": "This plan is concealed. You can both look at it any time. It only stays hidden from onlookers.",
+      "reveal": "Show",
+      "conceal": "Conceal again",
+      "revealed": "Plan is shown.",
+      "concealed": "Plan is concealed again."
+    },
+    "suggestions": {
+      "weekend": "Weekend for two",
+      "overnight": "Time away for two",
+      "MORNING": "Morning together",
+      "MIDDAY": "Lunch for two",
+      "AFTERNOON": "Afternoon together",
+      "EVENING": "Date night",
+      "weekdayPart": {
+        "MORNING": "{{weekday}} morning",
+        "MIDDAY": "{{weekday}} lunchtime",
+        "AFTERNOON": "{{weekday}} afternoon",
+        "EVENING": "{{weekday}} evening"
+      },
+      "weekday": "{{weekday}} for two",
+      "together": "Time for us",
+      "day": "A day for us",
+      "plan": "Our plan"
+    }
   }
 }

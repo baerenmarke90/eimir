@@ -461,6 +461,18 @@
         "web/src/components/PlanProductPage.tsx"
       ]
     },
+    "discreet-plans.spec.ts": {
+      "roots": [
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PlanCover.tsx",
+        "web/src/components/DiscreetPlan.tsx",
+        "web/src/components/DiscreetPlan.css",
+        "web/src/components/SensitiveMedia.tsx",
+        "web/src/client/discreetPlans.ts",
+        "web/src/i18n/locales/discreetPlans.ts"
+      ]
+    },
     "plan-cover-layout.spec.ts": {
       "roots": [
         "web/src/components/PlanProductPage.tsx",

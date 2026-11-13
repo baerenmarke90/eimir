@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
   type ReactNode,
@@ -7,12 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import { planListTitle } from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
@@ -39,6 +40,7 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
+import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
@@ -743,6 +745,14 @@ export function SharedPlanningOverviewPage({
   }
 
   function renderPlanPreview(plan: PlanDetail, focal = false) {
+    // Discreet: list title, date and neutral lines only (#1790 F3).
+    const discreet = Boolean(plan.discreet);
+    const coverLock = discreet && Boolean(plan.coverAttachment);
+    const title = (
+      <strong className={focal ? undefined : 'planen-agenda-title'}>
+        {planListTitle(plan, t)}
+      </strong>
+    );
     return (
       <Link
         className={`${focal ? 'planen-next-link' : 'planen-agenda-link'}${plan.coverAttachment ? ' planen-preview-has-cover' : ''}`}
@@ -755,14 +765,20 @@ export function SharedPlanningOverviewPage({
           accessToken={accessToken}
           interactive={false}
           presentation="preview"
+          discreet={discreet}
         />
         <span className={focal ? 'planen-next-copy' : 'planen-agenda-copy'}>
           {plan.sourceWishId && plan.status !== 'COMPLETED' ? (
             <WishOriginMark>{t('wishJourney.planOrigin')}</WishOriginMark>
           ) : null}
-          <strong className={focal ? undefined : 'planen-agenda-title'}>
-            {plan.title}
-          </strong>
+          {discreet && !coverLock ? (
+            <span className="discreet-title-row">
+              {title}
+              <DiscreetLock />
+            </span>
+          ) : (
+            title
+          )}
           <span
             className={
               focal ? 'planen-next-schedule' : 'planen-agenda-schedule'
@@ -776,7 +792,16 @@ export function SharedPlanningOverviewPage({
                 : t('m5s3.overview.completedLabel')
               : planScheduleLabel(plan)}
           </span>
-          {plan.description ? (
+          {discreet ? (
+            <>
+              <DiscreetPlaceholderLines />
+              {focal ? (
+                <span className="discreet-open-hint">
+                  {t('discreetPlans.openHint')}
+                </span>
+              ) : null}
+            </>
+          ) : plan.description ? (
             <span
               className={
                 focal ? 'planen-next-description' : 'planen-agenda-description'
@@ -974,7 +999,14 @@ export function SharedPlanningOverviewPage({
                           {t('wishJourney.planOrigin')}
                         </WishOriginMark>
                       ) : null}
-                      <strong>{plan.title}</strong>
+                      {plan.discreet ? (
+                        <span className="discreet-title-row">
+                          <strong>{planListTitle(plan, t)}</strong>
+                          <DiscreetLock />
+                        </span>
+                      ) : (
+                        <strong>{plan.title}</strong>
+                      )}
                     </span>
                     <span>{t('m5s3.overview.undatedHeading')}</span>
                   </Link>

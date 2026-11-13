@@ -406,6 +406,11 @@
       "baselineTests": 5,
       "reason": "Headerless Compact navigation, More utility discovery, authoritative unread status, safe areas, sign-out and capability gating."
     },
+    "discreet-plans.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "#1790 F3 discreet Plans: Planen shows only the list title, date, lock, neutral lines and a blurred cover; the detail conceals place, prose, tags and comments until a per-view reveal that conceals again in the background; the editor switch below Vorfreude saves preview/original title modes. 360/390/430/1280 px, Light/Dark, large text, reduced motion and axe."
+    },
     "plan-cover-layout.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,

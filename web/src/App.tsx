@@ -22,6 +22,10 @@ import { createPartnerLocationApi } from './client/partnerLocation';
 import { AppIconProvider } from './client/appIconContext';
 import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
+import {
+  stopBrowserPushForSignedOutAccount,
+  useBrowserPush,
+} from './client/browserPush';
 import { loadReferenceClientConfig } from './client/config';
 import { invalidateDashboard } from './client/dashboardQueries';
 import {
@@ -96,6 +100,7 @@ import {
   REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
+  settingsCategoryPath,
   STORY_CHAPTERS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_RECAPS_ROUTE,
@@ -334,6 +339,15 @@ function AuthenticatedApp({
     queryClient,
     spaceId,
   });
+  const browserPush = useBrowserPush({
+    accountId: account.id,
+    apiBaseUrl,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    openNotification: devicePush.openNotification,
+    settingsOpen: location.pathname === settingsCategoryPath('notifications'),
+  });
+  const settingsPush = devicePush.available ? devicePush : browserPush;
   const planningApis = useMemo(
     () => createSharedPlanningApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -905,7 +919,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
-                  devicePush={devicePush}
+                  devicePush={settingsPush}
                 />
               }
             />
@@ -940,7 +954,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
-                  devicePush={devicePush}
+                  devicePush={settingsPush}
                 />
               }
             />
@@ -1189,6 +1203,12 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const terminateSession = useCallback(() => {
     cancelStoryStartupReads();
     stopNativePushForSignedOutAccount();
+    const outgoing = loadStoredSession();
+    if (outgoing)
+      stopBrowserPushForSignedOutAccount({
+        accountId: outgoing.account.id,
+        apiBaseUrl: config.apiBaseUrl,
+      });
     const cleared = clearStoredSession();
     setSpaceId(null);
     setAccount(null);
@@ -1198,7 +1218,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     clearProductReadCacheInBackground();
     clearPublicationMemory();
     return cleared;
-  }, [cancelStoryStartupReads, queryClient]);
+  }, [cancelStoryStartupReads, config.apiBaseUrl, queryClient]);
 
   useEffect(() => {
     if (!initialStoredSession) {

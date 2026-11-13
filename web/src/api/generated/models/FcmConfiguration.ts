@@ -45,6 +45,12 @@ export interface FcmConfiguration {
     localeVersion?: FcmConfigurationLocaleVersionEnum;
     /**
      * 
+     * @type {FcmConfigurationNeutralReferenceVersionEnum}
+     * @memberof FcmConfiguration
+     */
+    neutralReferenceVersion?: FcmConfigurationNeutralReferenceVersionEnum | null;
+    /**
+     * 
      * @type {string}
      * @memberof FcmConfiguration
      */
@@ -82,6 +88,14 @@ export const FcmConfigurationLocaleVersionEnum = {
 } as const;
 export type FcmConfigurationLocaleVersionEnum = typeof FcmConfigurationLocaleVersionEnum[keyof typeof FcmConfigurationLocaleVersionEnum];
 
+/**
+ * @export
+ */
+export const FcmConfigurationNeutralReferenceVersionEnum = {
+    NUMBER_1: 1
+} as const;
+export type FcmConfigurationNeutralReferenceVersionEnum = typeof FcmConfigurationNeutralReferenceVersionEnum[keyof typeof FcmConfigurationNeutralReferenceVersionEnum];
+
 
 /**
  * Check if a given object implements the FcmConfiguration interface.
@@ -107,6 +121,7 @@ export function FcmConfigurationFromJSONTyped(json: any, ignoreDiscriminator: bo
         'encryptedPreviewMaxVersion': json['encryptedPreviewMaxVersion'] == null ? undefined : json['encryptedPreviewMaxVersion'],
         'encryptedPreviewVersion': json['encryptedPreviewVersion'] == null ? undefined : json['encryptedPreviewVersion'],
         'localeVersion': json['localeVersion'] == null ? undefined : json['localeVersion'],
+        'neutralReferenceVersion': json['neutralReferenceVersion'] === undefined ? undefined : json['neutralReferenceVersion'] === null ? null : json['neutralReferenceVersion'],
         'projectId': json['projectId'],
         'providerKey': json['providerKey'],
     };
@@ -127,6 +142,7 @@ export function FcmConfigurationToJSONTyped(value?: FcmConfiguration | null, ign
         'encryptedPreviewMaxVersion': value['encryptedPreviewMaxVersion'],
         'encryptedPreviewVersion': value['encryptedPreviewVersion'],
         'localeVersion': value['localeVersion'],
+        'neutralReferenceVersion': value['neutralReferenceVersion'],
         'projectId': value['projectId'],
         'providerKey': value['providerKey'],
     };

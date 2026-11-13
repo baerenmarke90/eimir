@@ -1,6 +1,7 @@
 {
   "notification.subject": "Neues bei eimir.",
   "notification.body": "Bei euch gibt es etwas Neues.\n\nIn eimir. öffnen: {url}",
+  "push.neutral": "Du hast neue Nachrichten.",
   "auth.magic.subject": "Dein Anmeldelink für eimir.",
   "auth.magic.body": "Hier ist dein Anmeldelink:\n\n{url}\n\nEr gilt 15 Minuten und genau einmal.\n\nWenn du ihn nicht angefordert hast, kannst du diese Nachricht ignorieren.",
   "auth.signup.subject": "Dein Link für eimir.",

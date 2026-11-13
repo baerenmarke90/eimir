@@ -61,6 +61,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 3
     },
+    "browser-push.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Browser-only opt-in through the authentic settings switch, authorized push tap and revocation across compact and expanded layouts."
+    },
     "chapter-create-navigation.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 2
@@ -189,8 +194,8 @@
     },
     "wish-journey.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 8,
-      "reason": "Feature-owned #1790 F2 wish journey acceptance: Planning origin lines and quiet hint, open/planned/fulfilled wish scope, wish detail path and plan link, plan origin and the wish fulfilment moment, with 360/390/430 px, Light/Dark, 200% text, reduced motion and Expanded evidence."
+      "baselineTests": 11,
+      "reason": "Feature-owned #1790 F2 Wish journey and #812 personal reminder acceptance, including confirmed save, reload, removal, focus return, Compact/Expanded, Light/Dark, large text and reduced motion."
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -458,8 +463,8 @@
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, independent registration and revocation through the device settings switch, and narrow/large-text theme and accessibility evidence."
+      "baselineTests": 13,
+      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound FCM/APNs endpoint confirmation, notification tap to the sealed message, independent registration and revocation, and narrow/large-text theme and accessibility evidence."
     },
     "content-reading.spec.ts": {
       "disposition": "PR_CRITICAL",

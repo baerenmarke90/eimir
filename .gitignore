@@ -43,6 +43,7 @@ keystore.properties
 !.env.example
 *.pem
 *.key
+*.p8
 
 # Lokale Medien und Daten.
 #

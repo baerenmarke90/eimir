@@ -55,6 +55,7 @@ import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 import { WishComposer } from './WishComposer';
 import { WishJourneyPath } from './WishJourney';
+import { WishReminderAction } from './WishReminderAction';
 import { useWishCompletion } from './useWishCompletion';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
@@ -473,9 +474,10 @@ export function WishProductPage({
   return (
     <div className="page planning-page wish-detail page-composer-detail">
       <PageHeader
-        className={wish.description ? 'wish-description-heading' : undefined}
+        variant="composer"
         before={
           <TaskBackButton
+            inline
             type="button"
             ref={backLinkRef}
             className="back-link tertiary"
@@ -490,14 +492,13 @@ export function WishProductPage({
             )}
           </TaskBackButton>
         }
-        eyebrow={t('m5s3.wish.detailEyebrow')}
-        title={wish.title}
-        titleAction={
+        title={t('m5s3.wish.detailEyebrow')}
+        action={
           wish.capabilities.canEdit ? (
             <ListEntryIconButton
               ref={editTrigger}
               icon="edit"
-              className="tertiary"
+              className="tertiary composer-detail-edit"
               label={t('common.edit')}
               onClick={() => {
                 if (isWishWritePending()) return;
@@ -513,6 +514,7 @@ export function WishProductPage({
           ) : undefined
         }
       />
+      <h2 className="detail-content-title">{wish.title}</h2>
 
       <WishJourneyPath
         className="wish-detail-journey"
@@ -551,6 +553,16 @@ export function WishProductPage({
         </div>
       ) : null}
       <ContextTagList tags={wish.tags} />
+      {wish.status === 'OPEN' && accountId && apiBaseUrl ? (
+        <WishReminderAction
+          key={`${apiBaseUrl}:${accountId}:${spaceId}:${wish.id}`}
+          accountId={accountId}
+          apiBaseUrl={apiBaseUrl}
+          spaceId={spaceId}
+          wishId={wish.id}
+          api={apis.wishes}
+        />
+      ) : null}
       <div className="planning-detail-grid">
         {wish.status === 'COMPLETED' && showCompletionContinuation ? (
           <section

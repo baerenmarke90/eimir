@@ -591,7 +591,8 @@ export function MilestoneProductPage({
         ) : undefined
       }
       metadata={
-        <>
+        <div className="detail-headline">
+          <h2 className="milestone-hero-title">{milestone.title}</h2>
           <div className="milestone-hero">
             <span className="milestone-hero-icon" aria-hidden="true">
               <svg
@@ -608,8 +609,7 @@ export function MilestoneProductPage({
               <p className="milestone-hero-date">{dateLine}</p>
             ) : null}
           </div>
-          <h2 className="milestone-hero-title">{milestone.title}</h2>
-        </>
+        </div>
       }
       offline={offline}
       pageClassName="milestone-product-page page-composer-detail"

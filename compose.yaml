@@ -67,11 +67,12 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_SMTP_STARTTLS: "${EIMIR_SMTP_STARTTLS:-${SBS_SMTP_STARTTLS:-true}}"
 
 # Only API/worker configure transports. In particular, migration/bootstrap must
-# not inherit a partial FCM setup or a sender credential path they cannot read.
+# not inherit partial push setup or sender credential paths they cannot read.
 x-push-runtime-environment: &push-runtime-environment
   EIMIR_PUSH_VAPID_PRIVATE_KEY: "${EIMIR_PUSH_VAPID_PRIVATE_KEY:-}"
   EIMIR_PUSH_VAPID_SUBJECT: "${EIMIR_PUSH_VAPID_SUBJECT:-}"
   EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS: '${EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS:-[]}'
+  EIMIR_PUSH_BROWSER_ALLOWED_ORIGINS: '${EIMIR_PUSH_BROWSER_ALLOWED_ORIGINS:-[]}'
   EIMIR_PUSH_FCM_PROJECT_ID: "${EIMIR_PUSH_FCM_PROJECT_ID:-}"
   EIMIR_PUSH_FCM_ANDROID_PACKAGE: "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:-}"
   EIMIR_PUSH_FCM_CREDENTIALS_FILE: "${EIMIR_PUSH_FCM_CREDENTIALS_FILE:-}"

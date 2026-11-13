@@ -2,6 +2,10 @@ const CACHE_PREFIX = 'eimir-pwa-';
 const SHELL_CACHE = `${CACHE_PREFIX}shell-v3`;
 const STATIC_CACHE = `${CACHE_PREFIX}static-v3`;
 const MAP_CACHE = `${CACHE_PREFIX}map-v1`;
+const PUSH_CACHE = 'eimir-browser-push-v1';
+const PUSH_BINDING = '/_eimir/browser-push-binding';
+const PUSH_VERSION = 1;
+const PUSH_UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const OFFLINE_URL = '/offline.html';
 
 // Public basemap data (no account, space or media information). Vector tiles
@@ -169,4 +173,97 @@ self.addEventListener('fetch', (event) => {
   if (isStaticAsset(url)) {
     event.respondWith(staleWhileRevalidateStatic(request));
   }
+});
+
+async function currentPush(data) {
+  if (
+    typeof data?.notificationId !== 'string' ||
+    !PUSH_UUID.test(data.notificationId) ||
+    typeof data.activationId !== 'string' ||
+    !PUSH_UUID.test(data.activationId)
+  )
+    return false;
+  const cached = await (await caches.open(PUSH_CACHE)).match(PUSH_BINDING);
+  return cached && (await cached.json()).activationId === data.activationId;
+}
+
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    (async () => {
+      let data;
+      try {
+        data = event.data?.json();
+        if (data?.type !== 'wake' || !(await currentPush(data))) return;
+      } catch {
+        return;
+      }
+      await self.registration.showNotification('eimir.', {
+        body:
+          data.locale === 'de'
+            ? 'Du hast neue Nachrichten.'
+            : 'You have new messages.',
+        icon: '/pwa-192.png',
+        tag: `eimir-push:${data.notificationId}`,
+        data: {
+          notificationId: data.notificationId,
+          activationId: data.activationId,
+        },
+      });
+    })(),
+  );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'eimir-browser-push-version') {
+    event.ports[0]?.postMessage(PUSH_VERSION);
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const data = event.notification.data;
+      if (!(await currentPush(data))) return;
+      const windows = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
+      for (const client of windows) {
+        if (new URL(client.url).origin !== self.location.origin) continue;
+        const received = await new Promise((resolve) => {
+          const channel = new MessageChannel();
+          const timeout = setTimeout(() => {
+            channel.port1.close();
+            resolve(false);
+          }, 250);
+          channel.port1.onmessage = (message) => {
+            clearTimeout(timeout);
+            channel.port1.close();
+            resolve(message.data === 'received');
+          };
+          try {
+            client.postMessage({ type: 'eimir-notification-open', ...data }, [
+              channel.port2,
+            ]);
+          } catch {
+            clearTimeout(timeout);
+            channel.port1.close();
+            channel.port2.close();
+            resolve(false);
+          }
+        });
+        if (received) {
+          try {
+            await client.focus();
+            return;
+          } catch {
+            // The acknowledged tab can close before focus reaches it.
+          }
+        }
+      }
+      const hint = `${data.activationId}.${data.notificationId}`;
+      await self.clients.openWindow(`/more/notifications#eimir-push=${hint}`);
+    })().catch(() => undefined),
+  );
 });

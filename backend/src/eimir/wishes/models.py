@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
@@ -9,10 +10,13 @@ from uuid import UUID
 from pydantic import Field
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
+    ForeignKey,
     ForeignKeyConstraint,
     Index,
     SmallInteger,
     UniqueConstraint,
+    Uuid,
     event,
     text,
 )
@@ -158,6 +162,28 @@ class Wish(
         Index("ix_wishes_owner_id", "owner_id"),
         Index("ix_wishes_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_wishes_space_id_status", "space_id", "status"),
+    )
+
+
+class WishReminder(IdMixin, Base):
+    """Personal schedule tied to the authoritative shared Wish."""
+
+    __tablename__ = "wish_reminders"
+
+    space_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    wish_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    account_id: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    fired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["wish_id", "space_id"], ["wishes.id", "wishes.space_id"], ondelete="CASCADE"
+        ),
+        UniqueConstraint("wish_id", "account_id", name="uq_wish_reminders_wish_account"),
+        Index("ix_wish_reminders_account_space", "account_id", "space_id"),
     )
 
 

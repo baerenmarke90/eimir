@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import UTC, datetime, time, timedelta
 from uuid import uuid4
 
 import pytest
@@ -15,10 +15,11 @@ from sqlalchemy import func, select
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.core.errors import NotFoundError
-from eimir.engagement import notification_preferences, push_preview
+from eimir.engagement import notification_preferences, push, push_preview, quiet_hours_preferences
 from eimir.engagement import service as engagement
-from eimir.engagement.models import Activity, Notification, NotificationKind
+from eimir.engagement.models import Activity, Notification, NotificationKind, PushDelivery
 from eimir.entitlements.models import EntitlementGrant
+from eimir.jobs.errors import DeferredJobError
 from eimir.once_messages import service
 from eimir.once_messages.models import OnceMessage
 from eimir.outbox.models import OutboxEvent
@@ -159,7 +160,9 @@ def test_pro_only_creation_and_non_destructive_downgrade(session, client, actors
     assert opened.byte_size > 0
 
 
-def test_idempotent_send_and_no_plaintext_projections(session, client, actors):  # type: ignore[no-untyped-def]
+def test_idempotent_send_and_no_plaintext_projections(session, client, actors, monkeypatch):  # type: ignore[no-untyped-def]
+    now = clock.now()
+    monkeypatch.setattr(clock, "now", lambda: now)
     request_id = uuid4()
     args = dict(
         request_id=request_id, recipient_id=actors["second"].id, jwe=envelope(actors["key_b"])
@@ -183,6 +186,22 @@ def test_idempotent_send_and_no_plaintext_projections(session, client, actors): 
     assert event is not None
     assert "ciphertext" not in json.dumps(event.payload.model_dump(mode="json"))
     assert push_preview.for_notification(session, notifications[0], digest=False, version=2) is None
+    neutral = push_preview.for_notification(
+        session, notifications[0], digest=False, version=2, neutral_reference=True
+    )
+    assert neutral is not None
+    assert json.loads(neutral) == {
+        "v": 2,
+        "notificationId": str(notifications[0].id),
+        "kind": "ONCE_MESSAGE_RECEIVED",
+        "name": "",
+        "title": "",
+        "body": "",
+        "targetType": "",
+        "digest": False,
+        "issuedAt": int(now.timestamp()),
+        "expiresAt": int((now + timedelta(minutes=5)).timestamp()),
+    }
     assert (
         notification_preferences.email_enabled(
             session,
@@ -204,6 +223,42 @@ def test_idempotent_send_and_no_plaintext_projections(session, client, actors): 
     service.discard(session, actors["a"], first.id)
     session.flush()
     assert engagement.unread_count(session, actors["b"]) == 0
+
+
+def test_one_time_push_waits_and_expires_before_provider_submission(
+    session, actors, monkeypatch: pytest.MonkeyPatch
+) -> None:  # type: ignore[no-untyped-def]
+    from tests.integration.test_thinking_push import FakePushProvider
+
+    now = datetime(2026, 11, 13, 23, tzinfo=UTC)
+    monkeypatch.setattr(clock, "now", lambda: now)
+    actors["second"].timezone = "UTC"
+    quiet_hours_preferences.set_own_window(
+        session,
+        account_id=actors["second"].id,
+        window=quiet_hours_preferences.QuietHoursWindow(time(22), time(7)),
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    push.register_endpoint(
+        session,
+        account_id=actors["second"].id,
+        provider_key="fake",
+        endpoint_value="opaque:once",
+    )
+    message = sent(session, actors)
+    engagement.project_pending(session, limit=100)
+    delivery = session.scalar(select(PushDelivery))
+    assert delivery is not None
+    with pytest.raises(DeferredJobError):
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.deferred_until == datetime(2026, 11, 14, 7, tzinfo=UTC)
+    assert not provider.calls
+
+    now = message.expires_at + timedelta(seconds=1)
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.last_error_code == "PUSH_TARGET_UNAVAILABLE"
+    assert not provider.calls
 
 
 def test_foreign_account_wrong_sender_and_device_cannot_open(session, client, actors):  # type: ignore[no-untyped-def]
@@ -337,7 +392,8 @@ def test_discreet_push_still_delivers_when_device_has_rich_previews(session, act
         push.handle_delivery(session, {"deliveryId": str(delivery.id)})
         assert len(provider.calls) == 1
         reference = provider.calls[0]["notificationReference"]
-        assert set(reference) == {"id", "kind", "locale"}
+        assert set(reference) == {"id", "kind", "locale", "ttl"}
+        assert reference["ttl"] == "300"
         assert "encryptedPreview" not in reference
         assert "ciphertext" not in json.dumps(provider.calls)
         push.handle_delivery(session, {"deliveryId": str(delivery.id)})

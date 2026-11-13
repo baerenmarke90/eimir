@@ -4417,5 +4417,65 @@
     "withdrawn": "Message withdrawn",
     "removing": "Removing …",
     "withdrawConsequence": "The content will be removed. Already opened content or copies cannot be recalled."
+  },
+  "rediscovery": {
+    "numberWords": {
+      "2": "two",
+      "3": "three",
+      "4": "four",
+      "5": "five",
+      "6": "six",
+      "7": "seven",
+      "8": "eight",
+      "9": "nine",
+      "10": "ten",
+      "11": "eleven",
+      "12": "twelve"
+    },
+    "relative": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "days_one": "One day ago",
+      "days_other": "{{countText}} days ago",
+      "weeksExact_one": "One week ago today",
+      "weeksExact_other": "{{countText}} weeks ago today",
+      "weeks_one": "One week ago",
+      "weeks_other": "{{countText}} weeks ago",
+      "monthsExact_one": "One month ago today",
+      "monthsExact_other": "{{countText}} months ago today",
+      "months_one": "One month ago",
+      "months_other": "{{countText}} months ago",
+      "yearsExact_one": "One year ago today",
+      "yearsExact_other": "{{countText}} years ago today",
+      "years_one": "One year ago",
+      "years_other": "{{countText}} years ago"
+    },
+    "weekday": {
+      "plain": "A {{weekday}}",
+      "MORNING": "A {{weekday}} morning",
+      "AFTERNOON": "A {{weekday}} afternoon",
+      "EVENING": "A {{weekday}} evening",
+      "NIGHT": "A {{weekday}} night"
+    },
+    "season": {
+      "line": "{{season}} {{year}}",
+      "spring": "Spring",
+      "summer": "Summer",
+      "autumn": "Autumn",
+      "winter": "Winter"
+    },
+    "excerpt": "“{{text}}”",
+    "excerptTruncated": "“{{text}} …”",
+    "chapter": "From “{{chapter}}”",
+    "tag": "Tagged “{{tag}}”",
+    "media": {
+      "photos_one": "One photo from this day",
+      "photos_other": "{{count}} photos from this day",
+      "videos_one": "One video from this day",
+      "videos_other": "{{count}} videos from this day",
+      "mixed_one": "One photo or video from this day",
+      "mixed_other": "{{count}} photos and videos from this day"
+    },
+    "separator": " · "
   }
 }

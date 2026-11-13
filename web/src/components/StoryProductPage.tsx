@@ -91,6 +91,15 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { RecapEntry } from './RecapEntryLink';
+import {
+  RediscoverySecondaryLine,
+  useRediscoveryWording,
+} from './RediscoveryWording';
+import {
+  calendarDayOf,
+  storyRediscoverySource,
+  viewerToday,
+} from './rediscoverySelection';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
@@ -711,6 +720,30 @@ export function StoryProductPage({
     ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
   const _featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
+  const onThisDayKicker =
+    leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay;
+  // #1790 C2: varying wording instead of a bare date as the title. A heart
+  // moment keeps its own (compacted) words as the quote headline.
+  const featuredWording = useRediscoveryWording(
+    featuredItem && featuredPresentation
+      ? {
+          ...storyRediscoverySource(
+            featuredItem,
+            discoverQuery.data?.value.leadRediscovery,
+          ),
+          ...(featuredItem.kind === 'HEART_MOMENT'
+            ? { authoredHeadline: featuredPresentation.title }
+            : {}),
+        }
+      : null,
+    {
+      today: discoverDay ? calendarDayOf(discoverDay) : viewerToday(),
+      // The kicker already says "Heute vor N Jahren".
+      exclude: onThisDayKicker ? ['relativeTime'] : [],
+    },
+  );
+  const featuredHeadline =
+    featuredWording?.headline ?? featuredPresentation?.title ?? '';
   const featuredPath = featuredItem
     ? featuredItem.kind === 'MEMORY'
       ? memoryDetailPath(featuredItem.memory.id)
@@ -904,7 +937,7 @@ export function StoryProductPage({
                 <Link
                   to={featuredPath}
                   className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
-                  aria-label={`${t('story.featuredHighlight')}: ${featuredPresentation.title}`}
+                  aria-label={`${t('story.featuredHighlight')}: ${featuredHeadline}`}
                   onClick={(event) => openDiscoverItem(event, featuredPath)}
                 >
                   {featuredMedia ? (
@@ -936,7 +969,7 @@ export function StoryProductPage({
                         <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
                       </svg>
                       <span>
-                        {leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay
+                        {onThisDayKicker
                           ? t('story.onThisDay', {
                               count: leadContext.yearsAgo,
                             })
@@ -945,23 +978,22 @@ export function StoryProductPage({
                     </span>
                     {featuredItem.kind === 'HEART_MOMENT' ? (
                       <blockquote className="momente-hero-quote">
-                        "{featuredPresentation.title}"
+                        "{featuredHeadline}"
                       </blockquote>
                     ) : (
-                      <h3 className="momente-hero-title">
-                        {featuredPresentation.title}
-                      </h3>
+                      <h3 className="momente-hero-title">{featuredHeadline}</h3>
                     )}
                     <div className="momente-hero-meta">
-                      {!featuredPresentation.titleIsDate ? (
-                        <time
-                          dateTime={featuredItem.effectiveDate
-                            .toISOString()
-                            .slice(0, 10)}
-                        >
-                          {formatStoryDate(featuredItem.effectiveDate, locale)}
-                        </time>
-                      ) : null}
+                      <RediscoverySecondaryLine
+                        variantLine={featuredWording?.variantLine ?? null}
+                        date={formatStoryDate(
+                          featuredItem.effectiveDate,
+                          locale,
+                        )}
+                        dateTime={featuredItem.effectiveDate
+                          .toISOString()
+                          .slice(0, 10)}
+                      />
                     </div>
                   </div>
                 </Link>

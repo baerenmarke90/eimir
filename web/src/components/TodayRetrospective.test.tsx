@@ -75,14 +75,16 @@ function renderToday({
   photo = false,
   hideModule = false,
   viewerLocalDate = new Date('2026-10-23'),
+  overrides = {},
 }: {
   accountId?: string;
   spaceId?: string;
   photo?: boolean;
   hideModule?: boolean;
   viewerLocalDate?: Date;
+  overrides?: Record<string, unknown>;
 } = {}) {
-  const data = dashboard(photo, viewerLocalDate);
+  const data = { ...dashboard(photo, viewerLocalDate), ...overrides };
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -136,6 +138,57 @@ beforeEach(() => window.localStorage.clear());
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+});
+
+describe('Today #1790 C2 rediscovery wording', () => {
+  const rediscovery = {
+    placeName: 'Phoenix-See',
+    chapterTitle: 'Sommerurlaub',
+    excerpt: 'Wir sind einfach losgefahren',
+    excerptTruncated: true,
+    photoCount: 4,
+    videoCount: 0,
+    partOfDay: 'AFTERNOON',
+  };
+
+  it('never shows a bare date as the title of an untitled entry', async () => {
+    const overrides = {
+      retrospective: { ...memory, titleOrText: '' },
+      retrospectiveRediscovery: rediscovery,
+    };
+    const first = renderToday({ overrides });
+    const title = await waitFor(() => {
+      const node = document.querySelector('.today-retrospective-title');
+      expect(node?.textContent).toBeTruthy();
+      return node?.textContent ?? '';
+    });
+    expect(title).not.toBe('23. Oktober 2025');
+    // The date moves to the secondary line.
+    expect(
+      document.querySelector('.today-retrospective-date time')?.textContent,
+    ).toBe('23. Oktober 2025');
+    first.unmount();
+
+    // Reload on the same day keeps the same wording.
+    renderToday({ overrides });
+    await waitFor(() => {
+      expect(
+        document.querySelector('.today-retrospective-title')?.textContent,
+      ).toBe(title);
+    });
+  });
+
+  it('keeps an authored title and varies the secondary line', async () => {
+    renderToday({ overrides: { retrospectiveRediscovery: rediscovery } });
+    expect(await screen.findByText('Our early trip together')).not.toBeNull();
+    const variant = document.querySelector(
+      '.today-retrospective-date .rediscovery-variant',
+    );
+    expect(variant?.textContent).toBeTruthy();
+    expect(
+      document.querySelector('.today-retrospective-date time')?.textContent,
+    ).toBe('23. Oktober 2025');
+  });
 });
 
 describe('Today #452 retrospective presentation and dismissal', () => {

@@ -592,12 +592,15 @@
    focus so keyboard and assistive technology users never lose them. */
 .memory-map-tools,
 .memory-map-fullscreen-tools {
-  transition: opacity var(--duration-transition) var(--easing-standard);
+  /* Returning is the slow, arriving half of the pair. */
+  transition: opacity var(--duration-controls-return) var(--easing-enter);
 }
 [data-map-moving]
   :is(.memory-map-tools, .memory-map-fullscreen-tools):not(:focus-within) {
   opacity: 0;
   pointer-events: none;
+  /* Stepping aside is a calm fade, not a cut. */
+  transition: opacity var(--duration-context) var(--easing-standard);
 }
 
 /* Touch screens zoom by pinch and double tap; the zoom buttons stay reachable

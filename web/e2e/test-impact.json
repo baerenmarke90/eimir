@@ -178,7 +178,8 @@
         "web/src/components/MemoryCreatePage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/AddAction.tsx",
-        "web/src/components/MomentCreateMenu.tsx"
+        "web/src/components/MomentCreateMenu.tsx",
+        "web/src/client/useFloatingCreateScrollTuck.ts"
       ],
       "always": true
     },

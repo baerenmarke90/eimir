@@ -79,6 +79,12 @@ export interface WishDetail {
      */
     description?: string | null;
     /**
+     * The completed Wish this one repeats ("Nochmal erleben"); null for a first Wish or after the source was deleted.
+     * @type {string}
+     * @memberof WishDetail
+     */
+    followedFromWishId: string | null;
+    /**
      * Whether a Memory is linked to this PLANNED or COMPLETED Wish or to its originating Plan; always false for OPEN Wishes.
      * @type {boolean}
      * @memberof WishDetail
@@ -96,6 +102,18 @@ export interface WishDetail {
      * @memberof WishDetail
      */
     plan: WishPlanReference | null;
+    /**
+     * Groups a Wish with its repeats; equals the first Wish's ID.
+     * @type {string}
+     * @memberof WishDetail
+     */
+    seriesId: string;
+    /**
+     * 1 for the first Wish of a series, 2 for its first repeat, and so on.
+     * @type {number}
+     * @memberof WishDetail
+     */
+    seriesPosition: number;
     /**
      * 
      * @type {string}
@@ -144,9 +162,12 @@ export function instanceOfWishDetail(value: object): value is WishDetail {
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('createdBy' in value) || value['createdBy'] === undefined) return false;
     if (!('creator' in value) || value['creator'] === undefined) return false;
+    if (!('followedFromWishId' in value) || value['followedFromWishId'] === undefined) return false;
     if (!('hasMemory' in value) || value['hasMemory'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('plan' in value) || value['plan'] === undefined) return false;
+    if (!('seriesId' in value) || value['seriesId'] === undefined) return false;
+    if (!('seriesPosition' in value) || value['seriesPosition'] === undefined) return false;
     if (!('spaceId' in value) || value['spaceId'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
@@ -170,9 +191,12 @@ export function WishDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
+        'followedFromWishId': json['followedFromWishId'],
         'hasMemory': json['hasMemory'],
         'id': json['id'],
         'plan': WishPlanReferenceFromJSON(json['plan']),
+        'seriesId': json['seriesId'],
+        'seriesPosition': json['seriesPosition'],
         'spaceId': json['spaceId'],
         'status': WishStatusFromJSON(json['status']),
         'tags': json['tags'] == null ? undefined : json['tags'],
@@ -198,9 +222,12 @@ export function WishDetailToJSONTyped(value?: WishDetail | null, ignoreDiscrimin
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
         'description': value['description'],
+        'followedFromWishId': value['followedFromWishId'],
         'hasMemory': value['hasMemory'],
         'id': value['id'],
         'plan': WishPlanReferenceToJSON(value['plan']),
+        'seriesId': value['seriesId'],
+        'seriesPosition': value['seriesPosition'],
         'spaceId': value['spaceId'],
         'status': WishStatusToJSON(value['status']),
         'tags': value['tags'],

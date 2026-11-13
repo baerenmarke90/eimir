@@ -26,6 +26,7 @@ const reminder: ReminderDetail = {
   createdAt: new Date(),
   updatedAt: new Date(),
   capabilities: { canComment: false, canDelete: true, canEdit: true },
+  originWish: null,
 };
 const base = 'https://example.test';
 

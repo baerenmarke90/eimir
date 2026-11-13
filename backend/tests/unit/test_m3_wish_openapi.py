@@ -15,6 +15,7 @@ COLLECTION = "/api/v1/spaces/{spaceId}/wishes"
 DETAIL = "/api/v1/spaces/{spaceId}/wishes/{wishId}"
 COMPLETE = f"{DETAIL}/complete"
 PLAN = f"{DETAIL}/plan"
+REPEAT = f"{DETAIL}/repeat"
 
 
 def _schema() -> dict[str, object]:
@@ -42,12 +43,13 @@ def test_wish_routes_have_frozen_operation_ids() -> None:
     assert paths[DETAIL]["delete"]["operationId"] == "deleteWish"
     assert paths[COMPLETE]["post"]["operationId"] == "completeWish"
     assert paths[PLAN]["post"]["operationId"] == "convertWishToPlan"
+    assert paths[REPEAT]["post"]["operationId"] == "repeatWish"
 
 
 def test_the_contract_carries_exactly_the_decided_wish_surface() -> None:
     """Wish lifecycle commands are explicit rather than generic status writes."""
     wish_paths = _wish_paths()
-    assert wish_paths == {COLLECTION, DETAIL, COMPLETE, PLAN}
+    assert wish_paths == {COLLECTION, DETAIL, COMPLETE, PLAN, REPEAT}
 
 
 def test_wish_status_has_no_generic_mutation_route() -> None:
@@ -89,12 +91,20 @@ def test_no_request_body_accepts_status_or_ownership() -> None:
         "createdAt",
         "updatedAt",
     }
-    for name in ("WishCreate", "WishUpdate"):
+    for name in ("WishCreate", "WishUpdate", "WishRepeat"):
         schema = _components()[name]
         assert set(schema["properties"]) & forbidden == set()
+        assert not {"followedFromWishId", "seriesId", "seriesPosition"} & set(schema["properties"])
         # Do not silently discard extra fields; otherwise a client could
         # believe that it successfully set the status.
         assert schema.get("additionalProperties") is False
+
+
+def test_repeat_is_idempotent_by_key_not_by_version() -> None:
+    """Repeating creates a new Wish, so it has no version to compare (#1816)."""
+    names = {parameter["name"] for parameter in _paths()[REPEAT]["post"].get("parameters", [])}
+    assert "If-Match" not in names
+    assert "Idempotency-Key" in names
 
 
 def test_direct_completion_has_no_request_body() -> None:

@@ -794,6 +794,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="WISH_NOT_FOUND",
     ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/repeat",
+        resource_absence="WISH_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
     Endpoint(
         "GET",

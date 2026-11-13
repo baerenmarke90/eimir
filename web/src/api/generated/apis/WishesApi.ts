@@ -34,6 +34,11 @@ import {
     WishPageToJSON,
 } from '../models/WishPage';
 import {
+    type WishRepeat,
+    WishRepeatFromJSON,
+    WishRepeatToJSON,
+} from '../models/WishRepeat';
+import {
     type WishStatus,
     WishStatusFromJSON,
     WishStatusToJSON,
@@ -72,6 +77,13 @@ export interface ListWishesRequest {
     cursor?: string | null;
     limit?: number;
     status?: WishStatus | null;
+}
+
+export interface RepeatWishRequest {
+    wishId: string;
+    spaceId: string;
+    idempotencyKey?: string | null;
+    wishRepeat?: WishRepeat | null;
 }
 
 export interface UpdateWishRequest {
@@ -379,6 +391,66 @@ export class WishesApi extends runtime.BaseAPI {
      */
     async listWishes(requestParameters: ListWishesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishPage> {
         const response = await this.listWishesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for repeatWish without sending the request
+     */
+    async repeatWishRequestOpts(requestParameters: RepeatWishRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling repeatWish().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling repeatWish().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/repeat`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WishRepeatToJSON(requestParameters['wishRepeat']),
+        };
+    }
+
+    /**
+     * Repeat Wish
+     */
+    async repeatWishRaw(requestParameters: RepeatWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishDetail>> {
+        const requestOptions = await this.repeatWishRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Repeat Wish
+     */
+    async repeatWish(requestParameters: RepeatWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDetail> {
+        const response = await this.repeatWishRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -10724,6 +10724,17 @@
             "title": "Offsets",
             "type": "array"
           },
+          "originWish": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReminderWishOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The readable Wish behind a Plan reminder whose Plan was created from a Wish; null for manual reminders, other sources, direct Plans, or an unreadable Wish."
+          },
           "ruleKey": {
             "anyOf": [
               {
@@ -10819,7 +10830,8 @@
           "createdAt",
           "updatedAt",
           "creator",
-          "capabilities"
+          "capabilities",
+          "originWish"
         ],
         "title": "ReminderDetail",
         "type": "object"
@@ -10880,6 +10892,28 @@
         ],
         "title": "ReminderSource",
         "type": "string"
+      },
+      "ReminderWishOrigin": {
+        "description": "The Wish a Plan reminder's Plan grew out of (#1816).\n\nResolved at read time through ``Plan.sourceWishId``; nothing is stored on\nthe Reminder, so it cannot drift from the Wish/Plan lifecycle. It carries no\nauthored text: the client reads the Wish through its own API, which applies\nthe Wish's own access rules.",
+        "properties": {
+          "seriesPosition": {
+            "description": "1 for a first Wish, 2 or more when the Wish repeats an earlier one.",
+            "minimum": 1.0,
+            "title": "Seriesposition",
+            "type": "integer"
+          },
+          "wishId": {
+            "format": "uuid",
+            "title": "Wishid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wishId",
+          "seriesPosition"
+        ],
+        "title": "ReminderWishOrigin",
+        "type": "object"
       },
       "ReminderWrite": {
         "additionalProperties": false,
@@ -14630,6 +14664,19 @@
             ],
             "title": "Description"
           },
+          "followedFromWishId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The completed Wish this one repeats (\"Nochmal erleben\"); null for a first Wish or after the source was deleted.",
+            "title": "Followedfromwishid"
+          },
           "hasMemory": {
             "description": "Whether a Memory is linked to this PLANNED or COMPLETED Wish or to its originating Plan; always false for OPEN Wishes.",
             "title": "Hasmemory",
@@ -14650,6 +14697,18 @@
               }
             ],
             "description": "Originating Plan of a PLANNED or COMPLETED Wish; null for OPEN, directly completed, or returned Wishes."
+          },
+          "seriesId": {
+            "description": "Groups a Wish with its repeats; equals the first Wish's ID.",
+            "format": "uuid",
+            "title": "Seriesid",
+            "type": "string"
+          },
+          "seriesPosition": {
+            "description": "1 for the first Wish of a series, 2 for its first repeat, and so on.",
+            "minimum": 1.0,
+            "title": "Seriesposition",
+            "type": "integer"
           },
           "spaceId": {
             "format": "uuid",
@@ -14694,6 +14753,9 @@
           "updatedAt",
           "creator",
           "capabilities",
+          "followedFromWishId",
+          "seriesId",
+          "seriesPosition",
           "plan",
           "hasMemory"
         ],
@@ -14789,6 +14851,32 @@
           "experiencedOn"
         ],
         "title": "WishPlanReference",
+        "type": "object"
+      },
+      "WishRepeat": {
+        "additionalProperties": false,
+        "description": "Optional overrides for \"Nochmal erleben\" (#1816).\n\nAnything omitted is copied from the completed source Wish. Status, the\nfollow-up link, and the series fields are server-controlled and rejected.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "WishRepeat",
         "type": "object"
       },
       "WishSelectionCandidateView": {
@@ -42055,6 +42143,148 @@
         "summary": "Convert Wish To Plan",
         "tags": [
           "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/wishes/{wishId}/repeat": {
+      "post": {
+        "operationId": "repeatWish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "wishId",
+            "required": true,
+            "schema": {
+              "title": "Wishid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/WishRepeat"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the Wish the first request created; no second Wish is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Repeat Wish",
+        "tags": [
+          "wishes"
         ]
       }
     }

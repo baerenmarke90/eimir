@@ -1854,6 +1854,10 @@ def _prepare_row(
         row["privacy_class"] = PrivacyClass.SPACE_SHARED.value
     if table.name == "important_dates" and row.get("related_person_id") is not None:
         row["related_person_privacy_class"] = PrivacyClass.SPACE_SHARED.value
+    if table.name == "wishes" and row.get("series_id") is None:
+        # Archives from before repeatable Wishes (#1816) carry no series: each
+        # Wish starts its own. The source ID is remapped like any ``*_id``.
+        row["series_id"] = row.get("id")
     if table.name == "recap_editions":
         # Imported editions are retained artifacts, never new automation authority.
         row.update(
@@ -2070,7 +2074,17 @@ def apply_import_bundle(
 
         for table_name in INSERT_ORDER:
             table = tables[table_name]
-            for raw in graph.tables.get(table_name, []):
+            raw_rows = graph.tables.get(table_name, [])
+            if table_name == "wishes":
+                # A repeated Wish references its source through a foreign key
+                # that is checked per statement. ``series_position`` is always
+                # greater than its source's, so ascending order inserts every
+                # source first regardless of the archive's row order.
+                raw_rows = sorted(
+                    raw_rows,
+                    key=lambda item: int(_row_snake(item).get("series_position") or 1),
+                )
+            for raw in raw_rows:
                 # The target Space and active memberships already own their
                 # singleton profile rows. Reuse those IDs so imported
                 # preferences/reminders can reference them without violating

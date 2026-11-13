@@ -6,6 +6,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
@@ -707,8 +708,10 @@ for (const [width, colorScheme] of [
       page.getByRole('textbox', { name: m5s3.common.description, exact: true }),
     ).toHaveValue(plan.description);
     await page.reload();
-    await expect(source).toBeVisible();
-    await source.click();
+    // #1790 F2: the read view presents the source wish above the Plan title.
+    const origin = page.getByRole('link', { name: wishJourney.fromWish });
+    await expect(origin).toBeVisible();
+    await origin.click();
     await expect(
       page.getByRole('heading', { name: WISH_TITLE, exact: true }),
     ).toBeVisible();

@@ -3279,6 +3279,32 @@
     "saving": "Saving …",
     "offline": "Not saved yet. Connect to the internet and try again."
   },
+  "wishJourney": {
+    "stages": {
+      "wished": "Wished",
+      "planned": "Planned",
+      "experienced": "Experienced",
+      "remembered": "Remembered"
+    },
+    "pathLabel": "This wish's journey",
+    "scopePlanned": "Planned",
+    "plannedIntro": "These wishes are already on their way.",
+    "plannedEmpty": "No wish is planned right now.",
+    "plannedOn": "Planned · {{date}}",
+    "plannedUndated": "Planned · no date yet",
+    "remembered": "Remembered",
+    "captureMoment": "Capture the moment",
+    "openPlan": "Go to plan",
+    "openPlanOn": "Go to plan · {{date}}",
+    "planOrigin": "Your wish is coming true",
+    "fromWish": "From your wish",
+    "hintUnderway_one": "One of your wishes is on its way",
+    "hintUnderway_other": "{{count}} of your wishes are on their way",
+    "hintAwaitingMemory_one": "One wish is waiting for a memory",
+    "hintAwaitingMemory_other": "{{count}} wishes are waiting for a memory",
+    "fulfilledTitle": "Wish fulfilled",
+    "fulfilledBody": "You wished for “{{title}}” – and you did it."
+  },
   "memoryProduct": {
     "planning": {
       "heading": "Linked wishes and plans",

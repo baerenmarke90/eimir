@@ -55,6 +55,7 @@ import weeklyInsights from './locales/weeklyInsights';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
+import wishJourney from './locales/wishJourney';
 
 export const germanResources = {
   ...de,
@@ -74,6 +75,7 @@ export const germanResources = {
   wirCheckIn,
   wirDesign,
   wishSelection,
+  wishJourney,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,
   demo,

@@ -337,7 +337,11 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   await page.goto('/plan');
   await expect(page.locator('.planen-next-link')).toContainText(plans[0].title);
   expect(state.planReads).toEqual(['']);
-  expect(state.wishReads).toEqual([]);
+  // #1790 F2: the Plan overview reads Wishes to derive the planned-wish
+  // journey, so only the known Wish page cursors may appear here.
+  expect(
+    state.wishReads.every((cursor: string) => ['', '20'].includes(cursor)),
+  ).toBe(true);
   const planPreviews = page.locator('.planen-next-link, .planen-agenda-link');
   await page.locator('.planen-agenda-link').last().scrollIntoViewIfNeeded();
   await expect(planPreviews).toHaveCount(plans.length);

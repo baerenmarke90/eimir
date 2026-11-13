@@ -208,8 +208,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | pydantic-settings | 2.15.0 | PyPI | MIT |
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
-| httpx | 0.28.1 | PyPI | BSD-3-Clause |
-| h2 / hpack / hyperframe | 4.4.1 / 4.2.0 / 6.1.0 | PyPI | MIT |
+| httpx[http2] | 0.28.1 | PyPI | BSD-3-Clause |
 | google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
@@ -220,6 +219,9 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+
+The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
+`hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.
 
 ## Backend — Development
 
@@ -416,13 +418,6 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
-## iOS — Capacitor wrapper runtime
-
-The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
-MIT) wrap the same React product. The existing Capacitor App and Browser packages
-provide platform integration. Apple Security and UserNotifications supply Keychain
-storage and remote notifications without another SDK.
-
 The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency. It
 holds no independent product state: cache and read models live in the Web client.
 The current Android session envelope is retained in app-private no-backup storage
@@ -445,6 +440,13 @@ non-authoritative Kotlin client and are not part of server data continuity.
 contains no server sender private key. The Google Services plugin activates only
 when that configured build input is present. Official distribution and Firebase
 project/package alignment are separate from server credential installation.
+
+## iOS — Capacitor wrapper runtime
+
+The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
+MIT) wrap the same React product. The existing Capacitor App and Browser packages
+provide platform integration. Apple Security and UserNotifications supply Keychain
+storage and remote notifications without another SDK.
 
 ## Android — Wrapper test and build
 

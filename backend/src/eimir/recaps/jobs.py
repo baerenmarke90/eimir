@@ -17,7 +17,7 @@ from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
-from eimir.recaps import local_ai, service
+from eimir.recaps import local_ai, mood, service
 from eimir.recaps.composition import select_candidates, theme_for
 from eimir.recaps.models import RecapKind, RecapPayload
 from eimir.relationship.models import Membership, MembershipStatus
@@ -42,10 +42,32 @@ def authorized_context(
     return AuthorizationContext(account_id=account_id, space_id=space_id)
 
 
-def generate(session: Session, payload: dict[str, Any]) -> None:
-    account_id, space_id, edition_id, token = (
-        UUID(payload[key]) for key in ("account_id", "space_id", "edition_id", "request_token")
+def first_member(session: Session, space_id: UUID) -> UUID | None:
+    return session.scalar(
+        select(Membership.account_id)
+        .join(Account, Account.id == Membership.account_id)
+        .where(
+            Membership.space_id == space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+            Account.disabled_at.is_(None),
+        )
+        .order_by(Membership.created_at, Membership.id)
+        .limit(1)
     )
+
+
+def generate(session: Session, payload: dict[str, Any]) -> None:
+    space_id, edition_id, token = (
+        UUID(payload[key]) for key in ("space_id", "edition_id", "request_token")
+    )
+    # A rewrite queued by a source change has no requesting member.
+    account_id = (
+        UUID(payload["account_id"])
+        if payload.get("account_id")
+        else first_member(session, space_id)
+    )
+    if account_id is None:
+        return
     context = authorized_context(session, account_id, space_id)
     if context is None:
         return
@@ -122,10 +144,13 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     if {item["key"]: item["version"] for item in fresh} != versions:
         narration = None
     service.store_selection(session, value, fresh_selected)
+    rhythm = mood.refreshed(
+        session, space_id, kind, value.starts_on, value.through_on, value.payload.mood
+    )
     value.payload = (
-        RecapPayload(headline=narration.title, introduction=narration.introduction)
+        RecapPayload(headline=narration.title, introduction=narration.introduction, mood=rhythm)
         if narration
-        else RecapPayload()
+        else RecapPayload(mood=rhythm)
     )
     value.generated_by = "LOCAL_AI" if narration else "RULES"
     value.theme = theme_for(fresh_selected)
@@ -156,17 +181,7 @@ def scan(session: Session, payload: dict[str, Any]) -> None:
         query = query.where(Membership.space_id > UUID(after))
     spaces = list(session.scalars(query.distinct().order_by(Membership.space_id).limit(100)))
     for space_id in spaces:
-        account_id = session.scalar(
-            select(Membership.account_id)
-            .join(Account, Account.id == Membership.account_id)
-            .where(
-                Membership.space_id == space_id,
-                Membership.status == MembershipStatus.ACTIVE.value,
-                Account.disabled_at.is_(None),
-            )
-            .order_by(Membership.created_at, Membership.id)
-            .limit(1)
-        )
+        account_id = first_member(session, space_id)
         if account_id is None:
             continue
         context = authorized_context(session, account_id, space_id)

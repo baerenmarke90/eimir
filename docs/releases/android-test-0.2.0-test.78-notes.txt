@@ -9,6 +9,9 @@ eimir. Android 0.2.0-test.78
 - The add button in the bottom right stays in place when you switch tabs instead of jumping into view.
 - Photos no longer carry a comment button, because the comment field is right below them.
 - Controls on photos and the map step aside while you swipe or pan, and the zoom buttons no longer cover the map on touch screens.
+- Read your own words in the recap: a quoted comment and the photo reactions you both gave now appear in the highlight scenes.
+- See a quiet "Gute Tage zusammen" scene in the recap that shows how many days you both marked a good day, per week for a month and per month for a year.
+- Choosing media in the composer no longer promises drag and drop in the app, and the moment card now has a name.
 
-The product changes come from main at 9c604db29c82db806de101250cb3a415b8c9f605.
+The product changes come from main at 91f26445323655d67bbc4cffedf862f4d78cccb5.
 Install over test.77 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 78.

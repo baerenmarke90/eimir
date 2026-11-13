@@ -17,6 +17,7 @@
     "addPhotos": "Add photos",
     "addMedia": "Add photos or videos",
     "chooseOrDrag": "Choose from device or drag here",
+    "chooseFromDevice": "Choose from device",
     "newPlace": "New place",
     "createPlace": "Add a new place",
     "createNamedPlace": "Create “{{name}}” as a new place",
@@ -2727,6 +2728,22 @@
       "DAYS_other": "days with entries"
     },
     "factsBusiest": "Most kept in {{month}}",
+    "rhythm": {
+      "title": "Good days together",
+      "summary_one": "{{count}} day when you both had a good day.",
+      "summary_other": "{{count}} days when you both had a good day.",
+      "week": "Week {{count}}",
+      "days_one": "{{count}} good day",
+      "days_other": "{{count}} good days",
+      "note": "Only days you both checked in are counted."
+    },
+    "quote": "{{name}}: “{{text}}”",
+    "quoteAnonymous": "“{{text}}”",
+    "mutualReaction": {
+      "LOVE": "You both loved this photo",
+      "LAUGH": "You both laughed at this photo",
+      "CELEBRATE": "You both celebrated this photo"
+    },
     "gestureHint": "Tap to turn the page · Hold to pause",
     "previous": "Previous page",
     "next": "Next page",

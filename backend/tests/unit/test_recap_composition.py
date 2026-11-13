@@ -7,7 +7,7 @@ from uuid import UUID
 import httpx
 import pytest
 
-from eimir.recaps import local_ai
+from eimir.recaps import local_ai, mood, words
 from eimir.recaps.composition import Candidate, period_bounds, select_candidates
 from eimir.recaps.models import RecapKind, RecapSourceKind
 
@@ -228,6 +228,51 @@ def test_editorial_checks_accept_a_short_caption_using_only_cited_numbers() -> N
     )
 
 
+def test_a_rejected_narration_gets_one_retry_with_the_broken_rule(monkeypatch):  # type: ignore[no-untyped-def]
+    import json
+
+    monkeypatch.setattr(
+        local_ai,
+        "get_settings",
+        lambda: SimpleNamespace(
+            recap_ai_url="http://recap-ai:11434",
+            recap_ai_model="qwen3:1.7b-q4_K_M",
+            recap_ai_timeout_seconds=5,
+        ),
+    )
+    actual = httpx.Client
+    requests: list[list[dict[str, str]]] = []
+    answers = [
+        {"title": "A walk", "introduction": "100 steps by the lake.", "source_keys": ["m"]},
+        {"title": "A walk", "introduction": "A walk by the lake.", "source_keys": ["m"]},
+        {"title": "Never", "introduction": "Asked a third time.", "source_keys": ["m"]},
+    ]
+
+    def respond(request):  # type: ignore[no-untyped-def]
+        requests.append(json.loads(request.content)["messages"])
+        content = json.dumps(answers[len(requests) - 1])
+        return httpx.Response(200, json={"done": True, "message": {"content": content}})
+
+    monkeypatch.setattr(
+        local_ai.httpx,
+        "Client",
+        lambda **kwargs: actual(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    evidence = [{"key": "m", "title": "A walk by the lake"}]
+    result = local_ai.compose(evidence, "en", "2026-10")
+    assert result is not None and result.introduction == "A walk by the lake."
+    assert len(requests) == 2 and len(requests[1]) == len(requests[0]) + 1
+    feedback = requests[1][-1]
+    assert feedback["role"] == "user" and "numbers" in feedback["content"]
+    # The rejected draft itself is never sent back.
+    assert "100 steps" not in feedback["content"]
+
+    requests.clear()
+    answers[1] = answers[0]
+    assert local_ai.compose(evidence, "en", "2026-10") is None
+    assert len(requests) == 2
+
+
 def test_overlong_model_prose_is_rejected_instead_of_truncated() -> None:
     from pydantic import ValidationError
 
@@ -237,3 +282,97 @@ def test_overlong_model_prose_is_rejected_instead_of_truncated() -> None:
             introduction="A perfect day full of love and happiness. " * 8,
             source_keys=["note"],
         )
+
+
+@pytest.mark.parametrize(
+    "locale,language,example",
+    [
+        ("de-DE", "German", "Frühstück am Morgen"),
+        ("de", "German", "Frühstück am Morgen"),
+        ("en_GB", "English", "Breakfast in the morning"),
+        ("fr-FR", "English", "Breakfast in the morning"),
+        ("", "English", "Breakfast in the morning"),
+    ],
+)
+def test_editorial_instruction_asks_for_the_couples_language_with_a_matching_example(
+    locale, language, example
+):  # type: ignore[no-untyped-def]
+    prompt = local_ai.editorial_instruction(locale)
+    assert f"in {language}" in prompt and f"Title: '{example}'" in prompt
+    other = "Breakfast in the morning" if language == "German" else "Frühstück am Morgen"
+    assert other not in prompt
+
+
+def test_quote_is_cut_at_a_word_boundary_and_never_reworded():  # type: ignore[no-untyped-def]
+    assert words.cut("  Short   note \n here ") == "Short note here"
+    long = words.cut("alpha " * 40)
+    assert long.endswith("\u2026") and len(long) <= 141 and "alpha alpha" in long
+
+
+def test_a_loved_candidate_is_always_selected_over_equal_peers():  # type: ignore[no-untyped-def]
+    peers = [
+        Candidate(RecapSourceKind.MEMORY, UUID(int=number), date(2026, 10, number), 1)
+        for number in range(1, 11)
+    ]
+    for index, loved in enumerate(peers):
+        pool = [*peers[:index], Candidate(*[*vars_of(loved)], loved=True), *peers[index + 1 :]]
+        chosen = select_candidates(pool, RecapKind.MONTH, "seed", 0)
+        assert loved.key in {item.key for item in chosen}
+
+
+def vars_of(item):  # type: ignore[no-untyped-def]
+    return item.kind, item.id, item.occurred_on, item.version
+
+
+A, B = UUID(int=1), UUID(int=2)
+
+
+def mutual(day, a="GOOD", b="GOOD"):  # type: ignore[no-untyped-def]
+    return {day: {A: a, B: b}}
+
+
+def test_mood_rhythm_counts_only_days_both_partners_marked():  # type: ignore[no-untyped-def]
+    month = date(2026, 10, 1), date(2026, 10, 31)
+    days: dict = {}  # type: ignore[type-arg]
+    for number in (1, 2, 3, 9, 10):
+        days |= mutual(date(2026, 10, number))
+    days |= mutual(date(2026, 10, 11), "SAD", "GOOD")
+    days[date(2026, 10, 12)] = {A: "GOOD"}  # one-sided: never counted or implied
+    result = mood.rhythm(RecapKind.MONTH, *month, days)
+    assert result is not None
+    assert [(b.index, b.mutual_days, b.good_days) for b in result.buckets] == [
+        (1, 3, 3),
+        (2, 3, 2),
+        (3, 0, 0),
+        (4, 0, 0),
+        (5, 0, 0),
+    ]
+    assert result.leading == 1
+
+
+def test_mood_rhythm_is_omitted_below_the_threshold_and_ties_do_not_lead():  # type: ignore[no-untyped-def]
+    month = date(2026, 10, 1), date(2026, 10, 31)
+    few = {}
+    for number in (1, 2, 3, 4):
+        few |= mutual(date(2026, 10, number))
+    assert mood.rhythm(RecapKind.MONTH, *month, few) is None
+    tie = dict(few)
+    for number in (8, 9, 10, 11):
+        tie |= mutual(date(2026, 10, number))
+    result = mood.rhythm(RecapKind.MONTH, *month, tie)
+    assert result is not None and result.leading is None
+
+
+def test_yearly_mood_needs_mutual_days_in_several_months():  # type: ignore[no-untyped-def]
+    year = date(2026, 1, 1), date(2026, 12, 31)
+    crowded = {}
+    for number in range(1, 22):
+        crowded |= mutual(date(2026, 3, number))
+    assert mood.rhythm(RecapKind.YEAR, *year, crowded) is None
+    spread = {}
+    for month in (2, 4, 6, 8):
+        for number in range(1, 6):
+            spread |= mutual(date(2026, month, number))
+    result = mood.rhythm(RecapKind.YEAR, *year, spread)
+    assert result is not None and len(result.buckets) == 12
+    assert result.leading is None

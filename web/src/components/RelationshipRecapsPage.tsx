@@ -548,9 +548,11 @@ function RecapReader({
   const duration = storyReadingDuration(
     scene?.type === 'facts'
       ? 'count label '.repeat(scene.lines.length + 2)
-      : !scene || scene.type === 'cover'
-        ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
-        : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
+      : scene?.type === 'rhythm'
+        ? 'count label '.repeat(scene.buckets.length + 2)
+        : !scene || scene.type === 'cover'
+          ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
+          : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
   );
   const playback = useStoryPlayback({
     pageKey,
@@ -668,6 +670,7 @@ function RecapReader({
   const overlayPlay = Boolean(scene && scene.type !== 'closing');
   const centredOnStage =
     scene?.type === 'facts' ||
+    scene?.type === 'rhythm' ||
     (scene?.type === 'cover' && mosaic.length === 0) ||
     (scene?.type === 'highlight' && scene.layout !== 'photo');
   const toggleLabel = t(
@@ -677,11 +680,13 @@ function RecapReader({
         ? 'recaps.replay'
         : 'recaps.play',
   );
-  const playbackToggle = (overlay: boolean) =>
+  // Text-led scenes keep the toggle in the stage but below the copy, so a paused
+  // reader never covers the title or a quote.
+  const playbackToggle = (overlay: boolean, inline = false) =>
     value?.status === 'READY' ? (
       <button
         type="button"
-        className={`recap-playback-toggle${overlay ? ' recap-playback-overlay' : ''}`}
+        className={`recap-playback-toggle${overlay ? ' recap-playback-overlay' : ''}${inline ? ' recap-playback-inline' : ''}`}
         data-playing={playback.playing}
         onClick={() => {
           if (playback.playing) playback.pause();
@@ -809,7 +814,7 @@ function RecapReader({
                   count: pageCount,
                 })}
               >
-                {centredOnStage ? playbackToggle(true) : null}
+                {centredOnStage ? playbackToggle(true, true) : null}
                 {!scene || scene.type === 'cover' ? (
                   <>
                     {mosaic.length ? (
@@ -899,6 +904,73 @@ function RecapReader({
                     ) : null}
                     <p className="recap-period-note">{t('recaps.factsNote')}</p>
                   </div>
+                ) : scene.type === 'rhythm' ? (
+                  <div className="recap-scene-copy">
+                    <p className="eyebrow">
+                      {recapPeriodLabel(value, resolvedLocale())}
+                    </p>
+                    <h1>{t('recaps.rhythm.title')}</h1>
+                    <p className="recap-reader-intro">
+                      {t('recaps.rhythm.summary', { count: scene.total })}
+                    </p>
+                    <ol
+                      className="recap-rhythm"
+                      style={
+                        {
+                          '--recap-columns': scene.buckets.length,
+                        } as CSSProperties
+                      }
+                    >
+                      {scene.buckets.map((bucket) => (
+                        <li
+                          key={bucket.index}
+                          data-leading={bucket.index === scene.leading}
+                          style={
+                            {
+                              '--recap-share':
+                                bucket.goodDays /
+                                Math.max(
+                                  ...scene.buckets.map((item) => item.goodDays),
+                                ),
+                            } as CSSProperties
+                          }
+                        >
+                          <span
+                            className="recap-rhythm-bar"
+                            aria-hidden="true"
+                          />
+                          <span className="recap-rhythm-label">
+                            {value.kind === 'YEAR'
+                              ? new Intl.DateTimeFormat(resolvedLocale(), {
+                                  month: 'short',
+                                  timeZone: 'UTC',
+                                }).format(
+                                  new Date(
+                                    Date.UTC(value.year, bucket.index - 1, 1),
+                                  ),
+                                )
+                              : t('recaps.rhythm.week', {
+                                  count: bucket.index,
+                                })}
+                          </span>
+                          <strong>
+                            {new Intl.NumberFormat(resolvedLocale()).format(
+                              bucket.goodDays,
+                            )}
+                            <span className="sr-only">
+                              {' '}
+                              {t('recaps.rhythm.days', {
+                                count: bucket.goodDays,
+                              })}
+                            </span>
+                          </strong>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="recap-period-note">
+                      {t('recaps.rhythm.note')}
+                    </p>
+                  </div>
                 ) : source ? (
                   <>
                     {scene.type === 'highlight' && scene.layout === 'photo' ? (
@@ -943,6 +1015,40 @@ function RecapReader({
                       source.excerpt &&
                       source.excerpt !== source.title ? (
                         <p className="recap-original-text">{source.excerpt}</p>
+                      ) : null}
+                      {source.available && source.quote ? (
+                        <blockquote className="recap-quote">
+                          <p>
+                            {source.quote.authorName
+                              ? t('recaps.quote', {
+                                  name: source.quote.authorName,
+                                  text: source.quote.text,
+                                })
+                              : t('recaps.quoteAnonymous', {
+                                  text: source.quote.text,
+                                })}
+                          </p>
+                        </blockquote>
+                      ) : null}
+                      {source.available &&
+                      scene.type === 'highlight' &&
+                      scene.layout === 'photo' &&
+                      source.mutualReaction ? (
+                        <p className="recap-reaction-line">
+                          {source.mutualReaction === 'LOVE' ? (
+                            <svg
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                              focusable="false"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M12 21.2 10.6 20C5.4 15.3 2 12.2 2 8.4 2 5.4 4.4 3 7.4 3c1.7 0 3.4.8 4.6 2.1C13.2 3.8 14.9 3 16.6 3 19.6 3 22 5.4 22 8.4c0 3.8-3.4 6.9-8.6 11.6L12 21.2Z"
+                              />
+                            </svg>
+                          ) : null}
+                          {t(`recaps.mutualReaction.${source.mutualReaction}`)}
+                        </p>
                       ) : null}
                       {source.available ? (
                         <Link

@@ -150,6 +150,11 @@ const de = {
       chapterText:
         'Alles, was zwischen den ersten bunten Blättern und dem ersten Frost passiert.',
     },
+    ownWords: {
+      photoQuote: 'Ich denke so oft an diesen Abend am Wasser.',
+      wordsQuote: 'Das war der schönste Abend der Woche.',
+      reaction: 'Dieses Foto habt ihr beide geliebt',
+    },
   },
   placesAndLists: {
     placeDescription: 'Unser Platz im Grünen.',

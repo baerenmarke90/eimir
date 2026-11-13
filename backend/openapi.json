@@ -9103,6 +9103,59 @@
         "title": "RecapKind",
         "type": "string"
       },
+      "RecapMoodBucketView": {
+        "description": "Mutual check-in days of one week (month edition) or one month (year edition).",
+        "properties": {
+          "goodDays": {
+            "title": "Gooddays",
+            "type": "integer"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "mutualDays": {
+            "title": "Mutualdays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "mutualDays",
+          "goodDays"
+        ],
+        "title": "RecapMoodBucketView",
+        "type": "object"
+      },
+      "RecapMoodView": {
+        "description": "Frozen rhythm of days on which both partners marked a good Vibe.",
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/RecapMoodBucketView"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "leading": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leading"
+          }
+        },
+        "required": [
+          "buckets",
+          "leading"
+        ],
+        "title": "RecapMoodView",
+        "type": "object"
+      },
       "RecapOverview": {
         "properties": {
           "canCompose": {
@@ -9161,6 +9214,31 @@
           "year"
         ],
         "title": "RecapPeriod",
+        "type": "object"
+      },
+      "RecapQuoteView": {
+        "description": "One shared comment, shown as written and cut at a word boundary.",
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "authorName": {
+            "title": "Authorname",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "authorId",
+          "authorName"
+        ],
+        "title": "RecapQuoteView",
         "type": "object"
       },
       "RecapReflectionUpdate": {
@@ -9346,6 +9424,22 @@
           "kind": {
             "$ref": "#/components/schemas/RecapSourceKind"
           },
+          "mutualReaction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LOVE",
+                  "LAUGH",
+                  "CELEBRATE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mutualreaction"
+          },
           "occurredOn": {
             "anyOf": [
               {
@@ -9373,6 +9467,16 @@
           "previewIsSensitive": {
             "title": "Previewissensitive",
             "type": "boolean"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapQuoteView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "anyOf": [
@@ -9480,6 +9584,16 @@
             "minimum": 0.0,
             "title": "Month",
             "type": "integer"
+          },
+          "mood": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapMoodView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "ownDraft": {
             "anyOf": [

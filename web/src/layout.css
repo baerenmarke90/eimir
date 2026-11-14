@@ -439,3 +439,108 @@
     text-align: center;
   }
 }
+
+/*
+ * Prototype: the root tabs Momente, Planen and Mehr drop their visible page
+ * title, like Wir. The bottom bar names the place and the view switch directly below
+ * names the content. The heading stays in the accessibility tree; the
+ * floating create action in the header is unaffected.
+ */
+.story-page-unified
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.planen-overview
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.more-page
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container,
+.memory-map-page
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.story-page-unified > .page-heading-root.content-overview-heading,
+.planen-overview > .page-heading-root.content-overview-heading,
+.more-page > .page-heading-root.content-overview-heading,
+.memory-map-page > .page-heading-root.content-overview-heading {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * Prototype: Momente, Planen and Mehr open with the same short rise as the
+ * modules on Wir, once per page load. The header is left out because it holds
+ * the floating create action, which must stay fixed to the viewport. The fill
+ * only covers the wait, so no transform lingers afterwards.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .page[data-root-intro] > :not(.page-heading) {
+    animation: root-tab-intro 420ms var(--easing-enter)
+      var(--root-intro-delay, 0ms) backwards;
+  }
+
+  .page[data-root-intro] > :nth-child(2) {
+    --root-intro-delay: 60ms;
+  }
+
+  .page[data-root-intro] > :nth-child(3) {
+    --root-intro-delay: 120ms;
+  }
+
+  .page[data-root-intro] > :nth-child(4) {
+    --root-intro-delay: 180ms;
+  }
+
+  .page[data-root-intro] > :nth-child(5) {
+    --root-intro-delay: 240ms;
+  }
+
+  .page[data-root-intro] > :nth-child(6) {
+    --root-intro-delay: 300ms;
+  }
+
+  .page[data-root-intro] > :nth-child(7) {
+    --root-intro-delay: 360ms;
+  }
+
+  .page[data-root-intro] > :nth-child(8) {
+    --root-intro-delay: 420ms;
+  }
+
+  /* A detail page opens with a short rise instead of replacing the list. */
+  .product-main > .page {
+    animation: detail-page-open 260ms var(--easing-enter);
+  }
+}
+
+@keyframes root-tab-intro {
+  from {
+    opacity: 0;
+    transform: translateY(0.9rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes detail-page-open {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -56,6 +56,7 @@ import {
 } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   heartMomentDetailPath,
   MEMORY_MAP_ROUTE,
@@ -279,6 +280,7 @@ export function StoryProductPage({
   recapsApi?: RecapsApi;
   startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
 }) {
+  const rootIntro = useRootTabIntro('story');
   const { t } = useTranslation();
   const recapEntry = (
     <RecapEntry
@@ -871,7 +873,10 @@ export function StoryProductPage({
   );
 
   return (
-    <div className="page story-page story-page-unified">
+    <div
+      className="page story-page story-page-unified"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
       {saved ? (
         <div className="inline-message inline-message-success" role="status">
           <strong>{t('story.savedTitle')}</strong>

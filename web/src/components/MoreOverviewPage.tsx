@@ -6,6 +6,7 @@ import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
 import { useProductTour } from '../client/productTour';
 import { useHideProFeatureMarks } from '../client/proPresentation';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
@@ -235,6 +236,7 @@ export function MoreOverviewPage({
   account: AccountView;
   spaceId: string;
 }) {
+  const rootIntro = useRootTabIntro('more');
   const { t } = useTranslation();
   const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
@@ -258,7 +260,10 @@ export function MoreOverviewPage({
   };
 
   return (
-    <div className="page more-page">
+    <div
+      className="page more-page"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
       <PageHeader
         variant="root"
         className="content-overview-heading"

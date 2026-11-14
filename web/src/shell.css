@@ -88,11 +88,13 @@
   );
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--duration-context) var(--easing-standard);
 }
 
+/* The glow belongs to Wir alone. It fades in on arrival but leaves at once,
+   so it never lingers as a tint over the tab that slides in. */
 .product-shell[data-top-surface="today"]::before {
   opacity: 1;
+  transition: opacity var(--duration-context) var(--easing-standard);
 }
 
 .product-shell[data-top-surface="today"]

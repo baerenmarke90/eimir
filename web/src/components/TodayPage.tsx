@@ -1444,11 +1444,12 @@ export function TodayPage({
   );
   const heroBridge = partner ? (
     heroBridgeLead ? (
-      <Link
+      // Leaves with its origin, so Back on the relationship profile returns
+      // to Wir rather than to the Mehr hierarchy the page lives in.
+      <TodayDestinationLink
         to="/more/profile#relationship-profile-title"
         className="wir-bridge"
-        aria-label={heroDurationText}
-        title={t('m5s5.dashboard.openRelationshipSettings')}
+        ariaLabel={`${heroDurationText}. ${t('m5s5.dashboard.openRelationshipSettings')}`}
       >
         <strong className="wir-bridge-lead">{heroBridgeLead}</strong>
         {heroBridgeLine}
@@ -1457,7 +1458,7 @@ export function TodayPage({
             <span key={part}>{part}</span>
           ))}
         </span>
-      </Link>
+      </TodayDestinationLink>
     ) : (
       <span className="wir-bridge" aria-hidden="true">
         <span />
@@ -1683,7 +1684,6 @@ export function TodayPage({
         {upcomingVisible && (anticipation || upcoming.length > 0) ? (
           <TodayModuleSection
             className="today-section-upcoming"
-            colorWorld="natural"
             title={t('m5s5.dashboard.upcomingTitle')}
             headerAction={
               <Link

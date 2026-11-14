@@ -164,8 +164,18 @@ function CollectionProductDetail({
   const [isSorting, setIsSorting] = useState(false);
   const createItemInFlightRef = useRef(false);
   const refocusAddRef = useRef(false);
-  const refocusToggleRef = useRef<string | null>(null);
+  const refocusToggleRef = useRef<{ id: string; completed: boolean } | null>(
+    null,
+  );
   const [menuOpen, setMenuOpen] = useState(false);
+  // The entry that was just checked or put back arrives in its new place with
+  // a short glide; the rest of the list does not move (#1808).
+  const [arrivingId, setArrivingId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!arrivingId) return;
+    const timer = window.setTimeout(() => setArrivingId(null), 700);
+    return () => window.clearTimeout(timer);
+  }, [arrivingId]);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   // Refreshing under the person's hands would fight an edit in progress.
   const pollPausedRef = useRef(false);
@@ -442,8 +452,9 @@ function CollectionProductDetail({
   // Checking an entry moves it into the tray, which mounts a new button. Focus
   // follows the entry so keyboard and screen-reader users keep their place.
   useEffect(() => {
-    const id = refocusToggleRef.current;
-    if (!id) return;
+    const target = refocusToggleRef.current;
+    if (!target) return;
+    const { id, completed } = target;
     const toggle = Array.from(
       itemsRef.current?.querySelectorAll<HTMLElement>(
         '[data-sortable-item-id]',
@@ -451,7 +462,13 @@ function CollectionProductDetail({
     )
       .find((row) => row.dataset.sortableItemId === id)
       ?.querySelector<HTMLButtonElement>('.checklist-toggle');
-    if (!toggle || toggle.disabled) return;
+    // Wait until the entry shows its new state: it is mounted again there.
+    if (
+      !toggle ||
+      toggle.disabled ||
+      toggle.getAttribute('aria-pressed') !== String(completed)
+    )
+      return;
     refocusToggleRef.current = null;
     if (!document.activeElement || document.activeElement === document.body)
       toggle.focus();
@@ -951,7 +968,11 @@ function CollectionProductDetail({
 
   function toggleItem(targetItem: CollectionItemDetail) {
     if (!collection) return;
-    refocusToggleRef.current = targetItem.id;
+    refocusToggleRef.current = {
+      id: targetItem.id,
+      completed: !targetItem.completed,
+    };
+    setArrivingId(targetItem.id);
     if (outbox.active)
       void outbox.setCompleted(targetItem.id, !targetItem.completed);
     else
@@ -1386,6 +1407,7 @@ function CollectionProductDetail({
                       onToggleComplete={toggleItem}
                       waiting={viewed?.pendingItemIds.has(item.id)}
                       marker={markerFor(item)}
+                      arriving={arrivingId === item.id}
                       onDelete={(targetItem) => {
                         const index = items.findIndex(
                           (item) => item.id === targetItem.id,

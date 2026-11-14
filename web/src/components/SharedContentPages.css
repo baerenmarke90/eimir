@@ -459,3 +459,26 @@
   color: var(--color-text-secondary);
   text-decoration: line-through;
 }
+
+/* An entry that was just checked or put back glides into its new place. The
+   motion tokens are 0 ms under reduced motion, so it simply appears there. */
+@keyframes shared-list-row-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-4)));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.shared-list-items > li[data-arriving="true"] {
+  animation: shared-list-row-arrive var(--duration-context) var(--easing-enter);
+}
+
+/* The pin and the list menu sit next to each other in the heading (#1808). */
+.shared-content-page .page-heading-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

@@ -469,25 +469,21 @@ for (const [width, theme, largeText] of [
       { fullPage: true },
     );
     await page.goto('/more');
-    // #1790 E1: Mehr opens years and recaps together; the years index leads on.
+    // #1861: the story overview is a page of its own, first in its Mehr group.
     await page
-      .getByRole('link', {
-        name: de.more.destinations.yearsAndRecaps,
-        exact: true,
-      })
+      .getByRole('link', { name: new RegExp(`^${copy.passport.title}`) })
       .click();
-    await page
-      .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
-      .click();
-    await page.getByText(recapCopy.details, { exact: true }).click();
+    await expect(page).toHaveURL(/\/story\/our-story$/);
     if (largeText)
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
       });
-    const passport = page.getByRole('region', { name: copy.passport.title });
-    await passport
-      .getByRole('switch', { name: copy.passport.statisticsToggle })
-      .click();
+    const passport = page.getByRole('region', {
+      name: copy.passport.title,
+      exact: true,
+    });
+    // The shared counts are always part of the overview; there is no opt-in.
+    await expect(passport.getByRole('switch')).toHaveCount(0);
     await expect(
       passport.getByRole('link', {
         name: `128 ${copy.passport.memories_other}`,
@@ -518,7 +514,11 @@ for (const [width, theme, largeText] of [
     await expect(page).toHaveURL(/\/story\?tab=timeline&type=MEMORY$/);
     await page.goBack();
     await expect(
-      page.getByRole('heading', { name: copy.passport.title }),
+      page.getByRole('heading', {
+        level: 1,
+        name: copy.passport.title,
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(
       page.locator('.profile-preferences-section .ui-state-error'),

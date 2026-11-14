@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from eimir.appearance.models import AppIconPreference, WirDesignId
+from eimir.appearance.models import FREE_WIR_DESIGNS, AppIconPreference, WirDesignId
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
 from eimir.entitlements import service as entitlements
@@ -59,10 +59,14 @@ def path(couple) -> str:  # type: ignore[no-untyped-def]
     return f"/api/v1/spaces/{couple['space'].id}/appearance/wir-design"
 
 
+def test_free_designs_are_exactly_connected_and_warm() -> None:
+    assert frozenset({WirDesignId.CONNECTED, WirDesignId.WARM}) == FREE_WIR_DESIGNS
+
+
 def test_warm_and_reads_are_free_and_never_create_rows(client, session, couple) -> None:
     initial = client.get(path(couple), headers=couple["a"])
     assert initial.status_code == 200
-    assert initial.json()["designId"] == "warm"
+    assert initial.json()["designId"] == "connected"
     assert initial.json()["version"] == 0
     assert initial.headers["Cache-Control"] == "private, no-store"
     assert session.scalar(select(func.count()).select_from(AppIconPreference)) == 0
@@ -72,11 +76,52 @@ def test_warm_and_reads_are_free_and_never_create_rows(client, session, couple) 
         json={"designId": "warm"},
     )
     assert saved.status_code == 200
+    assert saved.json()["designId"] == "warm"
     assert saved.json()["version"] == 1
     assert saved.headers["ETag"] != initial.headers["ETag"]
 
 
-@pytest.mark.parametrize("design_id", [icon for icon in WirDesignId if icon != WirDesignId.WARM])
+@pytest.mark.parametrize("design_id", ["connected", "warm"])
+def test_free_designs_are_saved_without_pro_and_stored_explicitly(
+    client, session, couple, design_id
+) -> None:
+    initial = client.get(path(couple), headers=couple["b"])
+    saved = client.patch(
+        path(couple),
+        headers={**couple["b"], "If-Match": initial.headers["ETag"]},
+        json={"designId": design_id},
+    )
+    assert saved.status_code == 200
+    assert saved.json() == {"designId": design_id, "version": 1}
+    assert client.get(path(couple), headers=couple["b"]).json()["designId"] == design_id
+    assert session.scalars(select(AppIconPreference.wir_design)).all() == [design_id]
+
+
+def test_switching_between_the_free_designs_stays_free(client, couple) -> None:
+    initial = client.get(path(couple), headers=couple["a"])
+    warm = client.patch(
+        path(couple),
+        headers={**couple["a"], "If-Match": initial.headers["ETag"]},
+        json={"designId": "warm"},
+    )
+    assert warm.json()["designId"] == "warm"
+    connected = client.patch(
+        path(couple),
+        headers={**couple["a"], "If-Match": warm.headers["ETag"]},
+        json={"designId": "connected"},
+    )
+    assert connected.status_code == 200
+    assert connected.json() == {"designId": "connected", "version": 2}
+
+
+def test_pro_designs_are_exactly_modern_and_classic() -> None:
+    assert {design for design in WirDesignId if design not in FREE_WIR_DESIGNS} == {
+        WirDesignId.MODERN,
+        WirDesignId.CLASSIC,
+    }
+
+
+@pytest.mark.parametrize("design_id", [WirDesignId.MODERN, WirDesignId.CLASSIC])
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:
     initial = client.get(path(couple), headers=couple["b"])
     headers = {**couple["b"], "If-Match": initial.headers["ETag"]}
@@ -88,7 +133,7 @@ def test_every_alternative_is_pro_for_both_partners(client, session, couple, des
     saved = client.patch(path(couple), headers=headers, json={"designId": design_id.value})
     assert saved.status_code == 200
     assert saved.json()["designId"] == design_id.value
-    assert client.get(path(couple), headers=couple["a"]).json()["designId"] == "warm"
+    assert client.get(path(couple), headers=couple["a"]).json()["designId"] == "connected"
 
 
 def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is_free(
@@ -121,6 +166,13 @@ def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is
     )
     assert reset.status_code == 200
     assert reset.json()["designId"] == "warm"
+    default = client.patch(
+        path(couple),
+        headers={**couple["a"], "If-Match": reset.headers["ETag"]},
+        json={"designId": "connected"},
+    )
+    assert default.status_code == 200
+    assert default.json()["designId"] == "connected"
 
 
 def test_membership_owner_scope_invalid_ids_and_required_concurrency(
@@ -190,7 +242,7 @@ def test_membership_owner_scope_invalid_ids_and_required_concurrency(
     assert first.status_code == 200
     assert stale.status_code == 409
     assert client.get(path(couple), headers=couple["a"]).json()["designId"] == "modern"
-    assert client.get(other_path, headers=couple["a"]).json()["designId"] == "warm"
+    assert client.get(other_path, headers=couple["a"]).json()["designId"] == "connected"
 
 
 def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
@@ -226,6 +278,22 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
     session.expire_all()
     assert session.get(AppIconPreference, own.id) is None
     assert session.get(AppIconPreference, partner.id) is not None
+
+
+def test_personal_export_without_a_stored_preference_reports_the_default_design(
+    session, couple
+) -> None:
+    context = AuthorizationContext(account_id=couple["anna"].id, space_id=couple["space"].id)
+    with (
+        build_export_archive(session, context, TransferScope.PERSONAL) as buffer,
+        ZipFile(buffer) as archive,
+    ):
+        account_document = json.loads(archive.read("accounts.json"))
+    assert account_document["personalAppearance"] == {
+        "appIconId": "original",
+        "wirDesign": "connected",
+    }
+    assert session.scalar(select(func.count()).select_from(AppIconPreference)) == 0
 
 
 def test_concurrent_initial_writes_have_one_winner_without_duplicate_rows(

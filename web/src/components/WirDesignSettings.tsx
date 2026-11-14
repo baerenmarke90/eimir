@@ -1,12 +1,17 @@
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WirDesignId } from '../api/generated/models/WirDesignId';
-import { useWirDesign, WIR_DESIGNS } from '../client/wirDesign';
 import {
-  clientProblemKind,
   ClientProblemError,
+  clientProblemKind,
 } from '../client/problemDetails';
+import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import {
+  DEFAULT_WIR_DESIGN,
+  isFreeWirDesign,
+  useWirDesign,
+  WIR_DESIGNS,
+} from '../client/wirDesign';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -61,7 +66,7 @@ function Settings({
   const denied =
     mutation.error instanceof ClientProblemError &&
     mutation.error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
-  const paid = draft !== WirDesignId.warm;
+  const paid = !isFreeWirDesign(draft);
   const free =
     capability.isSuccess && capability.data === false && !capability.isFetching;
   const canSave =
@@ -91,8 +96,10 @@ function Settings({
         <div>
           <strong>{t(`wirDesign.names.${current}`)}</strong>
           <span>
-            {current === WirDesignId.warm ? (
+            {current === DEFAULT_WIR_DESIGN ? (
               t('wirDesign.standard')
+            ) : isFreeWirDesign(current) ? (
+              t('wirDesign.free')
             ) : (
               <ProMark label={t('wirDesign.pro')} />
             )}
@@ -261,9 +268,11 @@ function Settings({
               <span className="wir-design-copy">
                 <strong>
                   {t(`wirDesign.names.${design}`)}{' '}
-                  {design === WirDesignId.warm ? (
+                  {isFreeWirDesign(design) ? (
                     <span className="wir-design-tier">
-                      {t('wirDesign.standard')}
+                      {design === DEFAULT_WIR_DESIGN
+                        ? t('wirDesign.standard')
+                        : t('wirDesign.free')}
                     </span>
                   ) : (
                     <ProMark label={t('wirDesign.pro')} />

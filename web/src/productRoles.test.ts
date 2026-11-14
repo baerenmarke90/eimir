@@ -146,6 +146,7 @@ describe('Product Reference v1 visual roles', () => {
       ['duration-map-camera', 'mapCamera'],
       ['duration-map-stack', 'mapStack'],
       ['duration-controls-return', 'controlsReturn'],
+      ['duration-sequence-beat', 'sequenceBeat'],
     ]) {
       expect(property(role)).toBe(tokens.motion.duration[token].$value);
       expect(property(role, reduced)).toBe(

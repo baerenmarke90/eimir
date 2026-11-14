@@ -75,6 +75,7 @@
     "automatic-recaps.spec.ts": {
       "roots": [
         "web/src/components/RelationshipPassport.tsx",
+        "web/src/components/RelationshipStoryPage.tsx",
         "web/src/components/RelationshipRecapsPage.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/RecapTasks.tsx",
@@ -704,6 +705,7 @@
     "relationship-reflections.spec.ts": {
       "roots": [
         "web/src/components/RelationshipPassport.tsx",
+        "web/src/components/RelationshipStoryPage.tsx",
         "web/src/components/RelationshipRecapsPage.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/RecapTasks.tsx",

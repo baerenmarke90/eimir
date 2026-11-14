@@ -402,6 +402,16 @@ describe('WirDailyCheckIn panel', () => {
     fireEvent.pointerDown(trigger);
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
 
+    // A snackbar action (Undo) is part of the open edit, not an outside press.
+    const snackbar = document.createElement('div');
+    snackbar.className = 'snackbar';
+    const undo = document.createElement('button');
+    snackbar.append(undo);
+    document.body.append(snackbar);
+    fireEvent.pointerDown(undo);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    snackbar.remove();
+
     fireEvent.pointerDown(document.body);
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).not.toBe(trigger);

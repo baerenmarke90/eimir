@@ -495,7 +495,7 @@ export function useWirDailyCheckIn({
   // A press anywhere outside the panel and its own avatar closes it, saving
   // the open note and energy like Done does. The press still reaches its
   // target and focus stays where the person put it. The own avatar toggles
-  // itself, and an open modal sheet owns the press.
+  // itself, and an open modal sheet or a snackbar action owns the press.
   useEffect(() => {
     if (!panelOpen) return;
     const onPointerDown = (event: PointerEvent) => {
@@ -503,9 +503,10 @@ export function useWirDailyCheckIn({
       if (!(target instanceof Node)) return;
       if (document.getElementById(panelId)?.contains(target)) return;
       if (ownTriggerRef.current?.contains(target)) return;
+      // A snackbar action such as Undo belongs to the open panel's edit.
       if (
         target instanceof Element &&
-        target.closest('dialog[open], [role="dialog"]')
+        target.closest('dialog[open], [role="dialog"], .snackbar')
       )
         return;
       if (document.querySelector('dialog[open]')) return;

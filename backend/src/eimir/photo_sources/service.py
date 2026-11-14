@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import threading
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from datetime import timedelta
-from typing import Literal
+from tempfile import TemporaryFile
+from typing import BinaryIO, Literal
 from uuid import UUID
 
 from pydantic import SecretStr
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import Session
 
 from eimir.api.deps import ensure_capability
+from eimir.attachments import service as attachment_service
+from eimir.attachments import upload_ownership
+from eimir.attachments.limits import is_supported, rule_for
+from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.auth import rate_limit
 from eimir.auth.tokens import hash_token, tokens_equal
 from eimir.authorization import AuthorizationContext
@@ -30,6 +37,7 @@ from eimir.core.errors import (
 )
 from eimir.core.ids import new_id, parse_id
 from eimir.db.locks import lock_subject
+from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability
 from eimir.identity.models import Account, AccountEmail, DeviceSession
 from eimir.identity.service import validate_email
@@ -46,7 +54,12 @@ from eimir.photo_sources.models import (
 )
 from eimir.providers import google_photos
 from eimir.providers.immich_photos import ImmichSelectedPhotoReader
-from eimir.providers.photo_transport import PhotoSourceError, SelectedPhoto
+from eimir.providers.photo_transport import (
+    PhotoResponse,
+    PhotoSourceError,
+    PhotoSourceRateLimitedError,
+    SelectedPhoto,
+)
 from eimir.relationship.service import require_membership
 from eimir.security.keyring import EncryptionMode
 
@@ -56,6 +69,11 @@ _SLOTS = threading.BoundedSemaphore(4)
 _LIFETIME = timedelta(minutes=10)
 _CAPABILITY = Capability.INTEGRATION_EXTERNAL_SYNC.value
 GOOGLE_RECOVERY_POLICY = "memory-only-v1"
+VIDEO_TRANSFER_SECONDS = google_photos.VIDEO_DOWNLOAD_SECONDS
+_TRANSFER_RETRIES = 2
+_MAX_BACKOFF_SECONDS = 30.0
+# After Google returns, a transfer may outlive the selection's own short lifetime.
+_IMPORT_WINDOW = timedelta(minutes=15)
 
 
 def enabled() -> bool:
@@ -319,6 +337,7 @@ def start(
     *,
     browser_binding: str | None = None,
     media_recovery_policy: str | None = None,
+    allow_video: bool = False,
 ) -> tuple[PhotoSelection, str | None]:
     _guard(session, auth)
     _guard_google_import(session, auth.account_id, provider)
@@ -361,6 +380,7 @@ def start(
             device_session_id=device.id,
             max_items=maximum,
             media_recovery_policy=media_recovery_policy if provider == "google" else None,
+            allow_video=allow_video and provider == "google",
         ),
     )
     url: str | None = None
@@ -439,11 +459,71 @@ def _load_immich_page(session: Session, row: PhotoSelection, page: int) -> None:
     existing = {item.source_id: item for item in row.payload.items}
     for source_id, mime in items:
         existing.setdefault(
-            source_id, SelectedPhotoItem(id=str(new_id()), source_id=source_id, mime_type=mime)
+            source_id,
+            SelectedPhotoItem(
+                id=str(new_id()), source_id=source_id, mime_type=mime, ordinal=len(existing)
+            ),
         )
     row.payload = row.payload.model_copy(
         update={"items": list(existing.values()), "next_page": following}
     )
+
+
+def _video_importable(session: Session, space_id: UUID) -> str | None:
+    """Return a fixed code when videos cannot be added to this Space now, else ``None``."""
+    rule = rule_for("video/mp4")
+    if rule is None or not is_supported(rule):
+        return "VIDEO_UNAVAILABLE"
+    if not entitlements.has_capability(session, space_id, Capability.MEDIA_VIDEO_UPLOAD.value):
+        return "VIDEO_UNAVAILABLE"
+    return None
+
+
+def _typed_items(
+    session: Session,
+    row: PhotoSelection,
+    listed: list[google_photos.GoogleItem],
+    previous: list[SelectedPhotoItem] | None = None,
+) -> list[SelectedPhotoItem]:
+    """Enumerate every provider item; an ineligible one keeps its place with a fixed code."""
+    data = row.payload
+    video_block = None if data.allow_video else "VIDEO_NOT_ALLOWED"
+    if video_block is None:
+        video_block = _video_importable(session, row.space_id)
+    known = {item.source_id: item for item in previous or [] if item.source_id}
+    result: list[SelectedPhotoItem] = []
+    for ordinal, entry in enumerate(listed):
+        availability: Literal["AVAILABLE", "PROCESSING", "UNAVAILABLE"] = "AVAILABLE"
+        code = entry.code
+        if code is None and entry.kind == "VIDEO":
+            if video_block is not None:
+                availability, code = "UNAVAILABLE", video_block
+            elif entry.provider_state != "READY":
+                availability, code = "PROCESSING", "NOT_READY"
+        elif code is not None:
+            availability = "UNAVAILABLE"
+        if (
+            entry.kind == "VIDEO"
+            and code in {"UNSUPPORTED_TYPE", "UNAVAILABLE"}
+            and video_block is not None
+        ):
+            code = video_block
+        earlier = known.get(entry.source_id)
+        result.append(
+            SelectedPhotoItem(
+                id=earlier.id if earlier else str(new_id()),
+                source_id=entry.source_id,
+                mime_type=entry.mime_type or "application/octet-stream",
+                source_url=entry.url if availability != "UNAVAILABLE" else None,
+                ordinal=ordinal,
+                kind=entry.kind,
+                provider_state=entry.provider_state,
+                availability=availability,
+                code=code,
+                attachment_id=earlier.attachment_id if earlier else None,
+            )
+        )
+    return result
 
 
 def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> None:
@@ -475,20 +555,25 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
         if not data.access_token or not data.provider_session_id:
             raise ConflictError("Photo selection is unavailable.", "PHOTO_SOURCE_SELECTION_INVALID")
         picker = google_photos.GooglePhotoPicker(data.access_token)
-        state = picker.poll(data.provider_session_id)
+        try:
+            state = picker.poll(data.provider_session_id)
+        except PhotoSourceRateLimitedError as limited:
+            # Back off as advised, never past the deadline that already bounds this task.
+            deadline = min(data.google_poll_deadline or row.expires_at, row.expires_at)
+            row.next_poll_at = min(now() + timedelta(seconds=limited.retry_after), deadline)
+            return
         if state.get("mediaItemsSet") is True:
-            items = picker.items(data.provider_session_id, data.max_items)
-            row.payload = data.model_copy(
-                update={
-                    "items": [
-                        SelectedPhotoItem(
-                            id=str(new_id()), source_id=source_id, mime_type=mime, source_url=url
-                        )
-                        for source_id, mime, url in items
-                    ]
-                }
-            )
+            try:
+                listed = picker.items(data.provider_session_id, data.max_items)
+            except PhotoSourceRateLimitedError as limited:
+                deadline = min(data.google_poll_deadline or row.expires_at, row.expires_at)
+                row.next_poll_at = min(now() + timedelta(seconds=limited.retry_after), deadline)
+                return
+            typed = _typed_items(session, row, listed)
+            row.payload = data.model_copy(update={"items": typed})
             row.status = "READY"
+            if any(item.kind == "VIDEO" and item.availability != "UNAVAILABLE" for item in typed):
+                _extend_for_import(session, row)
         else:
             timing = google_photos.session_timing(
                 state,
@@ -510,6 +595,19 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
                     {"selection_id": str(row.id), "polling_timeout": True},
                     delay=timing.poll_deadline - now(),
                 )
+
+
+def _extend_for_import(session: Session, row: PhotoSelection) -> None:
+    """Give a finished selection time to move videos; pickers keep their own deadlines."""
+    until = now() + _IMPORT_WINDOW
+    row.expires_at = until
+    row.payload = row.payload.model_copy(update={"import_until": until})
+    queue.enqueue(
+        session,
+        EXPIRE_JOB,
+        {"selection_id": str(row.id), "polling_timeout": True},
+        delay=_IMPORT_WINDOW,
+    )
 
 
 def _finish_expired_google(session: Session, row: PhotoSelection) -> None:
@@ -689,6 +787,11 @@ def read_item(
     item = next((item for item in row.payload.items if item.id == item_id), None)
     if item is None:
         raise NotFoundError("Selected photo not found.", "PHOTO_SOURCE_NOT_FOUND")
+    if item.kind != "IMAGE" or item.availability != "AVAILABLE":
+        # Videos move only through the bounded server-side import, never through this route.
+        raise ConflictError(
+            "This selected item cannot be read here.", item.code or "PHOTO_SOURCE_ITEM_UNAVAILABLE"
+        )
     with transfer_slot():
         if row.provider == "immich":
             reader, owner = _reader(session, row)
@@ -720,9 +823,181 @@ def expire(session: Session, payload: dict[str, object]) -> None:
     ).scalar_one_or_none()
     if row:
         deadline = row.payload.google_poll_deadline
+        until = row.payload.import_until
+        if payload.get("polling_timeout") is not True and until is not None and until > now():
+            return  # a transfer window outlives the picker lifetime; its own job removes it
         if (
             payload.get("polling_timeout") is not True
             or row.expires_at <= now()
             or (row.status == "PICKING" and deadline is not None and deadline <= now())
         ):
             remove(session, row)
+
+
+def _find_item(row: PhotoSelection, item_id: str) -> SelectedPhotoItem:
+    item = next((entry for entry in row.payload.items if entry.id == item_id), None)
+    if item is None:
+        raise NotFoundError("Selected photo not found.", "PHOTO_SOURCE_NOT_FOUND")
+    return item
+
+
+def _staged(
+    session: Session, auth: AuthorizationContext, item: SelectedPhotoItem
+) -> Attachment | None:
+    """The item's own earlier staging, if it is still usable: the per-item idempotency anchor."""
+    if item.attachment_id is None:
+        return None
+    attachment = session.execute(
+        select(Attachment)
+        .where(
+            Attachment.id == item.attachment_id,
+            Attachment.space_id == auth.space_id,
+            Attachment.owner_id == auth.account_id,
+        )
+        .execution_options(populate_existing=True)
+    ).scalar_one_or_none()
+    if attachment is None or attachment.status not in {
+        AttachmentStatus.UPLOADING.value,
+        AttachmentStatus.VALIDATING.value,
+        AttachmentStatus.READY.value,
+    }:
+        return None
+    return attachment
+
+
+def _refresh_provider_state(session: Session, row: PhotoSelection) -> None:
+    """Ask the provider again whether a still-processing video became ready."""
+    data = row.payload
+    if not data.access_token or not data.provider_session_id:
+        raise ConflictError("Photo selection is unavailable.", "PHOTO_SOURCE_SELECTION_INVALID")
+    with transfer_slot():
+        listed = google_photos.GooglePhotoPicker(data.access_token).items(
+            data.provider_session_id, data.max_items
+        )
+    row.payload = data.model_copy(update={"items": _typed_items(session, row, listed, data.items)})
+
+
+def _download_video(token: str, url: str, sink: BinaryIO) -> PhotoResponse:
+    """Bounded streaming with provider backoff that never outlives the transfer deadline."""
+    deadline = time.monotonic() + VIDEO_TRANSFER_SECONDS
+    picker = google_photos.GooglePhotoPicker(token)
+    for attempt in range(_TRANSFER_RETRIES + 1):
+        sink.seek(0)
+        sink.truncate()
+        wait: float | None = None
+        with transfer_slot():
+            try:
+                return picker.download_video(url, sink, deadline=deadline)
+            except PhotoSourceRateLimitedError as limited:
+                wait = limited.retry_after
+        if (
+            wait is None
+            or attempt >= _TRANSFER_RETRIES
+            or wait > _MAX_BACKOFF_SECONDS
+            or time.monotonic() + wait >= deadline
+        ):
+            break
+        time.sleep(wait)
+    raise ServiceUnavailableError(
+        "The photo source asked to wait. Try again shortly.", "PHOTO_SOURCE_RATE_LIMITED"
+    )
+
+
+def import_video(
+    session: Session, auth: AuthorizationContext, row: PhotoSelection, item_id: str
+) -> Attachment:
+    """Stream one provider-READY video into the existing protected attachment pipeline.
+
+    The bytes never enter a browser Blob or a heap buffer: they go through a private temporary
+    file into the normal staged Attachment (one id, existing validation, READY and cleanup).
+    """
+    _guard_google_import(session, row.account_id, row.provider)
+    _guard_recovery_policy(row)
+    if row.provider != "google":
+        raise ConflictError("This selected item cannot be imported.", "PHOTO_SOURCE_ITEM_INVALID")
+    _google_client(row)
+    rate_limit.check(
+        session,
+        "photo-source-import",
+        str(row.account_id),
+        rate_limit.Limit(60, timedelta(minutes=15)),
+    )
+    if row.status != "READY":
+        raise ConflictError("Photo selection is not complete.", "PHOTO_SOURCE_SELECTION_INVALID")
+    # One transfer per item: a repeated or concurrent request waits, then reuses the result.
+    lock_subject(session, "photo-source-import", str(row.id), item_id)
+    try:
+        session.refresh(row)
+    except InvalidRequestError:
+        raise NotFoundError("Photo selection not found.", "PHOTO_SOURCE_NOT_FOUND") from None
+    item = _find_item(row, item_id)
+    if item.kind != "VIDEO":
+        raise ConflictError("This selected item cannot be imported.", "PHOTO_SOURCE_ITEM_INVALID")
+    reused = _staged(session, auth, item)
+    if reused is not None:
+        return reused
+    if item.availability == "PROCESSING":
+        _refresh_provider_state(session, row)
+        item = _find_item(row, item_id)
+    # Destination eligibility is rechecked before every transfer; binding rechecks it again.
+    block = None if row.payload.allow_video else "VIDEO_NOT_ALLOWED"
+    block = block or _video_importable(session, row.space_id)
+    if block is not None:
+        raise ConflictError("Videos cannot be added here.", block)
+    token = row.payload.access_token
+    if item.availability != "AVAILABLE" or not item.source_url or not token:
+        raise ConflictError(
+            "This selected video is not available yet.",
+            item.code or "PHOTO_SOURCE_ITEM_UNAVAILABLE",
+        )
+    with TemporaryFile(mode="w+b") as staging:
+        received = _download_video(token, item.source_url, staging)
+        mime = received.mime_type
+        if mime not in {"video/mp4", "video/quicktime"}:
+            mime = (
+                item.mime_type
+                if item.mime_type in {"video/mp4", "video/quicktime"}
+                else "video/mp4"
+            )
+        # Committed on its own so the upload claim can see the row (existing upload protocol).
+        with upload_ownership.short_transaction(session) as isolated:
+            created = attachment_service.create_upload(
+                isolated,
+                auth,
+                media_type=MediaType.VIDEO,
+                original_name="imported-video.mp4",
+                expected_mime_type=mime,
+                expected_size=received.size,
+            )
+            attachment_id = created.id
+        claim = upload_ownership.claim_upload(session, auth, attachment_id)
+        staging.seek(0)
+        try:
+            upload_ownership.complete_upload(session, claim, staging)
+        except BaseException:
+            upload_ownership.release_upload_claim(session, claim)
+            raise
+    attachment = upload_ownership.finalize_upload(session, auth, attachment_id)
+    locked = session.execute(
+        select(PhotoSelection)
+        .where(PhotoSelection.id == row.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one_or_none()
+    if locked is None:
+        # Cancelled or expired while the provider was streaming: nothing may stay behind.
+        attachment_service.mark_for_deletion(session, attachment)
+        session.flush()
+        raise NotFoundError("Photo selection not found.", "PHOTO_SOURCE_NOT_FOUND")
+    locked.payload = locked.payload.model_copy(
+        update={
+            "items": [
+                entry.model_copy(update={"attachment_id": attachment.id})
+                if entry.id == item_id
+                else entry
+                for entry in locked.payload.items
+            ]
+        }
+    )
+    session.flush()
+    return attachment

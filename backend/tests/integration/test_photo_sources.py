@@ -972,6 +972,149 @@ def test_removing_the_verified_address_revokes_reading_as_well(
     assert read.status_code == 503
 
 
+# --- Typed items and bounded video import (#1467) ---------------------------------------
+
+
+def ready_video_selection(session, owners, client, monkeypatch, *, allow_video, state="READY"):
+    from eimir.providers.photo_transport import PhotoResponse  # noqa: F401
+
+    grant(session, owners)
+    entitlements.record_grant(
+        session,
+        space_id=owners["space"].id,
+        account_id=owners["anna"].id,
+        source_type=EntitlementSourceType.TEST_FIXTURE,
+        status=EntitlementStatus.ACTIVE,
+        effective_from=now(),
+        capabilities=[Capability.MEDIA_VIDEO_UPLOAD.value],
+    )
+    add_address(session, owners["anna"], LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    monkeypatch.setenv("EIMIR_VIDEO_UPLOAD_ENABLED", "true")
+    get_settings.cache_clear()
+    identifier = start_google(client, owners).json()["id"]
+    row = session.get(PhotoSelection, UUID(identifier))
+    row.status = "READY"
+    available = state == "READY"
+    row.payload = row.payload.model_copy(
+        update={
+            "access_token": "synthetic-google-token",
+            "provider_session_id": "synthetic-picker",
+            "allow_video": allow_video,
+            "items": [
+                SelectedPhotoItem(
+                    id="video-item",
+                    source_id="provider-video",
+                    mime_type="video/mp4",
+                    source_url="https://lh3.googleusercontent.com/video",
+                    kind="VIDEO",
+                    provider_state=state,
+                    availability="AVAILABLE" if available else "PROCESSING",
+                    code=None if available else "NOT_READY",
+                ),
+                SelectedPhotoItem(
+                    id="gif-item",
+                    source_id="provider-gif",
+                    mime_type="image/gif",
+                    ordinal=1,
+                    availability="UNAVAILABLE",
+                    code="UNSUPPORTED_TYPE",
+                ),
+            ],
+        }
+    )
+    session.flush()
+    return identifier
+
+
+def test_selection_view_lists_every_item_with_a_typed_descriptor(
+    client, session, owners, eligible_google, monkeypatch
+):
+    identifier = ready_video_selection(session, owners, client, monkeypatch, allow_video=True)
+    view = client.post(
+        path(owners) + f"/photo-selections/{identifier}/poll", headers=owners["a"]
+    ).json()
+    assert view["allowVideo"] is True
+    assert [(i["kind"], i["availability"], i["code"]) for i in view["items"]] == [
+        ("VIDEO", "AVAILABLE", None),
+        ("IMAGE", "UNAVAILABLE", "UNSUPPORTED_TYPE"),
+    ]
+    assert "provider-video" not in str(view) and "googleusercontent" not in str(view)
+
+
+def test_video_import_streams_into_one_staged_attachment_and_is_idempotent(
+    client, session, owners, eligible_google, monkeypatch
+):
+    from eimir.providers.photo_transport import PhotoResponse
+
+    _, _, picker = eligible_google
+    identifier = ready_video_selection(session, owners, client, monkeypatch, allow_video=True)
+
+    def download(url, sink, *, deadline):
+        assert url.endswith("/video")
+        sink.write(b"\x00\x00\x00\x18ftypmp42" + b"0" * 1024)
+        return PhotoResponse(b"", "video/mp4", 12 + 1024)
+
+    picker.download_video.side_effect = download
+    target = path(owners) + f"/photo-selections/{identifier}/items/video-item/import"
+    first = client.post(target, headers=owners["a"])
+    assert first.status_code == 200, first.text
+    assert first.json()["mediaType"] == "VIDEO"
+    assert first.json()["status"] in {"PROCESSING", "READY"}
+    again = client.post(target, headers=owners["a"])
+    assert again.status_code == 200 and again.json()["id"] == first.json()["id"]
+    assert picker.download_video.call_count == 1
+    # An item that is not a transferable video never reaches the provider.
+    image = client.post(
+        path(owners) + f"/photo-selections/{identifier}/items/gif-item/import",
+        headers=owners["a"],
+    )
+    assert image.status_code == 409
+
+
+def test_image_only_destination_rejects_the_video_on_the_server(
+    client, session, owners, eligible_google, monkeypatch
+):
+    _, _, picker = eligible_google
+    identifier = ready_video_selection(session, owners, client, monkeypatch, allow_video=False)
+    refused = client.post(
+        path(owners) + f"/photo-selections/{identifier}/items/video-item/import",
+        headers=owners["a"],
+    )
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "VIDEO_NOT_ALLOWED"
+    picker.download_video.assert_not_called()
+    read = client.get(
+        path(owners) + f"/photo-selections/{identifier}/items/video-item", headers=owners["a"]
+    )
+    assert read.status_code == 409
+
+
+def test_a_video_the_provider_has_not_finished_is_not_downloaded(
+    client, session, owners, eligible_google, monkeypatch
+):
+    _, _, picker = eligible_google
+    identifier = ready_video_selection(
+        session, owners, client, monkeypatch, allow_video=True, state="PROCESSING"
+    )
+    picker.items.return_value = [
+        service.google_photos.GoogleItem(
+            "provider-video",
+            "video/mp4",
+            "VIDEO",
+            "PROCESSING",
+            None,
+            "https://lh3.googleusercontent.com/video",
+        )
+    ]
+    refused = client.post(
+        path(owners) + f"/photo-selections/{identifier}/items/video-item/import",
+        headers=owners["a"],
+    )
+    assert refused.status_code == 409 and refused.json()["code"] == "NOT_READY"
+    picker.download_video.assert_not_called()
+
+
 GOOGLE_HINT = "Anna.Private@Gmail.Example"
 GOOGLE_HINT_NORMALIZED = "anna.private@gmail.example"
 

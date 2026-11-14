@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import Field
@@ -64,10 +65,22 @@ class GoogleAccountHint(IdMixin, VersionMixin, Base):
 
 
 class SelectedPhotoItem(ProtectedPayload):
+    """Typed descriptor of one selected item; provider references stay in this payload."""
+
     id: str
     source_id: str = Field(repr=False)
     mime_type: str
     source_url: str | None = Field(default=None, repr=False)
+    ordinal: int = 0
+    kind: Literal["IMAGE", "VIDEO", "OTHER"] = "IMAGE"
+    # Provider-side processing state of a video; ``None`` for items without one.
+    provider_state: str | None = None
+    # AVAILABLE can be transferred now, PROCESSING may become available, UNAVAILABLE cannot.
+    availability: Literal["AVAILABLE", "PROCESSING", "UNAVAILABLE"] = "AVAILABLE"
+    # Fixed eligibility code (never provider text) explaining a non-available item.
+    code: str | None = None
+    # The one staged Attachment of this item: the per-item idempotency anchor.
+    attachment_id: UUID | None = None
 
 
 class PhotoSelectionPayload(ProtectedPayload):
@@ -87,6 +100,10 @@ class PhotoSelectionPayload(ProtectedPayload):
     items: list[SelectedPhotoItem] = Field(default_factory=list, repr=False)
     next_page: int | None = None
     max_items: int = 20
+    # Destination decision made at start; Plans and avatars stay image-only.
+    allow_video: bool = False
+    # A finished selection that may still move videos outlives the short picker lifetime.
+    import_until: datetime | None = None
 
 
 class PhotoSelection(IdMixin, Base):

@@ -204,6 +204,8 @@ export function AttachmentDraftPicker({
             {sourceContext ? (
               <PhotoSourcePicker
                 {...sourceContext}
+                // Destinations without a video context (Plans) stay image-only.
+                videoContext={videoContext}
                 unified
                 onExternalAvailability={setExternalSources}
                 renderTrigger={
@@ -218,12 +220,16 @@ export function AttachmentDraftPicker({
                   const ticket = sourceContext.beginSelection();
                   return {
                     ...ticket,
-                    commit: (files) => {
-                      if (ticket.signal.aborted || !files.length) return false;
+                    commit: (files, staged) => {
+                      if (
+                        ticket.signal.aborted ||
+                        (!files.length && !staged?.length)
+                      )
+                        return false;
                       if (!multiple)
                         for (const item of attachments.items)
                           attachments.remove(item.id);
-                      return ticket.commit(files);
+                      return ticket.commit(files, staged);
                     },
                   };
                 }}

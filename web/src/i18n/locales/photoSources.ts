@@ -26,6 +26,23 @@ const photoSources = {
     'Wähle jetzt deine Fotos bei Google. Danach geht es hier automatisch weiter.',
   progress: 'Fotos werden übernommen …',
   retryImport: 'Erneut versuchen',
+  waitingMedia:
+    'Wähle jetzt deine Fotos und Videos bei Google. Danach geht es hier automatisch weiter.',
+  resultsLabel: 'Deine Auswahl',
+  video: 'Video {{number}}',
+  file: 'Datei {{number}}',
+  itemWaiting: 'Wartet',
+  itemWorking: 'Wird übernommen …',
+  itemDone: 'Hinzugefügt',
+  itemFailed: 'Das hat nicht geklappt.',
+  itemNotReady:
+    'Google macht das Video noch fertig. Versuche es gleich noch einmal.',
+  itemUnsupported: 'Dieses Format geht hier nicht.',
+  itemNoVideo: 'Videos kannst du hier nicht hinzufügen.',
+  itemVideoOff: 'Videos sind gerade nicht verfügbar.',
+  itemVideoRejected: 'Dieses Video lässt sich nicht übernehmen.',
+  itemGone: 'Nicht mehr verfügbar.',
+  itemNoRoom: 'Hier ist kein Platz mehr.',
   selected: '{{count}} ausgewählt',
   import: 'Fotos übernehmen',
   importFailed:

@@ -1676,7 +1676,7 @@ describe('CollectionProductPage', () => {
         moduleKey: 'pinned_collection',
         spaceId: 'space-1',
         dashboardModulePreferenceUpdate: {
-          selectedCollectionId: 'collection-1',
+          selectedCollectionIds: ['collection-1'],
           visible: true,
         },
       }),
@@ -1769,7 +1769,7 @@ describe('CollectionProductPage', () => {
       moduleKey: 'pinned_collection',
       spaceId: 'space-1',
       dashboardModulePreferenceUpdate: {
-        selectedCollectionId: 'collection-1',
+        selectedCollectionIds: ['collection-1'],
         visible: true,
       },
     });

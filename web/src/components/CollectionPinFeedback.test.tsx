@@ -34,13 +34,17 @@ const spaceId = 'space-1';
 const collectionId = 'list-1';
 const key = dashboardPreferencesQueryKey(accountId, spaceId);
 const preference = (
-  selectedCollectionId?: string,
+  selected?: string | string[],
   visible = false,
-): DashboardModulePreferenceView => ({
-  moduleKey: 'pinned_collection',
-  selectedCollectionId,
-  visible,
-});
+): DashboardModulePreferenceView => {
+  const ids = selected === undefined ? [] : [selected].flat();
+  return {
+    moduleKey: 'pinned_collection',
+    selectedCollectionId: ids[0],
+    selectedCollectionIds: ids,
+    visible,
+  };
+};
 const initial = (): DashboardModulePreferenceList => ({
   items: [
     { moduleKey: 'upcoming', visible: true, itemLimit: 1 },
@@ -249,27 +253,30 @@ it('selects immediately, announces pending, blocks rapid duplicates, then remove
   const status = screen.getByRole('status');
   expect(status.textContent).toBe(de.common.saving);
   expect(button.getAttribute('aria-describedby')).toBe(status.id);
-  expect(cached(h)?.items[1]).toEqual(preference(collectionId, true));
+  // The list is added to the ones already on Wir; nothing is replaced.
+  expect(cached(h)?.items[1]).toEqual(
+    preference(['old-list', collectionId], true),
+  );
   expect(cached(h)?.items[0]).toEqual(initial().items[0]);
   expect(h.update.mock.calls[0][0]).toMatchObject({
     spaceId,
     dashboardModulePreferenceUpdate: {
-      selectedCollectionId: collectionId,
+      selectedCollectionIds: ['old-list', collectionId],
       visible: true,
     },
   });
-  await h.confirm(preference(collectionId, true));
+  await h.confirm(preference(['old-list', collectionId], true));
   await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false));
   expect(screen.queryByRole('status')).toBeNull();
   fireEvent.click(button);
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
   expect(pinButton().getAttribute('aria-pressed')).toBe('false');
-  expect(cached(h)?.items[1]).toEqual(preference(undefined, true));
+  expect(cached(h)?.items[1]).toEqual(preference('old-list', true));
   expect(h.update.mock.calls[1][0].dashboardModulePreferenceUpdate).toEqual({
-    selectedCollectionId: null,
-    visible: undefined,
+    selectedCollectionIds: ['old-list'],
+    visible: true,
   });
-  await h.confirm(preference(undefined, true), 1);
+  await h.confirm(preference('old-list', true), 1);
   await waitFor(() => expect(pinButton().hasAttribute('disabled')).toBe(false));
 });
 
@@ -375,8 +382,8 @@ it('reads current preferences after conflict or failed recovery and never replay
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
   expect(
     h.update.mock.calls[1][0].dashboardModulePreferenceUpdate
-      .selectedCollectionId,
-  ).toBeNull();
+      .selectedCollectionIds,
+  ).toEqual([]);
   await h.confirm(preference(undefined, true), 1);
 });
 
@@ -610,7 +617,7 @@ it.each(['account', 'space'])(
     expect(screen.getByRole('status').textContent).toBe(de.common.saving);
     expect(screen.queryByText(de.states.server.title)).toBeNull();
     expect(cached(h, otherKey)?.items[0]).toEqual(
-      preference(collectionId, true),
+      preference(['other-list', collectionId], true),
     );
     h.get.mockResolvedValue({ items: [preference(collectionId, true)] });
     await act(async () => h.writes[1].resolve(preference(collectionId, true)));

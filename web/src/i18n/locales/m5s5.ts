@@ -88,27 +88,18 @@ const m5s5 = {
     recent: {
       allAction: 'Alle Aktivitäten',
     },
-    pinnedCollection: {
-      kicker: 'Gemeinsame Liste',
-      openAction: 'Liste öffnen',
-      openAriaLabel: '„{{title}}“ öffnen',
-      addPlaceholder: 'Eintrag hinzufügen',
-      addAction: 'Eintrag hinzufügen',
-      addRequired: 'Gib zuerst einen Eintrag ein.',
+    wirLists: {
+      titleOne: 'Unsere Liste',
+      titleMany: 'Unsere Listen',
+      allLists: 'Alle Listen',
+      allListsAria: 'Alle gemeinsamen Listen ansehen',
+      openAria: '„{{title}}“ öffnen',
+      add: 'Hinzufügen',
       empty: 'Noch nichts auf dieser Liste.',
-      more_one: 'Noch {{count}} weiterer Eintrag',
-      more_other: 'Noch {{count}} weitere Einträge',
-      showMore_one: '{{count}} weiteren Eintrag anzeigen',
-      showMore_other: '{{count}} weitere Einträge anzeigen',
-      showLess: 'Weniger anzeigen',
-      loadError: 'Die angeheftete Liste konnte gerade nicht geladen werden.',
-      toggleFailed:
-        'Diese Änderung wurde nicht gespeichert. Versuche es erneut.',
-      sharedAchievementConfirmed: '{{title}} als erledigt markiert',
-      sharedAchievementTitle: 'Gemeinsam geschafft!',
-      sharedAchievementBody:
-        'Ihr habt alle Punkte auf eurer Liste „{{title}}“ erledigt. Starkes Team! 💙',
-      sharedAchievementAction: 'Liste ansehen',
+      loadError: 'Die Listen konnten gerade nicht geladen werden.',
+      lastAdded: '{{name}} hat „{{title}}“ hinzugefügt',
+      lastCart: '{{name}} hat „{{title}}“ in den Wagen gelegt',
+      lastDone: '{{name}} hat „{{title}}“ erledigt',
     },
     living: {
       kicker: 'Gerade bei euch',

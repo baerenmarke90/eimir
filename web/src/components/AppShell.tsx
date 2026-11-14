@@ -55,7 +55,6 @@ import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
 import { useNavigationMotion } from './useNavigationMotion';
 
-
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
   const location = useLocation();

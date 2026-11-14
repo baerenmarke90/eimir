@@ -107,7 +107,7 @@ def sources(
         enabled=service.enabled(),
         google_available=(
             service.enabled()
-            and service.google_import_available()
+            and service.google_import_permitted(session, authorization.account_id)
             and bool(settings.google_photos_client_id or settings.google_photos_web_client_file)
         ),
         immich_connected=linked is not None,

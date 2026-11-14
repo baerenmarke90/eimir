@@ -9,6 +9,7 @@ from fastapi import Response
 
 from eimir.api.v1 import photo_sources as api
 from eimir.authorization import AuthorizationContext
+from eimir.config import Environment
 from eimir.core.errors import ServiceUnavailableError
 from eimir.photo_sources import service
 from eimir.photo_sources.models import PhotoSelection, PhotoSelectionPayload
@@ -23,6 +24,10 @@ def secure_configuration(monkeypatch):
         public_base_url="https://eimir.example",
         google_photos_client_id="synthetic-client-id",
         google_photos_client_secret="synthetic-client-secret",
+        google_photos_web_client_file="",
+        google_photos_test_account_emails=[],
+        demo_mode=False,
+        environment=Environment.PRODUCTION,
     )
     monkeypatch.setattr(service, "get_settings", lambda: settings)
     monkeypatch.setattr(api, "get_settings", lambda: settings)
@@ -99,7 +104,7 @@ def test_direct_legacy_google_transfer_seams_fail_before_network(
     secure_configuration, monkeypatch, operation
 ):
     session = Mock()
-    row = SimpleNamespace(provider="google")
+    row = SimpleNamespace(provider="google", account_id=uuid4())
     picker = Mock()
     monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", picker)
     with pytest.raises(ServiceUnavailableError):
@@ -127,3 +132,60 @@ def test_google_cleanup_still_deletes_remote_session_when_new_imports_are_blocke
     picker.delete.assert_called_once_with("synthetic-picker")
     session.delete.assert_called_once_with(row)
     session.flush.assert_called_once()
+
+
+def test_google_test_eligibility_is_configuration_closed_without_touching_the_database(
+    secure_configuration,
+):
+    session = Mock()
+    assert service.google_test_eligible(session, uuid4()) is False
+    assert service.google_import_permitted(session, uuid4()) is False
+    session.scalar.assert_not_called()
+    session.execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"demo_mode": True},
+        {"environment": Environment.DEMO},
+        {"photo_sources_enabled": False},
+        {"encryption_mode": EncryptionMode.DISABLED},
+        {"public_base_url": "http://eimir.example"},
+        {"google_photos_client_id": "", "google_photos_client_secret": None},
+    ],
+)
+def test_google_test_eligibility_needs_every_instance_prerequisite(secure_configuration, change):
+    for name, value in {
+        "google_photos_test_account_emails": ["tester@eimir.example"],
+        **change,
+    }.items():
+        setattr(secure_configuration, name, value)
+    session = Mock()
+    session.scalar.return_value = uuid4()  # even a matching verified address cannot override it
+    assert service.google_test_eligible(session, uuid4()) is False
+
+
+def test_google_test_eligibility_opens_for_a_matching_verified_address_only(secure_configuration):
+    secure_configuration.google_photos_test_account_emails = ["tester@eimir.example"]
+    session = Mock()
+    session.scalar.return_value = uuid4()
+    assert service.google_test_eligible(session, uuid4()) is True
+    session.scalar.return_value = None
+    assert service.google_test_eligible(session, uuid4()) is False
+    # The literal production gate is independent of this list.
+    assert service.google_import_available() is False
+
+
+def test_test_account_list_is_normalized_and_bounded():
+    from pydantic import ValidationError
+
+    from eimir.config import Settings
+
+    base = {"environment": "test"}
+    assert Settings(
+        **base, google_photos_test_account_emails=[" A@B.de "]
+    ).google_photos_test_account_emails == ["a@b.de"]
+    for invalid in (["no-at-sign"], ["a@b.de", "A@b.de"], [f"u{i}@b.de" for i in range(11)], [""]):
+        with pytest.raises(ValidationError):
+            Settings(**base, google_photos_test_account_emails=invalid)

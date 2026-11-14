@@ -731,3 +731,241 @@ def test_concurrent_google_callbacks_exchange_only_once_with_real_request_commit
         assert row.status == "PICKING"
         assert row.state_hash is None
         assert row.payload.browser_binding_hash is None
+
+
+# ---- #1467 test eligibility: a narrow, fail-closed path that never changes the production gate.
+
+LISTED = "anna.test@eimir.example"
+
+
+@pytest.fixture
+def eligible_google(monkeypatch):
+    """Synthetic provider WITHOUT patching the literal production gate."""
+    from eimir.auth.tokens import generate_token
+    from eimir.providers.google_photos_config import GooglePhotosClient
+
+    oauth_client = GooglePhotosClient(
+        "synthetic.apps.googleusercontent.com",
+        SecretStr("synthetic-client-secret"),
+        "https://eimir.example/api/v1/photo-sources/google/callback",
+    )
+    monkeypatch.setattr(service.google_photos, "client_configuration", lambda: oauth_client)
+    states = []
+
+    def authorization(*, client):
+        state = generate_token()
+        states.append(state)
+        return "https://accounts.google.com/synthetic", state, "synthetic-verifier"
+
+    monkeypatch.setattr(service.google_photos, "authorization", authorization)
+    exchange = Mock(return_value="synthetic-google-token")
+    monkeypatch.setattr(service.google_photos, "exchange", exchange)
+    picker = Mock()
+    picker.create.return_value = {
+        "id": "synthetic-picker",
+        "pickerUri": "https://photos.google.com/synthetic",
+        "pollingConfig": {"pollInterval": "5s", "timeoutIn": "600s"},
+    }
+    monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", Mock(return_value=picker))
+    monkeypatch.setenv("EIMIR_GOOGLE_PHOTOS_CLIENT_ID", "synthetic.apps.googleusercontent.com")
+    monkeypatch.setenv("EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET", "synthetic-client-secret")
+    get_settings.cache_clear()
+    return states, exchange, picker
+
+
+def set_test_list(monkeypatch, *addresses):
+    import json
+
+    monkeypatch.setenv("EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS", json.dumps(list(addresses)))
+    get_settings.cache_clear()
+
+
+def add_address(session, account, address, *, verified):
+    from eimir.identity.models import AccountEmail
+
+    session.add(
+        AccountEmail(
+            account_id=account.id,
+            email=address,
+            verified_at=now() if verified else None,
+            is_primary=True,
+        )
+    )
+    session.flush()
+
+
+def google_availability(client, owners):
+    return client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()[
+        "googleAvailable"
+    ]
+
+
+def start_google(client, owners):
+    return client.post(
+        path(owners) + "/photo-selections",
+        headers=owners["a"],
+        json={
+            "source": "google",
+            "maxItems": 2,
+            "consent": True,
+            "mediaRecoveryPolicy": "memory-only-v1",
+        },
+    )
+
+
+def test_listed_verified_address_opens_google_while_the_production_gate_stays_closed(
+    client, session, owners, eligible_google, monkeypatch
+):
+    grant(session, owners)
+    add_address(session, owners["anna"], LISTED, verified=True)
+    # Default closed even with a verified address and complete configuration.
+    assert google_availability(client, owners) is False
+    assert start_google(client, owners).status_code == 503
+    set_test_list(monkeypatch, LISTED.upper())
+    assert service.google_import_available() is False
+    assert google_availability(client, owners) is True
+    assert start_google(client, owners).status_code == 201
+
+
+@pytest.mark.parametrize("case", ["unlisted-address", "unverified-address", "other-account"])
+def test_google_test_eligibility_rejects_every_missing_prerequisite(
+    client, session, owners, eligible_google, monkeypatch, case
+):
+    states, exchange, _ = eligible_google
+    grant(session, owners)
+    if case == "unlisted-address":
+        add_address(session, owners["anna"], "someone.else@eimir.example", verified=True)
+    if case == "unverified-address":
+        add_address(session, owners["anna"], LISTED, verified=False)
+    if case == "other-account":
+        add_address(session, owners["anna"], "someone.else@eimir.example", verified=True)
+        other = make_account(session, "Listed Other")
+        add_address(session, other, LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    assert google_availability(client, owners) is False
+    assert start_google(client, owners).status_code == 503
+    assert states == []
+    exchange.assert_not_called()
+    assert session.scalar(select(PhotoSelection)) is None
+
+
+def test_test_eligibility_does_not_replace_the_external_sync_entitlement(
+    client, session, owners, eligible_google, monkeypatch
+):
+    states, _, _ = eligible_google
+    add_address(session, owners["anna"], LISTED, verified=True)  # listed, but no Pro grant
+    set_test_list(monkeypatch, LISTED)
+    availability = client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()
+    assert availability["canImport"] is False
+    assert start_google(client, owners).status_code == 403
+    assert states == []
+    assert session.scalar(select(PhotoSelection)) is None
+
+
+@pytest.mark.parametrize("missing", ["encryption", "https", "client"])
+def test_google_test_eligibility_requires_instance_prerequisites(
+    client, session, owners, eligible_google, monkeypatch, encryption, missing
+):
+    grant(session, owners)
+    add_address(session, owners["anna"], LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    assert google_availability(client, owners) is True
+    if missing == "encryption":
+        # Configuration validation refuses Google without required encryption: the instance
+        # cannot load these settings, so no eligibility can exist.
+        encryption.apply("disabled")
+        get_settings.cache_clear()
+        with pytest.raises(ValueError, match="ENCRYPTION_AT_REST"):
+            get_settings()
+        return
+    if missing == "https":
+        # Configuration validation already refuses Google without HTTPS: the instance cannot
+        # even load these settings, so no eligibility can exist.
+        monkeypatch.setenv("EIMIR_PUBLIC_BASE_URL", "http://eimir.example")
+        get_settings.cache_clear()
+        with pytest.raises(ValueError, match="HTTPS"):
+            get_settings()
+        return
+    if missing == "client":
+        monkeypatch.delenv("EIMIR_GOOGLE_PHOTOS_CLIENT_ID")
+        monkeypatch.delenv("EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET")
+    get_settings.cache_clear()
+    assert service.google_test_eligible(session, owners["anna"].id) is False
+
+
+def test_removing_the_address_revokes_polling_but_not_cancellation(
+    client, session, owners, eligible_google, monkeypatch
+):
+    grant(session, owners)
+    add_address(session, owners["anna"], LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    identifier = start_google(client, owners).json()["id"]
+    set_test_list(monkeypatch)  # operator empties the list
+    poll = client.post(path(owners) + f"/photo-selections/{identifier}/poll", headers=owners["a"])
+    assert poll.status_code == 503
+    cancel = client.delete(path(owners) + f"/photo-selections/{identifier}", headers=owners["a"])
+    assert cancel.status_code == 204
+    assert session.get(PhotoSelection, UUID(identifier)) is None
+
+
+def test_eligible_callback_completes_once_and_a_removed_address_cannot_finish_it(
+    client, session, owners, eligible_google, monkeypatch
+):
+    from fastapi.testclient import TestClient
+
+    states, exchange, _ = eligible_google
+    grant(session, owners)
+    add_address(session, owners["anna"], LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    with (
+        TestClient(client.app, base_url="https://eimir.example") as completing,
+        TestClient(client.app, base_url="https://eimir.example") as revoked,
+    ):
+        first = begin_google(completing, owners)
+        second = begin_google(revoked, owners)
+        assert service.google_import_available() is False
+        accepted = google_callback(completing, states[0])
+        assert accepted.status_code == 303
+        exchange.assert_called_once()
+        assert session.get(PhotoSelection, first).status == "PICKING"
+        # The operator empties the list before the second browser returns: nothing is exchanged.
+        set_test_list(monkeypatch)
+        denied = google_callback(revoked, states[1])
+        assert denied.status_code == 200 and "Location" not in denied.headers
+        exchange.assert_called_once()
+        assert session.get(PhotoSelection, second).status == "AUTHORIZING"
+
+
+def test_removing_the_verified_address_revokes_reading_as_well(
+    client, session, owners, eligible_google, monkeypatch
+):
+    from eimir.identity.models import AccountEmail
+
+    grant(session, owners)
+    add_address(session, owners["anna"], LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    identifier = start_google(client, owners).json()["id"]
+    row = session.get(PhotoSelection, UUID(identifier))
+    row.status = "READY"
+    row.payload = row.payload.model_copy(
+        update={
+            "access_token": "synthetic-google-token",
+            "provider_session_id": "synthetic-picker",
+            "items": [
+                SelectedPhotoItem(
+                    id="selected-local-item",
+                    source_id="synthetic-provider-item",
+                    mime_type="image/jpeg",
+                    source_url="https://lh3.googleusercontent.com/synthetic",
+                )
+            ],
+        }
+    )
+    session.flush()
+    session.query(AccountEmail).filter(AccountEmail.account_id == owners["anna"].id).delete()
+    session.flush()
+    read = client.get(
+        path(owners) + f"/photo-selections/{identifier}/items/selected-local-item",
+        headers=owners["a"],
+    )
+    assert read.status_code == 503

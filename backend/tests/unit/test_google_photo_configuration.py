@@ -24,6 +24,7 @@ def settings():
         google_photos_web_client_file="",
         google_photos_client_id="new-project.apps.googleusercontent.com",
         google_photos_client_secret=SecretStr("synthetic-new-project-secret"),
+        google_photos_test_account_emails=["tester@eimir.example"],
     )
 
 
@@ -212,6 +213,9 @@ def test_valid_setup_does_not_claim_the_application_is_enabled(settings, monkeyp
     assert result["applicationImportAvailable"] is False
     assert settings.google_photos_client_id not in output
     assert settings.google_photos_client_secret.get_secret_value() not in output
+    # Only a count is reported, never the listed addresses.
+    assert result["testEligibleAccountCount"] == 1
+    assert "tester@eimir.example" not in output
 
 
 def test_setup_errors_never_echo_validation_input(monkeypatch, capsys):

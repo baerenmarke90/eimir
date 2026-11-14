@@ -1,6 +1,7 @@
 """Selected-only Google transfer and response/credential boundaries."""
 
 import json
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
@@ -93,3 +94,53 @@ def test_original_read_is_bounded_and_does_not_return_foreign_filename(monkeypat
     assert "synthetic-image" not in repr(result)
     assert transport.request.call_args.args == ("GET", "/selected=d")
     assert transport.request.call_args.kwargs["limit"] == 25 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        None,
+        [],
+        {},
+        {"pollInterval": "NaNs", "timeoutIn": "10s"},
+        {"pollInterval": "0s", "timeoutIn": "10s"},
+        {"pollInterval": "5s", "timeoutIn": "-1s"},
+        {"pollInterval": "5s", "timeoutIn": 5},
+        {"pollInterval": "999999999999999999999s", "timeoutIn": "10s"},
+    ],
+)
+def test_malformed_polling_cannot_become_an_early_poll_or_unbounded_timer(config):
+    instant = datetime(2026, 11, 5, tzinfo=UTC)
+    with pytest.raises(PhotoSourceError, match="PHOTO_SOURCE_RESPONSE_INVALID"):
+        google.session_timing(
+            {"pollingConfig": config}, at=instant, expires_at=instant + timedelta(minutes=10)
+        )
+
+
+def test_provider_expiry_can_only_shorten_local_and_previous_poll_deadlines():
+    instant = datetime(2026, 11, 5, tzinfo=UTC)
+    timing = google.session_timing(
+        {
+            "pollingConfig": {"pollInterval": "90.5s", "timeoutIn": "600s"},
+            "expireTime": (instant + timedelta(seconds=120)).isoformat(),
+        },
+        at=instant,
+        expires_at=instant + timedelta(minutes=10),
+        poll_deadline=instant + timedelta(seconds=60),
+    )
+    assert timing.interval == timedelta(seconds=90.5)
+    assert timing.expires_at == instant + timedelta(seconds=120)
+    assert timing.poll_deadline == instant + timedelta(seconds=60)
+
+
+@pytest.mark.parametrize(
+    "expiry", ["tomorrow", "2026-11-05T00:00:00", "9999-12-31T23:00:00-12:00", False]
+)
+def test_provider_expiry_is_an_aware_timestamp(expiry):
+    instant = datetime(2026, 11, 5, tzinfo=UTC)
+    with pytest.raises(PhotoSourceError):
+        google.session_timing(
+            {"pollingConfig": {"pollInterval": "5s", "timeoutIn": "10s"}, "expireTime": expiry},
+            at=instant,
+            expires_at=instant + timedelta(minutes=10),
+        )

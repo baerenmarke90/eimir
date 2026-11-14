@@ -1,0 +1,11 @@
+{
+  "baseline": "c37d427f2b7b914b3dbc86cbe218c92df0bb7d56",
+  "source_sha256": {
+    "web/src/client/photoSources.ts": "f46630d4939ad150c037fb3918f02d5d42c97433e442d798fdad01739c9008bc",
+    "web/src/components/PhotoSourcePicker.tsx": "06f24bbcd8410d2d79545acc904c7925fc3e05c7b07db8ed7e4edea1684e9880",
+    "web/src/components/AttachmentDraftPicker.tsx": "7862347c29d6a39c14aa8e93ed9a51711fee1680ce8ad9d09d04d5aa7b5011de",
+    "web/src/components/MemoryCreatePage.tsx": "a2765acd91fbbf58e5e34589e247e8f77a330ad0c2e1f8f6620256b6e85a9df5"
+  },
+  "provider": "synthetic API fixtures; not real Google acceptance",
+  "browser": "existing bundled Chromium runtime; 1 worker; no retries"
+}

@@ -530,6 +530,7 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
+
 ## saveGooglePhotoAccount
 
 > saveGooglePhotoAccount(spaceId, ifMatch, googleAccountSave)
@@ -606,6 +607,7 @@ No authorization required
 | **503** | A capability required for this operation is not configured on this instance. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## startPhotoSelection
 

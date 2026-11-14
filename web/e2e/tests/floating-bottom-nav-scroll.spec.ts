@@ -652,7 +652,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     { label: 'compact', width: 390, height: 844 },
     { label: 'expanded', width: 1280, height: 900 },
   ] as const) {
-    test(`Root headings share one rhythm and display typeface on ${viewport.label}`, async ({
+    test(`Root headings keep one display typeface without a visible title band on ${viewport.label}`, async ({
       page,
     }, testInfo) => {
       await installApiMocks(page);
@@ -674,11 +674,13 @@ test.describe('Global header document flow and persistent bottom navigation', ()
         height: viewport.height,
       });
 
+      // #1861: the root tabs keep their level-1 heading for assistive
+      // technology but no longer show a title band.
       const metrics: Array<{
         fontFamily: string;
         fontSize: string;
         fontWeight: string;
-        headerMarginBottom: string;
+        titleBand: { width: number; height: number };
         lineHeight: string;
       }> = [];
 
@@ -691,33 +693,29 @@ test.describe('Global header document flow and persistent bottom navigation', ()
           .click();
         await page.evaluate(() => window.scrollTo(0, 0));
 
-        const rootHeader = page.locator('.page-heading-root:visible');
-        const heading = rootHeader.getByRole('heading', {
+        const heading = page.getByRole('heading', {
           level: 1,
           name: destination.title,
+          exact: true,
         });
-        await expect(rootHeader).toBeVisible();
-        await expect(heading).toBeVisible();
+        await expect(heading).toHaveCount(1);
 
         const metric = await heading.evaluate((element) => {
           const headingStyle = getComputedStyle(element);
-          const header = element.closest<HTMLElement>('.page-heading-root');
-          if (!header) throw new Error('Root page header missing.');
-          const headerStyle = getComputedStyle(header);
+          const band = element.parentElement?.getBoundingClientRect();
+          if (!band) throw new Error('Root page title container missing.');
           return {
             fontFamily: headingStyle.fontFamily,
             fontSize: headingStyle.fontSize,
             fontWeight: headingStyle.fontWeight,
-            headerMarginBottom: headerStyle.marginBottom,
+            titleBand: { width: band.width, height: band.height },
             lineHeight: headingStyle.lineHeight,
           };
         });
         metrics.push(metric);
 
         expect(metric.fontFamily).toContain('Literata');
-        expect(metric.fontSize).toBe('36px');
-        expect(metric.fontWeight).toBe('700');
-        expect(metric.headerMarginBottom).toBe('32px');
+        expect(metric.titleBand).toEqual({ width: 1, height: 1 });
 
         await expectNoHorizontalOverflow(page);
         await page.screenshot({

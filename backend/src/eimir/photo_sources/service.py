@@ -26,14 +26,18 @@ from eimir.core.errors import (
     NotFoundError,
     RateLimitedError,
     ServiceUnavailableError,
+    ValidationError,
 )
 from eimir.core.ids import new_id, parse_id
 from eimir.db.locks import lock_subject
 from eimir.entitlements.models import Capability
 from eimir.identity.models import Account, AccountEmail, DeviceSession
+from eimir.identity.service import validate_email
 from eimir.jobs import queue
 from eimir.photo_sources.browser_binding import valid_proof
 from eimir.photo_sources.models import (
+    GoogleAccountHint,
+    GoogleAccountHintPayload,
     PhotoConnection,
     PhotoConnectionPayload,
     PhotoSelection,
@@ -223,6 +227,75 @@ def disconnect_immich(session: Session, auth: AuthorizationContext, expected: st
         session.flush()
 
 
+def google_account_hint(session: Session, account_id: UUID) -> GoogleAccountHint | None:
+    row = session.execute(
+        select(GoogleAccountHint).where(GoogleAccountHint.account_id == account_id)
+    ).scalar_one_or_none()
+    if row and row.payload.account_id != account_id:
+        raise ServiceUnavailableError(
+            "Google account hint is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
+        )
+    return row
+
+
+def google_account_token(row: GoogleAccountHint | None, account_id: UUID) -> str:
+    return f"{row.id}:{row.version}" if row else f"{account_id}:google-account:absent"
+
+
+def _check_google_account_token(
+    row: GoogleAccountHint | None, account_id: UUID, expected: str
+) -> None:
+    if google_account_token(row, account_id) != expected:
+        raise ConflictError(
+            "The Google account changed since it was read.", ErrorCode.RESOURCE_VERSION_CONFLICT
+        )
+
+
+def google_account_address(raw: str) -> str:
+    """Validate the one address that may leave eimir. as an OAuth login hint."""
+    address = validate_email(raw)
+    if len(address) > 254 or any(char.isspace() or not char.isprintable() for char in address):
+        raise ValidationError("Enter a valid email address.", ErrorCode.VALIDATION_FAILED)
+    if address.count("@") != 1 or any(char in address for char in '<>"\\,;'):
+        raise ValidationError("Enter a valid email address.", ErrorCode.VALIDATION_FAILED)
+    return address
+
+
+def save_google_account(
+    session: Session, auth: AuthorizationContext, email: str, expected: str
+) -> None:
+    _guard(session, auth)
+    _guard_google_import(session, auth.account_id, "google")
+    address = google_account_address(email)
+    rate_limit.check(
+        session,
+        "photo-source-google-account",
+        str(auth.account_id),
+        rate_limit.Limit(20, timedelta(minutes=15)),
+    )
+    lock_subject(session, "photo-source-google-account", str(auth.account_id))
+    row = google_account_hint(session, auth.account_id)
+    _check_google_account_token(row, auth.account_id, expected)
+    payload = GoogleAccountHintPayload(account_id=auth.account_id, email=address)
+    if row is None:
+        session.add(GoogleAccountHint(account_id=auth.account_id, payload=payload))
+    else:
+        # Every explicit save advances the token, even for an identical address.
+        row.version += 1
+        row.payload = payload
+    session.flush()
+
+
+def remove_google_account(session: Session, auth: AuthorizationContext, expected: str) -> None:
+    # Erasing personal data stays available after Pro expiry or when the import closes.
+    lock_subject(session, "photo-source-google-account", str(auth.account_id))
+    row = google_account_hint(session, auth.account_id)
+    _check_google_account_token(row, auth.account_id, expected)
+    if row:
+        session.delete(row)
+        session.flush()
+
+
 def _reader(session: Session, row: PhotoSelection) -> tuple[ImmichSelectedPhotoReader, str]:
     linked = session.get(PhotoConnection, row.connection_id) if row.connection_id else None
     if (
@@ -294,7 +367,10 @@ def start(
     with transfer_slot():
         if provider == "google":
             client = google_photos.client_configuration()
-            url, state, verifier = google_photos.authorization(client=client)
+            hint = google_account_hint(session, auth.account_id)
+            url, state, verifier = google_photos.authorization(
+                client=client, login_hint=hint.payload.email if hint else None
+            )
             row.state_hash = hash_token(state)
             row.payload = row.payload.model_copy(
                 update={

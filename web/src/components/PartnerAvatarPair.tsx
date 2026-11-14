@@ -121,18 +121,42 @@ export function PartnerAvatarPair({
   const content = (
     <>
       <span className="partner-avatar-stack">
-        <SingleAvatar
-          person={primaryPerson}
-          size={size}
-          className="partner-avatar-primary"
-        />
+        {/* Adornments such as a name belong to their portrait in every
+            layout, not only while the portraits are separately tappable. */}
+        {primaryAdornment ? (
+          <span className="partner-avatar-slot partner-avatar-slot-primary">
+            <SingleAvatar
+              person={primaryPerson}
+              size={size}
+              className="partner-avatar-primary"
+            />
+            {primaryAdornment}
+          </span>
+        ) : (
+          <SingleAvatar
+            person={primaryPerson}
+            size={size}
+            className="partner-avatar-primary"
+          />
+        )}
 
         {secondaryPerson ? (
-          <SingleAvatar
-            person={secondaryPerson}
-            size={size}
-            className="partner-avatar-secondary"
-          />
+          secondaryAdornment ? (
+            <span className="partner-avatar-slot partner-avatar-slot-secondary">
+              <SingleAvatar
+                person={secondaryPerson}
+                size={size}
+                className="partner-avatar-secondary"
+              />
+              {secondaryAdornment}
+            </span>
+          ) : (
+            <SingleAvatar
+              person={secondaryPerson}
+              size={size}
+              className="partner-avatar-secondary"
+            />
+          )
         ) : (
           <button
             type="button"

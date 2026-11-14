@@ -52,6 +52,17 @@ class CollectionItemPayload(ProtectedPayload):
     quantity: str | None = None
 
 
+class CollectionSuggestionPayload(ProtectedPayload):
+    """Protected user content of a shopping suggestion: what was bought before.
+
+    ``quantity`` is the free text of the last purchase. It is display text
+    only and is never parsed.
+    """
+
+    title: str
+    quantity: str | None = None
+
+
 class CollectionKind(StrEnum):
     """Presentation variant of a Collection, fixed when it is created (#1808)."""
 
@@ -159,6 +170,49 @@ class CollectionItem(IdMixin, TimestampMixin, VersionMixin, Base):
         Index("ix_collection_items_created_by", "created_by"),
         Index("ix_collection_items_completed_by", "completed_by"),
         Index("ix_collection_items_collection_id_id", "collection_id", "id"),
+    )
+
+
+class CollectionSuggestion(IdMixin, TimestampMixin, Base):
+    """A title bought on a finished shopping trip, offered again as a one-tap add (#1808).
+
+    Suggestions belong to one shopping list, come only from that couple's
+    finished trips, can be removed one by one and disappear with the list.
+    """
+
+    __tablename__ = "collection_suggestions"
+
+    collection_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("collections.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger,
+        nullable=False,
+        default=CRYPTO_VERSION_PLAINTEXT,
+        server_default=text("0"),
+    )
+    payload: Mapped[CollectionSuggestionPayload] = mapped_column(
+        ProtectedPayloadJSON(CollectionSuggestionPayload),
+        nullable=False,
+    )
+    last_bought_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    times_bought: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default=text("1"),
+    )
+
+    __table_args__ = (
+        CheckConstraint("times_bought >= 1", name="times_bought_is_positive"),
+        CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
+        Index(
+            "ix_collection_suggestions_collection_id_last_bought_at",
+            "collection_id",
+            "last_bought_at",
+        ),
     )
 
 

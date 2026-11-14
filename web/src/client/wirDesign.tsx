@@ -35,6 +35,16 @@ import {
 } from './wirDesignPreferenceStore';
 
 export const WIR_DESIGNS = Object.values(WirDesignId);
+/** The design every account starts with; it needs no entitlement. */
+export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;
+/** Designs that never require Pro: the default and the earlier default. */
+export const FREE_WIR_DESIGNS: readonly WirDesignId[] = [
+  WirDesignId.connected,
+  WirDesignId.warm,
+];
+export function isFreeWirDesign(design: WirDesignId): boolean {
+  return FREE_WIR_DESIGNS.includes(design);
+}
 export interface WirDesignSnapshot {
   preference: WirDesignPreferenceView;
   etag: string;
@@ -211,10 +221,10 @@ function useWirDesignState({
     mutation,
     presentationReady: initialDesign !== undefined || preference.isFetched,
     current: readDenied
-      ? WirDesignId.warm
+      ? DEFAULT_WIR_DESIGN
       : (preference.data?.preference.designId ??
         initialDesign ??
-        WirDesignId.warm),
+        DEFAULT_WIR_DESIGN),
     inspectCapability: () => {
       // Opening the settings never re-reads a completed startup read.
       if (!inspect) setInspect(true);

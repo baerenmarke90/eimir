@@ -111,6 +111,16 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
+/** Sorting starts from the list menu (#1808). */
+function startSorting() {
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.collection.menu.open') }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
+  );
+}
+
 describe('CollectionProductPage', () => {
   function renderReorderCollection(
     reorderCollectionItems: ReturnType<typeof vi.fn>,
@@ -144,9 +154,7 @@ describe('CollectionProductPage', () => {
         client.setQueryData(key, initial);
       },
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
-    );
+    startSorting();
     const order = () =>
       Array.from(document.querySelectorAll('[data-sortable-item-id]')).map(
         (element) => element.getAttribute('data-sortable-item-id'),
@@ -1019,9 +1027,7 @@ describe('CollectionProductPage', () => {
             }),
         );
       const fixture = renderToggleCollection(vi.fn(), true, reorder);
-      fireEvent.click(
-        screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
-      );
+      startSorting();
       fireEvent.keyDown(
         screen.getByRole('button', {
           name: i18n.t('m5s3.collection.reorderItem', { title: 'Tickets' }),
@@ -1054,9 +1060,7 @@ describe('CollectionProductPage', () => {
         .click(screen.getByRole('link', { name: 'Switch collection' }));
       await screen.findByRole('heading', { name: nextCollection.title });
       expect(screen.queryByRole('status')).toBeNull();
-      fireEvent.click(
-        screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
-      );
+      startSorting();
       const nextHandle = screen.getByRole('button', {
         name: i18n.t('m5s3.collection.reorderItem', { title: 'Coffee' }),
       });

@@ -27,6 +27,7 @@ export function SharedCollectionItemRow({
   error,
   waiting = false,
   marker,
+  arriving = false,
 }: {
   item: CollectionItemDetail;
   canSort: boolean;
@@ -53,6 +54,8 @@ export function SharedCollectionItemRow({
   waiting?: boolean;
   /** Who added the entry, or who finished it once it is done (#1808). */
   marker?: { name: string; tone: PartnerTone; caption: string };
+  /** The entry just moved between the open entries and the cart. */
+  arriving?: boolean;
 }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
@@ -99,6 +102,7 @@ export function SharedCollectionItemRow({
   return (
     <li
       data-sortable-item-id={item.id}
+      data-arriving={arriving || undefined}
       className={[
         item.completed ? 'planning-item-completed' : '',
         activeItemId === item.id ? 'list-entry-dragging' : '',

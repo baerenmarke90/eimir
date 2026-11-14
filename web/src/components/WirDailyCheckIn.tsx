@@ -156,6 +156,8 @@ export interface WirDailyCheckIn {
   ownAction: PartnerAvatarAction;
   ownAriaLabel: string;
   ownBadge: ReactNode;
+  /** Whether the viewer has set a mood or energy value today. */
+  ownHasValue: boolean;
   partnerBadge: ReactNode;
   partnerAriaLabel: string | null;
   partnerState: PartnerDayState;
@@ -906,6 +908,7 @@ export function useWirDailyCheckIn({
     ownAction,
     ownAriaLabel,
     ownBadge,
+    ownHasValue,
     partnerBadge,
     partnerAriaLabel,
     partnerState,

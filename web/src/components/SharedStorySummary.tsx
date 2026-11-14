@@ -62,6 +62,11 @@ interface SharedStorySummaryProps {
   spaceId: string;
   dashboardApi?: DashboardApi;
   loadMemoryImage?: LoadMemoryImage;
+  /**
+   * The id of a heading the host already shows for the lifeline. The section
+   * is then named by it and renders no title of its own.
+   */
+  labelledBy?: string;
 }
 
 function readHintSeen(): boolean {
@@ -91,6 +96,7 @@ export function SharedStorySummary({
   spaceId,
   dashboardApi,
   loadMemoryImage,
+  labelledBy,
 }: SharedStorySummaryProps) {
   const { t } = useTranslation();
   const headingId = 'shared-story-summary-heading';
@@ -132,10 +138,15 @@ export function SharedStorySummary({
       });
 
   return (
-    <section className="shared-story-summary" aria-labelledby={headingId}>
-      <h2 id={headingId} className="today-section-title">
-        {t('m5s5.dashboard.storySummaryTitle')}
-      </h2>
+    <section
+      className="shared-story-summary"
+      aria-labelledby={labelledBy ?? headingId}
+    >
+      {labelledBy ? null : (
+        <h2 id={headingId} className="today-section-title">
+          {t('m5s5.dashboard.storySummaryTitle')}
+        </h2>
+      )}
       <p className="shared-story-summary-caption">
         {totals.total > 0 ? caption : t('m5s5.dashboard.storyLifelineEmpty')}
       </p>

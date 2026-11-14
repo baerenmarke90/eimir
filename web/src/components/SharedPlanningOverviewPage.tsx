@@ -19,6 +19,7 @@ import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   MEMORY_CREATE_ROUTE,
   PLAN_CREATE_ROUTE,
@@ -105,8 +106,39 @@ function PlanningSearch({
       ? 'm5s3.overview.searchPlans'
       : 'm5s3.overview.searchWishes',
   );
+  // The search rests as an icon on the status row and opens on
+  // demand, so the first plan sits one row higher.
+  const [open, setOpen] = useState(() => Boolean(value));
+  const [closing, setClosing] = useState(false);
+  const [focusOnOpen, setFocusOnOpen] = useState(false);
+  if (!open && !value) {
+    return (
+      <button
+        type="button"
+        className="planen-search-toggle"
+        aria-label={label}
+        aria-expanded={false}
+        onClick={() => {
+          setFocusOnOpen(true);
+          setClosing(false);
+          setOpen(true);
+        }}
+      >
+        <EimirIcon name="suche" />
+      </button>
+    );
+  }
   return (
-    <search className="planen-search">
+    <search
+      className={`planen-search${closing ? ' is-closing' : ''}`}
+      onAnimationEnd={(event) => {
+        // The field folds away first and only then gives way to the icon.
+        if (closing && event.target === event.currentTarget) {
+          setClosing(false);
+          setOpen(false);
+        }
+      }}
+    >
       <label className="sr-only" htmlFor={id}>
         {label}
       </label>
@@ -119,6 +151,17 @@ function PlanningSearch({
           placeholder={label}
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onFocus={() => setClosing(false)}
+          onBlur={() => {
+            if (value) return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+              setOpen(false);
+            } else {
+              setClosing(true);
+            }
+          }}
+          // biome-ignore lint/a11y/noAutofocus: focus follows the user's own tap on the search icon.
+          autoFocus={focusOnOpen}
           autoComplete="off"
         />
         {value ? (
@@ -311,6 +354,7 @@ export function SharedPlanningOverviewPage({
   apiBaseUrl?: string;
   accessToken?: string;
 }) {
+  const rootIntro = useRootTabIntro('plan');
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -875,7 +919,10 @@ export function SharedPlanningOverviewPage({
   }
 
   return (
-    <div className="page planning-page planning-sanctuary planen-overview">
+    <div
+      className="page planning-page planning-sanctuary planen-overview"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
       <PageHeader
         variant="root"
         className="content-overview-heading"

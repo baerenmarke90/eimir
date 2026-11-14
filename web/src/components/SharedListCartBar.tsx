@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { useTranslation } from '../i18n';
 import type { PartnerTone } from '../client/sharedListSummary';
@@ -22,10 +22,13 @@ export function SharedListCartBar({
   entries,
   disabled,
   onPutBack,
+  finish,
 }: {
   entries: CartEntry[];
   disabled: boolean;
   onPutBack: (item: CollectionItemDetail) => void;
+  /** The "finish the trip" control, shown under the entries of the cart. */
+  finish?: ReactNode;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -101,35 +104,38 @@ export function SharedListCartBar({
         onClose={() => setOpen(false)}
       >
         {() => (
-          <ul className="shared-list-cart-entries">
-            {entries.map(({ item, marker }) => (
-              <li key={item.id} className="planning-item-completed">
-                <ChecklistToggle
-                  completed
-                  label={t('m5s3.collection.markOpen', { title: item.title })}
-                  onToggle={() => onPutBack(item)}
-                  disabled={disabled || !item.capabilities.canEdit}
-                />
-                <span className="shared-list-cart-entry-title">
-                  {item.title}
-                  {item.quantity ? (
-                    <span className="shared-list-item-quantity">
-                      {' '}
-                      {/^\d+$/u.test(item.quantity)
-                        ? `${item.quantity}×`
-                        : item.quantity}
-                    </span>
+          <>
+            <ul className="shared-list-cart-entries">
+              {entries.map(({ item, marker }) => (
+                <li key={item.id} className="planning-item-completed">
+                  <ChecklistToggle
+                    completed
+                    label={t('m5s3.collection.markOpen', { title: item.title })}
+                    onToggle={() => onPutBack(item)}
+                    disabled={disabled || !item.capabilities.canEdit}
+                  />
+                  <span className="shared-list-cart-entry-title">
+                    {item.title}
+                    {item.quantity ? (
+                      <span className="shared-list-item-quantity">
+                        {' '}
+                        {/^\d+$/u.test(item.quantity)
+                          ? `${item.quantity}×`
+                          : item.quantity}
+                      </span>
+                    ) : null}
+                  </span>
+                  {marker ? (
+                    <>
+                      <PartnerMarker name={marker.name} tone={marker.tone} />
+                      <span className="sr-only">{marker.caption}</span>
+                    </>
                   ) : null}
-                </span>
-                {marker ? (
-                  <>
-                    <PartnerMarker name={marker.name} tone={marker.tone} />
-                    <span className="sr-only">{marker.caption}</span>
-                  </>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+            {finish}
+          </>
         )}
       </SharedContentSheet>
     </>

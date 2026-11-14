@@ -23057,6 +23057,24 @@
               "description": "Return only these Collections, so several known lists need one request.",
               "title": "Ids"
             }
+          },
+          {
+            "description": "Return only Collections of this kind, for example the shopping lists.",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/CollectionKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Return only Collections of this kind, for example the shopping lists.",
+              "title": "Kind"
+            }
           }
         ],
         "responses": {

@@ -269,7 +269,10 @@ async function installMocks(
             moduleKey: 'pinned_collection',
             visible: true,
             ...(pinnedCollectionId
-              ? { selectedCollectionId: pinnedCollectionId }
+              ? {
+                  selectedCollectionId: pinnedCollectionId,
+                  selectedCollectionIds: [pinnedCollectionId],
+                }
               : {}),
           },
           { moduleKey: 'keepsake', visible: true },
@@ -287,15 +290,18 @@ async function installMocks(
         `/api/v1/spaces/${SPACE_ID}/dashboard/preferences/pinned_collection`
     ) {
       const body = request.postDataJSON() as {
-        selectedCollectionId?: string | null;
+        selectedCollectionIds?: string[];
         visible?: boolean;
       };
-      pinnedCollectionId = body.selectedCollectionId ?? null;
+      pinnedCollectionId = body.selectedCollectionIds?.[0] ?? null;
       await json({
         moduleKey: 'pinned_collection',
         visible: body.visible ?? true,
         ...(pinnedCollectionId
-          ? { selectedCollectionId: pinnedCollectionId }
+          ? {
+              selectedCollectionId: pinnedCollectionId,
+              selectedCollectionIds: [pinnedCollectionId],
+            }
           : {}),
       });
       return;
@@ -529,188 +535,6 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze();
   expect(result.violations).toEqual([]);
-}
-
-for (const view of [
-  { name: '390-light', width: 390, scheme: 'light' as const },
-  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
-]) {
-  for (const outcome of ['success', 'failure'] as const) {
-    test(`Today quick-add preserves a newer draft after late ${outcome} (${view.name})`, async ({
-      page,
-    }, testInfo) => {
-      await page.setViewportSize({ width: view.width, height: 844 });
-      await page.emulateMedia({
-        colorScheme: view.scheme,
-        reducedMotion: 'reduce',
-      });
-      await page.addInitScript(() =>
-        localStorage.setItem('eimir.theme', 'system'),
-      );
-      await installMocks(page, { initiallyPinned: true });
-      await signIn(page);
-      const titles: string[] = [];
-      let release!: () => void;
-      await page.route(
-        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items`,
-        async (route) => {
-          if (route.request().method() !== 'POST') return route.fallback();
-          titles.push(route.request().postDataJSON().title);
-          if (titles.length === 1) {
-            await new Promise<void>((resolve) => {
-              release = resolve;
-            });
-            if (outcome === 'failure') {
-              await route.fulfill({
-                status: 503,
-                contentType: 'application/problem+json',
-                body: JSON.stringify({
-                  status: 503,
-                  title: 'Service unavailable',
-                  detail: 'The write was not confirmed.',
-                }),
-              });
-              return;
-            }
-          }
-          await route.fallback();
-        },
-      );
-      const pinned = page.locator('.today-section-pinned-collection');
-      const add = pinned.getByRole('button', {
-        name: m5s5.today.pinnedCollection.addAction,
-      });
-      await add.click();
-      const dialog = page.getByRole('dialog', {
-        name: m5s5.today.pinnedCollection.addAction,
-      });
-      const input = dialog.getByLabel(m5s3.collection.itemTitle);
-      await input.fill('Butter');
-      const submit = dialog.getByRole('button', {
-        name: m5s3.collection.addItem,
-      });
-      const idleBounds = await submit.boundingBox();
-      await submit.click();
-      await expect.poll(() => titles.length).toBe(1);
-      const saving = dialog.getByRole('button', { name: m5s3.common.saving });
-      await expect(saving).toBeDisabled();
-      await expect(saving).toHaveAttribute('aria-busy', 'true');
-      const pendingBounds = await saving.boundingBox();
-      if (!idleBounds || !pendingBounds)
-        throw new Error('The add action must remain visible while saving.');
-      expect(Math.abs(pendingBounds.width - idleBounds.width)).toBeLessThan(1);
-      expect(Math.abs(pendingBounds.height - idleBounds.height)).toBeLessThan(
-        1,
-      );
-      await input.fill('Reis');
-      await input.press('Enter');
-      expect(titles).toEqual(['Butter']);
-      release();
-      await expect(
-        dialog.getByRole('button', { name: m5s3.collection.addItem }),
-      ).toBeEnabled();
-      await expect(input).toHaveValue('Reis');
-      await expect(input).toHaveAttribute('aria-invalid', 'false');
-      if (outcome === 'failure')
-        await expect(
-          dialog.getByText(de.states.server.title, { exact: true }),
-        ).toBeVisible();
-      await expectNoHorizontalOverflow(page);
-      await expectNoWcagViolations(page);
-      await page.screenshot({
-        path: testInfo.outputPath(
-          `today-add-draft-${outcome}-${view.name}.png`,
-        ),
-        fullPage: true,
-        animations: 'disabled',
-      });
-      await dialog
-        .getByRole('button', { name: m5s3.collection.addItem })
-        .click();
-      await expect(dialog).toHaveCount(0);
-      await expect(add).toBeFocused();
-      expect(titles).toEqual(['Butter', 'Reis']);
-      await expect(pinned.getByText('Reis', { exact: true })).toBeVisible();
-      await pinned
-        .getByRole('link', {
-          name: m5s5.today.pinnedCollection.openAriaLabel.replace(
-            '{{title}}',
-            'Einkauf',
-          ),
-        })
-        .click();
-      await expect(
-        page
-          .locator(
-            `[data-sortable-item-id="00000000-0000-0000-0000-0000000000${outcome === 'success' ? '35' : '34'}"]`,
-          )
-          .locator('.shared-list-item-copy > p'),
-      ).toHaveText('Reis');
-      await page.goBack();
-      await expect(pinned.getByText('Reis', { exact: true })).toBeVisible();
-      expect(titles).toEqual(['Butter', 'Reis']);
-    });
-  }
-
-  test(`Today quick-add rejects offline submission and requires deliberate retry (${view.name})`, async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: view.width, height: 844 });
-    await page.emulateMedia({
-      colorScheme: view.scheme,
-      reducedMotion: 'reduce',
-    });
-    await page.addInitScript(() =>
-      localStorage.setItem('eimir.theme', 'system'),
-    );
-    await installMocks(page, { initiallyPinned: true });
-    await signIn(page);
-    const titles: string[] = [];
-    await page.route(
-      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items`,
-      async (route) => {
-        if (route.request().method() === 'POST')
-          titles.push(route.request().postDataJSON().title);
-        await route.fallback();
-      },
-    );
-    const pinned = page.locator('.today-section-pinned-collection');
-    const add = pinned.getByRole('button', {
-      name: m5s5.today.pinnedCollection.addAction,
-    });
-    await add.click();
-    const dialog = page.getByRole('dialog', {
-      name: m5s5.today.pinnedCollection.addAction,
-    });
-    const input = dialog.getByLabel(m5s3.collection.itemTitle);
-    await input.fill('Butter');
-    await page.context().setOffline(true);
-    await dialog.getByRole('button', { name: m5s3.collection.addItem }).click();
-    await expect(
-      dialog.getByText(de.states.offline.title, { exact: true }),
-    ).toBeVisible();
-    await expect(input).toHaveValue('Butter');
-    await expect(input).toBeFocused();
-    expect(titles).toEqual([]);
-    await expectNoHorizontalOverflow(page);
-    await expectNoWcagViolations(page);
-    await page.screenshot({
-      path: testInfo.outputPath(`today-add-offline-${view.name}.png`),
-      fullPage: true,
-      animations: 'disabled',
-    });
-    await page.context().setOffline(false);
-    await expect(
-      page.getByText(de.states.offline.banner, { exact: true }),
-    ).toHaveCount(0);
-    await expect(input).toHaveValue('Butter');
-    expect(titles).toEqual([]);
-    await dialog.getByRole('button', { name: m5s3.collection.addItem }).click();
-    await expect(dialog).toHaveCount(0);
-    await expect(add).toBeFocused();
-    await expect(pinned.getByText('Butter', { exact: true })).toBeVisible();
-    expect(titles).toEqual(['Butter']);
-  });
 }
 
 test('shows an optimistic collection-detail check, rolls back a failed write and retries', async ({
@@ -983,170 +807,6 @@ for (const outcome of ['failure', 'success'] as const) {
     ).toHaveAttribute('aria-pressed', 'true');
     expect(writes).toEqual(['1', '3']);
   });
-}
-
-for (const view of [
-  { name: '390-light', width: 390, scheme: 'light' as const },
-  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
-]) {
-  for (const outcome of ['success', 'failure'] as const) {
-    test(`Today checkbox retains a newer authorized read after late ${outcome} (${view.name})`, async ({
-      page,
-    }, testInfo) => {
-      await page.setViewportSize({ width: view.width, height: 844 });
-      await page.emulateMedia({
-        colorScheme: view.scheme,
-        reducedMotion: 'reduce',
-      });
-      await page.addInitScript(() =>
-        localStorage.setItem('eimir.theme', 'system'),
-      );
-      const network = await installMocks(page, { initiallyPinned: true });
-      await signIn(page);
-      const milk = '00000000-0000-0000-0000-000000000031';
-      const bread = '00000000-0000-0000-0000-000000000032';
-      const apples = '00000000-0000-0000-0000-000000000033';
-      let releaseWrite: (() => void) | undefined;
-      let releaseRecovery: (() => void) | undefined;
-      let holdRecovery = false;
-      let writeFinished = false;
-      const writes: string[] = [];
-      await page.route(
-        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
-        async (route) => {
-          if (holdRecovery && route.request().method() === 'GET')
-            await new Promise<void>((resolve) => {
-              releaseRecovery = resolve;
-            });
-          await route.fallback();
-        },
-      );
-      await page.route(
-        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items/${milk}`,
-        async (route) => {
-          if (route.request().method() !== 'PATCH') {
-            await route.fallback();
-            return;
-          }
-          writes.push(route.request().headers()['if-match']);
-          if (writes.length > 1) {
-            await route.fallback();
-            return;
-          }
-          if (outcome === 'success')
-            network.reviseItem(milk, { completed: true, version: 2 }, false);
-          const response = network
-            .snapshot()
-            .items.find((entry) => entry.id === milk);
-          await new Promise<void>((resolve) => {
-            releaseWrite = resolve;
-          });
-          await route.fulfill({
-            status: outcome === 'success' ? 200 : 503,
-            contentType: 'application/json',
-            body: JSON.stringify(
-              outcome === 'success'
-                ? response
-                : {
-                    code: 'SERVER_ERROR',
-                    detail: 'The write was not confirmed.',
-                    status: 503,
-                    title: 'Service unavailable',
-                    type: 'about:blank',
-                  },
-            ),
-          });
-          writeFinished = true;
-        },
-      );
-      const pinned = page.locator('.today-section-pinned-collection');
-      await pinned
-        .getByRole('button', {
-          name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
-        })
-        .click();
-      await expect.poll(() => Boolean(releaseWrite)).toBe(true);
-      await expect(
-        pinned.getByRole('button', {
-          name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
-        }),
-      ).toHaveAttribute('aria-pressed', 'true');
-      network.reviseItem(
-        milk,
-        { title: 'Hafermilch', completed: false, version: 5 },
-        false,
-      );
-      network.reorder([apples, bread, milk]);
-      // The existing Add flow refreshes the authorized detail while the toggle is pending.
-      const reads = network.collectionGetCount();
-      await pinned
-        .getByRole('button', { name: m5s5.today.pinnedCollection.addAction })
-        .click();
-      const dialog = page.getByRole('dialog', {
-        name: m5s5.today.pinnedCollection.addAction,
-      });
-      await dialog.getByLabel(m5s3.collection.itemTitle).fill('Kaffee');
-      await dialog
-        .getByRole('button', { name: m5s3.collection.addItem })
-        .click();
-      await expect(dialog).toHaveCount(0);
-      await expect.poll(network.collectionGetCount).toBeGreaterThan(reads);
-      const currentToggle = pinned.getByRole('button', {
-        name: m5s3.collection.markDone.replace('{{title}}', 'Hafermilch'),
-      });
-      await expect(currentToggle).toHaveAttribute('aria-pressed', 'false');
-      holdRecovery = true;
-      releaseWrite?.();
-      await expect.poll(() => writeFinished).toBe(true);
-      if (outcome === 'failure')
-        await expect(
-          page.getByText(m5s5.today.pinnedCollection.toggleFailed, {
-            exact: true,
-          }),
-        ).toBeVisible();
-      // Recovery is held so a refetch cannot conceal a corrupt late callback.
-      await expect(currentToggle).toHaveAttribute('aria-pressed', 'false');
-      await expect(pinned.getByText('Kaffee', { exact: true })).toBeVisible();
-      await expect(
-        pinned.locator('.today-pinned-list-title').first(),
-      ).toHaveText('Äpfel');
-      await expectNoHorizontalOverflow(page);
-      await expectNoWcagViolations(page);
-      await page.screenshot({
-        path: testInfo.outputPath(`today-newer-${outcome}-${view.name}.png`),
-        fullPage: true,
-        animations: 'disabled',
-      });
-      holdRecovery = false;
-      releaseRecovery?.();
-      await currentToggle.click();
-      await expect.poll(() => writes.length).toBe(2);
-      expect(writes).toEqual(['1', '5']);
-      await expect(
-        pinned.getByRole('button', {
-          name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
-        }),
-      ).toHaveAttribute('aria-pressed', 'true');
-      await pinned
-        .getByRole('link', {
-          name: m5s5.today.pinnedCollection.openAriaLabel.replace(
-            '{{title}}',
-            'Einkauf',
-          ),
-        })
-        .click();
-      await expect(
-        page.locator(
-          `[data-sortable-item-id="${milk}"] .shared-list-item-copy > p`,
-        ),
-      ).toHaveText('Hafermilch');
-      await page.goBack();
-      await expect(
-        pinned.getByText('Hafermilch', { exact: true }),
-      ).toBeVisible();
-      expect(writes).toEqual(['1', '5']);
-    });
-  }
 }
 
 for (const view of [
@@ -1542,11 +1202,11 @@ test('keeps a shared Collection reorder in place until confirmed or rolled back'
   });
 });
 
-test('pins a shared Collection personally and keeps the compact Wir projection directly useful', async ({
+test('pins a shared Collection personally and shows it as a tile that opens the list', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const network = await installMocks(page);
+  await installMocks(page);
   await signIn(page);
 
   await page.goto(`/plan/collections/${COLLECTION_ID}`);
@@ -1561,55 +1221,33 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   const pinnedSection = page.locator('.today-section-pinned-collection');
   await expect(pinnedSection).toBeVisible();
   await expect(
+    pinnedSection.getByRole('heading', { name: m5s5.today.wirLists.titleOne }),
+  ).toBeVisible();
+  await expect(
     pinnedSection.getByRole('heading', { name: 'Einkauf' }),
   ).toBeVisible();
-  await expect(pinnedSection.getByText('Milch')).toBeVisible();
-  await expect(pinnedSection.getByText('Brot')).toBeVisible();
+  // The tile shows what is open, not checkboxes: it opens the list instead.
+  await expect(pinnedSection.locator('.wir-list-tile-peek')).toContainText(
+    'Milch',
+  );
+  await expect(pinnedSection.getByRole('checkbox')).toHaveCount(0);
+  await expect(
+    pinnedSection.getByRole('button', { name: /als erledigt|done/i }),
+  ).toHaveCount(0);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
+  // A viewport capture with the tile in view; a full-page capture would
+  // repeat the fixed navigation in the middle of the page.
+  await pinnedSection.evaluate((element) =>
+    element.scrollIntoView({ block: 'center' }),
+  );
   await page.screenshot({
-    path: testInfo.outputPath('today-pinned-collection-390-light.png'),
-    fullPage: true,
+    path: testInfo.outputPath('wir-list-tile-390-light.png'),
     animations: 'disabled',
   });
 
-  const milkDoneName = m5s3.collection.markDone.replace('{{title}}', 'Milch');
-  const milkOpenName = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
-  const collectionGetsBeforeToggle = network.collectionGetCount();
-  const dashboardGetsBeforeToggle = network.dashboardGetCount();
-  await pinnedSection.getByRole('button', { name: milkDoneName }).click();
-  await expect(
-    pinnedSection.getByRole('button', { name: milkOpenName }),
-  ).toHaveAttribute('aria-pressed', 'true');
-  await expect
-    .poll(() => network.collectionGetCount())
-    .toBe(collectionGetsBeforeToggle);
-  expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
-
-  const addButton = pinnedSection.getByRole('button', {
-    name: m5s5.today.pinnedCollection.addAction,
-  });
-  await addButton.click();
-  const addDialog = page.getByRole('dialog', {
-    name: m5s5.today.pinnedCollection.addAction,
-  });
-  await expect(addDialog).toBeVisible();
-  const addInput = addDialog.getByLabel(m5s3.collection.itemTitle);
-  await expect(addInput).toBeFocused();
-  await addInput.fill('Butter');
-  await addDialog
-    .getByRole('button', { name: m5s3.collection.addItem })
-    .click();
-  await expect(addDialog).toHaveCount(0);
-  await expect(addButton).toBeFocused();
-  await expect(pinnedSection.getByText('Butter')).toBeVisible();
-  await expect
-    .poll(() => network.collectionGetCount())
-    .toBe(collectionGetsBeforeToggle + 1);
-  expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
-
-  const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(
+  const openListName = m5s5.today.wirLists.openAria.replace(
     '{{title}}',
     'Einkauf',
   );
@@ -1619,186 +1257,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   );
 });
 
-for (const view of [
-  { name: '390-light', width: 390, scheme: 'light' as const, largeText: false },
-  { name: '1280-dark', width: 1280, scheme: 'dark' as const, largeText: false },
-  {
-    name: '320-dark-200pct',
-    width: 320,
-    scheme: 'dark' as const,
-    largeText: true,
-  },
-]) {
-  test(`offline Today checkbox rolls back without replay and allows a deliberate later toggle at ${view.name}`, async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: view.width, height: 844 });
-    await page.emulateMedia({
-      colorScheme: view.scheme,
-      reducedMotion: 'reduce',
-    });
-    await page.addInitScript(() =>
-      localStorage.setItem('eimir.theme', 'system'),
-    );
-    const network = await installMocks(page, { initiallyPinned: true });
-    await signIn(page);
-    if (view.largeText)
-      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-    const pinned = page.locator('.today-section-pinned-collection');
-    const markDone = m5s3.collection.markDone.replace('{{title}}', 'Milch');
-    const markOpen = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
-    await expect(pinned.getByRole('button', { name: markDone })).toBeEnabled();
-
-    await page.context().setOffline(true);
-    await pinned.getByRole('button', { name: markDone }).click();
-    await expect(
-      page.getByText(m5s5.today.pinnedCollection.toggleFailed, { exact: true }),
-    ).toBeVisible();
-    await expect(
-      pinned.getByRole('button', { name: markDone }),
-    ).toHaveAttribute('aria-pressed', 'false');
-    expect(network.itemWrites).toEqual([]);
-    await expectNoHorizontalOverflow(page);
-    await expectNoWcagViolations(page);
-    await page.screenshot({
-      path: testInfo.outputPath(`today-checklist-offline-${view.name}.png`),
-      fullPage: true,
-      animations: 'disabled',
-    });
-
-    await page.context().setOffline(false);
-    await expect(
-      page.getByText(de.states.offline.banner, { exact: true }),
-    ).toHaveCount(0);
-    const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(
-      '{{title}}',
-      'Einkauf',
-    );
-    await pinned.getByRole('link', { name: openListName }).click();
-    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
-    await expect(page.getByRole('button', { name: markDone })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(network.itemWrites).toEqual([]);
-    await page.goBack();
-    await expect(pinned.getByRole('button', { name: markDone })).toBeEnabled();
-    expect(network.itemWrites).toEqual([]);
-
-    await pinned.getByRole('button', { name: markDone }).click();
-    await expect.poll(() => network.itemWrites.length).toBe(1);
-    await expect(
-      pinned.getByRole('button', { name: markOpen }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    await pinned.getByRole('link', { name: openListName }).click();
-    await expect(page.getByRole('button', { name: markOpen })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    await page.goBack();
-    await expect(pinned.getByRole('button', { name: markOpen })).toBeEnabled();
-    await pinned.getByRole('button', { name: markOpen }).click();
-    await expect.poll(() => network.itemWrites.length).toBe(2);
-    await expect(
-      pinned.getByRole('button', { name: markDone }),
-    ).toHaveAttribute('aria-pressed', 'false');
-    expect(
-      network.itemWrites.map(({ completed, ifMatch }) => ({
-        completed,
-        ifMatch,
-      })),
-    ).toEqual([
-      { completed: true, ifMatch: '1' },
-      { completed: false, ifMatch: '2' },
-    ]);
-    await page.screenshot({
-      path: testInfo.outputPath(`today-checklist-confirmed-${view.name}.png`),
-      fullPage: true,
-      animations: 'disabled',
-    });
-  });
-}
-
-test('celebrates only the confirmed final pinned Collection completion and stays retry-safe', async ({
-  page,
-}, testInfo) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await installMocks(page, {
-    initiallyPinned: true,
-    sharedAchievementsEnabled: true,
-    failFinalCompletionOnce: true,
-  });
-  await signIn(page);
-
-  const pinnedSection = page.locator('.today-section-pinned-collection');
-  const milkDoneName = m5s3.collection.markDone.replace('{{title}}', 'Milch');
-  const appleDoneName = m5s3.collection.markDone.replace('{{title}}', 'Äpfel');
-
-  await pinnedSection.getByRole('button', { name: milkDoneName }).click();
-  await expect(
-    pinnedSection.getByRole('heading', {
-      name: m5s5.today.pinnedCollection.sharedAchievementTitle,
-    }),
-  ).toHaveCount(0);
-
-  const appleButton = pinnedSection.getByRole('button', {
-    name: appleDoneName,
-  });
-  await appleButton.click();
-  await expect(appleButton).toBeEnabled();
-  await expect(
-    pinnedSection.getByRole('heading', {
-      name: m5s5.today.pinnedCollection.sharedAchievementTitle,
-    }),
-  ).toHaveCount(0);
-
-  await appleButton.click();
-  await expect(
-    pinnedSection.getByRole('heading', {
-      name: m5s5.today.pinnedCollection.sharedAchievementTitle,
-    }),
-  ).toBeVisible();
-  await expect(
-    pinnedSection.getByText(
-      m5s5.today.pinnedCollection.sharedAchievementBody.replace(
-        '{{title}}',
-        'Einkauf',
-      ),
-    ),
-  ).toBeVisible();
-  await expect(
-    pinnedSection.locator('.shared-achievement-confirmation'),
-  ).toHaveCount(1);
-  await expect(pinnedSection.getByText('Milch')).toBeVisible();
-  await expect(pinnedSection.getByText('Äpfel')).toBeVisible();
-  await expect(
-    pinnedSection.getByRole('link', {
-      name: m5s5.today.pinnedCollection.sharedAchievementAction,
-    }),
-  ).toBeVisible();
-
-  await expectNoHorizontalOverflow(page);
-  await expectNoWcagViolations(page);
-  await page.screenshot({
-    path: testInfo.outputPath(
-      'today-pinned-collection-celebration-390-light.png',
-    ),
-    fullPage: true,
-    animations: 'disabled',
-  });
-
-  const appleOpenName = m5s3.collection.markOpen.replace('{{title}}', 'Äpfel');
-  await pinnedSection.getByRole('button', { name: appleOpenName }).click();
-  await expect(
-    pinnedSection.locator('.shared-achievement-confirmation'),
-  ).toHaveAttribute('data-presence', 'exiting');
-  await expect(
-    pinnedSection.locator('.shared-achievement-confirmation'),
-  ).toHaveCount(0);
-  await expect(pinnedSection.getByText('Milch')).toBeVisible();
-});
-
-test('keeps the pinned Collection compact on Expanded Web without introducing a dashboard grid', async ({
+test('keeps the list tile compact on Expanded Web and its add link opens the list with the input focused', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -1810,152 +1269,29 @@ test('keeps the pinned Collection compact on Expanded Web without introducing a 
   await expect(
     pinnedSection.getByRole('heading', { name: 'Einkauf' }),
   ).toBeVisible();
-  await expect(pinnedSection.getByText('Milch')).toBeVisible();
-  await expect(pinnedSection.getByText('Äpfel')).toBeVisible();
+  await expect(pinnedSection.locator('.wir-list-tile-peek')).toContainText(
+    'Milch',
+  );
 
   const sectionWidth = await pinnedSection.evaluate(
     (element) => element.getBoundingClientRect().width,
   );
   expect(sectionWidth).toBeLessThan(900);
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('wir-list-tile-1280-light.png'),
+    animations: 'disabled',
+  });
 
   await pinnedSection
-    .getByRole('button', { name: m5s5.today.pinnedCollection.addAction })
+    .getByRole('link', { name: m5s5.today.wirLists.add })
     .click();
-  const addDialog = page.getByRole('dialog', {
-    name: m5s5.today.pinnedCollection.addAction,
-  });
-  await expect(addDialog).toBeVisible();
-  const dialogWidth = await addDialog.evaluate(
-    (element) => element.getBoundingClientRect().width,
+  await expect(page).toHaveURL(
+    new RegExp(`/plan/collections/${COLLECTION_ID}$`),
   );
-  expect(dialogWidth).toBeLessThan(700);
-  await page.keyboard.press('Escape');
-  await expect(addDialog).toHaveCount(0);
-  await expect(
-    pinnedSection.getByRole('button', {
-      name: m5s5.today.pinnedCollection.addAction,
-    }),
-  ).toBeFocused();
-
-  await expectNoHorizontalOverflow(page);
-  await expectNoWcagViolations(page);
-  await page.screenshot({
-    path: testInfo.outputPath('today-pinned-collection-1280-light.png'),
-    fullPage: true,
-    animations: 'disabled',
-  });
+  await expect(page.getByLabel(m5s3.collection.newItem)).toBeFocused();
 });
-
-test('keeps the add task and plus usable across Compact widths and 320px 200-percent reflow', async ({
-  page,
-}, testInfo) => {
-  await installMocks(page, { initiallyPinned: true });
-  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-  await signIn(page);
-
-  for (const width of [360, 390, 430]) {
-    await page.setViewportSize({ width, height: 844 });
-    const pinnedSection = page.locator('.today-section-pinned-collection');
-    const addButton = pinnedSection.getByRole('button', {
-      name: m5s5.today.pinnedCollection.addAction,
-    });
-    await expect(addButton).toBeVisible();
-    const target = await addButton.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
-    });
-    expect(target.width).toBeGreaterThanOrEqual(44);
-    expect(target.height).toBeGreaterThanOrEqual(44);
-    await expectNoHorizontalOverflow(page);
-  }
-
-  await page.setViewportSize({ width: 320, height: 640 });
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '200%';
-  });
-  const pinnedSection = page.locator('.today-section-pinned-collection');
-  const addButton = pinnedSection.getByRole('button', {
-    name: m5s5.today.pinnedCollection.addAction,
-  });
-  await addButton.click();
-  const addDialog = page.getByRole('dialog', {
-    name: m5s5.today.pinnedCollection.addAction,
-  });
-  await expect(addDialog).toBeVisible();
-  await expect(addDialog.getByLabel(m5s3.collection.itemTitle)).toBeFocused();
-  await expect(
-    addDialog.getByRole('button', { name: m5s3.collection.addItem }),
-  ).toBeInViewport();
-  await expectNoHorizontalOverflow(page);
-  await expectNoWcagViolations(page);
-  await page.screenshot({
-    path: testInfo.outputPath(
-      'today-pinned-collection-add-320-dark-200pct-reduced-motion.png',
-    ),
-    fullPage: true,
-    animations: 'disabled',
-  });
-});
-
-for (const width of [320, 360, 390, 430]) {
-  test(`keeps the open item first, the completed list visible and the page the only scroller after the celebration at ${width}px with reduced motion`, async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize({ width, height: 800 });
-    await installMocks(page, {
-      initiallyPinned: true,
-      sharedAchievementsEnabled: true,
-      openItemAfterCompletedPreview: true,
-    });
-    await signIn(page);
-
-    const pinnedSection = page.locator('.today-section-pinned-collection');
-    const previewItems = pinnedSection.locator('.today-pinned-list-items > li');
-    // The only open item sits behind five completed ones but is still shown first.
-    await expect(previewItems).toHaveCount(4);
-    await expect(previewItems.first()).toContainText('Milch');
-
-    const milkDoneName = m5s3.collection.markDone.replace('{{title}}', 'Milch');
-    await pinnedSection.getByRole('button', { name: milkDoneName }).click();
-
-    const celebration = pinnedSection.locator(
-      '.shared-achievement-confirmation',
-    );
-    await expect(
-      celebration.getByRole('heading', {
-        name: m5s5.today.pinnedCollection.sharedAchievementTitle,
-      }),
-    ).toBeVisible();
-    // Same information without decorative motion.
-    await expect(celebration).toHaveCSS('animation-name', 'none');
-    // The completed list stays visible and usable next to the celebration.
-    await expect(previewItems).toHaveCount(4);
-    await expect(
-      pinnedSection.getByRole('button', {
-        name: m5s3.collection.markOpen.replace('{{title}}', 'Brot'),
-      }),
-    ).toBeEnabled();
-
-    // Progressive disclosure is inline; nothing becomes a nested vertical scroller.
-    await pinnedSection.locator('.today-pinned-list-disclosure').click();
-    await expect(previewItems).toHaveCount(6);
-    const nestedScrollers = await pinnedSection.evaluate(
-      (section) =>
-        [section, ...section.querySelectorAll('*')].filter((element) => {
-          const { overflowY } = getComputedStyle(element);
-          return (
-            (overflowY === 'auto' || overflowY === 'scroll') &&
-            element.scrollHeight > element.clientHeight
-          );
-        }).length,
-    );
-    expect(nestedScrollers).toBe(0);
-
-    await expectNoHorizontalOverflow(page);
-    await expectNoWcagViolations(page);
-  });
-}
 
 async function holdPersonalPin(
   page: Page,
@@ -1984,10 +1320,12 @@ async function holdPersonalPin(
     '**/dashboard/preferences/pinned_collection',
     async (route) => {
       const body = route.request().postDataJSON() as {
-        selectedCollectionId: string | null;
+        selectedCollectionIds: string[];
       };
-      writes.push(body.selectedCollectionId);
-      pending = { route, selectedCollectionId: body.selectedCollectionId };
+      // The journeys below pin one list, so the first id is the selection.
+      const selected = body.selectedCollectionIds[0] ?? null;
+      writes.push(selected);
+      pending = { route, selectedCollectionId: selected };
     },
   );
   return {
@@ -2007,7 +1345,10 @@ async function holdPersonalPin(
         body: JSON.stringify({
           moduleKey: 'pinned_collection',
           visible: true,
-          selectedCollectionId: current.selectedCollectionId,
+          selectedCollectionId: current.selectedCollectionId ?? undefined,
+          selectedCollectionIds: current.selectedCollectionId
+            ? [current.selectedCollectionId]
+            : [],
         }),
       });
     },
@@ -2127,10 +1468,7 @@ for (const view of [
     await page
       .locator('.today-section-pinned-collection')
       .getByRole('link', {
-        name: m5s5.today.pinnedCollection.openAriaLabel.replace(
-          '{{title}}',
-          'Einkauf',
-        ),
+        name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
       })
       .click();
     await expect(page).toHaveURL(
@@ -2211,10 +1549,7 @@ for (const view of [
     await page
       .locator('.today-section-pinned-collection')
       .getByRole('link', {
-        name: m5s5.today.pinnedCollection.openAriaLabel.replace(
-          '{{title}}',
-          'Einkauf',
-        ),
+        name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
       })
       .click();
     await expect(page).toHaveURL(

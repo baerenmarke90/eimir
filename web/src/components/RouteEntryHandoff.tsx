@@ -4,6 +4,7 @@ import {
   applyRouteEntryHandoff,
   takeSmoothRouteEntry,
 } from '../client/routeEntryHandoff';
+import { FOCUS_ADD_ITEM_STATE_KEY } from '../client/routes';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 
 /**
@@ -121,6 +122,14 @@ export function RouteEntryHandoff(): null {
             document.querySelector(
               '.story-view-tabs [role="tab"][aria-selected="true"]',
             )
+          )
+            return;
+          // A Wir tile's add link wants the entry field focused, not the
+          // heading (#1808).
+          if (
+            (state as Record<string, unknown> | null)?.[
+              FOCUS_ADD_ITEM_STATE_KEY
+            ] === true
           )
             return;
           const heading = Array.from(

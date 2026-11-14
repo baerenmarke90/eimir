@@ -49,7 +49,10 @@ import {
   loadProductWithReadCache,
 } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import {
+  FOCUS_ADD_ITEM_STATE_KEY,
+  MORE_COLLECTIONS_ROUTE,
+} from '../client/routes';
 import {
   planningIfMatch,
   type SharedPlanningApis,
@@ -129,6 +132,14 @@ function CollectionProductDetail({
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const origin = resolveOrigin(originKey);
+  // A Wir tile's add link asks for the entry field; opening the tile itself
+  // must not raise the keyboard (#1808).
+  const focusAddRequested = Boolean(
+    (location.state as Record<string, unknown> | null)?.[
+      FOCUS_ADD_ITEM_STATE_KEY
+    ],
+  );
+  const focusAddDoneRef = useRef(false);
   const rawScope = origin
     ? new URL(origin.to, 'https://eimir.invalid').searchParams.get('scope')
     : null;
@@ -341,6 +352,14 @@ function CollectionProductDetail({
     refocusToggleRef.current = null;
     if (!document.activeElement || document.activeElement === document.body)
       toggle.focus();
+  });
+
+  useEffect(() => {
+    if (!focusAddRequested || focusAddDoneRef.current) return;
+    const input = addInputRef.current;
+    if (!input || input.disabled) return;
+    focusAddDoneRef.current = true;
+    input.focus();
   });
 
   // The input is disabled while an entry is being saved, so focus goes back

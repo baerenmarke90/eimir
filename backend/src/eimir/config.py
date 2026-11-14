@@ -326,6 +326,17 @@ class Settings(IdentityCompatibleSettings):
     smtp_password: SecretStr | None = None
     smtp_starttls: bool = True
 
+    # Operator identity shown in the footer of every authentication mail. The
+    # legal texts name the provider and an imprint; the mail must carry the same
+    # facts so a recipient can identify who sent it without opening the app.
+    # Empty values are omitted instead of printing a placeholder.
+    legal_provider_name: str = ""
+    legal_provider_address: str = ""
+    legal_imprint_url: str = ""
+    legal_privacy_url: str = ""
+    legal_terms_url: str = ""
+    support_email: str = ""
+
     # Both Web Push adapters require VAPID and their own explicit origin list.
     push_vapid_private_key: SecretStr | None = None
     push_vapid_subject: str = ""
@@ -380,6 +391,38 @@ class Settings(IdentityCompatibleSettings):
                     "EIMIR_ENCRYPTION_KEYS must be a JSON object of key id to base64 key."
                 ) from None
         return value
+
+    @field_validator("legal_provider_name", "legal_provider_address")
+    @classmethod
+    def legal_identity_is_single_line(cls, value: str) -> str:
+        """Keep the identity a plain line so it renders the same in text and HTML."""
+        return " ".join(value.split())
+
+    @field_validator("legal_imprint_url", "legal_privacy_url", "legal_terms_url")
+    @classmethod
+    def legal_links_are_absolute_http(cls, value: str) -> str:
+        link = value.strip()
+        if not link:
+            return ""
+        parsed = urlsplit(link)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("EIMIR_LEGAL_*_URL must be an absolute http(s) address.")
+        return link
+
+    @field_validator("support_email")
+    @classmethod
+    def support_email_is_plausible(cls, value: str) -> str:
+        address = value.strip()
+        local_part, separator, domain = address.partition("@")
+        if address and (
+            not separator
+            or not local_part
+            or "." not in domain
+            or any(character.isspace() for character in address)
+            or len(address) > 320
+        ):
+            raise ValueError("EIMIR_SUPPORT_EMAIL must be an email address.")
+        return address
 
     @field_validator("server_admin_emails")
     @classmethod

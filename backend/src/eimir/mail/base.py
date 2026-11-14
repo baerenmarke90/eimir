@@ -57,11 +57,21 @@ class MailMessage:
     to: str
     subject: str
     body: str
+    # Optional rich alternative. ``body`` always stays the complete plain-text
+    # message: it is what text-only clients, screen-reader digests and the
+    # development log use, so it must never depend on the HTML part.
+    html: str | None = None
+    # BCP 47 tag of the message language, sent as Content-Language.
+    language: str | None = None
 
     def __post_init__(self) -> None:
         # A newline in subject or address would permit header injection: text
         # following it would become another header field.
-        for field, value in (("to", self.to), ("subject", self.subject)):
+        for field, value in (
+            ("to", self.to),
+            ("subject", self.subject),
+            ("language", self.language or ""),
+        ):
             if "\r" in value or "\n" in value:
                 raise ValueError(f"{field} must not contain a newline")
         if not self.to.strip() or not self.subject.strip():

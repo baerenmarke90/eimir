@@ -72,7 +72,7 @@
     },
     "cloud-onboarding-entry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 14
+      "baselineTests": 19
     },
     "comments-offline-writes.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -502,8 +502,8 @@
     },
     "media-planning-corrections.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 9,
-      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, both photo-source entries, draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
+      "baselineTests": 13,
+      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, both photo-source entries, Google photos and videos with one result per item and a single retry (#1467), draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
     },
     "planning-search-private-profile.spec.ts": {
       "disposition": "FULL_REGRESSION",

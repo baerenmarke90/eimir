@@ -593,6 +593,9 @@ export function ShortTaskSheet({
         if (event.key === 'Escape') event.stopPropagation();
       }}
       onCancel={(event) => {
+        // A nested sheet's cancel reaches this handler through the React
+        // portal tree; only the topmost dialog closes on Escape.
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         // Native cancel still propagates through React's parent portal tree.
         event.stopPropagation();

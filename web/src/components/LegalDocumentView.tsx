@@ -8,20 +8,31 @@ import type {
 } from '../legal/legalDocument';
 import './LegalDocumentView.css';
 
+/** Renders an in-app link, for example as a nested reading sheet in a form. */
+export type LegalInternalLinkRenderer = (link: {
+  href: string;
+  text: string;
+}) => ReactNode;
+
 function renderRun(
   run: LegalInline,
   placeholder: (name: string) => string,
+  renderInternalLink?: LegalInternalLinkRenderer,
 ): ReactNode {
   switch (run.kind) {
     case 'strong':
       return <strong>{run.text}</strong>;
     case 'link':
-      return run.href.startsWith('/') ? (
-        <Link to={run.href}>{run.text}</Link>
+      if (!run.href.startsWith('/'))
+        return (
+          <a href={run.href} rel="noopener noreferrer">
+            {run.text}
+          </a>
+        );
+      return renderInternalLink ? (
+        renderInternalLink({ href: run.href, text: run.text })
       ) : (
-        <a href={run.href} rel="noopener noreferrer">
-          {run.text}
-        </a>
+        <Link to={run.href}>{run.text}</Link>
       );
     case 'placeholder':
       return <mark className="legal-placeholder">{placeholder(run.name)}</mark>;
@@ -30,34 +41,44 @@ function renderRun(
   }
 }
 
-function Runs({ runs }: { runs: LegalInline[] }) {
+function Runs({
+  runs,
+  renderInternalLink,
+}: {
+  runs: LegalInline[];
+  renderInternalLink?: LegalInternalLinkRenderer;
+}) {
   const { t } = useTranslation();
   const placeholder = (name: string) => t('legal.placeholder', { name });
   return runs.map((run, index) => (
     // biome-ignore lint/suspicious/noArrayIndexKey: Read-only generated legal text has no state or reorder interaction.
-    <Fragment key={index}>{renderRun(run, placeholder)}</Fragment>
+    <Fragment key={index}>
+      {renderRun(run, placeholder, renderInternalLink)}
+    </Fragment>
   ));
 }
 
 function Block({
   block,
   sectionLevel,
+  renderInternalLink,
 }: {
   block: LegalBlock;
   sectionLevel: 2 | 3;
+  renderInternalLink?: LegalInternalLinkRenderer;
 }) {
   if (block.kind === 'heading') {
     const Heading = sectionLevel === 2 ? 'h2' : 'h3';
     return (
       <Heading id={block.id} className="legal-section-heading">
-        <Runs runs={block.content} />
+        <Runs runs={block.content} renderInternalLink={renderInternalLink} />
       </Heading>
     );
   }
   if (block.kind === 'paragraph') {
     return (
       <p>
-        <Runs runs={block.content} />
+        <Runs runs={block.content} renderInternalLink={renderInternalLink} />
       </p>
     );
   }
@@ -67,13 +88,13 @@ function Block({
       {block.items.map((item, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: Read-only generated legal text has no state or reorder interaction.
         <li key={index}>
-          <Runs runs={item.content} />
+          <Runs runs={item.content} renderInternalLink={renderInternalLink} />
           {item.children.length ? (
             <ul className="legal-list legal-list-nested">
               {item.children.map((child, childIndex) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: Read-only generated legal text has no state or reorder interaction.
                 <li key={childIndex}>
-                  <Runs runs={child} />
+                  <Runs runs={child} renderInternalLink={renderInternalLink} />
                 </li>
               ))}
             </ul>
@@ -90,11 +111,13 @@ export function LegalDocumentView({
   titleId,
   showTitle = true,
   sectionLevel = 2,
+  renderInternalLink,
 }: {
   document: LegalDocument;
   titleId?: string;
   showTitle?: boolean;
   sectionLevel?: 2 | 3;
+  renderInternalLink?: LegalInternalLinkRenderer;
 }) {
   const { t } = useTranslation();
   const uiLocale = resolvedLocale();
@@ -108,7 +131,11 @@ export function LegalDocumentView({
   return (
     <article className="legal-document" lang={document.locale}>
       {showTitle ? (
-        <h1 id={titleId} className="legal-document-title">
+        <h1
+          id={titleId}
+          className="legal-document-title"
+          tabIndex={titleId ? -1 : undefined}
+        >
           {document.title}
         </h1>
       ) : null}
@@ -125,8 +152,13 @@ export function LegalDocumentView({
         </p>
       ) : null}
       {document.blocks.map((block, index) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: Read-only generated legal text has no state or reorder interaction.
-        <Block key={index} block={block} sectionLevel={sectionLevel} />
+        <Block
+          // biome-ignore lint/suspicious/noArrayIndexKey: Read-only generated legal text has no state or reorder interaction.
+          key={index}
+          block={block}
+          sectionLevel={sectionLevel}
+          renderInternalLink={renderInternalLink}
+        />
       ))}
     </article>
   );

@@ -45,6 +45,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.eimir.de" />
+                <!-- Transition host (#1835): remove once installed builds use app.eimir.de. -->
                 <data android:scheme="https" android:host="demo.eimir.ur-cloud.de" />
                 <data android:path="/auth/signup" />
                 <data android:path="/auth/magic-link" />

@@ -31,7 +31,10 @@ import {
 } from '../client/partnerLocation';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { clientProblemKind } from '../client/problemDetails';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import {
+  PARTNER_LOCATION_MAP_ROUTE,
+  PRO_INFORMATION_ROUTE,
+} from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
@@ -468,6 +471,15 @@ export function PartnerLocationSettingsPage({
           >
             {message}
           </p>
+        ) : null}
+
+        {canChoose ? (
+          <Link
+            className="button-link secondary-link partner-location-map-link"
+            to={PARTNER_LOCATION_MAP_ROUTE}
+          >
+            {t('partnerLocation.distanceOpenMap')}
+          </Link>
         ) : null}
       </section>
 

@@ -391,6 +391,27 @@ describe('WirDailyCheckIn panel', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it('closes on a press outside the panel but not on the panel or the own avatar', async () => {
+    const { api } = apiFor(projection({ ownEnergy: 60 }));
+    renderCheckIn({ api });
+    const panel = await openPanel();
+    const trigger = screen.getByTestId('own-trigger');
+
+    fireEvent.pointerDown(panel);
+    fireEvent.pointerDown(slider());
+    fireEvent.pointerDown(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.pointerDown(document.body);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).not.toBe(trigger);
+
+    // Closed panels ignore later presses; the avatar still reopens it.
+    fireEvent.pointerDown(document.body);
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('offers five feelings and keeps an existing need value selectable', async () => {
     const { api } = apiFor(projection());
     const first = renderCheckIn({ api });

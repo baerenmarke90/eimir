@@ -17,7 +17,7 @@ from eimir.api.deps import ensure_capability
 from eimir.auth import rate_limit
 from eimir.auth.tokens import hash_token, tokens_equal
 from eimir.authorization import AuthorizationContext
-from eimir.config import get_settings
+from eimir.config import Environment, get_settings
 from eimir.core.clock import now
 from eimir.core.errors import (
     ConflictError,
@@ -30,7 +30,7 @@ from eimir.core.errors import (
 from eimir.core.ids import new_id, parse_id
 from eimir.db.locks import lock_subject
 from eimir.entitlements.models import Capability
-from eimir.identity.models import Account, DeviceSession
+from eimir.identity.models import Account, AccountEmail, DeviceSession
 from eimir.jobs import queue
 from eimir.photo_sources.browser_binding import valid_proof
 from eimir.photo_sources.models import (
@@ -69,8 +69,44 @@ def google_import_available() -> bool:
     return False
 
 
-def _guard_google_import(provider: str) -> None:
-    if provider == "google" and not google_import_available():
+def google_test_eligible(session: Session, account_id: UUID) -> bool:
+    """Fail-closed test eligibility for the Google import (#1467).
+
+    This never changes the production gate above. It is true only on an instance whose operator
+    listed a verified address of this Account in ``EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS`` and
+    whose photo-source, encryption, HTTPS and Google OAuth prerequisites hold. The entitlement and
+    every ownership guard stay unchanged at the call sites.
+    """
+    settings = get_settings()
+    listed = settings.google_photos_test_account_emails
+    if (
+        not listed
+        or settings.demo_mode
+        or settings.environment is Environment.DEMO
+        or not enabled()
+        or not (settings.google_photos_client_id or settings.google_photos_web_client_file)
+    ):
+        return False
+    return (
+        session.scalar(
+            select(AccountEmail.id)
+            .where(
+                AccountEmail.account_id == account_id,
+                AccountEmail.verified_at.is_not(None),
+                AccountEmail.email.in_(listed),
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
+def google_import_permitted(session: Session, account_id: UUID) -> bool:
+    return google_import_available() or google_test_eligible(session, account_id)
+
+
+def _guard_google_import(session: Session, account_id: UUID, provider: str) -> None:
+    if provider == "google" and not google_import_permitted(session, account_id):
         raise ServiceUnavailableError(
             "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
         )
@@ -212,7 +248,7 @@ def start(
     media_recovery_policy: str | None = None,
 ) -> tuple[PhotoSelection, str | None]:
     _guard(session, auth)
-    _guard_google_import(provider)
+    _guard_google_import(session, auth.account_id, provider)
     if provider == "google" and (
         not valid_proof(browser_binding) or media_recovery_policy != GOOGLE_RECOVERY_POLICY
     ):
@@ -313,7 +349,7 @@ def owned(
     ):
         raise NotFoundError("Photo selection not found.", "PHOTO_SOURCE_NOT_FOUND")
     if commercial:
-        _guard_google_import(row.provider)
+        _guard_google_import(session, auth.account_id, row.provider)
         _guard_recovery_policy(row)
         if row.provider == "google":
             _google_client(row)
@@ -335,7 +371,7 @@ def _load_immich_page(session: Session, row: PhotoSelection, page: int) -> None:
 
 
 def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> None:
-    _guard_google_import(row.provider)
+    _guard_google_import(session, row.account_id, row.provider)
     _guard_recovery_policy(row)
     if row.provider == "google":
         _google_client(row)
@@ -421,7 +457,13 @@ def callback(
     *,
     browser_binding: str | None = None,
 ) -> str | None:
-    if not google_import_available() or not state or not valid_proof(browser_binding):
+    # Cheap configuration-only precheck: with the production gate closed and no test list
+    # configured, nothing below may touch the database or the provider.
+    if (
+        not (google_import_available() or get_settings().google_photos_test_account_emails)
+        or not state
+        or not valid_proof(browser_binding)
+    ):
         return None
     # Discover only ownership metadata first. Match the existing lifecycle lock
     # order: Membership -> entitlement -> selection. Locking the selection
@@ -439,7 +481,11 @@ def callback(
             PhotoSelection.status == "AUTHORIZING",
         )
     ).first()
-    if metadata is None or not enabled():
+    if (
+        metadata is None
+        or not enabled()
+        or not google_import_permitted(session, metadata.account_id)
+    ):
         return None
     account = session.get(Account, metadata.account_id)
     device = session.get(DeviceSession, metadata.device_session_id)
@@ -552,7 +598,7 @@ def callback(
 def read_item(
     session: Session, row: PhotoSelection, item_id: str, *, thumbnail: bool
 ) -> SelectedPhoto:
-    _guard_google_import(row.provider)
+    _guard_google_import(session, row.account_id, row.provider)
     _guard_recovery_policy(row)
     if row.provider == "google":
         _google_client(row)

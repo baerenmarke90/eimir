@@ -235,6 +235,19 @@ byte-free checkpoints without destructively upgrading unopened drafts.
 - All provider responses are synthetic. Browser fixtures are not real Google,
   native-device, operator/deployment or Cloud acceptance.
 
+## Private-test eligibility (2026-11-14)
+
+The Product Owner approved a narrow first live test on the private `eimir-test` instance. The
+literal production gate (`google_import_available()`) is unchanged and still pinned by tests. A
+separate fail-closed `google_test_eligible()` opens Google for an Account only when one of its
+verified email addresses is listed in the operator-local `EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS`
+(empty by default, at most ten, lowercase-normalized) and photo sources, required encryption, an
+HTTPS public address and a valid Google OAuth configuration are present; demo mode never qualifies.
+It is applied at every gate seam (start, ownership for commercial access, polling, reading, callback,
+availability). The entitlement and all ownership, browser-proof and recovery checks are unchanged,
+and cancel, removal and expiry cleanup stay ungated. This refines, and does not satisfy, the
+acceptance below; it is not production enablement.
+
 ## Remaining enablement acceptance
 
 - Independent security/code review of browser binding and device recovery.

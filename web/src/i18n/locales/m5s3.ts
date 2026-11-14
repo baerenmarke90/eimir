@@ -410,6 +410,8 @@ const m5s3 = {
     },
   },
   collection: {
+    kindLabel: 'Art der Liste',
+    kind: { GENERIC: 'Liste', SHOPPING: 'Einkaufsliste' },
     scopeLabel: 'Listen filtern',
     scope: { OPEN: 'Offen', COMPLETED: 'Erledigt', ALL: 'Alle' },
     emptyScope: 'Keine Listen in dieser Auswahl.',
@@ -425,6 +427,7 @@ const m5s3 = {
     progress: '{{count}} Einträge · {{completed}} erledigt',
     progress_one: '{{count}} Eintrag · {{completed}} erledigt',
     progress_other: '{{count}} Einträge · {{completed}} erledigt',
+    openItem: '„{{title}}“ bearbeiten',
     itemActions: 'Aktionen für „{{title}}“',
     editItem: 'Eintrag bearbeiten',
     deleteItemConsequence: '„{{title}}“ wird aus dieser Liste gelöscht.',
@@ -476,6 +479,10 @@ const m5s3 = {
     you: 'Du',
     quantityLabel: 'Menge (optional)',
     quantityPlaceholder: 'Menge',
+    cart: {
+      bar_one: 'Im Wagen · {{count}} Eintrag',
+      bar_other: 'Im Wagen · {{count}} Einträge',
+    },
     trayShopping: 'Im Wagen',
     trayGeneric: 'Erledigt',
     addedBy: 'Hinzugefügt von {{name}}',

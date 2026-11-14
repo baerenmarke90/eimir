@@ -248,6 +248,71 @@ availability). The entitlement and all ownership, browser-proof and recovery che
 and cancel, removal and expiry cleanup stay ungated. This refines, and does not satisfy, the
 acceptance below; it is not production enablement.
 
+## Typed items and video import (2026-11-14)
+
+Implements blueprint slices 2/3 for the Web client. The production gate
+(`google_import_available()`) and the private-test eligibility are unchanged;
+installed-app handoff and fail-closed enablement remain separate, later work.
+
+- **Typed descriptor.** Every selected provider item is enumerated with an opaque
+  eimir. item id, stable ordinal, `IMAGE`/`VIDEO`/`OTHER`, sanitized MIME,
+  availability (`AVAILABLE`/`PROCESSING`/`UNAVAILABLE`) and a fixed code
+  (`UNSUPPORTED_TYPE`, `UNAVAILABLE`, `VIDEO_NOT_ALLOWED`, `VIDEO_UNAVAILABLE`,
+  `NOT_READY`). Provider ids, URLs and tokens stay in the encrypted expiring
+  payload. An unsupported item keeps its place and never fails the batch; only a
+  structurally invalid response (shape, count, paging) rejects the selection.
+- **Destination decision.** `PhotoSelectionCreate.allowVideo` (default `false`) is
+  stored with the task. Destinations without a video context (Plans, avatars)
+  stay image-only: the server marks every video `VIDEO_NOT_ALLOWED`, refuses its
+  import and refuses to read it through the image route. Google's Picker has no
+  media-type filter, so the restriction is enforced by eimir. on both sides, not
+  by Google.
+- **Images** keep the existing client path (`readSelectedPhoto`, 25 MiB, the
+  silent second attempt, `memory-only-v1`).
+- **Videos** use `POST …/photo-selections/{id}/items/{itemId}/import`. Only a
+  provider-`READY` video is downloaded, with Google's documented `=dv` variant (a
+  playable transcoded copy, not the original; no GPS/RAW/Live Photo promise). A
+  `PROCESSING` video is re-listed once from the provider before it is refused
+  (`NOT_READY`, retryable). Bytes stream through the pinned public-HTTPS
+  transport into a private temporary file (bounded by `VIDEO_MAX_SIZE`, 240 s
+  overall, never a whole-body heap buffer or a browser Blob), then through the
+  existing protected attachment protocol: `create_upload` (video capability,
+  deployment policy, size), upload claim, `complete_upload`, `finalize_upload`
+  and the existing video validation job. The result is one staged Attachment id
+  with the normal states, authorized binding and orphan cleanup.
+- **Validation is the existing ingestion.** The server never transcodes video:
+  validation accepts only H.264/8-bit SDR with AAC, at most 1080p and 180 s, and
+  fails closed otherwise. A Google video outside that envelope therefore ends as
+  a per-item failure with the server's own code, not as a silent drop.
+- **Idempotency and concurrency.** The staged Attachment id is stored on the item
+  inside the encrypted payload; a repeated or concurrent import of the same item
+  waits on a per-item lock and returns the same Attachment (a failed staging is
+  replaced). Transfers share the existing four transfer slots. Destination
+  eligibility is rechecked before each transfer; the existing binding rules
+  recheck count and storage quota when the Memory is saved.
+- **Rate limits and lifetime.** The Google adapter reports HTTP 429 with a bounded
+  `Retry-After`. Polling backs off without moving the task deadline; a video
+  transfer retries at most twice within its own deadline and otherwise returns
+  `PHOTO_SOURCE_RATE_LIMITED`. A selection that holds importable videos gets a
+  fifteen-minute transfer window after Google returns, with its own expiry job;
+  cancellation, expiry and unlink still erase the task, and a transfer that
+  finishes after the task vanished marks its staged Attachment for deletion.
+- **Web.** Google selections that contain a video or an unusable item show one
+  calm row per item (photo/video icon, number, result). Successes join the draft
+  immediately in Google's order; staged videos arrive as authorized READY
+  references (recognizable by their poster/play mark, `memory-only-v1` keeps
+  bytes out of device storage). One plain "Try again" covers only transient
+  failures; unsupported items show a short reason. Plain photo selections keep
+  the previous flow.
+
+Business/freemium impact reviewed: external import stays Premium
+(`integration.external_sync`); video storage uses the existing video capability,
+tiers and quotas; ordinary device media stays Free; no matrix change.
+
+Not verified: live Google videos (real codecs, sizes, `=dv` availability and
+rates), real devices, load/memory under concurrent large transfers, and
+installed-app behavior.
+
 ## Remaining enablement acceptance
 
 - Independent security/code review of browser binding and device recovery.

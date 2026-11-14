@@ -23,6 +23,7 @@ import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 import { recoverSelectedPhoto } from './recoverSelectedPhoto';
 import type { ReferenceApis } from './referenceFlow';
 import {
+  missingSelectedPhoto,
   retainPhotoInMemory,
   selectedPhotoUnavailable,
 } from './selectedMediaRetention';
@@ -58,11 +59,24 @@ export interface AttachmentDraftOptions {
   maxAttachments?: number;
 }
 
+/**
+ * A video the server already staged from a provider (#1467). It carries only the
+ * authorized attachment reference and display facts, never bytes or provider data.
+ */
+export interface StagedVideo {
+  attachmentId: string;
+  name: string;
+  mimeType: string;
+  processing: boolean;
+  hasThumbnail: boolean;
+  durationSeconds?: number | null;
+}
+
 /** Volatile handoff for one asynchronous picker result, never provider state. */
 export interface AttachmentDraftSelection {
   readonly signal: AbortSignal;
   /** True means delivered to the existing capacity/upload flow, not saved. */
-  commit: (files: readonly File[]) => boolean;
+  commit: (files: readonly File[], staged?: readonly StagedVideo[]) => boolean;
   cancel: () => void;
 }
 
@@ -373,6 +387,9 @@ export function useAttachmentDrafts({
         file: File;
         attachmentId?: string;
         isSensitive?: boolean;
+        processing?: boolean;
+        hasThumbnail?: boolean;
+        durationSeconds?: number | null;
       }[],
     ) => {
       const currentContext = committedContextKey.current;
@@ -385,7 +402,14 @@ export function useAttachmentDrafts({
       setRejectedCount(selected.length - accepted.length);
 
       const restoredIds: string[] = [];
-      for (const { file, attachmentId, isSensitive } of accepted) {
+      for (const {
+        file,
+        attachmentId,
+        isSensitive,
+        processing,
+        hasThumbnail,
+        durationSeconds,
+      } of accepted) {
         if (file.type.startsWith('video/')) retainPhotoInMemory(file);
         const id = globalThis.crypto.randomUUID();
         restoredIds.push(id);
@@ -417,6 +441,9 @@ export function useAttachmentDrafts({
               attempt: 0,
               progress: attachmentId ? 100 : 0,
               attachmentId,
+              hasThumbnail,
+              durationSeconds,
+              processing,
               isSensitive: isSensitive ?? false,
               error: unavailable
                 ? i18n.t('memory.diary.photoUnavailable')
@@ -441,9 +468,11 @@ export function useAttachmentDrafts({
   // A picker can finish after capacity or transport props changed. Use the
   // latest committed ingress only after validating its launch ownership.
   const addSelectedFiles = useRef(addFiles);
+  const restoreSelected = useRef(restore);
   useLayoutEffect(() => {
     addSelectedFiles.current = addFiles;
-  }, [addFiles]);
+    restoreSelected.current = restore;
+  }, [addFiles, restore]);
 
   const beginSelection = useCallback((): AttachmentDraftSelection => {
     const selectionContext = committedContextKey.current;
@@ -462,7 +491,7 @@ export function useAttachmentDrafts({
     return {
       signal: controller.signal,
       cancel: cancelSelection,
-      commit(files) {
+      commit(files, staged = []) {
         if (
           settled ||
           controller.signal.aborted ||
@@ -476,7 +505,24 @@ export function useAttachmentDrafts({
         }
         settled = true;
         selections.current.delete(controller);
-        addSelectedFiles.current(files);
+        // Staged references join in the picker's own order, after the Files.
+        if (staged.length) {
+          restoreSelected.current([
+            ...files.map((file) => ({ file })),
+            ...staged.map((video) => ({
+              file: missingSelectedPhoto({
+                name: video.name,
+                type: video.mimeType,
+                lastModified: Date.now(),
+                size: 0,
+              }),
+              attachmentId: video.attachmentId,
+              processing: video.processing,
+              hasThumbnail: video.hasThumbnail,
+              durationSeconds: video.durationSeconds,
+            })),
+          ]);
+        } else addSelectedFiles.current(files);
         return true;
       },
     };

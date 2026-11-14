@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type AttachmentDetail,
+    AttachmentDetailFromJSON,
+    AttachmentDetailToJSON,
+} from '../models/AttachmentDetail';
+import {
     type PhotoSelectionCreate,
     PhotoSelectionCreateFromJSON,
     PhotoSelectionCreateToJSON,
@@ -56,6 +61,12 @@ export interface DisconnectImmichPhotoSourceRequest {
 }
 
 export interface GetPhotoSourcesRequest {
+    spaceId: string;
+}
+
+export interface ImportSelectedVideoRequest {
+    selectionId: string;
+    itemId: string;
     spaceId: string;
 }
 
@@ -296,6 +307,69 @@ export class PhotoSourcesApi extends runtime.BaseAPI {
      */
     async getPhotoSources(requestParameters: GetPhotoSourcesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoSourceAvailability> {
         const response = await this.getPhotoSourcesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for importSelectedVideo without sending the request
+     */
+    async importSelectedVideoRequestOpts(requestParameters: ImportSelectedVideoRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['selectionId'] == null) {
+            throw new runtime.RequiredError(
+                'selectionId',
+                'Required parameter "selectionId" was null or undefined when calling importSelectedVideo().'
+            );
+        }
+
+        if (requestParameters['itemId'] == null) {
+            throw new runtime.RequiredError(
+                'itemId',
+                'Required parameter "itemId" was null or undefined when calling importSelectedVideo().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling importSelectedVideo().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}/import`;
+        urlPath = urlPath.replace('{selectionId}', encodeURIComponent(String(requestParameters['selectionId'])));
+        urlPath = urlPath.replace('{itemId}', encodeURIComponent(String(requestParameters['itemId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Move one selected, provider-ready video into the protected attachment pipeline.  Repeating the call for the same item returns the same staged Attachment.
+     * Import Video
+     */
+    async importSelectedVideoRaw(requestParameters: ImportSelectedVideoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AttachmentDetail>> {
+        const requestOptions = await this.importSelectedVideoRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AttachmentDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Move one selected, provider-ready video into the protected attachment pipeline.  Repeating the call for the same item returns the same staged Attachment.
+     * Import Video
+     */
+    async importSelectedVideo(requestParameters: ImportSelectedVideoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AttachmentDetail> {
+        const response = await this.importSelectedVideoRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

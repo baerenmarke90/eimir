@@ -7700,6 +7700,12 @@
       "PhotoSelectionCreate": {
         "additionalProperties": false,
         "properties": {
+          "allowVideo": {
+            "default": false,
+            "description": "True only for destinations that accept videos. Image-only destinations keep the default; the server then marks every video as not allowed.",
+            "title": "Allowvideo",
+            "type": "boolean"
+          },
           "consent": {
             "const": true,
             "title": "Consent",
@@ -7742,19 +7748,80 @@
       },
       "PhotoSelectionItemView": {
         "properties": {
+          "attachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The staged Attachment of an already imported item.",
+            "title": "Attachmentid"
+          },
+          "availability": {
+            "enum": [
+              "AVAILABLE",
+              "PROCESSING",
+              "UNAVAILABLE"
+            ],
+            "title": "Availability",
+            "type": "string"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fixed code explaining why an item is not available; never provider text.",
+            "title": "Code"
+          },
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "IMAGE",
+              "VIDEO",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mimeType": {
+            "title": "Mimetype",
+            "type": "string"
+          },
+          "ordinal": {
+            "description": "Stable position of the item in the provider selection.",
+            "title": "Ordinal",
+            "type": "integer"
           }
         },
         "required": [
-          "id"
+          "id",
+          "ordinal",
+          "kind",
+          "mimeType",
+          "availability"
         ],
         "title": "PhotoSelectionItemView",
         "type": "object"
       },
       "PhotoSelectionView": {
         "properties": {
+          "allowVideo": {
+            "default": false,
+            "title": "Allowvideo",
+            "type": "boolean"
+          },
           "authorizationUrl": {
             "anyOf": [
               {
@@ -33014,6 +33081,137 @@
           }
         },
         "summary": "Read",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}/import": {
+      "post": {
+        "description": "Move one selected, provider-ready video into the protected attachment pipeline.\n\nRepeating the call for the same item returns the same staged Attachment.",
+        "operationId": "importSelectedVideo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "title": "Itemid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The content exceeds the server-side size limit."
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The media type is not on the allowlist."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Import Video",
         "tags": [
           "photo-sources"
         ]

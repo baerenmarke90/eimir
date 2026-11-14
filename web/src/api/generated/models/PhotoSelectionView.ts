@@ -29,6 +29,12 @@ import {
 export interface PhotoSelectionView {
     /**
      * 
+     * @type {boolean}
+     * @memberof PhotoSelectionView
+     */
+    allowVideo?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof PhotoSelectionView
      */
@@ -99,6 +105,7 @@ export function PhotoSelectionViewFromJSONTyped(json: any, ignoreDiscriminator: 
     }
     return {
         
+        'allowVideo': json['allowVideo'] == null ? undefined : json['allowVideo'],
         'authorizationUrl': json['authorizationUrl'] === undefined ? undefined : json['authorizationUrl'] === null ? null : json['authorizationUrl'],
         'hasMore': json['hasMore'],
         'id': json['id'],
@@ -121,6 +128,7 @@ export function PhotoSelectionViewToJSONTyped(value?: PhotoSelectionView | null,
 
     return {
         
+        'allowVideo': value['allowVideo'],
         'authorizationUrl': value['authorizationUrl'],
         'hasMore': value['hasMore'],
         'id': value['id'],

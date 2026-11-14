@@ -24,8 +24,10 @@ SHARED_FILES: tuple[tuple[str, str], ...] = (
     ("web/public/fonts/instrument-sans-latin-variable.woff2", "fonts/instrument-sans-latin-variable.woff2"),
     ("web/public/fonts/OFL-Literata.txt", "fonts/OFL-Literata.txt"),
     ("web/public/fonts/OFL-InstrumentSans.txt", "fonts/OFL-InstrumentSans.txt"),
-    ("web/public/identity/app-icons/v1/daylight-192.png", "assets/icon-192.png"),
-    ("web/public/identity/app-icons/v1/daylight-180.png", "assets/apple-touch-icon.png"),
+    # The brand mark of the Web app's entry screen: the dark-surface variant sits on the hero.
+    ("web/public/identity/app-icon-dark.png", "assets/brand-mark.png"),
+    ("web/public/identity/app-icon-light.png", "assets/favicon.png"),
+    ("web/public/apple-touch-icon.png", "assets/apple-touch-icon.png"),
 )
 
 PLACEHOLDER = re.compile(r"\[\[[A-Z0-9_]+\]\]")

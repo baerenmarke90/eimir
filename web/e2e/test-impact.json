@@ -1119,6 +1119,9 @@
       "roots": [
         "web/src/components/PartnerDistanceLine.tsx",
         "web/src/components/PartnerDistanceWirSetting.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/client/dashboardModules.ts",
+        "web/src/client/dashboardPreferences.ts",
         "web/src/components/PartnerLocationMapPage.tsx",
         "web/src/client/partnerDistance.ts",
         "web/src/components/CouplePresence.tsx",

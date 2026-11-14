@@ -267,7 +267,9 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 1);
+  // Not listed: the fixed couple hero, and partner distance (#1792), which
+  // this fixture's Space cannot use.
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 2);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -290,7 +292,7 @@ async function alignedVisibilityControls(page: Page) {
       }),
     );
   // The shared couple hero is fixed and has no visibility switch.
-  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 1);
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
   for (const target of targets) {
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);
@@ -772,8 +774,13 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-    // The fixed couple hero keeps its stored slot but is not sortable.
-  ).toEqual(order.filter((key) => key !== 'relationship_presence'));
+    // The fixed couple hero keeps its stored slot but is not sortable; partner
+    // distance (#1792) keeps its slot but is not listed for this Space.
+  ).toEqual(
+    order.filter(
+      (key) => key !== 'relationship_presence' && key !== 'partner_distance',
+    ),
+  );
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });

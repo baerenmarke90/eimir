@@ -45,7 +45,12 @@ describe('dashboardPreferences', () => {
   it('preserves the old personal order while inserting both additive modules', () => {
     const legacy = [...DASHBOARD_MODULE_KEYS]
       .reverse()
-      .filter((key) => key !== 'daily_quote' && key !== 'shared_experience');
+      .filter(
+        (key) =>
+          key !== 'daily_quote' &&
+          key !== 'shared_experience' &&
+          key !== 'partner_distance',
+      );
     const migrated = orderedDashboardModuleKeys({
       items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
     });
@@ -54,12 +59,17 @@ describe('dashboardPreferences', () => {
         (key) =>
           key !== 'daily_quote' &&
           key !== 'shared_experience' &&
+          key !== 'partner_distance' &&
           key !== 'relationship_presence',
       ),
     ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
     expect(migrated[0]).toBe('relationship_presence');
-    expect(migrated.indexOf('shared_experience')).toBe(
+    // #1792 enters directly below the couple hero for older saved orders.
+    expect(migrated.indexOf('partner_distance')).toBe(
       migrated.indexOf('relationship_presence') + 1,
+    );
+    expect(migrated.indexOf('shared_experience')).toBe(
+      migrated.indexOf('partner_distance') + 1,
     );
     expect(migrated.indexOf('daily_quote')).toBe(
       migrated.indexOf('shared_experience') + 1,

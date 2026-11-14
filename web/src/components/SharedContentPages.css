@@ -397,3 +397,41 @@
   background: var(--color-surface);
   color: var(--color-text);
 }
+
+/* Shopping and shared lists: groups, tray heading, quantity (#1808). */
+.shared-list-groups {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.shared-list-group {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.shared-list-tray-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+.shared-list-tray-count {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--space-6);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.shared-list-item-quantity {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  white-space: nowrap;
+}
+.shared-content-page .planning-inline-create input.shared-list-quantity-field {
+  flex: 0 1 7rem;
+}

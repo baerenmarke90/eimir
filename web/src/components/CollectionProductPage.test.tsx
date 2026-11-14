@@ -1168,8 +1168,12 @@ describe('CollectionProductPage', () => {
     expect(screen.getByRole('status').textContent).toContain(
       i18n.t('m5s3.common.saving'),
     );
-    expect(toggle.hasAttribute('disabled')).toBe(true);
-    fireEvent.click(toggle);
+    // The checked entry moves into the tray, so its button is a new element.
+    const checked = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.markOpen', { title: 'Passport' }),
+    });
+    expect(checked.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(checked);
     expect(updateCollectionItem).toHaveBeenCalledTimes(1);
     expect(updateCollectionItem).toHaveBeenCalledWith(
       expect.objectContaining({

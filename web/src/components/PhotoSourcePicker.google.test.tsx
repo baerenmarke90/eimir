@@ -142,7 +142,9 @@ describe('Google Photos selection task', () => {
     await screen.findByRole('button', {
       name: new RegExp(photoSources.google),
     });
-    expect(screen.queryByText(/Gespeichert wird erst/)).toBeNull();
+    expect(
+      document.querySelector('.photo-source-sheet .field-help'),
+    ).toBeNull();
     expect(api.startPhotoSelection).not.toHaveBeenCalled();
   });
 

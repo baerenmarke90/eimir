@@ -170,6 +170,12 @@ export function PhotoSourcePicker({
   const [message, setMessage] = useState('');
   const [view, setView] = useState<PhotoSelectionView | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  // Google only: true while the person chooses in Google, and the photos still to retry.
+  const [awaitingGoogle, setAwaitingGoogle] = useState(false);
+  const [retry, setRetry] = useState<{
+    ready: PhotoSelectionView;
+    ids: string[];
+  } | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<HTMLDivElement | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const task = useRef<SelectionTask | null>(null);
@@ -197,6 +203,8 @@ export function PhotoSourcePicker({
     setOpen(false);
     setView(null);
     setSelected([]);
+    setAwaitingGoogle(false);
+    setRetry(null);
     setMessage('');
     setBusy(false);
     return () => {
@@ -211,6 +219,8 @@ export function PhotoSourcePicker({
     setBusy(false);
     setView(null);
     setSelected([]);
+    setAwaitingGoogle(false);
+    setRetry(null);
   }
 
   async function importItems(
@@ -225,16 +235,25 @@ export function PhotoSourcePicker({
     }
     const files: File[] = [];
     const failedIds = ids.slice(remaining);
+    setRetry(null);
     setBusy(true);
     setMessage(t('photoSources.progress'));
     try {
       for (const id of ids.slice(0, remaining)) {
         current.ticket.signal.throwIfAborted();
         try {
-          const blob = await current.api.readSelectedPhoto(
-            { spaceId, selectionId: ready.id, itemId: id },
-            { signal: current.request.signal, cache: 'no-store' },
-          );
+          // One quiet second attempt, so a brief hiccup never reaches the person.
+          const read = () =>
+            current.api.readSelectedPhoto(
+              { spaceId, selectionId: ready.id, itemId: id },
+              { signal: current.request.signal, cache: 'no-store' },
+            );
+          const blob = await read().catch((error) => {
+            // Only the Google task retries quietly; other sources keep their contract.
+            if (ready.source !== 'google' || current.request.signal.aborted)
+              throw error;
+            return read();
+          });
           current.ticket.signal.throwIfAborted();
           files.push(photoFile(blob, files.length, ready.source === 'google'));
         } catch (error) {
@@ -245,6 +264,7 @@ export function PhotoSourcePicker({
       }
       if (task.current !== current || current.ticket.signal.aborted) return;
       if (!files.length) {
+        if (ready.source === 'google') setRetry({ ready, ids: [...failedIds] });
         setMessage(t('photoSources.importFailed'));
         return;
       }
@@ -257,6 +277,7 @@ export function PhotoSourcePicker({
           { once: true },
         );
         setSelected(failedIds);
+        if (ready.source === 'google') setRetry({ ready, ids: failedIds });
         setMessage(t('photoSources.partial', { count: files.length }));
       } else close();
     } catch {
@@ -319,6 +340,7 @@ export function PhotoSourcePicker({
       if (!ready.authorizationUrl)
         throw new Error('Photo authorization is unavailable.');
       await openPhotoBrowser(ready.authorizationUrl, current.popup);
+      setAwaitingGoogle(true);
       setMessage(t('photoSources.waiting'));
       while (!selectionReady(ready)) {
         await waitForPhotoPoll(
@@ -332,6 +354,7 @@ export function PhotoSourcePicker({
         if (task.current !== current) return;
       }
       await closePhotoBrowser(current.popup);
+      setAwaitingGoogle(false);
       if (ready.items.length)
         await importItems(
           current,
@@ -432,6 +455,18 @@ export function PhotoSourcePicker({
             <button type="button" className="secondary" onClick={close}>
               {t('taskSheets.close')}
             </button>
+            {retry && !view ? (
+              <button
+                type="button"
+                disabled={busy || remaining <= 0}
+                onClick={() => {
+                  if (task.current)
+                    void importItems(task.current, retry.ready, retry.ids);
+                }}
+              >
+                {t('photoSources.retryImport')}
+              </button>
+            ) : null}
             {view ? (
               <button
                 type="button"
@@ -447,7 +482,7 @@ export function PhotoSourcePicker({
           </div>
         }
       >
-        {!view ? (
+        {!view && !awaitingGoogle && !retry ? (
           <p className="field-help">{t('photoSources.consent')}</p>
         ) : null}
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
@@ -505,7 +540,7 @@ export function PhotoSourcePicker({
               </AutoLoadTrigger>
             ) : null}
           </>
-        ) : (
+        ) : awaitingGoogle || retry ? null : (
           <>
             {unified && !externalOnly ? (
               <div className="photo-source-device-slot" ref={setDeviceTarget} />
@@ -530,7 +565,7 @@ export function PhotoSourcePicker({
               />
             ) : null}
             {canImport && availability?.googleAvailable ? (
-              <p>{t('photoSources.googleConsent')}</p>
+              <p className="field-help">{t('photoSources.googleConsent')}</p>
             ) : null}
             {availability?.enabled || availability?.immichConnected ? (
               <MediaIntakeButton

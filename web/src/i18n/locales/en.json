@@ -2326,11 +2326,12 @@
     "pro": "Pro",
     "proRequired": "Connect your photo services and import selected photos with eimir. Pro.",
     "consent": "Only selected photos are copied into your draft. They may be stored on this device for up to 7 days. Visibility follows your entry.",
-    "googleConsent": "Only selected photos are copied into your open draft and the protected server cache. No lasting Google photo copies are created on this device. After a restart, photos that are no longer available must be selected again. Visibility follows your entry.",
+    "googleConsent": "Choose what you want to add in Google Photos. eimir. only takes your selection. Nothing is saved until you save your entry.",
     "accept": "Copy selected photos into my draft",
     "continue": "Continue to selection",
-    "waiting": "Choose your photos in the window that opened. Then return here.",
+    "waiting": "Google Photos is open. Choose your photos there. This page continues automatically afterwards.",
     "progress": "Importing photos …",
+    "retryImport": "Try again",
     "selected": "{{count}} selected",
     "import": "Import photos",
     "importFailed": "Photos could not be loaded. Your selection is retained. Try again.",
@@ -2363,8 +2364,8 @@
     "addressUnavailable": "The connection could not be made. Check the reachable HTTPS address and the key's read permissions. Your entry is retained.",
     "limit_one": "You can add {{count}} more photo.",
     "limit_other": "You can add {{count}} more photos.",
-    "partial_one": "{{count}} photo was copied into your draft. Other photos could not be loaded. Your existing entry is retained.",
-    "partial_other": "{{count}} photos were copied into your draft. Other photos could not be loaded. Your existing entry is retained."
+    "partial_one": "{{count}} photo added. Some photos could not be loaded.",
+    "partial_other": "{{count}} photos added. Some photos could not be loaded."
   },
   "video": {
     "add": "Add video",

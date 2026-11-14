@@ -63,7 +63,10 @@ async function expectHorizontalReflow(page: Page): Promise<void> {
           style.display !== 'none' &&
           style.visibility !== 'hidden' &&
           rect.width > 0 &&
-          rect.height > 0
+          rect.height > 0 &&
+          // The month band is a strip that scrolls inside itself; its months
+          // are reached by scrolling or focus. The strip is checked below.
+          !element.closest('.occasions-band')
         );
       })
       .map((element) => {
@@ -79,17 +82,34 @@ async function expectHorizontalReflow(page: Page): Promise<void> {
         };
       });
 
+    const strips = Array.from(
+      document.querySelectorAll<HTMLElement>('.occasions-band'),
+    ).map((strip) => {
+      const rect = strip.getBoundingClientRect();
+      return {
+        left: rect.left,
+        right: rect.right,
+        scrolls: getComputedStyle(strip).overflowX === 'auto',
+      };
+    });
     return {
       clientWidth: root.clientWidth,
       scrollWidth: root.scrollWidth,
       clippedControls: controls.filter(
         (control) => control.left < -1 || control.right > root.clientWidth + 1,
       ),
+      clippedStrips: strips.filter(
+        (strip) =>
+          !strip.scrolls ||
+          strip.left < -1 ||
+          strip.right > root.clientWidth + 1,
+      ),
     };
   });
 
   expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
   expect(result.clippedControls).toEqual([]);
+  expect(result.clippedStrips).toEqual([]);
 }
 
 async function installPeopleApiMocks(
@@ -644,14 +664,29 @@ async function openEditor(page: Page) {
   await expect(page.getByLabel(people.visibilityLabel)).toHaveCount(0);
   await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
 }
+/**
+ * Only the chosen month is listed on the occasions calendar. Shows the month
+ * that holds the occasion and returns its row.
+ */
+async function occasionRow(page: Page, text: string | RegExp) {
+  const row = page
+    .locator('.occasions-sheet .important-date-card')
+    .filter({ hasText: text });
+  const months = page.locator('.occasions-band-month');
+  await expect(months.first()).toBeVisible();
+  const count = await months.count();
+  for (let index = 0; index < count && !(await row.count()); index += 1)
+    await months.nth(index).click();
+  await expect(row).toBeVisible();
+  return row;
+}
+
 async function openDates(page: Page) {
   await page.goto('/plan#dates');
   await expect(
     page.getByRole('tab', { name: importantDates.heading }),
   ).toHaveAttribute('aria-selected', 'true');
-  await expect(
-    page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }),
-  ).toBeVisible();
+  await occasionRow(page, LONG_DATE_LABEL);
   const addDay = page.getByRole('button', {
     name: importantDates.create,
     exact: true,
@@ -772,14 +807,16 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expect(
     page.getByRole('tab', { name: importantDates.heading }),
   ).toHaveAttribute('aria-selected', 'true');
+  // The sheet still shows the month of the birthday the task started from.
   await expect(
-    page.getByRole('button', {
-      name: new RegExp(
-        importantDates.partnerBirthdayLabel.replace('{{name}}', 'Lea Sommer'),
+    page.locator('.occasions-sheet .important-date-card').filter({
+      hasText: importantDates.partnerBirthdayLabel.replace(
+        '{{name}}',
+        'Lea Sommer',
       ),
     }),
   ).toBeFocused();
-  await page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }).click();
+  await (await occasionRow(page, LONG_DATE_LABEL)).click();
   const reader = page.getByRole('dialog');
   await expect(reader.getByRole('textbox')).toHaveCount(0);
   await reader
@@ -842,18 +879,15 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await expectHorizontalReflow(page);
   await expectNoWcagViolations(page);
   await capture(page, info, 'occasions-390-light');
-  for (const name of ['Lea Summer', 'Alex Winter']) {
-    await expect(
-      page.getByRole('button', {
-        name: new RegExp(
-          importantDates.partnerBirthdayLabel.replace('{{name}}', name),
-        ),
-      }),
-    ).toBeVisible();
-  }
-  const anniversary = page.getByRole('button', {
-    name: new RegExp(importantDates.relationshipAnniversary),
-  });
+  for (const name of ['Lea Summer', 'Alex Winter'])
+    await occasionRow(
+      page,
+      importantDates.partnerBirthdayLabel.replace('{{name}}', name),
+    );
+  const anniversary = await occasionRow(
+    page,
+    importantDates.relationshipAnniversary,
+  );
   const outline = 'svg.eimir-icon-wir.eimir-icon-outline';
   const wirTab = page.locator(`.mobile-bottom-nav a[href="/today"] ${outline}`);
   await expect(anniversary.locator(outline)).toBeVisible();
@@ -893,11 +927,12 @@ test.describe('Occasions in a timezone west of UTC', () => {
     await page.locator('.mobile-bottom-nav a[href="/plan"]').click();
     await page.getByRole('tab', { name: importantDates.heading }).click();
 
-    const anniversary = page.getByRole('button', {
-      name: new RegExp(importantDates.relationshipAnniversary),
-    });
-    const rows = page.locator('.occasions-panel .important-date-card');
-    await expect(rows.first()).toContainText(
+    // The observed day is 28 February, so the sheet opens on February and
+    // the occasion of the following day belongs to the March sheet.
+    const anniversary = page
+      .locator('.occasions-sheet .important-date-card')
+      .filter({ hasText: importantDates.relationshipAnniversary });
+    await expect(page.locator('.occasions-next')).toContainText(
       importantDates.relationshipAnniversary,
     );
     await expect(anniversary).toContainText('Heute');
@@ -908,11 +943,14 @@ test.describe('Occasions in a timezone west of UTC', () => {
     await expect(anniversary.locator('.important-date-marker-day')).toHaveText(
       '28',
     );
-    await expect(rows.nth(1)).toContainText('Morgen');
-    await expect(rows.nth(1).locator('.important-date-marker-day')).toHaveText(
+    const tomorrow = await occasionRow(page, 'Spring walk');
+    await expect(tomorrow).toContainText('Morgen');
+    await expect(tomorrow.locator('.important-date-marker-day')).toHaveText(
       '1',
     );
-    await expect(rows.last()).toContainText('Winter evening');
+    await expect(
+      page.locator('.occasions-past .important-date-card').last(),
+    ).toContainText('Winter evening');
     await expect(page.locator('.occasions-past')).toContainText(
       importantDates.past,
     );
@@ -924,7 +962,7 @@ test.describe('Occasions in a timezone west of UTC', () => {
     });
 
     const reader = page.getByRole('dialog');
-    await page.getByRole('button', { name: /Mara birthday/ }).click();
+    await (await occasionRow(page, 'Mara birthday')).click();
     await expect(
       reader.getByRole('button', { name: importantDates.createPlan }),
     ).toHaveCount(0);
@@ -933,9 +971,7 @@ test.describe('Occasions in a timezone west of UTC', () => {
     ).toBeVisible();
     await page.keyboard.press('Escape');
 
-    await page
-      .getByRole('button', { name: /Geburtstag von Alex Winter/ })
-      .click();
+    await (await occasionRow(page, 'Geburtstag von Alex Winter')).click();
     await expect(reader).toContainText(
       importantDates.partnerBirthdayProfileSource.replace(
         '{{name}}',
@@ -944,7 +980,9 @@ test.describe('Occasions in a timezone west of UTC', () => {
     );
     await page.keyboard.press('Escape');
 
-    await anniversary.click();
+    await (
+      await occasionRow(page, importantDates.relationshipAnniversary)
+    ).click();
     await expect(reader.locator('time')).toHaveAttribute(
       'datetime',
       '2027-02-28',
@@ -1219,7 +1257,7 @@ test('focused completion stays reachable at small height and Expanded preserves 
   await capture(page, info, 'person-edit-1440-dark');
   await page.keyboard.press('Escape');
   await openDates(page);
-  await page.getByRole('button', { name: new RegExp(LONG_DATE_LABEL) }).click();
+  await (await occasionRow(page, LONG_DATE_LABEL)).click();
   await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
   await expectNoWcagViolations(page);
   await capture(page, info, 'occasion-reader-1440-dark');

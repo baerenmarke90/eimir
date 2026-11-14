@@ -62,3 +62,33 @@
   min-height: 0;
   padding: var(--space-2);
 }
+
+/* Loading is a quiet shimmer; the words stay for assistive technology only. */
+.plan-cover-placeholder.is-loading {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    var(--color-shimmer-base) 30%,
+    var(--color-shimmer-highlight) 50%,
+    var(--color-shimmer-base) 70%
+  );
+  background-size: 220% 100%;
+  animation: plan-cover-shimmer 1400ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-cover-placeholder.is-loading {
+    animation: none;
+  }
+}
+
+@keyframes plan-cover-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}

@@ -417,21 +417,6 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
         <summary>{t('recaps.about')}</summary>
         <p>{t('recaps.aboutBody')}</p>
       </details>
-      <details
-        className="recap-explanation"
-        open={search.get('details') === 'relationship'}
-        onToggle={(event) => {
-          const open = event.currentTarget.open;
-          if (open === (search.get('details') === 'relationship')) return;
-          const next = new URLSearchParams(search);
-          if (open) next.set('details', 'relationship');
-          else next.delete('details');
-          setSearch(next, { replace: true });
-        }}
-      >
-        <summary>{t('recaps.details')}</summary>
-        <RelationshipPassport {...props} />
-      </details>
     </div>
   );
 }

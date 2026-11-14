@@ -4,7 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from eimir.appearance.models import AppIconId, AppIconPreference, WirDesignId
+from eimir.appearance.models import (
+    DEFAULT_WIR_DESIGN,
+    AppIconId,
+    AppIconPreference,
+    WirDesignId,
+)
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ConflictError, ErrorCode
 
@@ -75,7 +80,7 @@ def _save_selection(
                 account_id=authorization.account_id,
                 space_id=authorization.space_id,
                 icon_id=icon_id.value if icon_id else AppIconId.ORIGINAL.value,
-                wir_design=design_id.value if design_id else WirDesignId.WARM.value,
+                wir_design=design_id.value if design_id else DEFAULT_WIR_DESIGN.value,
                 version=1,
             )
             .on_conflict_do_nothing(index_elements=["account_id", "space_id"])

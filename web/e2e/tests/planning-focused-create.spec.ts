@@ -583,6 +583,10 @@ test('contextual Plan and Wish actions open directly and browser Back restores t
     wishAction,
     page.locator('.mobile-bottom-shell'),
   );
+  // The search rests as an icon and opens on demand (#1861).
+  await page
+    .getByRole('button', { name: m5s3.overview.searchWishes, exact: true })
+    .click();
   const search = page.getByRole('searchbox', {
     name: m5s3.overview.searchWishes,
   });

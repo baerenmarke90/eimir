@@ -23,6 +23,7 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PRIVATE_ROUTE,
   MORE_PROFILE_ROUTE,
@@ -38,9 +39,12 @@ import {
   PRIMARY_APP_ROUTES,
   placeDetailPath,
   planDetailPath,
+  recapDetailPath,
   rewriteLegacyPath,
   SEARCH_ROUTE,
   SETTINGS_CATEGORY_ROUTES,
+  STORY_OURS_ROUTE,
+  STORY_RECAPS_ROUTE,
   settingsCategoryIdFromHash,
   settingsCategoryPath,
   WISH_CREATE_ROUTE,
@@ -242,12 +246,24 @@ describe('legacy paths', () => {
     expect(rewriteLegacyPath('/profile')).toBe('/more/profile');
   });
 
-  it('moves the recap library and reader from More to Momente', () => {
-    expect(rewriteLegacyPath('/more/passport')).toBe('/story/recaps');
-    expect(rewriteLegacyPath('/more/passport/edition-1')).toBe(
-      '/story/recaps/edition-1',
-    );
+  it('sends the former More passport address to the couple story page', () => {
+    expect(STORY_OURS_ROUTE).toBe('/story/our-story');
+    expect(rewriteLegacyPath(MORE_PASSPORT_ROUTE)).toBe(STORY_OURS_ROUTE);
+    expect(rewriteLegacyPath('/more/passport')).toBe('/story/our-story');
     expect(rewriteLegacyPath('/more/passport-notes')).toBeNull();
+    // The destination is current: it is not rewritten again and keeps the
+    // Momente tab active like the recap library next to it.
+    expect(rewriteLegacyPath(STORY_OURS_ROUTE)).toBeNull();
+    expect(rewriteLegacyPath(STORY_RECAPS_ROUTE)).toBeNull();
+    expect(activeNavigationArea(STORY_OURS_ROUTE)).toBe('story');
+    expect(activeNavigationArea(STORY_RECAPS_ROUTE)).toBe('story');
+  });
+
+  it('keeps shared recap reader links from More opening the reader', () => {
+    expect(rewriteLegacyPath('/more/passport/edition-1')).toBe(
+      recapDetailPath('edition-1'),
+    );
+    expect(recapDetailPath('edition-1')).toBe('/story/recaps/edition-1');
   });
 
   it('keeps shared content deep links working', () => {

@@ -1008,6 +1008,97 @@ test.describe('Today R4: the living home of a relationship', () => {
     expect(metrics.momentImage as number).toBeLessThan(700);
   });
 
+  test('Verbunden joins the two portraits with the heart line, in Light and Dark', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, RICH_SPACE);
+    // #1861: the default design for accounts without an earlier choice.
+    await page.route('**/appearance/wir-design', (route) =>
+      route.fulfill({
+        json: { designId: 'connected', version: 1 },
+        headers: { ETag: '"connected:1"' },
+      }),
+    );
+    await page.emulateMedia({ colorScheme: 'light' });
+    await signInAndOpenToday(page);
+    await settleMotion(page);
+
+    await expect(page.locator('.today-page')).toHaveAttribute(
+      'data-wir-design',
+      'connected',
+    );
+    const stage = page.locator('.wir-stage');
+    await expect(stage).toBeVisible();
+    // One name under each portrait, and the page heading stays for assistive
+    // technology without being painted.
+    await expect(stage.locator('.wir-stage-name')).toHaveCount(2);
+    await expect(page.locator('.today-content h1')).toHaveCount(1);
+
+    // The heart line carries the time together and opens the story overview.
+    const bridge = stage.locator('.wir-bridge');
+    await expect(bridge).toBeVisible();
+    await expect(bridge).toHaveAttribute('href', '/story/our-story');
+    await expect(bridge.locator('svg path')).toHaveCount(2);
+
+    const geometry = await page.evaluate(() => {
+      const box = (selector: string) =>
+        document.querySelector(selector)?.getBoundingClientRect() ?? null;
+      const portraits = [
+        ...document.querySelectorAll('.wir-stage .partner-avatar'),
+      ].map((node) => node.getBoundingClientRect());
+      const line = box('.wir-bridge-line');
+      return {
+        portraits: portraits.map((rect) => ({
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          height: rect.height,
+        })),
+        line: line ? { left: line.left, right: line.right } : null,
+      };
+    });
+    expect(geometry.portraits).toHaveLength(2);
+    for (const portrait of geometry.portraits) {
+      expect(Math.abs(portrait.width - portrait.height)).toBeLessThan(1);
+    }
+    // The line spans the space between the portraits without entering them.
+    expect(geometry.line).not.toBeNull();
+    expect(geometry.line?.left ?? 0).toBeGreaterThanOrEqual(
+      geometry.portraits[0].right,
+    );
+    expect(geometry.line?.right ?? 0).toBeLessThanOrEqual(
+      geometry.portraits[1].left,
+    );
+
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'connected-390-light');
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await settleMotion(page);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'connected-390-dark');
+
+    // The bridge keeps its place between the portraits at the narrowest
+    // supported width and in the Expanded column.
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.setViewportSize({ width: 320, height: 720 });
+    await settleMotion(page);
+    await expect(bridge).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await capture(page, testInfo, 'connected-320-light');
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await settleMotion(page);
+    await expect(bridge).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'connected-1280-light');
+  });
+
   test('consumes the shared upcoming preference: default 1, explicit 1/2/3', async ({
     page,
   }) => {
@@ -2017,14 +2108,15 @@ for (const [width, theme, largeText] of [
 }
 
 for (const width of [390, 1280] as const) {
-  test(`Wir, Momente, Planen and Mehr share one title band at ${width}`, async ({
+  // #1861: the bottom bar names the place, so no root tab repeats it as a
+  // visible title. The heading stays for assistive technology.
+  test(`Wir, Momente, Planen and Mehr keep their heading without a visible title at ${width}`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await installMocks(page, { ...RICH_SPACE });
     await signInAndOpenToday(page);
-    const bands = [];
     for (const [tab, label, path] of [
       ['Wir', 'Wir', '/today'],
       ['Momente', 'Momente', '/story'],
@@ -2037,42 +2129,18 @@ for (const width of [390, 1280] as const) {
         .first()
         .click();
       await expect(page).toHaveURL(new RegExp(`${path}$`));
-      const title = page
-        .locator('.page-heading-root h1:visible')
-        .filter({ hasText: new RegExp(`^${label}$`) });
-      await expect(title).toBeVisible();
-      bands.push(
-        await title.evaluate((heading) => {
-          const header = heading.closest('header');
-          const next = header?.nextElementSibling;
-          const box = heading.getBoundingClientRect();
-          return {
-            label: heading.textContent,
-            x: Math.round(box.x),
-            y: Math.round(box.y),
-            height: Math.round(box.height),
-            fontFamily: getComputedStyle(heading).fontFamily,
-            fontSize: getComputedStyle(heading).fontSize,
-            headerHeight: Math.round(
-              header?.getBoundingClientRect().height ?? 0,
-            ),
-            gapToMenu: Math.round(
-              (next?.getBoundingClientRect().top ?? 0) -
-                (header?.getBoundingClientRect().bottom ?? 0),
-            ),
-          };
-        }),
-      );
-    }
-    const [wirBand, ...others] = bands.map(
-      ({ label: _label, ...band }) => band,
-    );
-    for (const band of others) {
-      // On Expanded, Mehr stays a centered reading column by design.
-      const { x, ...rest } = band;
-      const { x: wirX, ...wirRest } = wirBand;
-      expect(rest).toEqual(wirRest);
-      if (width < 840 || band !== others.at(-1)) expect(x).toBe(wirX);
+      const title = page.getByRole('heading', {
+        level: 1,
+        name: label,
+        exact: true,
+      });
+      await expect(title).toHaveCount(1);
+      const clip = await title.evaluate((heading) => {
+        const box = heading.parentElement?.getBoundingClientRect();
+        return { width: box?.width, height: box?.height };
+      });
+      expect(clip).toEqual({ width: 1, height: 1 });
+      await expectNoHorizontalOverflow(page);
     }
   });
 }

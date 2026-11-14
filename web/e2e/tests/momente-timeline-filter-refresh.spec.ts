@@ -253,8 +253,10 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
       page.locator('.story-year-month-header').filter({ has: filter }),
     ).toHaveCSS('transform', 'none');
     const filterBox = await filter.boundingBox();
-    expect(filterBox?.width ?? 0).toBeGreaterThanOrEqual(44);
-    expect(filterBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // Bounds are single-precision: at a fractional page offset a 44 px target
+    // can measure 43.99999, so the comparison allows a hundredth of a pixel.
+    expect(filterBox?.width ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(filterBox?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
     await expect(
       page.getByRole('button', { name: de.common.refresh }),
     ).toHaveCount(0);

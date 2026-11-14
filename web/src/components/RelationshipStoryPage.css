@@ -1,0 +1,372 @@
+/*
+ * "Eure Geschichte" as an information page about the couple.
+ *
+ * Wir carries the emotional hero. This page is the place for facts: a short
+ * line of who and since when, progress towards the next landmarks, what the
+ * couple has kept as a chart, and the shape of their story over time.
+ */
+.relationship-story-page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.relationship-story-page > .page-heading {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.relationship-story-page .relationship-passport {
+  display: grid;
+  gap: var(--space-6);
+  border-radius: 0;
+  padding: 0;
+  background: none;
+}
+
+/* The page header already names the place. */
+.relationship-story-page .passport-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Who and since when: one compact line, deliberately not a second hero. */
+.relationship-story-page .passport-identity {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  text-align: start;
+}
+
+.relationship-story-page .passport-identity-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 0.15rem;
+}
+
+.relationship-story-page .passport-couple-name {
+  margin: 0;
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.relationship-story-page .passport-duration,
+.relationship-story-page .passport-since {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.relationship-story-page .passport-identity .passport-support {
+  display: none;
+}
+
+.relationship-story-page .passport-landmarks,
+.relationship-story-page .passport-history,
+.relationship-story-page .passport-timeline {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.relationship-story-page .relationship-passport h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+/* Next landmarks: how far along you are, as a bar. */
+.relationship-story-page .passport-landmarks dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.relationship-story-page .passport-landmarks dl > div {
+  /* Title and remaining time share a line while both fit; with large text
+     the remaining time moves below the title instead of squeezing it. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.relationship-story-page .passport-landmarks dt {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.relationship-story-page .passport-landmarks dd {
+  margin: 0;
+}
+
+.relationship-story-page .passport-landmarks dd:has(time) {
+  flex: 1 1 100%;
+  order: 2;
+}
+
+.relationship-story-page .passport-remaining {
+  order: 1;
+  color: var(--color-brand-text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.relationship-story-page .passport-progress,
+.relationship-story-page .passport-metric-bar {
+  position: relative;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.relationship-story-page .passport-progress {
+  flex: 1 1 100%;
+  order: 3;
+  margin-top: var(--space-2);
+}
+
+.relationship-story-page .passport-progress::after,
+.relationship-story-page .passport-metric-bar::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-brand-strong);
+  transform: scaleX(var(--passport-progress, var(--passport-share, 0)));
+  transform-origin: left center;
+  content: "";
+}
+
+/* What you have kept: one bar per kind, each row opens its place. */
+.relationship-story-page .passport-metrics {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.relationship-story-page .passport-metrics a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  min-height: 0;
+  padding-block: var(--space-3);
+}
+
+.relationship-story-page .passport-metric-label {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.relationship-story-page .passport-metric-label::first-letter {
+  text-transform: uppercase;
+}
+
+.relationship-story-page .passport-number {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.relationship-story-page .passport-metric-bar {
+  grid-column: 1 / -1;
+}
+
+/* The story over time: the lifeline from Wir, without its own heading. */
+.relationship-story-page .shared-story-summary > h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Chapters: spans on the same axis as the lifeline above them. */
+.relationship-story-page .passport-chapters {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.relationship-story-page .passport-chapters h4 {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+}
+
+.relationship-story-page .passport-chapters ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.relationship-story-page .passport-chapters a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding-block: var(--space-2);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.relationship-story-page .passport-chapter-title {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relationship-story-page .passport-chapter-range {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  white-space: nowrap;
+}
+
+.relationship-story-page .passport-chapter-track {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.relationship-story-page .passport-chapter-track::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--passport-from, 0) * 100%);
+  width: calc(var(--passport-width, 0) * 100%);
+  border-radius: inherit;
+  background: var(--color-private);
+  content: "";
+}
+
+/* Places: a small, still map that opens the full one, and one sentence. */
+.relationship-story-page .passport-places {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.relationship-story-page .passport-places-map {
+  display: block;
+  height: 12rem;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+}
+
+/* The preview does not pan or zoom: a tap anywhere opens the real map. */
+.relationship-story-page .passport-places-map > * {
+  height: 100%;
+  pointer-events: none;
+}
+
+.relationship-story-page .passport-places-loading {
+  display: block;
+}
+
+.relationship-story-page .passport-places-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 650;
+}
+
+.relationship-story-page .passport-places-top span {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+/* The lifeline brings its own section spacing from Wir; here the page's
+   rhythm applies. */
+/*
+ * One shrinkable column per stacked section. An implicit grid column is as
+ * wide as its widest content, which pushed the page sideways with large text.
+ */
+.relationship-story-page,
+.relationship-story-page .relationship-passport,
+.relationship-story-page .passport-landmarks,
+.relationship-story-page .passport-history,
+.relationship-story-page .passport-timeline,
+.relationship-story-page .passport-chapters,
+.relationship-story-page .passport-places {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.relationship-story-page .shared-story-summary {
+  min-width: 0;
+  margin: 0;
+  /* The "today" mark hangs half its width past the line's end. */
+  padding: 0 calc(var(--space-story-lifeline-dot) / 2) 0 0;
+}
+
+/* The preview is not operable, so its zoom controls would only mislead. */
+.relationship-story-page
+  .passport-places-map
+  :is(.place-map-zoom-in, .place-map-zoom-out) {
+  display: none;
+}
+
+.relationship-story-links {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+}
+
+.relationship-story-links a {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+  align-items: center;
+  color: var(--color-text-secondary);
+  font-weight: 650;
+}
+
+/* Bars fill once when the page opens; without motion they are simply set. */
+@media (prefers-reduced-motion: no-preference) {
+  .relationship-story-page .passport-progress::after,
+  .relationship-story-page .passport-metric-bar::after {
+    animation: relationship-story-bar calc(var(--duration-sequence-beat) * 3.5)
+      var(--easing-standard) var(--duration-context) backwards;
+  }
+}
+
+@keyframes relationship-story-bar {
+  from {
+    transform: scaleX(0);
+  }
+}

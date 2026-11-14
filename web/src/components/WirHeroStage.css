@@ -1,0 +1,567 @@
+/*
+ * The "Verbunden" Wir design: two portraits joined by a bridge.
+ *
+ * Three rules give every element its place:
+ * - between the two people: what they share (the time together on the line);
+ * - under each person: who they are and how they are today;
+ * - on a portrait: only what can be opened there (a gesture, an unread note).
+ */
+.today-page .wir-stage {
+  --wir-avatar: clamp(6.25rem, 32vw, 8rem);
+  --wir-ring: 5px;
+  /* How far the marks ride outward past the photo's edge, per axis. */
+  --wir-mark-out: 0.4rem;
+  --wir-own-accent: var(--color-brand-text);
+  --wir-partner-accent: var(--color-private);
+  position: relative;
+  margin-bottom: var(--space-section);
+}
+
+/* The page title repeats the active tab; the stage already names the couple. */
+.today-page .content-overview-heading .page-heading-title-container,
+.today-page .wir-stage .today-hero .couple-presence-details {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.today-page .page-heading.content-overview-heading {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.today-page .wir-stage .today-hero.couple-presence-card {
+  display: block;
+  margin: 0;
+  padding: var(--space-5) 0 0;
+  background: none;
+}
+
+.today-page .wir-stage .today-hero.couple-presence-card .couple-presence-main {
+  display: block;
+}
+
+.today-page .wir-stage .today-hero .couple-presence-avatar-anchor {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
+.today-page .wir-stage .today-hero .partner-avatar-pair,
+.today-page .wir-stage .today-hero .partner-avatar-stack {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-radius: 0;
+}
+
+/* One column per person: portrait, name, today's state. */
+.today-page .wir-stage .today-hero .partner-avatar-stack > * {
+  position: relative;
+  display: flex;
+  width: var(--wir-avatar);
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  border-radius: var(--radius-card, 1.25rem);
+}
+
+.today-page .wir-stage .today-hero .partner-avatar-pair-hero .partner-avatar {
+  width: var(--wir-avatar);
+  height: var(--wir-avatar);
+  margin: 0 0 var(--space-1);
+  border-radius: 50%;
+  font-size: 2rem;
+  box-shadow: 0 12px 26px var(--color-shadow-card);
+}
+
+/* Each portrait's ring is its own element so it can draw itself. It ends
+   where the arm of the heart line leaves: on the side facing the partner. */
+.today-page .wir-stage .today-hero .partner-avatar-stack > *::before {
+  position: absolute;
+  top: calc(-1 * var(--wir-ring));
+  left: calc(-1 * var(--wir-ring));
+  width: calc(var(--wir-avatar) + 2 * var(--wir-ring));
+  height: calc(var(--wir-avatar) + 2 * var(--wir-ring));
+  box-sizing: border-box;
+  border: 2px solid var(--wir-own-accent);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.today-page
+  .wir-stage
+  .today-hero
+  .partner-avatar-stack
+  > :nth-child(2)::before {
+  border-color: var(--wir-partner-accent);
+  transform: scaleX(-1);
+}
+
+.today-page
+  .wir-stage
+  .today-hero
+  .partner-avatar-pair-hero
+  .partner-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.wir-stage-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Today's state is a quiet line under the name, not a mark on the photo. */
+.today-page .wir-stage .today-hero .partner-avatar-stack .wir-checkin-badge {
+  position: static;
+  max-width: 100%;
+  background: var(--color-surface-raised);
+  box-shadow: none;
+  transform: none;
+}
+
+/* On the rim at 45 degrees: 14.6 % in from the portrait's bounding corner. */
+.wir-stage-gesture,
+.today-page .wir-stage .today-hero .partner-avatar-stack .wir-checkin-note-dot {
+  position: absolute;
+  right: calc(var(--wir-avatar) * 0.146 - 0.95rem - var(--wir-mark-out));
+  z-index: 4;
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  box-shadow: 0 2px 10px var(--color-shadow-card);
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+.wir-stage-gesture {
+  top: calc(var(--wir-avatar) * 0.854 - 0.95rem + var(--wir-mark-out));
+}
+
+.today-page .wir-stage .today-hero .partner-avatar-stack .wir-checkin-note-dot {
+  top: calc(var(--wir-avatar) * 0.146 - 0.95rem - var(--wir-mark-out));
+  bottom: auto;
+  left: auto;
+}
+
+.wir-stage-gesture svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The viewer's own mark mirrors the partner's: lower left on the own ring. */
+.wir-stage-gesture.wir-stage-gesture-own {
+  right: auto;
+  left: calc(var(--wir-avatar) * 0.146 - 0.95rem - var(--wir-mark-out));
+}
+
+/* The plus now lives on the ring; the line under the name only invites. */
+.today-page .wir-stage .wir-checkin-prompt > span[aria-hidden="true"] {
+  display: none;
+}
+
+/* The bridge spans exactly the space between the two portraits. */
+.today-page .wir-stage .today-hero .couple-presence-avatar-adornment {
+  /* The rings sit outside the portraits; the line ends where they begin. */
+  inset: 0 calc(var(--wir-avatar) + var(--wir-ring)) auto;
+  height: var(--wir-avatar);
+}
+
+/* The ampersand joins the two names on their own line. */
+.wir-stage-amp {
+  position: absolute;
+  top: calc(100% + var(--space-1) + var(--space-2));
+  right: 0;
+  left: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* The distance is shared too: on the middle axis, level with the two
+   daily marks, as a quiet value rather than another chip. */
+.wir-stage-distance {
+  position: absolute;
+  top: calc(100% + var(--space-1) + 2 * var(--space-2) + 1.56rem);
+  right: calc(-1 * var(--space-2));
+  left: calc(-1 * var(--space-2));
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.wir-hero-distance {
+  display: inline-flex;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--color-text-muted);
+  font: var(--font-supporting-copy);
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
+.wir-hero-distance .partner-distance-glyph {
+  width: 1rem;
+  height: 1rem;
+}
+
+.wir-hero-distance.is-action {
+  color: var(--color-brand-text);
+}
+
+.wir-bridge {
+  display: grid;
+  height: 100%;
+  grid-template-rows: 1fr auto 1fr;
+  justify-items: center;
+  row-gap: var(--space-1);
+  color: var(--color-text);
+  text-align: center;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.wir-bridge-lead {
+  align-self: end;
+  /* One quiet voice down the middle axis: time, ampersand, distance. */
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: clamp(0.9rem, 4vw, 1.05rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.wir-bridge-line {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+}
+
+/* The arms meet the heart at the widest point of its two lobes. */
+.wir-bridge-arm {
+  height: 2px;
+  flex: 1 1 0;
+  margin-top: calc(1.75rem * 7.5 / 28 - 1px);
+  background: var(--wir-own-accent);
+}
+
+.wir-bridge-arm-partner {
+  background: var(--wir-partner-accent);
+}
+
+.wir-bridge-line svg {
+  width: 2rem;
+  height: 1.75rem;
+  flex: none;
+  overflow: visible;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wir-bridge-heart-own {
+  stroke: var(--wir-own-accent);
+}
+
+.wir-bridge-heart-partner {
+  stroke: var(--wir-partner-accent);
+}
+
+.wir-bridge-rest {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.wir-stage-below {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-5);
+}
+
+/* Marks share the bottom bar's glass recipe so the photo shows through. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .wir-stage-gesture,
+  .today-page
+    .wir-stage
+    .today-hero
+    .partner-avatar-stack
+    .wir-checkin-note-dot,
+  .today-page .wir-stage .today-hero .partner-avatar-stack .wir-checkin-badge {
+    background: color-mix(
+      in srgb,
+      var(--color-surface-overlay) var(--wir-stage-glass-opacity, 56%),
+      transparent
+    );
+    box-shadow: none;
+    -webkit-backdrop-filter: blur(var(--navigation-backdrop-blur)) saturate(1.3);
+    backdrop-filter: blur(var(--navigation-backdrop-blur)) saturate(1.3);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .wir-stage-gesture,
+  .today-page
+    .wir-stage
+    .today-hero
+    .partner-avatar-stack
+    .wir-checkin-note-dot,
+  .today-page .wir-stage .today-hero .partner-avatar-stack .wir-checkin-badge {
+    background: var(--color-surface-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/*
+ * Opening sequence, once per page load: the two portraits appear, each ring
+ * draws itself around its portrait and ends facing the partner, the arms
+ * leave from there, and the two halves of the heart grow until they meet.
+ * Without motion everything simply stands there.
+ */
+@property --wir-ring-sweep {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 360deg;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wir-stage-intro .partner-avatar {
+    animation: wir-intro-portrait calc(var(--duration-sequence-beat) * 4)
+      var(--easing-standard) both;
+  }
+
+  .wir-stage-intro .partner-avatar-stack > :nth-child(2) .partner-avatar {
+    animation-delay: var(--duration-sequence-beat);
+  }
+
+  .wir-stage-intro .partner-avatar-stack > *::before {
+    -webkit-mask: conic-gradient(
+      from 90deg,
+      #000 var(--wir-ring-sweep),
+      transparent 0
+    );
+    mask: conic-gradient(from 90deg, #000 var(--wir-ring-sweep), transparent 0);
+    animation: wir-intro-ring calc(var(--duration-sequence-beat) * 5.5)
+      var(--easing-standard) calc(var(--duration-sequence-beat) * 3) both;
+  }
+
+  .wir-stage-intro .wir-bridge-arm {
+    transform-origin: left center;
+    animation: wir-intro-arm calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) calc(var(--duration-sequence-beat) * 8.5) both;
+  }
+
+  .wir-stage-intro .wir-bridge-arm-partner {
+    transform-origin: right center;
+  }
+
+  /* Each half is 100 units long; its arm arrives 56 units from the tip. */
+  .wir-stage-intro .wir-bridge-line path {
+    animation: wir-intro-heart calc(var(--duration-sequence-beat) * 3)
+      var(--easing-standard) calc(var(--duration-sequence-beat) * 10.5) both;
+  }
+
+  .wir-stage-intro .wir-stage-name,
+  .wir-stage-intro .wir-stage-amp,
+  .wir-stage-intro .partner-avatar-stack .wir-checkin-badge {
+    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) calc(var(--duration-sequence-beat) * 2.5) both;
+  }
+
+  .wir-stage-intro .wir-stage-gesture,
+  .wir-stage-intro .partner-avatar-stack .wir-checkin-note-dot,
+  .wir-stage-intro .wir-bridge-lead,
+  .wir-stage-intro .wir-bridge-rest,
+  .wir-stage-intro .wir-stage-distance {
+    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) calc(var(--duration-sequence-beat) * 13) both;
+  }
+}
+
+/*
+ * The modules below join the same opening: a short rise with a fade, one
+ * after the other, once the heart line above is closing: the hero leads. A short
+ * rise reads as native; a long fly-in would compete with the hero. The fill
+ * only covers the wait, so no transform lingers on the modules afterwards.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .today-page[data-wir-intro]
+    .today-content
+    > :not(.page-heading, .wir-stage, :has(.wir-stage)) {
+    --wir-intro-module-delay: calc(var(--duration-sequence-beat) * 11);
+    animation: wir-intro-module calc(var(--duration-sequence-beat) * 2.5)
+      var(--easing-enter) var(--wir-intro-module-delay) backwards;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(1) {
+    --wir-intro-module-delay: 2200ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(2) {
+    --wir-intro-module-delay: 2290ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(3) {
+    --wir-intro-module-delay: 2380ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(4) {
+    --wir-intro-module-delay: 2470ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(5) {
+    --wir-intro-module-delay: 2560ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(6) {
+    --wir-intro-module-delay: 2650ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(7) {
+    --wir-intro-module-delay: 2740ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(8) {
+    --wir-intro-module-delay: 2830ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(9) {
+    --wir-intro-module-delay: 2920ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(10) {
+    --wir-intro-module-delay: 3010ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(11) {
+    --wir-intro-module-delay: 3100ms;
+  }
+
+  .today-page[data-wir-intro] .today-content > :nth-child(12) {
+    --wir-intro-module-delay: 3190ms;
+  }
+}
+
+@keyframes wir-intro-module {
+  from {
+    opacity: 0;
+    transform: translateY(0.9rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wir-intro-portrait {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wir-intro-ring {
+  from {
+    --wir-ring-sweep: 0deg;
+  }
+
+  to {
+    --wir-ring-sweep: 360deg;
+  }
+}
+
+@keyframes wir-intro-arm {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes wir-intro-heart {
+  0% {
+    opacity: 0;
+    stroke-dasharray: 0 200;
+    stroke-dashoffset: -56;
+  }
+
+  1% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    stroke-dasharray: 100 200;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes wir-intro-caption {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 768px) {
+  .today-page .wir-stage {
+    --wir-avatar: 9rem;
+    max-width: 34rem;
+  }
+}

@@ -314,10 +314,10 @@ describe('CollectionProductPage shopping list without a connection (#1808)', () 
     const row = (await screen.findByText('Hafermilch')).closest(
       'li',
     ) as HTMLElement;
-    // An entry the server does not know yet has no actions menu at all.
+    // An entry the server does not know yet cannot be opened for editing.
     expect(
       within(row).queryByRole('button', {
-        name: fill(m5s3.collection.itemActions, { title: 'Hafermilch' }),
+        name: fill(m5s3.collection.openItem, { title: 'Hafermilch' }),
       }),
     ).toBeNull();
     expect(

@@ -64,6 +64,7 @@ import {
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
+import { SharedListCartBar } from './SharedListCartBar';
 import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
 import { useCollectionOutbox } from './useCollectionOutbox';
@@ -769,6 +770,19 @@ function CollectionProductDetail({
     });
   }
 
+  function toggleItem(targetItem: CollectionItemDetail) {
+    if (!collection) return;
+    refocusToggleRef.current = targetItem.id;
+    if (outbox.active)
+      void outbox.setCompleted(targetItem.id, !targetItem.completed);
+    else
+      submitItemUpdate({
+        collection,
+        item: targetItem,
+        completed: !targetItem.completed,
+      });
+  }
+
   function submitItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!collection || hasCurrentReorder() || createItemInFlightRef.current)
@@ -1139,7 +1153,11 @@ function CollectionProductDetail({
             {groups.map((group) => (
               <section
                 key={group.key}
-                className="shared-list-group"
+                className={
+                  shopping && group.key === 'done'
+                    ? 'shared-list-group shared-list-group-cart'
+                    : 'shared-list-group'
+                }
                 aria-label={group.title ?? undefined}
               >
                 {group.title ? (
@@ -1166,20 +1184,13 @@ function CollectionProductDetail({
                           title,
                         })
                       }
-                      onToggleComplete={(targetItem) => {
-                        refocusToggleRef.current = targetItem.id;
-                        if (outbox.active)
-                          void outbox.setCompleted(
-                            targetItem.id,
-                            !targetItem.completed,
-                          );
-                        else
-                          submitItemUpdate({
-                            collection,
-                            item: targetItem,
-                            completed: !targetItem.completed,
-                          });
-                      }}
+                      onUpdateQuantity={
+                        outbox.active
+                          ? (targetItem, quantity) =>
+                              outbox.setQuantity(targetItem.id, quantity)
+                          : undefined
+                      }
+                      onToggleComplete={toggleItem}
                       waiting={viewed?.pendingItemIds.has(item.id)}
                       marker={markerFor(item)}
                       onDelete={(targetItem) => {
@@ -1245,6 +1256,17 @@ function CollectionProductDetail({
           />
         ) : null}
       </section>
+
+      {shopping && !embedded && !isSorting ? (
+        <SharedListCartBar
+          entries={doneItems.map((entry) => ({
+            item: entry,
+            marker: markerFor(entry),
+          }))}
+          disabled={updateItem.isPending || isReordering}
+          onPutBack={toggleItem}
+        />
+      ) : null}
 
       {isEditing && collection.capabilities.canDelete ? (
         <section

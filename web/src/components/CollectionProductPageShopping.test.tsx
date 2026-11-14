@@ -116,6 +116,8 @@ function list(
 }
 
 const summaryText = m5s3.collection.summary;
+// The cart bar starts with the tray name, whatever the count.
+const cartBarName = new RegExp(`^${m5s3.collection.trayShopping} · `);
 
 describe('CollectionProductPage shopping list composition (#1808)', () => {
   let storage: MemoryStorage;
@@ -214,21 +216,41 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
           position: 3,
         }),
     );
-    // The server remembers a check, so a refetch does not undo it.
-    updateCollectionItem = vi.fn(async (request: { itemId: string }) => {
-      const current = serverItems.find((entry) => entry.id === request.itemId);
-      const updated = {
-        ...(current as CollectionItemDetail),
-        version: 2,
-        completed: true,
-        completedBy: 'anna',
-        completer: anna,
-      };
-      serverItems = serverItems.map((entry) =>
-        entry.id === request.itemId ? updated : entry,
-      );
-      return updated;
-    });
+    // The server remembers a change, so a refetch does not undo it.
+    updateCollectionItem = vi.fn(
+      async (request: {
+        itemId: string;
+        collectionItemUpdate: {
+          completed?: boolean;
+          quantity?: string | null;
+          title?: string;
+        };
+      }) => {
+        const current = serverItems.find(
+          (entry) => entry.id === request.itemId,
+        ) as CollectionItemDetail;
+        const change = request.collectionItemUpdate;
+        const updated: CollectionItemDetail = {
+          ...current,
+          version: current.version + 1,
+          ...(change.title !== undefined ? { title: change.title } : {}),
+          ...(change.quantity !== undefined
+            ? { quantity: change.quantity }
+            : {}),
+          ...(change.completed !== undefined
+            ? {
+                completed: change.completed,
+                completedBy: change.completed ? 'anna' : null,
+                completer: change.completed ? anna : null,
+              }
+            : {}),
+        };
+        serverItems = serverItems.map((entry) =>
+          entry.id === request.itemId ? updated : entry,
+        );
+        return updated;
+      },
+    );
     onlineManager.setOnline(true);
   });
 
@@ -402,6 +424,121 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
     expect(annaView.some((name) => name.includes('partner-marker-b'))).toBe(
       true,
     );
+  });
+
+  it('opens an entry by its name and changes the quantity from the sheet', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', {
+        name: fill(m5s3.collection.openItem, { title: 'Milch' }),
+      }),
+    );
+    const dialog = screen.getByRole('dialog');
+    const quantity = within(dialog).getByLabelText(
+      m5s3.collection.quantityLabel,
+    );
+
+    await user.type(quantity, '2 l');
+    await user.click(
+      within(dialog).getByRole('button', { name: m5s3.common.saveChanges }),
+    );
+
+    await waitFor(() => expect(updateCollectionItem).toHaveBeenCalledTimes(1));
+    expect(updateCollectionItem.mock.calls[0][0]).toMatchObject({
+      itemId: 'milk',
+      collectionItemUpdate: { quantity: '2 l' },
+    });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(await screen.findByText('2 l')).toBeTruthy();
+  });
+
+  it('renames an entry from the same sheet and can delete it', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', {
+        name: fill(m5s3.collection.openItem, { title: 'Brot' }),
+      }),
+    );
+    const dialog = screen.getByRole('dialog');
+    const title = within(dialog).getByLabelText(m5s3.collection.itemTitle);
+    await user.clear(title);
+    await user.type(title, 'Vollkornbrot');
+    await user.click(
+      within(dialog).getByRole('button', { name: m5s3.common.saveChanges }),
+    );
+
+    await waitFor(() => expect(updateCollectionItem).toHaveBeenCalledTimes(1));
+    expect(updateCollectionItem.mock.calls[0][0]).toMatchObject({
+      collectionItemUpdate: { title: 'Vollkornbrot' },
+    });
+    expect(
+      await screen.findByRole('button', {
+        name: fill(m5s3.collection.openItem, { title: 'Vollkornbrot' }),
+      }),
+    ).toBeTruthy();
+  });
+
+  it('shows no quantity field in the sheet of a list that is not a shopping list', async () => {
+    getCollection.mockResolvedValue(
+      annasList('GENERIC', [item({ id: 'a', title: 'Pass' })]),
+    );
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', {
+        name: fill(m5s3.collection.openItem, { title: 'Pass' }),
+      }),
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByLabelText(m5s3.collection.itemTitle),
+    ).toBeTruthy();
+    expect(
+      within(dialog).queryByLabelText(m5s3.collection.quantityLabel),
+    ).toBeNull();
+  });
+
+  it('keeps the cart in a bar that opens a sheet and lets an entry be put back', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    const bar = await screen.findByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+    });
+
+    await user.click(bar);
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Äpfel')).toBeTruthy();
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: fill(m5s3.collection.markOpen, { title: 'Äpfel' }),
+      }),
+    );
+    await waitFor(() => expect(updateCollectionItem).toHaveBeenCalledTimes(1));
+    expect(updateCollectionItem.mock.calls[0][0]).toMatchObject({
+      itemId: 'apples',
+      collectionItemUpdate: { completed: false },
+    });
+  });
+
+  it('has no cart bar while nothing is in the cart and none on a list that is not a shopping list', async () => {
+    serverItems = serverItems.filter((entry) => !entry.completed);
+    const first = renderPage();
+    await screen.findByText('Milch');
+    expect(screen.queryByRole('button', { name: cartBarName })).toBeNull();
+    first.unmount();
+
+    getCollection.mockResolvedValue(
+      annasList('GENERIC', [
+        item({ id: 'b', title: 'Visum', completed: true, completer: anna }),
+      ]),
+    );
+    renderPage();
+    await screen.findByText('Visum');
+    expect(screen.queryByRole('button', { name: cartBarName })).toBeNull();
   });
 
   describe('while the list is open', () => {

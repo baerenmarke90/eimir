@@ -435,3 +435,27 @@
 .shared-content-page .planning-inline-create input.shared-list-quantity-field {
   flex: 0 1 7rem;
 }
+
+/* The entry's name opens its sheet (quantity, rename, delete) (#1808). */
+.shared-list-item-open {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.shared-list-item-open:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.shared-list-items .planning-item-completed .shared-list-item-open {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}

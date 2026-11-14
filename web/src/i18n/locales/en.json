@@ -904,9 +904,12 @@
     },
     "collection": {
       "overviewHeading": "Lists",
+      "kindLabel": "Type of list",
+      "kind": { "GENERIC": "List", "SHOPPING": "Shopping list" },
       "progress": "{{count}} entries · {{completed}} done",
       "progress_one": "{{count}} entry · {{completed}} done",
       "progress_other": "{{count}} entries · {{completed}} done",
+      "openItem": "Edit “{{title}}”",
       "itemActions": "Actions for “{{title}}”",
       "editItem": "Edit entry",
       "deleteItemConsequence": "“{{title}}” will be deleted from this list.",
@@ -952,6 +955,10 @@
       "you": "You",
       "quantityLabel": "Quantity (optional)",
       "quantityPlaceholder": "Quantity",
+      "cart": {
+        "bar_one": "In the cart · {{count}} entry",
+        "bar_other": "In the cart · {{count}} entries"
+      },
       "trayShopping": "In the cart",
       "trayGeneric": "Done",
       "addedBy": "Added by {{name}}",

@@ -89,6 +89,7 @@ async function installShoppingMocks(page: Page) {
   const updates: { itemId: string; completed?: boolean; ifMatch?: string }[] =
     [];
   const createBodies: { title: string; quantity?: string | null }[] = [];
+  const createCollectionBodies: { title: string; kind?: string }[] = [];
   const state = { failCreates: false, createCount: 0 };
 
   const collection = () => ({
@@ -329,6 +330,24 @@ async function installShoppingMocks(page: Page) {
     }
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/collections`
+    ) {
+      await json({ items: [collection()], nextCursor: null });
+      return;
+    }
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/collections`
+    ) {
+      const body = request.postDataJSON() as { title: string; kind?: string };
+      createCollectionBodies.push(body);
+      await json({ ...collection(), title: body.title }, 201, {
+        ETag: `"${version}"`,
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`
     ) {
       await json(collection(), 200, { ETag: `"${version}"` });
@@ -355,7 +374,13 @@ async function installShoppingMocks(page: Page) {
         );
         return;
       }
-      const body = request.postDataJSON() as { completed?: boolean };
+      const body = request.postDataJSON() as {
+        completed?: boolean;
+        quantity?: string | null;
+        title?: string;
+      };
+      if (body.quantity !== undefined) item.quantity = body.quantity;
+      if (body.title !== undefined) item.title = body.title;
       updates.push({
         itemId: item.id,
         completed: body.completed,
@@ -439,6 +464,7 @@ async function installShoppingMocks(page: Page) {
     titles: () => items.map((item) => item.title),
     item: (title: string) => items.find((entry) => entry.title === title),
     createBodies: () => createBodies,
+    createCollectionBodies: () => createCollectionBodies,
     /** The partner changes the list on their own phone. */
     partnerAdds: (title: string) => {
       items.push({
@@ -707,11 +733,21 @@ for (const view of VIEWS) {
     await expect(summary).toContainText(
       fill(summaryText.shoppingShare, { name: 'Ben', count: 1 }),
     );
-    await expect(
-      page.getByRole('heading', {
-        name: new RegExp(m5s3.collection.trayShopping),
-      }),
-    ).toBeVisible();
+    // Compact keeps the cart in a bar above the navigation; Expanded shows
+    // the cart section inline.
+    if (view.width < 840) {
+      await expect(
+        page.getByRole('button', {
+          name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+        }),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByRole('heading', {
+          name: new RegExp(m5s3.collection.trayShopping),
+        }),
+      ).toBeVisible();
+    }
     await expect(page.getByText('2×')).toBeVisible();
     await expectNoOverflow(page);
     await page.screenshot({
@@ -758,4 +794,97 @@ test("the partner's new entry shows up on an open list without a reload", async 
   await expect(
     page.getByText(fill(m5s3.collection.addedBy, { name: 'Ben' })).first(),
   ).toBeAttached();
+});
+
+test('the cart bar opens the cart as a sheet and an entry can be put back', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  await signIn(page);
+  await openList(page);
+
+  await page
+    .getByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+    })
+    .click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText('Äpfel')).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-cart-sheet-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+
+  await dialog
+    .getByRole('button', {
+      name: m5s3.collection.markOpen.replace('{{title}}', 'Äpfel'),
+    })
+    .click();
+
+  await expect.poll(() => api.item('Äpfel')?.completed).toBe(false);
+});
+
+test('an entry opens from its name and its quantity is changed in the sheet', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+
+  await page
+    .getByRole('button', {
+      name: m5s3.collection.openItem.replace('{{title}}', 'Milch'),
+    })
+    .click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel(m5s3.collection.quantityLabel).fill('2 l');
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-item-sheet-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+  await dialog.getByRole('button', { name: m5s3.common.saveChanges }).click();
+
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText('2 l')).toBeVisible();
+  await expect.poll(() => api.item('Milch')?.quantity).toBe('2 l');
+});
+
+test('a shopping list is created from the list overview', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  await signIn(page);
+  await page.goto('/more/collections');
+
+  await page
+    .getByRole('button', { name: m5s3.collection.create, exact: true })
+    .click();
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .getByRole('button', { name: m5s3.collection.kind.SHOPPING })
+    .click();
+  await dialog.getByLabel(m5s3.common.title, { exact: true }).fill('Einkauf');
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-create-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+  await dialog.getByRole('button', { name: m5s3.common.save }).click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/plan/collections/${COLLECTION_ID}`),
+  );
+  expect(api.createCollectionBodies()).toEqual([
+    { title: 'Einkauf', kind: 'SHOPPING' },
+  ]);
 });

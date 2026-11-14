@@ -227,3 +227,20 @@ def test_setup_errors_never_echo_validation_input(monkeypatch, capsys):
     output = capsys.readouterr().out
     assert json.loads(output)["configurationStatus"] == "INVALID"
     assert "private-secret" not in output
+
+
+def test_login_hint_only_preselects_the_account_and_replaces_the_chooser(settings):
+    client = configuration.client_configuration(settings)
+    plain = parse_qs(urlsplit(google.authorization(client=client)[0]).query)
+    assert plain["prompt"] == ["select_account"]
+    assert "login_hint" not in plain
+    hinted = parse_qs(
+        urlsplit(google.authorization(client=client, login_hint="anna+x@gmail.example")[0]).query
+    )
+    assert hinted["login_hint"] == ["anna+x@gmail.example"]
+    # The chooser would defeat the hint; nothing else about the request changes.
+    assert "prompt" not in hinted
+    assert hinted["scope"] == plain["scope"] == [configuration.SCOPE]
+    assert hinted["access_type"] == plain["access_type"] == ["online"]
+    assert hinted["redirect_uri"] == plain["redirect_uri"] == [client.redirect_uri]
+    assert hinted["code_challenge_method"] == plain["code_challenge_method"]

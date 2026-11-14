@@ -8,6 +8,8 @@ Name | Type
 ------------ | -------------
 `canImport` | boolean
 `enabled` | boolean
+`googleAccountEmail` | string
+`googleAccountToken` | string
 `googleAvailable` | boolean
 `immichConnected` | boolean
 `immichConnectionToken` | string
@@ -22,6 +24,8 @@ import type { PhotoSourceAvailability } from ''
 const example = {
   "canImport": null,
   "enabled": null,
+  "googleAccountEmail": null,
+  "googleAccountToken": null,
   "googleAvailable": null,
   "immichConnected": null,
   "immichConnectionToken": null,

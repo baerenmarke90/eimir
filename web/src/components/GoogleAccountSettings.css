@@ -1,0 +1,9 @@
+.google-account-settings {
+  margin-block-start: var(--space-6);
+  min-inline-size: 0;
+}
+
+#google-account-form .field-group {
+  display: grid;
+  gap: var(--space-2);
+}

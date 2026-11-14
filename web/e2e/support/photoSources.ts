@@ -37,6 +37,8 @@ export async function fulfillUnconfiguredPhotoSources(
       immichConnected: false,
       immichConnectionToken: 'fixture:immich:absent',
       immichOrigin: null,
+      googleAccountEmail: null,
+      googleAccountToken: 'fixture:google-account:absent',
       canImport: false,
     },
     headers: { 'Cache-Control': 'private, no-store' },

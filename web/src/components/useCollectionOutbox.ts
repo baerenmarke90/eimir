@@ -112,6 +112,10 @@ export function useCollectionOutbox({
   const [storageFailed, setStorageFailed] = useState(false);
   const [notices, setNotices] = useState<OutboxNotice[]>([]);
   const recordRef = useRef(record);
+  // Waiting adds the server confirmed, until the queue has dropped their ops.
+  // A ref, not state: it is set right before the cache gains the confirmed
+  // item, so the render that shows that item already hides the waiting copy.
+  const confirmedAddsRef = useRef<ReadonlyMap<string, string>>(new Map());
   const storageFailedRef = useRef(false);
   const loadedRef = useRef<Promise<void> | null>(null);
   const runningRef = useRef(false);
@@ -126,6 +130,9 @@ export function useCollectionOutbox({
 
   const publish = useCallback((next: OutboxRecord) => {
     recordRef.current = next;
+    if (next.ops.length === 0 && confirmedAddsRef.current.size > 0) {
+      confirmedAddsRef.current = new Map();
+    }
     if (aliveRef.current) setRecord(next);
   }, []);
 
@@ -299,6 +306,12 @@ export function useCollectionOutbox({
             queryClient
               .getQueryData<CollectionDetail>(keyRef.current)
               ?.items.find((item) => item.id === itemId),
+          onAddConfirmed: (localId, created) => {
+            confirmedAddsRef.current = new Map(confirmedAddsRef.current).set(
+              localId,
+              created.id,
+            );
+          },
           onItem: (item: CollectionItemDetail) => {
             queryClient.setQueryData<CollectionDetail | undefined>(
               keyRef.current,
@@ -454,7 +467,12 @@ export function useCollectionOutbox({
 
   const apply = useCallback(
     (collection: CollectionDetail, creator: CollectionItemDetail['creator']) =>
-      applyOutbox(collection, record, { accountId: accountId ?? '', creator }),
+      applyOutbox(
+        collection,
+        record,
+        { accountId: accountId ?? '', creator },
+        confirmedAddsRef.current,
+      ),
     [accountId, record],
   );
 

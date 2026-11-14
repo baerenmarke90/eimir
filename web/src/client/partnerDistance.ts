@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSyncExternalStore } from 'react';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { DistanceBandView } from '../api/generated/models/DistanceBandView';
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
@@ -35,6 +34,11 @@ export type PartnerDistanceLine =
   | { kind: 'hidden' }
   /** Only the viewer sees this: their own position is missing. */
   | { kind: 'ownMissing' }
+  /**
+   * The viewer shares, the partner does not (yet). Product Owner 2026-11-13:
+   * a status chip only; nothing about the partner's position is derived.
+   */
+  | { kind: 'sharing' }
   | {
       kind: 'distance';
       band: DistanceBandView;
@@ -98,7 +102,9 @@ export async function readPartnerDistanceLine({
       capturedAt: position.capturedAt,
     },
   });
-  if (!distance.available || !distance.band || !distance.asOf) return HIDDEN;
+  if (!distance.available || !distance.band || !distance.asOf) {
+    return ownSharingActive ? { kind: 'sharing' } : HIDDEN;
+  }
   // Only availability leaves this function; the area stays on the server.
   const map = await api.getPartnerLocationMap({ spaceId });
   return {
@@ -270,79 +276,4 @@ export function formatDistanceBand(
   if (unit === 'kilometer') return format.format(km);
   const miles = convert(km);
   return format.format(roundTo(miles, km >= 500 ? 50 : 10));
-}
-
-/* Viewer-side display preference (Settings › Wir) ------------------------- */
-
-const PREFERENCE_PREFIX = 'eimir-partner-distance-on-wir-v1';
-const PREFERENCE_EVENT = 'eimir-partner-distance-on-wir';
-const memoryPreferences = new Map<string, boolean>();
-
-/** A device display preference only; it never changes anyone's sharing. */
-export function partnerDistanceOnWirKey(
-  instance: string,
-  accountId: string,
-  spaceId: string,
-): string {
-  return JSON.stringify([
-    PREFERENCE_PREFIX,
-    instance.replace(/\/+$/, ''),
-    accountId,
-    spaceId,
-  ]);
-}
-
-function readPreference(key: string): boolean {
-  const remembered = memoryPreferences.get(key);
-  if (remembered !== undefined) return remembered;
-  try {
-    return window.localStorage.getItem(key) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
-function subscribePreference(listener: () => void) {
-  window.addEventListener(PREFERENCE_EVENT, listener);
-  window.addEventListener('storage', listener);
-  return () => {
-    window.removeEventListener(PREFERENCE_EVENT, listener);
-    window.removeEventListener('storage', listener);
-  };
-}
-
-/** Shown by default; hiding affects only this viewer's Wir. */
-export function usePartnerDistanceOnWir({
-  instance,
-  accountId,
-  spaceId,
-}: {
-  instance: string;
-  accountId: string;
-  spaceId: string;
-}) {
-  const key = partnerDistanceOnWirKey(instance, accountId, spaceId);
-  const shown = useSyncExternalStore(
-    subscribePreference,
-    () => readPreference(key),
-    () => true,
-  );
-  return {
-    shown,
-    setShown(value: boolean) {
-      memoryPreferences.set(key, value);
-      try {
-        window.localStorage.setItem(key, String(value));
-        memoryPreferences.delete(key);
-      } catch {
-        // The in-memory choice still holds for this session.
-      }
-      window.dispatchEvent(new Event(PREFERENCE_EVENT));
-    },
-  };
-}
-
-/** Test seam: forget in-memory display preferences. */
-export function resetPartnerDistanceOnWirMemory(): void {
-  memoryPreferences.clear();
 }

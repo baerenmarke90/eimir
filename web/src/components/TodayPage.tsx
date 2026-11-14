@@ -1339,6 +1339,32 @@ export function TodayPage({
 
   const showMomentSection = Boolean(!isSparse && focalItem);
 
+  // #1792: the distance is a normal Wir module. Directly below the couple
+  // hero it stays inside the hero; moved elsewhere it renders in its place.
+  const partnerDistance =
+    partner && account?.id && partnerLocationApi ? (
+      <WirPartnerDistance
+        api={partnerLocationApi}
+        entitlementApi={entitlementApi}
+        accountId={account.id}
+        spaceId={spaceId}
+        partnerName={partnerName}
+      />
+    ) : null;
+  const partnerDistanceVisible = isDashboardModuleVisible(
+    dashboardPreferences,
+    'partner_distance',
+  );
+  const visibleModuleOrder = orderedDashboardModuleKeys(
+    dashboardPreferences,
+  ).filter((key) => isDashboardModuleVisible(dashboardPreferences, key));
+  const partnerDistanceInHero =
+    partnerDistanceVisible &&
+    visibleModuleOrder[
+      visibleModuleOrder.indexOf('relationship_presence') + 1
+    ] === 'partner_distance' &&
+    visibleModuleOrder.includes('relationship_presence');
+
   const renderRelationshipHero = (
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
@@ -1401,17 +1427,7 @@ export function TodayPage({
       primaryAvatarAction={dailyCheckIn?.ownAction}
       primaryAvatarAdornment={dailyCheckIn?.ownBadge}
       secondaryAvatarAdornment={dailyCheckIn?.partnerBadge}
-      signal={
-        partner && account?.id && partnerLocationApi ? (
-          <WirPartnerDistance
-            api={partnerLocationApi}
-            entitlementApi={entitlementApi}
-            instance={apiBaseUrl ?? ''}
-            accountId={account.id}
-            spaceId={spaceId}
-          />
-        ) : undefined
-      }
+      signal={partnerDistanceInHero ? partnerDistance : undefined}
     />
   );
 
@@ -1428,6 +1444,10 @@ export function TodayPage({
       />
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
+    partner_distance:
+      partnerDistanceVisible && !partnerDistanceInHero && partnerDistance ? (
+        <div className="today-partner-distance">{partnerDistance}</div>
+      ) : null,
     shared_experience:
       incomingExperience &&
       isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (

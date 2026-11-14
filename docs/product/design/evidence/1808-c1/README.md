@@ -19,17 +19,19 @@ run checks that nothing overflows horizontally and that axe finds no violation.
 
 ## What the screens show
 
-- **Count and bar.** "2 fehlen noch" (shopping list) or "2 offen" (other lists), then a bar whose filled part is
-  split by the person who finished the entries. When nothing is missing the line says "Alles im Wagen" (or
-  "Alles erledigt"). The same facts are written out below the bar ("Ben: 1 im Wagen"), so the bar is decoration.
+- **Count and bar.** The number of open entries with the `m5s3.collection.summary` keys `shoppingOpen` (shopping list) or
+  `genericOpen` (other lists), then a bar whose filled part is
+  split by the person who finished the entries. When nothing is missing the line says `shoppingComplete` (or
+  `genericComplete`). The same facts are written out below the bar (`shoppingShare`: the person and their
+  count), so the bar is decoration.
 - **Partner colours.** The person who created the list is rose, the other person blue, on both phones. The roles
   are `--color-partner-a` and `--color-partner-b` (with `-surface` variants), generated from the existing identity
   rose and sky roles in `design/tokens.json`; no new colour value was added.
 - **Markers.** Every entry shows initials on its person's tint: who added it, or, once it is in the tray, who
   finished it. The person is also named in text for assistive technology; colour never carries the meaning alone.
-- **Tray.** Finished entries move into "Im Wagen" (shopping lists) or "Erledigt" with their count. Focus follows a
-  checked entry to its new place.
-- **Quantity.** A shopping list has an optional "Menge" field next to the entry field. A bare number reads `2×`,
+- **Tray.** Finished entries move into a tray (`trayShopping` on shopping lists, `trayGeneric` otherwise) with their count. Focus
+  follows a checked entry to its new place.
+- **Quantity.** A shopping list has an optional quantity field (`quantityLabel`) next to the entry field. A bare number reads `2×`,
   a value with a unit stays as typed (`1 kg`). The entry field stays focused for the next entry.
 - **Updates.** An open, visible list asks for its partner's changes every 12 s and once when the app is opened
   again after 10 s. It pauses while the person edits, sorts, or has changes waiting to be sent, and while offline.

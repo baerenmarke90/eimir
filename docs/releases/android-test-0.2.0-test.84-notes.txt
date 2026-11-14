@@ -1,0 +1,14 @@
+eimir. Android 0.2.0-test.84
+
+- Meet the new Wir design "Verbunden" with two round portraits joined together, now the default, and choose "Seite an Seite" as your personal Wir design under Settings, Appearance.
+- Open your own daily check-in from the bottom as a sheet, the same way your partner's check-in opens.
+- Find your lists on Wir as tiles under "Unsere Listen" and open one as a tall sheet with a tap.
+- Finish a shopping trip with "Einkauf fertig", get suggestions from earlier trips, use the list menu, see an offline hint on the list, and watch an entry fly into the cart next to the people who put it there.
+- Reach your first shopping list with one tap from the lists overview.
+- Choose which part of your profile photo stays visible before you upload it.
+- Pick photos and videos in Google Photos with one result per item and a remembered Google account, if your account is enabled for the Google test, and use a calmer "Fotos hinzufügen" sheet without extra helper text.
+- Open "Wo wir gerade sind" even when your partner shares nothing yet.
+- Read the privacy notice draft marked "Entwurf · noch nicht in Kraft" on a public page and as a notice at sign-up.
+
+The product changes come from main at 657ef9b40af2c1fda792e9fbd8582c8d83fbc4de.
+Install over test.83 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 84.

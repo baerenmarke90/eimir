@@ -27,6 +27,7 @@ import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
+import { DefaultShoppingListCard } from './DefaultShoppingListCard';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -204,6 +205,16 @@ export function CollectionsOverviewPage({
               setCreateOpen(true);
             }}
           />
+        }
+      />
+
+      <DefaultShoppingListCard
+        apis={apis}
+        spaceId={spaceId}
+        onCreated={(created) =>
+          navigate(collectionDetailPath(created.id), {
+            state: { taskOriginKey: captureOrigin() },
+          })
         }
       />
 

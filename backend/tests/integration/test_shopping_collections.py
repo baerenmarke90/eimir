@@ -401,3 +401,87 @@ class TestReadingSeveralKnownLists:
         ids = [("ids", f"00000000-0000-4000-8000-{n:012d}") for n in range(51)]
         response = client.get(path(couple["space"].id), params=ids, headers=auth(couple["token_a"]))
         assert response.status_code == 422
+
+
+class TestFilteringByKind:
+    def test_kind_returns_only_collections_of_that_kind(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        make_collection(client, couple, kind="GENERIC", title="Packliste")
+        shopping = make_collection(client, couple, kind="SHOPPING", title="Einkauf")
+        make_collection(client, couple, kind=None, title="Bucket List")
+
+        response = client.get(
+            path(couple["space"].id),
+            params={"kind": "SHOPPING"},
+            headers=auth(couple["token_b"]),
+        )
+        assert response.status_code == 200, response.text
+        assert [item["id"] for item in response.json()["items"]] == [shopping["id"]]
+
+        generic = client.get(
+            path(couple["space"].id), params={"kind": "GENERIC"}, headers=auth(couple["token_a"])
+        )
+        assert {item["title"] for item in generic.json()["items"]} == {"Packliste", "Bucket List"}
+
+    def test_a_couple_without_a_shopping_list_gets_an_empty_page(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        make_collection(client, couple, kind="GENERIC")
+        response = client.get(
+            path(couple["space"].id),
+            params={"kind": "SHOPPING", "limit": 1},
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 200
+        assert response.json() == {"items": [], "nextCursor": None, "hasMore": False}
+
+    def test_a_shopping_list_with_a_full_cart_is_still_found(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        # The default overview counts such a list as completed; the answer to
+        # "is there a shopping list" must not depend on that.
+        shopping = make_collection(client, couple)
+        item = make_item(client, couple, shopping["id"], title="Milch").json()
+        patch_item(client, couple, shopping["id"], item, {"completed": True})
+        response = client.get(
+            path(couple["space"].id),
+            params={"kind": "SHOPPING", "limit": 1},
+            headers=auth(couple["token_a"]),
+        )
+        assert [entry["id"] for entry in response.json()["items"]] == [shopping["id"]]
+
+    def test_kind_does_not_reveal_lists_of_another_space(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        foreign = client.post(
+            path(couple["foreign_space"].id),
+            json={"title": "Secret", "kind": "SHOPPING"},
+            headers=auth(couple["foreign_token"]),
+        )
+        assert foreign.status_code == 201
+        response = client.get(
+            path(couple["space"].id), params={"kind": "SHOPPING"}, headers=auth(couple["token_a"])
+        )
+        assert response.json()["items"] == []
+
+    def test_a_cursor_is_bound_to_the_requested_kind(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        for number in range(3):
+            make_collection(client, couple, title=f"Einkauf {number}")
+        first = client.get(
+            path(couple["space"].id),
+            params={"kind": "SHOPPING", "limit": 1},
+            headers=auth(couple["token_a"]),
+        ).json()
+        assert first["hasMore"] is True
+        reused = client.get(
+            path(couple["space"].id),
+            params={"kind": "GENERIC", "cursor": first["nextCursor"]},
+            headers=auth(couple["token_a"]),
+        )
+        assert reused.status_code == 400
+        same = client.get(
+            path(couple["space"].id),
+            params={"kind": "SHOPPING", "cursor": first["nextCursor"]},
+            headers=auth(couple["token_a"]),
+        )
+        assert same.status_code == 200
+        assert len(same.json()["items"]) == 2
+
+    def test_an_unknown_kind_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        response = client.get(
+            path(couple["space"].id), params={"kind": "TRIP"}, headers=auth(couple["token_a"])
+        )
+        assert response.status_code == 422

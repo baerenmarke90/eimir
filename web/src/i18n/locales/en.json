@@ -905,6 +905,12 @@
     "collection": {
       "overviewHeading": "Lists",
       "menu": { "open": "List menu" },
+      "defaultShopping": {
+        "title": "Shopping",
+        "heading": "Shop together",
+        "body": "One list for both of you: see what is still missing and what is already in the cart.",
+        "action": "Create shopping list"
+      },
       "kindLabel": "Type of list",
       "kind": { "GENERIC": "List", "SHOPPING": "Shopping list" },
       "progress": "{{count}} entries · {{completed}} done",

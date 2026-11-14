@@ -613,7 +613,7 @@ No authorization required
 
 ## listCollections
 
-> CollectionPage listCollections(spaceId, cursor, limit, scope, ids)
+> CollectionPage listCollections(spaceId, cursor, limit, scope, ids, kind)
 
 List Collections
 
@@ -641,6 +641,8 @@ async function example() {
     scope: ...,
     // Array<string> | Return only these Collections, so several known lists need one request. (optional)
     ids: ...,
+    // CollectionKind | Return only Collections of this kind, for example the shopping lists. (optional)
+    kind: ...,
   } satisfies ListCollectionsRequest;
 
   try {
@@ -665,6 +667,7 @@ example().catch(console.error);
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **scope** | `CollectionScope` |  | [Optional] [Defaults to `undefined`] [Enum: OPEN, COMPLETED, ALL] |
 | **ids** | `Array<string>` | Return only these Collections, so several known lists need one request. | [Optional] |
+| **kind** | `CollectionKind` | Return only Collections of this kind, for example the shopping lists. | [Optional] [Defaults to `undefined`] [Enum: GENERIC, SHOPPING] |
 
 ### Return type
 

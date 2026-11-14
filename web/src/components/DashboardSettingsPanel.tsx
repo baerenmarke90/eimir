@@ -594,9 +594,13 @@ export function DashboardSettingsPanel({
         COUPLE_HERO_MODULE_KEY,
         ...keys,
         ...hiddenKeys,
-        // Unavailable modules keep their saved place behind the others.
-        ...unavailableKeys,
       ] as DashboardModuleKey[];
+      // Unavailable modules keep their saved place; they are not listed, so
+      // a reorder elsewhere must not move them.
+      const saved = orderedDashboardModuleKeys(preferencesQuery.data);
+      for (const key of unavailableKeys) {
+        next.splice(Math.min(saved.indexOf(key), next.length), 0, key);
+      }
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
       const position = keys.indexOf(moved as DashboardModuleKey) + 1;
       const write: DashboardOrderWrite = {

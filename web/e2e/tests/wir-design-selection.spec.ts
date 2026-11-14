@@ -267,7 +267,9 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 1);
+  // Not listed: the fixed couple hero, and partner distance (#1792), which
+  // this fixture's Space cannot use.
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 2);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -290,7 +292,7 @@ async function alignedVisibilityControls(page: Page) {
       }),
     );
   // The shared couple hero is fixed and has no visibility switch.
-  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 1);
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
   for (const target of targets) {
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);

@@ -1,8 +1,10 @@
+import type { ComponentProps } from 'react';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   usePartnerLocationApi,
   usePartnerLocationSettings,
 } from '../client/partnerLocation';
+import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 
 const PARTNER_DISTANCE_MODULE: readonly DashboardModuleKey[] = [
   'partner_distance',
@@ -31,4 +33,27 @@ export function usePartnerDistanceModuleUnavailable({
   const api = usePartnerLocationApi(owner);
   const settings = usePartnerLocationSettings({ ...owner, api }).data;
   return settings?.available === true ? NONE : PARTNER_DISTANCE_MODULE;
+}
+
+/** Settings › Wir: the module panel, aware of partner-distance availability. */
+export function WirDashboardSettingsPanel({
+  apiBaseUrl,
+  accessToken,
+  ...panel
+}: Omit<
+  ComponentProps<typeof DashboardSettingsPanel>,
+  'unavailableModuleKeys'
+> & {
+  apiBaseUrl: string;
+  accessToken: string;
+}) {
+  const unavailable = usePartnerDistanceModuleUnavailable({
+    apiBaseUrl,
+    accessToken,
+    accountId: panel.accountId,
+    spaceId: panel.spaceId,
+  });
+  return (
+    <DashboardSettingsPanel {...panel} unavailableModuleKeys={unavailable} />
+  );
 }

@@ -320,6 +320,10 @@ describe('CollectionProductPage shopping list without a connection (#1808)', () 
         name: fill(m5s3.collection.openItem, { title: 'Hafermilch' }),
       }),
     ).toBeNull();
+    // Sorting is in the list menu and is off while changes wait.
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: m5s3.collection.menu.open }));
     expect(
       (
         screen.getByRole('button', {

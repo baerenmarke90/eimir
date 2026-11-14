@@ -183,7 +183,7 @@
     "offline": {
       "title": "You are offline.",
       "body": "Reconnect and try again.",
-      "banner": "Offline – changes and new content need a connection."
+      "banner": "Offline – you are seeing the last loaded version. Shopping lists keep your changes for later; everything else needs a connection."
     },
     "server": {
       "title": "eimir. cannot be reached right now.",
@@ -904,6 +904,7 @@
     },
     "collection": {
       "overviewHeading": "Lists",
+      "menu": { "open": "List menu" },
       "kindLabel": "Type of list",
       "kind": { "GENERIC": "List", "SHOPPING": "Shopping list" },
       "progress": "{{count}} entries · {{completed}} done",

@@ -1213,3 +1213,134 @@ test('Einkauf fertig waits for a connection and says so', async ({
   await expect(cart.getByText(m5s3.collection.finish.offline)).toBeVisible();
   expect(api.finishRequests()).toEqual([]);
 });
+
+const POLISH_VIEWS = [
+  {
+    name: '390 dark',
+    file: '390-dark',
+    width: 390,
+    height: 844,
+    scheme: 'dark',
+  },
+  {
+    name: '360 light',
+    file: '360-light',
+    width: 360,
+    height: 780,
+    scheme: 'light',
+  },
+  {
+    name: '430 light',
+    file: '430-light',
+    width: 430,
+    height: 932,
+    scheme: 'light',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const;
+
+for (const view of POLISH_VIEWS) {
+  test(`suggestions, the cart and the finish action fit and pass axe (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    api.seedSuggestion('Haferdrink', '2 l');
+    api.seedSuggestion('Butter');
+    await signIn(page);
+    await openList(page);
+
+    await expect(
+      page.getByRole('region', { name: m5s3.collection.suggestions.heading }),
+    ).toBeVisible();
+    // Compact keeps the cart in the bar, Expanded shows the finish action inline.
+    if (view.width < 840) {
+      await expect(
+        page.getByRole('button', {
+          name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+        }),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByRole('button', { name: m5s3.collection.finish.action }),
+      ).toBeVisible();
+    }
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shopping-list-polish-${view.file}.png`),
+      animations: 'disabled',
+    });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test('suggestions and the finish action reflow at 320px with text enlarged to 200%', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  api.seedSuggestion('Haferdrink', '2 l');
+  await signIn(page);
+  await openList(page);
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+
+  await expect(
+    page.getByRole('region', { name: m5s3.collection.suggestions.heading }),
+  ).toBeVisible();
+  await expectNoOverflow(page);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('a checked entry glides into the cart, and with reduced motion it only appears there', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+  // The marker lives for a short time, so the style is read where it is seen.
+  const seenWith = (
+    property: 'animationName' | 'animationDuration',
+    value: string,
+  ) =>
+    page.waitForFunction(
+      ([name, expected]) => {
+        const element = document.querySelector('[data-arriving="true"]');
+        return (
+          element !== null &&
+          getComputedStyle(element)[name as 'animationName'] === expected
+        );
+      },
+      [property, value] as const,
+    );
+
+  await page
+    .getByRole('button', {
+      name: m5s3.collection.markDone.replace('{{title}}', 'Brot'),
+    })
+    .click();
+  await seenWith('animationName', 'shared-list-row-arrive');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page
+    .getByRole('button', {
+      name: m5s3.collection.markDone.replace('{{title}}', 'Äpfel'),
+    })
+    .click();
+  await seenWith('animationDuration', '0s');
+});

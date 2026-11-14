@@ -465,9 +465,11 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(
     page.getByText('Sommerhaus gemeinsam', { exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: m5s3.collection.menu.open }).click();
   await page
     .getByRole('button', { name: m5s3.collection.sort, exact: true })
     .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page
     .getByRole('button', {
       name: m5s3.collection.reorderItem.replace(

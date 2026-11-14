@@ -29,6 +29,7 @@ PINNED_CONTEXTS = {
     "attachments": "AttachmentPayload",
     "chapters": "ChapterPayload",
     "collection_items": "CollectionItemPayload",
+    "collection_suggestions": "CollectionSuggestionPayload",
     "collections": "CollectionPayload",
     "comments": "CommentPayload",
     "daily_check_in_vibe_notes": "DailyVibeNotePayload",

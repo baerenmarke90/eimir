@@ -774,8 +774,13 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-    // The fixed couple hero keeps its stored slot but is not sortable.
-  ).toEqual(order.filter((key) => key !== 'relationship_presence'));
+    // The fixed couple hero keeps its stored slot but is not sortable; partner
+    // distance (#1792) keeps its slot but is not listed for this Space.
+  ).toEqual(
+    order.filter(
+      (key) => key !== 'relationship_presence' && key !== 'partner_distance',
+    ),
+  );
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });

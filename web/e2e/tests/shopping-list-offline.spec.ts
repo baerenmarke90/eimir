@@ -1472,3 +1472,162 @@ test('the short way is not offered while the couple already has a shopping list'
     page.getByRole('button', { name: m5s3.collection.defaultShopping.action }),
   ).toHaveCount(0);
 });
+
+const markDoneButton = (page: Page, title: string) =>
+  page.getByRole('button', {
+    name: m5s3.collection.markDone.replace('{{title}}', title),
+  });
+
+/** Stop the flying copy half way so a screenshot can show it. */
+const pauseFlight = (page: Page) =>
+  page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      if (target?.classList.contains('shared-list-flight')) {
+        animation.pause();
+        animation.currentTime = 100;
+      }
+    }
+  });
+
+for (const view of [
+  {
+    name: '390 light',
+    file: '390-light',
+    width: 390,
+    height: 844,
+    scheme: 'light',
+  },
+  {
+    name: '360 dark',
+    file: '360-dark',
+    width: 360,
+    height: 780,
+    scheme: 'dark',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const) {
+  test(`a checked entry flies into the cart (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    await signIn(page);
+    await openList(page);
+
+    await markDoneButton(page, 'Brot').click();
+    const flight = page.locator('.shared-list-flight');
+    await expect(flight).toHaveCount(1);
+    await expect(flight).toHaveText('Brot');
+    await expect(flight).toHaveAttribute('aria-hidden', 'true');
+    await pauseFlight(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`cart-flight-${view.file}.png`),
+      animations: 'allow',
+    });
+    // It never blocks the page and is gone when it has arrived.
+    expect(
+      await flight.evaluate(
+        (element) => getComputedStyle(element).pointerEvents,
+      ),
+    ).toBe('none');
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) animation.finish();
+    });
+    await expect(flight).toHaveCount(0);
+    await expectNoOverflow(page);
+  });
+}
+
+test('the first entry of a trip flies to a cart bar that only appears with it', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+  await expect(page.locator('.shared-list-cartbar')).toHaveCount(0);
+
+  await markDoneButton(page, 'Milch').click();
+
+  await expect(page.locator('.shared-list-cartbar')).toBeVisible();
+  await expect(page.locator('.shared-list-flight')).toHaveCount(1);
+});
+
+test('with reduced motion the checked entry simply appears in the cart: no flying copy', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+
+  await markDoneButton(page, 'Brot').click();
+
+  await expect(page.locator('.shared-list-cartbar')).toBeVisible();
+  await expect(page.locator('[data-arriving="true"]')).toHaveCount(1);
+  await expect(page.locator('.shared-list-flight')).toHaveCount(0);
+  // The entry is in the cart all the same.
+  await page.locator('.shared-list-cartbar').click();
+  await expect(page.getByRole('dialog').getByText('Brot')).toBeVisible();
+});
+
+for (const view of [
+  {
+    name: '390 light',
+    file: '390-light',
+    width: 390,
+    height: 844,
+    scheme: 'light',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const) {
+  test(`the people of the list show next to the count (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    await signIn(page);
+    await openList(page);
+
+    const discs = page.locator(
+      '.shared-list-summary-head .list-people .partner-marker',
+    );
+    await expect(discs).toHaveText(['AN', 'BE']);
+    await expect(page.locator('.list-people')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    await expectNoOverflow(page);
+    await page
+      .locator('.shared-list-summary')
+      .screenshot({
+        path: testInfo.outputPath(`list-people-${view.file}.png`),
+      });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}

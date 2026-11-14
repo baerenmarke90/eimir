@@ -128,6 +128,7 @@ import {
   viewerToday,
 } from './rediscoverySelection';
 import { SharedExperienceReveal } from './SharedExperienceReveal';
+import { SharedRhythmToday } from './SharedRhythm';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { UiState } from './UiState';
@@ -890,6 +891,7 @@ export function TodayPage({
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const handwriting = wirDesignId === WirDesignId.handwriting;
+  const sharedRhythm = wirDesignId === WirDesignId.shared_rhythm;
   const homeRooms = wirDesignId === WirDesignId.home_rooms;
   const [searchParams] = useSearchParams();
   const homeLanding = homeRooms && searchParams.get('view') !== 'wir';
@@ -1832,7 +1834,35 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) =>
-    homeLanding ? (
+    sharedRhythm ? (
+      <SharedRhythmToday
+        own={{
+          name: heroOwnName,
+          image: userAvatar.avatarUrl,
+          action: dailyCheckIn?.ownAction,
+          badge: dailyCheckIn?.ownBadge,
+        }}
+        partner={
+          partner
+            ? {
+                name: partnerName,
+                image: partnerAvatar.avatarUrl,
+                action:
+                  avatarAction && dailyCheckIn?.partnerAriaLabel
+                    ? {
+                        ...avatarAction,
+                        label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                      }
+                    : avatarAction,
+                badge: dailyCheckIn?.partnerBadge,
+              }
+            : undefined
+        }
+        duration={heroDurationText}
+        date={dashboardQuery.data?.viewerLocalDate ?? undefined}
+        overlay={avatarOverlay}
+      />
+    ) : homeLanding ? (
       <HomeRoomsLanding
         own={{ name: heroOwnName, photo: userAvatar.avatarUrl }}
         partner={
@@ -1876,7 +1906,9 @@ export function TodayPage({
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     partner_distance:
-      partnerDistanceVisible && !partnerDistanceInHero && partnerDistance ? (
+      partnerDistanceVisible &&
+      (sharedRhythm || !partnerDistanceInHero) &&
+      partnerDistance ? (
         <div className="today-partner-distance">{partnerDistance}</div>
       ) : null,
     shared_experience:
@@ -1930,6 +1962,8 @@ export function TodayPage({
           )
         ) : homeLanding ? (
           <HomeRoomsLanding />
+        ) : sharedRhythm ? (
+          <h1>{t('wirDesign.rhythm.today')}</h1>
         ) : null}
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
@@ -2274,30 +2308,41 @@ export function TodayPage({
         )
       ) : contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          <PageHeader
-            variant="root"
-            className="content-overview-heading"
-            title={t('navigation.today')}
-            action={
-              handwriting ||
-              (compactPresence &&
-                showMomentSection &&
-                keepsakeVisible) ? undefined : (
-                <MomentCreateMenu floating={!sharedAlbum} />
-              )
-            }
-          />
+          {sharedRhythm ? (
+            <>
+              {moduleContent.relationship_presence}
+              <div className="rhythm-today-create">
+                <MomentCreateMenu />
+              </div>
+            </>
+          ) : (
+            <PageHeader
+              variant="root"
+              className="content-overview-heading"
+              title={t('navigation.today')}
+              action={
+                handwriting ||
+                (compactPresence &&
+                  showMomentSection &&
+                  keepsakeVisible) ? undefined : (
+                  <MomentCreateMenu floating={!sharedAlbum} />
+                )
+              }
+            />
+          )}
 
-          {visibleOrder.map((key) => (
-            <Fragment key={key}>
-              {moduleContent[key]}
-              {handwriting && key === 'relationship_presence' ? (
-                <div className="handschrift-add">
-                  <MomentCreateMenu />
-                </div>
-              ) : null}
-            </Fragment>
-          ))}
+          {visibleOrder.map((key) =>
+            sharedRhythm && key === 'relationship_presence' ? null : (
+              <Fragment key={key}>
+                {moduleContent[key]}
+                {handwriting && key === 'relationship_presence' ? (
+                  <div className="handschrift-add">
+                    <MomentCreateMenu />
+                  </div>
+                ) : null}
+              </Fragment>
+            ),
+          )}
           {isSparse ? (
             <div className="new-space-experience">
               <h2 className="new-space-title">

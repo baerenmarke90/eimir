@@ -358,7 +358,9 @@ export function SharedPlanningOverviewPage({
 }) {
   const rootIntro = useRootTabIntro('plan');
   const { t } = useTranslation();
-  const homeRooms = useWirDesign()?.current === WirDesignId.home_rooms;
+  const design = useWirDesign()?.current;
+  const homeRooms = design === WirDesignId.home_rooms;
+  const sharedRhythm = design === WirDesignId.shared_rhythm;
   const location = useLocation();
   const navigate = useNavigate();
   const { captureOrigin, registerOriginMetadata, resolveOrigin } =
@@ -930,7 +932,11 @@ export function SharedPlanningOverviewPage({
         variant="root"
         className="content-overview-heading"
         title={t(
-          homeRooms ? 'wirDesign.homeRooms.plans' : 'm5s3.overview.title',
+          homeRooms
+            ? 'wirDesign.homeRooms.plans'
+            : sharedRhythm
+              ? 'wirDesign.rhythm.ahead'
+              : 'm5s3.overview.title',
         )}
         action={
           activeSegment === 'dates' ? (

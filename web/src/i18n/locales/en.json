@@ -1557,6 +1557,17 @@
     "change": "Choose design",
     "minimal": { "own": "Your Vibe", "partner": "{{name}} today" },
     "welcome": "Our place for two",
+    "rhythm": {
+      "title": "Our Rhythm",
+      "today": "Together today",
+      "history": "Story",
+      "ahead": "Ahead",
+      "ownVibe": "My vibe",
+      "partnerToday": "Today",
+      "moreNavigation": "More areas",
+      "insights": "Insights",
+      "games": "Play"
+    },
     "nameJoiner": "&",
     "names": {
       "connected": "Connected",
@@ -1564,6 +1575,7 @@
       "quiet_together": "Together",
       "handwriting": "Handwritten",
       "home_rooms": "Home",
+      "shared_rhythm": "Our Rhythm",
       "warm": "Cosy",
       "modern": "Clear & modern",
       "classic": "Classic"
@@ -1574,6 +1586,7 @@
       "quiet_together": "Your names on Us, with calm colors and fewer dividers throughout the app.",
       "handwriting": "Your words take the lead, with warm paper tones and wine-red accents throughout the app.",
       "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
+      "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot.",
       "warm": "Your retreat. Soft rose, close portraits and thoughts like a personal note.",
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement."

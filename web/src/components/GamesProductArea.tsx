@@ -53,7 +53,9 @@ export function GamesProductArea({
   const { t } = useTranslation();
   const design = useWirDesign()?.current;
   const showDetectiveIcon =
-    design === WirDesignId.handwriting || design === WirDesignId.home_rooms;
+    design === WirDesignId.handwriting ||
+    design === WirDesignId.home_rooms ||
+    design === WirDesignId.shared_rhythm;
   const [activeLocalGame, setActiveLocalGame] = useState<'perspective' | null>(
     null,
   );

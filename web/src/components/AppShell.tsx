@@ -57,6 +57,8 @@ import { HomeRoomsDock, HomeRoomsHeader } from './HomeRoomsNavigation';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
+import { SharedRhythmRail } from './SharedRhythm';
+import './SharedRhythm.css';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
@@ -233,6 +235,9 @@ function AuthenticatedAppShell({
   const pathname = location.pathname.replace(/\/$/, '');
   const navigationType = useNavigationType();
   const { navigatePrimary } = usePrimaryNavigation();
+  const currentDesign = useWirDesign()?.current;
+  const homeRooms = currentDesign === WirDesignId.home_rooms;
+  const sharedRhythm = currentDesign === WirDesignId.shared_rhythm;
   useNavigationMotion({
     surfaceRef: mainRef,
     pathname,
@@ -246,13 +251,12 @@ function AuthenticatedAppShell({
         (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
       ),
     onNavigate: navigatePrimary,
+    enablePrimarySwipe: !sharedRhythm,
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
-  const currentDesign = useWirDesign()?.current;
-  const homeRooms = currentDesign === WirDesignId.home_rooms;
   const isFocusedTask =
-    (homeRooms &&
+    ((homeRooms || sharedRhythm) &&
       (protectedDraft ||
         pathname === COLLECTION_CREATE_ROUTE ||
         pathname === MILESTONE_CREATE_ROUTE ||
@@ -260,7 +264,7 @@ function AuthenticatedAppShell({
           pathname,
         ))) ||
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
-    /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
+    (!sharedRhythm && /^\/story\/recaps\/[^/]+$/.test(pathname)) ||
     location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === PARTNER_LOCATION_MAP_ROUTE ||
@@ -272,6 +276,7 @@ function AuthenticatedAppShell({
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
   const appDesign =
+    sharedRhythm ||
     homeRooms ||
     currentDesign === WirDesignId.quiet_together ||
     currentDesign === WirDesignId.handwriting
@@ -290,7 +295,7 @@ function AuthenticatedAppShell({
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   const homeNavigationRef = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
-    if (isFocusedTask) return;
+    if (isFocusedTask || sharedRhythm) return;
     const navigation = homeRooms
       ? homeNavigationRef.current
       : bottomNavigationRef.current;
@@ -314,7 +319,7 @@ function AuthenticatedAppShell({
       observer.disconnect();
       root.style.removeProperty('--shell-bottom-nav-measured-height');
     };
-  }, [homeRooms, isFocusedTask]);
+  }, [homeRooms, isFocusedTask, sharedRhythm]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -354,8 +359,9 @@ function AuthenticatedAppShell({
         className="product-shell"
         data-focused-task={isFocusedTask}
         data-home-rooms={homeRooms ? true : undefined}
+        data-shared-rhythm={sharedRhythm ? true : undefined}
         data-top-surface={
-          !homeRooms && location.pathname === DEFAULT_APP_ROUTE
+          !homeRooms && !sharedRhythm && location.pathname === DEFAULT_APP_ROUTE
             ? 'today'
             : undefined
         }
@@ -367,7 +373,9 @@ function AuthenticatedAppShell({
           {t('navigation.skipToContent')}
         </a>
 
-        {!isFocusedTask && homeRooms ? (
+        {!isFocusedTask && sharedRhythm ? (
+          <SharedRhythmRail privateArea={isPrivateArea} />
+        ) : !isFocusedTask && homeRooms ? (
           <HomeRoomsHeader privateArea={isPrivateArea} />
         ) : !isFocusedTask ? (
           <header className="app-header product-topbar">
@@ -444,7 +452,7 @@ function AuthenticatedAppShell({
             canCreate={!isPrivateArea}
             navigationRef={homeNavigationRef}
           />
-        ) : !isFocusedTask ? (
+        ) : !isFocusedTask && !sharedRhythm ? (
           <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
             <nav
               className="mobile-bottom-nav"

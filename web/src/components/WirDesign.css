@@ -623,3 +623,63 @@
   block-size: 5px;
   border-radius: 2px;
 }
+
+.wir-design-preview-shared_rhythm {
+  --rhythm-preview-paper: #f4eef2;
+  --rhythm-preview-plum: #2d1835;
+  --rhythm-preview-pink: #f9cadb;
+  --rhythm-preview-apricot: #ffd8bc;
+  --rhythm-preview-ink: #2d1835;
+  grid-template-rows: 17px 7px 14px 1fr;
+  background: var(--rhythm-preview-paper);
+}
+:root[data-theme="dark"] .wir-design-preview-shared_rhythm {
+  --rhythm-preview-paper: #302135;
+  --rhythm-preview-plum: #1e1025;
+  --rhythm-preview-pink: #edaec9;
+  --rhythm-preview-apricot: #f8c8a5;
+  --rhythm-preview-ink: #f5b8d5;
+}
+.wir-design-preview-rhythm-index {
+  display: flex;
+  align-items: end;
+  justify-content: space-around;
+  margin: -2px -2px 0;
+  padding: 3px;
+  border-start-start-radius: var(--radius-small);
+  border-start-end-radius: var(--radius-small);
+  background: var(--rhythm-preview-plum);
+}
+.wir-design-preview-rhythm-index i {
+  width: 22%;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--rhythm-preview-pink);
+}
+.wir-design-preview-rhythm-heading {
+  align-self: end;
+  width: 50%;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--rhythm-preview-ink);
+}
+.wir-design-preview-rhythm-checkins {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+.wir-design-preview-rhythm-checkins i {
+  border-radius: 2px;
+  background: var(--rhythm-preview-pink);
+}
+.wir-design-preview-rhythm-checkins i + i {
+  background: var(--rhythm-preview-apricot);
+}
+.wir-design-preview-rhythm-moment {
+  border-radius: var(--radius-small);
+  background: color-mix(
+    in srgb,
+    var(--rhythm-preview-ink) 20%,
+    var(--rhythm-preview-paper)
+  );
+}

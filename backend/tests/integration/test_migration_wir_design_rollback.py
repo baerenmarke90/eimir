@@ -21,6 +21,7 @@ pytestmark = [pytest.mark.integration, requires_database]
         ("0132", WirDesignId.QUIET_TOGETHER),
         ("0133", WirDesignId.HANDWRITING),
         ("0134", WirDesignId.HOME_ROOMS),
+        ("0135", WirDesignId.SHARED_RHYTHM),
     ],
 )
 def test_downgrade_resets_only_the_added_design_and_invalidates_its_etag(

@@ -26,6 +26,17 @@ export default {
   },
   handwriting: { openNote: 'Herzmoment öffnen' },
   welcome: 'Unser Platz zu zweit',
+  rhythm: {
+    title: 'Unser Takt',
+    today: 'Heute zu zweit',
+    history: 'Geschichte',
+    ahead: 'Vor uns',
+    ownVibe: 'Mein Vibe',
+    partnerToday: 'Heute',
+    moreNavigation: 'Weitere Bereiche',
+    insights: 'Einblicke',
+    games: 'Spielen',
+  },
   nameJoiner: '&',
   names: {
     connected: 'Verbunden',
@@ -33,6 +44,7 @@ export default {
     quiet_together: 'Zu zweit',
     handwriting: 'Handschrift',
     home_rooms: 'Zuhause',
+    shared_rhythm: 'Unser Takt',
     warm: 'Geborgen',
     modern: 'Klar & modern',
     classic: 'Klassisch',
@@ -48,6 +60,8 @@ export default {
       'Eure Worte im Mittelpunkt. Warme Papierfarben und weinrote Akzente in der ganzen App.',
     home_rooms:
       'Ein persönlicher Startpunkt für euch. Über „Räume“ öffnest du Erinnerungen, Vorhaben und mehr.',
+    shared_rhythm:
+      'Euer Heute, eure Geschichte und eure Pläne im eigenen Takt. Mit einer Navigation oben und Farben in Pflaume, Rosa und Apricot.',
     warm: 'Euer Rückzugsort. Sanftes Rosé, nahe Porträts und Gedanken wie eine persönliche Notiz.',
     modern:
       'Klar und luftig. Eure Namen neben den Porträts, mit ruhigen blauen Akzenten.',

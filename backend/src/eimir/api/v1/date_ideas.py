@@ -1,127 +1,99 @@
 """HTTP contract for curated date inspiration (Pro capability ``planning.date_inspiration``).
 
-Reading the catalog and saving an idea as a Wish require the Space capability.
-The resulting Wish is an ordinary shared Wish: reading, editing, planning,
-completing, exporting and deleting it go through the unchanged Free Wish and
-Plan endpoints, also after the Space loses Pro.
+Reading the catalog requires the Space capability; one grant serves both
+partners. Adopting an idea is not a catalog action: the client prefills the
+existing Wish or Plan composer, and the couple saves an ordinary Wish or Plan
+through the unchanged Free endpoints. Those stay readable, editable, plannable
+and exportable after the Space loses Pro.
 """
 
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import APIRouter, Path, Query, Response
-from fastapi import status as http_status
-from pydantic import ConfigDict, Field
-from pydantic.json_schema import SkipJsonSchema
+from fastapi import APIRouter, Query, Response
+from pydantic import Field
 
-from eimir.api.concurrency import etag_for
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
-from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel
-from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
 from eimir.date_ideas import service
 from eimir.date_ideas.catalog import (
-    CATEGORY_ID_PATTERN,
-    BudgetBand,
-    DateSetting,
-    DurationBand,
+    BUDGET_MAX,
+    MINUTES_MAX,
+    DateIdeaCategory,
+    DateIdeaPlaceType,
     IdeaFilter,
-    SettingFilter,
 )
 from eimir.entitlements.models import Capability
 
 router = APIRouter(tags=["date-ideas"])
 
-_PRO_REQUIRED = {
-    403: (
-        "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability "
-        "`planning.date_inspiration`."
-    ),
-}
 
-
-class DateIdeaCategory(ApiModel):
+class DateIdeaLabel(ApiModel):
     id: str
-    label: str = Field(description="Category label in the response `locale`.")
+    label: str = Field(description="Label in the response `locale`.")
 
 
 class DateIdea(ApiModel):
-    """One curated idea, localized to the response locale where available."""
+    """One curated idea; all texts come from one locale entry."""
 
-    id: str = Field(description="Stable, permanent catalog ID.")
+    id: str = Field(description="Persistent editorial ID. Never a Wish or Plan ID.")
+    category: DateIdeaCategory
+    place_type: DateIdeaPlaceType
+    minutes: int = Field(description="Editorial time budget in minutes.")
+    budget_eur_for_two: int = Field(
+        description="Spending cap in whole EUR for two; 0 means no new spending."
+    )
     title: str
     description: str
-    requirements: list[str]
-    category_id: str
-    content_locale: str = Field(
-        description="Locale of the texts; differs from `locale` when a translation falls back."
-    )
-    duration_min_minutes: int
-    duration_max_minutes: int
-    duration_band: DurationBand
-    budget_min: int = Field(description="Approximate total for two people, `currency` units.")
-    budget_max: int
-    budget_band: BudgetBand
-    setting: DateSetting
-    saved_wish_id: UUID | SkipJsonSchema[None] = Field(
-        default=None,
-        description=(
-            "Open or planned shared Wish of this Space saved from this idea. "
-            "Absent when the idea is not currently saved."
-        ),
-        exclude_if=lambda value: value is None,
-    )
+    wish_title: str = Field(description="Editable prefill for the Wish composer.")
+    plan_title: str = Field(description="Editable prefill for the Plan composer.")
+    prerequisites: list[str]
+    content_locale: str = Field(description="Locale of all texts of this idea.")
 
 
 class DateIdeaCatalog(ApiModel):
     catalog_version: str
-    edition: str = Field(
-        description="`development` marks a demonstration dataset, `editorial` the curated one."
-    )
     locale: str = Field(description="Resolved catalog locale for this response.")
     currency: str = Field(description="ISO 4217 currency of all budget amounts.")
-    total_count: int = Field(description="Active ideas before filtering.")
-    categories: list[DateIdeaCategory]
+    total_count: int = Field(description="Ideas in the catalog before filtering.")
+    categories: list[DateIdeaLabel]
+    place_types: list[DateIdeaLabel]
     ideas: list[DateIdea]
-
-
-class DateIdeaWishCreate(ApiModel):
-    """Save an idea as a Wish. Title and description are taken from the catalog."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    locale: str | SkipJsonSchema[None] = Field(
-        default=None,
-        max_length=16,
-        description="Preferred text locale; unsupported values fall back to the catalog default.",
-    )
 
 
 @router.get(
     "/spaces/{spaceId}/date-ideas",
     response_model=DateIdeaCatalog,
-    response_model_exclude_none=True,
     operation_id="listDateIdeas",
-    responses=problem_responses(401, 403, 404, 422, descriptions=_PRO_REQUIRED),
+    responses=problem_responses(
+        401,
+        403,
+        404,
+        422,
+        descriptions={
+            403: (
+                "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability "
+                "`planning.date_inspiration`."
+            ),
+        },
+    ),
 )
 def list_date_ideas(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     locale: Annotated[str | None, Query(max_length=16)] = None,
-    category: Annotated[str | None, Query(pattern=CATEGORY_ID_PATTERN)] = None,
-    duration: Annotated[DurationBand | None, Query()] = None,
-    budget: Annotated[BudgetBand | None, Query()] = None,
-    setting: Annotated[SettingFilter | None, Query()] = None,
+    category: Annotated[DateIdeaCategory | None, Query()] = None,
+    max_minutes: Annotated[int | None, Query(alias="maxMinutes", ge=1, le=MINUTES_MAX)] = None,
+    max_budget: Annotated[int | None, Query(alias="maxBudget", ge=0, le=BUDGET_MAX)] = None,
+    place: Annotated[DateIdeaPlaceType | None, Query()] = None,
 ) -> DateIdeaCatalog:
-    """Curated ideas in deterministic editorial order; all filters combine with AND.
+    """Curated ideas in editorial order; all filters combine with AND.
 
-    A `HOME` or `OUT` setting filter also returns ideas that work in both
-    settings. An unknown category yields an empty result rather than an error,
-    so a client holding an older catalog degrades gracefully.
+    `maxMinutes` and `maxBudget` are inclusive upper bounds; `maxBudget=0`
+    selects ideas without new spending. Omitting `place` means anywhere.
     """
     ensure_capability(
         session,
@@ -130,92 +102,34 @@ def list_date_ideas(
         lock_grants=False,
     )
     listing = service.list_date_ideas(
-        session,
-        authorization,
         locale=locale,
         idea_filter=IdeaFilter(
-            category=category, duration=duration, budget=budget, setting=setting
+            category=category, max_minutes=max_minutes, max_budget=max_budget, place=place
         ),
     )
+    # Protected content: never stored by shared caches or reused after a downgrade.
     response.headers["Cache-Control"] = "private, no-store"
     return DateIdeaCatalog(
         catalog_version=listing.catalog.version,
-        edition=listing.catalog.edition,
         locale=listing.locale,
         currency=listing.catalog.currency,
-        total_count=listing.total_active,
-        categories=[
-            DateIdeaCategory(id=category.id, label=category.label)
-            for category in listing.categories
-        ],
+        total_count=listing.total_count,
+        categories=[DateIdeaLabel(id=item.id, label=item.label) for item in listing.categories],
+        place_types=[DateIdeaLabel(id=item.id, label=item.label) for item in listing.place_types],
         ideas=[
             DateIdea(
                 id=idea.id,
+                category=idea.category,
+                place_type=idea.place_type,
+                minutes=idea.minutes,
+                budget_eur_for_two=idea.budget_eur_for_two,
                 title=idea.title,
                 description=idea.description,
-                requirements=list(idea.requirements),
-                category_id=idea.category_id,
+                wish_title=idea.wish_title,
+                plan_title=idea.plan_title,
+                prerequisites=list(idea.prerequisites),
                 content_locale=idea.content_locale,
-                duration_min_minutes=idea.duration_min_minutes,
-                duration_max_minutes=idea.duration_max_minutes,
-                duration_band=idea.duration_band,
-                budget_min=idea.budget_min,
-                budget_max=idea.budget_max,
-                budget_band=idea.budget_band,
-                setting=idea.setting,
-                saved_wish_id=listing.saved_wish_ids.get(idea.id),
             )
             for idea in listing.ideas
         ],
     )
-
-
-@router.post(
-    "/spaces/{spaceId}/date-ideas/{ideaId}/wish",
-    response_model=WishDetail,
-    status_code=http_status.HTTP_201_CREATED,
-    operation_id="saveDateIdeaAsWish",
-    responses={
-        200: {
-            "description": (
-                "The idea is already saved as an open or planned Wish of this Space, "
-                "or this replays an earlier request with the same `Idempotency-Key`."
-            ),
-            "headers": ETAG_HEADERS,
-            "model": WishDetail,
-        },
-        201: {"headers": ETAG_HEADERS},
-        **problem_responses(
-            401,
-            403,
-            404,
-            409,
-            422,
-            descriptions={
-                **_PRO_REQUIRED,
-                404: "`DATE_IDEA_NOT_FOUND`, `SPACE_NOT_FOUND` or `WISH_CREATE_RESULT_DELETED`.",
-            },
-        ),
-    },
-)
-def save_date_idea_as_wish(
-    authorization: Authorization,
-    session: DbSession,
-    response: Response,
-    body: DateIdeaWishCreate,
-    idempotency_key: IdempotencyKey,
-    idea_id: Annotated[str, Path(alias="ideaId", max_length=64)],
-) -> WishDetail:
-    """Create a regular shared Wish from a curated idea, at most once while it is open."""
-    ensure_capability(session, authorization.space_id, Capability.PLANNING_DATE_INSPIRATION.value)
-    result = service.save_idea_as_wish(
-        session,
-        authorization,
-        idea_id,
-        locale=body.locale,
-        idempotency_key=idempotency_key,
-    )
-    if not result.created:
-        response.status_code = http_status.HTTP_200_OK
-    response.headers["ETag"] = etag_for(result.wish.version)
-    return wish_detail(session, authorization, result.wish)

@@ -20,13 +20,13 @@ import {
     DateIdeaToJSON,
     DateIdeaToJSONTyped,
 } from './DateIdea';
-import type { DateIdeaCategory } from './DateIdeaCategory';
+import type { DateIdeaLabel } from './DateIdeaLabel';
 import {
-    DateIdeaCategoryFromJSON,
-    DateIdeaCategoryFromJSONTyped,
-    DateIdeaCategoryToJSON,
-    DateIdeaCategoryToJSONTyped,
-} from './DateIdeaCategory';
+    DateIdeaLabelFromJSON,
+    DateIdeaLabelFromJSONTyped,
+    DateIdeaLabelToJSON,
+    DateIdeaLabelToJSONTyped,
+} from './DateIdeaLabel';
 
 /**
  * 
@@ -42,22 +42,16 @@ export interface DateIdeaCatalog {
     catalogVersion: string;
     /**
      * 
-     * @type {Array<DateIdeaCategory>}
+     * @type {Array<DateIdeaLabel>}
      * @memberof DateIdeaCatalog
      */
-    categories: Array<DateIdeaCategory>;
+    categories: Array<DateIdeaLabel>;
     /**
      * ISO 4217 currency of all budget amounts.
      * @type {string}
      * @memberof DateIdeaCatalog
      */
     currency: string;
-    /**
-     * `development` marks a demonstration dataset, `editorial` the curated one.
-     * @type {string}
-     * @memberof DateIdeaCatalog
-     */
-    edition: string;
     /**
      * 
      * @type {Array<DateIdea>}
@@ -71,7 +65,13 @@ export interface DateIdeaCatalog {
      */
     locale: string;
     /**
-     * Active ideas before filtering.
+     * 
+     * @type {Array<DateIdeaLabel>}
+     * @memberof DateIdeaCatalog
+     */
+    placeTypes: Array<DateIdeaLabel>;
+    /**
+     * Ideas in the catalog before filtering.
      * @type {number}
      * @memberof DateIdeaCatalog
      */
@@ -85,9 +85,9 @@ export function instanceOfDateIdeaCatalog(value: object): value is DateIdeaCatal
     if (!('catalogVersion' in value) || value['catalogVersion'] === undefined) return false;
     if (!('categories' in value) || value['categories'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
-    if (!('edition' in value) || value['edition'] === undefined) return false;
     if (!('ideas' in value) || value['ideas'] === undefined) return false;
     if (!('locale' in value) || value['locale'] === undefined) return false;
+    if (!('placeTypes' in value) || value['placeTypes'] === undefined) return false;
     if (!('totalCount' in value) || value['totalCount'] === undefined) return false;
     return true;
 }
@@ -103,11 +103,11 @@ export function DateIdeaCatalogFromJSONTyped(json: any, ignoreDiscriminator: boo
     return {
         
         'catalogVersion': json['catalogVersion'],
-        'categories': ((json['categories'] as Array<any>).map(DateIdeaCategoryFromJSON)),
+        'categories': ((json['categories'] as Array<any>).map(DateIdeaLabelFromJSON)),
         'currency': json['currency'],
-        'edition': json['edition'],
         'ideas': ((json['ideas'] as Array<any>).map(DateIdeaFromJSON)),
         'locale': json['locale'],
+        'placeTypes': ((json['placeTypes'] as Array<any>).map(DateIdeaLabelFromJSON)),
         'totalCount': json['totalCount'],
     };
 }
@@ -124,11 +124,11 @@ export function DateIdeaCatalogToJSONTyped(value?: DateIdeaCatalog | null, ignor
     return {
         
         'catalogVersion': value['catalogVersion'],
-        'categories': ((value['categories'] as Array<any>).map(DateIdeaCategoryToJSON)),
+        'categories': ((value['categories'] as Array<any>).map(DateIdeaLabelToJSON)),
         'currency': value['currency'],
-        'edition': value['edition'],
         'ideas': ((value['ideas'] as Array<any>).map(DateIdeaToJSON)),
         'locale': value['locale'],
+        'placeTypes': ((value['placeTypes'] as Array<any>).map(DateIdeaLabelToJSON)),
         'totalCount': value['totalCount'],
     };
 }

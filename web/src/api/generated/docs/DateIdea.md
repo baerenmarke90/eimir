@@ -1,26 +1,23 @@
 
 # DateIdea
 
-One curated idea, localized to the response locale where available.
+One curated idea; all texts come from one locale entry.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`budgetBand` | [BudgetBand](BudgetBand.md)
-`budgetMax` | number
-`budgetMin` | number
-`categoryId` | string
+`budgetEurForTwo` | number
+`category` | [DateIdeaCategory](DateIdeaCategory.md)
 `contentLocale` | string
 `description` | string
-`durationBand` | [DurationBand](DurationBand.md)
-`durationMaxMinutes` | number
-`durationMinMinutes` | number
 `id` | string
-`requirements` | Array&lt;string&gt;
-`savedWishId` | string
-`setting` | [DateSetting](DateSetting.md)
+`minutes` | number
+`placeType` | [DateIdeaPlaceType](DateIdeaPlaceType.md)
+`planTitle` | string
+`prerequisites` | Array&lt;string&gt;
 `title` | string
+`wishTitle` | string
 
 ## Example
 
@@ -29,20 +26,17 @@ import type { DateIdea } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "budgetBand": null,
-  "budgetMax": null,
-  "budgetMin": null,
-  "categoryId": null,
+  "budgetEurForTwo": null,
+  "category": null,
   "contentLocale": null,
   "description": null,
-  "durationBand": null,
-  "durationMaxMinutes": null,
-  "durationMinMinutes": null,
   "id": null,
-  "requirements": null,
-  "savedWishId": null,
-  "setting": null,
+  "minutes": null,
+  "placeType": null,
+  "planTitle": null,
+  "prerequisites": null,
   "title": null,
+  "wishTitle": null,
 } satisfies DateIdea
 
 console.log(example)

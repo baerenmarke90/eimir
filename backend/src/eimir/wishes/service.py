@@ -137,7 +137,6 @@ def create_wish(
     description: str | None = None,
     tags: list[str] | None = None,
     repeat_of: Wish | None = None,
-    date_idea_id: str | None = None,
 ) -> Wish:
     """Create a wish in the ``OPEN`` state.
 
@@ -148,10 +147,6 @@ def create_wish(
     ``repeat_of`` is only passed by ``repeat_wish_once``, which has already
     verified that the source is a completed Wish of this Space. The follow-up
     link and series fields are therefore never client-settable.
-
-    ``date_idea_id`` is only passed by the date-inspiration adoption service,
-    which has already validated the curated catalog ID; the ordinary Wish API
-    has no field for it.
     """
     wish = Wish(
         space_id=context.space_id,
@@ -161,7 +156,6 @@ def create_wish(
         followed_from_wish_id=repeat_of.id if repeat_of is not None else None,
         series_id=repeat_of.series_id if repeat_of is not None else None,
         series_position=repeat_of.series_position + 1 if repeat_of is not None else 1,
-        date_idea_id=date_idea_id,
         payload=WishPayload(
             title=_normalize_title(title),
             description=_normalize_description(description),
@@ -183,7 +177,6 @@ def create_wish_once(
     title: str,
     description: str | None = None,
     tags: list[str] | None = None,
-    date_idea_id: str | None = None,
 ) -> WishCreateResult:
     """Create a Wish, or return the one an earlier request with this identity created.
 
@@ -193,14 +186,7 @@ def create_wish_once(
     retry from adding the same wish to the shared list twice.
     """
     if idempotency_key is None:
-        wish = create_wish(
-            session,
-            context,
-            title=title,
-            description=description,
-            tags=tags,
-            date_idea_id=date_idea_id,
-        )
+        wish = create_wish(session, context, title=title, description=description, tags=tags)
         return WishCreateResult(wish, created=True)
 
     normalized_title = _normalize_title(title)
@@ -211,7 +197,6 @@ def create_wish_once(
             "title": normalized_title,
             **({"description": normalized_description} if normalized_description else {}),
             **({"tags": tags} if tags else {}),
-            **({"dateIdeaId": date_idea_id} if date_idea_id else {}),
         },
     )
     receipt_id = create_receipts.claim(
@@ -237,12 +222,7 @@ def create_wish_once(
         return WishCreateResult(wish, created=False)
 
     wish = create_wish(
-        session,
-        context,
-        title=normalized_title,
-        description=normalized_description,
-        tags=tags,
-        date_idea_id=date_idea_id,
+        session, context, title=normalized_title, description=normalized_description, tags=tags
     )
     create_receipts.attach(session, receipt_id, wish.id)
     return WishCreateResult(wish, created=True)

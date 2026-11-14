@@ -13,60 +13,41 @@
  */
 
 import { mapValues } from '../runtime';
-import type { DateSetting } from './DateSetting';
+import type { DateIdeaCategory } from './DateIdeaCategory';
 import {
-    DateSettingFromJSON,
-    DateSettingFromJSONTyped,
-    DateSettingToJSON,
-    DateSettingToJSONTyped,
-} from './DateSetting';
-import type { BudgetBand } from './BudgetBand';
+    DateIdeaCategoryFromJSON,
+    DateIdeaCategoryFromJSONTyped,
+    DateIdeaCategoryToJSON,
+    DateIdeaCategoryToJSONTyped,
+} from './DateIdeaCategory';
+import type { DateIdeaPlaceType } from './DateIdeaPlaceType';
 import {
-    BudgetBandFromJSON,
-    BudgetBandFromJSONTyped,
-    BudgetBandToJSON,
-    BudgetBandToJSONTyped,
-} from './BudgetBand';
-import type { DurationBand } from './DurationBand';
-import {
-    DurationBandFromJSON,
-    DurationBandFromJSONTyped,
-    DurationBandToJSON,
-    DurationBandToJSONTyped,
-} from './DurationBand';
+    DateIdeaPlaceTypeFromJSON,
+    DateIdeaPlaceTypeFromJSONTyped,
+    DateIdeaPlaceTypeToJSON,
+    DateIdeaPlaceTypeToJSONTyped,
+} from './DateIdeaPlaceType';
 
 /**
- * One curated idea, localized to the response locale where available.
+ * One curated idea; all texts come from one locale entry.
  * @export
  * @interface DateIdea
  */
 export interface DateIdea {
     /**
-     * 
-     * @type {BudgetBand}
-     * @memberof DateIdea
-     */
-    budgetBand: BudgetBand;
-    /**
-     * 
+     * Spending cap in whole EUR for two; 0 means no new spending.
      * @type {number}
      * @memberof DateIdea
      */
-    budgetMax: number;
-    /**
-     * Approximate total for two people, `currency` units.
-     * @type {number}
-     * @memberof DateIdea
-     */
-    budgetMin: number;
+    budgetEurForTwo: number;
     /**
      * 
-     * @type {string}
+     * @type {DateIdeaCategory}
      * @memberof DateIdea
      */
-    categoryId: string;
+    category: DateIdeaCategory;
     /**
-     * Locale of the texts; differs from `locale` when a translation falls back.
+     * Locale of all texts of this idea.
      * @type {string}
      * @memberof DateIdea
      */
@@ -78,53 +59,47 @@ export interface DateIdea {
      */
     description: string;
     /**
-     * 
-     * @type {DurationBand}
-     * @memberof DateIdea
-     */
-    durationBand: DurationBand;
-    /**
-     * 
-     * @type {number}
-     * @memberof DateIdea
-     */
-    durationMaxMinutes: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof DateIdea
-     */
-    durationMinMinutes: number;
-    /**
-     * Stable, permanent catalog ID.
+     * Persistent editorial ID. Never a Wish or Plan ID.
      * @type {string}
      * @memberof DateIdea
      */
     id: string;
     /**
+     * Editorial time budget in minutes.
+     * @type {number}
+     * @memberof DateIdea
+     */
+    minutes: number;
+    /**
+     * 
+     * @type {DateIdeaPlaceType}
+     * @memberof DateIdea
+     */
+    placeType: DateIdeaPlaceType;
+    /**
+     * Editable prefill for the Plan composer.
+     * @type {string}
+     * @memberof DateIdea
+     */
+    planTitle: string;
+    /**
      * 
      * @type {Array<string>}
      * @memberof DateIdea
      */
-    requirements: Array<string>;
-    /**
-     * Open or planned shared Wish of this Space saved from this idea. Absent when the idea is not currently saved.
-     * @type {string}
-     * @memberof DateIdea
-     */
-    savedWishId?: string;
-    /**
-     * 
-     * @type {DateSetting}
-     * @memberof DateIdea
-     */
-    setting: DateSetting;
+    prerequisites: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof DateIdea
      */
     title: string;
+    /**
+     * Editable prefill for the Wish composer.
+     * @type {string}
+     * @memberof DateIdea
+     */
+    wishTitle: string;
 }
 
 
@@ -133,19 +108,17 @@ export interface DateIdea {
  * Check if a given object implements the DateIdea interface.
  */
 export function instanceOfDateIdea(value: object): value is DateIdea {
-    if (!('budgetBand' in value) || value['budgetBand'] === undefined) return false;
-    if (!('budgetMax' in value) || value['budgetMax'] === undefined) return false;
-    if (!('budgetMin' in value) || value['budgetMin'] === undefined) return false;
-    if (!('categoryId' in value) || value['categoryId'] === undefined) return false;
+    if (!('budgetEurForTwo' in value) || value['budgetEurForTwo'] === undefined) return false;
+    if (!('category' in value) || value['category'] === undefined) return false;
     if (!('contentLocale' in value) || value['contentLocale'] === undefined) return false;
     if (!('description' in value) || value['description'] === undefined) return false;
-    if (!('durationBand' in value) || value['durationBand'] === undefined) return false;
-    if (!('durationMaxMinutes' in value) || value['durationMaxMinutes'] === undefined) return false;
-    if (!('durationMinMinutes' in value) || value['durationMinMinutes'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
-    if (!('requirements' in value) || value['requirements'] === undefined) return false;
-    if (!('setting' in value) || value['setting'] === undefined) return false;
+    if (!('minutes' in value) || value['minutes'] === undefined) return false;
+    if (!('placeType' in value) || value['placeType'] === undefined) return false;
+    if (!('planTitle' in value) || value['planTitle'] === undefined) return false;
+    if (!('prerequisites' in value) || value['prerequisites'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
+    if (!('wishTitle' in value) || value['wishTitle'] === undefined) return false;
     return true;
 }
 
@@ -159,20 +132,17 @@ export function DateIdeaFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
     }
     return {
         
-        'budgetBand': BudgetBandFromJSON(json['budgetBand']),
-        'budgetMax': json['budgetMax'],
-        'budgetMin': json['budgetMin'],
-        'categoryId': json['categoryId'],
+        'budgetEurForTwo': json['budgetEurForTwo'],
+        'category': DateIdeaCategoryFromJSON(json['category']),
         'contentLocale': json['contentLocale'],
         'description': json['description'],
-        'durationBand': DurationBandFromJSON(json['durationBand']),
-        'durationMaxMinutes': json['durationMaxMinutes'],
-        'durationMinMinutes': json['durationMinMinutes'],
         'id': json['id'],
-        'requirements': json['requirements'],
-        'savedWishId': json['savedWishId'] == null ? undefined : json['savedWishId'],
-        'setting': DateSettingFromJSON(json['setting']),
+        'minutes': json['minutes'],
+        'placeType': DateIdeaPlaceTypeFromJSON(json['placeType']),
+        'planTitle': json['planTitle'],
+        'prerequisites': json['prerequisites'],
         'title': json['title'],
+        'wishTitle': json['wishTitle'],
     };
 }
 
@@ -187,20 +157,17 @@ export function DateIdeaToJSONTyped(value?: DateIdea | null, ignoreDiscriminator
 
     return {
         
-        'budgetBand': BudgetBandToJSON(value['budgetBand']),
-        'budgetMax': value['budgetMax'],
-        'budgetMin': value['budgetMin'],
-        'categoryId': value['categoryId'],
+        'budgetEurForTwo': value['budgetEurForTwo'],
+        'category': DateIdeaCategoryToJSON(value['category']),
         'contentLocale': value['contentLocale'],
         'description': value['description'],
-        'durationBand': DurationBandToJSON(value['durationBand']),
-        'durationMaxMinutes': value['durationMaxMinutes'],
-        'durationMinMinutes': value['durationMinMinutes'],
         'id': value['id'],
-        'requirements': value['requirements'],
-        'savedWishId': value['savedWishId'],
-        'setting': DateSettingToJSON(value['setting']),
+        'minutes': value['minutes'],
+        'placeType': DateIdeaPlaceTypeToJSON(value['placeType']),
+        'planTitle': value['planTitle'],
+        'prerequisites': value['prerequisites'],
         'title': value['title'],
+        'wishTitle': value['wishTitle'],
     };
 }
 

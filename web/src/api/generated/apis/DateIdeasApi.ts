@@ -14,55 +14,33 @@
 
 import * as runtime from '../runtime';
 import {
-    type BudgetBand,
-    BudgetBandFromJSON,
-    BudgetBandToJSON,
-} from '../models/BudgetBand';
-import {
     type DateIdeaCatalog,
     DateIdeaCatalogFromJSON,
     DateIdeaCatalogToJSON,
 } from '../models/DateIdeaCatalog';
 import {
-    type DateIdeaWishCreate,
-    DateIdeaWishCreateFromJSON,
-    DateIdeaWishCreateToJSON,
-} from '../models/DateIdeaWishCreate';
+    type DateIdeaCategory,
+    DateIdeaCategoryFromJSON,
+    DateIdeaCategoryToJSON,
+} from '../models/DateIdeaCategory';
 import {
-    type DurationBand,
-    DurationBandFromJSON,
-    DurationBandToJSON,
-} from '../models/DurationBand';
+    type DateIdeaPlaceType,
+    DateIdeaPlaceTypeFromJSON,
+    DateIdeaPlaceTypeToJSON,
+} from '../models/DateIdeaPlaceType';
 import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
-import {
-    type SettingFilter,
-    SettingFilterFromJSON,
-    SettingFilterToJSON,
-} from '../models/SettingFilter';
-import {
-    type WishDetail,
-    WishDetailFromJSON,
-    WishDetailToJSON,
-} from '../models/WishDetail';
 
 export interface ListDateIdeasRequest {
     spaceId: string;
     locale?: string | null;
-    category?: string | null;
-    duration?: DurationBand | null;
-    budget?: BudgetBand | null;
-    setting?: SettingFilter | null;
-}
-
-export interface SaveDateIdeaAsWishRequest {
-    ideaId: string;
-    spaceId: string;
-    dateIdeaWishCreate: DateIdeaWishCreate;
-    idempotencyKey?: string | null;
+    category?: DateIdeaCategory | null;
+    maxMinutes?: number | null;
+    maxBudget?: number | null;
+    place?: DateIdeaPlaceType | null;
 }
 
 /**
@@ -91,16 +69,16 @@ export class DateIdeasApi extends runtime.BaseAPI {
             queryParameters['category'] = requestParameters['category'];
         }
 
-        if (requestParameters['duration'] != null) {
-            queryParameters['duration'] = requestParameters['duration'];
+        if (requestParameters['maxMinutes'] != null) {
+            queryParameters['maxMinutes'] = requestParameters['maxMinutes'];
         }
 
-        if (requestParameters['budget'] != null) {
-            queryParameters['budget'] = requestParameters['budget'];
+        if (requestParameters['maxBudget'] != null) {
+            queryParameters['maxBudget'] = requestParameters['maxBudget'];
         }
 
-        if (requestParameters['setting'] != null) {
-            queryParameters['setting'] = requestParameters['setting'];
+        if (requestParameters['place'] != null) {
+            queryParameters['place'] = requestParameters['place'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -118,7 +96,7 @@ export class DateIdeasApi extends runtime.BaseAPI {
     }
 
     /**
-     * Curated ideas in deterministic editorial order; all filters combine with AND.  A `HOME` or `OUT` setting filter also returns ideas that work in both settings. An unknown category yields an empty result rather than an error, so a client holding an older catalog degrades gracefully.
+     * Curated ideas in editorial order; all filters combine with AND.  `maxMinutes` and `maxBudget` are inclusive upper bounds; `maxBudget=0` selects ideas without new spending. Omitting `place` means anywhere.
      * List Date Ideas
      */
     async listDateIdeasRaw(requestParameters: ListDateIdeasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DateIdeaCatalog>> {
@@ -129,80 +107,11 @@ export class DateIdeasApi extends runtime.BaseAPI {
     }
 
     /**
-     * Curated ideas in deterministic editorial order; all filters combine with AND.  A `HOME` or `OUT` setting filter also returns ideas that work in both settings. An unknown category yields an empty result rather than an error, so a client holding an older catalog degrades gracefully.
+     * Curated ideas in editorial order; all filters combine with AND.  `maxMinutes` and `maxBudget` are inclusive upper bounds; `maxBudget=0` selects ideas without new spending. Omitting `place` means anywhere.
      * List Date Ideas
      */
     async listDateIdeas(requestParameters: ListDateIdeasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DateIdeaCatalog> {
         const response = await this.listDateIdeasRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Creates request options for saveDateIdeaAsWish without sending the request
-     */
-    async saveDateIdeaAsWishRequestOpts(requestParameters: SaveDateIdeaAsWishRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['ideaId'] == null) {
-            throw new runtime.RequiredError(
-                'ideaId',
-                'Required parameter "ideaId" was null or undefined when calling saveDateIdeaAsWish().'
-            );
-        }
-
-        if (requestParameters['spaceId'] == null) {
-            throw new runtime.RequiredError(
-                'spaceId',
-                'Required parameter "spaceId" was null or undefined when calling saveDateIdeaAsWish().'
-            );
-        }
-
-        if (requestParameters['dateIdeaWishCreate'] == null) {
-            throw new runtime.RequiredError(
-                'dateIdeaWishCreate',
-                'Required parameter "dateIdeaWishCreate" was null or undefined when calling saveDateIdeaAsWish().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (requestParameters['idempotencyKey'] != null) {
-            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
-        }
-
-
-        let urlPath = `/api/v1/spaces/{spaceId}/date-ideas/{ideaId}/wish`;
-        urlPath = urlPath.replace('{ideaId}', encodeURIComponent(String(requestParameters['ideaId'])));
-        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
-
-        return {
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: DateIdeaWishCreateToJSON(requestParameters['dateIdeaWishCreate']),
-        };
-    }
-
-    /**
-     * Create a regular shared Wish from a curated idea, at most once while it is open.
-     * Save Date Idea As Wish
-     */
-    async saveDateIdeaAsWishRaw(requestParameters: SaveDateIdeaAsWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishDetail>> {
-        const requestOptions = await this.saveDateIdeaAsWishRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => WishDetailFromJSON(jsonValue));
-    }
-
-    /**
-     * Create a regular shared Wish from a curated idea, at most once while it is open.
-     * Save Date Idea As Wish
-     */
-    async saveDateIdeaAsWish(requestParameters: SaveDateIdeaAsWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDetail> {
-        const response = await this.saveDateIdeaAsWishRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

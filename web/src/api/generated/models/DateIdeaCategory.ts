@@ -12,34 +12,35 @@
  * Do not edit the class manually.
  */
 
-import { mapValues } from '../runtime';
+
 /**
  * 
  * @export
- * @interface DateIdeaCategory
  */
-export interface DateIdeaCategory {
-    /**
-     * 
-     * @type {string}
-     * @memberof DateIdeaCategory
-     */
-    id: string;
-    /**
-     * Category label in the response `locale`.
-     * @type {string}
-     * @memberof DateIdeaCategory
-     */
-    label: string;
-}
+export const DateIdeaCategory = {
+    food_drink: 'food_drink',
+    creative: 'creative',
+    play: 'play',
+    nature: 'nature',
+    culture: 'culture',
+    movement: 'movement',
+    relaxation: 'relaxation',
+    connection: 'connection',
+    memories: 'memories',
+    discovery: 'discovery'
+} as const;
+export type DateIdeaCategory = typeof DateIdeaCategory[keyof typeof DateIdeaCategory];
 
-/**
- * Check if a given object implements the DateIdeaCategory interface.
- */
-export function instanceOfDateIdeaCategory(value: object): value is DateIdeaCategory {
-    if (!('id' in value) || value['id'] === undefined) return false;
-    if (!('label' in value) || value['label'] === undefined) return false;
-    return true;
+
+export function instanceOfDateIdeaCategory(value: any): boolean {
+    for (const key in DateIdeaCategory) {
+        if (Object.prototype.hasOwnProperty.call(DateIdeaCategory, key)) {
+            if (DateIdeaCategory[key as keyof typeof DateIdeaCategory] === value) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 export function DateIdeaCategoryFromJSON(json: any): DateIdeaCategory {
@@ -47,29 +48,14 @@ export function DateIdeaCategoryFromJSON(json: any): DateIdeaCategory {
 }
 
 export function DateIdeaCategoryFromJSONTyped(json: any, ignoreDiscriminator: boolean): DateIdeaCategory {
-    if (json == null) {
-        return json;
-    }
-    return {
-        
-        'id': json['id'],
-        'label': json['label'],
-    };
+    return json as DateIdeaCategory;
 }
 
-export function DateIdeaCategoryToJSON(json: any): DateIdeaCategory {
-    return DateIdeaCategoryToJSONTyped(json, false);
+export function DateIdeaCategoryToJSON(value?: DateIdeaCategory | null): any {
+    return value as any;
 }
 
-export function DateIdeaCategoryToJSONTyped(value?: DateIdeaCategory | null, ignoreDiscriminator: boolean = false): any {
-    if (value == null) {
-        return value;
-    }
-
-    return {
-        
-        'id': value['id'],
-        'label': value['label'],
-    };
+export function DateIdeaCategoryToJSONTyped(value: any, ignoreDiscriminator: boolean): DateIdeaCategory {
+    return value as DateIdeaCategory;
 }
 

@@ -1,109 +1,74 @@
-"""Validate, import or describe the curated date inspiration catalog.
+"""Validate or import the curated date-idea catalog (editorial schema v1).
 
 Usage (from ``backend/``):
 
     uv run python scripts/date_ideas_catalog.py validate PATH
-    uv run python scripts/date_ideas_catalog.py import PATH [--allow-development]
-    uv run python scripts/date_ideas_catalog.py schema [--output PATH]
+    uv run python scripts/date_ideas_catalog.py import PATH
 
-``validate`` checks one file against schema version 1 and against the bundled
-catalog: permanent idea IDs may be retired with ``active: false`` but never
-dropped. ``import`` additionally writes the file in canonical form to the
-bundled location (``src/eimir/date_ideas/data/catalog.json``). An editorial
-catalog must declare ``"edition": "editorial"``; replacing it with a
-development dataset requires ``--allow-development``. ``schema`` prints the JSON
-Schema of the file format for editorial tooling.
+``validate`` checks one file against the catalog models, which mirror the
+editorial JSON Schema (``docs/product/date-inspiration/catalog.schema.json``)
+and additionally require unique idea IDs. It also compares the file with the
+bundled catalog: persistent idea IDs must never disappear. ``import`` runs the
+same checks and then copies the file byte for byte to the bundled location
+(``src/eimir/date_ideas/data/catalog.json``), so the repository keeps exactly
+the editorial handoff.
 
-No network access, provider or database is involved; the catalog ships with the
-application and behaves identically in Cloud and Self-Hosted deployments.
+No network access, provider or database is involved; the catalog ships with
+the application and behaves identically in Cloud and Self-Hosted deployments.
+It is served only through the Pro-gated API, never as a public client asset.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from collections import Counter
 from pathlib import Path
 
 from pydantic import ValidationError
 
-from eimir.date_ideas.catalog import (
-    CatalogFile,
-    canonical_json,
-    parse_catalog,
-    removed_idea_ids,
-)
+from eimir.date_ideas.catalog import CatalogFile, parse_catalog, removed_idea_ids
 
 BUNDLED = Path(__file__).resolve().parents[1] / "src/eimir/date_ideas/data/catalog.json"
 
 
-def _load(path: Path) -> CatalogFile:
-    return parse_catalog(path.read_bytes())
-
-
 def _report(catalog: CatalogFile) -> str:
-    active = [idea for idea in catalog.ideas if idea.active]
-    per_locale = Counter(locale for idea in active for locale in idea.content)
-    categories = Counter(idea.category for idea in active)
-    lines = [
-        f"catalog {catalog.catalog_version} ({catalog.edition}), schema {catalog.schema_version}",
-        f"{len(active)} active of {len(catalog.ideas)} ideas",
-        "translations: "
-        + ", ".join(f"{locale} {per_locale[locale]}" for locale in catalog.locales),
-        "categories: " + ", ".join(f"{key} {count}" for key, count in sorted(categories.items())),
-    ]
-    return "\n".join(lines)
-
-
-def _validate(path: Path) -> CatalogFile:
-    candidate = _load(path)
-    if BUNDLED.exists() and BUNDLED.resolve() != path.resolve():
-        dropped = removed_idea_ids(_load(BUNDLED), candidate)
-        if dropped:
-            raise SystemExit(
-                "error: permanent idea IDs were removed; retire them with "
-                f'"active": false instead: {", ".join(dropped)}'
-            )
-    return candidate
+    categories = Counter(idea.category.value for idea in catalog.ideas)
+    places = Counter(idea.place_type.value for idea in catalog.ideas)
+    return "\n".join(
+        [
+            f"catalog {catalog.catalog_version}, schema {catalog.schema_version}, "
+            f"{len(catalog.ideas)} ideas in {', '.join(catalog.locales)}",
+            "categories: " + ", ".join(f"{key} {n}" for key, n in sorted(categories.items())),
+            "places: " + ", ".join(f"{key} {n}" for key, n in sorted(places.items())),
+        ]
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
-    validate = commands.add_parser("validate")
-    validate.add_argument("path", type=Path)
-    importer = commands.add_parser("import")
-    importer.add_argument("path", type=Path)
-    importer.add_argument("--allow-development", action="store_true")
-    schema = commands.add_parser("schema")
-    schema.add_argument("--output", type=Path)
+    for name in ("validate", "import"):
+        commands.add_parser(name).add_argument("path", type=Path)
     args = parser.parse_args(argv)
 
-    if args.command == "schema":
-        text = json.dumps(CatalogFile.model_json_schema(by_alias=True), indent=2) + "\n"
-        if args.output:
-            args.output.write_text(text, encoding="utf-8")
-        else:
-            sys.stdout.write(text)
-        return 0
-
+    raw = args.path.read_bytes()
     try:
-        candidate = _validate(args.path)
+        candidate = parse_catalog(raw)
     except ValidationError as error:
         sys.stderr.write(f"error: {args.path} is not a valid catalog\n{error}\n")
         return 1
-
-    if args.command == "import":
-        if candidate.edition == "development" and not args.allow_development:
+    if BUNDLED.exists() and BUNDLED.resolve() != args.path.resolve():
+        dropped = removed_idea_ids(parse_catalog(BUNDLED.read_bytes()), candidate)
+        if dropped:
             sys.stderr.write(
-                "error: refusing to import a development dataset without --allow-development\n"
+                "error: persistent idea IDs would disappear: " + ", ".join(dropped) + "\n"
             )
             return 1
-        text = canonical_json(candidate)
-        BUNDLED.write_text(text, encoding="utf-8")
-        print(f"imported into {BUNDLED}")
 
+    if args.command == "import":
+        BUNDLED.write_bytes(raw)
+        print(f"imported into {BUNDLED}")
     print(_report(candidate))
     return 0
 

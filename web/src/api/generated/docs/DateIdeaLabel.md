@@ -1,21 +1,24 @@
 
-# SettingFilter
+# DateIdeaLabel
 
-Setting filter. ``EITHER`` ideas match both filters.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
+`id` | string
+`label` | string
 
 ## Example
 
 ```typescript
-import type { SettingFilter } from ''
+import type { DateIdeaLabel } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-} satisfies SettingFilter
+  "id": null,
+  "label": null,
+} satisfies DateIdeaLabel
 
 console.log(example)
 
@@ -24,7 +27,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as SettingFilter
+const exampleParsed = JSON.parse(exampleJSON) as DateIdeaLabel
 console.log(exampleParsed)
 ```
 

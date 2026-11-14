@@ -1,29 +1,28 @@
-"""Versioned, curated catalog of date ideas for couples.
+"""Curated date-idea catalog (editorial handoff, schema version 1).
 
-The catalog is editorial data, not code. It lives in a separate machine-readable
-JSON file (``data/catalog.json``) whose format is defined by the models below
-(``schemaVersion`` 1). The same models validate the bundled file at startup and
-any replacement file through ``scripts/date_ideas_catalog.py`` before it is
-imported, so the final editorial catalog can replace the development dataset
-without changing code.
+The catalog is editorial data, not code. ``data/catalog.json`` is the verbatim
+editorial file; its format is the handoff JSON Schema published at
+``docs/product/date-inspiration/catalog.schema.json``. The models below mirror
+that schema and add the checks a JSON Schema cannot express (unique idea IDs).
+The same models validate the bundled file at load and any replacement file
+through ``scripts/date_ideas_catalog.py``, so a new catalog revision replaces
+the file without code changes.
 
-Design rules:
+Rules from the handoff:
 
-- Idea IDs are stable, permanent identifiers. A Wish created from an idea keeps
-  the ID as provenance, so an import must never drop or reuse an ID; ideas are
-  retired with ``active: false`` instead.
-- Titles, descriptions, requirements and category labels are localized inside
-  the catalog. A missing translation falls back to ``defaultLocale``.
-- Filters use structured metadata only (category, duration, budget, setting);
-  no free text, profile or behavioral signal participates.
-- Order is editorial and deterministic: ``sortKey`` and then ``id``.
+- Idea IDs (``eimir-date-001`` ... ``eimir-date-200``) are persistent editorial
+  identifiers, stable across locales, copy edits and reordering. They are never
+  Wish or Plan IDs; adopting an idea copies its text into an ordinary Wish or
+  Plan through the existing composers.
+- A missing locale uses the whole default-locale entry, never a field mix.
+- Filters use structured metadata only. Upper bounds are inclusive; a budget
+  of 0 means no new spending; no place filter ("anywhere") covers both places.
+- Order is the editorial order of the file.
 - No external content provider, AI service, scraping or location is involved.
 """
 
 from __future__ import annotations
 
-import json
-import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -33,163 +32,114 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-from eimir.api.schema import to_camel
-
 SCHEMA_VERSION = 1
+IDEA_COUNT = 200
+IDEA_ID_PATTERN = r"^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$"
+CATALOG_VERSION_PATTERN = r"^1\.[0-9]+\.[0-9]+$"
+MINUTES_MAX = 60
+BUDGET_MAX = 20
 
-IDEA_ID_PATTERN = r"^[a-z0-9](?:[a-z0-9-]{1,62}[a-z0-9])$"
-CATEGORY_ID_PATTERN = r"^[a-z][a-z0-9_]{1,31}$"
-LOCALE_PATTERN = r"^[a-z]{2,3}(?:-[A-Z]{2})?$"
-
-# Upper bounds keep one idea readable on a phone and inside a Wish payload.
-TITLE_MAX = 80
-DESCRIPTION_MAX = 320
-REQUIREMENT_MAX = 100
-REQUIREMENTS_PER_IDEA_MAX = 5
-CATEGORY_LABEL_MAX = 32
-IDEAS_MAX = 2000
-DURATION_MINUTES_MAX = 2880
-BUDGET_MAX = 10000
+# ``minLength: 1`` plus ``pattern: \S``: at least one visible character.
+Label = Annotated[str, StringConstraints(min_length=1, max_length=48, pattern=r"\S")]
+Title = Annotated[str, StringConstraints(min_length=1, max_length=70, pattern=r"\S")]
+Description = Annotated[str, StringConstraints(min_length=1, max_length=200, pattern=r"\S")]
+Prerequisite = Annotated[str, StringConstraints(min_length=1, max_length=145, pattern=r"\S")]
 
 
-class DurationBand(StrEnum):
-    """Filterable duration groups derived from an idea's upper duration bound."""
-
-    SHORT = "SHORT"
-    """Up to 90 minutes."""
-    EVENING = "EVENING"
-    """Up to four hours."""
-    LONG = "LONG"
-    """More than four hours, such as a half or whole day."""
+class DateIdeaPlaceType(StrEnum):
+    HOME = "home"
+    OUT = "out"
 
 
-class BudgetBand(StrEnum):
-    """Filterable budget groups for two people, in the catalog currency."""
-
-    FREE = "FREE"
-    """No expected cost."""
-    LOW = "LOW"
-    """Up to 30."""
-    MEDIUM = "MEDIUM"
-    """Up to 80."""
-    HIGH = "HIGH"
-    """More than 80."""
-
-
-class DateSetting(StrEnum):
-    """Where an idea takes place."""
-
-    HOME = "HOME"
-    OUT = "OUT"
-    EITHER = "EITHER"
-
-
-class SettingFilter(StrEnum):
-    """Setting filter. ``EITHER`` ideas match both filters."""
-
-    HOME = "HOME"
-    OUT = "OUT"
-
-
-_SHORT_MAX_MINUTES = 90
-_EVENING_MAX_MINUTES = 240
-_LOW_MAX_BUDGET = 30
-_MEDIUM_MAX_BUDGET = 80
-
-
-def duration_band(max_minutes: int) -> DurationBand:
-    if max_minutes <= _SHORT_MAX_MINUTES:
-        return DurationBand.SHORT
-    if max_minutes <= _EVENING_MAX_MINUTES:
-        return DurationBand.EVENING
-    return DurationBand.LONG
-
-
-def budget_band(max_amount: int) -> BudgetBand:
-    if max_amount <= 0:
-        return BudgetBand.FREE
-    if max_amount <= _LOW_MAX_BUDGET:
-        return BudgetBand.LOW
-    if max_amount <= _MEDIUM_MAX_BUDGET:
-        return BudgetBand.MEDIUM
-    return BudgetBand.HIGH
-
-
-# --- File format (schemaVersion 1) -------------------------------------------
-
-Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+class DateIdeaCategory(StrEnum):
+    FOOD_DRINK = "food_drink"
+    CREATIVE = "creative"
+    PLAY = "play"
+    NATURE = "nature"
+    CULTURE = "culture"
+    MOVEMENT = "movement"
+    RELAXATION = "relaxation"
+    CONNECTION = "connection"
+    MEMORIES = "memories"
+    DISCOVERY = "discovery"
 
 
 class _FileModel(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        extra="forbid",
-        frozen=True,
-    )
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
 
-class CatalogCategory(_FileModel):
-    id: Annotated[str, Field(pattern=CATEGORY_ID_PATTERN)]
-    labels: dict[str, Annotated[Text, Field(max_length=CATEGORY_LABEL_MAX)]]
+class LocalizedLabel(_FileModel):
+    de: Label
+    en: Label
+
+    def get(self, locale: str) -> str:
+        return self.en if locale == "en" else self.de
 
 
-class IdeaContent(_FileModel):
-    title: Annotated[Text, Field(max_length=TITLE_MAX)]
-    description: Annotated[Text, Field(max_length=DESCRIPTION_MAX)]
-    requirements: Annotated[
-        list[Annotated[Text, Field(max_length=REQUIREMENT_MAX)]],
-        Field(max_length=REQUIREMENTS_PER_IDEA_MAX),
-    ] = Field(default_factory=list)
+class PlaceTypeLabels(_FileModel):
+    home: LocalizedLabel
+    out: LocalizedLabel
 
 
-class MinutesRange(_FileModel):
-    min: Annotated[int, Field(ge=5, le=DURATION_MINUTES_MAX)]
-    max: Annotated[int, Field(ge=5, le=DURATION_MINUTES_MAX)]
+class CategoryLabels(_FileModel):
+    food_drink: LocalizedLabel
+    creative: LocalizedLabel
+    play: LocalizedLabel
+    nature: LocalizedLabel
+    culture: LocalizedLabel
+    movement: LocalizedLabel
+    relaxation: LocalizedLabel
+    connection: LocalizedLabel
+    memories: LocalizedLabel
+    discovery: LocalizedLabel
+
+
+class IdeaCopy(_FileModel):
+    title: Title
+    description: Description
+    wish_title: Title = Field(alias="wishTitle")
+    plan_title: Title = Field(alias="planTitle")
+    prerequisites: Annotated[list[Prerequisite], Field(max_length=3)]
 
     @model_validator(mode="after")
-    def _ordered(self) -> Self:
-        if self.max < self.min:
-            raise ValueError("max must not be smaller than min")
+    def _unique_prerequisites(self) -> Self:
+        if len(set(self.prerequisites)) != len(self.prerequisites):
+            raise ValueError("prerequisites must be unique")
         return self
 
 
-class AmountRange(_FileModel):
-    min: Annotated[int, Field(ge=0, le=BUDGET_MAX)]
-    max: Annotated[int, Field(ge=0, le=BUDGET_MAX)]
+class IdeaCopies(_FileModel):
+    de: IdeaCopy
+    en: IdeaCopy
 
-    @model_validator(mode="after")
-    def _ordered(self) -> Self:
-        if self.max < self.min:
-            raise ValueError("max must not be smaller than min")
-        return self
+    def get(self, locale: str) -> IdeaCopy:
+        return self.en if locale == "en" else self.de
 
 
 class CatalogIdea(_FileModel):
     id: Annotated[str, Field(pattern=IDEA_ID_PATTERN)]
-    active: bool = True
-    sort_key: Annotated[int, Field(ge=0, le=1_000_000)]
-    category: Annotated[str, Field(pattern=CATEGORY_ID_PATTERN)]
-    duration_minutes: MinutesRange
-    budget_for_two: AmountRange
-    setting: DateSetting
-    content: dict[str, IdeaContent]
+    minutes: Annotated[int, Field(ge=1, le=MINUTES_MAX, strict=True)]
+    budget_eur_for_two: Annotated[int, Field(ge=0, le=BUDGET_MAX, strict=True)] = Field(
+        alias="budgetEurForTwo"
+    )
+    place_type: DateIdeaPlaceType = Field(alias="placeType")
+    category: DateIdeaCategory
+    texts: IdeaCopies = Field(alias="copy")
 
 
 class CatalogFile(_FileModel):
-    """Root of a catalog file."""
+    """Root of an editorial catalog file (schema version 1)."""
 
-    schema_version: Literal[1]
-    catalog_version: Annotated[Text, Field(max_length=64)]
-    edition: Literal["development", "editorial"]
-    """``development`` marks a demonstration dataset, never the final catalog."""
-    default_locale: Annotated[str, Field(pattern=LOCALE_PATTERN)]
-    locales: Annotated[
-        list[Annotated[str, Field(pattern=LOCALE_PATTERN)]], Field(min_length=1, max_length=16)
-    ]
-    currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
-    categories: Annotated[list[CatalogCategory], Field(min_length=1, max_length=64)]
-    ideas: Annotated[list[CatalogIdea], Field(max_length=IDEAS_MAX)]
+    schema_version: Literal[1] = Field(alias="schemaVersion")
+    catalog_version: Annotated[str, Field(pattern=CATALOG_VERSION_PATTERN)] = Field(
+        alias="catalogVersion"
+    )
+    default_locale: Literal["de"] = Field(alias="defaultLocale")
+    locales: tuple[Literal["de"], Literal["en"]]
+    currency: Literal["EUR"]
+    place_type_labels: PlaceTypeLabels = Field(alias="placeTypeLabels")
+    category_labels: CategoryLabels = Field(alias="categoryLabels")
+    ideas: Annotated[list[CatalogIdea], Field(min_length=IDEA_COUNT, max_length=IDEA_COUNT)]
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -199,71 +149,30 @@ class CatalogFile(_FileModel):
         return self
 
 
-def _texts(content: IdeaContent) -> Iterable[str]:
-    yield content.title
-    yield content.description
-    yield from content.requirements
-
-
 def _consistency_problems(catalog: CatalogFile) -> Iterable[str]:
-    locales = set(catalog.locales)
-    if len(locales) != len(catalog.locales):
-        yield "locales must be unique"
-    if catalog.default_locale not in locales:
-        yield "defaultLocale must be listed in locales"
-
-    category_ids: set[str] = set()
-    for category in catalog.categories:
-        if category.id in category_ids:
-            yield f"duplicate category id {category.id!r}"
-        category_ids.add(category.id)
-        if catalog.default_locale not in category.labels:
-            yield f"category {category.id!r} lacks a {catalog.default_locale!r} label"
-        for locale in sorted(set(category.labels) - locales):
-            yield f"category {category.id!r} has a label for unlisted locale {locale!r}"
-
-    idea_ids: set[str] = set()
+    seen: set[str] = set()
     for idea in catalog.ideas:
-        if idea.id in idea_ids:
+        if idea.id in seen:
             yield f"duplicate idea id {idea.id!r}"
-        idea_ids.add(idea.id)
-        if idea.category not in category_ids:
-            yield f"idea {idea.id!r} uses unknown category {idea.category!r}"
-        if catalog.default_locale not in idea.content:
-            yield f"idea {idea.id!r} lacks {catalog.default_locale!r} content"
-        for locale in sorted(set(idea.content) - locales):
-            yield f"idea {idea.id!r} has content for unlisted locale {locale!r}"
-        for locale, content in idea.content.items():
-            for value in _texts(content):
-                if unicodedata.normalize("NFC", value) != value:
-                    yield f"idea {idea.id!r} ({locale}) contains non-NFC text"
-                if any(unicodedata.category(char) == "Cc" for char in value):
-                    yield f"idea {idea.id!r} ({locale}) contains control characters"
+        seen.add(idea.id)
 
 
 def removed_idea_ids(previous: CatalogFile, candidate: CatalogFile) -> list[str]:
-    """IDs that ``candidate`` would drop. Permanent IDs must be retired instead."""
+    """IDs that ``candidate`` would drop. Persistent IDs must stay available."""
     kept = {idea.id for idea in candidate.ideas}
     return sorted(idea.id for idea in previous.ideas if idea.id not in kept)
 
 
 def parse_catalog(raw: str | bytes) -> CatalogFile:
     """Parse and validate one catalog file; raises ``pydantic.ValidationError``."""
-    return CatalogFile.model_validate(json.loads(raw))
-
-
-def canonical_json(catalog: CatalogFile) -> str:
-    """Stable serialization used when importing a catalog into the package."""
-    data = catalog.model_dump(mode="json", by_alias=True)
-    data["ideas"] = sorted(data["ideas"], key=lambda idea: (idea["sortKey"], idea["id"]))
-    return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+    return CatalogFile.model_validate_json(raw, by_alias=True)
 
 
 # --- Resolved, read-only view ------------------------------------------------
 
 
 @dataclass(frozen=True)
-class ResolvedCategory:
+class ResolvedLabel:
     id: str
     label: str
 
@@ -271,59 +180,46 @@ class ResolvedCategory:
 @dataclass(frozen=True)
 class ResolvedIdea:
     id: str
-    category_id: str
+    category: DateIdeaCategory
+    place_type: DateIdeaPlaceType
+    minutes: int
+    budget_eur_for_two: int
     title: str
     description: str
-    requirements: tuple[str, ...]
+    wish_title: str
+    plan_title: str
+    prerequisites: tuple[str, ...]
     content_locale: str
-    duration_min_minutes: int
-    duration_max_minutes: int
-    duration_band: DurationBand
-    budget_min: int
-    budget_max: int
-    budget_band: BudgetBand
-    setting: DateSetting
 
 
 @dataclass(frozen=True)
 class IdeaFilter:
-    category: str | None = None
-    duration: DurationBand | None = None
-    budget: BudgetBand | None = None
-    setting: SettingFilter | None = None
+    """All criteria combine with AND; upper bounds are inclusive."""
+
+    category: DateIdeaCategory | None = None
+    max_minutes: int | None = None
+    max_budget: int | None = None
+    place: DateIdeaPlaceType | None = None
 
     def matches(self, idea: ResolvedIdea) -> bool:
-        if self.category is not None and idea.category_id != self.category:
+        if self.category is not None and idea.category != self.category:
             return False
-        if self.duration is not None and idea.duration_band != self.duration:
+        if self.max_minutes is not None and idea.minutes > self.max_minutes:
             return False
-        if self.budget is not None and idea.budget_band != self.budget:
+        if self.max_budget is not None and idea.budget_eur_for_two > self.max_budget:
             return False
-        if self.setting is not None:
-            return idea.setting in (DateSetting(self.setting.value), DateSetting.EITHER)
-        return True
+        return self.place is None or idea.place_type == self.place
 
 
 class DateIdeaCatalog:
-    """Validated catalog with locale resolution and deterministic order."""
+    """Validated catalog with locale resolution in editorial order."""
 
     def __init__(self, data: CatalogFile) -> None:
         self.data = data
-        self._ideas = tuple(
-            sorted(
-                (idea for idea in data.ideas if idea.active),
-                key=lambda idea: (idea.sort_key, idea.id),
-            )
-        )
-        self._by_id = {idea.id: idea for idea in data.ideas}
 
     @property
     def version(self) -> str:
         return self.data.catalog_version
-
-    @property
-    def edition(self) -> str:
-        return self.data.edition
 
     @property
     def currency(self) -> str:
@@ -332,59 +228,49 @@ class DateIdeaCatalog:
     def resolve_locale(self, requested: str | None) -> str:
         """Exact supported locale, then its language, then the default locale."""
         if requested:
-            tag = requested.strip().replace("_", "-")
-            by_lower = {locale.lower(): locale for locale in self.data.locales}
-            if tag.lower() in by_lower:
-                return by_lower[tag.lower()]
-            language = tag.split("-", 1)[0].lower()
-            if language in by_lower:
-                return by_lower[language]
+            tag = requested.strip().replace("_", "-").lower()
+            for candidate in (tag, tag.split("-", 1)[0]):
+                if candidate in self.data.locales:
+                    return candidate
         return self.data.default_locale
 
-    def categories(self, locale: str) -> list[ResolvedCategory]:
-        """Categories that at least one active idea uses, in catalog order."""
-        used = {idea.category for idea in self._ideas}
+    def categories(self, locale: str) -> list[ResolvedLabel]:
+        labels = self.data.category_labels
         return [
-            ResolvedCategory(
-                id=category.id,
-                label=category.labels.get(locale, category.labels[self.data.default_locale]),
-            )
-            for category in self.data.categories
-            if category.id in used
+            ResolvedLabel(id=category.value, label=getattr(labels, category.value).get(locale))
+            for category in DateIdeaCategory
         ]
 
-    def has_category(self, category_id: str) -> bool:
-        return any(category.id == category_id for category in self.data.categories)
-
-    def active_idea(self, idea_id: str, locale: str) -> ResolvedIdea | None:
-        idea = self._by_id.get(idea_id)
-        if idea is None or not idea.active:
-            return None
-        return self._resolve(idea, locale)
+    def place_types(self, locale: str) -> list[ResolvedLabel]:
+        labels = self.data.place_type_labels
+        return [
+            ResolvedLabel(id=place.value, label=getattr(labels, place.value).get(locale))
+            for place in DateIdeaPlaceType
+        ]
 
     def ideas(self, locale: str, idea_filter: IdeaFilter | None = None) -> list[ResolvedIdea]:
-        resolved = (self._resolve(idea, locale) for idea in self._ideas)
+        resolved = [self._resolve(idea, locale) for idea in self.data.ideas]
         if idea_filter is None:
-            return list(resolved)
+            return resolved
         return [idea for idea in resolved if idea_filter.matches(idea)]
 
     def _resolve(self, idea: CatalogIdea, locale: str) -> ResolvedIdea:
-        content_locale = locale if locale in idea.content else self.data.default_locale
-        content = idea.content[content_locale]
+        # Every v1 idea carries both locales; anything else already resolved to
+        # the default, so the whole entry always comes from one language.
+        content_locale = locale if locale in self.data.locales else self.data.default_locale
+        texts = idea.texts.get(content_locale)
         return ResolvedIdea(
             id=idea.id,
-            category_id=idea.category,
-            title=content.title,
-            description=content.description,
-            requirements=tuple(content.requirements),
+            category=idea.category,
+            place_type=idea.place_type,
+            minutes=idea.minutes,
+            budget_eur_for_two=idea.budget_eur_for_two,
+            title=texts.title,
+            description=texts.description,
+            wish_title=texts.wish_title,
+            plan_title=texts.plan_title,
+            prerequisites=tuple(texts.prerequisites),
             content_locale=content_locale,
-            duration_min_minutes=idea.duration_minutes.min,
-            duration_max_minutes=idea.duration_minutes.max,
-            duration_band=duration_band(idea.duration_minutes.max),
-            budget_min=idea.budget_for_two.min,
-            budget_max=idea.budget_for_two.max,
-            budget_band=budget_band(idea.budget_for_two.max),
-            setting=idea.setting,
         )
 
 

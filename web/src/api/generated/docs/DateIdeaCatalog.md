@@ -7,11 +7,11 @@
 Name | Type
 ------------ | -------------
 `catalogVersion` | string
-`categories` | [Array&lt;DateIdeaCategory&gt;](DateIdeaCategory.md)
+`categories` | [Array&lt;DateIdeaLabel&gt;](DateIdeaLabel.md)
 `currency` | string
-`edition` | string
 `ideas` | [Array&lt;DateIdea&gt;](DateIdea.md)
 `locale` | string
+`placeTypes` | [Array&lt;DateIdeaLabel&gt;](DateIdeaLabel.md)
 `totalCount` | number
 
 ## Example
@@ -24,9 +24,9 @@ const example = {
   "catalogVersion": null,
   "categories": null,
   "currency": null,
-  "edition": null,
   "ideas": null,
   "locale": null,
+  "placeTypes": null,
   "totalCount": null,
 } satisfies DateIdeaCatalog
 

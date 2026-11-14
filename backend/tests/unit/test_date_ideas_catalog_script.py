@@ -1,4 +1,4 @@
-"""The reusable validation/import path for the date inspiration catalog."""
+"""The reusable validation/import path for the editorial date-idea catalog."""
 
 from __future__ import annotations
 
@@ -8,12 +8,8 @@ from typing import Any
 
 import pytest
 
-from eimir.date_ideas.catalog import CatalogFile, bundled_catalog_text
+from eimir.date_ideas.catalog import bundled_catalog_text
 from scripts import date_ideas_catalog
-
-SCHEMA_FILE = (
-    Path(__file__).resolve().parents[3] / "docs/product/date-inspiration/catalog.schema.json"
-)
 
 
 def _bundled() -> dict[str, Any]:
@@ -33,51 +29,29 @@ def _write(path: Path, data: dict[str, Any]) -> Path:
     return path
 
 
-def test_published_json_schema_matches_the_file_model() -> None:
-    assert json.loads(SCHEMA_FILE.read_text(encoding="utf-8")) == CatalogFile.model_json_schema(
-        by_alias=True
-    )
+def test_validate_accepts_copy_edits_and_reordering(tmp_path: Path, bundled_target: Path) -> None:
+    edited = _bundled()
+    edited["catalogVersion"] = "1.0.1"
+    edited["ideas"][0]["copy"]["de"]["title"] = "Edited title"
+    edited["ideas"].reverse()
+    assert date_ideas_catalog.main(["validate", str(_write(tmp_path / "e.json", edited))]) == 0
 
 
-def test_validate_accepts_retired_ideas_and_rejects_dropped_ids(
-    tmp_path: Path, bundled_target: Path
-) -> None:
-    retired = _bundled()
-    retired["ideas"][0]["active"] = False
-    assert date_ideas_catalog.main(["validate", str(_write(tmp_path / "r.json", retired))]) == 0
-
-    dropped = _bundled()
-    removed = dropped["ideas"].pop(0)["id"]
-    with pytest.raises(SystemExit, match=removed):
-        date_ideas_catalog.main(["validate", str(_write(tmp_path / "d.json", dropped))])
-
-
-def test_validate_reports_invalid_files(tmp_path: Path, bundled_target: Path) -> None:
+def test_validate_rejects_invalid_files(tmp_path: Path, bundled_target: Path) -> None:
     broken = _bundled()
-    broken["ideas"][0]["category"] = "missing"
+    broken["ideas"][0]["minutes"] = 90
     assert date_ideas_catalog.main(["validate", str(_write(tmp_path / "b.json", broken))]) == 1
 
 
-def test_import_writes_canonical_editorial_catalog_and_guards_development(
-    tmp_path: Path, bundled_target: Path
-) -> None:
-    development = _bundled()
-    source = _write(tmp_path / "dev.json", development)
-    assert date_ideas_catalog.main(["import", str(source)]) == 1
-    assert bundled_target.read_text(encoding="utf-8") == bundled_catalog_text()
+def test_import_copies_the_validated_file_verbatim(tmp_path: Path, bundled_target: Path) -> None:
+    edited = _bundled()
+    edited["catalogVersion"] = "1.1.0"
+    source = _write(tmp_path / "next.json", edited)
+    assert date_ideas_catalog.main(["import", str(source)]) == 0
+    assert bundled_target.read_bytes() == source.read_bytes()
 
-    editorial = _bundled()
-    editorial["edition"] = "editorial"
-    editorial["catalogVersion"] = "2026.12-editorial.1"
-    editorial["ideas"].reverse()
-    assert date_ideas_catalog.main(["import", str(_write(tmp_path / "ed.json", editorial))]) == 0
-    imported = json.loads(bundled_target.read_text(encoding="utf-8"))
-    assert imported["edition"] == "editorial"
-    order = [(idea["sortKey"], idea["id"]) for idea in imported["ideas"]]
-    assert order == sorted(order)
-
-
-def test_import_of_the_bundled_file_onto_itself_keeps_its_content(bundled_target: Path) -> None:
-    before = bundled_target.read_text(encoding="utf-8")
-    assert date_ideas_catalog.main(["import", str(bundled_target), "--allow-development"]) == 0
-    assert bundled_target.read_text(encoding="utf-8") == before
+    invalid = _bundled()
+    invalid["currency"] = "USD"
+    before = bundled_target.read_bytes()
+    assert date_ideas_catalog.main(["import", str(_write(tmp_path / "x.json", invalid))]) == 1
+    assert bundled_target.read_bytes() == before

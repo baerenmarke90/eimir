@@ -1,23 +1,20 @@
 
-# DateIdeaWishCreate
+# DateIdeaPlaceType
 
-Save an idea as a Wish. Title and description are taken from the catalog.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`locale` | string
 
 ## Example
 
 ```typescript
-import type { DateIdeaWishCreate } from ''
+import type { DateIdeaPlaceType } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "locale": null,
-} satisfies DateIdeaWishCreate
+} satisfies DateIdeaPlaceType
 
 console.log(example)
 
@@ -26,7 +23,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as DateIdeaWishCreate
+const exampleParsed = JSON.parse(exampleJSON) as DateIdeaPlaceType
 console.log(exampleParsed)
 ```
 

@@ -6,8 +6,6 @@
 
 Name | Type
 ------------ | -------------
-`id` | string
-`label` | string
 
 ## Example
 
@@ -16,8 +14,6 @@ import type { DateIdeaCategory } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "id": null,
-  "label": null,
 } satisfies DateIdeaCategory
 
 console.log(example)

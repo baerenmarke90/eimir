@@ -6,8 +6,8 @@ import {
   useRef,
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
 import { PRIVATE_GIFT_IDEAS_PATH } from '../client/privateArea';
-import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import {
   type AppRouteIcon,
   COLLECTION_CREATE_ROUTE,
@@ -19,15 +19,15 @@ import {
   WISH_CREATE_ROUTE,
 } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
-import { ONCE_CREATE_ROUTE } from '../client/onceMessages';
 import { ProMark } from './ProMark';
 import './QuickCreateMenu.css';
 
 const PRIVATE_NOTE_CREATE_ROUTE = `${MORE_PRIVATE_ROUTE}/notes/new`;
 const PRIVATE_GIFT_IDEA_CREATE_ROUTE = `${PRIVATE_GIFT_IDEAS_PATH}/new`;
-type QuickCreateTarget = {
+export type QuickCreateTarget = {
   id: string;
   labelKey: string;
   sublineKey: string;
@@ -36,7 +36,7 @@ type QuickCreateTarget = {
   tone: 'story' | 'planning' | 'private';
 };
 
-const SHARED_TARGETS: readonly QuickCreateTarget[] = [
+export const SHARED_TARGETS: readonly QuickCreateTarget[] = [
   {
     id: 'memory',
     labelKey: 'navigation.quickCreateMemory',
@@ -114,11 +114,29 @@ const FOR_ME_TARGETS: readonly QuickCreateTarget[] = [
   },
 ];
 
+export function useQuickCreateNavigation() {
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+  return (target: QuickCreateTarget) => {
+    const taskOriginKey = captureOrigin({
+      focusTarget: 'quick-create',
+      planningSegment:
+        target.id === 'wish'
+          ? 'wishes'
+          : target.id === 'plan'
+            ? 'plans'
+            : undefined,
+    });
+    void navigate(target.to, {
+      state: taskOriginKey ? { taskOriginKey } : undefined,
+    });
+  };
+}
+
 export function QuickCreateMenu() {
   const { t } = useTranslation();
   const menuId = useId();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
+  const navigateToTarget = useQuickCreateNavigation();
   const focusFirstItemOnOpenRef = useRef(false);
   const {
     isOpen: open,
@@ -146,31 +164,8 @@ export function QuickCreateMenu() {
   }, [open, panelRef]);
 
   function openTarget(target: QuickCreateTarget): void {
-    const taskOriginKey = [
-      'only-you',
-      'memory',
-      'heart-moment',
-      'milestone',
-      'wish',
-      'plan',
-      'note',
-      'gift-idea',
-      'collection',
-    ].includes(target.id)
-      ? captureOrigin({
-          focusTarget: 'quick-create',
-          planningSegment:
-            target.id === 'wish'
-              ? 'wishes'
-              : target.id === 'plan'
-                ? 'plans'
-                : undefined,
-        })
-      : null;
     close();
-    void navigate(target.to, {
-      state: taskOriginKey ? { taskOriginKey } : undefined,
-    });
+    navigateToTarget(target);
   }
 
   function focusMenuItem(index: number): void {

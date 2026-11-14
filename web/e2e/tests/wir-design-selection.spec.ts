@@ -639,6 +639,82 @@ for (const [width, theme, large] of [
     expect(f.unexpected).toEqual([]);
   });
 }
+test('Zuhause keeps the room picker on details and returns from focused creation', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'connected' });
+  for (const resource of ['plans', 'wishes']) {
+    await page.route(
+      (url) => url.pathname === `/api/v1/spaces/${SPACE_ID}/${resource}`,
+      (route) =>
+        route.fulfill({
+          json: { items: [], hasMore: false, nextCursor: null },
+        }),
+    );
+  }
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.home_rooms) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(f.writes).toEqual(['home_rooms']);
+
+  await page.goto('/today');
+  await expect(
+    page.getByRole('heading', { name: copy.names.home_rooms }),
+  ).toBeVisible();
+  await page.locator('.home-people').click();
+  await expect(page).toHaveURL(/\/today\?view=wir$/);
+  await expect(
+    page.getByRole('heading', { name: 'Wir', exact: true }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(
+    page.getByRole('heading', { name: copy.names.home_rooms }),
+  ).toBeVisible();
+  await captureScreenshot(page, info, 'zuhause-home-390-light.png');
+
+  const detail = '/story/memories/mem-canal';
+  await page.goto(detail);
+  const rooms = page.getByRole('button', { name: copy.homeRooms.rooms });
+  const roomPicker = page.getByRole('dialog', { name: copy.homeRooms.rooms });
+  await rooms.click();
+  await expect(
+    roomPicker.getByRole('link', { name: new RegExp(copy.homeRooms.remember) }),
+  ).toHaveAttribute('aria-current', 'location');
+  await captureScreenshot(page, info, 'zuhause-detail-rooms-390-light.png');
+  await page.keyboard.press('Escape');
+  await expect(roomPicker).toBeHidden();
+  await expect(rooms).toBeFocused();
+  await rooms.click();
+  await page.goBack();
+  await expect(roomPicker).toBeHidden();
+  await expect(page).toHaveURL(new RegExp(`${detail}$`));
+
+  const create = page.getByRole('button', { name: copy.homeRooms.create });
+  await create.click();
+  await page.locator('.home-room-sheet a[href="/story/memories/new"]').click();
+  await expect(page).toHaveURL(/\/story\/memories\/new$/);
+  await expect(page.locator('.home-dock')).toHaveCount(0);
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`${detail}$`));
+  await expect(rooms).toBeVisible();
+
+  await rooms.click();
+  await roomPicker
+    .getByRole('link', { name: new RegExp(copy.homeRooms.plans) })
+    .click();
+  await expect(page).toHaveURL(/\/plan$/);
+  await expect(
+    page.getByRole('heading', { name: copy.homeRooms.plans }),
+  ).toBeVisible();
+  expect(f.unexpected).toEqual([]);
+});
+
 test('Free can preview, cancel, retain a saved Pro design and reset to Geborgen', async ({
   page,
 }) => {

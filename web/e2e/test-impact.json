@@ -902,6 +902,15 @@
     },
     "wir-design-selection.spec.ts": {
       "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/HomeRoomsNavigation.tsx",
+        "web/src/components/HomeRoomsLanding.tsx",
+        "web/src/components/HomeRooms.css",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/ShortTaskSheet.tsx",
+        "web/src/client/taskOrigin.tsx",
         "web/src/components/WirDesignSettings.tsx",
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",

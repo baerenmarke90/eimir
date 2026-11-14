@@ -554,3 +554,72 @@
   border-radius: var(--radius-pill);
   content: "";
 }
+
+.wir-design-preview-home_rooms {
+  --home-preview-paper: #f8f5f0;
+  --home-preview-ink: #754435;
+  --home-preview-quiet: #e5dbd0;
+  --home-preview-soft: #e9e1eb;
+  grid-template-rows: 6px 22px 1fr 7px;
+  background: var(--home-preview-paper);
+}
+:root[data-theme="dark"] .wir-design-preview-home_rooms {
+  --home-preview-paper: #282323;
+  --home-preview-ink: #efbea9;
+  --home-preview-quiet: #4d3c36;
+  --home-preview-soft: #47394b;
+}
+.wir-design-preview-home-header {
+  justify-self: start;
+  align-self: center;
+  width: 24%;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--home-preview-ink);
+}
+.wir-design-preview-home-couple {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  border-radius: var(--radius-small);
+  background: var(--home-preview-quiet);
+}
+.wir-design-preview-home-couple i {
+  inline-size: 10px;
+  block-size: 10px;
+  border: 1px solid var(--home-preview-paper);
+  border-radius: 50%;
+  background: var(--home-preview-ink);
+}
+.wir-design-preview-home-couple i + i {
+  opacity: 0.65;
+}
+.wir-design-preview-home-rooms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+.wir-design-preview-home-rooms i {
+  border-radius: 2px;
+  background: var(--home-preview-soft);
+}
+.wir-design-preview-home-rooms i:nth-child(odd) {
+  background: var(--home-preview-quiet);
+}
+.wir-design-preview-home-dock {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border-block-start: 1px solid var(--home-preview-quiet);
+}
+.wir-design-preview-home-dock i {
+  inline-size: 5px;
+  block-size: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--home-preview-ink);
+}
+.wir-design-preview-home-dock i:nth-child(2) {
+  block-size: 5px;
+  border-radius: 2px;
+}

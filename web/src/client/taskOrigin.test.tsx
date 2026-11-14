@@ -179,6 +179,13 @@ describe('task origin privacy and lifetime', () => {
   });
 
   it('allowlists local primary routes and serializes only non-sensitive Timeline scope', () => {
+    expect(taskOriginPath('/today', '?view=wir&note=private')).toBe(
+      '/today?view=wir',
+    );
+    expect(taskOriginPath('/today', '?view=unknown')).toBe('/today');
+    expect(taskOriginPath('/more/insights/patterns', '?days=7')).toBe(
+      '/more/insights/patterns',
+    );
     expect(taskOriginPath('//other.example', '')).toBeNull();
     expect(taskOriginPath('/story/memories/memory-1', '?body=private')).toBe(
       '/story/memories/memory-1',

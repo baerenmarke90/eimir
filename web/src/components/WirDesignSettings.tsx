@@ -19,6 +19,32 @@ import './WirDesign.css';
 
 /** Decorative code-native previews contain no personal data or invented content. */
 function DesignPreview({ design }: { design: WirDesignId }) {
+  if (design === WirDesignId.home_rooms) {
+    return (
+      <span
+        className="wir-design-preview wir-design-preview-home_rooms"
+        aria-hidden="true"
+      >
+        <span className="wir-design-preview-home-header" />
+        <span className="wir-design-preview-home-couple">
+          <i />
+          <i />
+        </span>
+        <span className="wir-design-preview-home-rooms">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="wir-design-preview-home-dock">
+          <i />
+          <i />
+          <i />
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span
       className={`wir-design-preview wir-design-preview-${design}`}

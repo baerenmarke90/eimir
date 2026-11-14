@@ -1,0 +1,474 @@
+/* The room titles are the native route headings. The available modes and
+ * item actions retain the hierarchy and keyboard behavior of their pages. */
+:root[data-app-design="home_rooms"] :is(.story-page-unified, .planen-overview) {
+  inline-size: min(100%, 49rem);
+  margin-inline: auto;
+}
+:root[data-app-design="home_rooms"]
+  :is(.story-page-unified, .planen-overview)
+  > .page-heading-root.content-overview-heading {
+  gap: 0;
+  min-inline-size: 0;
+  margin-block: 0 1.2rem;
+  padding-block: 0.22rem 0.95rem;
+  border-block-end: 1px solid var(--home-rule);
+}
+:root[data-app-design="home_rooms"]
+  :is(.story-page-unified, .planen-overview)
+  > .page-heading-root.content-overview-heading
+  > div:first-child {
+  flex: 1 1 auto;
+}
+:root[data-app-design="home_rooms"]
+  :is(.story-page-unified, .planen-overview)
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container {
+  position: static;
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+:root[data-app-design="home_rooms"]
+  :is(.story-page-unified, .planen-overview)
+  > .page-heading-root.content-overview-heading
+  h1 {
+  margin: 0;
+  color: var(--home-ink);
+  font: 580 clamp(2.34rem, 10vw, 4.2rem) / 1.03 var(--font-display);
+  letter-spacing: -0.052em;
+  overflow-wrap: anywhere;
+}
+:root[data-app-design="home_rooms"] .home-archive-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.95rem;
+}
+:root[data-app-design="home_rooms"] .home-archive-links a {
+  display: inline-flex;
+  min-block-size: 44px;
+  align-items: center;
+  gap: 0.23rem;
+  color: var(--home-accent);
+  font-size: 0.84rem;
+  font-weight: 660;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+:root[data-app-design="home_rooms"] .home-archive-links .eimir-icon {
+  inline-size: 0.8rem;
+  block-size: 0.8rem;
+}
+@media (max-width: 579px) {
+  :root[data-app-design="home_rooms"]
+    .story-page-unified
+    > .page-heading-root.content-overview-heading
+    .page-heading-title-container {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+
+/* A library strip uses the real mode buttons with their normal keyboard
+ * behavior. It sits above, rather than inside, the memories. */
+:root[data-app-design="home_rooms"]
+  :is(.story-page-unified, .planen-overview)
+  .planen-segmented {
+  inline-size: 100%;
+  max-inline-size: none;
+  margin-block-end: 1rem;
+  padding: 0.2rem;
+  border: 1px solid var(--home-rule);
+  border-radius: 0.78rem;
+  background: var(--home-quiet);
+}
+:root[data-app-design="home_rooms"] .planen-overview .planen-segmented::before {
+  content: none;
+}
+:root[data-app-design="home_rooms"]
+  :is(.story-page-unified, .planen-overview)
+  .planen-segmented
+  > .planen-segment {
+  min-block-size: 44px;
+  padding-inline: 0.3rem;
+  border-radius: 0.61rem;
+  color: var(--home-ink);
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.83rem;
+  font-weight: 610;
+}
+:root[data-app-design="home_rooms"]
+  :is(.story-page-unified, .planen-overview)
+  .planen-segmented
+  > .planen-segment.is-active {
+  color: var(--home-accent);
+  background: var(--home-paper);
+  box-shadow: 0 0 0 1px var(--home-rule);
+}
+:root[data-app-design="home_rooms"] .story-page-unified .minimal-story-create {
+  display: flex;
+  justify-content: start;
+  margin-block: 0 1rem;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .minimal-story-create
+  .add-action {
+  min-block-size: 44px;
+  padding-inline: 0.8rem;
+  border-radius: 0.6rem;
+  color: var(--home-accent);
+  background: var(--home-tint);
+  box-shadow: none;
+}
+
+/* A horizontal album opening keeps its original photo, caption and date.
+ * Tall or covered media is allowed to use the full row. */
+:root[data-app-design="home_rooms"] .story-page-unified .momente-discover-page {
+  gap: clamp(1.65rem, 6vw, 2.9rem);
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-highlight {
+  margin: 0;
+  border: 1px solid var(--home-rule);
+  border-radius: 0.9rem;
+  background: var(--home-quiet);
+  box-shadow: none;
+  transform: none;
+}
+:root[data-app-design="home_rooms"] .story-page-unified .momente-hero-link {
+  gap: 0.7rem;
+  min-height: 44px;
+  align-items: center;
+  padding: 0.65rem;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link.has-media {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link.has-media
+  > * {
+  grid-area: auto;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link.has-media
+  .momente-hero-media {
+  aspect-ratio: 5 / 6;
+  padding: 0;
+  border: 0;
+  border-radius: 0.55rem;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link.has-media:has(.sensitive-media-preview) {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link.has-media
+  .momente-hero-media:has(.sensitive-media-preview) {
+  aspect-ratio: 16 / 10;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-media
+  img {
+  object-position: 64% center;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link
+  .momente-hero-body {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+  color: var(--home-ink);
+  padding: 0.4rem 0.22rem;
+  background: transparent;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link
+  .momente-hero-body
+  :is(.momente-hero-meta, .momente-hero-kicker) {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.73rem;
+  font-weight: 590;
+}
+:root[data-app-design="home_rooms"] .story-page-unified .momente-hero-title,
+:root[data-app-design="home_rooms"] .story-page-unified .momente-hero-quote {
+  margin: 0;
+  color: var(--home-ink);
+  font: 610 clamp(1.4rem, 5.3vw, 2.65rem) / 1.12 var(--font-display);
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .momente-hero-link:not(.has-media)
+  .momente-hero-body {
+  padding: 0.7rem;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .couple-experience-links {
+  padding-block-start: 0.85rem;
+  border-block-start: 1px solid var(--home-rule);
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .couple-experience-links
+  h2 {
+  color: var(--home-ink);
+  font: 600 1.3rem / 1.25 var(--font-display);
+  letter-spacing: -0.025em;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .couple-experience-links
+  a {
+  min-block-size: 48px;
+  padding: 0.46rem 0;
+  border-radius: 0;
+  background: transparent;
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  .couple-experience-links
+  a
+  > svg {
+  color: var(--home-accent);
+}
+:root[data-app-design="home_rooms"]
+  .story-page-unified
+  :is(.momente-band-heading, .story-year-month-header h2) {
+  color: var(--home-accent);
+  font: 630 1.07rem / 1.22 var(--font-display);
+  letter-spacing: -0.02em;
+}
+@media (max-width: 349px) {
+  :root[data-app-design="home_rooms"]
+    .story-page-unified
+    .momente-hero-link.has-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (min-width: 620px) {
+  :root[data-app-design="home_rooms"]
+    .story-page-unified
+    .momente-hero-link.has-media
+    .momente-hero-media {
+    aspect-ratio: 4 / 3;
+  }
+  :root[data-app-design="home_rooms"]
+    .story-page-unified
+    .momente-hero-link
+    .momente-hero-body {
+    padding: 0.85rem;
+  }
+}
+
+/* The active mode chooses plans, wishes or occasions. Inside plans, the
+ * next appointment is the only slot with a filled paper surface. */
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  .planen-status-scope
+  > button {
+  min-block-size: 44px;
+  padding-inline: 0.6rem;
+  border-radius: 0.6rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  .planen-status-scope
+  > button[aria-pressed="true"] {
+  background: var(--home-tint);
+  color: var(--home-accent);
+}
+:root[data-app-design="home_rooms"] .planen-overview .planen-search-toggle {
+  border-radius: 0.6rem;
+  border: 1px solid var(--home-rule);
+  background: transparent;
+  color: var(--home-accent);
+  box-shadow: none;
+}
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  :is(.planen-next > h2, .planen-agenda > h2, .planen-section-heading h2) {
+  color: var(--home-accent);
+  font: 660 0.85rem / 1.25 var(--font-ui);
+  text-transform: none;
+  letter-spacing: 0;
+}
+:root[data-app-design="home_rooms"] .planen-overview .planen-next-link {
+  gap: 0.58rem;
+  padding: 1rem;
+  border: 1px solid var(--home-rule);
+  border-radius: 0.8rem;
+  background: var(--home-tint);
+  box-shadow: none;
+}
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  :is(
+    .planen-next-copy > strong,
+    .planen-next-copy .discreet-title-row strong
+  ) {
+  color: var(--home-ink);
+  font: 610 clamp(1.53rem, 6.6vw, 2.3rem) / 1.11 var(--font-display);
+  letter-spacing: -0.035em;
+}
+:root[data-app-design="home_rooms"] .planen-overview .planen-next-schedule {
+  width: fit-content;
+  margin: 0.12rem 0 0;
+  padding: 0.2rem 0.42rem;
+  border-radius: 0.35rem;
+  background: var(--home-paper);
+  color: var(--home-accent);
+  font-size: 0.83rem;
+  font-weight: 670;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  :is(.planen-agenda, .planen-undated) {
+  padding-block-start: 0.7rem;
+  border-block-start: 1px solid var(--home-rule);
+}
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  :is(.planen-agenda-link, .planen-undated-link, .planen-wish-link) {
+  min-block-size: 48px;
+  padding: 0.56rem 0;
+  background: transparent;
+}
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  :is(.planen-agenda-title, .planen-wish-copy > strong, .planen-undated-title) {
+  color: var(--home-ink);
+  font: 610 1.16rem / 1.19 var(--font-display);
+  letter-spacing: -0.02em;
+}
+:root[data-app-design="home_rooms"] .planen-overview .planen-agenda-schedule {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+:root[data-app-design="home_rooms"] .planen-overview .planen-wish-group > h2 {
+  color: var(--home-accent);
+  padding-block-end: 0.38rem;
+  border-block-end: 1px solid var(--home-rule);
+}
+:root[data-app-design="home_rooms"] .planen-overview .occasions-next {
+  background: var(--home-tint);
+  border: 1px solid var(--home-rule);
+  border-radius: 0.8rem;
+}
+:root[data-app-design="home_rooms"]
+  .planen-overview
+  .occasions-band-month.is-active {
+  color: var(--home-accent);
+  background: var(--home-tint);
+}
+:root[data-app-design="home_rooms"] .planen-overview .occasions-sheet {
+  padding: 0.75rem;
+  border: 1px solid var(--home-rule);
+  border-radius: 0.8rem;
+  background: var(--home-quiet);
+}
+
+/* Open memories like an individual album page, with the native back, edit,
+ * photo viewer, reaction and comments still in their normal order. */
+:root[data-app-design="home_rooms"] .memory-product-page {
+  gap: 0.8rem;
+}
+:root[data-app-design="home_rooms"] .memory-product-page .detail-headline {
+  display: grid;
+  gap: 0.38rem;
+  margin: 0 0 0.28rem;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  background: var(--home-quiet);
+}
+:root[data-app-design="home_rooms"] .memory-product-page .detail-content-title,
+:root[data-app-design="home_rooms"]
+  .memory-product-page
+  .page-heading:not(.composer-header)
+  h1 {
+  margin: 0;
+  color: var(--home-ink);
+  font: 610 clamp(1.65rem, 6.8vw, 2.7rem) / 1.14 var(--font-display);
+  letter-spacing: -0.034em;
+}
+:root[data-app-design="home_rooms"] .memory-product-page .moment-metadata time {
+  color: var(--home-accent);
+  font-weight: 620;
+}
+:root[data-app-design="home_rooms"]
+  .memory-product-page
+  .photo-gallery
+  .media-gallery-carousel-viewport {
+  border-radius: 0.85rem;
+  background: var(--home-quiet);
+}
+:root[data-app-design="home_rooms"] .memory-product-page .memory-detail-body {
+  color: var(--home-ink);
+}
+:root[data-app-design="home_rooms"] .memory-product-page .comments-panel {
+  border-color: var(--home-rule);
+}
+
+/* A plan opens as a schedule with its accompanying description below. */
+:root[data-app-design="home_rooms"] .page-plan-detail:not(.page-plan-composer) {
+  gap: 0.9rem;
+}
+:root[data-app-design="home_rooms"]
+  .page-plan-detail:not(.page-plan-composer)
+  .plan-detail-title {
+  margin-block-end: 0;
+  color: var(--home-ink);
+  font: 610 clamp(1.75rem, 7.1vw, 2.8rem) / 1.11 var(--font-display);
+  letter-spacing: -0.038em;
+}
+:root[data-app-design="home_rooms"]
+  .page-plan-detail:not(.page-plan-composer)
+  .planning-facts.planen-detail-summary {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--home-rule);
+  border-radius: 0.8rem;
+  background: var(--home-tint);
+  gap: 0.6rem;
+}
+:root[data-app-design="home_rooms"] .page-plan-detail .planen-detail-schedule {
+  color: var(--home-accent);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-app-design="home_rooms"]
+  .page-plan-detail
+  .plan-calendar-action
+  .button-link {
+  min-block-size: 44px;
+  background: var(--home-paper);
+  color: var(--home-accent);
+}
+:root[data-app-design="home_rooms"]
+  .page-plan-detail:not(.page-plan-composer)
+  .planen-section-content {
+  padding: 0.8rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}

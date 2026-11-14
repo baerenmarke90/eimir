@@ -6,7 +6,7 @@ import {
   useLayoutEffect,
   useState,
 } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
@@ -105,6 +105,7 @@ import {
 } from './CouplePresence';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { HomeRoomsLanding } from './HomeRoomsLanding';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
 import {
@@ -889,8 +890,11 @@ export function TodayPage({
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const handwriting = wirDesignId === WirDesignId.handwriting;
+  const homeRooms = wirDesignId === WirDesignId.home_rooms;
+  const [searchParams] = useSearchParams();
+  const homeLanding = homeRooms && searchParams.get('view') !== 'wir';
   const compactPresence =
-    handwriting || wirDesignId === WirDesignId.quiet_together;
+    handwriting || homeRooms || wirDesignId === WirDesignId.quiet_together;
   const sharedAlbum = wirDesignId === WirDesignId.shared_album;
   // "Verbunden": two portraits joined by a heart line (the default design).
   const connectedDesign = wirDesignId === WirDesignId.connected;
@@ -1635,7 +1639,7 @@ export function TodayPage({
   );
 
   const leadNote =
-    handwriting &&
+    (handwriting || homeLanding) &&
     keepsakeVisible &&
     !dashboardQuery.isCached &&
     !dashboardQuery.error
@@ -1662,7 +1666,7 @@ export function TodayPage({
       leadNote?.id === focalItem?.item.id);
 
   const handwritingFeature =
-    leadNote && leadNotePath ? (
+    handwriting && leadNote && leadNotePath ? (
       <TodayDestinationLink to={leadNotePath} className="handschrift-letter">
         <span className="handschrift-letter-kind">
           <EimirIcon name="momente" variant="filled" />
@@ -1828,9 +1832,35 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) =>
-    connectedDesign
-      ? renderConnectedHero(avatarAction, avatarOverlay)
-      : renderClassicHero(avatarAction, avatarOverlay);
+    homeLanding ? (
+      <HomeRoomsLanding
+        own={{ name: heroOwnName, photo: userAvatar.avatarUrl }}
+        partner={
+          partner
+            ? { name: partnerName, photo: partnerAvatar.avatarUrl }
+            : undefined
+        }
+        ownAction={dailyCheckIn?.ownAction}
+        partnerAction={
+          avatarAction && dailyCheckIn?.partnerAriaLabel
+            ? {
+                ...avatarAction,
+                label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+              }
+            : avatarAction
+        }
+        overlay={avatarOverlay}
+        note={
+          leadNotePath && leadNote?.titleOrText
+            ? { to: leadNotePath, text: leadNote.titleOrText, id: leadNote.id }
+            : undefined
+        }
+      />
+    ) : connectedDesign ? (
+      renderConnectedHero(avatarAction, avatarOverlay)
+    ) : (
+      renderClassicHero(avatarAction, avatarOverlay)
+    );
 
   const dailyQuote =
     account?.id && dailyQuoteApi && entitlementApi ? (
@@ -1898,6 +1928,8 @@ export function TodayPage({
           ) : (
             renderRelationshipHero()
           )
+        ) : homeLanding ? (
+          <HomeRoomsLanding />
         ) : null}
         {relationshipPresenceVisible ? dailyCheckIn?.panel : null}
         {dailyCheckIn?.announcement}
@@ -2234,7 +2266,13 @@ export function TodayPage({
         />
       ) : null}
 
-      {contentReady && dashboardQuery.data ? (
+      {homeLanding ? (
+        contentReady ? (
+          moduleContent.relationship_presence
+        ) : (
+          <HomeRoomsLanding />
+        )
+      ) : contentReady && dashboardQuery.data ? (
         <div className="today-content">
           <PageHeader
             variant="root"

@@ -51,7 +51,9 @@ export function GamesProductArea({
   >;
 }) {
   const { t } = useTranslation();
-  const handwriting = useWirDesign()?.current === WirDesignId.handwriting;
+  const design = useWirDesign()?.current;
+  const showDetectiveIcon =
+    design === WirDesignId.handwriting || design === WirDesignId.home_rooms;
   const [activeLocalGame, setActiveLocalGame] = useState<'perspective' | null>(
     null,
   );
@@ -123,7 +125,7 @@ export function GamesProductArea({
                       (
                         [
                           'foto',
-                          handwriting ? 'suche' : 'wuensche',
+                          showDetectiveIcon ? 'suche' : 'wuensche',
                           'gemeinsam',
                         ] satisfies EimirIconName[]
                       )[index]

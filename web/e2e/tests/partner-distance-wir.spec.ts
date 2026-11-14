@@ -14,8 +14,9 @@ import {
 
 /**
  * #1792 partner distance, Wir slice: the distance line inside the couple
- * hero, the viewer-only display preference in Settings › Wir and the
- * dedicated "where we are" map task. Positions travel only in request bodies,
+ * hero (or in its own place when moved), the Wir module in Settings › Wir,
+ * the sharer's status chip for one-way sharing and the dedicated "where we
+ * are" map task. Positions travel only in request bodies,
  * and nothing is polled.
  */
 
@@ -35,6 +36,7 @@ type Scenario = {
 
 type Server = {
   distanceBodies: Record<string, unknown>[];
+  modulePreferences: { moduleKey: string; visible: boolean }[];
   mapReads: number;
   settingsWrites: number;
   urls: string[];
@@ -78,6 +80,7 @@ async function distanceMocks(
     mapReads: 0,
     settingsWrites: 0,
     urls: [],
+    modulePreferences: [],
   };
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -122,7 +125,21 @@ async function distanceMocks(
       });
     }
     if (method === 'GET' && url.pathname.endsWith('/dashboard/preferences')) {
-      return route.fulfill({ json: { items: [] } });
+      return route.fulfill({ json: { items: server.modulePreferences } });
+    }
+    const moduleMatch = url.pathname.match(
+      /\/dashboard\/preferences\/([a-z_]+)$/,
+    );
+    if (method === 'PATCH' && moduleMatch && moduleMatch[1] !== 'order') {
+      const body = request.postDataJSON() as { visible: boolean };
+      const item = { moduleKey: moduleMatch[1], visible: body.visible };
+      server.modulePreferences = [
+        ...server.modulePreferences.filter(
+          (entry) => entry.moduleKey !== item.moduleKey,
+        ),
+        item,
+      ];
+      return route.fulfill({ json: item });
     }
     if (method === 'GET' && url.pathname.endsWith('/activity')) {
       return route.fulfill({
@@ -366,7 +383,7 @@ test('distance line states: nearby, range, earlier, own location missing, unavai
 
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   await grantBrowserLocation(page);
-  await distanceMocks(page, { distance: null, map: false });
+  await distanceMocks(page, { distance: null, map: false, ownState: 'OFF' });
   await page.reload();
   await settleStartSheet(page);
   await expect(hero(page).getByRole('heading', { level: 2 })).toBeVisible();
@@ -374,7 +391,36 @@ test('distance line states: nearby, range, earlier, own location missing, unavai
   await expect(hero(page).locator('.partner-distance-signal')).toHaveCount(0);
 });
 
-test('Settings › Wir hides the line for this viewer only', async ({ page }) => {
+test('one-way sharing: the sharer sees a status chip, never a distance', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  const server = await distanceMocks(page, {
+    distance: null,
+    map: false,
+    ownState: 'ACTIVE',
+  });
+  await openWir(page);
+  const chip = hero(page).getByRole('link', {
+    name: forPartner(copy.distanceSharingLabel),
+  });
+  await expect(chip).toBeVisible();
+  await expect(chip).toContainText(forPartner(copy.distanceSharing));
+  await expect(chip).toHaveAttribute(
+    'href',
+    '/more/settings/relationship/location',
+  );
+  await expect(hero(page).getByText(/km/)).toHaveCount(0);
+  // The status chip derives nothing from the partner's map area.
+  expect(server.mapReads).toBe(0);
+  await expectAxeClean(page, '.today-hero');
+  await captureScreenshot(page, info, 'partner-distance-wir-sharing-390.png');
+});
+
+test('Settings › Wir shows, hides and moves the distance module', async ({
+  page,
+}, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await grantBrowserLocation(page);
   const server = await distanceMocks(page);
@@ -384,21 +430,58 @@ test('Settings › Wir hides the line for this viewer only', async ({ page }) =>
   ).toBeVisible();
 
   await page.goto('/more/settings/today');
-  const toggle = page.getByRole('checkbox', { name: copy.wirToggleLabel });
+  const toggle = page.getByRole('checkbox', { name: copy.wirModuleLabel });
   await expect(toggle).toBeChecked();
-  await expect(page.getByText(copy.wirToggleHint)).toBeVisible();
-  await toggle.uncheck();
-  await expect(toggle).not.toBeChecked();
+  await expect(
+    page.getByRole('button', { name: new RegExp(copy.wirModuleLabel) }),
+  ).toBeVisible();
+  await captureScreenshot(page, info, 'partner-distance-wir-settings-390.png');
+  // Hiding moves the row into the collapsed "hidden" group like every other
+  // module, so the click is checked through the saved preference.
+  await toggle.click();
+  await expect
+    .poll(() => server.modulePreferences)
+    .toContainEqual({ moduleKey: 'partner_distance', visible: false });
 
   await page.goto('/today');
   await settleStartSheet(page);
   await expect(hero(page).getByRole('heading', { level: 2 })).toBeVisible();
   const reads = server.distanceBodies.length;
   await page.waitForTimeout(500);
-  await expect(hero(page).locator('.partner-distance-signal')).toHaveCount(0);
+  await expect(page.locator('.partner-distance-signal')).toHaveCount(0);
   expect(server.distanceBodies.length).toBe(reads);
-  // A display preference never writes anyone's sharing.
+  // A Wir module preference never writes anyone's sharing.
   expect(server.settingsWrites).toBe(0);
+});
+
+test('a moved distance module renders in its own place below the hero', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  const server = await distanceMocks(page);
+  // Saved order: the distance after the daily quote instead of the hero.
+  server.modulePreferences = [
+    'relationship_presence',
+    'shared_experience',
+    'daily_quote',
+    'partner_distance',
+    'keepsake',
+    'upcoming',
+    'pinned_collection',
+    'retrospective',
+    'relationship_signal',
+    'monthly_highlights',
+    'recent_shared',
+    'shared_story_summary',
+  ].map((moduleKey) => ({ moduleKey, visible: true }));
+  await openWir(page);
+  await expect(hero(page).locator('.partner-distance-signal')).toHaveCount(0);
+  const moved = page.locator(
+    '.today-partner-distance .partner-distance-signal',
+  );
+  await expect(moved).toBeVisible();
+  await expect(moved).toContainText(between('340 km'));
 });
 
 test('without Pro: no line, no distance read, neutral map state', async ({

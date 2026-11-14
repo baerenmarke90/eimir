@@ -4,7 +4,6 @@ import {
   distanceUnitFor,
   formatDistanceBand,
   isDistanceFresh,
-  partnerDistanceOnWirKey,
   readPartnerDistanceLine,
 } from './partnerDistance';
 
@@ -104,17 +103,31 @@ describe('readPartnerDistanceLine', () => {
     ).resolves.toEqual({ kind: 'ownMissing' });
   });
 
-  it('stays hidden without a reason when the server reports nothing', async () => {
+  it('stays hidden without a reason when nobody shares', async () => {
     const api = fakeApi({ distance: { available: false } });
     await expect(
       readPartnerDistanceLine({
         api,
         spaceId: 'space-1',
-        ownSharingActive: true,
+        ownSharingActive: false,
         permission: async () => 'granted',
         measure: async () => position,
       }),
     ).resolves.toEqual({ kind: 'hidden' });
+    expect(api.getPartnerLocationMap).not.toHaveBeenCalled();
+  });
+
+  it('shows the sharer a status chip when only they share', async () => {
+    const api = fakeApi({ distance: { available: false } });
+    const line = await readPartnerDistanceLine({
+      api,
+      spaceId: 'space-1',
+      ownSharingActive: true,
+      permission: async () => 'granted',
+      measure: async () => position,
+    });
+    expect(line).toEqual({ kind: 'sharing' });
+    // Nothing about the partner's position is read for the status chip.
     expect(api.getPartnerLocationMap).not.toHaveBeenCalled();
   });
 
@@ -190,14 +203,5 @@ describe('freshness and preference key', () => {
     expect(
       isDistanceFresh(new Date(now.getTime() - DISTANCE_FRESH_MS - 1), now),
     ).toBe(false);
-  });
-
-  it('scopes the display preference to instance, account and Space', () => {
-    expect(partnerDistanceOnWirKey('https://a.example/', 'acc', 'sp')).toBe(
-      partnerDistanceOnWirKey('https://a.example', 'acc', 'sp'),
-    );
-    expect(partnerDistanceOnWirKey('https://a.example', 'acc', 'sp')).not.toBe(
-      partnerDistanceOnWirKey('https://a.example', 'acc', 'other'),
-    );
   });
 });

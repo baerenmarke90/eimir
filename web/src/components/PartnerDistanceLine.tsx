@@ -11,7 +11,6 @@ import {
   isDistanceFresh,
   type PartnerDistanceLine as PartnerDistanceLineState,
   usePartnerDistanceLine,
-  usePartnerDistanceOnWir,
 } from '../client/partnerDistance';
 import {
   PARTNER_LOCATION_CAPABILITY,
@@ -105,9 +104,11 @@ function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
  */
 export function PartnerDistanceLine({
   line,
+  partnerName,
   now = new Date(),
 }: {
   line: PartnerDistanceLineState;
+  partnerName: string;
   now?: Date;
 }) {
   const { t } = useTranslation();
@@ -115,6 +116,26 @@ export function PartnerDistanceLine({
   const distanceText = useDistanceText();
 
   if (line.kind === 'hidden') return null;
+
+  if (line.kind === 'sharing') {
+    return (
+      <div className="partner-distance-signal">
+        <Link
+          className="partner-distance-line is-sharing is-link"
+          to={PARTNER_LOCATION_SETTINGS_ROUTE}
+          aria-label={t('partnerLocation.distanceSharingLabel', {
+            partner: partnerName,
+          })}
+        >
+          <Glyph kind="heart" />
+          <span className="partner-distance-value">
+            {t('partnerLocation.distanceSharing', { partner: partnerName })}
+          </span>
+          <Glyph kind="chevron" />
+        </Link>
+      </div>
+    );
+  }
 
   if (line.kind === 'ownMissing') {
     return (
@@ -186,24 +207,24 @@ export function PartnerDistanceLine({
 }
 
 /**
- * Wir orchestration (#1792): trigger = paired, `presence.location` held, the
- * feature available and the viewer's own display preference on; the server
- * decides the rest. Errors and offline reads leave the line absent.
+ * Wir orchestration (#1792): trigger = paired, `presence.location` held and the
+ * feature available; the Wir module preference (`partner_distance`) decides
+ * whether and where it appears. The server decides the rest. Errors and
+ * offline reads leave the line absent.
  */
 export function WirPartnerDistance({
   api,
   entitlementApi,
-  instance,
   accountId,
   spaceId,
+  partnerName,
 }: {
   api: Pick<PartnerLocationApi, 'getPartnerDistance' | 'getPartnerLocationMap'>;
   entitlementApi: EntitlementsApi | undefined;
-  instance: string;
   accountId: string;
   spaceId: string;
+  partnerName: string;
 }) {
-  const preference = usePartnerDistanceOnWir({ instance, accountId, spaceId });
   const load = useMemo(
     () =>
       entitlementApi ? entitlementLoader(entitlementApi, spaceId) : undefined,
@@ -222,11 +243,10 @@ export function WirPartnerDistance({
     enabled: false,
   }).data;
   const enabled =
-    preference.shown &&
     capability.data === true &&
     !capability.isError &&
     settings?.available === true;
   const query = usePartnerDistanceLine({ api, accountId, spaceId, enabled });
   if (!enabled || query.isError || !query.data) return null;
-  return <PartnerDistanceLine line={query.data} />;
+  return <PartnerDistanceLine line={query.data} partnerName={partnerName} />;
 }

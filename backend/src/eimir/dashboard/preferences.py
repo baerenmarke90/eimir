@@ -44,6 +44,7 @@ class DashboardModuleKey(StrEnum):
     """Stable internal product keys for registered Dashboard modules."""
 
     RELATIONSHIP_PRESENCE = "relationship_presence"
+    PARTNER_DISTANCE = "partner_distance"
     SHARED_EXPERIENCE = "shared_experience"
     DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
@@ -108,6 +109,9 @@ class DashboardModuleState:
 # same per-Account+Space visibility behavior as every other Dashboard module.
 CATALOG: tuple[DashboardModuleDefinition, ...] = (
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_PRESENCE, default_visible=True),
+    # #1792: the partner distance signal; directly below the couple hero by
+    # default, hideable and movable like every other Wir module.
+    DashboardModuleDefinition(key=DashboardModuleKey.PARTNER_DISTANCE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.SHARED_EXPERIENCE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.DAILY_QUOTE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
@@ -229,6 +233,7 @@ def set_module_order(
         DashboardModuleKey.DAILY_QUOTE.value,
         DashboardModuleKey.SHARED_EXPERIENCE.value,
         DashboardModuleKey.RETROSPECTIVE.value,
+        DashboardModuleKey.PARTNER_DISTANCE.value,
     }
     missing = expected - set(module_keys)
     if (

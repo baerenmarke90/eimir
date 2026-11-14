@@ -8,15 +8,15 @@ selectable afterwards and is then stored as an explicit choice.
 The row ``version`` is deliberately not incremented. A client holding an older
 concurrency token keeps a valid token and simply reads the new default.
 
-Revision ID: 0130
-Revises: 0129
+Revision ID: 0131
+Revises: 0130
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0130"
-down_revision = "0129"
+revision = "0131"
+down_revision = "0130"
 branch_labels = None
 depends_on = None
 

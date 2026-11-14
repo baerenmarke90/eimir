@@ -37,6 +37,32 @@ class PhotoConnection(IdMixin, VersionMixin, Base):
     __table_args__ = (UniqueConstraint("account_id", "provider"),)
 
 
+class GoogleAccountHintPayload(ProtectedPayload):
+    """The Google account address that the Account asked to be pre-selected (#1467).
+
+    Only a convenience hint for the OAuth ``login_hint``. It is personal data, never an identity
+    proof and never a credential.
+    """
+
+    account_id: UUID
+    email: str = Field(repr=False)
+
+
+class GoogleAccountHint(IdMixin, VersionMixin, Base):
+    __tablename__ = "google_account_hints"
+
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    crypto_version: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=2)
+    payload: Mapped[GoogleAccountHintPayload] = mapped_column(
+        ProtectedPayloadJSON(GoogleAccountHintPayload), nullable=False
+    )
+
+
 class SelectedPhotoItem(ProtectedPayload):
     id: str
     source_id: str = Field(repr=False)

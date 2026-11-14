@@ -49,6 +49,11 @@ import {
     CollectionItemUpdateToJSON,
 } from '../models/CollectionItemUpdate';
 import {
+    type CollectionKind,
+    CollectionKindFromJSON,
+    CollectionKindToJSON,
+} from '../models/CollectionKind';
+import {
     type CollectionOrder,
     CollectionOrderFromJSON,
     CollectionOrderToJSON,
@@ -132,6 +137,7 @@ export interface ListCollectionsRequest {
     limit?: number;
     scope?: CollectionScope;
     ids?: Array<string> | null;
+    kind?: CollectionKind | null;
 }
 
 export interface ReorderCollectionItemsRequest {
@@ -673,6 +679,10 @@ export class CollectionsApi extends runtime.BaseAPI {
 
         if (requestParameters['ids'] != null) {
             queryParameters['ids'] = requestParameters['ids'];
+        }
+
+        if (requestParameters['kind'] != null) {
+            queryParameters['kind'] = requestParameters['kind'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

@@ -5,15 +5,15 @@ change on upgrade. Older application versions cannot decode that identifier
 when reading the saved preference. An explicit database downgrade therefore
 resets just that design to Verbunden and invalidates its appearance ETag.
 
-Revision ID: 0131
-Revises: 0130
+Revision ID: 0132
+Revises: 0131
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0131"
-down_revision = "0130"
+revision = "0132"
+down_revision = "0131"
 branch_labels = None
 depends_on = None
 

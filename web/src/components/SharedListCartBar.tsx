@@ -1,3 +1,4 @@
+import { CART_TARGET_ATTRIBUTE } from './cartFlight';
 import { type ReactNode, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { useTranslation } from '../i18n';
@@ -48,7 +49,10 @@ export function SharedListCartBar({
   );
   return (
     <>
-      <div className="shared-list-cartbar-wrap">
+      <div
+        className="shared-list-cartbar-wrap"
+        {...{ [CART_TARGET_ATTRIBUTE]: '' }}
+      >
         <button
           ref={triggerRef}
           type="button"

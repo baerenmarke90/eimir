@@ -16,7 +16,7 @@ pytestmark = [pytest.mark.integration, requires_database]
 
 @pytest.mark.parametrize(
     ("revision", "reset_design"),
-    [("0131", WirDesignId.SHARED_ALBUM), ("0132", WirDesignId.QUIET_TOGETHER)],
+    [("0132", WirDesignId.SHARED_ALBUM), ("0133", WirDesignId.QUIET_TOGETHER)],
 )
 def test_downgrade_resets_only_the_added_design_and_invalidates_its_etag(
     session: Session, revision: str, reset_design: WirDesignId

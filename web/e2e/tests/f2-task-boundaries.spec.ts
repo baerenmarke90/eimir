@@ -749,6 +749,10 @@ test('an older Memory returns to the same loaded Timeline range and position', a
   const source = page
     .getByRole('link')
     .filter({ has: page.getByText(older.title, { exact: true }) });
+  // The root tab's opening rise (#1861) moves the rows for a moment. A click on
+  // a moving row is retried with a different scroll alignment, which would
+  // change the position this test compares against.
+  await expect(page.locator('.page[data-root-intro]')).toHaveCount(0);
   await source.scrollIntoViewIfNeeded();
   const before = await source.boundingBox();
   expect(before).not.toBeNull();

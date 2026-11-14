@@ -584,6 +584,25 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
     expect(screen.queryByRole('button', { name: cartBarName })).toBeNull();
   });
 
+  it('marks the entry that was just checked so it can glide into its new place', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', {
+        name: fill(m5s3.collection.markDone, { title: 'Milch' }),
+      }),
+    );
+
+    const moved = await screen.findByRole('button', {
+      name: fill(m5s3.collection.markOpen, { title: 'Milch' }),
+    });
+    expect(moved.closest('li')?.getAttribute('data-arriving')).toBe('true');
+    // The other entries do not move with it.
+    expect(
+      screen.getByText('Brot').closest('li')?.hasAttribute('data-arriving'),
+    ).toBe(false);
+  });
+
   describe('suggestions and finishing the trip', () => {
     it('offers what was bought before, leaves out what is on the list and says who sees it', async () => {
       listSuggestions.mockResolvedValue({

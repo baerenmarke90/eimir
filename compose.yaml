@@ -36,6 +36,7 @@
         "EIMIR_ENVIRONMENT": "production",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+        "EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE": "",
         "EIMIR_MAIL_FROM": "${EIMIR_MAIL_FROM:?Set the existing instance value in Arcane}",
         "EIMIR_MAIL_TRANSPORT": "smtp",
         "EIMIR_MEDIA_ROOT": "/var/lib/eimir/media",
@@ -84,7 +85,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:6b1364a689d61b889fa7a0f88fa273b4429bddfde77fddffae32186440594e51",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:cd2927dd0bcda9a4a6446c217153913d9d0a3505c9922e66ab315dcebba2099c",
       "networks": {
         "app": {
           "aliases": [
@@ -133,7 +134,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:6b1364a689d61b889fa7a0f88fa273b4429bddfde77fddffae32186440594e51",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:cd2927dd0bcda9a4a6446c217153913d9d0a3505c9922e66ab315dcebba2099c",
       "networks": {
         "app": null
       },
@@ -173,7 +174,7 @@
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_VIDEO_UPLOAD_ENABLED": "true"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:340f3893d75cf71b215ac0aa7f2c15b6228954449128d88859171ad79370faf7",
+      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:05da973de07c4b72ed6da9e5bef5eef38a02fa38a431ec90a24e4353414fec14",
       "init": true,
       "mem_limit": "1073741824",
       "networks": {
@@ -212,7 +213,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:d5f10cadf237a5126f67b02685dd6e09cd167f567d1e199f3470bc7048e4c3db",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:b10fea47781a72c29b631ede2cba35e1b0f3e0538b96150c2c58af1c11dd8c80",
       "networks": {
         "app": {},
         "proxy": {
@@ -253,6 +254,7 @@
         "EIMIR_ENVIRONMENT": "production",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+        "EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE": "",
         "EIMIR_MAIL_FROM": "${EIMIR_MAIL_FROM:?Set the existing instance value in Arcane}",
         "EIMIR_MAIL_TRANSPORT": "smtp",
         "EIMIR_MEDIA_ROOT": "/var/lib/eimir/media",
@@ -288,7 +290,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:6b1364a689d61b889fa7a0f88fa273b4429bddfde77fddffae32186440594e51",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:cd2927dd0bcda9a4a6446c217153913d9d0a3505c9922e66ab315dcebba2099c",
       "networks": {
         "app": null
       },

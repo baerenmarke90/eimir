@@ -26,11 +26,26 @@ function DesignPreview({ design }: { design: WirDesignId }) {
       aria-hidden="true"
     >
       <span className="wir-design-preview-hero">
-        <span className="wir-design-preview-portraits">
-          <i />
-          <i />
-        </span>
-        <span className="wir-design-preview-names" />
+        {design === WirDesignId.shared_album ? (
+          <>
+            <span className="wir-design-preview-person">
+              <i />
+              <b />
+            </span>
+            <span className="wir-design-preview-person">
+              <i />
+              <b />
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="wir-design-preview-portraits">
+              <i />
+              <i />
+            </span>
+            <span className="wir-design-preview-names" />
+          </>
+        )}
       </span>
       <span className="wir-design-preview-vibes">
         <i />

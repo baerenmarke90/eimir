@@ -14,6 +14,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.shared_achievements import (
     COLLECTION_COMPLETED_ACHIEVEMENT,
@@ -406,7 +407,19 @@ def delete_collection(
     response_model=CollectionItemDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createCollectionItem",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the original Item in its "
+                "current state; no second Item is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": CollectionItemDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_collection_item(
     authorization: Authorization,
@@ -414,17 +427,21 @@ def create_collection_item(
     response: Response,
     body: CollectionItemCreate,
     collection_id: Annotated[str, Path(alias="collectionId")],
+    idempotency_key: IdempotencyKey,
 ) -> CollectionItemDetail:
-    item = service.create_item(
+    result = service.create_item_once(
         session,
         authorization,
         collection_id,
+        idempotency_key=idempotency_key,
         title=body.title,
         completed=body.completed,
         quantity=body.quantity,
     )
-    response.headers["ETag"] = etag_for(item.version)
-    return collection_item_detail(session, item)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.item.version)
+    return collection_item_detail(session, result.item)
 
 
 @router.patch(

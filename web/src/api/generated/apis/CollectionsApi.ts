@@ -73,6 +73,7 @@ export interface CreateCollectionItemRequest {
     collectionId: string;
     spaceId: string;
     collectionItemCreate: CollectionItemCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteCollectionRequest {
@@ -213,6 +214,10 @@ export class CollectionsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/items`;

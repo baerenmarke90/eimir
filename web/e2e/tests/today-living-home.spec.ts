@@ -2120,18 +2120,25 @@ test('the add action stays put while a tab slides in', async ({ page }) => {
       return new Promise<{ positions: string[]; slidePositions: number }>(
         (resolve, reject) => {
           let frame: number;
+          // The address changes before the destination commits and sets the
+          // slide marker. On a slow runner a loop that only waited for the
+          // address ended before the slide began and measured nothing, so the
+          // slide must have been seen before it can count as finished.
+          let sawSlide = false;
           const timeout = window.setTimeout(() => {
             cancelAnimationFrame(frame);
-            reject(new Error('The tab slide did not complete.'));
+            reject(
+              new Error(
+                sawSlide
+                  ? 'The tab slide did not complete.'
+                  : 'The tab slide did not start.',
+              ),
+            );
           }, 5000);
-          // The URL changes on click, but React may commit the destination
-          // (and start the slide) only after the first frame. Finish once the
-          // slide has run and ended, not on the first frame at the new path.
-          let slid = false;
           const tick = () => {
-            const sliding = Boolean(sample());
-            slid ||= sliding;
-            if (slid && !sliding && window.location.pathname === nextPath) {
+            const sliding = sample();
+            if (sliding) sawSlide = true;
+            if (sawSlide && !sliding && window.location.pathname === nextPath) {
               clearTimeout(timeout);
               resolve({ positions: [...positions], slidePositions });
             } else {

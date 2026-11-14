@@ -55,17 +55,6 @@ import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
 import { useNavigationMotion } from './useNavigationMotion';
 
-/**
- * Primary roots whose Expanded layout starts at the leading edge instead of
- * floating in the middle of a wide window. Detail and editor pages keep their
- * own reading columns.
- */
-const START_ALIGNED_ROOTS: ReadonlySet<string> = new Set([
-  '/today',
-  '/story',
-  '/story/map',
-  '/plan',
-]);
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
@@ -386,9 +375,6 @@ function AuthenticatedAppShell({
             className="product-main"
             data-area={
               location.pathname.startsWith('/more') ? 'more' : undefined
-            }
-            data-expanded-align={
-              START_ALIGNED_ROOTS.has(pathname) ? 'start' : undefined
             }
             tabIndex={-1}
           >

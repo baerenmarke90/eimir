@@ -725,46 +725,49 @@ for (const [width, colorScheme] of [
   });
 }
 
-test('Expanded: Wir, Planen and Momente start at the leading edge without moving the Momente tabs', async ({
+test('Expanded: the Planen column and the Planen/Momente view switches are centered', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1920, height: 1000 });
   await installMocks(page);
   await signIn(page);
 
-  const mainBox = async () => {
-    const box = await page.locator('#main-content').boundingBox();
-    if (!box) throw new Error('The main region must be laid out.');
-    return box;
+  const centerOf = async (selector: string) => {
+    const box = await page.locator(selector).first().boundingBox();
+    if (!box) throw new Error(`${selector} must be laid out.`);
+    return box.x + box.width / 2;
+  };
+  const expectCentered = async (selector: string) => {
+    await expect
+      .poll(async () => Math.abs((await centerOf(selector)) - 960), {
+        message: `${selector} is centered in the window`,
+      })
+      .toBeLessThanOrEqual(1);
   };
   const shot = (name: string) =>
-    captureScreenshot(page, testInfo, `expanded-leading-edge-${name}.png`);
-
-  for (const [name, path] of [
-    ['wir', '/today'],
-    ['plan', '/plan'],
-    ['story', '/story'],
-  ] as const) {
-    await page.goto(path);
-    await expect(page.locator('#main-content')).toBeVisible();
-    expect((await mainBox()).x, `${name} starts at the leading edge`).toBe(32);
-    await shot(name);
-  }
+    captureScreenshot(page, testInfo, `expanded-centered-${name}.png`);
 
   await page.goto('/plan');
-  for (const name of [m5s3.overview.segmentWishes, importantDates.heading]) {
-    await page.getByRole('tab', { name }).click();
-    expect((await mainBox()).x).toBe(32);
+  for (const name of [
+    null,
+    m5s3.overview.segmentWishes,
+    importantDates.heading,
+  ]) {
+    if (name) await page.getByRole('tab', { name }).click();
+    await expectCentered('.planen-segmented');
+    await expectCentered('.page.planen-overview');
+    const column = await page.locator('.page.planen-overview').boundingBox();
+    expect(column?.width).toBeLessThanOrEqual(720);
   }
+  await shot('plan');
 
   await page.goto('/story');
-  await page.getByRole('tab', { name: memoryMap.entry }).click();
-  expect((await mainBox()).x).toBe(32);
+  await expectCentered('.story-view-tabs');
+  await shot('story');
   await page.getByRole('tab', { name: de.story.tabTimeline }).click();
-  await expect(page.locator('#momente-panel-timeline')).toBeVisible();
-  // The Momente tabs stay put; only the diary's own reading column is centered.
-  expect((await mainBox()).x).toBe(32);
-  await shot('diary');
+  await expectCentered('.story-view-tabs');
+  await page.getByRole('tab', { name: memoryMap.entry }).click();
+  await expectCentered('.story-view-tabs');
 
   await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);

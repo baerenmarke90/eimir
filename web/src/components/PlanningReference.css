@@ -780,8 +780,19 @@
 }
 
 @media (min-width: 840px) {
+  /* Expanded: the Planen column and the view switch sit in the middle of the
+     window, like the diary reading column, instead of hugging the left edge. */
+  .page.planen-overview {
+    width: min(100%, var(--reading-max));
+    margin-inline: auto;
+  }
+
   .planen-overview .planen-panel {
-    max-width: var(--reading-max);
+    max-width: none;
+  }
+
+  .planen-segmented {
+    margin-inline: auto;
   }
 }
 

@@ -88,6 +88,7 @@ async function installShoppingMocks(page: Page) {
   }[] = [];
   const updates: { itemId: string; completed?: boolean; ifMatch?: string }[] =
     [];
+  const createBodies: { title: string; quantity?: string | null }[] = [];
   const state = { failCreates: false, createCount: 0 };
 
   const collection = () => ({
@@ -380,7 +381,11 @@ async function installShoppingMocks(page: Page) {
       pathname ===
         `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items`
     ) {
-      const body = request.postDataJSON() as { title: string };
+      const body = request.postDataJSON() as {
+        title: string;
+        quantity?: string | null;
+      };
+      createBodies.push(body);
       const key = request.headers()['idempotency-key'];
       if (state.failCreates) {
         createRequests.push({ key, title: body.title, status: 503 });
@@ -406,6 +411,7 @@ async function installShoppingMocks(page: Page) {
         body.title,
         items.length,
       );
+      item.quantity = body.quantity ?? null;
       items.push(item);
       if (key) created.set(key, item);
       state.createCount += 1;
@@ -432,6 +438,20 @@ async function installShoppingMocks(page: Page) {
     updates: () => updates,
     titles: () => items.map((item) => item.title),
     item: (title: string) => items.find((entry) => entry.title === title),
+    createBodies: () => createBodies,
+    /** The partner changes the list on their own phone. */
+    partnerAdds: (title: string) => {
+      items.push({
+        ...makeItem(
+          `00000000-0000-0000-0000-${String(80 + serial++).padStart(12, '0')}`,
+          title,
+          items.length,
+        ),
+        createdBy: PARTNER_ID,
+        creator: { id: PARTNER_ID, displayName: 'Ben' },
+      });
+      version += 1;
+    },
     pin: (id: string | null) => {
       pinnedCollectionId = id;
     },
@@ -642,4 +662,100 @@ test('the waiting state reflows at 320px with text enlarged to 200%', async ({
   });
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
+});
+
+/**
+ * #1808 (step C1): the list page leads with how much is missing and who did
+ * what. Anna created the list (rose), Ben is the other person (blue).
+ */
+function seedComposition(
+  api: Awaited<ReturnType<typeof installShoppingMocks>>,
+) {
+  Object.assign(api.item('Milch') ?? {}, {
+    createdBy: PARTNER_ID,
+    creator: { id: PARTNER_ID, displayName: 'Ben' },
+  });
+  Object.assign(api.item('Brot') ?? {}, { quantity: '2' });
+  Object.assign(api.item('Äpfel') ?? {}, {
+    quantity: '1 kg',
+    completed: true,
+    completedBy: PARTNER_ID,
+    completer: { id: PARTNER_ID, displayName: 'Ben' },
+  });
+}
+
+const summaryText = m5s3.collection.summary;
+
+for (const view of VIEWS) {
+  test(`the list leads with its count, bar, markers and tray (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    await signIn(page);
+    await openList(page);
+
+    const summary = page.getByRole('region', { name: summaryText.region });
+    await expect(summary).toContainText(
+      fill(summaryText.shoppingOpen_other, { count: 2 }),
+    );
+    await expect(summary).toContainText(
+      fill(summaryText.shoppingShare, { name: 'Ben', count: 1 }),
+    );
+    await expect(
+      page.getByRole('heading', {
+        name: new RegExp(m5s3.collection.trayShopping),
+      }),
+    ).toBeVisible();
+    await expect(page.getByText('2×')).toBeVisible();
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shopping-list-composition-${view.file}.png`),
+      animations: 'disabled',
+    });
+
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test('an entry with a quantity is sent with it and the input stays ready', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+
+  await page.getByLabel(m5s3.collection.newItem).fill('Hafermilch');
+  await page.getByLabel(m5s3.collection.quantityLabel).fill('2 l');
+  await page.getByRole('button', { name: m5s3.collection.addItem }).click();
+
+  await expect(page.getByText('Hafermilch')).toBeVisible();
+  await expect(page.getByText('2 l')).toBeVisible();
+  await expect(page.getByLabel(m5s3.collection.newItem)).toBeFocused();
+  await expect
+    .poll(() => api.createBodies().map((body) => body.quantity))
+    .toEqual(['2 l']);
+});
+
+test("the partner's new entry shows up on an open list without a reload", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+
+  api.partnerAdds('Salz');
+
+  await expect(page.getByText('Salz')).toBeVisible({ timeout: 20_000 });
+  await expect(
+    page.getByText(fill(m5s3.collection.addedBy, { name: 'Ben' })).first(),
+  ).toBeAttached();
 });

@@ -440,8 +440,14 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
       name: m5s3.collection.markOpen.replace('{{title}}', 'Dschungelcamp'),
     }),
   ).toHaveAttribute('aria-pressed', 'true');
+  // A finished entry moves into the tray under the open ones.
+  await expect(
+    page
+      .getByRole('region', { name: m5s3.collection.trayGeneric })
+      .getByText('Dschungelcamp'),
+  ).toBeVisible();
   await expect(page.locator('.shared-list-items > li').first()).toContainText(
-    'Dschungelcamp',
+    'Sommerhaus',
   );
   await page
     .getByRole('button', {

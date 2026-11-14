@@ -24,6 +24,11 @@ import {
   authorSummaryQueryKeys,
   invalidateCollectionConsumers,
 } from '../client/authorSummaryConsumers';
+import {
+  knownPersonName,
+  partnerTone,
+  summarizeSharedList,
+} from '../client/sharedListSummary';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
@@ -59,6 +64,7 @@ import {
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
+import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
 import { useCollectionOutbox } from './useCollectionOutbox';
 import { useCollectionPin } from './useCollectionPin';
@@ -76,6 +82,13 @@ type Props = {
   onPendingChange?: (pending: boolean) => void;
   onDirtyChange?: (dirty: boolean) => void;
 };
+/**
+ * How often an open list asks for its partner's changes (#1808). It runs only
+ * while the page is visible and online; coming back to the app refetches once
+ * the saved copy is older than `LIST_RETURN_STALE_MS`.
+ */
+const LIST_POLL_INTERVAL_MS = 12_000;
+const LIST_RETURN_STALE_MS = 10_000;
 type ReorderRequest = { collection: CollectionDetail; itemIds: string[] };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -125,9 +138,13 @@ function CollectionProductDetail({
   const [isEditing, setIsEditing] = useState(false);
   const [isSorting, setIsSorting] = useState(false);
   const createItemInFlightRef = useRef(false);
+  const refocusAddRef = useRef(false);
+  const refocusToggleRef = useRef<string | null>(null);
+  // Refreshing under the person's hands would fight an edit in progress.
+  const pollPausedRef = useRef(false);
   const addInputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
-  const itemsRef = useRef<HTMLOListElement>(null);
+  const itemsRef = useRef<HTMLDivElement>(null);
   const deleteFocusRef = useRef<{ removedId: string; nextId?: string } | null>(
     null,
   );
@@ -181,6 +198,12 @@ function CollectionProductDetail({
     // A read that knows it is offline must still resolve its saved copy.
     networkMode: 'always',
     retry: false,
+    staleTime: embedded ? undefined : LIST_RETURN_STALE_MS,
+    refetchInterval: () =>
+      embedded || pollPausedRef.current || !onlineManager.isOnline()
+        ? false
+        : LIST_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
   });
 
   // Shopping lists keep their changes on the device while there is no
@@ -197,7 +220,7 @@ function CollectionProductDetail({
   const viewed = collectionQuery.data
     ? outbox.apply(collectionQuery.data, {
         id: accountId ?? '',
-        displayName: '',
+        displayName: knownPersonName(collectionQuery.data, accountId),
       })
     : undefined;
   const online =
@@ -216,10 +239,11 @@ function CollectionProductDetail({
     )
       return;
     deleteFocusRef.current = null;
-    const row = Array.from(itemsRef.current?.children ?? []).find(
-      (element) =>
-        (element as HTMLElement).dataset.sortableItemId === target.nextId,
-    );
+    const row = Array.from(
+      itemsRef.current?.querySelectorAll<HTMLElement>(
+        '[data-sortable-item-id]',
+      ) ?? [],
+    ).find((element) => element.dataset.sortableItemId === target.nextId);
     (
       row?.querySelector<HTMLButtonElement>('button') ?? addButtonRef.current
     )?.focus();
@@ -281,16 +305,18 @@ function CollectionProductDetail({
     mutationFn: ({
       collection,
       title,
+      quantity,
     }: {
       collection: CollectionDetail;
       title: string;
+      quantity?: string;
     }) =>
       apiCall(() => {
         assertOnlineWrite();
         return apis.collections.createCollectionItem({
           spaceId,
           collectionId: collection.id,
-          collectionItemCreate: { title },
+          collectionItemCreate: quantity ? { title, quantity } : { title },
         });
       }),
     onSuccess: async () => {
@@ -298,6 +324,32 @@ function CollectionProductDetail({
       await invalidateCollectionConsumers(queryClient, spaceId);
     },
   });
+
+  // Checking an entry moves it into the tray, which mounts a new button. Focus
+  // follows the entry so keyboard and screen-reader users keep their place.
+  useEffect(() => {
+    const id = refocusToggleRef.current;
+    if (!id) return;
+    const toggle = Array.from(
+      itemsRef.current?.querySelectorAll<HTMLElement>(
+        '[data-sortable-item-id]',
+      ) ?? [],
+    )
+      .find((row) => row.dataset.sortableItemId === id)
+      ?.querySelector<HTMLButtonElement>('.checklist-toggle');
+    if (!toggle || toggle.disabled) return;
+    refocusToggleRef.current = null;
+    if (!document.activeElement || document.activeElement === document.body)
+      toggle.focus();
+  });
+
+  // The input is disabled while an entry is being saved, so focus goes back
+  // to it once saving has finished and the next entry can be typed (#1808).
+  useEffect(() => {
+    if (createItem.isPending || !refocusAddRef.current) return;
+    refocusAddRef.current = false;
+    addInputRef.current?.focus();
+  }, [createItem.isPending]);
 
   const updateItem = useMutation({
     networkMode: 'always',
@@ -636,6 +688,16 @@ function CollectionProductDetail({
     );
   if (collectionQuery.isLoading)
     return <UiState kind="loading" title={t('m5s3.collection.loading')} />;
+  pollPausedRef.current =
+    isSorting ||
+    isEditing ||
+    outbox.pendingCount > 0 ||
+    createItem.isPending ||
+    updateItem.isPending ||
+    deleteItem.isPending ||
+    reorderItems.isPending ||
+    updateCollection.isPending;
+
   if (
     collectionQuery.error &&
     (!collectionQuery.data ||
@@ -656,6 +718,46 @@ function CollectionProductDetail({
   const items = reorder.orderedItemIds
     .map((itemId) => itemById.get(itemId))
     .filter((item): item is CollectionItemDetail => Boolean(item));
+  const shopping = collection.kind === 'SHOPPING';
+  const summary = summarizeSharedList(collection, items);
+  const markerFor = (item: CollectionItemDetail) => {
+    const finisher = item.completed ? item.completer : null;
+    const person = finisher ?? item.creator;
+    if (!person) return undefined;
+    const name =
+      person.displayName ||
+      (person.id === accountId ? t('m5s3.collection.you') : '');
+    return {
+      name,
+      tone: partnerTone(collection, person.id),
+      caption: name
+        ? t(
+            finisher
+              ? shopping
+                ? 'm5s3.collection.completedByShopping'
+                : 'm5s3.collection.completedByGeneric'
+              : 'm5s3.collection.addedBy',
+            { name },
+          )
+        : '',
+    };
+  };
+  const openItems = items.filter((item) => !item.completed);
+  const doneItems = items.filter((item) => item.completed);
+  const groups = isSorting
+    ? [{ key: 'all', title: null, list: items }]
+    : [
+        { key: 'open', title: null, list: openItems },
+        {
+          key: 'done',
+          title: t(
+            shopping
+              ? 'm5s3.collection.trayShopping'
+              : 'm5s3.collection.trayGeneric',
+          ),
+          list: doneItems,
+        },
+      ].filter((group) => group.list.length > 0);
 
   function submitCollection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -677,7 +779,8 @@ function CollectionProductDetail({
       // Kept on the device first, then sent when a connection is there.
       const title = String(data.get('title')).trim();
       if (!title) return;
-      void outbox.addItem({ title }).then((kept) => {
+      const quantity = String(data.get('quantity') ?? '').trim() || null;
+      void outbox.addItem({ title, quantity }).then((kept) => {
         if (!kept) return;
         form.reset();
         onDirtyChange?.(false);
@@ -687,11 +790,16 @@ function CollectionProductDetail({
     }
     createItemInFlightRef.current = true;
     createItem.mutate(
-      { collection, title: String(data.get('title')).trim() },
+      {
+        collection,
+        title: String(data.get('title')).trim(),
+        quantity: String(data.get('quantity') ?? '').trim() || undefined,
+      },
       {
         onSuccess: () => {
           form.reset();
           onDirtyChange?.(false);
+          refocusAddRef.current = true;
         },
       },
     );
@@ -882,18 +990,18 @@ function CollectionProductDetail({
           {t('m5s3.collection.itemsHeading')}
         </h2>
 
+        {!embedded ? (
+          <SharedListSummary summary={summary} shopping={shopping} />
+        ) : null}
         <div className="shared-list-toolbar">
-          <p>
-            {t(
-              embedded
-                ? 'composer.sharedListProgress'
-                : 'm5s3.collection.progress',
-              {
+          {embedded ? (
+            <p>
+              {t('composer.sharedListProgress', {
                 count: items.length,
-                completed: items.filter((item) => item.completed).length,
-              },
-            )}
-          </p>
+                completed: doneItems.length,
+              })}
+            </p>
+          ) : null}
           {!embedded &&
           collection.capabilities.canEdit &&
           (items.length > 1 || isSorting) ? (
@@ -999,6 +1107,22 @@ function CollectionProductDetail({
                 onDirtyChange?.(Boolean(event.target.value.trim()))
               }
             />
+            {shopping ? (
+              <>
+                <label className="sr-only" htmlFor="collection-new-quantity">
+                  {t('m5s3.collection.quantityLabel')}
+                </label>
+                <input
+                  disabled={createItem.isPending || isReordering}
+                  id="collection-new-quantity"
+                  className="composer-authored-field shared-list-quantity-field"
+                  name="quantity"
+                  maxLength={40}
+                  placeholder={t('m5s3.collection.quantityPlaceholder')}
+                  autoComplete="off"
+                />
+              </>
+            ) : null}
             <AddActionButton
               ref={addButtonRef}
               type="submit"
@@ -1011,72 +1135,99 @@ function CollectionProductDetail({
         ) : null}
 
         {items.length > 0 ? (
-          <ol ref={itemsRef} className="shared-list-items">
-            {items.map((item) => (
-              <SharedCollectionItemRow
-                key={item.id}
-                item={item}
-                canSort={collection.capabilities.canEdit}
-                isSorting={isSorting}
-                activeItemId={reorder.activeItemId}
-                handleProps={reorder.handleProps}
-                onUpdateTitle={(targetItem, title) =>
-                  submitItemUpdate({ collection, item: targetItem, title })
-                }
-                onToggleComplete={(targetItem) =>
-                  outbox.active
-                    ? void outbox.setCompleted(
-                        targetItem.id,
-                        !targetItem.completed,
-                      )
-                    : submitItemUpdate({
-                        collection,
-                        item: targetItem,
-                        completed: !targetItem.completed,
-                      })
-                }
-                waiting={viewed?.pendingItemIds.has(item.id)}
-                onDelete={(targetItem) => {
-                  const index = items.findIndex(
-                    (item) => item.id === targetItem.id,
-                  );
-                  deleteFocusRef.current = {
-                    removedId: targetItem.id,
-                    nextId: items[index + 1]?.id ?? items[index - 1]?.id,
-                  };
-                  return deleteItem
-                    .mutateAsync({ collection, item: targetItem })
-                    .then(
-                      () => true,
-                      () => {
-                        deleteFocusRef.current = null;
-                        return false;
-                      },
-                    );
-                }}
-                onRetry={() => {
-                  if (itemUpdateError) retryItemUpdate();
-                  else void collectionQuery.refetch();
-                }}
-                error={
-                  updateItem.variables?.item.id === item.id
-                    ? itemUpdateError
-                    : deleteItem.variables?.item.id === item.id
-                      ? deleteItem.error
-                      : null
-                }
-                isUpdating={updateItem.isPending || isReordering}
-                isTogglePending={
-                  updateItem.isPending &&
-                  updateItem.variables?.completed !== undefined &&
-                  updateItem.variables.item.id === item.id
-                }
-                isDeleting={
-                  deleteItem.isPending || updateItem.isPending || isReordering
-                }
-              />
+          <div ref={itemsRef} className="shared-list-groups">
+            {groups.map((group) => (
+              <section
+                key={group.key}
+                className="shared-list-group"
+                aria-label={group.title ?? undefined}
+              >
+                {group.title ? (
+                  <h3 className="shared-list-tray-heading">
+                    {group.title}
+                    <span className="shared-list-tray-count">
+                      {group.list.length}
+                    </span>
+                  </h3>
+                ) : null}
+                <ol className="shared-list-items">
+                  {group.list.map((item) => (
+                    <SharedCollectionItemRow
+                      key={item.id}
+                      item={item}
+                      canSort={collection.capabilities.canEdit}
+                      isSorting={isSorting}
+                      activeItemId={reorder.activeItemId}
+                      handleProps={reorder.handleProps}
+                      onUpdateTitle={(targetItem, title) =>
+                        submitItemUpdate({
+                          collection,
+                          item: targetItem,
+                          title,
+                        })
+                      }
+                      onToggleComplete={(targetItem) => {
+                        refocusToggleRef.current = targetItem.id;
+                        if (outbox.active)
+                          void outbox.setCompleted(
+                            targetItem.id,
+                            !targetItem.completed,
+                          );
+                        else
+                          submitItemUpdate({
+                            collection,
+                            item: targetItem,
+                            completed: !targetItem.completed,
+                          });
+                      }}
+                      waiting={viewed?.pendingItemIds.has(item.id)}
+                      marker={markerFor(item)}
+                      onDelete={(targetItem) => {
+                        const index = items.findIndex(
+                          (item) => item.id === targetItem.id,
+                        );
+                        deleteFocusRef.current = {
+                          removedId: targetItem.id,
+                          nextId: items[index + 1]?.id ?? items[index - 1]?.id,
+                        };
+                        return deleteItem
+                          .mutateAsync({ collection, item: targetItem })
+                          .then(
+                            () => true,
+                            () => {
+                              deleteFocusRef.current = null;
+                              return false;
+                            },
+                          );
+                      }}
+                      onRetry={() => {
+                        if (itemUpdateError) retryItemUpdate();
+                        else void collectionQuery.refetch();
+                      }}
+                      error={
+                        updateItem.variables?.item.id === item.id
+                          ? itemUpdateError
+                          : deleteItem.variables?.item.id === item.id
+                            ? deleteItem.error
+                            : null
+                      }
+                      isUpdating={updateItem.isPending || isReordering}
+                      isTogglePending={
+                        updateItem.isPending &&
+                        updateItem.variables?.completed !== undefined &&
+                        updateItem.variables.item.id === item.id
+                      }
+                      isDeleting={
+                        deleteItem.isPending ||
+                        updateItem.isPending ||
+                        isReordering
+                      }
+                    />
+                  ))}
+                </ol>
+              </section>
             ))}
-          </ol>
+          </div>
         ) : (
           <p className="planning-empty">{t('m5s3.collection.itemsEmpty')}</p>
         )}

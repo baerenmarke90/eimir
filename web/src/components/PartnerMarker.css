@@ -1,0 +1,22 @@
+/* A tinted disc with initials. Fill only, no outline (#1808). */
+.partner-marker {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  user-select: none;
+}
+.partner-marker-a {
+  background: var(--color-partner-a-surface);
+}
+.partner-marker-b {
+  background: var(--color-partner-b-surface);
+}

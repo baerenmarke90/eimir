@@ -3,8 +3,10 @@ import { type ButtonHTMLAttributes, useEffect, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { useTranslation } from '../i18n';
 import { isLocalItemId } from '../client/collectionOutbox';
+import type { PartnerTone } from '../client/sharedListSummary';
 import { ChecklistToggle } from './ChecklistToggle';
 import { ListEntryIconButton } from './ListEntryActions';
+import { PartnerMarker } from './PartnerMarker';
 import { ProblemState } from './ProblemState';
 import { SharedContentSheet } from './SharedContentSheet';
 
@@ -23,6 +25,7 @@ export function SharedCollectionItemRow({
   isDeleting,
   error,
   waiting = false,
+  marker,
 }: {
   item: CollectionItemDetail;
   canSort: boolean;
@@ -42,6 +45,8 @@ export function SharedCollectionItemRow({
   error: unknown;
   /** A change to this item has not been sent yet (#1808). */
   waiting?: boolean;
+  /** Who added the entry, or who finished it once it is done (#1808). */
+  marker?: { name: string; tone: PartnerTone; caption: string };
 }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<'actions' | 'edit' | 'delete' | null>(null);
@@ -80,7 +85,17 @@ export function SharedCollectionItemRow({
         disabled={!item.capabilities.canEdit || isUpdating}
       />
       <div className="shared-list-item-copy">
-        <p>{item.title}</p>
+        <p>
+          {item.title}
+          {item.quantity ? (
+            <span className="shared-list-item-quantity">
+              {' '}
+              {/^\d+$/u.test(item.quantity)
+                ? `${item.quantity}×`
+                : item.quantity}
+            </span>
+          ) : null}
+        </p>
         {isTogglePending ? (
           <small role="status">{t('m5s3.common.saving')}</small>
         ) : null}
@@ -101,6 +116,12 @@ export function SharedCollectionItemRow({
           </small>
         ) : null}
       </div>
+      {marker ? (
+        <>
+          <PartnerMarker name={marker.name} tone={marker.tone} />
+          <span className="sr-only">{marker.caption}</span>
+        </>
+      ) : null}
       {isSorting && canSort ? (
         <ListEntryIconButton
           icon="reorder"

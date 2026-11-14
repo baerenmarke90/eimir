@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
@@ -66,15 +66,32 @@ it('uses both authoritative account profiles and the shared start date for occas
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  expect(
-    await screen.findByRole('button', { name: /Geburtstag von Alex/ }),
-  ).toBeTruthy();
-  expect(
-    await screen.findByRole('button', { name: /Geburtstag von Sam/ }),
-  ).toBeTruthy();
-  const anniversary = await screen.findByRole('button', {
-    name: new RegExp(i18n.t('importantDates.relationshipAnniversary')),
-  });
+  // Only the chosen month is listed, so each occasion is looked up on the
+  // sheet of the month that holds it.
+  await waitFor(() =>
+    expect(document.querySelectorAll('.occasions-band-month').length).toBe(12),
+  );
+  const find = (label: RegExp) => {
+    for (const month of document.querySelectorAll<HTMLElement>(
+      '.occasions-band-month',
+    )) {
+      fireEvent.click(month);
+      const match = [
+        ...document.querySelectorAll<HTMLElement>(
+          '.occasions-sheet .important-date-card',
+        ),
+      ].find((card) => label.test(card.textContent ?? ''));
+      if (match) return match;
+    }
+    throw new Error(`No occasion row for ${label}`);
+  };
+  // The partner's profile arrives separately, so each lookup waits for it.
+  const row = (label: RegExp) => waitFor(() => find(label));
+  expect(await row(/Geburtstag von Alex/)).toBeTruthy();
+  expect(await row(/Geburtstag von Sam/)).toBeTruthy();
+  const anniversary = await row(
+    new RegExp(i18n.t('importantDates.relationshipAnniversary')),
+  );
   expect(
     anniversary.querySelector('svg.eimir-icon-wir.eimir-icon-outline'),
   ).not.toBeNull();

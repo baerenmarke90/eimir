@@ -972,28 +972,31 @@
 }
 
 .planen-panel:has(> .planen-search:not(.is-closing)) > .planen-status-scope {
-  margin-top: calc(var(--planen-search-height, 2.75rem) + var(--space-4));
+  margin-top: calc(var(--touch-target-web) + var(--space-4));
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .planen-panel > .planen-status-scope {
-    transition: margin-top 240ms var(--easing-standard);
+    transition: margin-top var(--duration-context) var(--easing-standard);
   }
 
   .planen-panel:has(> .planen-search:not(.is-closing)) > .planen-status-scope {
-    transition-duration: 300ms;
+    transition-duration: calc(var(--duration-sequence-beat) * 1.5);
   }
 
   .planen-search {
-    animation: planen-search-open 300ms var(--easing-standard) backwards;
+    animation: planen-search-open calc(var(--duration-sequence-beat) * 1.5)
+      var(--easing-standard) backwards;
   }
 
   .planen-search.is-closing {
-    animation: planen-search-close 240ms var(--easing-standard) forwards;
+    animation: planen-search-close var(--duration-context)
+      var(--easing-standard) forwards;
   }
 
   .planen-search-toggle {
-    animation: planen-search-toggle-in 200ms var(--easing-enter) backwards;
+    animation: planen-search-toggle-in var(--duration-sequence-beat)
+      var(--easing-enter) backwards;
   }
 }
 

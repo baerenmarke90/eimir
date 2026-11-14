@@ -483,8 +483,9 @@
  */
 @media (prefers-reduced-motion: no-preference) {
   .page[data-root-intro] > :not(.page-heading) {
-    animation: root-tab-intro 420ms var(--easing-enter)
-      var(--root-intro-delay, 0ms) backwards;
+    --root-intro-delay: calc(var(--duration-sequence-beat) * 0);
+    animation: root-tab-intro calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) var(--root-intro-delay) backwards;
   }
 
   .page[data-root-intro] > :nth-child(2) {
@@ -517,7 +518,7 @@
 
   /* A detail page opens with a short rise instead of replacing the list. */
   .product-main > .page {
-    animation: detail-page-open 260ms var(--easing-enter);
+    animation: detail-page-open var(--duration-context) var(--easing-enter);
   }
 }
 

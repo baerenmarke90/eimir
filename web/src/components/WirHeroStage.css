@@ -369,11 +369,12 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .wir-stage-intro .partner-avatar {
-    animation: wir-intro-portrait 760ms var(--easing-standard) both;
+    animation: wir-intro-portrait calc(var(--duration-sequence-beat) * 4)
+      var(--easing-standard) both;
   }
 
   .wir-stage-intro .partner-avatar-stack > :nth-child(2) .partner-avatar {
-    animation-delay: 180ms;
+    animation-delay: var(--duration-sequence-beat);
   }
 
   .wir-stage-intro .partner-avatar-stack > *::before {
@@ -383,12 +384,14 @@
       transparent 0
     );
     mask: conic-gradient(from 90deg, #000 var(--wir-ring-sweep), transparent 0);
-    animation: wir-intro-ring 1100ms var(--easing-standard) 620ms both;
+    animation: wir-intro-ring calc(var(--duration-sequence-beat) * 5.5)
+      var(--easing-standard) calc(var(--duration-sequence-beat) * 3) both;
   }
 
   .wir-stage-intro .wir-bridge-arm {
     transform-origin: left center;
-    animation: wir-intro-arm 380ms var(--easing-enter) 1720ms both;
+    animation: wir-intro-arm calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) calc(var(--duration-sequence-beat) * 8.5) both;
   }
 
   .wir-stage-intro .wir-bridge-arm-partner {
@@ -397,13 +400,15 @@
 
   /* Each half is 100 units long; its arm arrives 56 units from the tip. */
   .wir-stage-intro .wir-bridge-line path {
-    animation: wir-intro-heart 560ms var(--easing-standard) 2100ms both;
+    animation: wir-intro-heart calc(var(--duration-sequence-beat) * 3)
+      var(--easing-standard) calc(var(--duration-sequence-beat) * 10.5) both;
   }
 
   .wir-stage-intro .wir-stage-name,
   .wir-stage-intro .wir-stage-amp,
   .wir-stage-intro .partner-avatar-stack .wir-checkin-badge {
-    animation: wir-intro-caption 420ms var(--easing-enter) 480ms both;
+    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) calc(var(--duration-sequence-beat) * 2.5) both;
   }
 
   .wir-stage-intro .wir-stage-gesture,
@@ -411,7 +416,8 @@
   .wir-stage-intro .wir-bridge-lead,
   .wir-stage-intro .wir-bridge-rest,
   .wir-stage-intro .wir-stage-distance {
-    animation: wir-intro-caption 360ms var(--easing-enter) 2560ms both;
+    animation: wir-intro-caption calc(var(--duration-sequence-beat) * 2)
+      var(--easing-enter) calc(var(--duration-sequence-beat) * 13) both;
   }
 }
 
@@ -425,8 +431,9 @@
   .today-page[data-wir-intro]
     .today-content
     > :not(.page-heading, .wir-stage, :has(.wir-stage)) {
-    animation: wir-intro-module 520ms var(--easing-enter)
-      var(--wir-intro-module-delay, 2200ms) backwards;
+    --wir-intro-module-delay: calc(var(--duration-sequence-beat) * 11);
+    animation: wir-intro-module calc(var(--duration-sequence-beat) * 2.5)
+      var(--easing-enter) var(--wir-intro-module-delay) backwards;
   }
 
   .today-page[data-wir-intro] .today-content > :nth-child(1) {

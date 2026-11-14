@@ -74,11 +74,12 @@
     var(--color-shimmer-base) 70%
   );
   background-size: 220% 100%;
+  animation: plan-cover-shimmer 1400ms linear infinite;
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media (prefers-reduced-motion: reduce) {
   .plan-cover-placeholder.is-loading {
-    animation: plan-cover-shimmer 1400ms linear infinite;
+    animation: none;
   }
 }
 

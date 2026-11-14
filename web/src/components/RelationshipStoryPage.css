@@ -360,8 +360,8 @@
 @media (prefers-reduced-motion: no-preference) {
   .relationship-story-page .passport-progress::after,
   .relationship-story-page .passport-metric-bar::after {
-    animation: relationship-story-bar 700ms var(--easing-standard) 260ms
-      backwards;
+    animation: relationship-story-bar calc(var(--duration-sequence-beat) * 3.5)
+      var(--easing-standard) var(--duration-context) backwards;
   }
 }
 

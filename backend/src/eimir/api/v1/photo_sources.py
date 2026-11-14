@@ -37,6 +37,8 @@ class PhotoSourceAvailability(ApiModel):
     immich_connected: bool
     immich_connection_token: str
     immich_origin: str | None = None
+    google_account_email: str | None = None
+    google_account_token: str
     can_import: bool
 
 
@@ -44,6 +46,12 @@ class PhotoSourceConnectionCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
     origin: str = Field(min_length=10, max_length=512)
     api_key: SecretStr = Field(min_length=1, max_length=1024)
+    consent: Literal[True]
+
+
+class GoogleAccountSave(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254)
     consent: Literal[True]
 
 
@@ -103,6 +111,11 @@ def sources(
         if get_settings().encryption_mode is EncryptionMode.REQUIRED
         else None
     )
+    google_account = (
+        service.google_account_hint(session, authorization.account_id)
+        if settings.encryption_mode is EncryptionMode.REQUIRED
+        else None
+    )
     return PhotoSourceAvailability(
         enabled=service.enabled(),
         google_available=(
@@ -113,6 +126,8 @@ def sources(
         immich_connected=linked is not None,
         immich_connection_token=service.connection_token(linked, authorization.account_id),
         immich_origin=linked.payload.origin if linked else None,
+        google_account_email=google_account.payload.email if google_account else None,
+        google_account_token=service.google_account_token(google_account, authorization.account_id),
         can_import=has_capability(
             session, authorization.space_id, Capability.INTEGRATION_EXTERNAL_SYNC.value
         ),
@@ -147,6 +162,37 @@ def disconnect(
     authorization: Authorization, session: DbSession, expected: IfMatchToken
 ) -> Response:
     service.disconnect_immich(session, authorization, expected)
+    return Response(status_code=204, headers=_HEADERS)
+
+
+@router.put(
+    "/spaces/{spaceId}/photo-sources/google/account",
+    status_code=204,
+    response_class=Response,
+    operation_id="saveGooglePhotoAccount",
+    responses=problem_responses(401, 403, 404, 409, 422, 429, 503),
+)
+def save_google_account(
+    authorization: Authorization,
+    session: DbSession,
+    body: GoogleAccountSave,
+    expected: IfMatchToken,
+) -> Response:
+    service.save_google_account(session, authorization, body.email, expected)
+    return Response(status_code=204, headers=_HEADERS)
+
+
+@router.delete(
+    "/spaces/{spaceId}/photo-sources/google/account",
+    status_code=204,
+    response_class=Response,
+    operation_id="removeGooglePhotoAccount",
+    responses=problem_responses(401, 404, 409, 422),
+)
+def remove_google_account(
+    authorization: Authorization, session: DbSession, expected: IfMatchToken
+) -> Response:
+    service.remove_google_account(session, authorization, expected)
     return Response(status_code=204, headers=_HEADERS)
 
 

@@ -248,6 +248,36 @@ availability). The entitlement and all ownership, browser-proof and recovery che
 and cancel, removal and expiry cleanup stay ungated. This refines, and does not satisfy, the
 acceptance below; it is not production enablement.
 
+## Remembered Google account (2026-11-14)
+
+First live test feedback: Google asked which account to use on every start. The Product Owner chose
+the smallest remedy. An Account may enter the address of its Google account once in Settings >
+Medienquellen; `start` passes it to Google as the OAuth `login_hint` so the chooser is skipped.
+
+- Storage: one encrypted `GoogleAccountHintPayload` per Account (`google_account_hints`, unique
+  `account_id`, cascade delete, `ProtectedPayloadJSON`, `crypto_version` 2). The address is personal
+  data: it is returned only to its owner through the availability response, never logged, never
+  echoed in validation errors, included in the owner's personal export and purged with the Account.
+- API: `PUT`/`DELETE /spaces/{spaceId}/photo-sources/google/account`, `If-Match` token
+  (`google-account:absent` when unset) and an explicit `consent: true` body flag like the Immich link.
+  Saving needs the external-sync entitlement and an Account the Google import is open for; removal is
+  always allowed. Rate limited, address coarsely validated and normalized to lowercase (at most 254
+  characters, no whitespace or control characters).
+- OAuth: with a saved address the URL carries `login_hint` and omits `prompt=select_account`, which
+  would show the chooser again; without one the URL is unchanged. Scope, `access_type=online`, state,
+  PKCE and the exact callback are untouched.
+- Trust: the hint grants nothing and proves nothing. Google still authenticates the person, and the
+  callback never reads or compares it. No token, refresh token, offline access, broader scope or
+  permanent connection is stored, and the production gate stays closed.
+- Alternatives considered: a permanent connection with refresh tokens (rejected: contradicts the
+  no-standing-access decision above), remembering the account in the browser (rejected: per-device and
+  lost on the native handoff), `id_token_hint` (rejected: needs an OpenID scope and a stored token),
+  extending `PhotoConnection` (rejected: its payload requires an origin and API key and is exported as
+  an Immich link).
+- Not verified here: whether Google honors the hint for every account type (consumer, Workspace,
+  several signed-in profiles) and the real-device behavior. Both need a live check on the private
+  instance.
+
 ## Remaining enablement acceptance
 
 - Independent security/code review of browser binding and device recovery.

@@ -81,5 +81,18 @@ const photoSources = {
     'Der eimir.-Schlüssel kann zusätzlich in Immich widerrufen werden.',
   addressUnavailable:
     'Die Verbindung konnte nicht hergestellt werden. Prüfe die erreichbare HTTPS-Adresse und die Leserechte des Schlüssels. Dein Eintrag bleibt erhalten.',
+  googleAccountTitle: 'Google-Konto',
+  googleAccountHelp: 'So fragt Google nicht jedes Mal nach dem Konto.',
+  googleAccountEmail: 'E-Mail-Adresse deines Google-Kontos',
+  googleAccountSave: 'Speichern',
+  googleAccountChange: 'Ändern',
+  googleAccountRemove: 'Entfernen',
+  googleAccountSaved: 'Gespeichert.',
+  googleAccountRemoved: 'Entfernt. Google fragt wieder nach dem Konto.',
+  googleAccountInvalid: 'Bitte gib eine gültige E-Mail-Adresse ein.',
+  googleAccountChanged:
+    'Das Konto wurde in einem anderen Fenster geändert. Bitte prüfe es noch einmal.',
+  googleAccountUnavailable:
+    'Das hat gerade nicht geklappt. Versuche es noch einmal.',
 };
 export default photoSources;

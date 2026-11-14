@@ -32,7 +32,7 @@ from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
 from eimir.media import build_storage_key, get_media_store
-from eimir.photo_sources.models import PhotoConnection
+from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
 from eimir.transfer.archive import (
     MAX_COMPRESSED_BYTES,
@@ -613,6 +613,13 @@ def build_export_archive(
                 for row in connections
                 if row.payload.account_id == authorization.account_id
             ]
+            google_account = session.scalar(
+                select(GoogleAccountHint).where(
+                    GoogleAccountHint.account_id == authorization.account_id
+                )
+            )
+            if google_account and google_account.payload.account_id == authorization.account_id:
+                account_document["personalGoogleAccountHint"] = google_account.payload.email
             from eimir.engagement.models import GentleMemoryExclusion, GentleProfile
 
             profile = session.get(GentleProfile, authorization.account_id)

@@ -253,6 +253,18 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         verification_template="/api/v1/spaces/{spaceId}/photo-sources",
     ),
     Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/photo-sources/google/account",
+        body={"email": "synthetic.person@example.com", "consent": True},
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-sources/google/account",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/photo-sources",
+    ),
+    Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/photo-selections",
         body={"source": "immich", "maxItems": 2, "consent": True},

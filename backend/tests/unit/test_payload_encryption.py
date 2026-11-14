@@ -33,6 +33,7 @@ PINNED_CONTEXTS = {
     "comments": "CommentPayload",
     "daily_check_in_vibe_notes": "DailyVibeNotePayload",
     "gift_ideas": "GiftIdeaPayload",
+    "google_account_hints": "GoogleAccountHintPayload",
     "heart_moments": "HeartMomentPayload",
     "important_dates": "ImportantDatePayload",
     "memories": "MemoryPayload",

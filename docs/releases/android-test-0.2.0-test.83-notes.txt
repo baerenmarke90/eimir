@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.83
+
+- See at a glance how much of a shared list is still open, such as "2 fehlen noch", with a two-tone bar that shows who finished what, and find finished entries in "Im Wagen" or "Erledigt".
+- Recognize who added or finished each list entry by their initials on their own color: the creator of the list is rosé and the other person is blue, the same on both phones.
+- Add an optional "Menge" to shopping list entries, and watch changes from your partner arrive on an open list within seconds.
+- Close the check-in panel by tapping anywhere outside it, and read "Du teilst deine Entfernung mit …" in your own wording.
+- Open the map directly from the location settings with "Auf der Karte ansehen", and zoom the map over the same area more smoothly.
+
+The product changes come from main at d69ebf5d0c6c851ef31b8299c06ffbed5776e14f.
+Install over test.82 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 83.

@@ -1032,7 +1032,7 @@ for (const [width, theme] of [
   });
 }
 
-test('Wir shows no separate one-time link and the create menu still opens the composer', async ({
+test('Wir shows no separate one-time link and no global create shortcut in the header', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -1053,21 +1053,15 @@ test('Wir shows no separate one-time link and the create menu still opens the co
   await signIn(page);
   await expect(triggerLocator(page)).toHaveCount(0);
   // Product Owner decision 2026-11-12: Wir carries no separate one-time
-  // link; the composer stays reachable from the create menu and the partner
-  // action sheet.
+  // link; the composer stays reachable from the partner action sheet. The
+  // Expanded header no longer carries a global create shortcut.
   await expect(
     page
       .locator('.today-content')
       .getByRole('link', { name: new RegExp(onceCopy.title) }),
   ).toHaveCount(0);
-  await page.locator('.shell-primary-action .quick-create-trigger').click();
-  await page
-    .getByRole('menuitem', { name: new RegExp(onceCopy.title) })
-    .click();
-  await expect(page).toHaveURL('/today/only-you/new');
-  await expect(page.getByText(onceCopy.consent)).toBeVisible();
-  await page.locator('.task-back-control').click();
-  await expect(page).toHaveURL('/today');
+  await expect(page.locator('.shell-primary-action')).toHaveCount(0);
+  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
 });
 
 test('the one-time entry is independent of an unavailable extended-gesture entitlement read', async ({

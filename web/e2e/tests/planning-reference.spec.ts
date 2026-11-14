@@ -12,6 +12,8 @@ import { captureScreenshot } from '../support/storyTimelineFixture';
 import { expectLabeledAddAction } from '../support/addAction';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
 import experiences from '../../src/i18n/locales/experiences';
+import importantDates from '../../src/i18n/locales/importantDates';
+import memoryMap from '../../src/i18n/locales/memoryMap';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -722,3 +724,51 @@ for (const [width, colorScheme] of [
     expect(writes).toHaveLength(1);
   });
 }
+
+test('Expanded: Wir, Planen and Momente start at the leading edge while the diary stays centered', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1920, height: 1000 });
+  await installMocks(page);
+  await signIn(page);
+
+  const mainBox = async () => {
+    const box = await page.locator('#main-content').boundingBox();
+    if (!box) throw new Error('The main region must be laid out.');
+    return box;
+  };
+  const shot = (name: string) =>
+    captureScreenshot(page, testInfo, `expanded-leading-edge-${name}.png`);
+
+  for (const [name, path] of [
+    ['wir', '/today'],
+    ['plan', '/plan'],
+    ['story', '/story'],
+  ] as const) {
+    await page.goto(path);
+    await expect(page.locator('#main-content')).toBeVisible();
+    expect((await mainBox()).x, `${name} starts at the leading edge`).toBe(32);
+    await shot(name);
+  }
+
+  await page.goto('/plan');
+  for (const name of [m5s3.overview.segmentWishes, importantDates.heading]) {
+    await page.getByRole('tab', { name }).click();
+    expect((await mainBox()).x).toBe(32);
+  }
+
+  await page.goto('/story');
+  await page.getByRole('tab', { name: memoryMap.entry }).click();
+  expect((await mainBox()).x).toBe(32);
+  await page.getByRole('tab', { name: de.story.tabTimeline }).click();
+  await expect(page.locator('#momente-panel-timeline')).toBeVisible();
+  await expect.poll(async () => (await mainBox()).x).toBeGreaterThan(100);
+  const diary = await mainBox();
+  expect(
+    Math.abs(diary.x - (1920 - diary.x - diary.width)),
+  ).toBeLessThanOrEqual(1);
+  await shot('diary');
+
+  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});

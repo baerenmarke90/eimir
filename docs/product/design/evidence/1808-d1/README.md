@@ -20,7 +20,7 @@ Each run checks that nothing overflows horizontally and that axe finds no violat
   number of open entries with the shopping or plain wording of `m5s3.collection.summary`, the two-tone bar of the
   list page, a peek at up to three open entries, the last action of either person and a filled add link
   (`m5s5.today.wirLists.add`). A tile has no checkboxes: it opens the list.
-- **Several lists, tiles in a row.** The title becomes `titleMany`; the tiles sit side by side in a row that snaps
+- **Several lists, tiles in a row.** The title becomes `titleMany`; the tiles sit next to each other in a row that snaps
   and can be swiped. The visible link to all lists (`allLists`) is the path that needs no swipe.
 - **Opening.** The tile opens the list page and keeps the entry field unfocused, so no keyboard rises. The add
   link opens the same page with the entry field focused (explicit intent).

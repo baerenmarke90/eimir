@@ -516,7 +516,11 @@
     --root-intro-delay: 420ms;
   }
 
-  /* A detail page opens with a short rise instead of replacing the list. */
+  /*
+   * A detail page fades in instead of replacing the list abruptly. It must not
+   * move: a transformed page becomes the containing block of its fixed
+   * controls, and the composer toolbar and the add action would jump.
+   */
   .product-main > .page {
     animation: detail-page-open var(--duration-context) var(--easing-enter);
   }
@@ -537,11 +541,9 @@
 @keyframes detail-page-open {
   from {
     opacity: 0;
-    transform: translateY(0.75rem);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }

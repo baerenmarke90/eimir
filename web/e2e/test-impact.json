@@ -1141,6 +1141,16 @@
         "web/src/components/CollectionProductPage.tsx",
         "web/src/components/CollectionsOverviewPage.tsx"
       ]
+    },
+    "settings-google-account.spec.ts": {
+      "roots": [
+        "web/src/components/GoogleAccountSettings.tsx",
+        "web/src/components/GoogleAccountSettings.css",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/PhotoSourceSettingsPanel.tsx",
+        "web/src/client/usePhotoSources.ts",
+        "web/src/client/photoSources.ts"
+      ]
     }
   }
 }

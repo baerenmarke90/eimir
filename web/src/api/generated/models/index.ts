@@ -119,6 +119,7 @@ export * from './GiftIdeaDetail';
 export * from './GiftIdeaPage';
 export * from './GiftIdeaStatus';
 export * from './GiftIdeaUpdate';
+export * from './GoogleAccountSave';
 export * from './Health';
 export * from './HeartEmotion';
 export * from './HeartMomentCreate';

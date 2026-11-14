@@ -33,6 +33,7 @@ def flow(monkeypatch):
     monkeypatch.setattr(service, "ensure_capability", Mock())
     monkeypatch.setattr(service, "require_membership", Mock())
     monkeypatch.setattr(service, "lock_subject", Mock())
+    monkeypatch.setattr(service, "google_account_hint", Mock(return_value=None))
     monkeypatch.setattr(service.rate_limit, "check", Mock())
     monkeypatch.setattr(service.queue, "enqueue", Mock())
     account = SimpleNamespace(id=uuid4(), is_active=True)

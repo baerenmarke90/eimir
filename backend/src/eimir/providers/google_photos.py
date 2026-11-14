@@ -108,10 +108,21 @@ def _flow(
     return flow
 
 
-def authorization(*, client: GooglePhotosClient | None = None) -> tuple[str, str, str]:
+def authorization(
+    *, client: GooglePhotosClient | None = None, login_hint: str | None = None
+) -> tuple[str, str, str]:
+    """Build the consent URL. ``login_hint`` only pre-selects the account in Google's window.
+
+    Without a hint Google always asks which account to use. With one, ``prompt`` is omitted:
+    ``select_account`` would show the chooser again. The hint grants nothing and proves nothing;
+    Google still authenticates the person and the callback never reads it.
+    """
     flow = _flow(client=client)
     try:
-        url, state = flow.authorization_url(access_type="online", prompt="select_account")
+        if login_hint:
+            url, state = flow.authorization_url(access_type="online", login_hint=login_hint)
+        else:
+            url, state = flow.authorization_url(access_type="online", prompt="select_account")
         return str(url), str(state), str(flow.code_verifier)
     finally:
         flow.oauth2session.close()

@@ -14868,6 +14868,7 @@
         "enum": [
           "connected",
           "warm",
+          "shared_album",
           "modern",
           "classic"
         ],

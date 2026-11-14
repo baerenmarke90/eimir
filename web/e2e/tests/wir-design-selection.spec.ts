@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import quoteCopy from '../../src/i18n/locales/dailyQuote';
+import m5s5Copy from '../../src/i18n/locales/m5s5';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
 import profileCopy from '../../src/i18n/locales/profileIdentity';
 import reflections from '../../src/i18n/locales/relationshipReflections';
@@ -21,7 +22,12 @@ import {
 
 async function fixture(
   page: Page,
-  options: { pro?: boolean; initial?: string; failure?: number } = {},
+  options: {
+    pro?: boolean;
+    initial?: string;
+    failure?: number;
+    agenda?: boolean;
+  } = {},
 ) {
   const unexpected = await installMocks(page, { strict: true });
   let current = options.initial ?? 'warm';
@@ -204,6 +210,17 @@ async function fixture(
               titleOrText: 'A special weekend',
               scheduledOn: '2099-11-10',
             },
+            // A second plan stays in the agenda; the first is the anticipation.
+            ...(options.agenda
+              ? [
+                  {
+                    type: 'PLAN',
+                    id: 'harbour-dinner',
+                    titleOrText: 'Dinner at the harbour',
+                    scheduledOn: '2099-12-04',
+                  },
+                ]
+              : []),
           ],
           anticipation: {
             planId: 'special-plan',
@@ -256,6 +273,35 @@ async function reflow(page: Page) {
     ),
     JSON.stringify(overflow),
   ).toBe(true);
+}
+
+// The shared-album composition: names and story entry lead, two portrait
+// check-in targets follow, and upcoming plans carry a local date stamp.
+async function expectSharedAlbumComposition(page: Page) {
+  const hero = page.locator('.shared-album-hero');
+  const story = hero.getByRole('link', {
+    name: m5s5Copy.dashboard.storySummaryTitle,
+  });
+  await expect(story).toBeVisible();
+  await expect(hero.locator('.shared-album-person strong')).toHaveCount(2);
+  const portraits = hero.locator('.partner-avatar-slot');
+  await expect(portraits).toHaveCount(2);
+  const storyBox = await story.boundingBox();
+  for (const portrait of await portraits.all()) {
+    const box = await portrait.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(box?.y ?? 0).toBeGreaterThan(storyBox?.y ?? Number.MAX_VALUE);
+  }
+  const stamp = page.locator('.today-agenda-list .shared-album-date-stamp');
+  await expect(stamp).toHaveCount(1);
+  // The stamp is decorative; the row keeps one full machine-readable date.
+  await expect(page.locator('.today-agenda-list time')).toHaveAttribute(
+    'datetime',
+    '2099-12-04',
+  );
+  // The overview itself is covered by the story specs.
+  await expect(story).toHaveAttribute('href', '/story/our-story');
 }
 
 async function alignedVisibilityControls(page: Page) {
@@ -536,14 +582,14 @@ for (const [width, theme, large] of [
   [1280, 'dark', false],
   [390, 'dark', true],
 ] as const) {
-  test(`three personal designs save, return and reload at ${width} ${theme}${large ? ' large text' : ''}`, async ({
+  test(`personal designs save, return and reload at ${width} ${theme}${large ? ' large text' : ''}`, async ({
     page,
   }, info) => {
-    // Three full save/return/reload cycles and three axe passes share this journey.
-    test.setTimeout(90_000);
+    // Four full save/return/reload cycles and four axe passes share this journey.
+    test.setTimeout(120_000);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-    const f = await fixture(page);
+    const f = await fixture(page, { agenda: true });
     await signIn(page);
     if (large)
       await page.addInitScript(() => {
@@ -560,7 +606,12 @@ for (const [width, theme, large] of [
       'data-wir-design',
       'warm',
     );
-    for (const design of ['warm', 'modern', 'classic'] as const) {
+    for (const design of [
+      'warm',
+      'modern',
+      'classic',
+      'shared_album',
+    ] as const) {
       if (design !== 'warm') {
         await open(page);
         const radio = page.getByRole('radio', {
@@ -607,6 +658,10 @@ for (const [width, theme, large] of [
       await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
       await expect(page.locator('.daily-quote-card')).toBeVisible();
       await expect(page.locator('.anticipation-card')).toBeVisible();
+      await expect(page.locator('.shared-album-hero')).toHaveCount(
+        design === 'shared_album' ? 1 : 0,
+      );
+      if (design === 'shared_album') await expectSharedAlbumComposition(page);
       await reflow(page);
       const ownAvatar = page
         .locator('.today-hero')
@@ -635,7 +690,7 @@ for (const [width, theme, large] of [
         design,
       );
     }
-    expect(f.writes).toEqual(['modern', 'classic']);
+    expect(f.writes).toEqual(['modern', 'classic', 'shared_album']);
     expect(f.unexpected).toEqual([]);
   });
 }

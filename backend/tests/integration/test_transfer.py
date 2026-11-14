@@ -13,6 +13,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from eimir.appearance.models import AppIconPreference
 from eimir.authorization import AuthorizationContext, ContentVisibility
 from eimir.collections import service as collection_service
 from eimir.collections.models import Collection, CollectionKind, CollectionSuggestion
@@ -58,26 +59,24 @@ def _verified_email(session: Session, account, address: str) -> None:  # type: i
     session.flush()
 
 
-def _minimal_bundle(source_id: str, email: str | None) -> io.BytesIO:
-    accounts = (
-        json.dumps(
+def _minimal_bundle(
+    source_id: str, email: str | None, *, appearance: dict[str, str] | None = None
+) -> io.BytesIO:
+    account_document: dict[str, object] = {
+        "members": [
             {
-                "members": [
-                    {
-                        "sourceId": source_id,
-                        "displayName": "Portable member",
-                        "birthday": None,
-                        "locale": "de-DE",
-                        "timezone": "Europe/Berlin",
-                        "verifiedEmail": email,
-                    }
-                ]
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        + "\n"
-    ).encode()
+                "sourceId": source_id,
+                "displayName": "Portable member",
+                "birthday": None,
+                "locale": "de-DE",
+                "timezone": "Europe/Berlin",
+                "verifiedEmail": email,
+            }
+        ]
+    }
+    if appearance is not None:
+        account_document["personalAppearance"] = appearance
+    accounts = (json.dumps(account_document, sort_keys=True, separators=(",", ":")) + "\n").encode()
     manifest = {
         "formatVersion": 1,
         "exportedAt": "2026-08-31T10:00:00+00:00",
@@ -429,13 +428,19 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     )
 
 
-def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session) -> None:
+def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
+    session: Session,
+) -> None:
     target = make_account(session, "Target")
     _verified_email(session, target, "target@example.test")
     space = make_space(session, target)
     authorization = AuthorizationContext(account_id=target.id, space_id=space.id)
     source_id = str(uuid4())
-    bundle = _minimal_bundle(source_id, "target@example.test")
+    bundle = _minimal_bundle(
+        source_id,
+        "target@example.test",
+        appearance={"appIconId": "sage", "wirDesign": "shared_album"},
+    )
 
     transfer = service.create_import(
         session,
@@ -468,6 +473,15 @@ def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session
 
     assert transfer.status == ImportStatus.COMPLETED.value
     assert transfer.artifact_size == 0
+    assert (
+        session.scalar(
+            select(AppIconPreference).where(
+                AppIconPreference.account_id == target.id,
+                AppIconPreference.space_id == space.id,
+            )
+        )
+        is None
+    )
     assert service.request_apply(session, authorization, str(transfer.id)).status == (
         ImportStatus.COMPLETED.value
     )

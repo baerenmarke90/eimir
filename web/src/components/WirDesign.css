@@ -395,3 +395,44 @@
     aspect-ratio: 16 / 9;
   }
 }
+
+.wir-design-preview-shared_album {
+  background: #f2efe4;
+  grid-template-rows: 25px 1fr 6px 19px;
+}
+.wir-design-preview-shared_album .wir-design-preview-hero {
+  justify-items: stretch;
+  gap: 1px;
+}
+.wir-design-preview-person {
+  display: grid;
+  grid-template-columns: 9px 1fr;
+  align-items: center;
+  gap: 4px;
+  padding-inline: 3px;
+  border-block-end: 1px solid #d9d4c5;
+}
+.wir-design-preview-person i {
+  height: 9px;
+  border-radius: 50%;
+  background: #afa693;
+}
+.wir-design-preview-person + .wir-design-preview-person i {
+  background: #8b9c82;
+}
+.wir-design-preview-person b {
+  width: 70%;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: #596f57;
+}
+.wir-design-preview-shared_album .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+.wir-design-preview-shared_album .wir-design-preview-quote {
+  min-height: 0;
+  background: #e1ddcf;
+}
+.wir-design-preview-shared_album .wir-design-preview-moment {
+  background: linear-gradient(#92a287 72%, #3d543c 72%);
+}

@@ -260,17 +260,22 @@ function AuthenticatedAppShell({
     location.pathname === '/plan/chapters/new' ||
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
-  const quietTogether = useWirDesign()?.current === WirDesignId.quiet_together;
+  const currentDesign = useWirDesign()?.current;
+  const appDesign =
+    currentDesign === WirDesignId.quiet_together ||
+    currentDesign === WirDesignId.handwriting
+      ? currentDesign
+      : undefined;
   useLayoutEffect(() => {
-    if (!quietTogether) return;
+    if (!appDesign) return;
     const root = document.documentElement;
-    root.dataset.appDesign = WirDesignId.quiet_together;
+    root.dataset.appDesign = appDesign;
     syncDocumentThemeColor();
     return () => {
       delete root.dataset.appDesign;
       syncDocumentThemeColor();
     };
-  }, [quietTogether]);
+  }, [appDesign]);
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (isFocusedTask) return;

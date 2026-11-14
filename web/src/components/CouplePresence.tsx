@@ -1,5 +1,7 @@
-import { useId, type ReactNode, type Ref } from 'react';
+import { type ReactNode, type Ref, useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { firstNameFromDisplayName } from '../client/personalName';
 import {
   type PartnerAvatarAction,
   PartnerAvatarPair,
@@ -7,8 +9,6 @@ import {
   type PartnerAvatarSize,
   type PartnerPresenceStatus,
 } from './PartnerAvatarPair';
-import { firstNameFromDisplayName } from '../client/personalName';
-import { useTranslation } from 'react-i18next';
 import './CouplePresence.css';
 
 export interface CouplePresenceAvatarAction {
@@ -48,6 +48,7 @@ export interface CouplePresenceProps {
   eyebrow?: string;
   detailsFirst?: boolean;
   titleAction?: ReactNode;
+  feature?: ReactNode;
   stackNames?: boolean;
   className?: string;
 }
@@ -78,6 +79,7 @@ export function CouplePresence({
   eyebrow,
   detailsFirst = false,
   titleAction,
+  feature,
   stackNames = false,
   className = '',
 }: CouplePresenceProps) {
@@ -166,7 +168,9 @@ export function CouplePresence({
           <>
             <span>{primaryFirstName}</span>{' '}
             <span>
-              <span className="couple-presence-joiner">&amp;</span>{' '}
+              <span className="couple-presence-joiner">
+                {t('wirDesign.nameJoiner')}
+              </span>{' '}
               {secondaryFirstName}
             </span>
           </>
@@ -251,6 +255,7 @@ export function CouplePresence({
     >
       <div className="couple-presence-main">
         {detailsFirst ? details : avatars}
+        {feature}
         {detailsFirst ? avatars : details}
       </div>
     </section>

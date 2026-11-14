@@ -1,0 +1,66 @@
+/* Account-scoped semantic roles for the Handwritten appearance. */
+:root[data-app-design="handwriting"][data-theme] {
+  --handschrift-paper: #faf7f0;
+  --handschrift-card: #fffdf8;
+  --handschrift-accent: #843746;
+  --handschrift-soft: #f3e7e6;
+  --handschrift-muted: #5d534e;
+  --handschrift-rule: #ddd4ca;
+  --handschrift-display: "Literata", Georgia, serif;
+  --color-background: var(--handschrift-paper);
+  --color-surface: var(--handschrift-card);
+  --color-surface-raised: var(--handschrift-card);
+  --color-surface-subtle: #efe9df;
+  --color-surface-overlay: var(--handschrift-paper);
+  --color-surface-panel: var(--handschrift-card);
+  --color-surface-panel-tint: var(--handschrift-soft);
+  --color-header-surface: var(--handschrift-paper);
+  --color-header-border: var(--handschrift-rule);
+  --color-brand-glow: var(--handschrift-soft);
+  --color-page-tint-brand: var(--handschrift-soft);
+  --color-page-tint-shared: var(--handschrift-soft);
+  --memory-detail-background: var(--handschrift-paper);
+  --color-text: #24211d;
+  --color-text-secondary: var(--handschrift-muted);
+  --color-text-muted: var(--handschrift-muted);
+  --color-border: #a39990;
+  --color-border-subtle: var(--handschrift-rule);
+  --color-brand: var(--handschrift-accent);
+  --color-brand-ocean: var(--color-text);
+  --color-shared-accent: var(--handschrift-accent);
+  --color-shared: var(--handschrift-accent);
+  --color-brand-text: var(--handschrift-accent);
+  --color-brand-strong: #68303c;
+  --color-brand-surface: var(--handschrift-soft);
+  --color-shared-surface: var(--handschrift-soft);
+  --color-link-text: var(--handschrift-accent);
+  --color-focus: var(--handschrift-accent);
+  --color-action-primary: var(--handschrift-accent);
+  --color-on-action-primary: #fff;
+  --color-action-emphasis: var(--color-action-primary);
+  --color-on-action-emphasis: var(--color-on-action-primary);
+  --color-on-accent: var(--color-on-action-primary);
+  --identity-icon-accent: var(--handschrift-accent);
+  --identity-icon-warm-fill: var(--handschrift-accent);
+  --identity-icon-cool: var(--handschrift-icon-neutral);
+  --identity-icon-cool-fill: var(--handschrift-icon-neutral);
+  --identity-hover: var(--handschrift-soft);
+  --emotion-loved-accent: var(--handschrift-accent);
+  --emotion-loved-surface: var(--handschrift-soft);
+  --handschrift-icon-neutral: #706861;
+}
+
+:root[data-app-design="handwriting"][data-theme="dark"] {
+  --handschrift-paper: #232020;
+  --handschrift-card: #2c2727;
+  --handschrift-accent: #f1b5be;
+  --handschrift-soft: #3a2b30;
+  --handschrift-muted: #cfc0ba;
+  --handschrift-rule: #504141;
+  --color-surface-subtle: #312925;
+  --color-text: #f5eee6;
+  --color-border: #918080;
+  --color-brand-strong: #f7cbd0;
+  --color-on-action-primary: #331c22;
+  --handschrift-icon-neutral: #b8aaa1;
+}

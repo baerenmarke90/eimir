@@ -1,19 +1,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { planningIfMatch } from '../client/sharedPlanning';
+import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { dashboardQueryKey } from '../client/dashboardQueries';
 import { assertOnlineWrite } from '../client/connectivity';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
-  clientProblemKind,
   ClientProblemError,
+  clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { planningIfMatch } from '../client/sharedPlanning';
+import { useWirDesign } from '../client/wirDesign';
 import { useTranslation } from '../i18n';
-import { ProblemState } from './ProblemState';
 import { PreferenceSwitch } from './PreferenceSwitch';
+import { ProblemState } from './ProblemState';
 import './RelationshipReflections.css';
 
 export function PlanAnticipationControl({
@@ -28,6 +30,7 @@ export function PlanAnticipationControl({
   disabled: boolean;
 }) {
   const { t } = useTranslation();
+  const handwriting = useWirDesign()?.current === WirDesignId.handwriting;
   const client = useQueryClient();
   const key = authorSummaryQueryKeys.planDetail(spaceId, plan.id);
   const mutationKey = ['plan-write', spaceId, plan.id] as const;
@@ -95,7 +98,10 @@ export function PlanAnticipationControl({
     });
   }
   return (
-    <section className="plan-anticipation-control" data-color-world="natural">
+    <section
+      className="plan-anticipation-control"
+      data-color-world={handwriting ? undefined : 'natural'}
+    >
       <PreferenceSwitch
         label={t('relationshipReflections.anticipation.show')}
         description={t('relationshipReflections.anticipation.help')}

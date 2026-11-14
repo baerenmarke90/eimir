@@ -1,0 +1,290 @@
+html[data-app-design="handwriting"]
+  .product-shell[data-top-surface="today"]::before {
+  content: none;
+}
+
+html[data-app-design="handwriting"] .product-shell .mobile-bottom-shell {
+  background: var(--handschrift-paper);
+}
+
+html[data-app-design="handwriting"] .mobile-bottom-nav .shell-nav-link-active {
+  background: var(--handschrift-soft);
+  color: var(--handschrift-accent);
+}
+
+html[data-app-design="handwriting"]
+  .mobile-bottom-nav
+  :is(.eimir-icon, .shell-nav-icon) {
+  inline-size: 1.35rem;
+  block-size: 1.35rem;
+}
+
+html[data-app-design="handwriting"] .today-page .today-content {
+  inline-size: min(100%, 40rem);
+}
+
+html[data-app-design="handwriting"] .today-page .wir-minimal-hero {
+  padding-block-start: clamp(0.6rem, 2.3vh, 1.5rem);
+  margin-block-end: 0;
+}
+
+html[data-app-design="handwriting"]
+  .today-page
+  .wir-minimal-hero
+  .couple-presence-main {
+  gap: clamp(1rem, 3vh, 1.6rem);
+}
+
+html[data-app-design="handwriting"]
+  .today-page
+  .wir-minimal-hero
+  .couple-presence-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: start;
+  column-gap: 0.7rem;
+}
+
+html[data-app-design="handwriting"]
+  .today-page
+  .wir-minimal-hero
+  .couple-presence-title {
+  display: block;
+  padding: 0;
+  color: var(--color-text);
+  font: 650 clamp(1.35rem, 5.7vw, 1.85rem) / 1.15 var(--font-ui);
+  letter-spacing: -0.045em;
+}
+
+html[data-app-design="handwriting"] .wir-minimal-hero .wir-minimal-story-link {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  text-decoration: none;
+  font-size: 0.86rem;
+}
+
+html[data-app-design="handwriting"]
+  .today-page
+  .wir-minimal-hero
+  .today-hero-duration-link {
+  min-block-size: 44px;
+  text-align: start;
+  text-decoration: none;
+  font-size: 0.78rem;
+}
+
+html[data-app-design="handwriting"] .handschrift-letter {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  text-align: start;
+  padding: clamp(1.2rem, 5vw, 1.9rem);
+  border-radius: var(--radius-small);
+  text-decoration: none;
+  background: var(--handschrift-soft);
+  color: var(--handschrift-accent);
+}
+
+html[data-app-design="handwriting"] .handschrift-letter:hover {
+  background: color-mix(
+    in srgb,
+    var(--handschrift-soft) 94%,
+    var(--handschrift-accent)
+  );
+}
+
+.handschrift-letter-kind,
+.handschrift-letter-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font: 670 0.84rem / 1.3 var(--font-ui);
+}
+
+.handschrift-letter-kind .eimir-icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  color: var(--handschrift-accent);
+}
+
+.handschrift-letter-context .eimir-icon {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+html[data-app-design="handwriting"] .handschrift-letter-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  max-inline-size: 24ch;
+  margin: 0;
+  color: var(--color-text);
+  font: 520 clamp(1.7rem, 7.15vw, 2.65rem) / 1.16 var(--handschrift-display);
+  letter-spacing: -0.043em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+html[data-app-design="handwriting"]
+  .handschrift-featured-memory
+  .today-moment-figure {
+  min-block-size: auto;
+  padding: 0.7rem;
+  gap: 0.9rem;
+  background: var(--handschrift-card);
+  border-radius: 0.6rem;
+}
+
+html[data-app-design="handwriting"]
+  .handschrift-featured-memory
+  .today-moment-title {
+  font-family: var(--handschrift-display);
+}
+
+html[data-app-design="handwriting"] .wir-minimal-hero .partner-avatar-stack {
+  gap: 0.55rem;
+}
+
+html[data-app-design="handwriting"]
+  .wir-minimal-hero
+  button.partner-avatar-slot {
+  background: var(--color-surface-subtle);
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  min-block-size: 52px;
+}
+
+html[data-app-design="handwriting"] .wir-minimal-hero .wir-minimal-person {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0.3rem;
+  column-gap: 0.5rem;
+  font-size: 0.86rem;
+}
+
+html[data-app-design="handwriting"] .wir-minimal-hero .wir-checkin-badge {
+  color: var(--handschrift-accent);
+}
+
+html[data-app-design="handwriting"]
+  .wir-minimal-hero
+  .wir-checkin-badge
+  .wir-checkin-glyph {
+  inline-size: 1.22rem;
+  block-size: 1.22rem;
+}
+
+html[data-app-design="handwriting"] .handschrift-add {
+  display: flex;
+  justify-content: start;
+  margin-block: 0.85rem clamp(1.7rem, 4.2vh, 2.4rem);
+}
+
+html[data-app-design="handwriting"] .handschrift-add .add-action {
+  background: var(--handschrift-accent);
+  color: var(--color-on-action-primary);
+  min-block-size: 44px;
+  padding-inline: 1.05rem;
+}
+
+html[data-app-design="handwriting"] .today-page .today-section-title {
+  color: var(--color-text);
+  font: 600 1.24rem / 1.22 var(--handschrift-display);
+  letter-spacing: -0.025em;
+}
+
+html[data-app-design="handwriting"] .today-page .today-section-moment {
+  margin-block-end: 1.55rem;
+}
+
+html[data-app-design="handwriting"] .today-page .today-moment-title {
+  font-family: var(--font-ui);
+}
+
+html[data-app-design="handwriting"] .today-page .today-agenda-icon {
+  color: var(--handschrift-accent);
+}
+
+@media (max-width: 355px) {
+  html[data-app-design="handwriting"]
+    .wir-minimal-hero
+    .wir-minimal-story-link {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
+html[data-app-design="handwriting"] .wir-checkin-vibe-circle .daily-vibe-icon {
+  inline-size: 1.8rem;
+  block-size: 1.8rem;
+}
+
+html[data-app-design="handwriting"] .games-entry-index .eimir-icon-suche {
+  stroke-width: 2.4;
+}
+
+.handschrift-letter-date {
+  margin-inline-start: var(--space-1);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* Give the reader and the preview the same paper, ink, and meaning.
+   Other emotions still keep their individual marker colors. */
+:root[data-app-design="handwriting"]
+:is(
+  .heart-emotion-page,
+  .product-shell:has(.heart-moment-read-page)
+    :is(.mobile-bottom-shell, .shell-nav)
+) {
+  --heart-emotion-surface: var(--handschrift-paper);
+  --heart-emotion-accent: var(--handschrift-accent);
+  --heart-emotion-action: var(--handschrift-accent);
+  --heart-emotion-on-accent: var(--color-on-action-primary);
+  --color-surface-overlay: var(--handschrift-paper);
+  --color-brand-surface: var(--handschrift-soft);
+  --color-brand-text: var(--handschrift-accent);
+  --color-focus: var(--handschrift-accent);
+}
+
+:root[data-app-design="handwriting"]
+  .heart-moment-read-page
+  .heart-moment-detail-container {
+  inline-size: 100%;
+}
+
+:root[data-app-design="handwriting"]
+  .heart-moment-read-page
+  .heart-moment-detail-container
+  .product-detail-card {
+  align-items: start;
+  gap: var(--space-4);
+  padding: clamp(1.2rem, 5vw, 1.9rem);
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"]
+  .heart-moment-read-page
+  .heart-moment-detail-text {
+  color: var(--color-text);
+  font: 520 clamp(1.4rem, 5.8vw, 2.25rem) / 1.36 var(--handschrift-display);
+  letter-spacing: -0.025em;
+}
+
+:root[data-app-design="handwriting"] .heart-moment-read-page .voice-player {
+  background: var(--handschrift-card);
+}
+
+:root[data-app-design="handwriting"]
+  .heart-moment-read-page
+  .moment-metadata-lead
+  .moment-date {
+  flex-basis: auto;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}

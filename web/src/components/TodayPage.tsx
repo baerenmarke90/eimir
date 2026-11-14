@@ -888,7 +888,9 @@ export function TodayPage({
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
-  const minimal = wirDesignId === WirDesignId.quiet_together;
+  const handwriting = wirDesignId === WirDesignId.handwriting;
+  const compactPresence =
+    handwriting || wirDesignId === WirDesignId.quiet_together;
   const sharedAlbum = wirDesignId === WirDesignId.shared_album;
   // "Verbunden": two portraits joined by a heart line (the default design).
   const connectedDesign = wirDesignId === WirDesignId.connected;
@@ -1632,30 +1634,91 @@ export function TodayPage({
     </div>
   );
 
+  const leadNote =
+    handwriting &&
+    keepsakeVisible &&
+    !dashboardQuery.isCached &&
+    !dashboardQuery.error
+      ? ordinaryShared.find(
+          (item) =>
+            item.type === 'HEART_MOMENT' &&
+            !item.concealed &&
+            !item.previewIsSensitive &&
+            item.id !== retrospectiveId &&
+            item.titleOrText?.trim(),
+        )
+      : undefined;
+  const leadNotePath = leadNote
+    ? dashboardItemPath(leadNote.type, leadNote.id)
+    : null;
+
+  const leadDate = leadNote?.occurredOn ?? leadNote?.createdAt;
+  const showHandwrittenKeepsake =
+    handwriting && showMomentSection && keepsakeVisible;
+  const leadReplacesKeepsake =
+    handwriting &&
+    relationshipPresenceVisible &&
+    ((!leadNotePath && showHandwrittenKeepsake) ||
+      leadNote?.id === focalItem?.item.id);
+
+  const handwritingFeature =
+    leadNote && leadNotePath ? (
+      <TodayDestinationLink to={leadNotePath} className="handschrift-letter">
+        <span className="handschrift-letter-kind">
+          <EimirIcon name="momente" variant="filled" />
+          {t('story.kind.heartMoment')}
+          {leadDate ? (
+            <time
+              className="handschrift-letter-date"
+              dateTime={leadDate.toISOString()}
+            >
+              {formatCalendarDate(leadDate)}
+            </time>
+          ) : null}
+        </span>
+        <p className="handschrift-letter-text">{leadNote.titleOrText}</p>
+        <span className="handschrift-letter-context">
+          {t('wirDesign.handwriting.openNote')}
+          <EimirIcon name="chevron-right" />
+        </span>
+      </TodayDestinationLink>
+    ) : showHandwrittenKeepsake && focalItem ? (
+      <div className="handschrift-featured-memory">
+        <TodayMomentFeature
+          item={focalItem.item}
+          loadMemoryImage={loadMemoryImage}
+          isKeepsake={focalItem.kind === 'keepsake'}
+        />
+      </div>
+    ) : undefined;
+
   const renderClassicHero = (
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) => (
     <CouplePresence
       className={
-        minimal
+        compactPresence
           ? 'today-hero wir-minimal-hero'
           : sharedAlbum
             ? 'today-hero shared-album-hero'
             : 'today-hero'
       }
-      detailsFirst={minimal || sharedAlbum}
-      stackNames={minimal}
+      detailsFirst={compactPresence || sharedAlbum}
+      stackNames={compactPresence && !handwriting}
+      feature={handwritingFeature}
       titleAction={
-        (minimal && partner) || sharedAlbum ? (
+        (compactPresence && partner) || sharedAlbum ? (
           <TodayDestinationLink
             to={STORY_OURS_ROUTE}
             className={
-              minimal ? 'wir-minimal-story-link' : 'shared-album-story-link'
+              compactPresence
+                ? 'wir-minimal-story-link'
+                : 'shared-album-story-link'
             }
           >
             <span>{t('m5s5.dashboard.storySummaryTitle')}</span>
-            {minimal ? (
+            {compactPresence ? (
               <EimirIcon name="chevron-right" />
             ) : (
               <WirSharedAlbumArrow />
@@ -1704,7 +1767,7 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-      avatarSize={minimal ? 'small' : sharedAlbum ? 'medium' : 'hero'}
+      avatarSize={compactPresence ? 'small' : sharedAlbum ? 'medium' : 'hero'}
       avatarAction={
         avatarAction && dailyCheckIn?.partnerAriaLabel
           ? {
@@ -1716,12 +1779,14 @@ export function TodayPage({
       avatarOverlay={avatarOverlay}
       primaryAvatarAction={dailyCheckIn?.ownAction}
       primaryAvatarAdornment={
-        minimal || sharedAlbum ? (
+        compactPresence || sharedAlbum ? (
           <span
-            className={minimal ? 'wir-minimal-person' : 'shared-album-person'}
+            className={
+              compactPresence ? 'wir-minimal-person' : 'shared-album-person'
+            }
           >
             <strong>
-              {minimal && dailyCheckIn
+              {compactPresence && dailyCheckIn
                 ? t('wirDesign.minimal.own')
                 : heroOwnName}
             </strong>
@@ -1732,12 +1797,14 @@ export function TodayPage({
         )
       }
       secondaryAvatarAdornment={
-        minimal || sharedAlbum ? (
+        compactPresence || sharedAlbum ? (
           <span
-            className={minimal ? 'wir-minimal-person' : 'shared-album-person'}
+            className={
+              compactPresence ? 'wir-minimal-person' : 'shared-album-person'
+            }
           >
             <strong>
-              {minimal && avatarAction
+              {compactPresence && avatarAction
                 ? t('wirDesign.minimal.partner', { name: partnerName })
                 : partnerName}
             </strong>
@@ -1842,11 +1909,16 @@ export function TodayPage({
         {/* Personal shared content comes before the practical horizon:
                   Today should show the relationship itself before another
                   stack of planning utilities. */}
-        {showMomentSection && keepsakeVisible && focalItem ? (
+        {showMomentSection &&
+        keepsakeVisible &&
+        focalItem &&
+        !leadReplacesKeepsake ? (
           <TodayModuleSection
             className="today-section-moment"
             title={t('m5s5.today.keepsake.title')}
-            headerAction={minimal ? <MomentCreateMenu /> : undefined}
+            headerAction={
+              compactPresence && !handwriting ? <MomentCreateMenu /> : undefined
+            }
           >
             <TodayMomentFeature
               item={focalItem.item}
@@ -2108,7 +2180,7 @@ export function TodayPage({
   // Keep custom orders intact. With the catalog order, the keepsake sits
   // directly below the people while all other modules keep their positions.
   const useMinimalDefaultOrder =
-    minimal &&
+    wirDesignId === WirDesignId.quiet_together &&
     orderedModuleKeys.every(
       (key, index) => key === DASHBOARD_MODULE_KEYS[index],
     );
@@ -2169,14 +2241,24 @@ export function TodayPage({
             className="content-overview-heading"
             title={t('navigation.today')}
             action={
-              minimal && showMomentSection && keepsakeVisible ? undefined : (
+              handwriting ||
+              (compactPresence &&
+                showMomentSection &&
+                keepsakeVisible) ? undefined : (
                 <MomentCreateMenu floating={!sharedAlbum} />
               )
             }
           />
 
           {visibleOrder.map((key) => (
-            <Fragment key={key}>{moduleContent[key]}</Fragment>
+            <Fragment key={key}>
+              {moduleContent[key]}
+              {handwriting && key === 'relationship_presence' ? (
+                <div className="handschrift-add">
+                  <MomentCreateMenu />
+                </div>
+              ) : null}
+            </Fragment>
           ))}
           {isSparse ? (
             <div className="new-space-experience">

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
+import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { Configuration } from '../client/apiConfiguration';
 import {
   GAMES_MOMENTS_ROUTE,
@@ -12,6 +13,7 @@ import {
   useSpaceEntitlement,
 } from '../client/spaceEntitlement';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
+import { useWirDesign } from '../client/wirDesign';
 import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PageHeader } from './PageHeader';
@@ -49,6 +51,7 @@ export function GamesProductArea({
   >;
 }) {
   const { t } = useTranslation();
+  const handwriting = useWirDesign()?.current === WirDesignId.handwriting;
   const [activeLocalGame, setActiveLocalGame] = useState<'perspective' | null>(
     null,
   );
@@ -120,7 +123,7 @@ export function GamesProductArea({
                       (
                         [
                           'foto',
-                          'wuensche',
+                          handwriting ? 'suche' : 'wuensche',
                           'gemeinsam',
                         ] satisfies EimirIconName[]
                       )[index]

@@ -38,6 +38,7 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.connected,
   WirDesignId.shared_album,
   WirDesignId.quiet_together,
+  WirDesignId.handwriting,
   WirDesignId.warm,
   WirDesignId.modern,
   WirDesignId.classic,

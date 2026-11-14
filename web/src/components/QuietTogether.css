@@ -1,6 +1,10 @@
 :root[data-app-design="quiet_together"]
   .product-shell[data-top-surface="today"]::before,
-.today-page[data-wir-design="quiet_together"] .wir-minimal-hero::before {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .wir-minimal-hero::before {
   content: none;
 }
 
@@ -18,12 +22,20 @@
   background: var(--color-brand-surface);
 }
 
-.today-page[data-wir-design="quiet_together"] .today-content {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-content {
   inline-size: min(100%, 38rem);
   margin-inline: auto;
 }
 
-.today-page[data-wir-design="quiet_together"] .wir-minimal-hero {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .wir-minimal-hero {
   margin: 0 0 var(--space-6);
   padding: clamp(var(--space-3), 5vh, var(--space-9)) 0 0;
 }
@@ -179,32 +191,54 @@
   box-shadow: none;
 }
 
-.today-page[data-wir-design="quiet_together"] .today-section-header {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-section-header {
   padding-inline: 0;
   margin-block-end: var(--space-1);
 }
 
-.today-page[data-wir-design="quiet_together"] .today-section-title {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-section-title {
   font: 680 1.02rem / 1.25 var(--font-ui);
   letter-spacing: -0.022em;
 }
 
-.today-page[data-wir-design="quiet_together"]
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
   .today-section-moment
   .today-section-header {
   align-items: center;
   gap: var(--space-2);
 }
-.today-page[data-wir-design="quiet_together"]
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
   .today-section-moment
   .add-action {
   font-size: 0.8rem;
   min-block-size: 44px;
 }
-.today-page[data-wir-design="quiet_together"] .today-section-moment {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-section-moment {
   margin-block-end: var(--space-10);
 }
-.today-page[data-wir-design="quiet_together"] .today-moment-figure {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-moment-figure {
   display: grid;
   grid-template-columns: clamp(3.3rem, 17vw, 4.6rem) minmax(0, 1fr);
   align-items: center;
@@ -215,30 +249,49 @@
   box-shadow: none;
 }
 
-.today-page[data-wir-design="quiet_together"]
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
   .today-moment-media
   :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
   aspect-ratio: 1;
   border-radius: var(--radius-small);
 }
 
-.today-page[data-wir-design="quiet_together"] .today-moment-caption {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-moment-caption {
   position: static;
   padding: 0;
   background: transparent;
 }
 
-.today-page[data-wir-design="quiet_together"] .today-moment-title {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-moment-title {
   color: var(--color-text);
   font: 620 1rem / 1.25 var(--font-ui);
   overflow-wrap: anywhere;
 }
 
-.today-page[data-wir-design="quiet_together"] .today-moment-date {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-moment-date {
   color: var(--color-text-secondary);
 }
 
-.today-page[data-wir-design="quiet_together"] .today-moment-text {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-moment-text {
   border: 0;
   border-inline-start: 1px solid var(--color-border);
   border-radius: 0;
@@ -246,29 +299,53 @@
   background: transparent;
 }
 
-.today-page[data-wir-design="quiet_together"] .today-moment-text-content {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-moment-text-content {
   font-size: 1rem;
 }
 
-.today-page[data-wir-design="quiet_together"] .daily-quote-content {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .daily-quote-content {
   justify-items: start;
   padding: 0;
   text-align: start;
 }
-.today-page[data-wir-design="quiet_together"] .daily-quote-mark {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .daily-quote-mark {
   display: none;
 }
-.today-page[data-wir-design="quiet_together"] .daily-quote-block p {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .daily-quote-block
+  p {
   color: var(--color-text-secondary);
   font: 500 0.9rem / 1.5 var(--font-ui);
 }
 
-.today-page[data-wir-design="quiet_together"] .today-agenda-list {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-agenda-list {
   display: grid;
   gap: 0;
   overflow: visible;
 }
-.today-page[data-wir-design="quiet_together"]
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
   .today-agenda-list
   > .today-agenda-row {
   max-inline-size: 100%;
@@ -277,7 +354,11 @@
   padding-inline: 0;
   background: transparent;
 }
-.today-page[data-wir-design="quiet_together"] .today-agenda-icon {
+.today-page:is(
+    [data-wir-design="quiet_together"],
+    [data-wir-design="handwriting"]
+  )
+  .today-agenda-icon {
   background: transparent;
 }
 

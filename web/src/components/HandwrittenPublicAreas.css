@@ -1,0 +1,452 @@
+/* A shared reading measure and hierarchy across the three secondary entry points. */
+:root[data-app-design="handwriting"]
+:is(.more-page, .daily-insights, .games-product-page) {
+  inline-size: min(100%, 43rem);
+  min-inline-size: 0;
+  margin-inline: auto;
+}
+
+:root[data-app-design="handwriting"]
+  :is(
+    .more-page .page-heading h1,
+    .daily-insights .insight-header h1,
+    .games-heading h1
+  ) {
+  margin: 0;
+  color: var(--color-text);
+  font:
+    620 clamp(2rem, 9vw, 3rem) / 1.06
+    var(--handschrift-display, var(--font-display));
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+/* More is a directory. The profile is the only filled destination. */
+:root[data-app-design="handwriting"]
+  .more-page
+  > .page-heading-root.content-overview-heading {
+  margin-block: 0 var(--space-4);
+}
+
+:root[data-app-design="handwriting"]
+  .more-page
+  > .page-heading-root.content-overview-heading
+  .page-heading-title-container {
+  position: static;
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-search-entry {
+  min-block-size: 48px;
+  margin-block-end: var(--space-6);
+  padding: var(--space-2) var(--space-1);
+  border-block-end: 1px solid var(--handschrift-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--handschrift-accent);
+  font-weight: 640;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-search-entry .eimir-icon {
+  inline-size: 1.22rem;
+  block-size: 1.22rem;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-groups {
+  gap: var(--space-6) var(--space-8);
+}
+
+:root[data-app-design="handwriting"] .more-page .more-group-title {
+  padding-block-end: var(--space-1);
+  color: var(--color-text);
+  font-size: 1.22rem;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destinations {
+  border-radius: 0;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destinations > li + li {
+  border-block-start: 1px solid var(--handschrift-rule);
+  border-radius: 0;
+}
+
+:root[data-app-design="handwriting"]
+  .more-page
+  .more-group-separated
+  .more-destinations
+  > li:nth-child(2) {
+  border-block-start: 0;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination {
+  min-block-size: 54px;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  padding: var(--space-2) var(--space-1);
+  border-radius: 0;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-profile-destination {
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  margin-block-end: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"]
+  .more-page
+  .more-profile-destination
+  strong {
+  font-size: 1.12rem;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination-subtitle {
+  margin-block-start: 0.1rem;
+  line-height: 1.35;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination-icon {
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"]
+  :is(.more-page .more-destination-icon, .games-product-page .games-entry-index)
+  .eimir-icon {
+  --identity-icon-accent: currentColor;
+  --identity-icon-cool: currentColor;
+}
+
+:root[data-app-design="handwriting"]
+  .more-page
+  .more-destination-icon
+  .eimir-icon-spiele
+  :is(circle, path:last-child) {
+  fill: currentColor;
+}
+
+/* Insights and the activity log share an icon upstream. Give the former a
+ * chart symbol here so the neighboring navigation destinations read apart. */
+:root[data-app-design="handwriting"]
+  .more-page
+  a[href="/more/insights"]
+  .more-destination-icon::before {
+  content: "";
+  grid-area: 1 / 1;
+  inline-size: 1.16rem;
+  block-size: 1.05rem;
+  background:
+    linear-gradient(currentColor, currentColor) left bottom / 23% 46% no-repeat,
+    linear-gradient(currentColor, currentColor) center bottom / 23% 75%
+    no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / 23% 100%
+    no-repeat;
+}
+
+:root[data-app-design="handwriting"]
+  .more-page
+  a[href="/more/insights"]
+  .more-destination-icon
+  .eimir-icon {
+  display: none;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination-badge {
+  padding-inline: var(--space-1);
+  background: transparent;
+  color: var(--handschrift-accent);
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination-chevron {
+  color: var(--color-text-secondary);
+  font-size: 1.15rem;
+}
+
+@media (min-width: 768px) {
+  :root[data-app-design="handwriting"] .more-page .more-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+/* Insights put the date above a continuous, unboxed view of two people. */
+:root[data-app-design="handwriting"] .daily-insights {
+  --insight-own: var(--handschrift-accent);
+  --insight-partner: #775422;
+  --insight-ink: #261f21;
+  --insight-card-line: var(--handschrift-rule);
+  gap: var(--space-4);
+}
+
+:root[data-app-design="handwriting"][data-theme="dark"] .daily-insights {
+  --insight-partner: #e1b778;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-header-top {
+  grid-column: 2;
+  grid-row: 1;
+  justify-content: end;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-header h1 {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  .insight-header
+  :is(.insight-subtitle, .insight-picker) {
+  grid-column: 1 / -1;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-subtitle {
+  font-size: 0.96rem;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-picker {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: var(--space-1);
+  margin-block-start: var(--space-2);
+  padding: 0;
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-picker-text {
+  color: var(--handschrift-accent);
+  font-size: 0.91rem;
+  line-height: 1.24;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-nav {
+  gap: 0;
+  padding: 0;
+  border-block-end: 1px solid var(--handschrift-rule);
+  border-radius: 0;
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-nav a {
+  padding-inline: var(--space-1);
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  .insight-nav
+  a[aria-current="page"] {
+  border-block-end-color: var(--handschrift-accent);
+  background: transparent;
+  color: var(--handschrift-accent);
+  font-weight: 760;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-body {
+  gap: var(--space-5);
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-body > * {
+  min-inline-size: 0;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  .insight-body
+  > :is(.insight-card, .insight-closing, .insight-hero) {
+  min-block-size: 0;
+  margin: 0;
+  padding: var(--space-3) 0 var(--space-2);
+  border-radius: 0;
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  .insight-body
+  > :is(.insight-card, .insight-closing, .insight-hero)
+  ~ :is(.insight-card, .insight-closing) {
+  padding-block-start: var(--space-5);
+  border-block-start: 1px solid var(--handschrift-rule);
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-chart-card {
+  gap: var(--space-2);
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-chart {
+  grid-template-columns: minmax(4.25rem, 23%) minmax(0, 1fr);
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-vibe-dot {
+  inline-size: 0.98rem;
+  block-size: 0.98rem;
+}
+
+:root[data-app-design="handwriting"] .daily-insights [data-vibe="VERY_GOOD"] {
+  --insight-vibe-color: #fae7a6;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-chart-detail {
+  min-block-size: 0;
+  padding-inline: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  :is(.insight-reassurance, .insight-statement) {
+  padding-inline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Play uses one highlighted entry, then uninterrupted rows with clear forms. */
+:root[data-app-design="handwriting"] .games-product-page .games-heading {
+  margin-block-end: var(--space-5);
+}
+
+:root[data-app-design="handwriting"] .games-heading > div > p {
+  max-inline-size: 40ch;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-shelf {
+  gap: 0;
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry,
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry:first-child {
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: var(--space-4) 0;
+  border: 0;
+  border-radius: 0;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry
+  + .games-entry {
+  border-block-end: 1px solid var(--handschrift-rule);
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry:first-child {
+  grid-template-columns: 3rem minmax(0, 1fr);
+  padding: var(--space-5) var(--space-4);
+  margin-block-end: var(--space-1);
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry
+  .games-entry-index {
+  inline-size: 2rem;
+  block-size: 2rem;
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry:first-child
+  .games-entry-index {
+  inline-size: 3rem;
+  block-size: 3rem;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon {
+  inline-size: 1.45rem;
+  block-size: 1.45rem;
+  stroke-width: 2;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry:first-child
+  .games-entry-index
+  .eimir-icon {
+  inline-size: 2.55rem;
+  block-size: 2.55rem;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon-foto
+  circle {
+  fill: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon-suche
+  circle {
+  fill: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry-role {
+  align-self: start;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry:first-child
+  h2 {
+  font-size: clamp(1.54rem, 6vw, 2.06rem);
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-copy
+  > p:last-child {
+  max-inline-size: 42ch;
+  font-size: 0.94rem;
+  overflow-wrap: anywhere;
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry-status {
+  min-block-size: 1.44rem;
+  justify-self: start;
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-link:first-child
+  .games-entry-status {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--handschrift-accent);
+  color: var(--color-on-action-primary);
+  text-decoration: none;
+}

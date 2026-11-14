@@ -118,6 +118,7 @@ def test_only_the_optional_wir_designs_require_pro() -> None:
     assert {design for design in WirDesignId if design not in FREE_WIR_DESIGNS} == {
         WirDesignId.SHARED_ALBUM,
         WirDesignId.QUIET_TOGETHER,
+        WirDesignId.HANDWRITING,
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
     }
@@ -125,7 +126,13 @@ def test_only_the_optional_wir_designs_require_pro() -> None:
 
 @pytest.mark.parametrize(
     "design_id",
-    [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER, WirDesignId.MODERN, WirDesignId.CLASSIC],
+    [
+        WirDesignId.SHARED_ALBUM,
+        WirDesignId.QUIET_TOGETHER,
+        WirDesignId.HANDWRITING,
+        WirDesignId.MODERN,
+        WirDesignId.CLASSIC,
+    ],
 )
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:
     initial = client.get(path(couple), headers=couple["b"])
@@ -142,7 +149,9 @@ def test_every_alternative_is_pro_for_both_partners(client, session, couple, des
     assert client.get(path(couple), headers=couple["a"]).json()["designId"] == "connected"
 
 
-@pytest.mark.parametrize("design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER])
+@pytest.mark.parametrize(
+    "design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER, WirDesignId.HANDWRITING]
+)
 def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is_free(
     client,
     session,
@@ -256,7 +265,9 @@ def test_membership_owner_scope_invalid_ids_and_required_concurrency(
     assert client.get(other_path, headers=couple["a"]).json()["designId"] == "connected"
 
 
-@pytest.mark.parametrize("design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER])
+@pytest.mark.parametrize(
+    "design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER, WirDesignId.HANDWRITING]
+)
 def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
     session, couple, design_id: WirDesignId
 ) -> None:

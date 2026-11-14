@@ -22,6 +22,7 @@ export const WirDesignId = {
     warm: 'warm',
     shared_album: 'shared_album',
     quiet_together: 'quiet_together',
+    handwriting: 'handwriting',
     modern: 'modern',
     classic: 'classic'
 } as const;

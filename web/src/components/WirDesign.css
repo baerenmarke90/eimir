@@ -492,3 +492,65 @@
   margin-inline-start: 4px;
   background: var(--quiet-preview-detail);
 }
+
+.wir-design-preview-handwriting {
+  --handwritten-preview-ink: #843746;
+  --handwritten-preview-quote: #f3e7e6;
+  --handwritten-preview-detail: #ddd4ca;
+  grid-template-rows: 8px 27px 8px 1fr;
+  background: #faf7f0;
+}
+:root[data-theme="dark"] .wir-design-preview-handwriting {
+  --handwritten-preview-ink: #f1b5be;
+  --handwritten-preview-quote: #3a2b30;
+  --handwritten-preview-detail: #918080;
+  background: #232020;
+}
+.wir-design-preview-handwriting .wir-design-preview-hero {
+  align-content: center;
+  justify-items: start;
+}
+.wir-design-preview-handwriting .wir-design-preview-names {
+  width: 54%;
+  background: var(--handwritten-preview-detail);
+}
+.wir-design-preview-handwritten-quote {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding-inline: 4px;
+  background: var(--handwritten-preview-quote);
+}
+.wir-design-preview-handwritten-quote i {
+  width: 88%;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--handwritten-preview-ink);
+}
+.wir-design-preview-handwritten-quote i:last-child {
+  width: 56%;
+}
+.wir-design-preview-handwriting .wir-design-preview-vibes {
+  align-items: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.wir-design-preview-handwriting .wir-design-preview-vibes i {
+  background: var(--handwritten-preview-quote);
+}
+.wir-design-preview-handwriting .wir-design-preview-moment {
+  position: relative;
+  width: 30%;
+  min-height: 0;
+  justify-self: start;
+  background: var(--handwritten-preview-detail);
+}
+.wir-design-preview-handwriting .wir-design-preview-moment::after {
+  position: absolute;
+  inset-block-start: 35%;
+  inset-inline-start: calc(100% + 3px);
+  width: 120%;
+  height: 2px;
+  background: var(--handwritten-preview-detail);
+  border-radius: var(--radius-pill);
+  content: "";
+}

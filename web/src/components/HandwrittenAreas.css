@@ -1,0 +1,571 @@
+/* Use the same ink and paper roles in the archive and planning surfaces. */
+:root[data-app-design="handwriting"]
+:is(.story-page-unified, .planen-overview, .more-page) {
+  max-inline-size: 50rem;
+  margin-inline: auto;
+}
+
+/* Peer modes remain in their existing keyboard and DOM order. A light rule
+ * carries the selection without competing with the authored content. */
+:root[data-app-design="handwriting"]
+:is(
+  .story-view-tabs,
+  .planen-overview .planen-segmented,
+  .daily-insights .insight-nav
+) {
+  gap: 0;
+  max-inline-size: none;
+  padding: 0;
+  border-radius: 0;
+  border-block-end: 1px solid var(--color-border-subtle);
+  background: transparent;
+}
+:root[data-app-design="handwriting"]
+  :is(
+    .story-view-tabs,
+    .planen-overview .planen-segmented,
+    .daily-insights .insight-nav
+  )
+  > :is(.planen-segment, a) {
+  min-block-size: 46px;
+  padding-inline: var(--space-1);
+  border-radius: 0;
+  font-weight: 650;
+  background: transparent;
+  box-shadow: inset 0 -2px 0 transparent;
+  color: var(--color-text-secondary);
+}
+:root[data-app-design="handwriting"]
+  :is(
+    .story-view-tabs,
+    .planen-overview .planen-segmented,
+    .daily-insights .insight-nav
+  )
+  > :is(.planen-segment.is-active, a[aria-current="page"]) {
+  color: var(--handschrift-accent);
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--handschrift-accent);
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  .planen-segmented::before {
+  content: none;
+}
+
+/* A photo pairs with its real caption like a small print and a fragment of
+ * text. Nonphoto highlights can use the full width for their authored words. */
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-discover-page {
+  gap: clamp(1.65rem, 6vw, 2.6rem);
+}
+:root[data-app-design="handwriting"] .story-page-unified .minimal-story-create {
+  margin-block: 0 var(--space-4);
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .minimal-story-create
+  .add-action {
+  background: var(--handschrift-accent);
+  color: var(--color-on-action-primary);
+  box-shadow: none;
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-hero-highlight {
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+:root[data-app-design="handwriting"] .story-page-unified .momente-hero-link {
+  align-items: center;
+  gap: clamp(0.75rem, 4vw, 2rem);
+  padding-block: var(--space-1);
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-hero-link.has-media {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.93fr);
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-hero-link.has-media
+  > * {
+  grid-area: auto;
+}
+:root[data-app-design="handwriting"] .story-page-unified .momente-hero-media {
+  aspect-ratio: 4 / 5;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  background: var(--color-surface);
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-hero-media
+  img {
+  object-position: 62% center;
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-hero-link
+  .momente-hero-body {
+  align-self: center;
+  padding: 0;
+  gap: var(--space-2);
+  background: transparent;
+  color: var(--color-text);
+}
+:root[data-app-design="handwriting"] .momente-hero-kicker .kicker-icon {
+  display: none;
+}
+:root[data-app-design="handwriting"] .story-page-unified .momente-hero-kicker {
+  color: var(--handschrift-accent);
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.065em;
+}
+:root[data-app-design="handwriting"] .story-page-unified .momente-hero-meta {
+  margin-block-start: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  :is(
+    .momente-hero-title,
+    .momente-hero-quote,
+    .momente-tapestry-title,
+    .momente-band-heading
+  ) {
+  color: var(--color-text);
+  font-family: var(--handschrift-display, var(--font-display));
+  font-weight: 620;
+  letter-spacing: -0.027em;
+}
+:root[data-app-design="handwriting"] .story-page-unified .momente-hero-title {
+  font-size: clamp(1.48rem, 6.35vw, 3rem);
+  line-height: 1.05;
+}
+:root[data-app-design="handwriting"] .story-page-unified .momente-hero-quote {
+  font-size: clamp(1.45rem, 6vw, 2.5rem);
+  line-height: 1.18;
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-hero-link.has-media:has(.sensitive-media-preview) {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-hero-media:has(.sensitive-media-preview) {
+  aspect-ratio: 16 / 10;
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .couple-experience-links {
+  margin-block: 0;
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-border-subtle);
+}
+:root[data-app-design="handwriting"] .couple-experience-links > h2 {
+  font:
+    620 clamp(1.35rem, 5vw, 1.75rem) / 1.15
+    var(--handschrift-display, var(--font-display));
+  letter-spacing: -0.027em;
+}
+:root[data-app-design="handwriting"] .couple-experience-links > div {
+  gap: 0 var(--space-4);
+}
+:root[data-app-design="handwriting"] .couple-experience-links a {
+  align-items: start;
+  padding: var(--space-2) 0;
+  background: transparent;
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-tapestry-media {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="handwriting"]
+  .story-page-unified
+  .momente-tapestry-media
+  .momente-tapestry-body {
+  padding-inline: 0;
+}
+@media (max-width: 359px) {
+  :root[data-app-design="handwriting"]
+    .story-page-unified
+    .momente-hero-link.has-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :root[data-app-design="handwriting"] .story-page-unified .momente-hero-media {
+    aspect-ratio: 3 / 2;
+  }
+}
+@media (min-width: 768px) {
+  :root[data-app-design="handwriting"] .story-page-unified .momente-hero-media {
+    aspect-ratio: 5 / 4;
+  }
+}
+
+/* Calendar-like alignment and one fine spine give the next plan weight.
+ * Later plans read in sequence on paper, with the same detail destinations. */
+:root[data-app-design="handwriting"]
+  .planen-overview
+  .planen-status-scope
+  > button {
+  min-block-size: 44px;
+  padding-inline: var(--space-2);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  .planen-status-scope
+  > button[aria-pressed="true"] {
+  color: var(--handschrift-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+:root[data-app-design="handwriting"] .planen-overview .planen-search-toggle {
+  background: transparent;
+  color: var(--handschrift-accent);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  :is(.planen-next > h2, .planen-agenda > h2, .planen-section-heading h2) {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+:root[data-app-design="handwriting"] .planen-overview .planen-next-link {
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1) var(--space-2) var(--space-4);
+  border: 0;
+  border-inline-start: 2px solid var(--handschrift-accent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  :is(
+    .planen-next-link .plan-cover--preview,
+    .planen-agenda-link .plan-cover--preview
+  ) {
+  border-radius: var(--radius-small);
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  :is(.planen-next-copy, .planen-agenda-copy) {
+  gap: var(--space-1);
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  :is(.planen-agenda-link, .planen-undated-link, .planen-wish-link) {
+  min-block-size: 48px;
+  padding-inline: var(--space-4) var(--space-1);
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  :is(.planen-undated, .planen-history)
+  li
+  + li {
+  border-block-start: 0;
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  :is(
+    .planen-next-copy > strong,
+    .planen-next-copy .discreet-title-row strong,
+    .planen-agenda-title,
+    .planen-wish-copy > strong
+  ) {
+  font-family: var(--handschrift-display, var(--font-display));
+  font-weight: 620;
+  letter-spacing: -0.035em;
+}
+:root[data-app-design="handwriting"]
+  .planen-overview
+  :is(
+    .planen-next-copy > strong,
+    .planen-next-copy .discreet-title-row strong
+  ) {
+  font-size: clamp(2.1rem, 9vw, 3.6rem);
+  line-height: 1.06;
+  overflow-wrap: anywhere;
+}
+:root[data-app-design="handwriting"] .planen-overview .planen-agenda-title {
+  font-size: clamp(1.28rem, 5vw, 1.7rem);
+  line-height: 1.13;
+}
+:root[data-app-design="handwriting"] .planen-overview .planen-next-schedule {
+  inline-size: fit-content;
+  margin-block: var(--space-1);
+  color: var(--handschrift-accent);
+  font-size: 0.85rem;
+}
+:root[data-app-design="handwriting"] .planen-overview .planen-agenda-schedule {
+  color: var(--color-text-secondary);
+}
+
+/* Its existing editorial groups remain in DOM order and make two columns
+ * where subtitles, counts and long names can still reflow comfortably. */
+:root[data-app-design="handwriting"] .more-page .more-search-entry {
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"]
+  .more-page
+  :is(.more-destinations, .more-destinations > li) {
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destinations > li + li {
+  border-block-start: 0;
+}
+
+:root[data-app-design="handwriting"]
+  .more-page
+  .more-group-separated
+  .more-destinations {
+  gap: 0;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-group-title {
+  color: var(--handschrift-accent);
+  font: 620 1.33rem / 1.16 var(--handschrift-display, var(--font-display));
+  text-transform: none;
+  letter-spacing: -0.02em;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination {
+  min-block-size: 54px;
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1) var(--space-2) 0;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-profile-destination {
+  grid-template-columns: 2.7rem minmax(0, 1fr) auto;
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination-icon {
+  inline-size: 2.1rem;
+  block-size: 2.1rem;
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+  color: var(--handschrift-accent);
+}
+
+:root[data-app-design="handwriting"] .more-page .more-destination-chevron {
+  color: var(--handschrift-accent);
+}
+
+@media (min-width: 768px) {
+  :root[data-app-design="handwriting"] .more-page .more-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root[data-app-design="handwriting"]
+    :is(
+      .more-page .more-destination,
+      .planen-overview .planen-agenda-link
+    ):hover {
+    background: var(--handschrift-soft);
+  }
+}
+
+/* Chart colors and shapes retain their existing data meaning. The picker,
+ * selected navigation, surrounding text, and controls take the ink color. */
+:root[data-app-design="handwriting"] .daily-insights .insight-body {
+  gap: var(--space-6);
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  :is(
+    .insight-header h1,
+    .insight-card h2,
+    .insight-closing h2,
+    .insight-hero h2
+  ) {
+  font-family: var(--handschrift-display, var(--font-display));
+  font-weight: 620;
+  letter-spacing: -0.027em;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-picker {
+  padding-inline: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  .insight-picker
+  button:not(:disabled) {
+  color: var(--handschrift-accent);
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  .insight-card:not(.insight-gate) {
+  padding-inline: 0;
+  background: transparent;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  :is(.insight-closing, .insight-hero) {
+  min-block-size: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-landscape {
+  display: none;
+}
+
+:root[data-app-design="handwriting"]
+  .daily-insights
+  :is(.insight-closing, .insight-hero)
+  > .insight-handwriting {
+  position: static;
+  max-inline-size: none;
+  text-align: start;
+  transform: none;
+}
+
+:root[data-app-design="handwriting"] .daily-insights .insight-cta {
+  background: var(--handschrift-accent);
+  color: var(--color-on-action-primary);
+}
+
+/* Small filled marks make the games recognizable while keeping titles
+ * and status readable as the shelf adapts to narrow screens. */
+:root[data-app-design="handwriting"] .games-product-page {
+  width: min(100%, 43rem);
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry,
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry:first-child {
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  min-block-size: 0;
+  padding: var(--space-3) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry
+  .games-entry-index {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: var(--radius-small);
+  background: var(--handschrift-soft);
+  color: var(--handschrift-accent);
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon {
+  --identity-icon-accent: currentColor;
+  --identity-icon-cool: currentColor;
+  inline-size: 1.22rem;
+  block-size: 1.22rem;
+  stroke-width: 1.5;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon-foto
+  rect,
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon-gemeinsam
+  :is(circle, path:nth-of-type(1)),
+:root[data-app-design="handwriting"]
+  .more-page
+  .more-destination-icon
+  .eimir-icon-spiele
+  circle {
+  fill: currentColor;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon-foto
+  :is(circle, path) {
+  stroke: var(--handschrift-soft);
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry-copy {
+  grid-column: 2;
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry h2 {
+  font:
+    620 clamp(1.25rem, 5vw, 1.48rem) / 1.12
+    var(--handschrift-display, var(--font-display));
+  letter-spacing: -0.018em;
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry-role {
+  margin-block-end: var(--space-1);
+  color: var(--handschrift-accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+:root[data-app-design="handwriting"] .games-product-page .games-entry-status {
+  grid-column: 2;
+  justify-self: start;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  white-space: normal;
+}
+
+:root[data-app-design="handwriting"]
+  .games-product-page
+  .games-entry-link
+  .games-entry-status {
+  color: var(--handschrift-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+:root[data-app-design="handwriting"] .games-product-page .local-couple-session {
+  background: var(--handschrift-soft);
+}

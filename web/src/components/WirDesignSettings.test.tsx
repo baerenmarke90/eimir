@@ -157,7 +157,7 @@ async function open() {
     preferenceTimeout,
   );
 }
-it.each(['shared_album', 'quiet_together'] as const)(
+it.each(['shared_album', 'quiet_together', 'handwriting'] as const)(
   'previews %s without writing, cancels, and saves once only after confirmation',
   async (designId) => {
     const f = fixture();
@@ -213,39 +213,45 @@ it.each(['shared_album', 'quiet_together'] as const)(
   },
   15_000,
 );
-it('keeps a saved paid choice after downgrade and permits the Free reset', async () => {
-  const f = fixture({ pro: false, initial: 'quiet_together' });
-  render(<WirDesignSettings />, { wrapper: f.wrapper });
-  await open();
-  expect(
-    (
-      screen.getByRole('radio', {
-        name: new RegExp(t('names.quiet_together')),
-      }) as HTMLInputElement
-    ).checked,
-  ).toBe(true);
-  fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.modern')) }),
-  );
-  expect(screen.getByRole('button', { name: t('discover') })).toBeTruthy();
-  expect(f.writes).toHaveLength(0);
-  fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.warm')) }),
-  );
-  fireEvent.click(screen.getByRole('button', { name: t('save') }));
-  await waitFor(() => expect(f.writes[0]?.value).toBe('warm'));
-});
-it('offers a Pro path instead of writing when Free selects Zu zweit', async () => {
-  const f = fixture({ pro: false });
-  render(<WirDesignSettings />, { wrapper: f.wrapper });
-  await open();
-  fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.quiet_together')) }),
-  );
-  expect(screen.getByRole('button', { name: t('discover') })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: t('save') })).toBeNull();
-  expect(f.writes).toHaveLength(0);
-});
+it.each(['quiet_together', 'handwriting'] as const)(
+  'keeps saved %s after downgrade and permits the Free reset',
+  async (designId) => {
+    const f = fixture({ pro: false, initial: designId });
+    render(<WirDesignSettings />, { wrapper: f.wrapper });
+    await open();
+    expect(
+      (
+        screen.getByRole('radio', {
+          name: new RegExp(t(`names.${designId}`)),
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    fireEvent.click(
+      screen.getByRole('radio', { name: new RegExp(t('names.modern')) }),
+    );
+    expect(screen.getByRole('button', { name: t('discover') })).toBeTruthy();
+    expect(f.writes).toHaveLength(0);
+    fireEvent.click(
+      screen.getByRole('radio', { name: new RegExp(t('names.warm')) }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: t('save') }));
+    await waitFor(() => expect(f.writes[0]?.value).toBe('warm'));
+  },
+);
+it.each(['quiet_together', 'handwriting'] as const)(
+  'offers a Pro path instead of writing when Free selects %s',
+  async (designId) => {
+    const f = fixture({ pro: false });
+    render(<WirDesignSettings />, { wrapper: f.wrapper });
+    await open();
+    fireEvent.click(
+      screen.getByRole('radio', { name: new RegExp(t(`names.${designId}`)) }),
+    );
+    expect(screen.getByRole('button', { name: t('discover') })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: t('save') })).toBeNull();
+    expect(f.writes).toHaveLength(0);
+  },
+);
 it('retains a failed draft and retries the same explicit choice', async () => {
   const f = fixture({ failWrite: 503 });
   render(<WirDesignSettings />, { wrapper: f.wrapper });

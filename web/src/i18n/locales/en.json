@@ -1532,8 +1532,9 @@
   },
   "wirDesign": {
     "title": "Us design",
-    "intro": "Choose your personal design. Together uses its palette throughout the app.",
+    "intro": "Choose your personal design. Together and Handwritten use their palettes throughout the app.",
     "choices": "Your Us design",
+    "handwriting": { "openNote": "Open heart moment" },
     "change": "Choose design",
     "minimal": { "own": "Your Vibe", "partner": "{{name}} today" },
     "welcome": "Our place for two",
@@ -1542,6 +1543,7 @@
       "connected": "Connected",
       "shared_album": "Our Album",
       "quiet_together": "Together",
+      "handwriting": "Handwritten",
       "warm": "Cosy",
       "modern": "Clear & modern",
       "classic": "Classic"
@@ -1550,6 +1552,7 @@
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
       "shared_album": "A shared photo takes the lead, with linen tones and space for your daily check-ins.",
       "quiet_together": "Your names on Us, with calm colors and fewer dividers throughout the app.",
+      "handwriting": "Your words take the lead, with warm paper tones and wine-red accents throughout the app.",
       "warm": "Your retreat. Soft rose, close portraits and thoughts like a personal note.",
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement."

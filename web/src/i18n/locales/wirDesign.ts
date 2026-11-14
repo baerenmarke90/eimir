@@ -1,16 +1,18 @@
 export default {
   title: 'Wir-Design',
   intro:
-    'Hier wählst du dein persönliches Design. Bei „Zu zweit“ gilt die Farbwelt für die ganze App.',
+    'Hier wählst du dein persönliches Design. „Zu zweit“ und „Handschrift“ bringen ihre Farbwelt in die ganze App.',
   choices: 'Dein Wir-Design',
   change: 'Design auswählen',
   minimal: { own: 'Dein Vibe', partner: '{{name}} heute' },
+  handwriting: { openNote: 'Herzmoment öffnen' },
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
   names: {
     connected: 'Verbunden',
     shared_album: 'Seite an Seite',
     quiet_together: 'Zu zweit',
+    handwriting: 'Handschrift',
     warm: 'Geborgen',
     modern: 'Klar & modern',
     classic: 'Klassisch',
@@ -22,6 +24,8 @@ export default {
       'Euer Foto im Mittelpunkt, mit Leinentönen und Platz für euren Vibe.',
     quiet_together:
       'Eure Namen auf Wir, ruhige Farben und weniger Linien in der ganzen App.',
+    handwriting:
+      'Eure Worte im Mittelpunkt. Warme Papierfarben und weinrote Akzente in der ganzen App.',
     warm: 'Euer Rückzugsort. Sanftes Rosé, nahe Porträts und Gedanken wie eine persönliche Notiz.',
     modern:
       'Klar und luftig. Eure Namen neben den Porträts, mit ruhigen blauen Akzenten.',

@@ -42,6 +42,8 @@ function DesignPreview({ design }: { design: WirDesignId }) {
             <i />
             <i />
           </span>
+        ) : design === WirDesignId.handwriting ? (
+          <span className="wir-design-preview-names" />
         ) : (
           <>
             <span className="wir-design-preview-portraits">
@@ -52,11 +54,20 @@ function DesignPreview({ design }: { design: WirDesignId }) {
           </>
         )}
       </span>
+      {design === WirDesignId.handwriting ? (
+        <span className="wir-design-preview-quote wir-design-preview-handwritten-quote">
+          <i />
+          <i />
+          <i />
+        </span>
+      ) : null}
       <span className="wir-design-preview-vibes">
         <i />
         <i />
       </span>
-      <span className="wir-design-preview-quote" />
+      {design !== WirDesignId.handwriting ? (
+        <span className="wir-design-preview-quote" />
+      ) : null}
       <span className="wir-design-preview-moment" />
     </span>
   );

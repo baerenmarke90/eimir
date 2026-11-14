@@ -38,6 +38,7 @@ import {
   StoryPageFromJSON,
   StoryPageToJSON,
 } from '../api/generated/models/StoryPage';
+import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { dashboardQueryKey } from '../client/dashboardQueries';
@@ -77,7 +78,6 @@ import type { StoryStartupReads } from '../client/storyStartup';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
-import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { useWirDesign } from '../client/wirDesign';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
@@ -284,7 +284,9 @@ export function StoryProductPage({
 }) {
   const rootIntro = useRootTabIntro('story');
   const { t } = useTranslation();
-  const quietTogether = useWirDesign()?.current === WirDesignId.quiet_together;
+  const design = useWirDesign()?.current;
+  const inlineCreate =
+    design === WirDesignId.quiet_together || design === WirDesignId.handwriting;
   const recapEntry = (
     <RecapEntry
       api={recapsApi}
@@ -898,10 +900,10 @@ export function StoryProductPage({
         variant="root"
         className="content-overview-heading"
         title={t('story.timelineTitle')}
-        action={quietTogether ? undefined : <MomentCreateMenu floating />}
+        action={inlineCreate ? undefined : <MomentCreateMenu floating />}
       />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
-      {quietTogether ? (
+      {inlineCreate ? (
         <div className="minimal-story-create">
           <MomentCreateMenu />
         </div>

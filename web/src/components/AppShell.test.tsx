@@ -283,20 +283,25 @@ describe('AppShell', () => {
       expect(root.dataset.appDesign).toBe('quiet_together');
       await act(async () =>
         client.setQueryData(key, {
-          preference: { designId: 'connected', version: 2 },
+          preference: { designId: 'handwriting', version: 2 },
           etag: '"appearance:2"',
+        }),
+      );
+      await waitFor(() => expect(root.dataset.appDesign).toBe('handwriting'));
+      await act(async () =>
+        client.setQueryData(key, {
+          preference: { designId: 'connected', version: 3 },
+          etag: '"appearance:3"',
         }),
       );
       await waitFor(() => expect(root.dataset.appDesign).toBeUndefined());
       await act(async () =>
         client.setQueryData(key, {
-          preference: { designId: 'quiet_together', version: 3 },
-          etag: '"appearance:3"',
+          preference: { designId: 'handwriting', version: 4 },
+          etag: '"appearance:4"',
         }),
       );
-      await waitFor(() =>
-        expect(root.dataset.appDesign).toBe('quiet_together'),
-      );
+      await waitFor(() => expect(root.dataset.appDesign).toBe('handwriting'));
     } finally {
       view.unmount();
       client.clear();

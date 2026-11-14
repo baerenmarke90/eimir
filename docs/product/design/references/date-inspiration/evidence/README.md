@@ -1,26 +1,31 @@
-# Date inspiration runtime evidence (#1892)
+# Date inspiration and Pro paywall runtime evidence (#1892)
 
 Captured by `web/e2e/tests/date-inspiration.spec.ts` (Chromium, mocked API
-derived from the bundled development catalog, reduced motion) from product
-source commit `feddb64efc` on branch `feat/date-inspiration`. These are runtime
-captures, separate from the preflight [Compact reference](../compact-reference.png).
+derived from the bundled editorial catalog `catalogVersion` 1.0.0, reduced
+motion) on branch `feat/date-inspiration`; the pull request records the exact
+head commit. These are runtime captures, separate from the preflight
+[Compact reference](../compact-reference.png), which predates the editorial
+catalog and the shared paywall.
 
 | File | State |
 | --- | --- |
-| `entry-390-light.webp` | Wishes mode with the new entry below the shared Wish selection entry (Pro, so no Pro mark). |
-| `free-390-light.webp` | Free Space: calm explanation with Pro mark and link; no catalog request. |
-| `320-light.webp`, `320-light-filters.webp` | 320 px at 200 % text: header and open filters reflow without horizontal scrolling. |
-| `360-light-cards.webp` | 360 px idea card with duration, budget and setting. |
-| `390-dark-cards.webp`, `390-dark-filters.webp` | Dark theme cards and the disclosed duration/budget/setting filters. |
-| `430-light-cards.webp` | 430 px card with the lighter save action and the dominant plan action. |
-| `saved-390-light.webp` | Combined filters (category + free budget), confirmed save turned into a link to the actual Wish. |
-| `1280-dark-cards.webp` | Expanded: same order, leading edge, bounded reading width. |
+| `entry-390-light.webp` | Wishes mode with the entry below the shared Wish selection entry (Pro Space, so no Pro mark). |
+| `free-390-light.webp` | Free Space: calm hint with Pro mark and the deliberate paywall link; no catalog request. |
+| `360-light.webp`, `390-dark.webp`, `1280-dark.webp` | Discovery top: header, category chips, filter disclosure and count (200 ideas). Expanded keeps one column at the leading edge. |
+| `430-light-filters.webp`, `320-light-filters-200pct.webp` | Disclosed duration/budget/place filters; 320 px at 200 % text without horizontal scrolling. |
+| `saved-390-light.webp` | Combined filters (category + home) after saving through the existing Wish composer: the card links to the actual Wish and plans through it. |
+| `paywall-dateIdeas-390-light.webp` | Shared paywall, date inspiration context: hero, title, three benefits, yearly preselected (about 37 % saving), monthly, "for both of you", purchase not yet available, terms (full page). |
+| `paywall-recaps-390-dark.webp`, `paywall-recaps-320-light-200pct.webp`, `paywall-recaps-1280-dark.webp` | Recaps context in Dark, at 320 px with 200 % text and Expanded (full page; long pages cropped at 3000 px). |
+| `paywall-active-390-dark.webp` | General context for a Space that already has Pro: confirmation instead of plans. |
 
-Behavioral acceptance in the same spec: Free without catalog read; filter →
-save (one idempotent request) → open Wish → Back restores filters → shell Back
-returns to Wishes with the new Wish; idea → prefilled composer → saved Plan;
-unchanged prefill closes without a discard prompt; catalog failure → retry;
-axe (WCAG 2.2 AA tags) on Compact and Expanded states.
+Behavioral acceptance in the same spec (11 tests): Free without catalog read →
+deliberate paywall → plan choice → Back returns to the ideas; filter → 24 ideas
+with "show more" → save via the prefilled Wish composer (one `createWish` with
+an `Idempotency-Key`) → actual Wish → Back restores filters → plan through
+`convertWishToPlan` with `If-Match` and the idea's `planTitle`; plan an unsaved
+idea through the prefilled Plan composer; closing an unchanged prefill saves
+nothing and needs no prompt; catalog failure → retry; active Pro on the
+paywall; axe (WCAG 2.2 AA tags) on Compact and Expanded states.
 
 Not covered here: a physical Android device run (no wrapper or native change),
-the final 200-idea editorial catalog, and Product Owner acceptance.
+a real billing provider (none exists yet) and Product Owner acceptance.

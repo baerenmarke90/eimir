@@ -1,34 +1,26 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DateIdea } from '../api/generated/models/DateIdea';
 import type { DateIdeaCatalog } from '../api/generated/models/DateIdeaCatalog';
+import { dateIdeasQueryKey, rememberDateIdeaWish } from '../client/dateIdeas';
 import { ClientProblemError } from '../client/problemDetails';
+import { TaskOriginProvider } from '../client/taskOrigin';
 import dateIdeas from '../i18n/locales/dateIdeas';
 import { DateIdeasPage } from './DateIdeasPage';
 
 const env = vi.hoisted(() => ({
   allowed: true as boolean,
   listDateIdeas: vi.fn(),
-  saveDateIdeaAsWish: vi.fn(),
 }));
 
 vi.mock('../client/dateIdeas', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../client/dateIdeas')>();
   return {
     ...actual,
-    createDateIdeasApi: () => ({
-      listDateIdeas: env.listDateIdeas,
-      saveDateIdeaAsWish: env.saveDateIdeaAsWish,
-    }),
+    createDateIdeasApi: () => ({ listDateIdeas: env.listDateIdeas }),
     useDateInspirationCapability: () => ({
       data: env.allowed,
       isPending: false,
@@ -41,59 +33,61 @@ vi.mock('../client/dateIdeas', async (importOriginal) => {
 function idea(id: string, overrides: Partial<DateIdea> = {}): DateIdea {
   return {
     id,
-    title: `Titel ${id}`,
-    description: `Beschreibung ${id}`,
-    requirements: [],
-    categoryId: 'cozy',
+    category: 'food_drink',
+    placeType: 'home',
+    minutes: 30,
+    budgetEurForTwo: 0,
+    title: `Title ${id}`,
+    description: `Description ${id}`,
+    wishTitle: `Wish ${id}`,
+    planTitle: `Plan ${id}`,
+    prerequisites: [],
     contentLocale: 'de',
-    durationMinMinutes: 60,
-    durationMaxMinutes: 120,
-    durationBand: 'EVENING',
-    budgetMin: 10,
-    budgetMax: 30,
-    budgetBand: 'LOW',
-    setting: 'HOME',
     ...overrides,
   };
 }
 
 function catalog(ideas: DateIdea[]): DateIdeaCatalog {
   return {
-    catalogVersion: 'test',
-    edition: 'editorial',
+    catalogVersion: '1.0.0',
     locale: 'de',
     currency: 'EUR',
     totalCount: ideas.length,
     categories: [
-      { id: 'cozy', label: 'Gemütlich' },
-      { id: 'outdoors', label: 'Draußen' },
+      { id: 'food_drink', label: 'Food' },
+      { id: 'nature', label: 'Nature' },
+    ],
+    placeTypes: [
+      { id: 'home', label: 'Home' },
+      { id: 'out', label: 'Out' },
     ],
     ideas,
   };
 }
 
-function renderPage() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+function renderPage(client = new QueryClient()) {
+  client.setDefaultOptions({ queries: { retry: false } });
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/plan/ideas']}>
-        <Routes>
-          <Route
-            path="/plan/ideas"
-            element={
-              <DateIdeasPage
-                accountId="account-1"
-                spaceId="space-1"
-                apiBaseUrl="https://eimir.test"
-                accessToken="token"
-              />
-            }
-          />
-          <Route path="/plan/wishes/:wishId" element={<p>Wish result</p>} />
-          <Route path="/plan/plans/new" element={<p>Plan composer</p>} />
-        </Routes>
+        <TaskOriginProvider accountId="account-1" spaceId="space-1">
+          <Routes>
+            <Route
+              path="/plan/ideas"
+              element={
+                <DateIdeasPage
+                  accountId="account-1"
+                  spaceId="space-1"
+                  apiBaseUrl="https://eimir.test"
+                  accessToken="token"
+                />
+              }
+            />
+            <Route path="/plan/wishes/new" element={<p>Wish composer</p>} />
+            <Route path="/plan/wishes/:wishId" element={<p>Wish detail</p>} />
+            <Route path="/plan/plans/new" element={<p>Plan composer</p>} />
+          </Routes>
+        </TaskOriginProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -103,150 +97,123 @@ function renderPage() {
 beforeEach(() => {
   env.allowed = true;
   env.listDateIdeas.mockReset();
-  env.saveDateIdeaAsWish.mockReset();
 });
 
 describe('DateIdeasPage', () => {
-  it('shows a calm Pro explanation to Free Spaces without reading the catalog', () => {
+  it('shows a calm Pro hint to Free Spaces without reading the catalog', () => {
     env.allowed = false;
     renderPage();
     expect(
       screen.getByRole('heading', { name: new RegExp(dateIdeas.locked.title) }),
     ).toBeTruthy();
-    expect(screen.getByText(dateIdeas.locked.retained)).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: dateIdeas.locked.action }),
-    ).toBeTruthy();
+      screen
+        .getByRole('link', { name: dateIdeas.locked.action })
+        .getAttribute('href'),
+    ).toBe('/more/pro?context=dateIdeas');
     expect(env.listDateIdeas).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('filters instantly on the client and offers a reset for no match', async () => {
+  it('drops cached protected catalog data once the capability is gone', () => {
+    env.allowed = false;
+    const client = new QueryClient();
+    client.setQueryData(
+      dateIdeasQueryKey('account-1', 'space-1', 'de'),
+      catalog([idea('eimir-date-001')]),
+    );
+    renderPage(client);
+    expect(
+      client.getQueryData(dateIdeasQueryKey('account-1', 'space-1', 'de')),
+    ).toBeUndefined();
+    expect(screen.queryByText('Title eimir-date-001')).toBeNull();
+  });
+
+  it('filters locally with inclusive bounds and offers a reset', async () => {
     env.listDateIdeas.mockResolvedValue(
       catalog([
-        idea('picnic'),
-        idea('hike', {
-          categoryId: 'outdoors',
-          setting: 'OUT',
-          durationBand: 'LONG',
+        idea('eimir-date-001'),
+        idea('eimir-date-002', {
+          category: 'nature',
+          placeType: 'out',
+          minutes: 45,
+          budgetEurForTwo: 10,
         }),
-        idea('cinema', { setting: 'EITHER' }),
       ]),
     );
     renderPage();
-    await screen.findByRole('heading', { name: 'Titel picnic' });
-    expect(env.listDateIdeas).toHaveBeenCalledTimes(1);
+    await screen.findByRole('heading', { name: 'Title eimir-date-001' });
     expect(env.listDateIdeas.mock.calls[0][0]).toEqual({
       spaceId: 'space-1',
       locale: 'de',
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Draußen' }));
-    expect(screen.getByRole('heading', { name: 'Titel hike' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Titel picnic' })).toBeNull();
-
     fireEvent.click(
       screen.getByRole('button', { name: dateIdeas.filters.more }),
     );
-    const settings = screen.getByRole('group', {
-      name: dateIdeas.filters.settingLegend,
+    const budget = screen.getByRole('group', {
+      name: dateIdeas.filters.budgetLegend,
     });
+    fireEvent.click(within(budget).getByRole('button', { name: /10\s€/ }));
+    expect(screen.getAllByRole('article')).toHaveLength(2);
     fireEvent.click(
-      within(settings).getByRole('button', {
-        name: dateIdeas.filters.setting.HOME,
-      }),
+      within(budget).getByRole('button', { name: dateIdeas.filters.free }),
     );
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+    const place = screen.getByRole('group', {
+      name: dateIdeas.filters.placeLegend,
+    });
+    fireEvent.click(within(place).getByRole('button', { name: 'Out' }));
     expect(screen.getByText(dateIdeas.empty.title)).toBeTruthy();
-
     fireEvent.click(
       screen.getAllByRole('button', { name: dateIdeas.filters.reset })[0],
     );
-    expect(screen.getAllByRole('article')).toHaveLength(3);
-    // Filtering never asks the server again.
+    expect(screen.getAllByRole('article')).toHaveLength(2);
     expect(env.listDateIdeas).toHaveBeenCalledTimes(1);
   });
 
-  it('saves an idea once and turns the action into a link to the actual Wish', async () => {
-    env.listDateIdeas.mockResolvedValue(catalog([idea('picnic')]));
-    let resolve: (value: unknown) => void = () => undefined;
-    env.saveDateIdeaAsWish.mockReturnValue(
-      new Promise((done) => {
-        resolve = done;
-      }),
-    );
+  it('opens the existing composers instead of saving directly', async () => {
+    env.listDateIdeas.mockResolvedValue(catalog([idea('eimir-date-001')]));
     renderPage();
-    const save = await screen.findByRole('button', {
-      name: dateIdeas.card.save,
-    });
+    const save = await screen.findByRole('link', { name: dateIdeas.card.save });
+    expect(save.getAttribute('href')).toBe('/plan/wishes/new');
+    const plan = screen.getByRole('link', { name: dateIdeas.card.plan });
+    expect(plan.getAttribute('href')).toBe('/plan/plans/new');
     fireEvent.click(save);
-    fireEvent.click(save);
-    await waitFor(() => expect(env.saveDateIdeaAsWish).toHaveBeenCalled());
-    expect(env.saveDateIdeaAsWish).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByRole('button', { name: dateIdeas.card.saving }),
-    ).toHaveProperty('disabled', true);
-    const request = env.saveDateIdeaAsWish.mock.calls[0][0];
-    expect(request.ideaId).toBe('picnic');
-    expect(request.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
-    resolve({ id: 'wish-1', title: 'Titel picnic', version: 1 });
+    expect(await screen.findByText('Wish composer')).toBeTruthy();
+  });
+
+  it('plans an idea already saved as a Wish through that Wish', async () => {
+    env.listDateIdeas.mockResolvedValue(catalog([idea('eimir-date-001')]));
+    const client = new QueryClient();
+    rememberDateIdeaWish(
+      client,
+      'account-1',
+      'space-1',
+      'eimir-date-001',
+      'wish-9',
+    );
+    renderPage(client);
     const saved = await screen.findByRole('link', {
       name: dateIdeas.card.saved,
     });
-    expect(saved.getAttribute('href')).toBe('/plan/wishes/wish-1');
-    expect(
-      screen.getByText(
-        dateIdeas.card.savedStatus.replace('{{title}}', 'Titel picnic'),
-      ),
-    ).toBeTruthy();
-    // A saved idea is planned through its Wish (canonical conversion).
+    expect(saved.getAttribute('href')).toBe('/plan/wishes/wish-9');
     expect(
       screen
         .getByRole('link', { name: dateIdeas.card.plan })
         .getAttribute('href'),
-    ).toBe('/plan/wishes/wish-1');
+    ).toBe('/plan/wishes/wish-9');
   });
 
-  it('keeps the idea unsaved and explains failures, offering the same retry', async () => {
-    env.listDateIdeas.mockResolvedValue(catalog([idea('picnic')]));
-    env.saveDateIdeaAsWish
-      .mockRejectedValueOnce(new ClientProblemError('server', 503))
-      .mockResolvedValueOnce({ id: 'wish-1', version: 1 });
-    renderPage();
-    fireEvent.click(
-      await screen.findByRole('button', { name: dateIdeas.card.save }),
-    );
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: dateIdeas.card.save }));
-    await screen.findByRole('link', { name: dateIdeas.card.saved });
-    const [first, second] = env.saveDateIdeaAsWish.mock.calls.map(
-      ([call]) => call.idempotencyKey,
-    );
-    // An unknown outcome (server error) reuses the same request identity.
-    expect(second).toBe(first);
-  });
-
-  it('switches to the Pro explanation when the server denies the catalog', async () => {
+  it('shows the Pro hint when the server denies the catalog', async () => {
     env.listDateIdeas.mockRejectedValue(
       new ClientProblemError('permission', 403, 'PREMIUM_ENTITLEMENT_REQUIRED'),
     );
     renderPage();
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', {
-          name: new RegExp(dateIdeas.locked.title),
-        }),
-      ).toBeTruthy(),
-    );
-  });
-
-  it('links Jetzt planen to the composer for an unsaved idea', async () => {
-    env.listDateIdeas.mockResolvedValue(catalog([idea('picnic')]));
-    renderPage();
-    const plan = await screen.findByRole('link', {
-      name: dateIdeas.card.plan,
-    });
-    expect(plan.getAttribute('href')).toBe('/plan/plans/new');
-    fireEvent.click(plan);
-    expect(await screen.findByText('Plan composer')).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', {
+        name: new RegExp(dateIdeas.locked.title),
+      }),
+    ).toBeTruthy();
   });
 });

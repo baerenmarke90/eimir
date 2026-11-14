@@ -146,6 +146,28 @@ export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
 export const PRO_INFORMATION_ROUTE = `${MORE_SETTINGS_ROUTE}/account#eimir-pro`;
+/** Shared eimir. Pro paywall; the context only selects copy, never access. */
+export const PRO_PAYWALL_ROUTE = '/more/pro';
+export const PRO_PAYWALL_CONTEXTS = [
+  'dateIdeas',
+  'recaps',
+  'memoryMap',
+  'photoSources',
+  'games',
+  'general',
+] as const;
+export type ProPaywallContext = (typeof PRO_PAYWALL_CONTEXTS)[number];
+
+export function proPaywallPath(context: ProPaywallContext = 'general'): string {
+  return context === 'general'
+    ? PRO_PAYWALL_ROUTE
+    : `${PRO_PAYWALL_ROUTE}?context=${context}`;
+}
+
+export function proPaywallContext(search: string): ProPaywallContext {
+  const value = new URLSearchParams(search).get('context');
+  return PRO_PAYWALL_CONTEXTS.find((context) => context === value) ?? 'general';
+}
 
 export const SETTINGS_CATEGORY_IDS = [
   'relationship',

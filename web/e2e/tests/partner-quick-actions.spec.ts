@@ -775,7 +775,7 @@ test('gates extended gestures behind the central Premium entitlement and sends t
   await expect(sheet.getByText(copy.pro).first()).toBeVisible();
 
   await kissButton.click();
-  await expect(page).toHaveURL(/\/more\/settings\/account#eimir-pro$/);
+  await expect(page).toHaveURL(/\/more\/pro$/);
   expect(network.sentActions()).toEqual([]);
 });
 

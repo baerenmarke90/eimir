@@ -4880,8 +4880,7 @@
     "entryHint": "Curated ideas for your time together",
     "pro": "Pro",
     "title": "Discover ideas",
-    "intro": "Small and big ideas for time together. Save what speaks to you – or plan it right away.",
-    "developmentNote": "Preview with a small selection. The complete idea catalog is coming.",
+    "intro": "Small ideas for time together. Save what speaks to you – or plan it right away.",
     "loading": "Loading ideas …",
     "offline": "Offline – the ideas will load once you are connected again.",
     "filters": {
@@ -4892,47 +4891,30 @@
       "moreActive_one": "Duration, budget, place · {{count}} active",
       "moreActive_other": "Duration, budget, place · {{count}} active",
       "durationLegend": "Duration",
-      "duration": {
-        "SHORT": "Short, up to 1½ h",
-        "EVENING": "An evening",
-        "LONG": "Longer"
-      },
+      "anyDuration": "Any",
       "budgetLegend": "Budget for the two of you",
-      "budget": {
-        "FREE": "Free",
-        "LOW": "up to {{amount}}",
-        "MEDIUM": "up to {{amount}}",
-        "HIGH": "more than {{amount}}"
-      },
-      "settingLegend": "Place",
-      "setting": {
-        "HOME": "At home",
-        "OUT": "Out and about"
-      },
+      "anyBudget": "Any",
+      "free": "Free",
+      "upTo": "up to {{value}}",
+      "placeLegend": "Place",
+      "anywhere": "Anywhere",
       "reset": "Reset filters"
     },
+    "showMore_one": "Show {{count}} more idea",
+    "showMore_other": "Show {{count}} more ideas",
     "count_one": "{{count}} idea",
     "count_other": "{{count}} ideas",
     "countFiltered_one": "{{count}} of {{total}} ideas matches",
     "countFiltered_other": "{{count}} of {{total}} ideas match",
     "card": {
       "detailsLabel": "Details",
-      "duration": "about {{range}}",
-      "budget": "about {{range}} for the two of you",
-      "budgetFree": "Costs nothing",
-      "setting": {
-        "HOME": "At home",
-        "OUT": "Out and about",
-        "EITHER": "At home or out and about"
-      },
+      "duration": "about {{value}}",
+      "budget": "up to {{value}} for the two of you",
+      "budgetFree": "Free",
       "requirements": "You will need: {{items}}",
       "save": "Save as a wish",
-      "saving": "Saving …",
       "saved": "Saved · View",
-      "plan": "Plan it now",
-      "savedStatus": "“{{title}}” is now among your wishes.",
-      "saveFailed": "The idea could not be saved. Nothing was saved.",
-      "saveOffline": "Offline – the idea was not saved. Try again once you are connected."
+      "plan": "Plan it now"
     },
     "empty": {
       "title": "No idea matches these filters",
@@ -4944,9 +4926,182 @@
     },
     "locked": {
       "title": "Ideas for your time together",
-      "body": "With eimir. Pro you discover curated date ideas – at home and out and about, by duration, budget and mood. What you like becomes a wish or a plan with one tap.",
+      "body": "With eimir. Pro you discover 200 curated date ideas – at home and out and about, by duration, budget and place. What you like becomes a wish or a plan.",
       "retained": "Your wishes and plans always stay free to use.",
-      "action": "More about eimir. Pro"
+      "action": "View eimir. Pro"
     }
+  },
+  "proPaywall": {
+    "eyebrow": "eimir. Pro",
+    "contexts": {
+      "dateIdeas": {
+        "title": "Your next lovely moment starts here.",
+        "description": "Curated date ideas that fit your time, your budget and your mood.",
+        "benefits": {
+          "first": {
+            "title": "200 curated ideas",
+            "body": "At home and out and about – quiet evenings and special moments."
+          },
+          "second": {
+            "title": "Filters that fit you",
+            "body": "Combine category, duration, budget and place."
+          },
+          "third": {
+            "title": "Straight into your plans",
+            "body": "Save an idea as a wish or turn it into a plan right away."
+          }
+        }
+      },
+      "recaps": {
+        "title": "Rediscover your shared story.",
+        "description": "Recaps that bring your moments together into one story.",
+        "benefits": {
+          "first": {
+            "title": "Monthly and yearly recaps",
+            "body": "Every chapter of your time as its own calm edition."
+          },
+          "second": {
+            "title": "Your own words",
+            "body": "Add your thoughts to a recap – finished editions stay readable."
+          },
+          "third": {
+            "title": "Deeper insights",
+            "body": "Weekly recaps and gentle patterns of your shared days."
+          }
+        }
+      },
+      "memoryMap": {
+        "title": "Your story has many places.",
+        "description": "See on a map where your shared moments happened.",
+        "benefits": {
+          "first": {
+            "title": "Every place on one map",
+            "body": "Memories with a place appear on your shared map."
+          },
+          "second": {
+            "title": "From place to moment",
+            "body": "Tap a place and open your memories there right away."
+          },
+          "third": {
+            "title": "Recaps as well",
+            "body": "Discover your story in monthly and yearly recaps too."
+          }
+        }
+      },
+      "photoSources": {
+        "title": "Your memories. Even easier together.",
+        "description": "Bring selected photos straight from your photo services.",
+        "benefits": {
+          "first": {
+            "title": "Connect Immich",
+            "body": "Pick photos from your own Immich for your memories."
+          },
+          "second": {
+            "title": "Google Photos",
+            "body": "Add selected photos from Google Photos where your eimir. offers it."
+          },
+          "third": {
+            "title": "Short videos",
+            "body": "Capture moments as short videos where your eimir. supports it."
+          }
+        }
+      },
+      "games": {
+        "title": "More special moments together.",
+        "description": "Playful experiences for the two of you – no points, no pressure.",
+        "benefits": {
+          "first": {
+            "title": "Play together",
+            "body": "Small games that bring you even closer."
+          },
+          "second": {
+            "title": "Happy moments",
+            "body": "Capture together what makes you happy right now."
+          },
+          "third": {
+            "title": "Time travel",
+            "body": "Send each other a small journey into your shared memories."
+          }
+        }
+      },
+      "general": {
+        "title": "More possibilities for your shared story.",
+        "description": "eimir. Pro adds ideas, recaps and special experiences to your shared home.",
+        "benefits": {
+          "first": {
+            "title": "Date ideas",
+            "body": "200 curated ideas for your time together."
+          },
+          "second": {
+            "title": "Recaps and memory map",
+            "body": "Discover your story over time and in its places."
+          },
+          "third": {
+            "title": "Games and personal extras",
+            "body": "Shared experiences, the daily quote and your own style."
+          }
+        }
+      }
+    },
+    "benefitsLabel": "What Pro offers you",
+    "plansLegend": "Your plan",
+    "plans": {
+      "yearly": {
+        "name": "Yearly",
+        "price": "{{price}} per year",
+        "perMonth": "equals {{price}} a month",
+        "saving": "Save about {{percent}} %"
+      },
+      "monthly": {
+        "name": "Monthly",
+        "price": "{{price}} per month"
+      }
+    },
+    "forBoth": "One subscription. For both of you.",
+    "forBothBody": "A Pro subscription covers your shared space, no matter which of you takes it out.",
+    "free": "eimir. Free stays free forever.",
+    "purchase": {
+      "yearly": "Subscribe to Pro yearly",
+      "monthly": "Subscribe to Pro monthly"
+    },
+    "purchasing": "Starting purchase …",
+    "restore": "Restore purchase",
+    "unavailableTitle": "Purchase not available here yet",
+    "unavailableBody": "Pro cannot be bought in eimir. yet. As soon as it can, you will find the purchase right here.",
+    "active": {
+      "title": "eimir. Pro is active for you.",
+      "body": "All Pro features are available to both of you.",
+      "continue": "Continue"
+    },
+    "statusUnknown": "Your Pro status could not be checked right now. Your content is not affected.",
+    "statusRetry": "Check again",
+    "termsTitle": "Good to know",
+    "terms": {
+      "renewal": {
+        "title": "Renewal",
+        "body": "The subscription renews automatically for the chosen period until it is cancelled."
+      },
+      "cancellation": {
+        "title": "Cancellation",
+        "body": "You can cancel at any time, effective at the end of the current period. Your memories, wishes and plans stay fully intact."
+      },
+      "privacy": {
+        "title": "Privacy",
+        "body": "The payment provider receives no content from your relationship.",
+        "link": "Privacy policy"
+      }
+    },
+    "outcomes": {
+      "confirmed": "Welcome to eimir. Pro! Taking you right there.",
+      "cancelled": "Purchase cancelled. Nothing was charged.",
+      "pending": "Your payment is still being confirmed. Pro unlocks as soon as it completes.",
+      "failed": "The payment failed. Nothing was unlocked.",
+      "network": "No connection. Please try again in a moment.",
+      "restored": "Your purchase was restored.",
+      "partnerActive": "Pro is already active for your shared space.",
+      "expired": "Your Pro access has expired. Your content stays fully intact."
+    },
+    "settingsAction": "View plans",
+    "contextAction": "Discover with eimir. Pro"
   }
 }

@@ -40,15 +40,15 @@ entry, the floating create action and the bottom navigation are preserved.
 | Relationship value | Anticipation and a low-effort "let's do this" moment; no scores, streaks or pressure. |
 | Placement / template | Entry in Planen → Wünsche (Offen scope) next to "Gemeinsam auswählen"; focused subpage `/plan/ideas` (Plan Hub → Detail/Discovery). No new navigation, no dashboard area. |
 | Primary Compact state | Back → title and one-sentence intent → category chips → duration/budget/setting disclosure (`dateIdeas.filters.more`) with active-filter count → result count → idea list. |
-| Dominant action | Per idea: `dateIdeas.card.plan` (shared AddAction link, opens the existing composer). `dateIdeas.card.save` is a lighter save action; once saved it becomes the `dateIdeas.card.saved` link to the actual Wish. |
+| Dominant action | Per idea: `dateIdeas.card.plan` (shared AddAction link) opens the existing Plan composer prefilled with `planTitle`, or — for an idea already saved as a Wish in this session — the canonical Wish-to-Plan conversion of that Wish with `planTitle`. `dateIdeas.card.save` is the lighter action and opens the existing Wish composer prefilled with `wishTitle` and the description. Nothing is saved before the couple confirms in the composer. |
 | Hierarchy | Category → title → emotional description → duration/budget/setting line → requirements → actions. |
 | Immediate vs. disclosed | Categories immediate; duration, budget and setting behind one disclosure. Active filters are always summarized outside the collapsed area with a reset. |
 | Pattern | Subpage; native buttons with `aria-pressed` single-select chips per group, AND across groups, instant client-side filtering of one catalog response. |
 | Loading | Skeleton-free calm loading state (`UiState`), stable layout reserved for the list. |
 | Empty / no match | `dateIdeas.empty.title` with one reset action and a hint to loosen a filter; never a blank page. |
-| Error / offline | `ProblemState` with retry; offline keeps a cached list visible with the cache notice. Saving offline is refused truthfully (nothing saved). |
-| Success | Save confirms in place (status message, button becomes the `dateIdeas.card.saved` link to the actual Wish). Planning opens the prefilled composer; saving opens the actual Plan detail. |
-| Free | One calm value explanation with a Pro mark and a link to Pro information; no catalog request, no modal, no repeated paywall. |
+| Error / offline | `ProblemState` with retry; offline keeps a cached list visible with the cache notice. Writes happen only in the existing composers, which keep their offline/retry and idempotency behavior. |
+| Success | The composer saves an ordinary Wish or Plan and opens its actual detail; Back returns to the ideas with filters, scroll and focus. A Wish created from an idea is remembered for this session only, so the card then shows `dateIdeas.card.saved` and plans through that Wish. |
+| Free | One calm value explanation with a Pro mark and a deliberate link to the shared Pro paywall (`/more/pro?context=dateIdeas`); no catalog request, no modal, no repeated paywall. |
 | Privacy | Only the shared catalog and which open Wishes reference an idea. No click, rejection or partner-content analysis; no external transfer. |
 | Large text / narrow | 320 px reflow, 200 % text, wrapping chips and actions, 44 px targets. |
 | Motion | Tokenized fade/lift for list changes and save confirmation; reduced motion removes translation and keeps all state. |
@@ -64,29 +64,31 @@ collection, not a record table.
 
 - Capability `planning.date_inspiration` (central `Capability` enum; every
   all-Pro grant includes it). Server-side gate on `GET /spaces/{id}/date-ideas`
-  and `POST /spaces/{id}/date-ideas/{ideaId}/wish`. One Space grant serves both
-  partners. No new check on ordinary Wish or Plan endpoints.
-- Catalog: `backend/src/eimir/date_ideas/data/catalog.json`, schema version 1
-  ([JSON Schema](../date-inspiration/catalog.schema.json)), validated at load and
-  by `backend/scripts/date_ideas_catalog.py validate|import|schema`. Stable
-  permanent idea IDs (retire with `active: false`, never drop), localized titles,
-  descriptions, requirements and category labels with default-locale fallback,
-  structured duration/budget/setting metadata, editorial `sortKey` order. The
-  bundled file is a 14-idea **development** dataset (`edition: development`); the
-  final 200-idea editorial catalog replaces it through `import` without code
-  changes.
-- Adoption: the Pro endpoint copies the localized title/description into a
-  regular shared Wish through the canonical `create_wish_once` service
-  (receipts/idempotency) and records the catalog ID in the new nullable
-  `wishes.date_idea_id` column. A per-Space/idea transaction advisory lock
-  serializes simultaneous saves by both partners; an open or planned Wish from
-  the same idea is returned instead of a duplicate. A completed Wish frees the
-  idea. Planning it prefills the ordinary composer; when the idea is already
-  saved, it opens that Wish so the canonical Wish-to-Plan conversion is used.
-- Downgrade: adopted Wishes and resulting Plans are ordinary content; reading,
-  editing, planning, completing, exporting and deleting stay Free. Only new
-  catalog reads/adoptions pause. The provenance column exports and imports with
-  the Wish through the generic transfer bundle.
+  only; one Space grant serves both partners. No new check on Wish or Plan
+  endpoints. The catalog is never a public or bundled client asset.
+- Catalog: the editorial handoff `eimir-date-ideas.v1.json` (200 ideas, de/en,
+  `catalogVersion` 1.0.0) is stored verbatim as
+  `backend/src/eimir/date_ideas/data/catalog.json`. Its format is the editorial
+  [JSON Schema](../date-inspiration/catalog.schema.json); the Pydantic models
+  mirror it and additionally require unique IDs. `backend/scripts/date_ideas_catalog.py validate|import`
+  re-checks any revision and rejects files that would drop a persistent ID.
+  IDs stay stable across translations, copy edits and reordering.
+- Filters: category, `maxMinutes` and `maxBudget` as inclusive upper bounds
+  (presets 20/30/45/60 minutes, free/5/10/20 EUR; 0 EUR means free) and place
+  home/out, where no place filter means anywhere. All combine with AND.
+- Locale: an unsupported locale uses the complete default (German) entry;
+  fields of two languages are never combined.
+- Adoption: the client prefills the existing composers. "Save as wish" uses
+  `createWish` with `wishTitle` and the description; "Plan now" uses
+  `createPlan` with `planTitle`, or `convertWishToPlan` with the real Wish ID
+  and `If-Match` when the idea was saved as a Wish earlier in this session.
+  The existing create receipts (`Idempotency-Key`) protect retries; nothing
+  deduplicates by title. Catalog IDs and filter metadata never enter a Wish or
+  Plan request, so there is no second data store and no schema change.
+- Downgrade and isolation: adopted Wishes and Plans are ordinary content. The
+  client removes cached catalog responses as soon as the capability is absent
+  or denied; Space changes and sign-out clear the query cache, and the page
+  remounts per Account/Space.
 
 ## Reuse review
 
@@ -117,18 +119,21 @@ behave identically (bundled catalog, no managed cost beyond a small read).
   `Intl` for currency and duration.
 - Accessibility: native buttons and links, `aria-pressed`, status announcements
   for result counts and saves, headings per idea, focus restoration on return.
-- Concurrency: advisory lock plus receipts; replays return 200 with the same Wish.
-- Resilience/offline: cached list, explicit offline refusal for saves.
+- Concurrency: the existing composers' create receipts (`Idempotency-Key`) and
+  `If-Match` on conversion; replays return the same Wish or Plan.
+- Resilience/offline: cached list with notice; the composers keep their
+  existing offline and retry behavior.
 - Performance: one catalog request per locale and session (client filters
-  locally); bounded catalog (≤ 2 000 ideas); no per-card requests.
-- Contracts/migration: additive OpenAPI, generated client, additive nullable
-  column (0133) with reversible downgrade.
+  locally); exactly 200 ideas in v1; no per-card requests.
+- Contracts/migration: additive OpenAPI and generated client; no database
+  migration and no change to Wish/Plan write DTOs.
 - Operations: catalog ships with the release; no configuration.
 
 ## Delivery and evidence
 
-Implemented in the pull request for #1892: backend catalog, capability and
-adoption endpoint; the Web entry, discovery page and composer prefill; the
-matrix row (version 1.18). [Runtime evidence](references/date-inspiration/evidence/README.md)
+Implemented in the pull request for #1892: the editorial catalog, capability
+and Pro catalog API; the Web entry, discovery page and composer/conversion
+prefill; the shared Pro paywall ([contract](pro-paywall.md)); the matrix row
+and price update (version 1.18). [Runtime evidence](references/date-inspiration/evidence/README.md)
 covers Compact 320 (200 % text)/360/390/430, Expanded, Light/Dark, Free and
 saved states. No native wrapper change; no Product Owner acceptance is implied.

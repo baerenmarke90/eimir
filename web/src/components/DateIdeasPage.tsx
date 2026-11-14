@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type MouseEvent,
   useEffect,
   useId,
   useLayoutEffect,
@@ -9,28 +10,21 @@ import {
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { DateIdea } from '../api/generated/models/DateIdea';
-import type { DateIdeaCatalog } from '../api/generated/models/DateIdeaCatalog';
-import type { WishDetail } from '../api/generated/models/WishDetail';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { assertOnlineWrite } from '../client/connectivity';
 import {
-  type CreateRequestAttempt,
-  submitCreateRequest,
-} from '../client/createRequestIdentity';
-import { invalidateDashboard } from '../client/dashboardQueries';
-import {
-  BUDGET_FILTERS,
+  BUDGET_LIMITS,
   createDateIdeasApi,
   DATE_INSPIRATION_CAPABILITY,
   type DateIdeasFilterState,
-  DURATION_FILTERS,
   dateIdeasQueryKey,
+  dateIdeasScopeKey,
   filterDateIdeas,
-  formatBudgetRange,
-  formatDurationRange,
+  formatEuros,
+  formatMinutes,
   hasDateIdeasFilter,
-  SETTING_FILTERS,
+  MINUTE_LIMITS,
+  PLACE_FILTERS,
   sanitizeDateIdeasFilter,
+  savedDateIdeaWishes,
   secondaryFilterCount,
   useDateInspirationCapability,
 } from '../client/dateIdeas';
@@ -40,11 +34,12 @@ import {
 } from '../client/problemDetails';
 import {
   PLAN_CREATE_ROUTE,
-  PRO_INFORMATION_ROUTE,
+  proPaywallPath,
+  WISH_CREATE_ROUTE,
   wishDetailPath,
 } from '../client/routes';
 import { withdrawSpaceCapability } from '../client/spaceEntitlement';
-import { useTaskOrigin } from '../client/taskOrigin';
+import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { EimirIcon } from './EimirIcon';
@@ -65,10 +60,18 @@ interface Props {
 }
 
 const ALL = '__all__';
-/** Budget band upper bounds, in the catalog currency (server contract). */
-const BUDGET_LIMITS = { LOW: 30, MEDIUM: 80, HIGH: 80 } as const;
+/** Ideas rendered per step; keeps the Compact DOM and first paint light. */
+const PAGE_SIZE = 24;
 
-type SaveSnapshot = { spaceId: string; ideaId: string; locale: string };
+function plainActivation(event: MouseEvent): boolean {
+  return !(
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  );
+}
 
 /** Account/Space changes remount the task so no state crosses contexts. */
 export function DateIdeasPage(props: Props) {
@@ -110,8 +113,7 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
       }
     },
     enabled: allowed && Boolean(apiBaseUrl && accessToken),
-    // The catalog changes only with a release; saved state is refreshed
-    // through this cache after every confirmed save.
+    // The catalog changes only with a release. Filtering is local.
     staleTime: 5 * 60_000,
     retry: false,
   });
@@ -127,22 +129,39 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
         DATE_INSPIRATION_CAPABILITY,
       );
   }, [denied, client, accountId, spaceId]);
+  // Without the capability no protected catalog response may remain cached
+  // (downgrade, revoked grant or a server denial).
+  useEffect(() => {
+    if (capability.data === false || denied)
+      client.removeQueries({ queryKey: dateIdeasScopeKey(accountId, spaceId) });
+  }, [capability.data, denied, client, accountId, spaceId]);
 
   const [filter, setFilter] = useState<DateIdeasFilterState>({});
   const [moreOpen, setMoreOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const restored = useRef<unknown>(null);
-  const categoryIds = catalog.data?.categories.map((item) => item.id) ?? null;
+  const categoryIds = useMemo(
+    () => catalog.data?.categories.map((item) => item.id) ?? null,
+    [catalog.data],
+  );
 
-  // Return from a Wish, composer or Plan restores filters, scroll and focus.
+  // Return from a composer, Wish or Plan restores filters, scroll and focus.
   useLayoutEffect(() => {
     const key = (location.state as { taskReturnKey?: unknown } | null)
       ?.taskReturnKey;
     const origin = resolveOrigin(key);
-    if (!origin || restored.current === key || !catalog.data) return;
+    if (!origin || restored.current === key || !categoryIds) return;
     restored.current = key;
     const value = sanitizeDateIdeasFilter(origin.dateIdeasFilter, categoryIds);
     setFilter(value);
     setMoreOpen(secondaryFilterCount(value) > 0);
+    // Keep the idea the couple came back from rendered.
+    const index = filterDateIdeas(catalog.data?.ideas ?? [], value).findIndex(
+      (item) => item.id === origin.selectedKey,
+    );
+    setVisibleCount(
+      Math.max(PAGE_SIZE, Math.ceil((index + 1) / PAGE_SIZE) * PAGE_SIZE),
+    );
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: origin.scrollY });
       if (origin.selectedKey)
@@ -152,7 +171,7 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
           )
           ?.focus({ preventScroll: true });
     });
-  }, [location.state, resolveOrigin, catalog.data, categoryIds]);
+  }, [location.state, resolveOrigin, categoryIds, catalog.data]);
 
   useEffect(
     () => registerOriginMetadata({ dateIdeasFilter: filter }),
@@ -163,83 +182,11 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
     () => filterDateIdeas(catalog.data?.ideas ?? [], filter),
     [catalog.data, filter],
   );
+  const savedWishes = savedDateIdeaWishes(client, accountId, spaceId);
 
-  const attempts = useRef(
-    new Map<string, CreateRequestAttempt<SaveSnapshot>>(),
-  );
-  const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set());
-  const [errors, setErrors] = useState<Record<string, ClientProblemError>>({});
-  const [announcement, setAnnouncement] = useState('');
-  const save = useMutation({
-    networkMode: 'always',
-    gcTime: 0,
-    mutationFn: (idea: DateIdea) => {
-      const snapshot = { spaceId, ideaId: idea.id, locale };
-      return submitCreateRequest<SaveSnapshot, WishDetail>({
-        previousAttempt: attempts.current.get(idea.id) ?? null,
-        snapshot,
-        rememberAttempt: (attempt) => {
-          if (attempt) attempts.current.set(idea.id, attempt);
-          else attempts.current.delete(idea.id);
-        },
-        request: (idempotencyKey) => {
-          assertOnlineWrite();
-          return api.saveDateIdeaAsWish({
-            spaceId,
-            ideaId: idea.id,
-            idempotencyKey,
-            dateIdeaWishCreate: { locale },
-          });
-        },
-      });
-    },
-    onMutate: (idea) => {
-      setPendingIds((current) => new Set(current).add(idea.id));
-      setErrors(({ [idea.id]: _removed, ...rest }) => rest);
-    },
-    onSuccess: (wish, idea) => {
-      client.setQueryData(
-        authorSummaryQueryKeys.wishDetail(spaceId, wish.id),
-        wish,
-      );
-      client.setQueryData<DateIdeaCatalog>(
-        dateIdeasQueryKey(accountId, spaceId, locale),
-        (current) =>
-          current && {
-            ...current,
-            ideas: current.ideas.map((item) =>
-              item.id === idea.id ? { ...item, savedWishId: wish.id } : item,
-            ),
-          },
-      );
-      void client.invalidateQueries({ queryKey: ['m5-s3', 'wishes', spaceId] });
-      void invalidateDashboard(client, spaceId);
-      setAnnouncement(t('dateIdeas.card.savedStatus', { title: idea.title }));
-    },
-    onError: (error, idea) => {
-      const problem = error as ClientProblemError;
-      if (problem.code === 'PREMIUM_ENTITLEMENT_REQUIRED')
-        withdrawSpaceCapability(
-          client,
-          accountId,
-          spaceId,
-          DATE_INSPIRATION_CAPABILITY,
-        );
-      setErrors((current) => ({ ...current, [idea.id]: problem }));
-    },
-    onSettled: (_data, _error, idea) =>
-      setPendingIds((current) => {
-        const next = new Set(current);
-        next.delete(idea.id);
-        return next;
-      }),
-  });
-
-  const openWithOrigin = (
-    idea: DateIdea,
-    to: string,
-    extra: Parameters<typeof captureOrigin>[0] = {},
-  ) => {
+  // Every adoption opens an existing composer with editable catalog text;
+  // nothing is saved before the couple confirms there.
+  const open = (idea: DateIdea, to: string, extra: TaskOriginMetadata) => {
     const key = captureOrigin({
       selectedKey: idea.id,
       dateIdeasFilter: filter,
@@ -290,7 +237,10 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
           <p className="date-ideas-locked-retained">
             {t('dateIdeas.locked.retained')}
           </p>
-          <Link className="button-link secondary" to={PRO_INFORMATION_ROUTE}>
+          <Link
+            className="button-link secondary-link"
+            to={proPaywallPath('dateIdeas')}
+          >
             {t('dateIdeas.locked.action')}
           </Link>
         </section>
@@ -298,25 +248,30 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
     );
 
   const data = catalog.data;
-  const categories = data?.categories ?? [];
   const categoryLabels = new Map(
-    categories.map((item) => [item.id, item.label]),
+    (data?.categories ?? []).map((item) => [item.id, item.label]),
+  );
+  const placeLabels = new Map(
+    (data?.placeTypes ?? []).map((item) => [item.id, item.label]),
   );
   const moreCount = secondaryFilterCount(filter);
-  const budgetAmount = (limit: number) =>
-    new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: data?.currency ?? 'EUR',
-      maximumFractionDigits: 0,
-    }).format(limit);
-  const toggle = <K extends keyof DateIdeasFilterState>(
-    key: K,
-    value: string,
-  ) =>
+  const reset = () => {
+    setFilter({});
+    setMoreOpen(false);
+    setVisibleCount(PAGE_SIZE);
+  };
+  const choose = (key: keyof DateIdeasFilterState, value: string) => {
+    setVisibleCount(PAGE_SIZE);
     setFilter((current) => ({
       ...current,
-      [key]: value === ALL ? undefined : (value as DateIdeasFilterState[K]),
+      [key]:
+        value === ALL
+          ? undefined
+          : key === 'maxMinutes' || key === 'maxBudget'
+            ? Number(value)
+            : value,
     }));
+  };
   const listFormat = new Intl.ListFormat(locale, {
     style: 'long',
     type: 'conjunction',
@@ -325,11 +280,6 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
   return (
     <div className="page date-ideas-page">
       {header}
-      {data?.edition === 'development' ? (
-        <p className="date-ideas-preview-note">
-          {t('dateIdeas.developmentNote')}
-        </p>
-      ) : null}
       {catalog.isPending && catalog.fetchStatus !== 'paused' ? (
         <UiState kind="loading" title={t('dateIdeas.loading')} />
       ) : null}
@@ -355,12 +305,12 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
             value={filter.category ?? ALL}
             options={[
               { value: ALL, label: t('dateIdeas.filters.all') },
-              ...categories.map((item) => ({
+              ...data.categories.map((item) => ({
                 value: item.id,
                 label: item.label,
               })),
             ]}
-            onChange={(value) => toggle('category', value)}
+            onChange={(value) => choose('category', value)}
           />
           <div className="date-ideas-filter-bar">
             <button
@@ -368,7 +318,7 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
               className="tertiary date-ideas-more"
               aria-expanded={moreOpen}
               aria-controls={moreId}
-              onClick={() => setMoreOpen((open) => !open)}
+              onClick={() => setMoreOpen((current) => !current)}
             >
               <EimirIcon name="filter" />
               {moreCount
@@ -394,60 +344,59 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
             </p>
             <StatusScope
               label={t('dateIdeas.filters.durationLegend')}
-              value={filter.duration ?? ALL}
+              value={String(filter.maxMinutes ?? ALL)}
               options={[
-                { value: ALL, label: t('dateIdeas.filters.all') },
-                ...DURATION_FILTERS.map((value) => ({
-                  value,
-                  label: t(`dateIdeas.filters.duration.${value}`),
+                { value: ALL, label: t('dateIdeas.filters.anyDuration') },
+                ...MINUTE_LIMITS.map((limit) => ({
+                  value: String(limit),
+                  label: t('dateIdeas.filters.upTo', {
+                    value: formatMinutes(limit, locale),
+                  }),
                 })),
               ]}
-              onChange={(value) => toggle('duration', value)}
+              onChange={(value) => choose('maxMinutes', value)}
             />
             <p className="date-ideas-filter-label" aria-hidden="true">
               {t('dateIdeas.filters.budgetLegend')}
             </p>
             <StatusScope
               label={t('dateIdeas.filters.budgetLegend')}
-              value={filter.budget ?? ALL}
+              value={String(filter.maxBudget ?? ALL)}
               options={[
-                { value: ALL, label: t('dateIdeas.filters.all') },
-                ...BUDGET_FILTERS.map((value) => ({
-                  value,
-                  label: t(`dateIdeas.filters.budget.${value}`, {
-                    amount:
-                      value === 'FREE'
-                        ? ''
-                        : budgetAmount(BUDGET_LIMITS[value]),
-                  }),
+                { value: ALL, label: t('dateIdeas.filters.anyBudget') },
+                ...BUDGET_LIMITS.map((limit) => ({
+                  value: String(limit),
+                  label:
+                    limit === 0
+                      ? t('dateIdeas.filters.free')
+                      : t('dateIdeas.filters.upTo', {
+                          value: formatEuros(limit, locale),
+                        }),
                 })),
               ]}
-              onChange={(value) => toggle('budget', value)}
+              onChange={(value) => choose('maxBudget', value)}
             />
             <p className="date-ideas-filter-label" aria-hidden="true">
-              {t('dateIdeas.filters.settingLegend')}
+              {t('dateIdeas.filters.placeLegend')}
             </p>
             <StatusScope
-              label={t('dateIdeas.filters.settingLegend')}
-              value={filter.setting ?? ALL}
+              label={t('dateIdeas.filters.placeLegend')}
+              value={filter.place ?? ALL}
               options={[
-                { value: ALL, label: t('dateIdeas.filters.all') },
-                ...SETTING_FILTERS.map((value) => ({
-                  value,
-                  label: t(`dateIdeas.filters.setting.${value}`),
+                { value: ALL, label: t('dateIdeas.filters.anywhere') },
+                ...PLACE_FILTERS.map((place) => ({
+                  value: place,
+                  label: placeLabels.get(place) ?? place,
                 })),
               ]}
-              onChange={(value) => toggle('setting', value)}
+              onChange={(value) => choose('place', value)}
             />
           </div>
           {hasDateIdeasFilter(filter) ? (
             <button
               type="button"
               className="tertiary date-ideas-reset"
-              onClick={() => {
-                setFilter({});
-                setMoreOpen(false);
-              }}
+              onClick={reset}
             >
               {t('dateIdeas.filters.reset')}
             </button>
@@ -468,14 +417,7 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
             title={t('dateIdeas.empty.title')}
             body={t('dateIdeas.empty.body')}
             action={
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setFilter({});
-                  setMoreOpen(false);
-                }}
-              >
+              <button type="button" className="secondary" onClick={reset}>
                 {t('dateIdeas.filters.reset')}
               </button>
             }
@@ -484,16 +426,9 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
       ) : null}
       {ideas.length ? (
         <ul className="date-ideas-list">
-          {ideas.map((idea) => {
+          {ideas.slice(0, visibleCount).map((idea) => {
             const titleId = `date-idea-${idea.id}`;
-            const pending = pendingIds.has(idea.id);
-            const error = errors[idea.id];
-            const budget = formatBudgetRange(
-              idea.budgetMin,
-              idea.budgetMax,
-              data?.currency ?? 'EUR',
-              locale,
-            );
+            const savedWishId = savedWishes[idea.id];
             const textLang =
               idea.contentLocale !== data?.locale
                 ? idea.contentLocale
@@ -507,7 +442,7 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
               >
                 <article aria-labelledby={titleId}>
                   <p className="date-idea-category">
-                    {categoryLabels.get(idea.categoryId)}
+                    {categoryLabels.get(idea.category)}
                   </p>
                   <h2 id={titleId} lang={textLang}>
                     {idea.title}
@@ -521,66 +456,60 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
                   >
                     <li>
                       {t('dateIdeas.card.duration', {
-                        range: formatDurationRange(
-                          idea.durationMinMinutes,
-                          idea.durationMaxMinutes,
-                          locale,
-                        ),
+                        value: formatMinutes(idea.minutes, locale),
                       })}
                     </li>
                     <li>
-                      {budget
-                        ? t('dateIdeas.card.budget', { range: budget })
+                      {idea.budgetEurForTwo > 0
+                        ? t('dateIdeas.card.budget', {
+                            value: formatEuros(idea.budgetEurForTwo, locale),
+                          })
                         : t('dateIdeas.card.budgetFree')}
                     </li>
-                    <li>{t(`dateIdeas.card.setting.${idea.setting}`)}</li>
+                    <li>{placeLabels.get(idea.placeType)}</li>
                   </ul>
-                  {idea.requirements.length ? (
+                  {idea.prerequisites.length ? (
                     <p className="date-idea-requirements" lang={textLang}>
                       {t('dateIdeas.card.requirements', {
-                        items: listFormat.format(idea.requirements),
+                        items: listFormat.format(idea.prerequisites),
                       })}
                     </p>
                   ) : null}
                   <div className="date-idea-actions">
-                    {idea.savedWishId ? (
+                    {savedWishId ? (
                       <Link
-                        className="button-link secondary-link date-idea-saved eimir-motion-context-change"
-                        to={wishDetailPath(idea.savedWishId)}
+                        className="button-link secondary-link date-idea-saved"
+                        to={wishDetailPath(savedWishId)}
                         aria-describedby={titleId}
                         onClick={(event) => {
-                          if (
-                            event.button !== 0 ||
-                            event.metaKey ||
-                            event.ctrlKey ||
-                            event.shiftKey ||
-                            event.altKey
-                          )
-                            return;
+                          if (!plainActivation(event)) return;
                           event.preventDefault();
-                          openWithOrigin(
-                            idea,
-                            wishDetailPath(idea.savedWishId as string),
-                          );
+                          open(idea, wishDetailPath(savedWishId), {});
                         }}
                       >
                         <EimirIcon name="check" />
                         {t('dateIdeas.card.saved')}
                       </Link>
                     ) : (
-                      <button
-                        type="button"
-                        className="secondary date-idea-save"
+                      <Link
+                        className="button-link secondary-link date-idea-save"
+                        to={WISH_CREATE_ROUTE}
                         aria-describedby={titleId}
-                        aria-busy={pending || undefined}
-                        disabled={pending}
-                        onClick={() => save.mutate(idea)}
+                        onClick={(event) => {
+                          if (!plainActivation(event)) return;
+                          event.preventDefault();
+                          open(idea, WISH_CREATE_ROUTE, {
+                            planningCreateDraft: {
+                              title: idea.wishTitle,
+                              description: idea.description,
+                              dateIdeaId: idea.id,
+                            },
+                          });
+                        }}
                       >
                         <EimirIcon name="wuensche" />
-                        {pending
-                          ? t('dateIdeas.card.saving')
-                          : t('dateIdeas.card.save')}
-                      </button>
+                        {t('dateIdeas.card.save')}
+                      </Link>
                     )}
                     <AddActionLink
                       icon="kalender"
@@ -588,55 +517,47 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
                       label={t('dateIdeas.card.plan')}
                       aria-describedby={titleId}
                       to={
-                        idea.savedWishId
-                          ? wishDetailPath(idea.savedWishId)
+                        savedWishId
+                          ? wishDetailPath(savedWishId)
                           : PLAN_CREATE_ROUTE
                       }
                       onClick={(event) => {
-                        if (
-                          event.button !== 0 ||
-                          event.metaKey ||
-                          event.ctrlKey ||
-                          event.shiftKey ||
-                          event.altKey
-                        )
-                          return;
+                        if (!plainActivation(event)) return;
                         event.preventDefault();
-                        // A saved idea continues through its Wish, so the
-                        // canonical Wish-to-Plan conversion keeps them linked.
-                        if (idea.savedWishId)
-                          openWithOrigin(
-                            idea,
-                            wishDetailPath(idea.savedWishId),
-                          );
+                        const draft = {
+                          title: idea.planTitle,
+                          description: idea.description,
+                        };
+                        // A Wish saved from this idea continues through the
+                        // canonical Wish-to-Plan conversion (with If-Match).
+                        if (savedWishId)
+                          open(idea, wishDetailPath(savedWishId), {
+                            planningConvertDraft: draft,
+                          });
                         else
-                          openWithOrigin(idea, PLAN_CREATE_ROUTE, {
-                            planningCreateDraft: {
-                              title: idea.title,
-                              description: idea.description,
-                            },
+                          open(idea, PLAN_CREATE_ROUTE, {
+                            planningCreateDraft: draft,
                           });
                       }}
                     />
                   </div>
-                  {error ? (
-                    <p className="date-idea-error" role="alert">
-                      {t(
-                        error.kind === 'offline'
-                          ? 'dateIdeas.card.saveOffline'
-                          : 'dateIdeas.card.saveFailed',
-                      )}
-                    </p>
-                  ) : null}
                 </article>
               </li>
             );
           })}
         </ul>
       ) : null}
-      <p className="sr-only" role="status" aria-live="polite">
-        {announcement}
-      </p>
+      {ideas.length > visibleCount ? (
+        <button
+          type="button"
+          className="secondary date-ideas-show-more"
+          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+        >
+          {t('dateIdeas.showMore', {
+            count: Math.min(PAGE_SIZE, ideas.length - visibleCount),
+          })}
+        </button>
+      ) : null}
     </div>
   );
 }

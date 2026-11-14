@@ -170,6 +170,7 @@ Links. IDs are opaque, stable identifiers.
 | Shopping reserved for later domain | `/plan/shopping` |
 | Games hub (Spielen, entry under Mehr) | `/games` |
 | More | `/more` |
+| eimir. Pro paywall (context in `?context=`) | `/more/pro` |
 | Places (Mehr) | `/plan/places` |
 | Open place | `/plan/places/:placeId` |
 | Collections (Mehr) | `/plan/collections` |

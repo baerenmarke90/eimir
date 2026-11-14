@@ -44,8 +44,17 @@ export interface TaskOriginMetadata {
   planningWishSearch?: string;
   /** Date-only default for a new Plan started from a shared occasion. */
   planningCreateDate?: string;
-  /** Catalog text that prefills a new Plan started from a curated date idea. */
-  planningCreateDraft?: { title: string; description?: string };
+  /**
+   * Editable catalog text that prefills a new Wish or Plan started from a
+   * curated date idea; the idea ID is only the in-session link, never sent.
+   */
+  planningCreateDraft?: {
+    title: string;
+    description?: string;
+    dateIdeaId?: string;
+  };
+  /** Editable prefill for converting a known Wish into a Plan. */
+  planningConvertDraft?: { title: string; description?: string };
   /** Restores the date inspiration filters; catalog keys only, never content. */
   dateIdeasFilter?: DateIdeasFilterState;
   /** Bounded, account/Space-scoped map return context; never persisted or logged. */
@@ -274,6 +283,7 @@ export function TaskOriginProvider({
         planningWishSearch: snapshot.planningWishSearch,
         planningCreateDate: snapshot.planningCreateDate,
         planningCreateDraft: snapshot.planningCreateDraft,
+        planningConvertDraft: snapshot.planningConvertDraft,
         dateIdeasFilter: snapshot.dateIdeasFilter,
         memoryMap: snapshot.memoryMap,
         taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,

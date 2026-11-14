@@ -17,23 +17,26 @@ export const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const NOW = new Date().toISOString();
 
+type LocalizedLabel = { de: string; en: string };
+type IdeaCopy = {
+  title: string;
+  description: string;
+  wishTitle: string;
+  planTitle: string;
+  prerequisites: string[];
+};
 type CatalogFile = {
   catalogVersion: string;
-  edition: string;
-  defaultLocale: string;
   currency: string;
-  categories: { id: string; labels: Record<string, string> }[];
+  placeTypeLabels: Record<'home' | 'out', LocalizedLabel>;
+  categoryLabels: Record<string, LocalizedLabel>;
   ideas: {
     id: string;
-    active?: boolean;
+    minutes: number;
+    budgetEurForTwo: number;
+    placeType: 'home' | 'out';
     category: string;
-    durationMinutes: { min: number; max: number };
-    budgetForTwo: { min: number; max: number };
-    setting: 'HOME' | 'OUT' | 'EITHER';
-    content: Record<
-      string,
-      { title: string; description: string; requirements?: string[] }
-    >;
+    copy: { de: IdeaCopy; en: IdeaCopy };
   }[];
 };
 
@@ -47,57 +50,30 @@ const catalogFile = JSON.parse(
   ),
 ) as CatalogFile;
 
-function durationBand(max: number) {
-  return max <= 90 ? 'SHORT' : max <= 240 ? 'EVENING' : 'LONG';
+export function catalogIdeas(locale: 'de' | 'en' = 'de') {
+  return catalogFile.ideas.map((idea) => ({
+    id: idea.id,
+    category: idea.category,
+    placeType: idea.placeType,
+    minutes: idea.minutes,
+    budgetEurForTwo: idea.budgetEurForTwo,
+    ...idea.copy[locale],
+    contentLocale: locale,
+  }));
 }
 
-function budgetBand(max: number) {
-  return max <= 0 ? 'FREE' : max <= 30 ? 'LOW' : max <= 80 ? 'MEDIUM' : 'HIGH';
-}
-
-export function catalogIdeas(locale = 'de') {
-  return catalogFile.ideas
-    .filter((idea) => idea.active !== false)
-    .map((idea) => {
-      const contentLocale = idea.content[locale]
-        ? locale
-        : catalogFile.defaultLocale;
-      const content = idea.content[contentLocale];
-      return {
-        id: idea.id,
-        title: content.title,
-        description: content.description,
-        requirements: content.requirements ?? [],
-        categoryId: idea.category,
-        contentLocale,
-        durationMinMinutes: idea.durationMinutes.min,
-        durationMaxMinutes: idea.durationMinutes.max,
-        durationBand: durationBand(idea.durationMinutes.max),
-        budgetMin: idea.budgetForTwo.min,
-        budgetMax: idea.budgetForTwo.max,
-        budgetBand: budgetBand(idea.budgetForTwo.max),
-        setting: idea.setting,
-      };
-    });
-}
-
-/** German catalog title of an idea, so specs never hardcode product copy. */
-export function ideaTitle(id: string): string {
+export function catalogIdea(id: string) {
   const idea = catalogIdeas('de').find((item) => item.id === id);
-  if (!idea) throw new Error(`Unknown development idea ${id}`);
-  return idea.title;
-}
-
-export function ideaDescription(id: string): string {
-  const idea = catalogIdeas('de').find((item) => item.id === id);
-  if (!idea) throw new Error(`Unknown development idea ${id}`);
-  return idea.description;
+  if (!idea) throw new Error(`Unknown catalog idea ${id}`);
+  return idea;
 }
 
 export function categoryLabel(id: string): string {
-  const category = catalogFile.categories.find((item) => item.id === id);
-  if (!category) throw new Error(`Unknown development category ${id}`);
-  return category.labels.de;
+  return catalogFile.categoryLabels[id].de;
+}
+
+export function placeLabel(id: 'home' | 'out'): string {
+  return catalogFile.placeTypeLabels[id].de;
 }
 
 export type DateIdeasState = {
@@ -105,8 +81,15 @@ export type DateIdeasState = {
   /** Fail catalog reads with this status (e.g. 503) when set. */
   catalogFailure: number | null;
   catalogRequests: number;
-  saved: Map<string, string>;
-  wishSaves: { ideaId: string; idempotencyKey: string | null }[];
+  wishCreates: {
+    body: Record<string, unknown>;
+    idempotencyKey: string | null;
+  }[];
+  conversions: {
+    wishId: string;
+    ifMatch: string | null;
+    body: Record<string, unknown>;
+  }[];
   createdPlans: Record<string, unknown>[];
   wishes: Record<string, unknown>[];
   unexpected: string[];
@@ -165,8 +148,8 @@ export async function installDateIdeaMocks(
     pro: options.pro,
     catalogFailure: null,
     catalogRequests: 0,
-    saved: new Map(),
-    wishSaves: [],
+    wishCreates: [],
+    conversions: [],
     createdPlans: [],
     wishes: (options.wishes ?? []).map((wish) =>
       wishBody(wish.id, wish.title, null),
@@ -368,46 +351,59 @@ export async function installDateIdeaMocks(
       return json(
         {
           catalogVersion: catalogFile.catalogVersion,
-          edition: catalogFile.edition,
           locale,
           currency: catalogFile.currency,
-          totalCount: catalogIdeas(locale).length,
-          categories: catalogFile.categories.map((category) => ({
-            id: category.id,
-            label: category.labels[locale] ?? category.labels.de,
+          totalCount: catalogFile.ideas.length,
+          categories: Object.entries(catalogFile.categoryLabels).map(
+            ([id, labels]) => ({ id, label: labels[locale] }),
+          ),
+          placeTypes: (['home', 'out'] as const).map((id) => ({
+            id,
+            label: catalogFile.placeTypeLabels[id][locale],
           })),
-          ideas: catalogIdeas(locale).map((idea) => {
-            const savedWishId = state.saved.get(idea.id);
-            return savedWishId ? { ...idea, savedWishId } : idea;
-          }),
+          ideas: catalogIdeas(locale),
         },
         200,
         { 'Cache-Control': 'private, no-store' },
       );
     }
-    const saveMatch = pathname.match(
-      new RegExp(`^${space}/date-ideas/([^/]+)/wish$`),
-    );
-    if (method === 'POST' && saveMatch) {
-      if (!state.pro) return proRequired();
-      const ideaId = saveMatch[1];
-      state.wishSaves.push({
-        ideaId,
-        idempotencyKey: request.headers()['idempotency-key'] ?? null,
-      });
-      const existing = state.saved.get(ideaId);
-      if (existing) {
-        const wish = state.wishes.find((item) => item.id === existing);
-        return json(wish, 200, { ETag: '"1"' });
-      }
-      const idea = catalogIdeas('de').find((item) => item.id === ideaId);
-      if (!idea) return json({ code: 'DATE_IDEA_NOT_FOUND', status: 404 }, 404);
+    if (method === 'POST' && pathname === `${space}/wishes`) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      const idempotencyKey = request.headers()['idempotency-key'] ?? null;
+      const replay = state.wishCreates.findIndex(
+        (item) => idempotencyKey && item.idempotencyKey === idempotencyKey,
+      );
+      state.wishCreates.push({ body, idempotencyKey });
+      if (replay >= 0) return json(state.wishes[0], 200, { ETag: '"1"' });
       sequence += 1;
       const id = `66666666-6666-4666-8666-${String(sequence).padStart(12, '0')}`;
-      const wish = wishBody(id, idea.title, idea.description);
+      const wish = wishBody(
+        id,
+        String(body.title),
+        (body.description as string | undefined) ?? null,
+      );
       state.wishes.unshift(wish);
-      state.saved.set(ideaId, id);
       return json(wish, 201, { ETag: '"1"' });
+    }
+    const convertMatch = pathname.match(
+      new RegExp(`^${space}/wishes/([^/]+)/plan$`),
+    );
+    if (method === 'POST' && convertMatch) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.conversions.push({
+        wishId: convertMatch[1],
+        ifMatch: request.headers()['if-match'] ?? null,
+        body,
+      });
+      sequence += 1;
+      const plan = planBody(
+        `77777777-7777-4777-8777-${String(sequence).padStart(12, '0')}`,
+        { ...body, sourceWishId: convertMatch[1] },
+      );
+      state.createdPlans.push(plan);
+      const wish = state.wishes.find((item) => item.id === convertMatch[1]);
+      if (wish) wish.status = 'PLANNED';
+      return json({ plan, wish }, 201);
     }
     const wishMatch = pathname.match(/\/wishes\/([^/]+)$/);
     if (method === 'GET' && wishMatch) {

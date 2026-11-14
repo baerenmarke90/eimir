@@ -42,6 +42,7 @@ import privateArea from './locales/privateArea';
 import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
+import proPaywall from './locales/proPaywall';
 import recaps from './locales/recaps';
 import rediscovery from './locales/rediscovery';
 import relationshipComponents from './locales/relationshipComponents';
@@ -105,6 +106,7 @@ export const germanResources = {
   partnerLocation,
   people,
   privateArea,
+  proPaywall,
   profileIdentity,
   profiles,
   productTour,

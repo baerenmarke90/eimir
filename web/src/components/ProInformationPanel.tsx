@@ -1,4 +1,7 @@
-import { useTranslation } from '../i18n';
+import { Link } from 'react-router-dom';
+import { REFERENCE_PRO_PLANS } from '../client/proBilling';
+import { proPaywallPath } from '../client/routes';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 
 /** Product information only; capability checks remain server-owned. */
@@ -42,6 +45,21 @@ export function ProInformationPanel() {
         <p className="settings-pro-assurance">
           {t('profiles.premium.detailsBody')}
         </p>
+        <p className="settings-pro-prices">
+          {REFERENCE_PRO_PLANS.map((plan) =>
+            t(`proPaywall.plans.${plan.id}.price`, {
+              price: new Intl.NumberFormat(resolvedLocale(), {
+                style: 'currency',
+                currency: plan.currency,
+              }).format(plan.amount),
+            }),
+          ).join(' · ')}
+          {' · '}
+          {t('proPaywall.forBoth')}
+        </p>
+        <Link className="button-link secondary-link" to={proPaywallPath()}>
+          {t('proPaywall.settingsAction')}
+        </Link>
       </div>
     </section>
   );

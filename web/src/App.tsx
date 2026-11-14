@@ -66,6 +66,7 @@ import {
   COLLECTION_CREATE_ROUTE,
   COLLECTION_DETAIL_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
+  PRO_PAYWALL_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
@@ -151,6 +152,7 @@ import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
 import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DateIdeasPage } from './components/DateIdeasPage';
+import { ProPaywallPage } from './components/ProPaywallPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
@@ -695,6 +697,7 @@ function AuthenticatedApp({
               path={DATE_IDEAS_ROUTE}
               element={<DateIdeasPage {...planningProductProps} />}
             />
+            <Route path={PRO_PAYWALL_ROUTE} element={<ProPaywallPage />} />
             <Route
               path={WISH_CREATE_ROUTE}
               element={

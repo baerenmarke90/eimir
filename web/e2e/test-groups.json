@@ -433,8 +433,8 @@
     },
     "date-inspiration.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
-      "reason": "Pro date inspiration (#1892): Free explanation without catalog read, combined filters, idea to ordinary Wish with idempotent save, prefilled Plan composer, filtered return, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
+      "baselineTests": 11,
+      "reason": "Pro date inspiration and shared Pro paywall (#1892): Free hint without catalog read and deliberate context paywall with return, editorial catalog filters, adoption only through the existing Wish/Plan composers and Wish-to-Plan conversion, active Pro, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
     },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",

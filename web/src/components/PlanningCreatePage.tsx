@@ -41,6 +41,7 @@ import {
   type ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
+import { rememberDateIdeaWish } from '../client/dateIdeas';
 import { createReferenceApis } from '../client/referenceFlow';
 import { planDetailPath, wishDetailPath } from '../client/routes';
 import {
@@ -125,11 +126,9 @@ export function PlanningCreatePage({
   const [defaultPlannedDate] = useState(() =>
     kind === 'plan' ? resolveOrigin(originKey)?.planningCreateDate : undefined,
   );
-  // A curated date idea may prefill a new Plan. The prefill is the clean
-  // baseline: closing without edits loses nothing the couple wrote.
-  const [draft] = useState(() =>
-    kind === 'plan' ? resolveOrigin(originKey)?.planningCreateDraft : undefined,
-  );
+  // A curated date idea may prefill a new Wish or Plan. The prefill is the
+  // clean baseline: closing without edits loses nothing the couple wrote.
+  const [draft] = useState(() => resolveOrigin(originKey)?.planningCreateDraft);
   const headingRef = useRef<HTMLDivElement>(null);
   const referenceApis = useMemo(
     () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
@@ -358,6 +357,14 @@ export function PlanningCreatePage({
     },
     onSuccess: async (created, intent) => {
       if (!intent.owns()) return;
+      if (kind === 'wish' && draft?.dateIdeaId && accountId)
+        rememberDateIdeaWish(
+          queryClient,
+          accountId,
+          spaceId,
+          draft.dateIdeaId,
+          created.id,
+        );
       await queryClient.invalidateQueries({
         queryKey: ['context-tags', spaceId],
       });

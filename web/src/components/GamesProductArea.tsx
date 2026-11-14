@@ -6,6 +6,7 @@ import { Configuration } from '../client/apiConfiguration';
 import {
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
+  proPaywallPath,
 } from '../client/routes';
 import {
   entitlementLoader,
@@ -99,6 +100,16 @@ export function GamesProductArea({
         className="games-heading"
       />
 
+      {entitlementQuery.data && !gamesUnlocked ? (
+        <p className="games-pro-hint">
+          <Link
+            className="button-link secondary-link"
+            to={proPaywallPath('games')}
+          >
+            {t('proPaywall.contextAction')}
+          </Link>
+        </p>
+      ) : null}
       {entitlementQuery.isPending ? (
         <UiState kind="loading" title={t('states.loading.title')} />
       ) : entitlementQuery.error ? (

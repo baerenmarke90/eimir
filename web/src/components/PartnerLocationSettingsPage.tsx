@@ -31,10 +31,7 @@ import {
 } from '../client/partnerLocation';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { clientProblemKind } from '../client/problemDetails';
-import {
-  PARTNER_LOCATION_MAP_ROUTE,
-  PRO_INFORMATION_ROUTE,
-} from '../client/routes';
+import { PARTNER_LOCATION_MAP_ROUTE, proPaywallPath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
@@ -357,10 +354,7 @@ export function PartnerLocationSettingsPage({
               {t('partnerLocation.proTitle')}
             </p>
             <p>{t('partnerLocation.proBody')}</p>
-            <Link
-              className="button-link secondary-link"
-              to={PRO_INFORMATION_ROUTE}
-            >
+            <Link className="button-link secondary-link" to={proPaywallPath()}>
               {t('partnerLocation.proAction')}
             </Link>
           </div>

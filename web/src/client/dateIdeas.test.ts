@@ -1,118 +1,122 @@
+import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import type { DateIdea } from '../api/generated/models/DateIdea';
 import {
   filterDateIdeas,
-  formatBudgetRange,
-  formatDurationRange,
+  formatEuros,
+  formatMinutes,
   hasDateIdeasFilter,
+  rememberDateIdeaWish,
   sanitizeDateIdeasFilter,
+  savedDateIdeaWishes,
   secondaryFilterCount,
 } from './dateIdeas';
 
 function idea(id: string, overrides: Partial<DateIdea> = {}): DateIdea {
   return {
     id,
+    category: 'food_drink',
+    placeType: 'home',
+    minutes: 30,
+    budgetEurForTwo: 0,
     title: id,
     description: 'Description',
-    requirements: [],
-    categoryId: 'cozy',
+    wishTitle: `Wish ${id}`,
+    planTitle: `Plan ${id}`,
+    prerequisites: [],
     contentLocale: 'de',
-    durationMinMinutes: 30,
-    durationMaxMinutes: 60,
-    durationBand: 'SHORT',
-    budgetMin: 0,
-    budgetMax: 0,
-    budgetBand: 'FREE',
-    setting: 'HOME',
     ...overrides,
   };
 }
 
 const ideas = [
-  idea('home-free'),
-  idea('either-low', { setting: 'EITHER', budgetBand: 'LOW' }),
-  idea('out-long-high', {
-    setting: 'OUT',
-    categoryId: 'outdoors',
-    durationBand: 'LONG',
-    budgetBand: 'HIGH',
+  idea('home-free-30'),
+  idea('home-paid-20', { minutes: 20, budgetEurForTwo: 5 }),
+  idea('out-nature-45', {
+    category: 'nature',
+    placeType: 'out',
+    minutes: 45,
+    budgetEurForTwo: 10,
   }),
-  idea('out-short-free', { setting: 'OUT', categoryId: 'outdoors' }),
+  idea('out-nature-60', {
+    category: 'nature',
+    placeType: 'out',
+    minutes: 60,
+    budgetEurForTwo: 20,
+  }),
 ];
 
 const ids = (filter: Parameters<typeof filterDateIdeas>[1]) =>
   filterDateIdeas(ideas, filter).map((item) => item.id);
 
 describe('date idea filters', () => {
-  it('combines groups with AND and keeps the editorial order', () => {
-    expect(ids({})).toEqual([
-      'home-free',
-      'either-low',
-      'out-long-high',
-      'out-short-free',
+  it('treats upper bounds as inclusive and zero euros as free', () => {
+    expect(ids({ maxMinutes: 30 })).toEqual(['home-free-30', 'home-paid-20']);
+    expect(ids({ maxMinutes: 45 })).toContain('out-nature-45');
+    expect(ids({ maxBudget: 0 })).toEqual(['home-free-30']);
+    expect(ids({ maxBudget: 5 })).toEqual(['home-free-30', 'home-paid-20']);
+    expect(ids({ maxBudget: 20 })).toHaveLength(4);
+  });
+
+  it('combines every group with AND; no place means anywhere', () => {
+    expect(ids({})).toEqual(ideas.map((item) => item.id));
+    expect(ids({ category: 'nature', maxMinutes: 45, maxBudget: 10 })).toEqual([
+      'out-nature-45',
     ]);
-    expect(ids({ category: 'outdoors' })).toEqual([
-      'out-long-high',
-      'out-short-free',
-    ]);
-    expect(ids({ category: 'outdoors', budget: 'FREE' })).toEqual([
-      'out-short-free',
-    ]);
+    expect(ids({ place: 'home', category: 'nature' })).toEqual([]);
     expect(
-      ids({ category: 'outdoors', duration: 'LONG', budget: 'HIGH' }),
-    ).toEqual(['out-long-high']);
-    expect(ids({ setting: 'HOME', duration: 'LONG' })).toEqual([]);
+      [...ids({ place: 'home' }), ...ids({ place: 'out' })].sort(),
+    ).toEqual(ids({}).sort());
   });
 
-  it('lets ideas for both settings match either setting filter', () => {
-    expect(ids({ setting: 'HOME' })).toEqual(['home-free', 'either-low']);
-    expect(ids({ setting: 'OUT' })).toEqual([
-      'either-low',
-      'out-long-high',
-      'out-short-free',
-    ]);
-  });
-
-  it('counts only the disclosed groups and recognizes any active filter', () => {
-    expect(secondaryFilterCount({ category: 'cozy' })).toBe(0);
-    expect(secondaryFilterCount({ duration: 'SHORT', setting: 'OUT' })).toBe(2);
+  it('counts only the disclosed groups, including a zero budget', () => {
+    expect(secondaryFilterCount({ category: 'nature' })).toBe(0);
+    expect(secondaryFilterCount({ maxBudget: 0 })).toBe(1);
+    expect(secondaryFilterCount({ maxMinutes: 20, place: 'out' })).toBe(2);
     expect(hasDateIdeasFilter({})).toBe(false);
-    expect(hasDateIdeasFilter({ category: 'cozy' })).toBe(true);
+    expect(hasDateIdeasFilter({ maxBudget: 0 })).toBe(true);
   });
 
-  it('drops restored values the current catalog does not know', () => {
+  it('drops restored values the current catalog does not offer', () => {
     expect(
       sanitizeDateIdeasFilter(
         {
-          category: 'retired',
-          duration: 'FOREVER' as never,
-          budget: 'LOW',
-          setting: 'HOME',
+          category: 'nature',
+          maxMinutes: 25 as never,
+          maxBudget: 0,
+          place: 'anywhere' as never,
         },
-        ['cozy'],
+        ['nature'],
       ),
     ).toEqual({
-      category: undefined,
-      duration: undefined,
-      budget: 'LOW',
-      setting: 'HOME',
+      category: 'nature',
+      maxMinutes: undefined,
+      maxBudget: 0,
+      place: undefined,
     });
-    expect(sanitizeDateIdeasFilter(undefined, null)).toEqual({});
+    expect(sanitizeDateIdeasFilter({ category: 'play' }, ['nature'])).toEqual(
+      expect.objectContaining({ category: undefined }),
+    );
   });
 });
 
-describe('date idea formatting', () => {
-  it('formats localized duration ranges in minutes, hours and days', () => {
-    expect(formatDurationRange(30, 45, 'en')).toMatch(/30.*45 min/);
-    expect(formatDurationRange(90, 150, 'de')).toMatch(/1,5.*2,5 Std/);
-    expect(formatDurationRange(60, 60, 'en')).toBe('1 hr');
-    expect(formatDurationRange(1440, 2880, 'en')).toMatch(/1.*2 days/);
+describe('date idea formatting and session links', () => {
+  it('formats minutes and whole euros per locale', () => {
+    expect(formatMinutes(40, 'de')).toBe('40 Min.');
+    expect(formatMinutes(40, 'en')).toBe('40 min');
+    expect(formatEuros(10, 'de')).toMatch(/^10\s€$/);
+    expect(formatEuros(10, 'en')).toBe('€10');
   });
 
-  it('formats budgets without fractions and treats zero as free', () => {
-    expect(formatBudgetRange(0, 0, 'EUR', 'de')).toBeNull();
-    expect(formatBudgetRange(10, 30, 'EUR', 'de')).toMatch(/10.*30\s?€/);
-    expect(formatBudgetRange(10, 30, 'EUR', 'en')).toMatch(/€10.*€?30/);
-    expect(formatBudgetRange(20, 20, 'EUR', 'en')).toBe('€20');
+  it('remembers Wishes per Account and Space only', () => {
+    const client = new QueryClient();
+    rememberDateIdeaWish(client, 'a', 's1', 'eimir-date-001', 'wish-1');
+    expect(savedDateIdeaWishes(client, 'a', 's1')).toEqual({
+      'eimir-date-001': 'wish-1',
+    });
+    expect(savedDateIdeaWishes(client, 'a', 's2')).toEqual({});
+    expect(savedDateIdeaWishes(client, 'b', 's1')).toEqual({});
+    client.clear();
+    expect(savedDateIdeaWishes(client, 'a', 's1')).toEqual({});
   });
 });

@@ -1,37 +1,30 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { DateIdeasApi } from '../api/generated/apis/DateIdeasApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DateIdea } from '../api/generated/models/DateIdea';
+import type { DateIdeaCategory } from '../api/generated/models/DateIdeaCategory';
+import type { DateIdeaPlaceType } from '../api/generated/models/DateIdeaPlaceType';
 import { Configuration } from './apiConfiguration';
 import { entitlementLoader, useSpaceCapability } from './spaceEntitlement';
 
 /** Space capability for curated date inspiration (#1892). Server-authorized. */
 export const DATE_INSPIRATION_CAPABILITY = 'planning.date_inspiration';
 
-export type DurationFilter = 'SHORT' | 'EVENING' | 'LONG';
-export type BudgetFilter = 'FREE' | 'LOW' | 'MEDIUM' | 'HIGH';
-export type SettingFilterValue = 'HOME' | 'OUT';
+/** Inclusive upper bounds offered as filters (minutes; whole EUR for two). */
+export const MINUTE_LIMITS = [20, 30, 45, 60] as const;
+export const BUDGET_LIMITS = [0, 5, 10, 20] as const;
+export type MinuteLimit = (typeof MINUTE_LIMITS)[number];
+export type BudgetLimit = (typeof BUDGET_LIMITS)[number];
+export const PLACE_FILTERS: readonly DateIdeaPlaceType[] = ['home', 'out'];
 
-/** Single choice per group; groups combine with AND. Catalog keys only. */
+/** One choice per group; groups combine with AND. No place means anywhere. */
 export interface DateIdeasFilterState {
-  category?: string;
-  duration?: DurationFilter;
-  budget?: BudgetFilter;
-  setting?: SettingFilterValue;
+  category?: DateIdeaCategory;
+  maxMinutes?: MinuteLimit;
+  maxBudget?: BudgetLimit;
+  place?: DateIdeaPlaceType;
 }
-
-export const DURATION_FILTERS: readonly DurationFilter[] = [
-  'SHORT',
-  'EVENING',
-  'LONG',
-];
-export const BUDGET_FILTERS: readonly BudgetFilter[] = [
-  'FREE',
-  'LOW',
-  'MEDIUM',
-  'HIGH',
-];
-export const SETTING_FILTERS: readonly SettingFilterValue[] = ['HOME', 'OUT'];
 
 export function dateIdeasQueryKey(
   accountId: string,
@@ -41,24 +34,25 @@ export function dateIdeasQueryKey(
   return ['date-ideas', accountId, spaceId, locale] as const;
 }
 
-/** Mirrors the server filter contract: `EITHER` ideas match both settings. */
+/** Every protected catalog response of one Account/Space, any locale. */
+export function dateIdeasScopeKey(accountId: string, spaceId: string) {
+  return ['date-ideas', accountId, spaceId] as const;
+}
+
+/** Mirrors the server contract: inclusive bounds, 0 € means free. */
 export function matchesDateIdeaFilter(
   idea: Pick<
     DateIdea,
-    'categoryId' | 'durationBand' | 'budgetBand' | 'setting'
+    'category' | 'minutes' | 'budgetEurForTwo' | 'placeType'
   >,
   filter: DateIdeasFilterState,
 ): boolean {
-  if (filter.category && idea.categoryId !== filter.category) return false;
-  if (filter.duration && idea.durationBand !== filter.duration) return false;
-  if (filter.budget && idea.budgetBand !== filter.budget) return false;
-  if (
-    filter.setting &&
-    idea.setting !== filter.setting &&
-    idea.setting !== 'EITHER'
-  )
+  if (filter.category && idea.category !== filter.category) return false;
+  if (filter.maxMinutes !== undefined && idea.minutes > filter.maxMinutes)
     return false;
-  return true;
+  if (filter.maxBudget !== undefined && idea.budgetEurForTwo > filter.maxBudget)
+    return false;
+  return !filter.place || idea.placeType === filter.place;
 }
 
 export function filterDateIdeas<T extends DateIdea>(
@@ -70,15 +64,18 @@ export function filterDateIdeas<T extends DateIdea>(
 
 /** Number of narrowing groups behind the "more filters" disclosure. */
 export function secondaryFilterCount(filter: DateIdeasFilterState): number {
-  return [filter.duration, filter.budget, filter.setting].filter(Boolean)
-    .length;
+  return [
+    filter.maxMinutes !== undefined,
+    filter.maxBudget !== undefined,
+    filter.place !== undefined,
+  ].filter(Boolean).length;
 }
 
 export function hasDateIdeasFilter(filter: DateIdeasFilterState): boolean {
   return Boolean(filter.category) || secondaryFilterCount(filter) > 0;
 }
 
-/** Drops values the current catalog does not know (e.g. after an update). */
+/** Drops restored values the current catalog does not know. */
 export function sanitizeDateIdeasFilter(
   value: DateIdeasFilterState | undefined,
   categories: readonly string[] | null,
@@ -89,92 +86,70 @@ export function sanitizeDateIdeasFilter(
       value.category && (!categories || categories.includes(value.category))
         ? value.category
         : undefined,
-    duration: DURATION_FILTERS.includes(value.duration as DurationFilter)
-      ? value.duration
+    maxMinutes: MINUTE_LIMITS.includes(value.maxMinutes as MinuteLimit)
+      ? value.maxMinutes
       : undefined,
-    budget: BUDGET_FILTERS.includes(value.budget as BudgetFilter)
-      ? value.budget
+    maxBudget: BUDGET_LIMITS.includes(value.maxBudget as BudgetLimit)
+      ? value.maxBudget
       : undefined,
-    setting: SETTING_FILTERS.includes(value.setting as SettingFilterValue)
-      ? value.setting
+    place: PLACE_FILTERS.includes(value.place as DateIdeaPlaceType)
+      ? value.place
       : undefined,
   };
 }
 
-function formatRange(
-  format: Intl.NumberFormat,
-  min: number,
-  max: number,
-): string {
-  if (min === max) return format.format(max);
-  // ES2023 locale-aware ranges; older engines fall back to an en dash.
-  const ranged = format as Intl.NumberFormat & {
-    formatRange?: (start: number, end: number) => string;
-  };
-  try {
-    if (ranged.formatRange) return ranged.formatRange(min, max);
-  } catch {
-    // Fall through to the simple range below.
-  }
-  return `${format.format(min)}–${format.format(max)}`;
+export function formatMinutes(minutes: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'unit',
+    unit: 'minute',
+    unitDisplay: 'short',
+  }).format(minutes);
 }
 
-/** Localized duration range, e.g. "1,5–2,5 Std." or "1–2 days". */
-export function formatDurationRange(
-  minMinutes: number,
-  maxMinutes: number,
-  locale: string,
-): string {
-  if (minMinutes >= 1440)
-    return formatRange(
-      new Intl.NumberFormat(locale, {
-        style: 'unit',
-        unit: 'day',
-        unitDisplay: 'long',
-        maximumFractionDigits: 1,
-      }),
-      minMinutes / 1440,
-      maxMinutes / 1440,
-    );
-  if (maxMinutes < 60)
-    return formatRange(
-      new Intl.NumberFormat(locale, {
-        style: 'unit',
-        unit: 'minute',
-        unitDisplay: 'short',
-      }),
-      minMinutes,
-      maxMinutes,
-    );
-  const half = (minutes: number) => Math.round(minutes / 30) / 2;
-  return formatRange(
-    new Intl.NumberFormat(locale, {
-      style: 'unit',
-      unit: 'hour',
-      unitDisplay: 'short',
-      maximumFractionDigits: 1,
-    }),
-    half(minMinutes),
-    half(maxMinutes),
+export function formatEuros(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/**
+ * Wishes created from an idea in this session, so the idea can offer "view"
+ * and plan through the canonical Wish-to-Plan conversion. Lives only in the
+ * Account/Space query cache (cleared on sign-out and Space change); the
+ * catalog ID never reaches a Wish or Plan request.
+ */
+function savedWishesKey(accountId: string, spaceId: string) {
+  return ['date-idea-wishes', accountId, spaceId] as const;
+}
+
+export function rememberDateIdeaWish(
+  client: QueryClient,
+  accountId: string,
+  spaceId: string,
+  ideaId: string,
+  wishId: string,
+) {
+  // Kept for the whole session; Space change and sign-out clear the cache.
+  client.setQueryDefaults(savedWishesKey(accountId, spaceId), {
+    gcTime: Number.POSITIVE_INFINITY,
+  });
+  client.setQueryData<Record<string, string>>(
+    savedWishesKey(accountId, spaceId),
+    (current) => ({ ...current, [ideaId]: wishId }),
   );
 }
 
-/** Localized total budget range without fractions; null means free. */
-export function formatBudgetRange(
-  min: number,
-  max: number,
-  currency: string,
-  locale: string,
-): string | null {
-  if (max <= 0) return null;
-  return formatRange(
-    new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }),
-    min,
-    max,
+export function savedDateIdeaWishes(
+  client: QueryClient,
+  accountId: string,
+  spaceId: string,
+): Record<string, string> {
+  return (
+    client.getQueryData<Record<string, string>>(
+      savedWishesKey(accountId, spaceId),
+    ) ?? {}
   );
 }
 

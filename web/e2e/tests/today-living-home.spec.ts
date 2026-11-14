@@ -2124,8 +2124,14 @@ test('the add action stays put while a tab slides in', async ({ page }) => {
             cancelAnimationFrame(frame);
             reject(new Error('The tab slide did not complete.'));
           }, 5000);
+          // The URL changes on click, but React may commit the destination
+          // (and start the slide) only after the first frame. Finish once the
+          // slide has run and ended, not on the first frame at the new path.
+          let slid = false;
           const tick = () => {
-            if (!sample() && window.location.pathname === nextPath) {
+            const sliding = Boolean(sample());
+            slid ||= sliding;
+            if (slid && !sliding && window.location.pathname === nextPath) {
               clearTimeout(timeout);
               resolve({ positions: [...positions], slidePositions });
             } else {

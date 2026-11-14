@@ -82,6 +82,13 @@ type Props = {
   onPendingChange?: (pending: boolean) => void;
   onDirtyChange?: (dirty: boolean) => void;
 };
+/**
+ * How often an open list asks for its partner's changes (#1808). It runs only
+ * while the page is visible and online; coming back to the app refetches once
+ * the saved copy is older than `LIST_RETURN_STALE_MS`.
+ */
+const LIST_POLL_INTERVAL_MS = 12_000;
+const LIST_RETURN_STALE_MS = 10_000;
 type ReorderRequest = { collection: CollectionDetail; itemIds: string[] };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -133,6 +140,8 @@ function CollectionProductDetail({
   const createItemInFlightRef = useRef(false);
   const refocusAddRef = useRef(false);
   const refocusToggleRef = useRef<string | null>(null);
+  // Refreshing under the person's hands would fight an edit in progress.
+  const pollPausedRef = useRef(false);
   const addInputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
@@ -189,6 +198,12 @@ function CollectionProductDetail({
     // A read that knows it is offline must still resolve its saved copy.
     networkMode: 'always',
     retry: false,
+    staleTime: embedded ? undefined : LIST_RETURN_STALE_MS,
+    refetchInterval: () =>
+      embedded || pollPausedRef.current || !onlineManager.isOnline()
+        ? false
+        : LIST_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
   });
 
   // Shopping lists keep their changes on the device while there is no
@@ -673,6 +688,16 @@ function CollectionProductDetail({
     );
   if (collectionQuery.isLoading)
     return <UiState kind="loading" title={t('m5s3.collection.loading')} />;
+  pollPausedRef.current =
+    isSorting ||
+    isEditing ||
+    outbox.pendingCount > 0 ||
+    createItem.isPending ||
+    updateItem.isPending ||
+    deleteItem.isPending ||
+    reorderItems.isPending ||
+    updateCollection.isPending;
+
   if (
     collectionQuery.error &&
     (!collectionQuery.data ||

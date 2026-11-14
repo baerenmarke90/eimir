@@ -5,6 +5,7 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query';
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -401,5 +402,53 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
     expect(annaView.some((name) => name.includes('partner-marker-b'))).toBe(
       true,
     );
+  });
+
+  describe('while the list is open', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const settle = async (ms: number) => {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ms);
+      });
+    };
+
+    it("picks up the partner's change without a reload", async () => {
+      renderPage();
+      await settle(100);
+      expect(screen.getByText('Milch')).toBeTruthy();
+      const before = getCollection.mock.calls.length;
+      serverItems = [
+        ...serverItems,
+        item({
+          id: 'salt',
+          title: 'Salz',
+          position: 3,
+          creator: ben,
+          createdBy: 'ben',
+        }),
+      ];
+
+      await settle(13_000);
+
+      expect(getCollection.mock.calls.length).toBeGreaterThan(before);
+      expect(screen.getByText('Salz')).toBeTruthy();
+    });
+
+    it('does not ask for anything while there is no connection', async () => {
+      renderPage();
+      await settle(100);
+      act(() => onlineManager.setOnline(false));
+      const before = getCollection.mock.calls.length;
+
+      await settle(40_000);
+
+      expect(getCollection.mock.calls.length).toBe(before);
+    });
   });
 });

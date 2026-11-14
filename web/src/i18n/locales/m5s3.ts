@@ -410,6 +410,7 @@ const m5s3 = {
     },
   },
   collection: {
+    menu: { open: 'Menü der Liste' },
     kindLabel: 'Art der Liste',
     kind: { GENERIC: 'Liste', SHOPPING: 'Einkaufsliste' },
     scopeLabel: 'Listen filtern',

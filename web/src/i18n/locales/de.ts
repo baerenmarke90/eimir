@@ -111,7 +111,7 @@ const de = {
       title: 'Du bist gerade offline.',
       body: 'Stelle die Verbindung wieder her und versuche es erneut.',
       banner:
-        'Offline – Änderungen und neue Inhalte benötigen eine Verbindung.',
+        'Offline – du siehst den zuletzt geladenen Stand. Einkaufslisten merken sich Änderungen, alles andere braucht eine Verbindung.',
     },
     server: {
       title: 'eimir. ist gerade nicht erreichbar.',

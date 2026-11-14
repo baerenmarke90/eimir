@@ -30,11 +30,14 @@ from eimir.collections.models import (
 from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.core.ids import parse_id
+from eimir.create_receipts import service as create_receipts
+from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.outbox import service as outbox_service
 
 _COLLECTION_SUBJECT_TYPE = "collection"
 _COLLECTION_ITEM_SUBJECT_TYPE = "collection_item"
+_ITEM_RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.COLLECTION_ITEM.value
 
 COLLECTION_TITLE_REQUIRED = "COLLECTION_TITLE_REQUIRED"
 COLLECTION_ITEM_TITLE_REQUIRED = "COLLECTION_ITEM_TITLE_REQUIRED"
@@ -59,6 +62,12 @@ class CollectionPageResult:
     items: list[Collection]
     next_cursor: str | None
     has_more: bool
+
+
+@dataclass(frozen=True)
+class CollectionItemCreateResult:
+    item: CollectionItem
+    created: bool
 
 
 @dataclass(frozen=True)
@@ -462,6 +471,92 @@ def create_item(
     return item
 
 
+def create_item_once(
+    session: Session,
+    context: AuthorizationContext,
+    collection_id: UUID | str,
+    *,
+    idempotency_key: UUID | None,
+    title: str,
+    completed: bool,
+    quantity: str | None = None,
+) -> CollectionItemCreateResult:
+    """Create an Item, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt and
+    creating the Item share this transaction (decision 0015, building on
+    decision 0012). A lost response or a queued request that is sent twice
+    therefore cannot add the same Item to a shared list twice.
+    """
+    if idempotency_key is None:
+        item = create_item(
+            session,
+            context,
+            collection_id,
+            title=title,
+            completed=completed,
+            quantity=quantity,
+        )
+        return CollectionItemCreateResult(item, created=True)
+
+    collection = require_writable_locked(session, Collection, context, collection_id)
+    normalized_title = _normalize_title(title, item=True)
+    normalized_quantity = normalize_quantity(quantity)
+    _require_quantity_support(collection, normalized_quantity)
+    request_fingerprint = create_receipts.fingerprint(
+        _ITEM_RECEIPT_RESOURCE_TYPE,
+        {
+            "collectionId": str(collection.id),
+            "title": normalized_title,
+            "completed": completed,
+            **({"quantity": normalized_quantity} if normalized_quantity else {}),
+        },
+    )
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_ITEM_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        resource_id = create_receipts.resolve(
+            session,
+            context,
+            resource_type=_ITEM_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+        )
+        existing = (
+            session.execute(
+                select(CollectionItem).where(
+                    CollectionItem.id == resource_id,
+                    CollectionItem.collection_id == collection.id,
+                )
+            ).scalar_one_or_none()
+            if resource_id is not None
+            else None
+        )
+        if existing is None:
+            # Never recreate: the original was committed and has since been removed.
+            raise NotFoundError(
+                "The Collection Item created by this request no longer exists.",
+                ErrorCode.COLLECTION_ITEM_CREATE_RESULT_DELETED,
+            )
+        return CollectionItemCreateResult(existing, created=False)
+
+    item = create_item(
+        session,
+        context,
+        collection.id,
+        title=normalized_title,
+        completed=completed,
+        quantity=normalized_quantity,
+    )
+    create_receipts.attach(session, receipt_id, item.id)
+    return CollectionItemCreateResult(item, created=True)
+
+
 def update_item_with_completion_transition(
     session: Session,
     context: AuthorizationContext,
@@ -651,10 +746,12 @@ __all__ = [
     "COLLECTION_ORDER_INVALID",
     "COLLECTION_TITLE_REQUIRED",
     "ITEM_QUANTITY_MAX_LENGTH",
+    "CollectionItemCreateResult",
     "CollectionItemUpdateResult",
     "CollectionPageResult",
     "create_collection",
     "create_item",
+    "create_item_once",
     "delete_collection",
     "delete_item",
     "get_collection",

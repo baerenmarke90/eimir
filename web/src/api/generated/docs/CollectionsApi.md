@@ -89,7 +89,7 @@ No authorization required
 
 ## createCollectionItem
 
-> CollectionItemDetail createCollectionItem(collectionId, spaceId, collectionItemCreate)
+> CollectionItemDetail createCollectionItem(collectionId, spaceId, collectionItemCreate, idempotencyKey)
 
 Create Collection Item
 
@@ -113,6 +113,8 @@ async function example() {
     spaceId: spaceId_example,
     // CollectionItemCreate
     collectionItemCreate: ...,
+    // string | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. (optional)
+    idempotencyKey: idempotencyKey_example,
   } satisfies CreateCollectionItemRequest;
 
   try {
@@ -135,6 +137,7 @@ example().catch(console.error);
 | **collectionId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **collectionItemCreate** | [CollectionItemCreate](CollectionItemCreate.md) |  | |
+| **idempotencyKey** | `string` | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -153,9 +156,11 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **200** | The request identity (&#x60;Idempotency-Key&#x60;) was already used for an equivalent request. The response returns the original Item in its current state; no second Item is created. |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **201** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

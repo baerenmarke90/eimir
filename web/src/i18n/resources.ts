@@ -8,6 +8,7 @@ import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
+import dateIdeas from './locales/dateIdeas';
 import de from './locales/de';
 import demo from './locales/demo';
 import discreetPlans from './locales/discreetPlans';
@@ -90,6 +91,7 @@ export const germanResources = {
   weeklyInsights,
   dailyQuote,
   dailyVibe,
+  dateIdeas,
   games,
   experiences,
   importantDates,

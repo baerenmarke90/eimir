@@ -93,6 +93,8 @@ export const PRIMARY_APP_ROUTES = APP_ROUTES.filter(
 
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
 export const WISH_SELECTION_ROUTE = '/plan/choose';
+/** Pro date inspiration (#1892); a Planning subpage, not a Wish detail path. */
+export const DATE_IDEAS_ROUTE = '/plan/ideas';
 
 /** Safe direct-entry fallback; existing task origins take precedence. */
 export function subpageParentPath(pathname: string): string {
@@ -107,6 +109,8 @@ export function subpageParentPath(pathname: string): string {
     return '/story';
   if (/^\/plan\/(?:plans|wishes|reminders)\/(?:new|[^/]+)$/.test(path))
     return '/plan';
+  // Date inspiration belongs to the Wishes peer mode of Planning.
+  if (path === DATE_IDEAS_ROUTE) return '/plan#wishes';
   if (path.startsWith('/today/only-you')) return '/today';
   if (path === '/search' || path === '/games' || path === '/server-admin')
     return '/more';

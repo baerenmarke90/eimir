@@ -163,6 +163,7 @@ Links. IDs are opaque, stable identifiers.
 | Planen hub | `/plan` |
 | Wishes | `/plan/wishes` |
 | Open wish | `/plan/wishes/:wishId` |
+| Discover date ideas (Pro, from Wishes) | `/plan/ideas` |
 | Plans | `/plan/plans` |
 | Open plan | `/plan/plans/:planId` |
 | Open an authorized reminder | `/plan/reminders/:reminderId` |

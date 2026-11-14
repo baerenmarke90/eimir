@@ -145,7 +145,7 @@ class Wish(
 
     Catalog provenance only, never authored content: title and description are
     copied into the protected payload at creation and remain the couple's own,
-    editable text. The reference lets "Ideen entdecken" recognize an idea that
+    editable text. The reference lets the date inspiration view recognize an idea that
     is already saved instead of creating a duplicate. It is immutable after
     creation, survives catalog changes and is ignored once Pro expires.
     """

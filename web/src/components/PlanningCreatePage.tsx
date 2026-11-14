@@ -1,5 +1,5 @@
-import { TaskBackButton } from './TaskBackButton';
 import { createPortal } from 'react-dom';
+import { planningIfMatch } from '../client/sharedPlanning';
 import {
   ComposerChip,
   ComposerDescriptionField,
@@ -7,7 +7,7 @@ import {
   ComposerToolRow,
 } from './PageComposer';
 import { PlanWishLink } from './PlanWishLink';
-import { planningIfMatch } from '../client/sharedPlanning';
+import { TaskBackButton } from './TaskBackButton';
 import './PagePlanComposer.css';
 import {
   onlineManager,
@@ -26,10 +26,10 @@ import {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
+import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
-import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import {
@@ -51,17 +51,16 @@ import {
 import { useTaskOrigin } from '../client/taskOrigin';
 import { usePlanFileDrafts } from '../client/usePlanFileDrafts';
 import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
-import { useTaskActivation } from '../client/useTaskActivation';
 import { CollectionChoicePicker } from './CollectionChoicePicker';
-import { ComposerHeader } from './StoryFormPageShell';
-import { PlanningDiscardSheet } from './PlanningEditorLifecycle';
-import { PlaceChoicePicker } from './PlaceChoicePicker';
-import { MemoryTagChoices } from './MemoryTagChoices';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { EimirIcon } from './EimirIcon';
+import { MemoryTagChoices } from './MemoryTagChoices';
+import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { PlanFilesEditor } from './PlanFiles';
+import { PlanningDiscardSheet } from './PlanningEditorLifecycle';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import {
   PlanScheduleFields,
@@ -69,6 +68,7 @@ import {
 } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { ComposerHeader } from './StoryFormPageShell';
 import { WishComposer } from './WishComposer';
 import './PlanningCreatePage.css';
 import './FreeComposer.css';
@@ -125,6 +125,11 @@ export function PlanningCreatePage({
   const [defaultPlannedDate] = useState(() =>
     kind === 'plan' ? resolveOrigin(originKey)?.planningCreateDate : undefined,
   );
+  // A curated date idea may prefill a new Plan. The prefill is the clean
+  // baseline: closing without edits loses nothing the couple wrote.
+  const [draft] = useState(() =>
+    kind === 'plan' ? resolveOrigin(originKey)?.planningCreateDraft : undefined,
+  );
   const headingRef = useRef<HTMLDivElement>(null);
   const referenceApis = useMemo(
     () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
@@ -152,8 +157,8 @@ export function PlanningCreatePage({
     isClientOnline,
     () => true,
   );
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState(draft?.title ?? '');
+  const [description, setDescription] = useState(draft?.description ?? '');
   const [placeId, setPlaceId] = useState('');
   const [wish, setWish] = useState<WishDetail | null>(null);
   const placeTrigger = useRef<HTMLButtonElement>(null);
@@ -198,8 +203,8 @@ export function PlanningCreatePage({
   });
 
   const dirty = Boolean(
-    title ||
-      description ||
+    title !== (draft?.title ?? '') ||
+      description !== (draft?.description ?? '') ||
       placeId ||
       tags.length ||
       enrichmentDirty ||

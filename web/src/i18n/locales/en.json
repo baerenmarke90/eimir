@@ -4874,5 +4874,79 @@
       "day": "A day for us",
       "plan": "Our plan"
     }
+  },
+  "dateIdeas": {
+    "entryAction": "Discover ideas",
+    "entryHint": "Curated ideas for your time together",
+    "pro": "Pro",
+    "title": "Discover ideas",
+    "intro": "Small and big ideas for time together. Save what speaks to you – or plan it right away.",
+    "developmentNote": "Preview with a small selection. The complete idea catalog is coming.",
+    "loading": "Loading ideas …",
+    "offline": "Offline – the ideas will load once you are connected again.",
+    "filters": {
+      "label": "Filter ideas",
+      "categoryLegend": "Category",
+      "all": "All",
+      "more": "Duration, budget, place",
+      "moreActive_one": "Duration, budget, place · {{count}} active",
+      "moreActive_other": "Duration, budget, place · {{count}} active",
+      "durationLegend": "Duration",
+      "duration": {
+        "SHORT": "Short, up to 1½ h",
+        "EVENING": "An evening",
+        "LONG": "Longer"
+      },
+      "budgetLegend": "Budget for the two of you",
+      "budget": {
+        "FREE": "Free",
+        "LOW": "up to {{amount}}",
+        "MEDIUM": "up to {{amount}}",
+        "HIGH": "more than {{amount}}"
+      },
+      "settingLegend": "Place",
+      "setting": {
+        "HOME": "At home",
+        "OUT": "Out and about"
+      },
+      "reset": "Reset filters"
+    },
+    "count_one": "{{count}} idea",
+    "count_other": "{{count}} ideas",
+    "countFiltered_one": "{{count}} of {{total}} ideas matches",
+    "countFiltered_other": "{{count}} of {{total}} ideas match",
+    "card": {
+      "detailsLabel": "Details",
+      "duration": "about {{range}}",
+      "budget": "about {{range}} for the two of you",
+      "budgetFree": "Costs nothing",
+      "setting": {
+        "HOME": "At home",
+        "OUT": "Out and about",
+        "EITHER": "At home or out and about"
+      },
+      "requirements": "You will need: {{items}}",
+      "save": "Save as a wish",
+      "saving": "Saving …",
+      "saved": "Saved · View",
+      "plan": "Plan it now",
+      "savedStatus": "“{{title}}” is now among your wishes.",
+      "saveFailed": "The idea could not be saved. Nothing was saved.",
+      "saveOffline": "Offline – the idea was not saved. Try again once you are connected."
+    },
+    "empty": {
+      "title": "No idea matches these filters",
+      "body": "Leave out a filter or reset them all."
+    },
+    "catalogEmpty": {
+      "title": "No ideas are available right now",
+      "body": "Check back again later."
+    },
+    "locked": {
+      "title": "Ideas for your time together",
+      "body": "With eimir. Pro you discover curated date ideas – at home and out and about, by duration, budget and mood. What you like becomes a wish or a plan with one tap.",
+      "retained": "Your wishes and plans always stay free to use.",
+      "action": "More about eimir. Pro"
+    }
   }
 }

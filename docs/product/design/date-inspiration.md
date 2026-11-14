@@ -3,15 +3,15 @@
 ## Product decision and baseline
 
 The Product Owner requested a mobile-first, Pro-only date inspiration under
-Plan → Wünsche on 2026-11-14: curated ideas with filters, "Als Wunsch merken"
-through the existing Wish workflow and "Jetzt planen" through the existing Plan
+Plan → Wünsche on 2026-11-14: curated ideas with filters, saving an idea (`dateIdeas.card.save`)
+through the existing Wish workflow and planning it (`dateIdeas.card.plan`) through the existing Plan
 composer. The whole discovery (catalog read, browsing, filters, adopting an
 idea) is eimir. Pro. Existing Wishes and Plans stay Free/Core.
 
 Baseline `main`: `58adc37d63b3c5edb6c7ff22d7e2e7700fa6db92`. Reviewed before the
 reference and before UI code: the `/plan` hub with Pläne/Wünsche/Anlässe
 segments, Wünsche scope (Offen/Geplant/Erfüllt), search, the compact
-"Gemeinsam auswählen" entry (#1535), the floating create action, Wish detail
+shared Wish selection entry (#1535), the floating create action, Wish detail
 and canonical Wish-to-Plan conversion, the focused Plan composer
 (`PlanningCreatePage`), task origins/return, `useSpaceCapability`, Pro marks and
 the Daily Quote/Games discovery patterns, AddAction, StatusScope, UiState/
@@ -25,7 +25,7 @@ not implemented here; the catalog is a reusable source for them later.
 
 Left: the unchanged current Wünsche segment from the real app (mocked API,
 390 px, Light). Middle: the same screen with the new entry beneath
-"Gemeinsam auswählen". Right: the focused discovery view. This session has no
+the shared Wish selection entry. Right: the focused discovery view. This session has no
 image-generation model, so the reference was composed from the real running
 app plus DOM composition using the existing tokens (the documented fallback
 used for #1816). It is composition guidance, not a pixel lock: real components
@@ -39,20 +39,20 @@ entry, the floating create action and the bottom navigation are preserved.
 | Outcome | Find an appealing shared experience and keep it as a Wish or plan it now, without typing. |
 | Relationship value | Anticipation and a low-effort "let's do this" moment; no scores, streaks or pressure. |
 | Placement / template | Entry in Planen → Wünsche (Offen scope) next to "Gemeinsam auswählen"; focused subpage `/plan/ideas` (Plan Hub → Detail/Discovery). No new navigation, no dashboard area. |
-| Primary Compact state | Back → title and one-sentence intent → category chips → "Dauer, Budget, Ort" disclosure with active-filter count → result count → idea list. |
-| Dominant action | Per idea: "Jetzt planen" (shared AddAction link, opens the existing composer). "Als Wunsch merken" is a lighter save action; once saved it becomes "Gemerkt · Ansehen". |
+| Primary Compact state | Back → title and one-sentence intent → category chips → duration/budget/setting disclosure (`dateIdeas.filters.more`) with active-filter count → result count → idea list. |
+| Dominant action | Per idea: `dateIdeas.card.plan` (shared AddAction link, opens the existing composer). `dateIdeas.card.save` is a lighter save action; once saved it becomes the `dateIdeas.card.saved` link to the actual Wish. |
 | Hierarchy | Category → title → emotional description → duration/budget/setting line → requirements → actions. |
 | Immediate vs. disclosed | Categories immediate; duration, budget and setting behind one disclosure. Active filters are always summarized outside the collapsed area with a reset. |
 | Pattern | Subpage; native buttons with `aria-pressed` single-select chips per group, AND across groups, instant client-side filtering of one catalog response. |
 | Loading | Skeleton-free calm loading state (`UiState`), stable layout reserved for the list. |
-| Empty / no match | "Keine Idee passt zu diesen Filtern" with one reset action and a hint to loosen a filter; never a blank page. |
+| Empty / no match | `dateIdeas.empty.title` with one reset action and a hint to loosen a filter; never a blank page. |
 | Error / offline | `ProblemState` with retry; offline keeps a cached list visible with the cache notice. Saving offline is refused truthfully (nothing saved). |
-| Success | Save confirms in place (status message, button becomes "Gemerkt · Ansehen" linking to the actual Wish). Planning opens the prefilled composer; saving opens the actual Plan detail. |
+| Success | Save confirms in place (status message, button becomes the `dateIdeas.card.saved` link to the actual Wish). Planning opens the prefilled composer; saving opens the actual Plan detail. |
 | Free | One calm value explanation with a Pro mark and a link to Pro information; no catalog request, no modal, no repeated paywall. |
 | Privacy | Only the shared catalog and which open Wishes reference an idea. No click, rejection or partner-content analysis; no external transfer. |
 | Large text / narrow | 320 px reflow, 200 % text, wrapping chips and actions, 44 px targets. |
 | Motion | Tokenized fade/lift for list changes and save confirmation; reduced motion removes translation and keeps all state. |
-| Expanded | Same order in a bounded reading width; ideas may form two columns of equal-weight cards only when width allows. No table or management UI. |
+| Expanded | Same order and one column in the bounded reading width (`--reading-max`), starting at the leading edge. No table, extra columns or management UI. |
 | Return | Back returns to Wünsche with scope and scroll (task origin). Composer and Wish detail return to the ideas view with filters intact. |
 | Browser-only controls | None. |
 
@@ -81,7 +81,7 @@ collection, not a record table.
   `wishes.date_idea_id` column. A per-Space/idea transaction advisory lock
   serializes simultaneous saves by both partners; an open or planned Wish from
   the same idea is returned instead of a duplicate. A completed Wish frees the
-  idea. "Jetzt planen" prefills the ordinary composer; when the idea is already
+  idea. Planning it prefills the ordinary composer; when the idea is already
   saved, it opens that Wish so the canonical Wish-to-Plan conversion is used.
 - Downgrade: adopted Wishes and resulting Plans are ordinary content; reading,
   editing, planning, completing, exporting and deleting stay Free. Only new

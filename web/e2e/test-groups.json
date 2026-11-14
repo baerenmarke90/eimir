@@ -431,6 +431,11 @@
       "baselineTests": 11,
       "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow. Saved Wir content and module choices appear during background refresh only after current membership authorization."
     },
+    "date-inspiration.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 10,
+      "reason": "Pro date inspiration (#1892): Free explanation without catalog read, combined filters, idea to ordinary Wish with idempotent save, prefilled Plan composer, filtered return, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
+    },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,

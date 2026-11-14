@@ -81,6 +81,25 @@ export function catalogIdeas(locale = 'de') {
     });
 }
 
+/** German catalog title of an idea, so specs never hardcode product copy. */
+export function ideaTitle(id: string): string {
+  const idea = catalogIdeas('de').find((item) => item.id === id);
+  if (!idea) throw new Error(`Unknown development idea ${id}`);
+  return idea.title;
+}
+
+export function ideaDescription(id: string): string {
+  const idea = catalogIdeas('de').find((item) => item.id === id);
+  if (!idea) throw new Error(`Unknown development idea ${id}`);
+  return idea.description;
+}
+
+export function categoryLabel(id: string): string {
+  const category = catalogFile.categories.find((item) => item.id === id);
+  if (!category) throw new Error(`Unknown development category ${id}`);
+  return category.labels.de;
+}
+
 export type DateIdeasState = {
   pro: boolean;
   /** Fail catalog reads with this status (e.g. 503) when set. */
@@ -202,7 +221,12 @@ export async function installDateIdeaMocks(
         maintenanceMode: false,
         registrationAvailable: true,
         registrationUnavailableReason: null,
-        auth: { localPassword: true, passkey: true, magicLink: true, oidc: false },
+        auth: {
+          localPassword: true,
+          passkey: true,
+          magicLink: true,
+          oidc: false,
+        },
       });
     if (method === 'POST' && pathname === '/api/v1/auth/sign-in')
       return json({
@@ -286,6 +310,14 @@ export async function installDateIdeaMocks(
       return json({ state: null });
     if (method === 'GET' && pathname === `${space}/places`) return page_([]);
     if (method === 'GET' && pathname === `${space}/activity`) return page_([]);
+    if (method === 'GET' && pathname === `${space}/recaps`)
+      return json({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+        nextCursor: null,
+      });
     if (method === 'GET' && pathname === `${space}/context-tags`)
       return page_([]);
     if (method === 'GET' && pathname === `${space}/collections`)

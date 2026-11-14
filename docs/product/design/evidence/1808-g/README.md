@@ -8,7 +8,7 @@ a one-tap way to get one. The earlier steps are documented in [`../1808-f`](../1
 
 - On the lists overview ("Listen"), a quiet block above the list filter says "Gemeinsam einkaufen" and offers the filled
   action "Einkaufsliste anlegen". One tap creates a shopping list named "Einkauf" and opens it; the name can be changed
-  on the list page, and "Auf Wir" is there as before.
+  on the list page, where the pin-to-Wir control is there as before.
 - The block appears only while the couple has **no shopping list at all**. The server answers that question with the new
   `kind=SHOPPING` filter of the list endpoint, so a list whose items are all in the cart still counts, which the default
   overview (scope "Offen") would not show.
@@ -30,5 +30,5 @@ checks that nothing overflows horizontally and that axe finds no violation.
 
 - No generated visual reference image exists for this block in the issue; it reuses the filled add action and the page
   composition of the overview. It needs the Product Owner's look.
-- The new list is not pinned to Wir automatically; the existing "Auf Wir" control on the list page does that.
+- The new list is not pinned to Wir automatically; the existing pin control on the list page does that.
 - A native device check (the Pixel).

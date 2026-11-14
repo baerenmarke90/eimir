@@ -311,6 +311,9 @@ class Settings(IdentityCompatibleSettings):
     google_photos_client_id: str = ""
     google_photos_client_secret: SecretStr | None = None
     google_photos_web_client_file: str = ""
+    # Test-only eligibility for the Google import (#1467). The production gate stays closed;
+    # an Account is eligible only when one of its verified addresses is listed here.
+    google_photos_test_account_emails: list[str] = Field(default_factory=list)
 
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
@@ -454,6 +457,20 @@ class Settings(IdentityCompatibleSettings):
         if self.encryption_at_rest is not None:
             return self.encryption_at_rest
         return EncryptionMode.DISABLED
+
+    @field_validator("google_photos_test_account_emails")
+    @classmethod
+    def google_test_account_emails_are_bounded(cls, value: list[str]) -> list[str]:
+        normalized = [item.strip().lower() for item in value]
+        if len(normalized) > 10 or len(set(normalized)) != len(normalized):
+            raise ValueError(
+                "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS allows at most 10 distinct addresses."
+            )
+        if any(not item or "@" not in item or len(item) > 320 for item in normalized):
+            raise ValueError(
+                "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS must contain email addresses."
+            )
+        return normalized
 
     @model_validator(mode="after")
     def photo_sources_require_encryption(self) -> Self:

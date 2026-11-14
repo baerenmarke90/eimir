@@ -181,6 +181,16 @@ This is the product callback; the older standalone probe callback is separate.
 Google stays hidden until configured and still requires the operator's appropriate
 testing audience/verification. Personal Immich requires no shared operator key.
 See [the source contract](product/integrations/1444-photo-source-delivery.md).
+
+Google import remains blocked by the application gate (#1467). The only path past it is the
+private-test eligibility: `EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS` is a JSON list of at most ten
+verified Account email addresses (empty by default). An Account may use the Google import only when
+one of its **verified** addresses is listed and photo sources, required encryption, an HTTPS public
+address and a valid Google OAuth configuration are all in place; the `integration.external_sync`
+entitlement and every ownership check still apply, and demo instances never qualify. Emptying the
+list stops polling and reading immediately; cancelling and cleanup keep working. The list is
+operator-local, never committed, and not a production enablement: independent review and the
+remaining acceptance in #1467 are still required before the gate itself changes.
 ## Configure the selected live FCM transport
 
 The Product Owner selected FCM-only operation on 2026-11-01, superseding the

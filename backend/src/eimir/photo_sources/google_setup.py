@@ -38,6 +38,9 @@ def main(argv: list[str] | None = None) -> int:
             client = client_configuration(settings)
             if client.redirect_uri != result["authorizedRedirectUri"]:
                 raise PhotoSourceError("PHOTO_SOURCE_CONFIGURATION_INVALID")
+            result["testEligibleAccountCount"] = len(
+                (settings or get_settings()).google_photos_test_account_emails
+            )
             result["configurationSource"] = (
                 "mounted-web-client"
                 if settings and settings.google_photos_web_client_file

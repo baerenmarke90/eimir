@@ -64,7 +64,7 @@ their route IDs are not.
   `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
 - **Web, Compact/Medium windows below 840 px:** Bottom Navigation with four icon-and-label destinations. The contextual add action floats separately on Wir, Moments discovery/diary and Planning.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
-- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation, with the cross-area shortcut in the browser header. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
+- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation; the 2026-11-14 Product Owner correction removed the cross-area create shortcut from the browser header. On Expanded, Wir, Momente and Planen start at the leading edge instead of being centered; the diary keeps its own centered reading column. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
 - Order remains identical on all platforms.
 - Current area is recognizable through color, icon, and text state.
 

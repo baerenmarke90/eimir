@@ -1,0 +1,12 @@
+eimir. Android 0.2.0-test.82
+
+- Get a push when your partner accepts your invitation, when a plan is set for today or tomorrow, and for a personal one-time reminder on an open wish. The private Android preview leaves the wish title out.
+- Experience a fulfilled wish again: a button on the completed wish opens a sheet with its title as a proposal, repeated wishes read as one row with "N times" in the fulfilled list, and a plan reminder links to the wish behind it.
+- Create milestones in the same quiet composer as diary entries and heart moments, with the date line and the Save button at the top.
+- Move "Entfernung zwischen euch" like any other Wir module, and see a note that you share your distance when only you share it.
+- Keep the Wir check-in badge in place after swiping between tabs instead of it sticking at the screen edge.
+- Open your lists from their last saved copy without a connection, and keep changes to a shopping list on the device until you are online again.
+- Check for app updates even when your network has used up GitHub's hourly request limit.
+
+The product changes come from main at 3fac691d8916955c6f72750222a0284fb0eae763.
+Install over test.81 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 82.

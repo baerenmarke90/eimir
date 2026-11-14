@@ -84,6 +84,33 @@ the notice before or with the change (`legal/README.md`).
 | `BACKUP_RETENTION` | Backup horizon | Also bounds the deletion journal (`ACCOUNT-DELETION-RETENTION.md` § 7.3) |
 | `SUPERVISORY_AUTHORITY` | Competent authority for the controller's seat | — |
 
+## Operator facts entered (2026-11-14)
+
+The Product Owner supplied the operator facts step by step; they are now in the text (version
+`2026-11-14.draft-3`) and in the public imprint of the main site (#1835). The text stays
+`status: draft` with `legal_review: pending`.
+
+| Fact | Entered value | Check before publication |
+| --- | --- | --- |
+| Controller, address, imprint URL, contact | Sole proprietor (name and address as in the imprint), `https://eimir.de/impressum/`, one contact address for imprint and privacy requests | Matches the imprint page |
+| Hoster, server location | netcup GmbH (Karlsruhe), servers in Vienna (Austria) | Confirm the contracting entity and site in the netcup contract; the address range was identified as netcup KVM in the RIPE registry |
+| Mail | Own mail server run at the hoster (no separate processor) | The processor list names the hoster for it |
+| Push | Google Ireland Limited, Dublin (Ireland) | Verify the contracting entity in the Firebase/Cloud terms of the project; the Product Owner confirmed the data processing terms were accepted |
+| Geocoding | komoot GmbH, Potsdam (public Photon instance) | Review before a managed launch |
+| Payment | None yet; the section names the provider later | New text version when purchases open |
+| Logs | 30 days | Confirm the real rotation of application, Docker and proxy logs |
+| Supervisory authority | The state data protection authority of the controller's seat (Saarland) | Verify the address with the authority |
+| Data protection officer | None designated | Open legal question: Art. 37 may apply because of the special-category content; decide in the legal review |
+
+Still open and intentionally blocking publication:
+
+- `EFFECTIVE_DATE`: set when the Product Owner publishes.
+- `SPECIAL_CATEGORY_LEGAL_BASIS`: Art. 9 legal basis (open decision 1).
+- `BACKUP_RETENTION`: the Product Owner stated that no backups exist yet, while section 16 and the
+  retention list describe regular encrypted backups. The text must not be published until backups are
+  set up with a retention period, or the text is changed to match reality. Not having backups is also an
+  operational data-loss risk for the stored memories.
+
 ## Self-review (2026-11-06)
 
 The Product Owner asked the drafting agent to review the draft itself. The

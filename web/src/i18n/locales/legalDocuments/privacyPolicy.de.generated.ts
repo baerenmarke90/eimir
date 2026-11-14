@@ -4,26 +4,13 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-06.draft-2',
+  version: '2026-11-14.draft-3',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
     'EFFECTIVE_DATE',
-    'PROVIDER_NAME',
-    'PROVIDER_ADDRESS',
-    'IMPRINT_URL',
-    'PRIVACY_CONTACT',
-    'DATA_PROTECTION_OFFICER',
     'SPECIAL_CATEGORY_LEGAL_BASIS',
-    'GEOCODING_PROVIDER',
-    'MAIL_PROVIDER',
-    'LOG_RETENTION',
     'BACKUP_RETENTION',
-    'PAYMENT_PROVIDER',
-    'HOSTING_PROVIDER',
-    'PUSH_PROVIDER',
-    'SERVER_LOCATION',
-    'SUPERVISORY_AUTHORITY',
   ],
   blocks: [
     {
@@ -120,17 +107,8 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Verantwortlich für die Verarbeitung deiner personenbezogenen Daten in eimir. ist ',
+              text: 'Verantwortlich für die Verarbeitung deiner personenbezogenen Daten in eimir. ist Philipp Reis, Einzelunternehmen „Reis wie Nudel“, Zur Schwimmhalle 3, 66636 Tholey („wir“). Die vollständigen Anbieterangaben findest du im Impressum unter https://eimir.de/impressum/.',
             },
-            { kind: 'placeholder', name: 'PROVIDER_NAME' },
-            { kind: 'text', text: ', ' },
-            { kind: 'placeholder', name: 'PROVIDER_ADDRESS' },
-            {
-              kind: 'text',
-              text: ' („wir“). Die vollständigen Anbieterangaben findest du im Impressum unter ',
-            },
-            { kind: 'placeholder', name: 'IMPRINT_URL' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -138,10 +116,8 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Für Fragen zum Datenschutz und um deine Rechte geltend zu machen, erreichst du uns unter ',
+              text: 'Für Fragen zum Datenschutz und um deine Rechte geltend zu machen, erreichst du uns unter kontakt@reiswienudel.de.',
             },
-            { kind: 'placeholder', name: 'PRIVACY_CONTACT' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -149,10 +125,8 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Unseren Datenschutzbeauftragten erreichst du unter ',
+              text: 'Wir haben keinen Datenschutzbeauftragten benannt. Fragen zum Datenschutz richtest du an die unter Nummer 2 genannte Adresse.',
             },
-            { kind: 'placeholder', name: 'DATA_PROTECTION_OFFICER' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -603,12 +577,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von ',
-            },
-            { kind: 'placeholder', name: 'GEOCODING_PROVIDER' },
-            {
-              kind: 'text',
-              text: '. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.',
+              text: 'Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von der komoot GmbH, Potsdam. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.',
             },
           ],
           children: [],
@@ -769,10 +738,8 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir schicken dir E-Mails, die für dein Konto nötig sind, zum Beispiel Anmelde- und Bestätigungslinks. Benachrichtigungen per E-Mail bekommst du nur, wenn du sie in den Einstellungen einschaltest. Sie enthalten keine Inhalte aus eurem Space, nur den Hinweis, dass es etwas Neues gibt, und einen Link zu eimir. Für den Versand nutzen wir ',
+              text: 'Wir schicken dir E-Mails, die für dein Konto nötig sind, zum Beispiel Anmelde- und Bestätigungslinks. Benachrichtigungen per E-Mail bekommst du nur, wenn du sie in den Einstellungen einschaltest. Sie enthalten keine Inhalte aus eurem Space, nur den Hinweis, dass es etwas Neues gibt, und einen Link zu eimir. Für den Versand nutzen wir unseren eigenen Mailserver, den wir bei unserem Hosting-Anbieter betreiben.',
             },
-            { kind: 'placeholder', name: 'MAIL_PROVIDER' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -956,10 +923,8 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach ',
+              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.',
             },
-            { kind: 'placeholder', name: 'LOG_RETENTION' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -1040,11 +1005,9 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
-            { kind: 'text', text: 'Die Zahlung wickelt ' },
-            { kind: 'placeholder', name: 'PAYMENT_PROVIDER' },
             {
               kind: 'text',
-              text: ' ab. Zahlungsdaten wie Kartennummern speichern wir nicht selbst. Kaufst du in einem App-Store, verarbeitet dessen Betreiber die Zahlung in eigener Verantwortung.',
+              text: 'Die Zahlung wickelt ein Zahlungsdienstleister ab, den wir hier nennen, sobald der Kauf möglich ist. Zahlungsdaten wie Kartennummern speichern wir nicht selbst. Kaufst du in einem App-Store, verarbeitet dessen Betreiber die Zahlung in eigener Verantwortung.',
             },
           ],
           children: [],
@@ -1109,29 +1072,16 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'unsere Dienstleister, die in unserem Auftrag und nach unseren Weisungen handeln (Art. 28 DSGVO): ',
-            },
-            { kind: 'placeholder', name: 'HOSTING_PROVIDER' },
-            {
-              kind: 'text',
-              text: ' für Server, Datenbank, Speicher und Sicherungen, ',
-            },
-            { kind: 'placeholder', name: 'MAIL_PROVIDER' },
-            { kind: 'text', text: ' für den E-Mail-Versand und ' },
-            { kind: 'placeholder', name: 'PUSH_PROVIDER' },
-            {
-              kind: 'text',
-              text: ' für die Zustellung von Push-Benachrichtigungen über Firebase Cloud Messaging (Abschnitt 12),',
+              text: 'unsere Dienstleister, die in unserem Auftrag und nach unseren Weisungen handeln (Art. 28 DSGVO): die netcup GmbH, Karlsruhe, für Server, Datenbank, Speicher und Sicherungen sowie für den Mailserver, den wir dort selbst betreiben, und die Google Ireland Limited, Dublin (Irland), für die Zustellung von Push-Benachrichtigungen über Firebase Cloud Messaging (Abschnitt 12),',
             },
           ],
           children: [],
         },
         {
           content: [
-            { kind: 'placeholder', name: 'GEOCODING_PROVIDER' },
             {
               kind: 'text',
-              text: ' für Adresssuche und Ortsnamen (Abschnitt 9),',
+              text: 'die komoot GmbH, Potsdam, für Adresssuche und Ortsnamen (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1156,10 +1106,9 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
-            { kind: 'placeholder', name: 'PAYMENT_PROVIDER' },
             {
               kind: 'text',
-              text: ', sobald du eimir. Pro kaufen kannst (Abschnitt 18),',
+              text: 'ein Zahlungsdienstleister, den wir hier nennen, sobald du eimir. Pro kaufen kannst (Abschnitt 18),',
             },
           ],
           children: [],
@@ -1188,9 +1137,10 @@ export const privacyPolicyDe: LegalDocument = {
       items: [
         {
           content: [
-            { kind: 'text', text: 'Unsere Server stehen in ' },
-            { kind: 'placeholder', name: 'SERVER_LOCATION' },
-            { kind: 'text', text: '.' },
+            {
+              kind: 'text',
+              text: 'Unsere Server stehen in Wien (Österreich).',
+            },
           ],
           children: [],
         },
@@ -1345,9 +1295,7 @@ export const privacyPolicyDe: LegalDocument = {
         {
           content: [
             { kind: 'strong', text: 'Protokolle:' },
-            { kind: 'text', text: ' ' },
-            { kind: 'placeholder', name: 'LOG_RETENTION' },
-            { kind: 'text', text: '.' },
+            { kind: 'text', text: ' 30 Tage.' },
           ],
           children: [],
         },
@@ -1397,10 +1345,8 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an ',
+              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an kontakt@reiswienudel.de.',
             },
-            { kind: 'placeholder', name: 'PRIVACY_CONTACT' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -1417,10 +1363,8 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), insbesondere in dem Mitgliedstaat der EU, in dem du lebst oder arbeitest oder in dem der mutmaßliche Verstoß stattgefunden hat. Für uns zuständig ist ',
+              text: 'Du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), insbesondere in dem Mitgliedstaat der EU, in dem du lebst oder arbeitest oder in dem der mutmaßliche Verstoß stattgefunden hat. Für uns zuständig ist das Unabhängige Datenschutzzentrum Saarland, Fritz-Dobisch-Straße 12, 66111 Saarbrücken.',
             },
-            { kind: 'placeholder', name: 'SUPERVISORY_AUTHORITY' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -1440,10 +1384,8 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           kind: 'text',
-          text: ' Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Das betrifft zum Beispiel die Anzeige, ob du gerade aktiv bist, die Zuordnung von Orten aus Fotos, das Laden von Karten und gemeinsame Inhalte, die nach deinem Verlassen für deinen Partner erhalten bleiben. Die automatische Zuordnung von Orten aus Fotos kannst du jederzeit selbst in den Einstellungen ausschalten. Für deinen Widerspruch genügt eine Nachricht an ',
+          text: ' Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Das betrifft zum Beispiel die Anzeige, ob du gerade aktiv bist, die Zuordnung von Orten aus Fotos, das Laden von Karten und gemeinsame Inhalte, die nach deinem Verlassen für deinen Partner erhalten bleiben. Die automatische Zuordnung von Orten aus Fotos kannst du jederzeit selbst in den Einstellungen ausschalten. Für deinen Widerspruch genügt eine Nachricht an kontakt@reiswienudel.de.',
         },
-        { kind: 'placeholder', name: 'PRIVACY_CONTACT' },
-        { kind: 'text', text: '.' },
       ],
     },
     {

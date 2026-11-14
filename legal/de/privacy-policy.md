@@ -1,7 +1,7 @@
 ---
 document: privacy-policy
 locale: de-DE
-version: 2026-11-06.draft-2
+version: 2026-11-14.draft-3
 status: draft
 effective: null
 legal_review: pending
@@ -24,9 +24,9 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 
 ## 1. Wer verantwortlich ist
 
-1. Verantwortlich für die Verarbeitung deiner personenbezogenen Daten in eimir. ist [[PROVIDER_NAME]], [[PROVIDER_ADDRESS]] („wir“). Die vollständigen Anbieterangaben findest du im Impressum unter [[IMPRINT_URL]].
-2. Für Fragen zum Datenschutz und um deine Rechte geltend zu machen, erreichst du uns unter [[PRIVACY_CONTACT]].
-3. Unseren Datenschutzbeauftragten erreichst du unter [[DATA_PROTECTION_OFFICER]].
+1. Verantwortlich für die Verarbeitung deiner personenbezogenen Daten in eimir. ist Philipp Reis, Einzelunternehmen „Reis wie Nudel“, Zur Schwimmhalle 3, 66636 Tholey („wir“). Die vollständigen Anbieterangaben findest du im Impressum unter https://eimir.de/impressum/.
+2. Für Fragen zum Datenschutz und um deine Rechte geltend zu machen, erreichst du uns unter kontakt@reiswienudel.de.
+3. Wir haben keinen Datenschutzbeauftragten benannt. Fragen zum Datenschutz richtest du an die unter Nummer 2 genannte Adresse.
 
 ## 2. Wofür diese Hinweise gelten
 
@@ -92,7 +92,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 
 1. Ihr könnt Orte speichern, auf einer Karte auswählen oder nach einer Adresse suchen. Gespeicherte Orte mit ihren Koordinaten gehören zu euren gemeinsamen Inhalten.
 2. Enthält ein Foto, das du einem gemeinsamen Moment hinzufügst, einen Aufnahmeort, ordnen wir den Moment beim Speichern diesem Ort zu. Das ist voreingestellt. Du kannst es in den Einstellungen unter „Orte aus Fotos“ jederzeit ausschalten; bereits gespeicherte Orte bleiben dann erhalten. Private Herzmomente erzeugen keine gemeinsamen Orte. Rechtsgrundlage ist unser und euer berechtigtes Interesse, Momente ohne zusätzlichen Aufwand ihrem Ort zuzuordnen (Art. 6 Abs. 1 lit. f DSGVO). In der Android-App erhält eimir. den Aufnahmeort eines Fotos nur, wenn du das erlaubst, je nach Android-Version über eine Berechtigung oder in der Fotoauswahl deines Geräts (§ 25 Abs. 1 TDDDG). Erlaubst du es nicht, erhält eimir. deine Fotos aus der Android-App ohne Aufnahmeort.
-3. Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von [[GEOCODING_PROVIDER]]. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.
+3. Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von der komoot GmbH, Potsdam. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.
 4. Öffnest du eine Karte, lädt eimir. die Kartenbilder direkt von den Servern der OpenStreetMap Foundation, St John's Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes Königreich. Sie erhält dabei deine IP-Adresse, technische Angaben zu deinem Browser oder Gerät, eimir. als aufrufende Seite und die Kartenausschnitte, die du ansiehst. Daraus lässt sich ungefähr ablesen, wo eure Orte liegen. Namen, Texte oder Fotos aus eimir. erhält sie nicht. Die OpenStreetMap Foundation verarbeitet diese Daten in eigener Verantwortung nach ihren [Datenschutzhinweisen](https://osmfoundation.org/wiki/Privacy_Policy). Rechtsgrundlage ist unser berechtigtes Interesse, euch eure Orte auf einer Karte zu zeigen (Art. 6 Abs. 1 lit. f DSGVO).
 5. Öffnest du einen Ort ausdrücklich in Google Maps, übergibt eimir. die Koordinaten an Google, aber keine Anmeldedaten. Ab dann gelten die Datenschutzhinweise von Google.
 6. eimir. fragt deinen aktuellen Standort nicht ab, verfolgt ihn nicht und erstellt keinen Bewegungsverlauf.
@@ -114,7 +114,7 @@ Diese Übersicht soll dir den Einstieg erleichtern. Die Einzelheiten stehen in d
 ## 12. Benachrichtigungen und E-Mails
 
 1. Über neue Aktivitäten in eurem Space informieren wir dich in eimir.
-2. Wir schicken dir E-Mails, die für dein Konto nötig sind, zum Beispiel Anmelde- und Bestätigungslinks. Benachrichtigungen per E-Mail bekommst du nur, wenn du sie in den Einstellungen einschaltest. Sie enthalten keine Inhalte aus eurem Space, nur den Hinweis, dass es etwas Neues gibt, und einen Link zu eimir. Für den Versand nutzen wir [[MAIL_PROVIDER]].
+2. Wir schicken dir E-Mails, die für dein Konto nötig sind, zum Beispiel Anmelde- und Bestätigungslinks. Benachrichtigungen per E-Mail bekommst du nur, wenn du sie in den Einstellungen einschaltest. Sie enthalten keine Inhalte aus eurem Space, nur den Hinweis, dass es etwas Neues gibt, und einen Link zu eimir. Für den Versand nutzen wir unseren eigenen Mailserver, den wir bei unserem Hosting-Anbieter betreiben.
 3. Push-Benachrichtigungen gibt es in der Android-App. Sie sind aus, bis du sie in den Einstellungen einschaltest und dein Gerät sie erlaubt. Für die Zustellung nutzen wir Firebase Cloud Messaging von Google oder, wenn du ihn auf deinem Gerät eingerichtet hast, einen UnifiedPush-Dienst deiner Wahl. Der Zustelldienst erhält nur ein Wecksignal mit einer zufälligen Kennung, keine Inhalte, Namen oder Kontodaten. Die eigentliche Benachrichtigung holt die App danach direkt bei uns ab.
 4. Bei Firebase Cloud Messaging erhält Google die Installationskennung der App (Firebase-Installations-ID), den Zeitpunkt der Zustellung und technische Verbindungsdaten, einschließlich deiner IP-Adresse. Schaltest du Push aus, meldest du dich ab oder löschst du dein Konto, beenden wir die Registrierung und lassen die Installationskennung löschen. Google löscht sie nach eigenen Angaben innerhalb von 180 Tagen auch aus seinen Sicherungen.
 5. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Die für Push nötigen Kennungen legen wir auf deinem Gerät ab, weil du diesen Dienst ausdrücklich nutzen möchtest (§ 25 Abs. 2 Nr. 2 TDDDG).
@@ -144,7 +144,7 @@ Fügst du einen Link ein und lässt dir eine Vorschau anzeigen, ruft unser Serve
 
 ## 16. Protokolle, Missbrauchsschutz und Sicherungen
 
-1. Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach [[LOG_RETENTION]].
+1. Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.
 2. Um Anmeldung und Registrierung vor Missbrauch zu schützen, begrenzen wir die Zahl der Versuche. Dafür speichern wir einen Prüfwert deiner E-Mail-Adresse oder deiner IP-Adresse, bei IPv6 deines Netzbereichs, mit dem Zeitpunkt des Versuchs und löschen ihn nach einem Tag.
 3. Wir sichern Datenbank und Medien regelmäßig, damit nach einem technischen Fehler nichts verloren geht. Die Sicherungen enthalten eure Inhalte in verschlüsselter Form und werden nach [[BACKUP_RETENTION]] gelöscht. Müssen wir eine Sicherung zurückspielen, löschen wir alle Konten, deren Löschung seitdem veranlasst wurde, erneut, bevor eimir. wieder erreichbar ist. Dafür führen wir ein Löschprotokoll mit der Kennung des Kontos und dem Zeitpunkt der Löschung, ohne E-Mail-Adresse und ohne Inhalte, so lange, wie ältere Sicherungen bestehen können.
 4. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren, stabilen und vor Missbrauch geschützten Dienst (Art. 6 Abs. 1 lit. f DSGVO).
@@ -158,7 +158,7 @@ Wir setzen in eimir. keine Analyse-, Tracking- oder Werbedienste ein, weder in d
 eimir. Pro kann derzeit noch nicht gekauft werden. Sobald das möglich ist, gilt:
 
 - Für den Kauf verarbeiten wir, wer Pro für welchen Space gekauft hat, Laufzeit, Status und Rechnungsangaben.
-- Die Zahlung wickelt [[PAYMENT_PROVIDER]] ab. Zahlungsdaten wie Kartennummern speichern wir nicht selbst. Kaufst du in einem App-Store, verarbeitet dessen Betreiber die Zahlung in eigener Verantwortung.
+- Die Zahlung wickelt ein Zahlungsdienstleister ab, den wir hier nennen, sobald der Kauf möglich ist. Zahlungsdaten wie Kartennummern speichern wir nicht selbst. Kaufst du in einem App-Store, verarbeitet dessen Betreiber die Zahlung in eigener Verantwortung.
 - Dein Partner sieht, dass Pro für euren Space aktiv ist, aber keine Zahlungsangaben.
 - Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Rechnungsdaten bewahren wir auf, solange handels- und steuerrechtliche Pflichten es verlangen, für Rechnungen derzeit acht Jahre, für bestimmte Buchungsunterlagen bis zu zehn Jahre (Art. 6 Abs. 1 lit. c DSGVO).
 
@@ -171,16 +171,16 @@ Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir
 Deine Daten erhalten nur:
 
 - dein Partner, soweit ihr Inhalte teilt (Abschnitt 4),
-- unsere Dienstleister, die in unserem Auftrag und nach unseren Weisungen handeln (Art. 28 DSGVO): [[HOSTING_PROVIDER]] für Server, Datenbank, Speicher und Sicherungen, [[MAIL_PROVIDER]] für den E-Mail-Versand und [[PUSH_PROVIDER]] für die Zustellung von Push-Benachrichtigungen über Firebase Cloud Messaging (Abschnitt 12),
-- [[GEOCODING_PROVIDER]] für Adresssuche und Ortsnamen (Abschnitt 9),
+- unsere Dienstleister, die in unserem Auftrag und nach unseren Weisungen handeln (Art. 28 DSGVO): die netcup GmbH, Karlsruhe, für Server, Datenbank, Speicher und Sicherungen sowie für den Mailserver, den wir dort selbst betreiben, und die Google Ireland Limited, Dublin (Irland), für die Zustellung von Push-Benachrichtigungen über Firebase Cloud Messaging (Abschnitt 12),
+- die komoot GmbH, Potsdam, für Adresssuche und Ortsnamen (Abschnitt 9),
 - die OpenStreetMap Foundation, wenn du eine Karte öffnest (Abschnitt 9),
 - Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich-Server, ein UnifiedPush-Dienst, Google Fotos, Google Maps oder eine verlinkte Website (Abschnitte 9, 10, 12 und 13),
-- [[PAYMENT_PROVIDER]], sobald du eimir. Pro kaufen kannst (Abschnitt 18),
+- ein Zahlungsdienstleister, den wir hier nennen, sobald du eimir. Pro kaufen kannst (Abschnitt 18),
 - Behörden und Gerichte, wenn wir gesetzlich dazu verpflichtet sind (Art. 6 Abs. 1 lit. c DSGVO).
 
 ## 21. Übermittlung in Länder außerhalb der EU
 
-1. Unsere Server stehen in [[SERVER_LOCATION]].
+1. Unsere Server stehen in Wien (Österreich).
 2. Google kann die Daten für Push-Benachrichtigungen auch in den USA verarbeiten. Für Unternehmen in den USA, die nach dem EU-U.S. Data Privacy Framework zertifiziert sind, hat die EU-Kommission ein angemessenes Datenschutzniveau festgestellt (Art. 45 DSGVO). Google LLC ist danach zertifiziert.
 3. Die OpenStreetMap Foundation hat ihren Sitz im Vereinigten Königreich. Auch für das Vereinigte Königreich hat die EU-Kommission ein angemessenes Datenschutzniveau festgestellt (Art. 45 DSGVO).
 4. Für Dienste, die du selbst verbindest oder aufrufst, etwa deinen Immich-Server, Google Fotos oder Google Maps, gelten deren Standorte und Datenschutzhinweise.
@@ -200,20 +200,20 @@ Wir speichern deine Daten nur so lange, wie wir sie für die beschriebenen Zweck
 - **Exportdateien:** 24 Stunden.
 - **Auswahl aus anderen Fotodiensten:** zehn Minuten.
 - **Zwischengespeicherte Inhalte, Fotos und Entwürfe auf deinem Gerät:** höchstens sieben Tage, beim Abmelden sofort. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.
-- **Protokolle:** [[LOG_RETENTION]].
+- **Protokolle:** 30 Tage.
 - **Sicherungen:** [[BACKUP_RETENTION]]; das Löschprotokoll so lange, wie ältere Sicherungen bestehen können.
 - **Rechnungsdaten für eimir. Pro:** so lange, wie gesetzliche Aufbewahrungspflichten bestehen.
 
 ## 23. Deine Rechte
 
 1. Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16 DSGVO), Löschung (Art. 17 DSGVO), Einschränkung der Verarbeitung (Art. 18 DSGVO) und Datenübertragbarkeit (Art. 20 DSGVO). Hast du in eine Verarbeitung eingewilligt, kannst du die Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO).
-2. Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an [[PRIVACY_CONTACT]].
+2. Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an kontakt@reiswienudel.de.
 3. Gemeinsame Inhalte gehören zu eurer gemeinsamen Geschichte. Betrifft dein Anliegen auch Daten deines Partners, berücksichtigen wir auch dessen Rechte.
-4. Du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), insbesondere in dem Mitgliedstaat der EU, in dem du lebst oder arbeitest oder in dem der mutmaßliche Verstoß stattgefunden hat. Für uns zuständig ist [[SUPERVISORY_AUTHORITY]].
+4. Du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), insbesondere in dem Mitgliedstaat der EU, in dem du lebst oder arbeitest oder in dem der mutmaßliche Verstoß stattgefunden hat. Für uns zuständig ist das Unabhängige Datenschutzzentrum Saarland, Fritz-Dobisch-Straße 12, 66111 Saarbrücken.
 
 ## 24. Dein Widerspruchsrecht
 
-**Verarbeiten wir Daten auf Grundlage berechtigter Interessen (Art. 6 Abs. 1 lit. f DSGVO), kannst du dieser Verarbeitung jederzeit aus Gründen widersprechen, die sich aus deiner besonderen Situation ergeben (Art. 21 DSGVO).** Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Das betrifft zum Beispiel die Anzeige, ob du gerade aktiv bist, die Zuordnung von Orten aus Fotos, das Laden von Karten und gemeinsame Inhalte, die nach deinem Verlassen für deinen Partner erhalten bleiben. Die automatische Zuordnung von Orten aus Fotos kannst du jederzeit selbst in den Einstellungen ausschalten. Für deinen Widerspruch genügt eine Nachricht an [[PRIVACY_CONTACT]].
+**Verarbeiten wir Daten auf Grundlage berechtigter Interessen (Art. 6 Abs. 1 lit. f DSGVO), kannst du dieser Verarbeitung jederzeit aus Gründen widersprechen, die sich aus deiner besonderen Situation ergeben (Art. 21 DSGVO).** Wir verarbeiten die Daten dann nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Das betrifft zum Beispiel die Anzeige, ob du gerade aktiv bist, die Zuordnung von Orten aus Fotos, das Laden von Karten und gemeinsame Inhalte, die nach deinem Verlassen für deinen Partner erhalten bleiben. Die automatische Zuordnung von Orten aus Fotos kannst du jederzeit selbst in den Einstellungen ausschalten. Für deinen Widerspruch genügt eine Nachricht an kontakt@reiswienudel.de.
 
 ## 25. Änderungen dieser Hinweise
 

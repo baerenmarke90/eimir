@@ -6,7 +6,7 @@ const photoSources = {
   addMedia: 'Medien hinzufügen',
   mediaLabel: 'Medien',
   deviceMediaHint: 'Fotos und Videos',
-  device: 'Vom Gerät auswählen',
+  device: 'Dieses Gerät',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',
   previewFailed: 'Vorschau fehlt',
   videoAvailabilityUnavailable:
@@ -20,8 +20,6 @@ const photoSources = {
     'Verknüpfe eure Fotodienste und übernimm ausgewählte Fotos mit eimir. Pro.',
   consent:
     'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
-  googleConsent:
-    'Wähle bei Google Fotos aus, was du hinzufügen möchtest. eimir. übernimmt nur deine Auswahl. Gespeichert wird erst mit deinem Eintrag.',
   accept: 'Ausgewählte Fotos in meinen Entwurf übernehmen',
   continue: 'Weiter zur Auswahl',
   waiting:
@@ -46,7 +44,7 @@ const photoSources = {
     '{{count}} Fotos übernommen. Einige Fotos konnten nicht geladen werden.',
   offline:
     'Für diese Fotoquelle brauchst du eine Internetverbindung. Dein Entwurf bleibt erhalten.',
-  link: 'Eigenen Immich-Dienst verknüpfen',
+  link: 'Immich-Dienst verknüpfen',
   linkTitle: 'Dein Immich',
   setupHelp: 'So verbindest du Immich',
   setupOpen:
@@ -81,5 +79,16 @@ const photoSources = {
     'Der eimir.-Schlüssel kann zusätzlich in Immich widerrufen werden.',
   addressUnavailable:
     'Die Verbindung konnte nicht hergestellt werden. Prüfe die erreichbare HTTPS-Adresse und die Leserechte des Schlüssels. Dein Eintrag bleibt erhalten.',
+  googleAccountLink: 'Google-Konto verknüpfen',
+  googleAccountSheetTitle: 'Dein Google-Konto',
+  googleAccountEmail: 'E-Mail-Adresse deines Google-Kontos',
+  googleAccountLinked: 'Google-Konto verknüpft.',
+  googleAccountUnlink: 'Verbindung trennen',
+  googleAccountUnlinked: 'Verbindung getrennt.',
+  googleAccountInvalid: 'Bitte gib eine gültige E-Mail-Adresse ein.',
+  googleAccountChanged:
+    'Das Konto wurde in einem anderen Fenster geändert. Bitte prüfe es noch einmal.',
+  googleAccountUnavailable:
+    'Das hat gerade nicht geklappt. Versuche es noch einmal.',
 };
 export default photoSources;

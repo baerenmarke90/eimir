@@ -284,10 +284,13 @@ def _cursor_binding(
     context: AuthorizationContext,
     scope: CollectionScope,
     ids: Iterable[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> dict[str, Any]:
     binding = {"collection": "collections", "spaceId": str(context.space_id)}
     if scope != CollectionScope.ALL:
         binding["scope"] = scope.value
+    if kind is not None:
+        binding["kind"] = kind.value
     if ids is not None:
         binding["ids"] = ",".join(sorted(str(identifier) for identifier in ids))
     return binding
@@ -300,9 +303,10 @@ def _encode_cursor(
     collection_id: UUID,
     scope: CollectionScope,
     ids: Iterable[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context, scope, ids),
+        binding=_cursor_binding(context, scope, ids, kind),
         position={
             "createdAt": created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(collection_id),
@@ -316,8 +320,9 @@ def _decode_cursor(
     context: AuthorizationContext,
     scope: CollectionScope,
     ids: Iterable[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(context, scope, ids))
+    position = cursor_codec.decode(token, binding=_cursor_binding(context, scope, ids, kind))
     created_raw = position.get("createdAt")
     collection_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(collection_raw, str):
@@ -340,15 +345,20 @@ def list_collections(
     limit: int,
     scope: CollectionScope = CollectionScope.ALL,
     ids: Sequence[UUID] | None = None,
+    kind: CollectionKind | None = None,
 ) -> CollectionPageResult:
     """Page readable Collections, optionally limited to the given identifiers.
 
     ``ids`` lets a client read several known lists (for example the ones shown
-    on Wir) in one request instead of one request per list.
+    on Wir) in one request instead of one request per list. ``kind`` answers
+    questions such as "does the couple have a shopping list yet" without
+    paging through every list of another kind.
     """
     statement = readable(Collection, context)
     if ids is not None:
         statement = statement.where(Collection.id.in_(ids))
+    if kind is not None:
+        statement = statement.where(Collection.kind == kind.value)
     if scope != CollectionScope.ALL:
         has_items = (
             select(CollectionItem.id).where(CollectionItem.collection_id == Collection.id).exists()
@@ -364,7 +374,9 @@ def list_collections(
         completed = and_(has_items, ~has_unchecked)
         statement = statement.where(completed if scope == CollectionScope.COMPLETED else ~completed)
     if cursor is not None:
-        created_at, collection_id = _decode_cursor(cursor, context=context, scope=scope, ids=ids)
+        created_at, collection_id = _decode_cursor(
+            cursor, context=context, scope=scope, ids=ids, kind=kind
+        )
         statement = statement.where(
             or_(
                 Collection.created_at < created_at,
@@ -387,6 +399,7 @@ def list_collections(
             collection_id=last.id,
             scope=scope,
             ids=ids,
+            kind=kind,
         )
     return CollectionPageResult(items=items, next_cursor=next_cursor, has_more=has_more)
 

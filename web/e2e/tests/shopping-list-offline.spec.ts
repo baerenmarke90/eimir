@@ -81,6 +81,9 @@ async function installShoppingMocks(page: Page) {
   let serial = 0;
   let pinnedCollectionId: string | null = null;
   let dashboardGetCount = 0;
+  // The couple has no shopping list until one is created.
+  let hasShoppingList = true;
+  const collectionListQueries: string[] = [];
   const sharedAchievementsEnabled = false;
   const created = new Map<string, Item>();
   const createRequests: {
@@ -399,7 +402,11 @@ async function installShoppingMocks(page: Page) {
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/collections`
     ) {
-      await json({ items: [collection()], nextCursor: null });
+      collectionListQueries.push(new URL(request.url()).search);
+      await json({
+        items: hasShoppingList ? [collection()] : [],
+        nextCursor: null,
+      });
       return;
     }
     if (
@@ -408,6 +415,7 @@ async function installShoppingMocks(page: Page) {
     ) {
       const body = request.postDataJSON() as { title: string; kind?: string };
       createCollectionBodies.push(body);
+      hasShoppingList = true;
       await json({ ...collection(), title: body.title }, 201, {
         ETag: `"${version}"`,
       });
@@ -543,6 +551,10 @@ async function installShoppingMocks(page: Page) {
       });
     },
     createCollectionBodies: () => createCollectionBodies,
+    collectionListQueries: () => collectionListQueries,
+    withoutShoppingList: () => {
+      hasShoppingList = false;
+    },
     /** The partner changes the list on their own phone. */
     partnerAdds: (title: string) => {
       items.push({
@@ -1343,4 +1355,120 @@ test('a checked entry glides into the cart, and with reduced motion it only appe
     })
     .click();
   await seenWith('animationDuration', '0s');
+});
+
+for (const view of [
+  {
+    name: '390 light',
+    file: '390-light',
+    width: 390,
+    height: 844,
+    scheme: 'light',
+  },
+  {
+    name: '360 dark',
+    file: '360-dark',
+    width: 360,
+    height: 780,
+    scheme: 'dark',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const) {
+  test(`the short way to a first shopping list fits and passes axe (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    api.withoutShoppingList();
+    await signIn(page);
+    await page.goto('/more/collections');
+
+    await expect(
+      page.getByRole('heading', {
+        name: m5s3.collection.defaultShopping.heading,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', {
+        name: m5s3.collection.defaultShopping.action,
+      }),
+    ).toBeVisible();
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shopping-starter-${view.file}.png`),
+      animations: 'disabled',
+    });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test('one tap creates the default shopping list and opens it; the card is gone afterwards', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  api.withoutShoppingList();
+  await signIn(page);
+  await page.goto('/more/collections');
+
+  await page
+    .getByRole('button', { name: m5s3.collection.defaultShopping.action })
+    .click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/plan/collections/${COLLECTION_ID}$`),
+  );
+  await expect(
+    page.getByRole('heading', { name: m5s3.collection.defaultShopping.title }),
+  ).toBeVisible();
+  expect(api.createCollectionBodies()).toEqual([
+    { title: m5s3.collection.defaultShopping.title, kind: 'SHOPPING' },
+  ]);
+  // The server was asked about shopping lists of any state, one row is enough.
+  expect(
+    api
+      .collectionListQueries()
+      .some(
+        (query) =>
+          query.includes('kind=SHOPPING') &&
+          query.includes('scope=ALL') &&
+          query.includes('limit=1'),
+      ),
+  ).toBe(true);
+
+  await page.goto('/more/collections');
+  await expect(
+    page.getByRole('heading', { name: m5s3.collection.overviewHeading }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: m5s3.collection.defaultShopping.action }),
+  ).toHaveCount(0);
+});
+
+test('the short way is not offered while the couple already has a shopping list', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await page.goto('/more/collections');
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.collection.overviewHeading }),
+  ).toBeVisible();
+  await expect(page.getByText('Einkauf').first()).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: m5s3.collection.defaultShopping.action }),
+  ).toHaveCount(0);
 });

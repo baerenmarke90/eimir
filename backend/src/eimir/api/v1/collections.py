@@ -353,9 +353,13 @@ def list_collections(
             description="Return only these Collections, so several known lists need one request.",
         ),
     ] = None,
+    kind: Annotated[
+        CollectionKind | None,
+        Query(description="Return only Collections of this kind, for example the shopping lists."),
+    ] = None,
 ) -> CollectionPage:
     page = service.list_collections(
-        session, authorization, cursor=cursor, limit=limit, scope=scope, ids=ids
+        session, authorization, cursor=cursor, limit=limit, scope=scope, ids=ids, kind=kind
     )
     return CollectionPage(
         items=collection_details(session, page.items),

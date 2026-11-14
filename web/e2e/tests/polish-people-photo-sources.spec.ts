@@ -216,10 +216,7 @@ for (const view of [
     await editor.getByRole('button', { name: sources.more }).click();
     const sheet = page.locator('.photo-source-sheet');
     await expect(sheet).toBeVisible();
-    // The save and visibility contract is stated before anything is authorized.
-    await expect(
-      sheet.getByText(sources.googleConsent, { exact: true }),
-    ).toBeVisible();
+    await expect(sheet.getByRole('button', { name: /Google/ })).toBeVisible();
     await captureScreenshot(
       page,
       info,

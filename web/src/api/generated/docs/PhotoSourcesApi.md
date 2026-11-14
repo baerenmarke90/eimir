@@ -10,6 +10,8 @@ All URIs are relative to *http://localhost*
 | [**getPhotoSources**](PhotoSourcesApi.md#getphotosources) | **GET** /api/v1/spaces/{spaceId}/photo-sources | Sources |
 | [**pollPhotoSelection**](PhotoSourcesApi.md#pollphotoselection) | **POST** /api/v1/spaces/{spaceId}/photo-selections/{selectionId}/poll | Poll |
 | [**readSelectedPhoto**](PhotoSourcesApi.md#readselectedphoto) | **GET** /api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId} | Read |
+| [**removeGooglePhotoAccount**](PhotoSourcesApi.md#removegooglephotoaccount) | **DELETE** /api/v1/spaces/{spaceId}/photo-sources/google/account | Remove Google Account |
+| [**saveGooglePhotoAccount**](PhotoSourcesApi.md#savegooglephotoaccount) | **PUT** /api/v1/spaces/{spaceId}/photo-sources/google/account | Save Google Account |
 | [**startPhotoSelection**](PhotoSourcesApi.md#startphotoselection) | **POST** /api/v1/spaces/{spaceId}/photo-selections | Start |
 
 
@@ -451,6 +453,156 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## removeGooglePhotoAccount
+
+> removeGooglePhotoAccount(spaceId, ifMatch)
+
+Remove Google Account
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PhotoSourcesApi,
+} from '';
+import type { RemoveGooglePhotoAccountRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PhotoSourcesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+  } satisfies RemoveGooglePhotoAccountRequest;
+
+  try {
+    const data = await api.removeGooglePhotoAccount(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## saveGooglePhotoAccount
+
+> saveGooglePhotoAccount(spaceId, ifMatch, googleAccountSave)
+
+Save Google Account
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PhotoSourcesApi,
+} from '';
+import type { SaveGooglePhotoAccountRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PhotoSourcesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+    // GoogleAccountSave
+    googleAccountSave: ...,
+  } satisfies SaveGooglePhotoAccountRequest;
+
+  try {
+    const data = await api.saveGooglePhotoAccount(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+| **googleAccountSave** | [GoogleAccountSave](GoogleAccountSave.md) |  | |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | A capability required for this operation is not configured on this instance. |  -  |
 

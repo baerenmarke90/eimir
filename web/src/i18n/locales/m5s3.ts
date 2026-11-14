@@ -411,6 +411,12 @@ const m5s3 = {
   },
   collection: {
     menu: { open: 'Menü der Liste' },
+    defaultShopping: {
+      title: 'Einkauf',
+      heading: 'Gemeinsam einkaufen',
+      body: 'Eine Liste für euch beide: Ihr seht, was noch fehlt und was schon im Wagen liegt.',
+      action: 'Einkaufsliste anlegen',
+    },
     kindLabel: 'Art der Liste',
     kind: { GENERIC: 'Liste', SHOPPING: 'Einkaufsliste' },
     scopeLabel: 'Listen filtern',

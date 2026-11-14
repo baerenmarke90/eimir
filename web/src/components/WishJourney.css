@@ -368,3 +368,57 @@
 .plan-wish-fulfilled > .wish-journey {
   margin-block: var(--space-2);
 }
+
+/* #1816: a series of repeated wishes is one fulfilled row; earlier times fold away. */
+.planen-wish-series-mark {
+  display: block;
+  padding: 0 var(--space-5) var(--space-1);
+}
+
+.planen-wish-series {
+  padding: 0 var(--space-5) var(--space-3);
+}
+
+.planen-wish-series > summary {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--touch-target-web);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  cursor: pointer;
+}
+
+.planen-wish-series > summary:focus-visible,
+.planen-wish-series a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.planen-wish-series ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0 0 var(--space-2);
+  list-style: none;
+}
+
+.planen-wish-series a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target-web);
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wish-completed-section {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+}
+
+.wish-repeat-intro {
+  margin: 0;
+  font: var(--font-supporting-copy);
+}

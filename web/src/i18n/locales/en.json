@@ -3330,6 +3330,31 @@
     "fulfilledTitle": "Wish fulfilled",
     "fulfilledBody": "You wished for “{{title}}” – and you did it."
   },
+  "wishRepeat": {
+    "action": "Experience it again",
+    "sheet": {
+      "title": "Experience it again",
+      "intro": "A new wish that remembers the first time.",
+      "titleLabel": "Title",
+      "create": "Create wish",
+      "creating": "Creating …",
+      "planNow": "Plan it now",
+      "planning": "Planning …"
+    },
+    "series": {
+      "experienced_one": "Experienced once",
+      "experienced_other": "Experienced {{count}} times",
+      "nthTime": "Time {{position}}",
+      "showAll": "See every time",
+      "timesLabel": "Every time",
+      "timeOn": "Time {{position}} · {{date}}"
+    },
+    "reminder": {
+      "fromWish": "From your wish",
+      "fromWishTitled": "From your wish “{{title}}”",
+      "fromWishTitledNth": "From your wish “{{title}}” · time {{position}}"
+    }
+  },
   "memoryProduct": {
     "planning": {
       "heading": "Linked wishes and plans",

@@ -37,6 +37,7 @@ import {
   wishJourneyHint,
   wishPlanDateLabel,
 } from '../client/wishJourney';
+import { groupCompletedSeries, type WishSeriesRow } from '../client/wishSeries';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
@@ -658,6 +659,64 @@ export function SharedPlanningOverviewPage({
     );
   }
 
+  function seriesTimeLabel(wish: WishDetail) {
+    const experiencedOn = wish.plan?.experiencedOn;
+    if (!experiencedOn)
+      return t('wishRepeat.series.nthTime', { position: wish.seriesPosition });
+    return t('wishRepeat.series.timeOn', {
+      position: wish.seriesPosition,
+      date: new Intl.DateTimeFormat(resolvedLocale(), {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(experiencedOn),
+    });
+  }
+
+  function renderCompletedRow(row: WishSeriesRow) {
+    const wish = row.latest;
+    return (
+      <li key={row.seriesId} className="planen-wish-journey-card">
+        <Link
+          className="planen-wish-link"
+          {...planningLinkProps(wishDetailPath(wish.id), 'wishes', wish.id)}
+        >
+          <span className="planen-wish-copy">
+            <strong>{wish.title}</strong>
+          </span>
+        </Link>
+        {row.times.length > 1 ? (
+          <span className="planen-wish-series-mark">
+            <WishOriginMark>
+              {t('wishRepeat.series.experienced', { count: row.times.length })}
+            </WishOriginMark>
+          </span>
+        ) : null}
+        {renderWishJourneyLink(wish)}
+        {row.times.length > 1 ? (
+          <details className="planen-wish-series">
+            <summary>{t('wishRepeat.series.showAll')}</summary>
+            <ul aria-label={t('wishRepeat.series.timesLabel')}>
+              {row.times.map((time) => (
+                <li key={time.id}>
+                  <Link
+                    {...planningLinkProps(
+                      wishDetailPath(time.id),
+                      'wishes',
+                      time.id,
+                    )}
+                  >
+                    {seriesTimeLabel(time)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+      </li>
+    );
+  }
+
   function renderWishJourneyLink(wish: WishDetail) {
     const selectedKey = `${wish.id}:journey`;
     if (wish.status === 'PLANNED') {
@@ -1123,23 +1182,25 @@ export function SharedPlanningOverviewPage({
               </p>
             ) : null}
             <ul className="planen-wish-list">
-              {wishItems.map((wish) => (
-                <li key={wish.id} className="planen-wish-journey-card">
-                  <Link
-                    className="planen-wish-link"
-                    {...planningLinkProps(
-                      wishDetailPath(wish.id),
-                      'wishes',
-                      wish.id,
-                    )}
-                  >
-                    <span className="planen-wish-copy">
-                      <strong>{wish.title}</strong>
-                    </span>
-                  </Link>
-                  {renderWishJourneyLink(wish)}
-                </li>
-              ))}
+              {wishStatus === 'COMPLETED'
+                ? groupCompletedSeries(wishItems).map(renderCompletedRow)
+                : wishItems.map((wish) => (
+                    <li key={wish.id} className="planen-wish-journey-card">
+                      <Link
+                        className="planen-wish-link"
+                        {...planningLinkProps(
+                          wishDetailPath(wish.id),
+                          'wishes',
+                          wish.id,
+                        )}
+                      >
+                        <span className="planen-wish-copy">
+                          <strong>{wish.title}</strong>
+                        </span>
+                      </Link>
+                      {renderWishJourneyLink(wish)}
+                    </li>
+                  ))}
             </ul>
           </div>
         ) : null}
@@ -1165,6 +1226,13 @@ export function SharedPlanningOverviewPage({
                       >
                         <span className="planen-wish-copy">
                           <strong>{wish.title}</strong>
+                          {wish.seriesPosition > 1 ? (
+                            <WishOriginMark>
+                              {t('wishRepeat.series.nthTime', {
+                                position: wish.seriesPosition,
+                              })}
+                            </WishOriginMark>
+                          ) : null}
                         </span>
                       </Link>
                     </li>

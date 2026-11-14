@@ -27,7 +27,13 @@ function infinitePage<T>(items: T[]) {
 
 const CREATOR = { id: 'account-lea', displayName: 'Lea' };
 
-function wish(overrides: { id: string; title: string; status: string }) {
+function wish(overrides: {
+  id: string;
+  title: string;
+  status: string;
+  seriesId?: string;
+  seriesPosition?: number;
+}) {
   return {
     capabilities: { canComment: true, canDelete: true, canEdit: true },
     createdAt: new Date('2026-08-01T10:00:00Z'),
@@ -36,6 +42,9 @@ function wish(overrides: { id: string; title: string; status: string }) {
     spaceId: 'space-1',
     updatedAt: new Date('2026-08-01T10:00:00Z'),
     version: 1,
+    followedFromWishId: null,
+    seriesId: overrides.id,
+    seriesPosition: 1,
     ...overrides,
   };
 }
@@ -483,6 +492,90 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
     );
     expect(html).toContain(`href="${MEMORY_CREATE_ROUTE}"`);
     expect(html).not.toContain(i18n.t('wishJourney.plannedIntro'));
+  });
+
+  it('shows a repeated wish as one fulfilled row with its times folded away (#1816)', () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    client.setQueryData(
+      ['m5-s3', 'wishes', 'space-1', 'COMPLETED'],
+      infinitePage([
+        {
+          ...wish({
+            id: 'sea-1',
+            title: 'Ostsee',
+            status: 'COMPLETED',
+            seriesId: 'sea',
+            seriesPosition: 1,
+          }),
+          plan: journeyPlan('plan-sea-1', {
+            status: 'COMPLETED',
+            experiencedOn: new Date('2026-05-12T00:00:00Z'),
+          }),
+          hasMemory: true,
+        },
+        {
+          ...wish({
+            id: 'sea-2',
+            title: 'Ostsee',
+            status: 'COMPLETED',
+            seriesId: 'sea',
+            seriesPosition: 2,
+          }),
+          plan: journeyPlan('plan-sea-2', {
+            status: 'COMPLETED',
+            experiencedOn: new Date('2026-10-03T00:00:00Z'),
+          }),
+          hasMemory: false,
+        },
+        {
+          ...wish({ id: 'train', title: 'Zugfahrt', status: 'COMPLETED' }),
+          plan: journeyPlan('plan-train', { status: 'COMPLETED' }),
+          hasMemory: false,
+        },
+      ]),
+    );
+
+    const html = renderPlanning(client, '/plan#fulfilled-wishes');
+
+    expect(html.match(/planen-wish-journey-card/g)).toHaveLength(2);
+    expect(html).toContain(
+      i18n.t('wishRepeat.series.experienced', { count: 2 }),
+    );
+    expect(html).toContain(i18n.t('wishRepeat.series.showAll'));
+    expect(html).toContain('href="/plan/wishes/sea-2"');
+    expect(html).toContain('href="/plan/wishes/sea-1"');
+    expect(html).toContain('2. Mal');
+    expect(html).not.toContain(
+      i18n.t('wishRepeat.series.experienced', { count: 1 }),
+    );
+  });
+
+  it('marks an open repeat with a quiet time mark (#1816)', () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    client.setQueryData(
+      ['m5-s3', 'wishes', 'space-1'],
+      infinitePage([
+        wish({
+          id: 'sea-2',
+          title: 'Ostsee',
+          status: 'OPEN',
+          seriesId: 'sea',
+          seriesPosition: 2,
+        }),
+        wish({ id: 'stars', title: 'Sterne', status: 'OPEN' }),
+      ]),
+    );
+
+    const html = renderPlanning(client, '/plan#wishes');
+
+    expect(html.match(/wish-origin-mark/g)).toHaveLength(1);
+    expect(html).toContain(
+      i18n.t('wishRepeat.series.nthTime', { position: 2 }),
+    );
   });
 
   it('marks plans from a wish and shows one quiet hint above the list', () => {

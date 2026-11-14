@@ -1,22 +1,22 @@
-import fixtures from '../fixtures/locales/de';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
+import copy from '../../src/i18n/locales/m5s3';
+import privateArea from '../../src/i18n/locales/privateArea';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import wishSelection from '../../src/i18n/locales/wishSelection';
+import fixtures from '../fixtures/locales/de';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
-import copy from '../../src/i18n/locales/m5s3';
-import de from '../../src/i18n/locales/de';
-import privateArea from '../../src/i18n/locales/privateArea';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import wishSelection from '../../src/i18n/locales/wishSelection';
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const planId = '44444444-4444-4444-8444-444444444444';
@@ -235,6 +235,10 @@ for (const view of [
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
       });
+    // The search rests as an icon and opens on demand (#1861).
+    await page
+      .getByRole('button', { name: copy.overview.searchPlans, exact: true })
+      .click();
     const planSearch = page.getByRole('searchbox', {
       name: copy.overview.searchPlans,
     });
@@ -255,7 +259,8 @@ for (const view of [
         exact: true,
       }),
     ).toHaveCount(0);
-    await expect(planSearch).not.toBeFocused();
+    // Opening the search on demand moves the focus into its field.
+    await expect(planSearch).toBeFocused();
     await planSearch.fill('osterreich');
     await expect(page.locator('.planen-next-link')).toContainText(
       fixtures.planningFollowup.plan,
@@ -320,6 +325,9 @@ for (const view of [
 
     await page
       .getByRole('tab', { name: copy.overview.segmentWishes, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: copy.overview.searchWishes, exact: true })
       .click();
     const wishSearch = page.getByRole('searchbox', {
       name: copy.overview.searchWishes,
@@ -427,6 +435,9 @@ test('a failed later Plan page never becomes an empty search and can be retried'
   const state = await fixture(page, true);
   await signIn(page);
   await page.goto('/plan');
+  await page
+    .getByRole('button', { name: copy.overview.searchPlans, exact: true })
+    .click();
   await page
     .getByRole('searchbox', { name: copy.overview.searchPlans })
     .fill('osterreich');

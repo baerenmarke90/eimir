@@ -476,6 +476,17 @@
 }
 
 /*
+ * From Expanded on, the add action sits in the Momente header instead of
+ * floating. The map view has no such action but shares the view switch, so
+ * its header reserves the same row and the switch does not jump between views.
+ */
+@media (min-width: 840px) {
+  .memory-map-page > .page-heading-root.content-overview-heading {
+    min-height: var(--touch-target-comfortable);
+  }
+}
+
+/*
  * Momente, Planen and Mehr open with the same short rise as the
  * modules on Wir, once per page load. The header is left out because it holds
  * the floating create action, which must stay fixed to the viewport. The fill

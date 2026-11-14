@@ -1139,7 +1139,10 @@
       ]
     },
     "shopping-list-offline.spec.ts": {
-      "roots": ["web/src/components/CollectionProductPage.tsx"]
+      "roots": [
+        "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx"
+      ]
     }
   }
 }

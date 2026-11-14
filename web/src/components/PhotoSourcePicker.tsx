@@ -482,9 +482,6 @@ export function PhotoSourcePicker({
           </div>
         }
       >
-        {!view && !awaitingGoogle && !retry ? (
-          <p className="field-help">{t('photoSources.consent')}</p>
-        ) : null}
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
         {view && activeTask ? (
           <>
@@ -563,9 +560,6 @@ export function PhotoSourcePicker({
                 disabled={busy || disabled}
                 onClick={() => void start('google')}
               />
-            ) : null}
-            {canImport && availability?.googleAvailable ? (
-              <p className="field-help">{t('photoSources.googleConsent')}</p>
             ) : null}
             {availability?.enabled || availability?.immichConnected ? (
               <MediaIntakeButton

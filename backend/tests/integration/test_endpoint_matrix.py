@@ -1023,6 +1023,25 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="COLLECTION_NOT_FOUND",
         placeholders=("collectionId",),
     ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/finish",
+        body={"itemIds": []},
+        resource_absence="COLLECTION_NOT_FOUND",
+        placeholders=("collectionId",),
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions",
+        resource_absence="COLLECTION_NOT_FOUND",
+        placeholders=("collectionId",),
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions/{suggestionId}",
+        resource_absence="COLLECTION_SUGGESTION_NOT_FOUND",
+        placeholders=("suggestionId",),
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/private/collections"),
     Endpoint(
         "POST",
@@ -1545,6 +1564,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "chapterId": chapter["id"],
             "collectionId": collection["id"],
             "itemId": collection_item["id"],
+            # No suggestion exists in the matrix's plain list; the id is only a path value.
+            "suggestionId": str(uuid4()),
             "privateCollectionId": private_collection["id"],
             "privateCollectionItemId": private_collection_item["id"],
             "noteId": private_note["id"],

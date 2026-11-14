@@ -577,13 +577,13 @@
     },
     "shopping-list-offline.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 19,
-      "reason": "Feature-owned acceptance for the shopping list (#1808): changes made offline are kept on the device, shown as waiting, sent once with the same request identity when the connection is back, survive a reload, and the waiting state is readable, accessible and bounded at 360/390/430px (Light, plus Dark at 390), in the Expanded 1280px view and at 320px with text enlarged to 200%. Step C1 adds the list composition (count, two-tone bar, partner markers, tray, optional quantity) at the same widths and themes with axe, quantity entry with a ready input, and the partner's change reaching an open list without a reload. Step C2 adds the cart bar that opens the cart as a sheet with put-back, the entry sheet with quantity, and creating a shopping list from the overview. Step D2 adds the list opening from its Wir tile as a tall sheet with the cart bar at its bottom edge. No always-run expansion."
+      "baselineTests": 29,
+      "reason": "Feature-owned acceptance for the shopping list (#1808): changes made offline are kept on the device, shown as waiting, sent once with the same request identity when the connection is back, survive a reload, and the waiting state is readable, accessible and bounded at 360/390/430px (Light, plus Dark at 390), in the Expanded 1280px view and at 320px with text enlarged to 200%. Step C1 adds the list composition (count, two-tone bar, partner markers, tray, optional quantity) at the same widths and themes with axe, quantity entry with a ready input, and the partner's change reaching an open list without a reload. Step C2 adds the cart bar that opens the cart as a sheet with put-back, the entry sheet with quantity, and creating a shopping list from the overview. Step D2 adds the list opening from its Wir tile as a tall sheet with the cart bar at its bottom edge. Step E2 adds suggestions from earlier trips (one tap to add, removal, the privacy note), Einkauf fertig with its end state and the shared moment, and its wait for a connection. Step F adds the suggestions, cart and finish action at Dark 390, 360, 430, Expanded and 320px with text enlarged, and the glide of a checked entry with its reduced-motion behavior. No always-run expansion."
     },
     "settings-google-account.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5,
-      "reason": "Feature-owned acceptance for remembering the Google account in Settings > Medienquellen (#1467): save, change and remove with the exact If-Match token, a stale write reloaded instead of overwritten, hidden when the import is unavailable, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
+      "baselineTests": 6,
+      "reason": "Feature-owned acceptance for remembering the Google account in Settings > Medienquellen (#1467): link and disconnect with the exact If-Match token, a rejected address explained, a stale write reloaded instead of overwritten, hidden when the import is unavailable, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
     }
   }
 }

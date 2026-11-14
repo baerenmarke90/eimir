@@ -1,15 +1,15 @@
 """Encrypted, account-owned Google account hint for the photo import (#1467).
 
-Revision ID: 0129
-Revises: 0128
+Revision ID: 0130
+Revises: 0129
 """
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0129"
-down_revision = "0128"
+revision = "0130"
+down_revision = "0129"
 branch_labels = None
 depends_on = None
 

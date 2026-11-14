@@ -86,7 +86,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
         "chapter_milestones",
         "chapter_heart_moments",
     ),
-    "collections.json": ("collections", "collection_items"),
+    "collections.json": ("collections", "collection_items", "collection_suggestions"),
     "reminders.json": ("reminders", "reminder_offsets", "reminder_preferences"),
     "rules.json": ("rule_preferences",),
     "recaps.json": ("recap_editions", "recap_sources", "recap_reflections"),
@@ -102,6 +102,7 @@ ACCOUNT_SCOPED_CONFIG_TABLES = frozenset(
 )
 CHILD_PARENT: dict[str, tuple[str, str]] = {
     "collection_items": ("collection_id", "collections"),
+    "collection_suggestions": ("collection_id", "collections"),
     "private_collection_items": ("collection_id", "private_collections"),
     "reminder_offsets": ("reminder_id", "reminders"),
     "reminder_preferences": ("reminder_id", "reminders"),
@@ -146,6 +147,7 @@ INSERT_ORDER = (
     "chapters",
     "collections",
     "collection_items",
+    "collection_suggestions",
     "private_notes",
     "gift_ideas",
     "private_collections",

@@ -91,8 +91,16 @@ async function installShoppingMocks(page: Page) {
   const updates: { itemId: string; completed?: boolean; ifMatch?: string }[] =
     [];
   const createBodies: { title: string; quantity?: string | null }[] = [];
+  const suggestions: {
+    id: string;
+    title: string;
+    quantity: string | null;
+    lastBoughtAt: string;
+    timesBought: number;
+  }[] = [];
+  const finishRequests: string[][] = [];
   const createCollectionBodies: { title: string; kind?: string }[] = [];
-  const state = { failCreates: false, createCount: 0 };
+  const state = { failCreates: false, createCount: 0, achievements: false };
 
   const collection = () => ({
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -332,6 +340,63 @@ async function installShoppingMocks(page: Page) {
     }
     if (
       method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/suggestions`
+    ) {
+      await json({ items: suggestions });
+      return;
+    }
+    if (
+      method === 'DELETE' &&
+      pathname.startsWith(
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/suggestions/`,
+      )
+    ) {
+      const index = suggestions.findIndex(
+        (entry) => entry.id === pathname.split('/').at(-1),
+      );
+      if (index >= 0) suggestions.splice(index, 1);
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    if (
+      method === 'POST' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/finish`
+    ) {
+      const body = request.postDataJSON() as { itemIds: string[] };
+      finishRequests.push(body.itemIds);
+      const taken = items.filter(
+        (entry) => entry.completed && body.itemIds.includes(entry.id),
+      );
+      for (const entry of taken) {
+        items.splice(items.indexOf(entry), 1);
+        suggestions.push({
+          id: `00000000-0000-0000-0000-${String(900 + suggestions.length).padStart(12, '0')}`,
+          title: entry.title,
+          quantity: entry.quantity,
+          lastBoughtAt: AT,
+          timesBought: 1,
+        });
+      }
+      items.forEach((entry, position) => {
+        entry.position = position;
+      });
+      if (taken.length) version += 1;
+      await json(
+        { collection: collection(), finishedCount: taken.length },
+        200,
+        {
+          ETag: `"${version}"`,
+          ...(state.achievements && taken.length && items.length === 0
+            ? { 'X-Eimir-Shared-Achievement': 'collection-completed' }
+            : {}),
+        },
+      );
+      return;
+    }
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/collections`
     ) {
       await json({ items: [collection()], nextCursor: null });
@@ -466,6 +531,17 @@ async function installShoppingMocks(page: Page) {
     titles: () => items.map((item) => item.title),
     item: (title: string) => items.find((entry) => entry.title === title),
     createBodies: () => createBodies,
+    finishRequests: () => finishRequests,
+    suggestionTitles: () => suggestions.map((entry) => entry.title),
+    seedSuggestion: (title: string, quantity: string | null = null) => {
+      suggestions.push({
+        id: `00000000-0000-0000-0000-${String(800 + suggestions.length).padStart(12, '0')}`,
+        title,
+        quantity,
+        lastBoughtAt: AT,
+        timesBought: 1,
+      });
+    },
     createCollectionBodies: () => createCollectionBodies,
     /** The partner changes the list on their own phone. */
     partnerAdds: (title: string) => {
@@ -495,6 +571,17 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
   await expectToday(page);
+}
+
+/** For lists whose entries are all in the cart: ready when the heading shows. */
+async function openCartList(page: Page): Promise<void> {
+  await page.goto(`/plan/collections/${COLLECTION_ID}`);
+  await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(`^${m5s3.collection.trayShopping} · `),
+    }),
+  ).toBeVisible();
 }
 
 async function openList(page: Page): Promise<void> {
@@ -947,4 +1034,313 @@ test('a shopping list opens from its Wir tile as a sheet with the cart bar at it
   await sheet.getByRole('button', { name: taskSheets.close }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+});
+
+test('suggestions from earlier trips are added in one tap, removed on their own and say who sees them', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const api = await installShoppingMocks(page);
+  api.seedSuggestion('Haferdrink', '2 l');
+  api.seedSuggestion('Butter');
+  api.seedSuggestion('Salz');
+  await signIn(page);
+  await openList(page);
+
+  const chips = page.getByRole('region', {
+    name: m5s3.collection.suggestions.heading,
+  });
+  await expect(chips).toBeVisible();
+  await expect(chips.getByText(m5s3.collection.suggestions.note)).toBeVisible();
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-suggestions-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+
+  await chips
+    .getByRole('button', {
+      name: m5s3.collection.suggestions.add.replace(
+        '{{title}}',
+        'Haferdrink · 2 l',
+      ),
+    })
+    .click();
+  await expect(page.getByText('Haferdrink')).toBeVisible();
+  await expect
+    .poll(() => api.createBodies().map((body) => body.quantity))
+    .toEqual(['2 l']);
+  // What is on the list is not suggested again.
+  await expect(chips.getByText('Haferdrink · 2 l')).toHaveCount(0);
+
+  await chips
+    .getByRole('button', {
+      name: m5s3.collection.suggestions.remove.replace('{{title}}', 'Butter'),
+    })
+    .click();
+  await expect(chips.getByText('Butter')).toHaveCount(0);
+  await expect.poll(() => api.suggestionTitles()).not.toContain('Butter');
+  await expect(chips.getByText('Salz')).toBeVisible();
+});
+
+test('Einkauf fertig empties the cart, keeps the titles as suggestions and shows the end state', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  // Everything but the bread is bought, so the cart holds two entries.
+  Object.assign(api.item('Milch') ?? {}, {
+    completed: true,
+    completedBy: ACCOUNT_ID,
+    completer: { id: ACCOUNT_ID, displayName: 'Anna' },
+  });
+  await signIn(page);
+  await openCartList(page);
+
+  await page
+    .getByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_other, { count: 2 })),
+    })
+    .click();
+  const cart = page.getByRole('dialog');
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-finish-cart-390-light.png'),
+    animations: 'disabled',
+  });
+  await cart
+    .getByRole('button', { name: m5s3.collection.finish.action })
+    .click();
+
+  await expect(
+    page.getByText(
+      m5s3.collection.endState.done_other.replace('{{count}}', '2'),
+    ),
+  ).toBeVisible();
+  expect(api.finishRequests()).toHaveLength(1);
+  expect(api.finishRequests()[0]).toHaveLength(2);
+  expect(api.titles()).toEqual(['Brot']);
+  expect(api.suggestionTitles().sort()).toEqual(['Milch', 'Äpfel']);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-finished-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('finishing when nothing is left to buy is a shared moment when the couple has it on', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+  const api = await installShoppingMocks(page);
+  api.state.achievements = true;
+  for (const title of ['Milch', 'Brot', 'Äpfel']) {
+    Object.assign(api.item(title) ?? {}, {
+      completed: true,
+      completedBy: title === 'Brot' ? ACCOUNT_ID : PARTNER_ID,
+      completer:
+        title === 'Brot'
+          ? { id: ACCOUNT_ID, displayName: 'Anna' }
+          : { id: PARTNER_ID, displayName: 'Ben' },
+    });
+  }
+  await signIn(page);
+  await openCartList(page);
+
+  await page
+    .getByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_other, { count: 3 })),
+    })
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: m5s3.collection.finish.action })
+    .click();
+
+  await expect(page.getByText(m5s3.collection.endState.title)).toBeVisible();
+  const shares = [
+    m5s3.collection.endState.share
+      .replace('{{name}}', 'Anna')
+      .replace('{{count}}', '1'),
+    m5s3.collection.endState.share
+      .replace('{{name}}', 'Ben')
+      .replace('{{count}}', '2'),
+  ].join(', ');
+  await expect(
+    page.getByText(
+      m5s3.collection.endState.bodyShares.replace('{{shares}}', shares),
+    ),
+  ).toBeVisible();
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-moment-390-dark.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('Einkauf fertig waits for a connection and says so', async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  await signIn(page);
+  await openCartList(page);
+
+  await context.setOffline(true);
+  await page
+    .getByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+    })
+    .click();
+  const cart = page.getByRole('dialog');
+
+  await expect(
+    cart.getByRole('button', { name: m5s3.collection.finish.action }),
+  ).toBeDisabled();
+  await expect(cart.getByText(m5s3.collection.finish.offline)).toBeVisible();
+  expect(api.finishRequests()).toEqual([]);
+});
+
+const POLISH_VIEWS = [
+  {
+    name: '390 dark',
+    file: '390-dark',
+    width: 390,
+    height: 844,
+    scheme: 'dark',
+  },
+  {
+    name: '360 light',
+    file: '360-light',
+    width: 360,
+    height: 780,
+    scheme: 'light',
+  },
+  {
+    name: '430 light',
+    file: '430-light',
+    width: 430,
+    height: 932,
+    scheme: 'light',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const;
+
+for (const view of POLISH_VIEWS) {
+  test(`suggestions, the cart and the finish action fit and pass axe (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    api.seedSuggestion('Haferdrink', '2 l');
+    api.seedSuggestion('Butter');
+    await signIn(page);
+    await openList(page);
+
+    await expect(
+      page.getByRole('region', { name: m5s3.collection.suggestions.heading }),
+    ).toBeVisible();
+    // Compact keeps the cart in the bar, Expanded shows the finish action inline.
+    if (view.width < 840) {
+      await expect(
+        page.getByRole('button', {
+          name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+        }),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByRole('button', { name: m5s3.collection.finish.action }),
+      ).toBeVisible();
+    }
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shopping-list-polish-${view.file}.png`),
+      animations: 'disabled',
+    });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test('suggestions and the finish action reflow at 320px with text enlarged to 200%', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  api.seedSuggestion('Haferdrink', '2 l');
+  await signIn(page);
+  await openList(page);
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+
+  await expect(
+    page.getByRole('region', { name: m5s3.collection.suggestions.heading }),
+  ).toBeVisible();
+  await expectNoOverflow(page);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('a checked entry glides into the cart, and with reduced motion it only appears there', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+  // The marker lives for a short time, so the style is read where it is seen.
+  const seenWith = (
+    property: 'animationName' | 'animationDuration',
+    value: string,
+  ) =>
+    page.waitForFunction(
+      ([name, expected]) => {
+        const element = document.querySelector('[data-arriving="true"]');
+        return (
+          element !== null &&
+          getComputedStyle(element)[name as 'animationName'] === expected
+        );
+      },
+      [property, value] as const,
+    );
+
+  await page
+    .getByRole('button', {
+      name: m5s3.collection.markDone.replace('{{title}}', 'Brot'),
+    })
+    .click();
+  await seenWith('animationName', 'shared-list-row-arrive');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page
+    .getByRole('button', {
+      name: m5s3.collection.markDone.replace('{{title}}', 'Äpfel'),
+    })
+    .click();
+  await seenWith('animationDuration', '0s');
 });

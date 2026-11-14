@@ -183,7 +183,7 @@
     "offline": {
       "title": "You are offline.",
       "body": "Reconnect and try again.",
-      "banner": "Offline – changes and new content need a connection."
+      "banner": "Offline – you are seeing the last loaded version. Shopping lists keep your changes for later; everything else needs a connection."
     },
     "server": {
       "title": "eimir. cannot be reached right now.",
@@ -904,6 +904,7 @@
     },
     "collection": {
       "overviewHeading": "Lists",
+      "menu": { "open": "List menu" },
       "kindLabel": "Type of list",
       "kind": { "GENERIC": "List", "SHOPPING": "Shopping list" },
       "progress": "{{count}} entries · {{completed}} done",
@@ -955,6 +956,28 @@
       "you": "You",
       "quantityLabel": "Quantity (optional)",
       "quantityPlaceholder": "Quantity",
+      "suggestions": {
+        "heading": "Bought before",
+        "add": "Add {{title}} again",
+        "remove": "Remove suggestion “{{title}}”",
+        "note": "From your finished trips. Only the two of you see this."
+      },
+      "finish": {
+        "action": "Finish trip",
+        "pending": "Finishing …",
+        "offline": "You need a connection to finish the trip.",
+        "waiting": "Waiting changes are sent first.",
+        "failed": "The trip could not be finished. Please try again."
+      },
+      "endState": {
+        "title": "You did it together!",
+        "body": "Everything is in the cart. The trip is done.",
+        "bodyShares": "Everything is in the cart: {{shares}}.",
+        "share": "{{count}} from {{name}}",
+        "done_one": "Trip finished: {{count}} entry.",
+        "done_other": "Trip finished: {{count}} entries.",
+        "dismiss": "Close"
+      },
       "cart": {
         "bar_one": "In the cart · {{count}} entry",
         "bar_other": "In the cart · {{count}} entries"
@@ -2324,7 +2347,7 @@
     "addMedia": "Add media",
     "mediaLabel": "Media",
     "deviceMediaHint": "Photos and videos",
-    "device": "Choose from device",
+    "device": "This device",
     "deviceMedia": "Choose photos and videos together",
     "previewFailed": "Preview unavailable",
     "videoAvailabilityUnavailable": "Videos are unavailable right now. You can choose photos or try again.",
@@ -2335,7 +2358,6 @@
     "pro": "Pro",
     "proRequired": "Connect your photo services and import selected photos with eimir. Pro.",
     "consent": "Only selected photos are copied into your draft. They may be stored on this device for up to 7 days. Visibility follows your entry.",
-    "googleConsent": "Choose what you want to add in Google Photos. eimir. only takes your selection. Nothing is saved until you save your entry.",
     "accept": "Copy selected photos into my draft",
     "continue": "Continue to selection",
     "waiting": "Google Photos is open. Choose your photos there. This page continues automatically afterwards.",

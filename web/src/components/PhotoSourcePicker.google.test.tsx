@@ -136,13 +136,15 @@ afterEach(() => {
 });
 
 describe('Google Photos selection task', () => {
-  it('states the save and visibility contract before authorization starts', async () => {
+  it('offers Google Photos without explanatory copy before authorization starts', async () => {
     renderPicker();
     fireEvent.click(screen.getByRole('button', { name: photoSources.more }));
     await screen.findByRole('button', {
       name: new RegExp(photoSources.google),
     });
-    expect(screen.getByText(photoSources.googleConsent)).toBeTruthy();
+    expect(
+      document.querySelector('.photo-source-sheet .field-help'),
+    ).toBeNull();
     expect(api.startPhotoSelection).not.toHaveBeenCalled();
   });
 

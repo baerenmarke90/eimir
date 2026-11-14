@@ -410,6 +410,7 @@ const m5s3 = {
     },
   },
   collection: {
+    menu: { open: 'Menü der Liste' },
     kindLabel: 'Art der Liste',
     kind: { GENERIC: 'Liste', SHOPPING: 'Einkaufsliste' },
     scopeLabel: 'Listen filtern',
@@ -479,6 +480,28 @@ const m5s3 = {
     you: 'Du',
     quantityLabel: 'Menge (optional)',
     quantityPlaceholder: 'Menge',
+    suggestions: {
+      heading: 'Zuletzt gekauft',
+      add: '{{title}} wieder hinzufügen',
+      remove: 'Vorschlag „{{title}}“ entfernen',
+      note: 'Aus euren beendeten Einkäufen. Nur ihr beide seht das.',
+    },
+    finish: {
+      action: 'Einkauf fertig',
+      pending: 'Wird beendet …',
+      offline: 'Zum Beenden braucht ihr eine Verbindung.',
+      waiting: 'Erst werden die wartenden Änderungen gesendet.',
+      failed: 'Der Einkauf konnte nicht beendet werden. Versuche es erneut.',
+    },
+    endState: {
+      title: 'Gemeinsam geschafft!',
+      body: 'Alles im Wagen. Der Einkauf ist erledigt.',
+      bodyShares: 'Alles im Wagen: {{shares}}.',
+      share: '{{count}} von {{name}}',
+      done_one: 'Einkauf fertig: {{count}} Eintrag.',
+      done_other: 'Einkauf fertig: {{count}} Einträge.',
+      dismiss: 'Schließen',
+    },
     cart: {
       bar_one: 'Im Wagen · {{count}} Eintrag',
       bar_other: 'Im Wagen · {{count}} Einträge',

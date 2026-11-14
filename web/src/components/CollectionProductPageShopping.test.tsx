@@ -14,6 +14,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ClientProblemError } from '../client/problemDetails';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
@@ -119,12 +120,48 @@ const summaryText = m5s3.collection.summary;
 // The cart bar starts with the tray name, whatever the count.
 const cartBarName = new RegExp(`^${m5s3.collection.trayShopping} · `);
 
+function finishedResponse(finishedCount: number, celebrate: boolean) {
+  return {
+    value: async () => ({
+      finishedCount,
+      collection: list('SHOPPING', [
+        item({ id: 'milk', title: 'Milch', position: 0 }),
+        item({ id: 'bread', title: 'Brot', position: 1, quantity: '2' }),
+      ]),
+    }),
+    raw: new Response(null, {
+      headers: celebrate
+        ? { 'X-Eimir-Shared-Achievement': 'collection-completed' }
+        : {},
+    }),
+  };
+}
+
+const suggestionText = m5s3.collection.suggestions;
+const finishText = m5s3.collection.finish;
+const endText = m5s3.collection.endState;
+const AT_BOUGHT = new Date('2026-11-13T10:00:00Z');
+const suggestion = (
+  id: string,
+  title: string,
+  quantity: string | null = null,
+) => ({
+  id,
+  title,
+  quantity,
+  lastBoughtAt: AT_BOUGHT,
+  timesBought: 1,
+});
+
 describe('CollectionProductPage shopping list composition (#1808)', () => {
   let storage: MemoryStorage;
   let serverItems: CollectionItemDetail[];
   let getCollection: ReturnType<typeof vi.fn>;
   let createCollectionItem: ReturnType<typeof vi.fn>;
   let updateCollectionItem: ReturnType<typeof vi.fn>;
+  let listSuggestions: ReturnType<typeof vi.fn>;
+  let deleteSuggestion: ReturnType<typeof vi.fn>;
+  let finishTrip: ReturnType<typeof vi.fn>;
 
   const ben = { id: 'ben', displayName: 'Ben' };
   const anna = { id: 'anna', displayName: 'Anna' };
@@ -144,6 +181,9 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
         getCollection,
         createCollectionItem,
         updateCollectionItem,
+        listCollectionSuggestions: listSuggestions,
+        deleteCollectionSuggestion: deleteSuggestion,
+        finishCollectionShoppingRaw: finishTrip,
       },
     } as unknown as SharedPlanningApis;
     return render(
@@ -251,6 +291,9 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
         return updated;
       },
     );
+    listSuggestions = vi.fn(async () => ({ items: [] }));
+    deleteSuggestion = vi.fn(async () => undefined);
+    finishTrip = vi.fn(async () => finishedResponse(1, false));
     onlineManager.setOnline(true);
   });
 
@@ -539,6 +582,240 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
     renderPage();
     await screen.findByText('Visum');
     expect(screen.queryByRole('button', { name: cartBarName })).toBeNull();
+  });
+
+  it('marks the entry that was just checked so it can glide into its new place', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', {
+        name: fill(m5s3.collection.markDone, { title: 'Milch' }),
+      }),
+    );
+
+    const moved = await screen.findByRole('button', {
+      name: fill(m5s3.collection.markOpen, { title: 'Milch' }),
+    });
+    expect(moved.closest('li')?.getAttribute('data-arriving')).toBe('true');
+    // The other entries do not move with it.
+    expect(
+      screen.getByText('Brot').closest('li')?.hasAttribute('data-arriving'),
+    ).toBe(false);
+  });
+
+  describe('suggestions and finishing the trip', () => {
+    it('offers what was bought before, leaves out what is on the list and says who sees it', async () => {
+      listSuggestions.mockResolvedValue({
+        items: [
+          suggestion('s1', 'Milch'),
+          suggestion('s2', 'Hafermilch', '2 l'),
+          suggestion('s3', 'Butter'),
+        ],
+      });
+      renderPage();
+
+      const chips = await screen.findByRole('region', {
+        name: suggestionText.heading,
+      });
+
+      expect(within(chips).getByText('Hafermilch · 2 l')).toBeTruthy();
+      expect(within(chips).getByText('Butter')).toBeTruthy();
+      // Milk is on the list already.
+      expect(within(chips).queryByText('Milch')).toBeNull();
+      expect(within(chips).getByText(suggestionText.note)).toBeTruthy();
+    });
+
+    it('adds a suggestion with its quantity in one tap', async () => {
+      listSuggestions.mockResolvedValue({
+        items: [suggestion('s2', 'Hafermilch', '2 l')],
+      });
+      renderPage();
+      const user = userEvent.setup();
+
+      await user.click(
+        await screen.findByRole('button', {
+          name: fill(suggestionText.add, { title: 'Hafermilch · 2 l' }),
+        }),
+      );
+
+      await waitFor(() =>
+        expect(createCollectionItem).toHaveBeenCalledTimes(1),
+      );
+      expect(
+        createCollectionItem.mock.calls[0][0].collectionItemCreate,
+      ).toMatchObject({
+        title: 'Hafermilch',
+        quantity: '2 l',
+      });
+    });
+
+    it('removes a suggestion on its own and keeps the others', async () => {
+      // The server forgets a removed suggestion, so a refetch does not bring it back.
+      let remaining = [
+        suggestion('s2', 'Hafermilch'),
+        suggestion('s3', 'Butter'),
+      ];
+      listSuggestions.mockImplementation(async () => ({ items: remaining }));
+      deleteSuggestion.mockImplementation(
+        async (request: { suggestionId: string }) => {
+          remaining = remaining.filter(
+            (entry) => entry.id !== request.suggestionId,
+          );
+        },
+      );
+      renderPage();
+      const user = userEvent.setup();
+
+      await user.click(
+        await screen.findByRole('button', {
+          name: fill(suggestionText.remove, { title: 'Hafermilch' }),
+        }),
+      );
+
+      await waitFor(() => expect(deleteSuggestion).toHaveBeenCalledTimes(1));
+      expect(deleteSuggestion.mock.calls[0][0]).toMatchObject({
+        suggestionId: 's2',
+        collectionId: 'list-1',
+      });
+      await waitFor(() => expect(screen.queryByText('Hafermilch')).toBeNull());
+      expect(screen.getByText('Butter')).toBeTruthy();
+    });
+
+    it('shows no suggestions on a list that is not a shopping list', async () => {
+      getCollection.mockResolvedValue(
+        annasList('GENERIC', [item({ id: 'a', title: 'Pass' })]),
+      );
+      renderPage();
+      await screen.findByText('Pass');
+
+      expect(listSuggestions).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('region', { name: suggestionText.heading }),
+      ).toBeNull();
+    });
+
+    async function openCart() {
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByRole('button', { name: cartBarName }),
+      );
+      return { user, cart: screen.getByRole('dialog') };
+    }
+
+    // After the trip the server's list has nothing in the cart any more.
+    const serverAfterTrip = () =>
+      getCollection.mockResolvedValue(
+        annasList('SHOPPING', [
+          item({ id: 'milk', title: 'Milch', position: 0 }),
+          item({ id: 'bread', title: 'Brot', position: 1, quantity: '2' }),
+        ]),
+      );
+
+    it('finishes the trip with the entries of the cart and tells the couple what it left', async () => {
+      renderPage();
+      const { user, cart } = await openCart();
+      serverAfterTrip();
+
+      await user.click(
+        within(cart).getByRole('button', { name: finishText.action }),
+      );
+
+      await waitFor(() => expect(finishTrip).toHaveBeenCalledTimes(1));
+      expect(finishTrip.mock.calls[0][0]).toMatchObject({
+        spaceId: 'space-1',
+        collectionId: 'list-1',
+        collectionFinish: { itemIds: ['apples'] },
+      });
+      expect(
+        await screen.findByText(fill(endText.done_one, { count: 1 })),
+      ).toBeTruthy();
+      // Nothing is left to buy in the cart, so the bar is gone.
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: cartBarName })).toBeNull(),
+      );
+    });
+
+    it('shows the shared moment with who put how much into the cart when the server confirms it', async () => {
+      finishTrip.mockResolvedValue(finishedResponse(1, true));
+      renderPage();
+      const { user, cart } = await openCart();
+      serverAfterTrip();
+
+      await user.click(
+        within(cart).getByRole('button', { name: finishText.action }),
+      );
+
+      expect(await screen.findByText(endText.title)).toBeTruthy();
+      expect(
+        screen.getByText(
+          fill(endText.bodyShares, {
+            shares: fill(endText.share, { name: 'Ben', count: 1 }),
+          }),
+        ),
+      ).toBeTruthy();
+      await user.click(screen.getByRole('button', { name: endText.dismiss }));
+      await waitFor(() => expect(screen.queryByText(endText.title)).toBeNull());
+    });
+
+    it('cannot finish without a connection and says why', async () => {
+      renderPage();
+      await screen.findByText('Milch');
+      act(() => onlineManager.setOnline(false));
+      const { cart } = await openCart();
+
+      const button = within(cart).getByRole('button', {
+        name: finishText.action,
+      }) as HTMLButtonElement;
+
+      expect(button.disabled).toBe(true);
+      expect(within(cart).getByText(finishText.offline)).toBeTruthy();
+      expect(finishTrip).not.toHaveBeenCalled();
+    });
+
+    it('cannot finish while changes are waiting to be sent', async () => {
+      renderPage();
+      const user = userEvent.setup();
+      await screen.findByText('Milch');
+      act(() => onlineManager.setOnline(false));
+      await user.type(
+        await screen.findByLabelText(m5s3.collection.newItem),
+        'Salz',
+      );
+      await user.click(
+        screen.getByRole('button', { name: m5s3.collection.addItem }),
+      );
+      await screen.findByText(m5s3.collection.outbox.itemWaiting);
+      act(() => onlineManager.setOnline(true));
+      // Back online the change is still being sent: finishing must wait.
+      createCollectionItem.mockImplementation(() => new Promise(() => {}));
+
+      const { cart } = await openCart();
+
+      expect(
+        (
+          within(cart).getByRole('button', {
+            name: finishText.action,
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true);
+      expect(within(cart).getByText(finishText.waiting)).toBeTruthy();
+    });
+
+    it('says so when the trip could not be finished', async () => {
+      finishTrip.mockRejectedValue(new ClientProblemError('server', 500));
+      renderPage();
+      const { user, cart } = await openCart();
+
+      await user.click(
+        within(cart).getByRole('button', { name: finishText.action }),
+      );
+
+      // The cart sheet and the inline cart section each carry the control.
+      const alerts = await screen.findAllByRole('alert');
+      expect(
+        alerts.some((alert) => alert.textContent === finishText.failed),
+      ).toBe(true);
+    });
   });
 
   describe('while the list is open', () => {

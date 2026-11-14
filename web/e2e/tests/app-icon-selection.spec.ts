@@ -195,7 +195,7 @@ test('Free previews the complete catalog without saving a paid choice', async ({
   expect(writes).toEqual([]);
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icon-light\.png$/,
+    /identity\/favicon\/light\.png$/,
   );
   await capture(page, info, 'app-icons-free-preview-390-light.png');
   const accessibility = await new AxeBuilder({ page })
@@ -225,7 +225,7 @@ test('Pro explicitly saves, survives reload and resets to adaptive Original', as
   expect(writes).toEqual(['sage']);
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icons\/v1\/sage\.png$/,
+    /identity\/favicon\/sage\.png$/,
   );
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
     'href',
@@ -242,20 +242,20 @@ test('Pro explicitly saves, survives reload and resets to adaptive Original', as
   await page.getByLabel('Darstellung', { exact: true }).selectOption('light');
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icons\/v1\/sage\.png$/,
+    /identity\/favicon\/sage\.png$/,
   );
   await page.getByRole('button', { name: copy.all }).click();
   await dialog.getByRole('radio', { name: 'Original Standard' }).check();
   await dialog.getByRole('button', { name: 'Original auswählen' }).click();
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icon-light\.png$/,
+    /identity\/favicon\/light\.png$/,
   );
   await page.keyboard.press('Escape');
   await page.getByLabel('Darstellung', { exact: true }).selectOption('dark');
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icon-dark\.png$/,
+    /identity\/favicon\/dark\.png$/,
   );
 });
 
@@ -387,7 +387,7 @@ test('conflict reload preserves preview and a revoked grant keeps the prior choi
   ).toBeEnabled();
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icons\/v1\/sand\.png$/,
+    /identity\/favicon\/sand\.png$/,
   );
   await dialog.getByRole('button', { name: 'Salbei auswählen' }).click();
   await expect(dialog.getByText(copy.denied)).toBeVisible();
@@ -396,7 +396,7 @@ test('conflict reload preserves preview and a revoked grant keeps the prior choi
   ).toBeVisible();
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icons\/v1\/sand\.png$/,
+    /identity\/favicon\/sand\.png$/,
   );
   await dialog.getByRole('radio', { name: 'Original Standard' }).check();
   await expect(dialog.getByText(copy.denied)).toHaveCount(0);
@@ -413,7 +413,7 @@ test('expired Pro keeps its saved choice without an upgrade prompt and permits f
   await signIn(page);
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icons\/v1\/sage\.png$/,
+    /identity\/favicon\/sage\.png$/,
   );
   await page.getByRole('button', { name: copy.all }).click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
@@ -434,7 +434,7 @@ test('expired Pro keeps its saved choice without an upgrade prompt and permits f
   expect(writes).toEqual(['original']);
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
-    /app-icon-light\.png$/,
+    /identity\/favicon\/light\.png$/,
   );
 });
 

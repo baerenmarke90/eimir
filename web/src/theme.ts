@@ -19,8 +19,8 @@ function applyDocumentFavicon(theme: ResolvedTheme): void {
   if (favicon?.tagName !== 'LINK') return;
   (favicon as HTMLLinkElement).href =
     documentAppIcon === 'original'
-      ? `/identity/app-icon-${theme}.png`
-      : `/identity/app-icons/v1/${documentAppIcon}.png`;
+      ? `/identity/favicon/${theme}.png`
+      : `/identity/favicon/${documentAppIcon}.png`;
 }
 
 export const THEME_STORAGE_KEY = 'eimir.theme';

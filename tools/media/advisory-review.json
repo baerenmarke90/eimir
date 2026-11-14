@@ -54,6 +54,61 @@
       "evidenceSha256": "1dba6398642ed626fbbfe80a857ea8496f09aa6eccf68fc86c785753ca9132c5",
       "review": "The affected Huffyuv decoder is not compiled in the restricted build. Audio input changes do not enable Huffyuv."
     },
+    "CVE-2026-125068": {
+      "evidenceSha256": "95cad72729c9cffb966b1f1736328b3e49300a822b95598dcdf75e7a575c1164",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected Bink video decoder (libavcodec/bink.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_BINK_DECODER 0. No Bink demuxer is enabled either."
+    },
+    "CVE-2026-125069": {
+      "evidenceSha256": "48d4122fa5b32d35cd7b611b155afab09d81087f932bd72ad1e8753d3936e91b",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected Motion Pixels decoder is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_MOTIONPIXELS_DECODER 0."
+    },
+    "CVE-2026-125070": {
+      "evidenceSha256": "4351d8dfa8c27b352cb0ce0a519d975b3b54341e3cf2c52b882708d877510dee",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected Electronic Arts TQI decoder (libavcodec/eatqi.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_EATQI_DECODER 0. The EA demuxer is not enabled."
+    },
+    "CVE-2026-125071": {
+      "evidenceSha256": "7704ba0bd90501853f2f6c8cdcad619055df58dc4b66d6b5dbd9f4c61f8f8985",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected JV video decoder (libavcodec/jvdec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_JV_DECODER 0. The JV demuxer is not enabled."
+    },
+    "CVE-2026-125072": {
+      "evidenceSha256": "87e555054cf41306a0fa0fae9be3245bbb4113c5daa030f14ade1286d44a578c",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected mp3adu decoder variant of mpegaudiodec_template.c is not compiled. Only the mp3float decoder is enabled; the pinned configuration reports CONFIG_MP3ADU_DECODER 0 and CONFIG_MP3ADUFLOAT_DECODER 0, and the MP3 voice input is forced through the mp3 demuxer, which never selects the ADU codec."
+    },
+    "CVE-2026-125073": {
+      "evidenceSha256": "19159cbcb27ca2cc21b26065449a5712003ffa73c6a8bb7f2161dcee0ac2a642",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected IMC/IAC audio decoder (libavcodec/imc.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_IMC_DECODER and CONFIG_IAC_DECODER 0."
+    },
+    "CVE-2026-125100": {
+      "evidenceSha256": "0aa685f976e4f32eeac61b6ad76e370f7b0e26a5fcb8bafa80fa301bc885e737",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected OpenEXR decoder (libavcodec/exr.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_EXR_DECODER 0. No EXR image demuxer is enabled either."
+    },
+    "CVE-2026-125101": {
+      "evidenceSha256": "7cf9cc04e57a960c1027a2d8b33e0d064e9c746aeec35970e99a175966a558ad",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected VMnc decoder (libavcodec/vmnc.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_VMNC_DECODER 0. No VMnc demuxer is enabled either."
+    },
+    "CVE-2026-125102": {
+      "evidenceSha256": "cfba869a578f493e1aaebb195d1786e1f6af1f4a963214e6561b272b3b8b2e89",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected TAK decoder (libavcodec/takdec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_TAK_DECODER 0. No TAK demuxer is enabled either."
+    },
+    "CVE-2026-125103": {
+      "evidenceSha256": "d7d3d9c5b3a12ff5cd585cc2b43c4e0a30ab4776b6ba8f804c7ee7b94b077064",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected ff_mlz_decompression() (libavcodec/mlz.c) is built only with the MPEG-4 audio lossless decoder (libavcodec/alsdec.c, listed in libavcodec/Makefile). That decoder is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_ALS_DECODER 0. No other enabled decoder uses mlz.c."
+    },
+    "CVE-2026-125104": {
+      "evidenceSha256": "ce7ec3810367cb711a97a2ec22ee5a40dee97006a10c17028222a9093b57cb7b",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected Monkey's Audio decoder (libavcodec/apedec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_APE_DECODER 0. No APE demuxer is enabled either."
+    },
     "CVE-2026-125202": {
       "evidenceSha256": "cf780706aa700903cf653976cf4f1e9d66279bb487005976e0d586284daf10db",
       "reviewedAt": "2026-11-14",

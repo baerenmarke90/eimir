@@ -116,7 +116,7 @@ describe('AppShell', () => {
     expect(renderShell('/story')).not.toContain('href="/discover"');
   });
 
-  it('keeps Expanded navigation and creation while utilities live under More', () => {
+  it('keeps Expanded navigation without a global create shortcut while utilities live under More', () => {
     const html = renderShell('/story', true);
     const header = html.slice(
       html.indexOf('<header'),
@@ -125,8 +125,9 @@ describe('AppShell', () => {
     for (const href of ['/today', '/story', '/plan', '/more']) {
       expect(header).toContain(`href="${href}"`);
     }
-    expect(header).toContain('shell-primary-action');
     for (const retired of [
+      'shell-primary-action',
+      'quick-create-trigger',
       'href="/search"',
       'href="/more/notifications"',
       'header-profile-menu',
@@ -134,6 +135,19 @@ describe('AppShell', () => {
       'brand-mark',
     ]) {
       expect(header).not.toContain(retired);
+    }
+  });
+
+  it('starts Wir, Momente and Planen at the leading edge on Expanded', () => {
+    for (const path of ['/today', '/story', '/story/map', '/plan']) {
+      expect(renderShell(path)).toContain('data-expanded-align="start"');
+    }
+    for (const path of [
+      '/story/memories/memory-1',
+      '/plan/plans/plan-1',
+      '/more',
+    ]) {
+      expect(renderShell(path)).not.toContain('data-expanded-align');
     }
   });
 
@@ -148,23 +162,13 @@ describe('AppShell', () => {
     expect(renderShell('/story')).not.toContain('shell-detail-context');
   });
 
-  it('keeps the existing browser shortcut in the expanded header', () => {
+  it('keeps the Expanded header free of a global create shortcut', () => {
     const html = renderShell('/story');
-    const quickCreateButtons =
-      html.match(/<button\b[^>]*quick-create-trigger[^>]*>/g) ?? [];
-    const menuIds = quickCreateButtons.map(
-      (button) => button.match(/aria-controls="([^"]+)"/)?.[1],
-    );
 
-    expect(html.slice(0, html.indexOf('</header>'))).toContain(
-      'shell-primary-action',
-    );
+    expect(html).not.toContain('shell-primary-action');
+    expect(html).not.toContain('quick-create-trigger');
     expect(html).not.toContain('mobile-quick-create');
-    expect(quickCreateButtons).toHaveLength(1);
-    expect(menuIds.every(Boolean)).toBe(true);
-    expect(html).toContain(`>${navigation.newContent}<`);
-    expect(html).toContain('aria-haspopup="menu"');
-    expect(html).toContain('aria-expanded="false"');
+    expect(html).not.toContain(`>${navigation.newContent}<`);
 
     const compact = html.slice(html.indexOf('mobile-bottom-nav'));
     for (const path of ['/today', '/story', '/plan', '/more']) {

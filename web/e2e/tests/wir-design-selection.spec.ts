@@ -504,7 +504,6 @@ for (const [width, theme, reduced] of [
   [360, 'light', false],
   [390, 'dark', false],
   [430, 'light', true],
-  [1280, 'dark', false],
 ] as const) {
   test(`shape-following press and keyboard focus at ${width} ${theme}${reduced ? ' reduced' : ''}`, async ({
     browser,

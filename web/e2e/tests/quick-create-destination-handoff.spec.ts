@@ -357,11 +357,6 @@ async function openContextualCreate(page: Page, action: string): Promise<void> {
     .click();
 }
 
-async function openExpandedShortcut(page: Page, action: string): Promise<void> {
-  await page.getByRole('button', { name: navigation.newContent }).click();
-  await page.getByRole('menuitem', { name: action, exact: true }).click();
-}
-
 test.describe('Planning add actions: open the focused task without forcing focus', () => {
   test('390x844: Wish opens the task, no forced focus/keyboard, Back returns to Wishes', async ({
     page,
@@ -459,28 +454,6 @@ test.describe('Planning add actions: open the focused task without forcing focus
 
     await openContextualCreate(page, navigation.quickCreatePlan);
 
-    const titleInput = page.locator('#planning-create-title');
-    await expect(titleInput).toBeInViewport();
-    await expect(titleInput).not.toBeFocused();
-  });
-
-  test('1440 Expanded: the desktop popover opens the Wish composer without forcing focus', async ({
-    page,
-  }) => {
-    await installProductMocks(page);
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/today');
-    await signIn(page);
-
-    await page.getByRole('button', { name: navigation.newContent }).click();
-    await expect(
-      page.getByRole('menu', { name: navigation.quickCreateTitle }),
-    ).toBeVisible();
-    await page
-      .getByRole('menuitem', { name: navigation.quickCreateWish })
-      .click();
-
-    await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
     const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
@@ -585,6 +558,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
     await page.setViewportSize({ width: 1280, height: 844 });
     await page.goto('/today');
     await signIn(page);
+    await page.goto('/more/private/notes');
 
     // Push the origin page far down before invoking Quick Create, mirroring
     // the manual Product Owner session that found Notiz/Geschenkidee
@@ -597,7 +571,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeGreaterThan(0);
 
-    await openExpandedShortcut(page, navigation.quickCreatePrivateNote);
+    await page.getByRole('link', { name: privateArea.notes.add }).click();
 
     await expect(page).toHaveURL(/\/more\/private\/notes\/new$/);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -613,6 +587,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
     await page.setViewportSize({ width: 1280, height: 844 });
     await page.goto('/today');
     await signIn(page);
+    await page.goto('/more/private/gift-ideas');
 
     await page.addStyleTag({ content: 'body { min-height: 3000px; }' });
     await page.evaluate(() => window.scrollTo(0, 2000));
@@ -620,7 +595,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeGreaterThan(0);
 
-    await openExpandedShortcut(page, navigation.quickCreateGiftIdea);
+    await page.getByRole('link', { name: privateArea.gifts.add }).click();
 
     await expect(page).toHaveURL(/\/more\/private\/gift-ideas\/new$/);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -743,14 +718,10 @@ for (const viewport of [
     await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
     await expect(page.locator('.daily-quote-card')).toHaveCount(0);
 
-    const compact = viewport.name === 'Compact';
-    const trigger = page.getByRole('button', {
-      name: compact ? de.story.addMoment : navigation.newContent,
-    });
-    const choices = page.getByRole(compact ? 'dialog' : 'menu', {
-      name: compact ? de.story.addMoment : navigation.quickCreateTitle,
-    });
-    const milestone = choices.getByRole(compact ? 'link' : 'menuitem', {
+    // Both layouts open the same Moment choices from the page's own add action.
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    const choices = page.getByRole('dialog', { name: de.story.addMoment });
+    const milestone = choices.getByRole('link', {
       name: de.story.kind.milestone,
     });
     await trigger.click();

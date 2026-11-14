@@ -47,18 +47,28 @@ import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHi
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { useWirDesign } from '../client/wirDesign';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { isCapacitorNative } from '../pwa';
 import { syncDocumentThemeColor } from '../theme';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
-import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
 import { useNavigationMotion } from './useNavigationMotion';
+
+/**
+ * Primary roots whose Expanded layout starts at the leading edge instead of
+ * floating in the middle of a wide window. Detail and editor pages keep their
+ * own reading columns.
+ */
+const START_ALIGNED_ROOTS: ReadonlySet<string> = new Set([
+  '/today',
+  '/story',
+  '/story/map',
+  '/plan',
+]);
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
@@ -351,11 +361,6 @@ function AuthenticatedAppShell({
               <PrimaryNavigationLinks />
             </nav>
             <div className="header-actions">
-              {!isPrivateArea && !isCapacitorNative() ? (
-                <div className="shell-primary-action">
-                  <QuickCreateMenu />
-                </div>
-              ) : null}
               <span
                 className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
               >
@@ -395,6 +400,9 @@ function AuthenticatedAppShell({
             className="product-main"
             data-area={
               location.pathname.startsWith('/more') ? 'more' : undefined
+            }
+            data-expanded-align={
+              START_ALIGNED_ROOTS.has(pathname) ? 'start' : undefined
             }
             tabIndex={-1}
           >

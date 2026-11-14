@@ -27,7 +27,6 @@ const MAX_ORIGINS = 12;
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 export interface TaskOriginMetadata {
-  focusTarget?: 'quick-create';
   selectedKey?: string;
   selectedOffset?: number;
   loadedPageCount?: number;
@@ -255,7 +254,6 @@ export function TaskOriginProvider({
           (snapshot.loadedPageCount ?? 0) > 0
             ? (snapshot.loadedPageCount ?? 1)
             : 1,
-        focusTarget: snapshot.focusTarget,
         selectedKey: snapshot.selectedKey,
         selectedOffset: snapshot.selectedOffset,
         searchQuery: snapshot.searchQuery,

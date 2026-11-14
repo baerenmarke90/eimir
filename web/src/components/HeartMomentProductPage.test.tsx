@@ -2,32 +2,37 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
-import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
-import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
+import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { AudioProcessingContext } from '../client/voiceNotes';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
-import navigation from '../i18n/locales/navigation';
-import contextTags from '../i18n/locales/contextTags';
+import { AudioProcessingContext } from '../client/voiceNotes';
 import composer from '../i18n/locales/composer';
+import contextTags from '../i18n/locales/contextTags';
+import de from '../i18n/locales/de';
 import experiences from '../i18n/locales/experiences';
 import m5s3 from '../i18n/locales/m5s3';
-import de from '../i18n/locales/de';
+import navigation from '../i18n/locales/navigation';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
-import { QuickCreateMenu } from './QuickCreateMenu';
 
 const backToStoryName = taskBoundary.back;
 
@@ -599,7 +604,24 @@ function ReturnFromResult() {
   );
 }
 
-describe('Quick Create Heart Moment continuity (#509)', () => {
+/** Stands in for any page-level add action that opens a create task. */
+function StartCreate({ to }: { to: string }) {
+  const { captureOrigin } = useTaskOrigin();
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const taskOriginKey = captureOrigin();
+        void navigate(to, { state: { taskOriginKey } });
+      }}
+    >
+      Start create
+    </button>
+  );
+}
+
+describe('Create Heart Moment continuity (#509)', () => {
   it('returns from a confirmed tag-only result to the originating context', async () => {
     const createHeartMoment = vi.fn().mockResolvedValue({ id: 'heart-new' });
     const queryClient = new QueryClient({
@@ -612,7 +634,7 @@ describe('Quick Create Heart Moment continuity (#509)', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/today']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
-            <QuickCreateMenu />
+            <StartCreate to="/story/heart-moments/new" />
             <Routes>
               <Route path="/today" element={<p>Today origin</p>} />
               <Route
@@ -645,14 +667,7 @@ describe('Quick Create Heart Moment continuity (#509)', () => {
     );
 
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole('button', { name: navigation.newContent }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', {
-        name: navigation.quickCreateHeartMoment,
-      }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Start create' }));
     expect(
       screen.getByRole('heading', {
         name: storyProducts.heartMomentProduct.createHeading,

@@ -451,13 +451,10 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   );
   await page
     .getByRole('button', {
-      name: m5s3.collection.itemActions.replace('{{title}}', 'Sommerhaus'),
+      name: m5s3.collection.openItem.replace('{{title}}', 'Sommerhaus'),
     })
     .click();
   dialog = page.getByRole('dialog');
-  await dialog
-    .getByRole('button', { name: m5s3.common.edit, exact: true })
-    .click();
   await dialog.getByRole('textbox').fill('Sommerhaus gemeinsam');
   await dialog.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect(dialog.getByRole('textbox')).toHaveValue('Sommerhaus gemeinsam');
@@ -487,7 +484,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .click();
   await page
     .getByRole('button', {
-      name: m5s3.collection.itemActions.replace('{{title}}', 'Dschungelcamp'),
+      name: m5s3.collection.openItem.replace('{{title}}', 'Dschungelcamp'),
     })
     .click();
   dialog = page.getByRole('dialog');

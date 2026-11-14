@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import type { CollectionScope } from '../api/generated/models/CollectionScope';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import type { CollectionKind } from '../api/generated/models/CollectionKind';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
@@ -78,6 +79,7 @@ export function CollectionsOverviewPage({
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const [createDirty, setCreateDirty] = useState(false);
+  const [createKind, setCreateKind] = useState<CollectionKind>('GENERIC');
   const createSheetRef = useRef<ShortTaskSheetHandle>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -106,12 +108,13 @@ export function CollectionsOverviewPage({
       createInFlightRef.current = false;
     },
     networkMode: 'always',
-    mutationFn: (title: string) =>
+    mutationFn: ({ title, kind }: { title: string; kind: CollectionKind }) =>
       apiCall(() => {
         assertOnlineWrite();
         return apis.collections.createCollection({
           spaceId,
-          collectionCreate: { title },
+          // A plain list sends no kind, exactly as before shopping lists.
+          collectionCreate: kind === 'SHOPPING' ? { title, kind } : { title },
         });
       }),
     onSuccess: () => {
@@ -148,36 +151,39 @@ export function CollectionsOverviewPage({
       authorSummaryQueryKeys.collectionOverview(spaceId, scope),
     );
     createInFlightRef.current = true;
-    createCollection.mutate(String(data.get('title')).trim(), {
-      onSuccess: (created) => {
-        if (
-          !isCurrentQuery() ||
-          ['unauthorized', 'permission', 'notFound'].includes(
-            clientProblemKind(
-              queryClient.getQueryState(
-                authorSummaryQueryKeys.collectionOverview(spaceId, scope),
-              )?.error,
-            ),
+    createCollection.mutate(
+      { title: String(data.get('title')).trim(), kind: createKind },
+      {
+        onSuccess: (created) => {
+          if (
+            !isCurrentQuery() ||
+            ['unauthorized', 'permission', 'notFound'].includes(
+              clientProblemKind(
+                queryClient.getQueryState(
+                  authorSummaryQueryKeys.collectionOverview(spaceId, scope),
+                )?.error,
+              ),
+            )
           )
-        )
-          return;
-        form.reset();
-        setCreateDirty(false);
-        queryClient.setQueryData(
-          authorSummaryQueryKeys.collectionDetail(spaceId, created.id),
-          created,
-        );
-        openingCreatedRef.current = true;
-        createSheetRef.current?.closeForNavigation(() =>
-          navigate(collectionDetailPath(created.id), {
-            state: initialCreate
-              ? location.state
-              : { taskOriginKey: captureOrigin() },
-            replace: initialCreate,
-          }),
-        );
+            return;
+          form.reset();
+          setCreateDirty(false);
+          queryClient.setQueryData(
+            authorSummaryQueryKeys.collectionDetail(spaceId, created.id),
+            created,
+          );
+          openingCreatedRef.current = true;
+          createSheetRef.current?.closeForNavigation(() =>
+            navigate(collectionDetailPath(created.id), {
+              state: initialCreate
+                ? location.state
+                : { taskOriginKey: captureOrigin() },
+              replace: initialCreate,
+            }),
+          );
+        },
       },
-    });
+    );
   }
 
   return (
@@ -194,6 +200,7 @@ export function CollectionsOverviewPage({
             id="collection-title"
             onClick={() => {
               createCollection.reset();
+              setCreateKind('GENERIC');
               setCreateOpen(true);
             }}
           />
@@ -339,6 +346,15 @@ export function CollectionsOverviewPage({
                 className="form-grid shared-content-fields"
                 disabled={createCollection.isPending}
               >
+                <StatusScope<CollectionKind>
+                  label={t('m5s3.collection.kindLabel')}
+                  value={createKind}
+                  options={(['GENERIC', 'SHOPPING'] as const).map((value) => ({
+                    value,
+                    label: t(`m5s3.collection.kind.${value}`),
+                  }))}
+                  onChange={setCreateKind}
+                />
                 <label htmlFor="create-collection-title">
                   {t('m5s3.common.title')}
                 </label>

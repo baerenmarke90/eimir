@@ -9,8 +9,9 @@ WORKDIR /src
 COPY site site
 COPY tools/site tools/site
 COPY web/public/fonts web/public/fonts
-COPY web/public/identity/app-icons/v1/daylight-192.png web/public/identity/app-icons/v1/daylight-192.png
-COPY web/public/identity/app-icons/v1/daylight-180.png web/public/identity/app-icons/v1/daylight-180.png
+COPY web/public/identity/app-icon-dark.png web/public/identity/app-icon-dark.png
+COPY web/public/identity/app-icon-light.png web/public/identity/app-icon-light.png
+COPY web/public/apple-touch-icon.png web/public/apple-touch-icon.png
 RUN python tools/site/build_main_site.py --production
 
 FROM ghcr.io/nginx/nginx-unprivileged:1.31.7@sha256:94193d5c4c5df716f412bb08eb97956d98fe6b59886f0bc57d6d3a3402a88a02

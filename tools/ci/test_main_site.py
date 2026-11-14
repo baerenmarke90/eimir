@@ -86,6 +86,20 @@ class MainSiteTests(unittest.TestCase):
         else:
             self.assertEqual(production.returncode, 0, production.stderr)
 
+    def test_container_build_context_contains_every_shared_source(self) -> None:
+        sys.path.insert(0, str(BUILD.parent))
+        try:
+            import build_main_site
+        finally:
+            sys.path.pop(0)
+        dockerfile = (SITE / "Dockerfile").read_text()
+        for source, _ in build_main_site.SHARED_FILES:
+            directory = source.rsplit("/", 1)[0]
+            self.assertTrue(
+                f"COPY {source} " in dockerfile or f"COPY {directory} " in dockerfile,
+                f"site/Dockerfile must copy {source} into the build stage",
+            )
+
     def test_container_reuses_the_pinned_web_image_and_sends_security_headers(self) -> None:
         dockerfile = (SITE / "Dockerfile").read_text()
         web_dockerfile = (ROOT / "web/Dockerfile").read_text()

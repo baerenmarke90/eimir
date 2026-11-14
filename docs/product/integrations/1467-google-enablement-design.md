@@ -252,7 +252,7 @@ acceptance below; it is not production enablement.
 
 First live test feedback: Google asked which account to use on every start. The Product Owner chose
 the smallest remedy. An Account may enter the address of its Google account once in Settings >
-Medienquellen (a "Google-Konto verknüpfen" button and dialog like the Immich link, with "Verbindung trennen" to remove it); `start` passes it to Google as the OAuth `login_hint` so the chooser is skipped.
+Medienquellen (a link button and dialog like the Immich link, `photoSources.googleAccountLink` and `photoSources.googleAccountUnlink`, to remove it); `start` passes it to Google as the OAuth `login_hint` so the chooser is skipped.
 
 - Storage: one encrypted `GoogleAccountHintPayload` per Account (`google_account_hints`, unique
   `account_id`, cascade delete, `ProtectedPayloadJSON`, `crypto_version` 2). The address is personal

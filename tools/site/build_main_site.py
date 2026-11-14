@@ -43,10 +43,11 @@ def build(*, production: bool) -> list[str]:
 
     if DIST.exists():
         shutil.rmtree(DIST)
+    # Container and server configuration live next to the pages in Git but must not be served.
     shutil.copytree(
         SITE,
         DIST,
-        ignore=shutil.ignore_patterns("dist"),
+        ignore=shutil.ignore_patterns("dist", "Dockerfile", "nginx.conf", "security-headers.conf"),
     )
     for source, destination in SHARED_FILES:
         target = DIST / destination

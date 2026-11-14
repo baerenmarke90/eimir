@@ -1210,8 +1210,8 @@
  */
 @container product-shell (min-width: 52.5rem) {
   .product-main[data-expanded-align="start"]:not(
-      :has(.primary-tab-panel:not([hidden]) #momente-panel-timeline:not([hidden]))
-    ) {
+    :has(.primary-tab-panel:not([hidden]) #momente-panel-timeline:not([hidden]))
+  ) {
     margin-inline: var(--space-8) auto;
   }
 }

@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import { resetPartnerLocationOnboardingMemory } from '../client/partnerLocation';
+import { PARTNER_LOCATION_MAP_ROUTE } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import copy from '../i18n/locales/partnerLocation';
 import { PartnerLocationOnboarding } from './PartnerLocationOnboarding';
@@ -198,6 +199,17 @@ describe('PartnerLocationSettingsPage', () => {
     expect(screen.getByText(copy.proBody)).toBeTruthy();
     expect(screen.queryByRole('radio')).toBeNull();
     expect(screen.queryByRole('button', { name: copy.stop })).toBeNull();
+    expect(
+      screen.queryByRole('link', { name: copy.distanceOpenMap }),
+    ).toBeNull();
+  });
+
+  it('links straight to the map once sharing can be chosen', async () => {
+    renderSettings();
+    const link = await screen.findByRole('link', {
+      name: copy.distanceOpenMap,
+    });
+    expect(link.getAttribute('href')).toBe(PARTNER_LOCATION_MAP_ROUTE);
   });
 
   it('keeps Stop available without Pro for a suspended share', async () => {

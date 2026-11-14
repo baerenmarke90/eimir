@@ -456,6 +456,49 @@ test('Dein Tag saves vibe, energy and note independently and deletes each one', 
   expect(state.unexpectedRequests).toEqual([]);
 });
 
+test('a press outside Dein Tag closes it, saves the open note and leaves focus alone', async ({
+  page,
+}) => {
+  const state = await installMocks(page, {
+    ownVibe: 'GOOD',
+    ownEnergy: 80,
+    partnerVibe: 'OKAY',
+    partnerEnergy: 40,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  await ownAvatar(page).click();
+  const panel = page.getByRole('region', { name: wirCheckIn.panelTitle });
+  await expect(panel).toBeVisible();
+  const note = panel.getByRole('textbox', { name: wirCheckIn.noteLabel });
+  await note.fill(fixtureCopy.wirCheckIn.ownShortNote);
+  await page.waitForTimeout(400);
+  await saveEvidence(page, '1836-390-light-1-panel-open');
+
+  // A press inside the panel keeps it open.
+  await panel.getByRole('heading', { name: wirCheckIn.panelTitle }).click();
+  await expect(panel).toBeVisible();
+
+  // A press on the quiet page background closes it and saves the note.
+  await page.mouse.click(4, 600);
+  await expect(panel).toBeHidden();
+  await expect
+    .poll(() => state.patches.at(-1))
+    .toEqual({ vibeNote: fixtureCopy.wirCheckIn.ownShortNote });
+  await expect(ownAvatar(page)).not.toBeFocused();
+  await expect(ownAvatar(page)).toHaveAttribute('aria-expanded', 'false');
+  await page.waitForTimeout(400);
+  await saveEvidence(page, '1836-390-light-2-closed-by-outside-press');
+
+  // The own avatar still toggles itself exactly once.
+  await ownAvatar(page).click();
+  await expect(panel).toBeVisible();
+  await ownAvatar(page).click();
+  await expect(panel).toBeHidden();
+  expect(state.unexpectedRequests).toEqual([]);
+});
+
 test('Dein Tag is accessible and wraps its vibes at 200 % text on 360 px', async ({
   page,
 }) => {

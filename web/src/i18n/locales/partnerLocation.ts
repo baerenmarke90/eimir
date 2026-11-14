@@ -117,9 +117,9 @@ const partnerLocation = {
   distanceOwnMissingAction: 'Einschalten',
   distanceOwnMissingLabel:
     'Dein Standort fehlt. Nur du siehst diesen Hinweis. Einschalten',
-  distanceSharing: 'Du teilst eure Entfernung mit {{partner}}',
+  distanceSharing: 'Du teilst deine Entfernung mit {{partner}}',
   distanceSharingLabel:
-    'Du teilst eure Entfernung mit {{partner}}. Teilen anpassen',
+    'Du teilst deine Entfernung mit {{partner}}. Teilen anpassen',
   wirModuleLabel: 'Entfernung zwischen euch',
   mapTitle: 'Wo wir gerade sind',
   mapShowUs: 'Uns zeigen',

@@ -6,7 +6,7 @@ const photoSources = {
   addMedia: 'Medien hinzufügen',
   mediaLabel: 'Medien',
   deviceMediaHint: 'Fotos und Videos',
-  device: 'Vom Gerät auswählen',
+  device: 'Dieses Gerät',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',
   previewFailed: 'Vorschau fehlt',
   videoAvailabilityUnavailable:
@@ -20,8 +20,6 @@ const photoSources = {
     'Verknüpfe eure Fotodienste und übernimm ausgewählte Fotos mit eimir. Pro.',
   consent:
     'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
-  googleConsent:
-    'Wähle bei Google Fotos aus, was du hinzufügen möchtest. eimir. übernimmt nur deine Auswahl. Gespeichert wird erst mit deinem Eintrag.',
   accept: 'Ausgewählte Fotos in meinen Entwurf übernehmen',
   continue: 'Weiter zur Auswahl',
   waiting:

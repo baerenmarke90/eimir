@@ -725,7 +725,7 @@ for (const [width, colorScheme] of [
   });
 }
 
-test('Expanded: Wir, Planen and Momente start at the leading edge while the diary stays centered', async ({
+test('Expanded: Wir, Planen and Momente start at the leading edge without moving the Momente tabs', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1920, height: 1000 });
@@ -762,11 +762,8 @@ test('Expanded: Wir, Planen and Momente start at the leading edge while the diar
   expect((await mainBox()).x).toBe(32);
   await page.getByRole('tab', { name: de.story.tabTimeline }).click();
   await expect(page.locator('#momente-panel-timeline')).toBeVisible();
-  await expect.poll(async () => (await mainBox()).x).toBeGreaterThan(100);
-  const diary = await mainBox();
-  expect(
-    Math.abs(diary.x - (1920 - diary.x - diary.width)),
-  ).toBeLessThanOrEqual(1);
+  // The Momente tabs stay put; only the diary's own reading column is centered.
+  expect((await mainBox()).x).toBe(32);
   await shot('diary');
 
   await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);

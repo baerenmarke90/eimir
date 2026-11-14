@@ -33,7 +33,7 @@ from eimir.auth.tokens import hash_token
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.core.errors import ValidationError
-from eimir.i18n import DEFAULT_LOCALE, account_locale, text
+from eimir.i18n import DEFAULT_LOCALE, account_locale
 from eimir.identity import service as accounts
 from eimir.identity.models import (
     Account,
@@ -42,6 +42,7 @@ from eimir.identity.models import (
 from eimir.legal import terms
 from eimir.legal.models import TermsAcceptanceOrigin
 from eimir.mail import MailMessage, MailSender, MailTransportError
+from eimir.mail.auth_mail import AuthMailKind, auth_mail
 from eimir.relationship import invitations
 
 log = logging.getLogger(__name__)
@@ -154,14 +155,12 @@ def request_magic_link(
     _, issued = action_tokens.issue_magic_link(session, email_record.id)
     _deliver(
         mail,
-        MailMessage(
+        auth_mail(
+            AuthMailKind.SIGN_IN,
             to=address,
-            subject=text("auth.magic.subject", account_locale(account)),
-            body=text(
-                "auth.magic.body",
-                account_locale(account),
-                url=_link("auth/magic-link", issued.token),
-            ),
+            locale=account_locale(account),
+            url=_link("auth/magic-link", issued.token),
+            lifetime=action_tokens.MAGIC_LINK_LIFETIME,
         ),
     )
 
@@ -244,10 +243,12 @@ def request_signup(
     locale = account_locale(recipient) if recipient is not None else requested_locale
     _deliver(
         mail,
-        MailMessage(
+        auth_mail(
+            AuthMailKind.SIGN_UP,
             to=address,
-            subject=text("auth.signup.subject", locale),
-            body=text("auth.signup.body", locale, url=link),
+            locale=locale,
+            url=link,
+            lifetime=action_tokens.SIGNUP_PROOF_LIFETIME,
         ),
     )
 
@@ -404,14 +405,12 @@ def request_email_verification(session: Session, account: Account, *, mail: Mail
     _, issued = action_tokens.issue_email_verification(session, email_record.id)
     _deliver(
         mail,
-        MailMessage(
+        auth_mail(
+            AuthMailKind.VERIFY_EMAIL,
             to=email_record.email,
-            subject=text("auth.verification.subject", account_locale(account)),
-            body=text(
-                "auth.verification.body",
-                account_locale(account),
-                url=_link("auth/verify-email", issued.token),
-            ),
+            locale=account_locale(account),
+            url=_link("auth/verify-email", issued.token),
+            lifetime=action_tokens.EMAIL_VERIFICATION_LIFETIME,
         ),
     )
 
@@ -457,14 +456,12 @@ def request_recovery(session: Session, *, email: str, mail: MailSender) -> None:
     _, issued = action_tokens.issue_account_recovery(session, account.id)
     _deliver(
         mail,
-        MailMessage(
+        auth_mail(
+            AuthMailKind.RECOVERY,
             to=address,
-            subject=text("auth.recovery.subject", account_locale(account)),
-            body=text(
-                "auth.recovery.body",
-                account_locale(account),
-                url=_link("auth/recovery", issued.token),
-            ),
+            locale=account_locale(account),
+            url=_link("auth/recovery", issued.token),
+            lifetime=action_tokens.ACCOUNT_RECOVERY_LIFETIME,
         ),
     )
 

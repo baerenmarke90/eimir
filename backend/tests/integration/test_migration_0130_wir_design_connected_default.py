@@ -1,4 +1,4 @@
-"""Migration 0129 turns stored "warm" Wir designs into the new "connected" default."""
+"""Migration 0130 turns stored "warm" Wir designs into the new "connected" default."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def test_warm_becomes_connected_and_paid_choices_survive_the_round_trip(session)
         name: make_account(session, name) for name in ("Warm", "Modern", "Classic", "Defaulted")
     }
     session.flush()
-    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0129").module
+    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0130").module
     context = MigrationContext.configure(
         session.connection(), opts={"target_metadata": Base.metadata}
     )

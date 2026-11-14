@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, ContentVisibility
 from eimir.collections import service as collection_service
-from eimir.collections.models import Collection
+from eimir.collections.models import Collection, CollectionKind, CollectionSuggestion
 from eimir.core.clock import now
 from eimir.heart_moments import service as heart_moment_service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
@@ -576,3 +576,58 @@ def test_import_remaps_repeated_wish_links_and_series(
     assert imported[3].followed_from_wish_id == imported[2].id
     assert {wish.series_id for wish in imported.values()} == {imported[1].id}
     assert imported[3].id != third.id
+
+
+def test_shopping_suggestions_travel_with_their_list_in_a_shared_round_trip(
+    session: Session,
+) -> None:
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    source_space = make_space(session, anna)
+    relationship_service.add_member(session, source_space.id, ben)
+    target_space = make_space(session, anna)
+    relationship_service.add_member(session, target_space.id, ben)
+    source_authorization = AuthorizationContext(account_id=anna.id, space_id=source_space.id)
+    target_authorization = AuthorizationContext(account_id=anna.id, space_id=target_space.id)
+    shopping = collection_service.create_collection(
+        session, source_authorization, title="Einkauf", kind=CollectionKind.SHOPPING
+    )
+    milk = collection_service.create_item(
+        session,
+        source_authorization,
+        shopping.id,
+        title="Milch",
+        quantity="2 l",
+        completed=True,
+    )
+    collection_service.finish_shopping(
+        session, source_authorization, shopping.id, item_ids=[milk.id]
+    )
+
+    with service.build_export_archive(
+        session, source_authorization, TransferScope.SHARED
+    ) as bundle:
+        bundle.seek(0, io.SEEK_END)
+        size = bundle.tell()
+        bundle.seek(0)
+        transfer = service.create_import(session, target_authorization, bundle, size=size)
+    session.flush()
+    jobs.handle_validate_import(session, {"importId": str(transfer.id)})
+    session.flush()
+    service.request_apply(session, target_authorization, str(transfer.id))
+    session.flush()
+    jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+    session.flush()
+
+    assert transfer.status == ImportStatus.COMPLETED.value
+    imported = session.scalars(
+        select(Collection).where(Collection.space_id == target_space.id)
+    ).one()
+    assert imported.kind == CollectionKind.SHOPPING.value
+    suggestions = session.scalars(
+        select(CollectionSuggestion).where(CollectionSuggestion.collection_id == imported.id)
+    ).all()
+    assert [
+        (item.payload.title, item.payload.quantity, item.times_bought) for item in suggestions
+    ] == [("Milch", "2 l", 1)]
+    assert collection_service.list_items(session, imported) == []

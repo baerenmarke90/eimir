@@ -72,6 +72,14 @@ The [Compact browser comparison](../../../product/design/references/icon-palette
 
 Small-size rendering uses a 2.2-unit rounded stroke on the same 24-unit grid. Bottom navigation uses a 28 px box and keeps its labeled destinations. More rows use the stronger contours inside their 32 px boxes. The avatar badges and chart use simplified renditions of the same seven expressions with wider spacing between the eyes and mouth. The labeled choices and partner sheet use the approved detailed drawings. The weekly chart gives its faces at least 20 px and the calendar uses the available cell width for compact faces. The labeled legend and the selected day's text carry the mood names.
 
+### Shared controls and detail views
+
+The [390 px list reference](../../../product/design/references/icon-palette/compact-list-reference.webp) uses existing list fixtures, navigation and full task layout on the icon branch with main at `4aaba65010e71b59968bd3ade7ad52e621c98d6e` integrated. It applies the proposed stroke and target glyph sizes in the browser before implementation. The baseline review also covered the media gallery and saved voice playback in both themes.
+
+- Follow R1, R2 and R3 and the Detail, Story Timeline and Plan Hub templates. The list item, photo or voice message remains the focal point. Reuse the shared icon registry for the reading, editing, playback, privacy and status controls, including the small pictograms inside Insights. Use optical sizes from the design tokens for the existing controls.
+- Keep visible labels, Back, focus return, RTL direction, loading and error messages, playback and check states in their present controls. Preserve the established single-ink on-action treatment and the existing filled, gradient and two-tone artwork. Retain the dedicated visuals for changing data, including the Energy battery, waveform and graph.
+- Compact provides the primary layouts. Expanded reuses the same actions and icon roles. Exercise returning from Media and toggling or editing a list item, including failure recovery. Check actual icon dimensions and contrast on light and dark surfaces, with large text and reduced motion. No business/freemium impact.
+
 | Control state | Visual treatment | Non-color signal |
 | --- | --- | --- |
 | Default | Outline, normal text/icon color | Recognizable contour and visible label |

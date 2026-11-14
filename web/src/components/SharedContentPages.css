@@ -499,3 +499,28 @@
   color: var(--color-text-muted);
   max-width: 36rem;
 }
+
+/* A checked entry flies into the cart; the copy is decoration only (#1808). */
+.shared-list-flight {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.shared-list-flight-a {
+  background: var(--color-partner-a-surface);
+}
+.shared-list-flight-b {
+  background: var(--color-partner-b-surface);
+}

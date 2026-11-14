@@ -3,6 +3,7 @@ import type { CollectionDetail } from '../api/generated/models/CollectionDetail'
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import {
   knownPersonName,
+  listPeople,
   partnerTone,
   summarizeSharedList,
 } from './sharedListSummary';
@@ -114,5 +115,55 @@ describe('knownPersonName', () => {
   it('is empty when the list has not seen the person yet', () => {
     expect(knownPersonName(list, 'carla')).toBe('');
     expect(knownPersonName(list, undefined)).toBe('');
+  });
+});
+
+describe('listPeople (#1808)', () => {
+  const list = { createdBy: 'anna', creator: anna };
+
+  it('knows the creator before anyone has touched the list', () => {
+    expect(listPeople(list, [])).toEqual([
+      { personId: 'anna', displayName: 'Anna', tone: 'a' },
+    ]);
+  });
+
+  it('adds the partner as soon as they added or completed an entry, rose first', () => {
+    const people = listPeople(list, [
+      item('milk', { createdBy: 'ben', creator: ben }),
+      done('bread', ben),
+    ]);
+    expect(people.map((person) => [person.displayName, person.tone])).toEqual([
+      ['Anna', 'a'],
+      ['Ben', 'b'],
+    ]);
+  });
+
+  it('lists each person once, however many entries they touched', () => {
+    const people = listPeople(list, [
+      done('a', anna),
+      done('b', anna),
+      item('c', { createdBy: 'ben', creator: ben }),
+      done('d', ben),
+    ]);
+    expect(people).toHaveLength(2);
+  });
+
+  it('keeps the same colours on both phones: the role belongs to the person', () => {
+    const asSeenByBen = listPeople(list, [done('x', ben)]);
+    const asSeenByAnna = listPeople(list, [done('x', ben)]);
+    expect(asSeenByBen).toEqual(asSeenByAnna);
+    expect(asSeenByBen.find((person) => person.personId === 'ben')?.tone).toBe(
+      'b',
+    );
+  });
+
+  it('skips a person without a readable name instead of showing an empty disc', () => {
+    const people = listPeople(list, [
+      item('ghost', {
+        createdBy: 'gone',
+        creator: { id: 'gone', displayName: '  ' },
+      }),
+    ]);
+    expect(people.map((person) => person.personId)).toEqual(['anna']);
   });
 });

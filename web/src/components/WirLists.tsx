@@ -5,10 +5,11 @@ import type { CollectionDetail } from '../api/generated/models/CollectionDetail'
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { normalizeClientError } from '../client/problemDetails';
 import { collectionDetailPath } from '../client/routes';
-import { summarizeSharedList } from '../client/sharedListSummary';
+import { listPeople, summarizeSharedList } from '../client/sharedListSummary';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
+import { ListPeople } from './ListPeople';
 import { SharedListBar } from './SharedListSummary';
 import { WirListSheet } from './WirListSheet';
 import './WirLists.css';
@@ -171,26 +172,33 @@ export function WirLists({
                 >
                   {collection.title}
                 </h3>
-                <p className="wir-list-tile-count">
-                  {summary.total === 0 ? (
-                    <span>{t('m5s5.today.wirLists.empty')}</span>
-                  ) : summary.open === 0 ? (
-                    <span>
-                      {t(`m5s3.collection.summary.${prefix}Complete`)}
-                    </span>
-                  ) : (
-                    <>
-                      <strong className="wir-list-tile-number">
-                        {summary.open}
-                      </strong>{' '}
+                <div className="wir-list-tile-head">
+                  <p className="wir-list-tile-count">
+                    {summary.total === 0 ? (
+                      <span>{t('m5s5.today.wirLists.empty')}</span>
+                    ) : summary.open === 0 ? (
                       <span>
-                        {t(`m5s3.collection.summary.${prefix}Open`, {
-                          count: summary.open,
-                        })}
+                        {t(`m5s3.collection.summary.${prefix}Complete`)}
                       </span>
-                    </>
-                  )}
-                </p>
+                    ) : (
+                      <>
+                        <strong className="wir-list-tile-number">
+                          {summary.open}
+                        </strong>{' '}
+                        <span>
+                          {t(`m5s3.collection.summary.${prefix}Open`, {
+                            count: summary.open,
+                          })}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                  {summary.total > 0 ? (
+                    <ListPeople
+                      people={listPeople(collection, collection.items)}
+                    />
+                  ) : null}
+                </div>
                 {summary.total > 0 ? <SharedListBar summary={summary} /> : null}
                 {peek ? <p className="wir-list-tile-peek">{peek}</p> : null}
                 {last ? (

@@ -44,7 +44,7 @@ def test_downgrade_resets_only_shared_album_and_invalidates_its_etag(session: Se
     original = sorted((design.value, 1, "sage") for design in WirDesignId)
     rollback = sorted(
         ("connected", 2, "sage")
-        if design is WirDesignId.SIDE_BY_SIDE
+        if design is WirDesignId.SHARED_ALBUM
         else (design.value, 1, "sage")
         for design in WirDesignId
     )

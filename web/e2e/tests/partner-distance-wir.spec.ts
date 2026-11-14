@@ -502,6 +502,38 @@ test('without Pro: no line, no distance read, neutral map state', async ({
   expect(server.mapReads).toBe(0);
 });
 
+test('partner shares nothing: the map still opens from the settings link', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await grantBrowserLocation(page);
+  const server = await distanceMocks(page, { map: false });
+  await openWir(page);
+  await page.goto(MAP_ROUTE);
+  await expect(
+    page.getByRole('heading', { name: copy.mapTitle, level: 1 }),
+  ).toBeVisible();
+  await expect(page.locator('.place-map-viewport')).toBeVisible();
+  await expect(
+    page.getByText(forPartner(copy.mapPartnerNotSharing), { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(copy.mapUnavailableTitle)).toHaveCount(0);
+  await expect(page.getByRole('link', { name: copy.mapAdjust })).toBeVisible();
+  expect(server.mapReads).toBeGreaterThan(0);
+  await captureScreenshot(
+    page,
+    info,
+    'partner-distance-map-partner-not-sharing-390.png',
+  );
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.locator('.place-map-viewport')).toBeVisible();
+  await captureScreenshot(
+    page,
+    info,
+    'partner-distance-map-partner-not-sharing-1280.png',
+  );
+});
+
 const evidence = [
   { width: 360, height: 800, theme: 'light' as const, large: false },
   { width: 390, height: 844, theme: 'light' as const, large: false },

@@ -125,6 +125,7 @@ const partnerLocation = {
   mapShowUs: 'Uns zeigen',
   mapLoading: 'Karte wird geladen …',
   mapPartnerArea: '{{partner}} · ungefährer Bereich',
+  mapPartnerNotSharing: '{{partner}} teilt gerade nichts',
   mapPartnerAsOf: 'Stand: {{time}}',
   mapYou: 'Du · nur für dich sichtbar',
   mapYouMissing: 'Du · dein Standort fehlt',

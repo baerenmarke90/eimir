@@ -350,8 +350,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     ).toHaveCSS('transform', 'none');
     const filterBox = await filter.boundingBox();
     if (!filterBox) throw new Error('Expected a visible Diary filter');
-    expect(filterBox.width).toBeGreaterThanOrEqual(44);
-    expect(filterBox.height).toBeGreaterThanOrEqual(44);
+    // Bounds are single-precision: a 44 px target can measure 43.99999.
+    expect(filterBox.width).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(filterBox.height).toBeGreaterThanOrEqual(44 - 0.01);
     expect(filterBox.x).toBeGreaterThanOrEqual(0);
     expect(filterBox.x + filterBox.width).toBeLessThanOrEqual(320);
     await captureScreenshot(

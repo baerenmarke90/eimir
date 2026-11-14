@@ -86,6 +86,13 @@ class MainSiteTests(unittest.TestCase):
         else:
             self.assertEqual(production.returncode, 0, production.stderr)
 
+    def test_built_site_does_not_ship_server_configuration(self) -> None:
+        build = subprocess.run([sys.executable, str(BUILD)], capture_output=True, text=True, check=False)
+        self.assertEqual(build.returncode, 0, build.stderr)
+        for name in ("Dockerfile", "nginx.conf", "security-headers.conf"):
+            self.assertFalse((SITE / "dist" / name).exists(), f"{name} must not be served")
+        self.assertTrue((SITE / "dist" / "index.html").is_file())
+
     def test_container_reuses_the_pinned_web_image_and_sends_security_headers(self) -> None:
         dockerfile = (SITE / "Dockerfile").read_text()
         web_dockerfile = (ROOT / "web/Dockerfile").read_text()

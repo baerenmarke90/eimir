@@ -914,3 +914,244 @@
   block-size: var(--space-5);
   flex-shrink: 0;
 }
+
+/* ---------- Composition pass across the root tabs ---------- */
+
+/* 1. A plan or a wish is the couple's own content, so its title speaks in
+   the same display voice as a memory title. */
+.planen-next-copy > strong,
+.planen-agenda-title,
+.planen-wish-copy > strong {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* 2. The search rests as an icon at the end of the status row. */
+.planen-panel {
+  position: relative;
+}
+
+.planen-search-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  /* The shared button padding would push the icon off centre. */
+  padding: 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/*
+ * The search unfolds from where its icon sat, at a pace a person can follow.
+ *
+ * The field is laid over the top of the panel and the status row makes room
+ * for it by moving down. Both directions are one continuous movement: the
+ * row's offset is a transition, so nothing is left to snap into place when
+ * the field is removed after folding away. (A collapsing grid row cannot do
+ * this: the grid gap stays until the element is gone, then jumps.)
+ */
+.planen-search {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  margin: 0;
+}
+
+.planen-panel > .planen-status-scope {
+  margin-top: 0;
+}
+
+.planen-panel:has(> .planen-search:not(.is-closing)) > .planen-status-scope {
+  margin-top: calc(var(--touch-target-web) + var(--space-4));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .planen-panel > .planen-status-scope {
+    transition: margin-top var(--duration-context) var(--easing-standard);
+  }
+
+  .planen-panel:has(> .planen-search:not(.is-closing)) > .planen-status-scope {
+    transition-duration: calc(var(--duration-sequence-beat) * 1.5);
+  }
+
+  .planen-search {
+    animation: planen-search-open calc(var(--duration-sequence-beat) * 1.5)
+      var(--easing-standard) backwards;
+  }
+
+  .planen-search.is-closing {
+    animation: planen-search-close var(--duration-context)
+      var(--easing-standard) forwards;
+  }
+
+  .planen-search-toggle {
+    animation: planen-search-toggle-in var(--duration-sequence-beat)
+      var(--easing-enter) backwards;
+  }
+}
+
+@keyframes planen-search-open {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 0 86% round var(--radius-pill));
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round var(--radius-pill));
+  }
+}
+
+@keyframes planen-search-close {
+  from {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round var(--radius-pill));
+  }
+
+  to {
+    opacity: 0;
+    clip-path: inset(0 0 0 86% round var(--radius-pill));
+  }
+}
+
+@keyframes planen-search-toggle-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.planen-search-toggle .eimir-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.planen-search-toggle:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.planen-panel:has(> .planen-search-toggle) > .planen-status-scope {
+  padding-inline-end: 3.25rem;
+}
+
+/* 3. Two surface tones only: raised for the couple's content, the tinted
+   panel tone for navigation rows. The next plan drops its gradient. */
+.planen-next-link {
+  background: var(--color-surface-raised);
+}
+
+/* 6. The active mark glides to the chosen segment and the panel fades in,
+   so switching reads as staying on the same page. The label colours still
+   switch at once, as before. */
+.planen-segmented {
+  position: relative;
+  isolation: isolate;
+  --segment-count: 3;
+  --segment-unit: calc(
+    (100% - 6px - 2px * (var(--segment-count) - 1)) /
+    var(--segment-count)
+  );
+  --segment-index: 0;
+  --segment-width: var(--segment-unit);
+  --segment-left: calc(
+    3px +
+    var(--segment-index) *
+    (var(--segment-unit) + 2px)
+  );
+}
+
+.planen-segmented:has(> :nth-child(2):last-child) {
+  --segment-count: 2;
+}
+
+.planen-segmented:has(> .is-active:nth-child(2)) {
+  --segment-index: 1;
+}
+
+.planen-segmented:has(> .is-active:nth-child(3)) {
+  --segment-index: 2;
+}
+
+.planen-segmented:not(.story-view-tabs)::before {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: var(--segment-left);
+  z-index: -1;
+  width: var(--segment-width);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-strong);
+  box-shadow: var(--shadow-soft);
+  content: "";
+}
+
+.planen-segmented:not(.story-view-tabs):not(:has(> .is-active))::before {
+  content: none;
+}
+
+/* Momente's switch has unequal segments and one of them is its own page, so
+   it keeps the plain active state. */
+.planen-segmented:not(.story-view-tabs) > .planen-segment.is-active {
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .planen-segmented:not(.story-view-tabs)::before {
+    transition:
+      left var(--duration-transition) var(--easing-standard),
+      width var(--duration-transition) var(--easing-standard);
+  }
+
+  .planen-panel:not([hidden]),
+  .story-page-unified [role="tabpanel"]:not([hidden]) {
+    animation: planen-panel-in var(--duration-transition) var(--easing-enter);
+  }
+}
+
+@keyframes planen-panel-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * The panel is a grid with its own row gap. Margins on its direct children
+ * stacked on top of that gap and opened 40 to 48 px holes between the status
+ * row, the hint and the first content. One rhythm instead: the grid gap
+ * between related rows, a little more before the first content block.
+ */
+.planen-overview .planen-panel > .planen-status-scope {
+  margin-bottom: 0;
+}
+
+.planen-overview .planen-panel > .planen-wish-journey-hint,
+.planen-overview .planen-panel > .wish-selection-entry {
+  margin-top: 0;
+  margin-bottom: var(--space-2);
+}
+
+.planen-overview .planen-panel > .planen-next,
+.planen-overview .planen-panel > .planen-wish-groups {
+  margin-top: 0;
+}

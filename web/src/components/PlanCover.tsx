@@ -90,11 +90,15 @@ export function PlanCover({
     />
   ) : (
     <span
-      className="plan-cover-placeholder"
+      className={`plan-cover-placeholder${image.error ? '' : ' is-loading'}`}
       role={shouldLoad ? 'status' : undefined}
       aria-hidden={!shouldLoad || undefined}
     >
-      {t(image.error ? 'm5s3.planImage.failed' : 'states.loading.title')}
+      {image.error ? (
+        t('m5s3.planImage.failed')
+      ) : (
+        <span className="sr-only">{t('states.loading.title')}</span>
+      )}
       {image.error && interactive ? (
         <button
           type="button"

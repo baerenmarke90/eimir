@@ -1,6 +1,10 @@
 import type { MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { HAPPINESS_ROUTE, TIME_TRAVEL_ROUTE } from '../client/routes';
+import {
+  HAPPINESS_ROUTE,
+  STORY_OURS_ROUTE,
+  TIME_TRAVEL_ROUTE,
+} from '../client/routes';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { ProMark } from './ProMark';
@@ -22,6 +26,18 @@ export function CoupleExperienceLinks({
     >
       <h2 id="couple-experiences-title">{t('coupleExperiences.title')}</h2>
       <div>
+        {/* The couple's own story leads the group it belongs to. */}
+        <Link
+          to={STORY_OURS_ROUTE}
+          onClick={(event) => onOpen(event, STORY_OURS_ROUTE)}
+        >
+          <EimirIcon name="jahrestag" />
+          <span>
+            <strong>{t('relationshipReflections.passport.title')}</strong>
+            <span>{t('relationshipReflections.passport.intro')}</span>
+          </span>
+          <ProMark label={t('coupleExperiences.pro')} />
+        </Link>
         {(['happiness', 'timeTravel'] as const).map((kind) => {
           const path =
             kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE;

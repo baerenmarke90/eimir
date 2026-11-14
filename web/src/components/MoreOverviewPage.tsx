@@ -6,6 +6,7 @@ import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
 import { useProductTour } from '../client/productTour';
 import { useHideProFeatureMarks } from '../client/proPresentation';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
@@ -21,6 +22,7 @@ import {
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
+  STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_YEARS_ROUTE,
 } from '../client/routes';
@@ -55,6 +57,14 @@ const PRIVATE_DESTINATION: MoreDestination = {
  * index, whose quiet entry leads on to the recaps, so no route is lost.
  */
 const STORY_DESTINATIONS: readonly MoreDestination[] = [
+  // The couple's own story overview, first in its own group.
+  {
+    path: STORY_OURS_ROUTE,
+    icon: 'story',
+    titleKey: 'relationshipReflections.passport.title',
+    subtitleKey: 'relationshipReflections.passport.intro',
+    badgeKey: 'relationshipReflections.passport.pro',
+  },
   {
     path: STORY_PHOTOS_ROUTE,
     icon: 'media',
@@ -235,6 +245,7 @@ export function MoreOverviewPage({
   account: AccountView;
   spaceId: string;
 }) {
+  const rootIntro = useRootTabIntro('more');
   const { t } = useTranslation();
   const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
@@ -258,7 +269,10 @@ export function MoreOverviewPage({
   };
 
   return (
-    <div className="page more-page">
+    <div
+      className="page more-page"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
       <PageHeader
         variant="root"
         className="content-overview-heading"

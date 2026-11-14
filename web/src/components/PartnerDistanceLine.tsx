@@ -106,16 +106,67 @@ export function PartnerDistanceLine({
   line,
   partnerName,
   now = new Date(),
+  compact = false,
 }: {
   line: PartnerDistanceLineState;
   partnerName: string;
   now?: Date;
+  /** The "Verbunden" Wir hero: only the value, on the axis between the two. */
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const asOfLabel = useDistanceAsOfLabel();
   const distanceText = useDistanceText();
 
   if (line.kind === 'hidden') return null;
+
+  if (compact) {
+    if (line.kind === 'sharing') return null;
+    if (line.kind === 'ownMissing') {
+      return (
+        <Link
+          className="wir-hero-distance is-action"
+          to={PARTNER_LOCATION_SETTINGS_ROUTE}
+          aria-label={t('partnerLocation.distanceOwnMissingLabel')}
+        >
+          {t('partnerLocation.distanceShareShort')}
+        </Link>
+      );
+    }
+    const locale = resolvedLocale();
+    const value =
+      formatDistanceBand(
+        line.band,
+        locale,
+        distanceUnitFor(locale, deviceLanguages()),
+      ) ?? t('partnerLocation.distanceNearShort');
+    const compactFresh = isDistanceFresh(line.asOf, now);
+    const compactDescription = compactFresh
+      ? distanceText(line.band)
+      : `${distanceText(line.band)}, ${t('partnerLocation.distanceAsOfLabel', {
+          time: asOfLabel(line.asOf, now),
+        })}`;
+    const compactContent = (
+      <>
+        <Glyph kind={compactFresh ? 'pin' : 'clock'} />
+        <span aria-hidden="true">{value}</span>
+      </>
+    );
+    return line.mapAvailable ? (
+      <Link
+        className="wir-hero-distance"
+        to={PARTNER_LOCATION_MAP_ROUTE}
+        aria-label={`${compactDescription}. ${t('partnerLocation.distanceOpenMap')}`}
+      >
+        {compactContent}
+      </Link>
+    ) : (
+      <p className="wir-hero-distance">
+        {compactContent}
+        <span className="sr-only">{compactDescription}</span>
+      </p>
+    );
+  }
 
   if (line.kind === 'sharing') {
     return (
@@ -218,12 +269,14 @@ export function WirPartnerDistance({
   accountId,
   spaceId,
   partnerName,
+  compact = false,
 }: {
   api: Pick<PartnerLocationApi, 'getPartnerDistance' | 'getPartnerLocationMap'>;
   entitlementApi: EntitlementsApi | undefined;
   accountId: string;
   spaceId: string;
   partnerName: string;
+  compact?: boolean;
 }) {
   const load = useMemo(
     () =>
@@ -248,5 +301,11 @@ export function WirPartnerDistance({
     settings?.available === true;
   const query = usePartnerDistanceLine({ api, accountId, spaceId, enabled });
   if (!enabled || query.isError || !query.data) return null;
-  return <PartnerDistanceLine line={query.data} partnerName={partnerName} />;
+  return (
+    <PartnerDistanceLine
+      line={query.data}
+      partnerName={partnerName}
+      compact={compact}
+    />
+  );
 }

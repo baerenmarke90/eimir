@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from eimir.appearance import service as appearance_service
+from eimir.appearance.models import DEFAULT_WIR_DESIGN
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS
 from eimir.attachments.documents import display_name, is_pdf
 from eimir.attachments.limits import DOCUMENT_MAX_SIZE, PDF_MIME_TYPE
@@ -32,7 +33,7 @@ from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
 from eimir.media import build_storage_key, get_media_store
-from eimir.photo_sources.models import PhotoConnection
+from eimir.photo_sources.models import GoogleAccountHint, PhotoConnection
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
 from eimir.transfer.archive import (
     MAX_COMPRESSED_BYTES,
@@ -603,7 +604,7 @@ def build_export_archive(
             preference = appearance_service.read_preference(session, authorization)
             account_document["personalAppearance"] = {
                 "appIconId": preference.icon_id if preference else "original",
-                "wirDesign": preference.wir_design if preference else "warm",
+                "wirDesign": (preference.wir_design if preference else DEFAULT_WIR_DESIGN.value),
             }
             connections = session.scalars(
                 select(PhotoConnection).where(
@@ -615,6 +616,13 @@ def build_export_archive(
                 for row in connections
                 if row.payload.account_id == authorization.account_id
             ]
+            google_account = session.scalar(
+                select(GoogleAccountHint).where(
+                    GoogleAccountHint.account_id == authorization.account_id
+                )
+            )
+            if google_account and google_account.payload.account_id == authorization.account_id:
+                account_document["personalGoogleAccountHint"] = google_account.payload.email
             from eimir.engagement.models import GentleMemoryExclusion, GentleProfile
 
             profile = session.get(GentleProfile, authorization.account_id)

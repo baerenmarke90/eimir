@@ -18,6 +18,7 @@
  * @export
  */
 export const WirDesignId = {
+    connected: 'connected',
     warm: 'warm',
     modern: 'modern',
     classic: 'classic'

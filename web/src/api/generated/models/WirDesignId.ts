@@ -20,6 +20,7 @@
 export const WirDesignId = {
     connected: 'connected',
     warm: 'warm',
+    side_by_side: 'side_by_side',
     modern: 'modern',
     classic: 'classic'
 } as const;

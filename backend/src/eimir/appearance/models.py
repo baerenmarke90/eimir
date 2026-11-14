@@ -28,6 +28,7 @@ class AppIconId(StrEnum):
 class WirDesignId(StrEnum):
     CONNECTED = "connected"
     WARM = "warm"
+    SIDE_BY_SIDE = "side_by_side"
     MODERN = "modern"
     CLASSIC = "classic"
 

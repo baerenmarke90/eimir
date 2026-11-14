@@ -137,6 +137,7 @@ import { DEFAULT_WIR_DESIGN, useWirDesign } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
 import './WirHeroStage.css';
+import './SideBySide.css';
 
 // The hero's opening sequence plays once per page load, not on every return
 // to the tab. The window covers the whole sequence with some margin.
@@ -323,7 +324,27 @@ function RecentSharedItemCard({
   );
 }
 
-function TodayAgendaRow({ item }: { item: DashboardItem }) {
+function SideBySideArrow() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path
+        d="M3.5 12h16m-6-6 6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TodayAgendaRow({
+  item,
+  sideBySide = false,
+}: {
+  item: DashboardItem;
+  sideBySide?: boolean;
+}) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
@@ -357,11 +378,38 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
           : `m5s5.kind.${item.type}`,
       );
 
+  const stampDate = calendarDate ?? rawDate;
+  const stamp =
+    sideBySide && stampDate
+      ? new Intl.DateTimeFormat(resolvedLocale(), {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          timeZone: calendarDate ? 'UTC' : undefined,
+        }).formatToParts(stampDate)
+      : null;
+  const stampTime =
+    stamp && item.scheduledAt && !calendarDate
+      ? t('m5s3.common.timeWithUnit', {
+          time: new Intl.DateTimeFormat(resolvedLocale(), {
+            hour: '2-digit',
+            minute: '2-digit',
+          }).format(item.scheduledAt),
+        })
+      : null;
   const rowInner = (
     <>
-      <span className="today-agenda-icon" aria-hidden="true">
-        <RecentItemTypeIcon type={item.type} />
-      </span>
+      {stamp ? (
+        <span className="side-by-side-date-stamp" aria-hidden="true">
+          <span>{stamp.find((part) => part.type === 'weekday')?.value}</span>
+          <strong>{stamp.find((part) => part.type === 'day')?.value}</strong>
+          <span>{stamp.find((part) => part.type === 'month')?.value}</span>
+        </span>
+      ) : (
+        <span className="today-agenda-icon" aria-hidden="true">
+          <RecentItemTypeIcon type={item.type} />
+        </span>
+      )}
       <span className="today-agenda-copy">
         <span className="today-agenda-title">
           {title}
@@ -369,15 +417,27 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
         </span>
         {date ? (
           <time
-            className="today-agenda-date"
+            className={stamp && !stampTime ? 'sr-only' : 'today-agenda-date'}
             dateTime={
               calendarDate?.toISOString().slice(0, 10) ?? rawDate?.toISOString()
             }
           >
-            {date}
+            {stampTime ? (
+              <>
+                <span className="sr-only">{date}</span>
+                <span aria-hidden="true">{stampTime}</span>
+              </>
+            ) : (
+              date
+            )}
           </time>
         ) : null}
       </span>
+      {sideBySide && path ? (
+        <span className="side-by-side-row-arrow">
+          <SideBySideArrow />
+        </span>
+      ) : null}
     </>
   );
 
@@ -825,6 +885,7 @@ export function TodayPage({
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
+  const sideBySide = wirDesignId === WirDesignId.side_by_side;
   // "Verbunden": two portraits joined by a heart line (the default design).
   const connectedDesign = wirDesignId === WirDesignId.connected;
   const queryClient = useQueryClient();
@@ -1572,7 +1633,19 @@ export function TodayPage({
     avatarOverlay?: ReactNode,
   ) => (
     <CouplePresence
-      className="today-hero"
+      className={sideBySide ? 'today-hero side-by-side-hero' : 'today-hero'}
+      detailsFirst={sideBySide}
+      titleAction={
+        sideBySide ? (
+          <TodayDestinationLink
+            to={STORY_OURS_ROUTE}
+            className="side-by-side-story-link"
+          >
+            <span>{t('m5s5.dashboard.storySummaryTitle')}</span>
+            <SideBySideArrow />
+          </TodayDestinationLink>
+        ) : undefined
+      }
       eyebrow={
         wirDesignId === WirDesignId.warm ? t('wirDesign.welcome') : undefined
       }
@@ -1614,7 +1687,7 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-      avatarSize="hero"
+      avatarSize={sideBySide ? 'medium' : 'hero'}
       avatarAction={
         avatarAction && dailyCheckIn?.partnerAriaLabel
           ? {
@@ -1625,9 +1698,33 @@ export function TodayPage({
       }
       avatarOverlay={avatarOverlay}
       primaryAvatarAction={dailyCheckIn?.ownAction}
-      primaryAvatarAdornment={dailyCheckIn?.ownBadge}
-      secondaryAvatarAdornment={dailyCheckIn?.partnerBadge}
-      signal={partnerDistanceInHero ? partnerDistance : undefined}
+      primaryAvatarAdornment={
+        sideBySide ? (
+          <span className="side-by-side-person">
+            <strong>{heroOwnName}</strong>
+            {dailyCheckIn?.ownBadge}
+          </span>
+        ) : (
+          dailyCheckIn?.ownBadge
+        )
+      }
+      secondaryAvatarAdornment={
+        sideBySide ? (
+          <span className="side-by-side-person">
+            <strong>{partnerName}</strong>
+            {dailyCheckIn?.partnerBadge}
+          </span>
+        ) : (
+          dailyCheckIn?.partnerBadge
+        )
+      }
+      signal={
+        partnerDistanceInHero
+          ? sideBySide
+            ? heroDistance
+            : partnerDistance
+          : undefined
+      }
     />
   );
 
@@ -1752,7 +1849,11 @@ export function TodayPage({
             {anticipation ? <AnticipationCard value={anticipation} /> : null}
             <div className="today-agenda-list">
               {upcoming.map((item: DashboardItem) => (
-                <TodayAgendaRow key={item.id} item={item} />
+                <TodayAgendaRow
+                  key={item.id}
+                  item={item}
+                  sideBySide={sideBySide}
+                />
               ))}
             </div>
           </TodayModuleSection>
@@ -2023,7 +2124,7 @@ export function TodayPage({
             variant="root"
             className="content-overview-heading"
             title={t('navigation.today')}
-            action={<MomentCreateMenu floating />}
+            action={<MomentCreateMenu floating={!sideBySide} />}
           />
 
           {orderedModuleKeys.map((key) => (

@@ -152,11 +152,18 @@ it('previews without writing, cancels, and saves once only after server confirma
   render(<WirDesignSettings />, { wrapper: f.wrapper });
   await open();
   fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.modern')) }),
+    screen.getByRole('radio', { name: new RegExp(t('names.side_by_side')) }),
   );
   expect(f.writes).toHaveLength(0);
+  // Model the browser's Back completion without relying on JSDOM traversal timing.
+  const back = vi.spyOn(window.history, 'back').mockImplementation(() => {
+    window.history.replaceState(null, '');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
   fireEvent.click(screen.getByRole('button', { name: t('close') }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(back).toHaveBeenCalledOnce();
+  back.mockRestore();
   expect(
     screen.getByText(t('names.warm'), {
       selector: '.wir-design-summary strong',
@@ -164,13 +171,15 @@ it('previews without writing, cancels, and saves once only after server confirma
   ).toBeTruthy();
   await open();
   fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.modern')) }),
+    screen.getByRole('radio', { name: new RegExp(t('names.side_by_side')) }),
   );
   const save = screen.getByRole('button', { name: t('save') });
   fireEvent.click(save);
   fireEvent.click(save);
   await waitFor(() => expect(screen.getByText(t('saved'))).toBeTruthy());
-  expect(f.writes).toEqual([{ value: 'modern', token: '"appearance:1"' }]);
+  expect(f.writes).toEqual([
+    { value: 'side_by_side', token: '"appearance:1"' },
+  ]);
 });
 it('keeps a saved paid choice after downgrade and permits the Free reset', async () => {
   const f = fixture({ pro: false, initial: 'classic' });

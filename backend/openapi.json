@@ -14868,6 +14868,7 @@
         "enum": [
           "connected",
           "warm",
+          "side_by_side",
           "modern",
           "classic"
         ],

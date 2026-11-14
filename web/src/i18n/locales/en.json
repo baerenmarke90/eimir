@@ -1539,12 +1539,14 @@
     "nameJoiner": "&",
     "names": {
       "connected": "Connected",
+      "side_by_side": "Side by Side",
       "warm": "Cosy",
       "modern": "Clear & modern",
       "classic": "Classic"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
+      "side_by_side": "A shared photo takes the lead, with linen tones and space for your daily check-ins.",
       "warm": "Your retreat. Soft rose, close portraits and thoughts like a personal note.",
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement."
@@ -1552,7 +1554,7 @@
     "standard": "Standard",
     "free": "Free",
     "pro": "Pro",
-    "personal": "Connected and Cosy are always available. You can choose the other two designs with Pro. A saved design stays even afterwards.",
+    "personal": "Connected and Cosy are always available. You can choose the other designs with Pro. A saved design stays even afterwards.",
     "loading": "Loading your design …",
     "unavailable": "Your saved design could not be loaded right now.",
     "proLoading": "Checking Pro …",

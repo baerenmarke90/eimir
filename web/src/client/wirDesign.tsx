@@ -34,7 +34,13 @@ import {
   wirDesignStorageKey,
 } from './wirDesignPreferenceStore';
 
-export const WIR_DESIGNS = Object.values(WirDesignId);
+export const WIR_DESIGNS: readonly WirDesignId[] = [
+  WirDesignId.connected,
+  WirDesignId.side_by_side,
+  WirDesignId.warm,
+  WirDesignId.modern,
+  WirDesignId.classic,
+];
 /** The design every account starts with; it needs no entitlement. */
 export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;
 /** Designs that never require Pro: the default and the earlier default. */

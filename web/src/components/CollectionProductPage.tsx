@@ -8,6 +8,7 @@ import {
 import {
   type FormEvent,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -27,6 +28,7 @@ import {
 import { sharedAchievementKind } from '../client/sharedAchievements';
 import {
   knownPersonName,
+  listPeople,
   partnerTone,
   summarizeSharedList,
 } from '../client/sharedListSummary';
@@ -59,6 +61,11 @@ import {
 } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
+import {
+  CART_TARGET_ATTRIBUTE,
+  type CartFlight,
+  flyIntoCart,
+} from './cartFlight';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -108,6 +115,8 @@ type Props = {
  */
 const LIST_POLL_INTERVAL_MS = 12_000;
 const LIST_RETURN_STALE_MS = 10_000;
+/** How long a checked entry waits for the cart to be on screen before it flies. */
+const FLIGHT_WAIT_MS = 800;
 type ReorderRequest = { collection: CollectionDetail; itemIds: string[] };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -176,6 +185,20 @@ function CollectionProductDetail({
     const timer = window.setTimeout(() => setArrivingId(null), 700);
     return () => window.clearTimeout(timer);
   }, [arrivingId]);
+  // A checked entry flies from its row into the cart (#1808). The flight is
+  // started after the render that shows the cart, so even the first entry of a
+  // trip, which makes the cart bar appear, has a place to fly to.
+  const flightRef = useRef<(CartFlight & { at: number }) | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs after every render on purpose
+  useLayoutEffect(() => {
+    const flight = flightRef.current;
+    if (!flight) return;
+    if (performance.now() - flight.at > FLIGHT_WAIT_MS) {
+      flightRef.current = null;
+      return;
+    }
+    if (flyIntoCart(flight)) flightRef.current = null;
+  });
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   // Refreshing under the person's hands would fight an edit in progress.
   const pollPausedRef = useRef(false);
@@ -973,6 +996,20 @@ function CollectionProductDetail({
       completed: !targetItem.completed,
     };
     setArrivingId(targetItem.id);
+    const row =
+      collection.kind === 'SHOPPING' && !targetItem.completed
+        ? document.querySelector<HTMLElement>(
+            `[data-sortable-item-id="${CSS.escape(targetItem.id)}"]`,
+          )
+        : null;
+    flightRef.current = row
+      ? {
+          from: row.getBoundingClientRect(),
+          label: targetItem.title,
+          tone: partnerTone(collection, accountId),
+          at: performance.now(),
+        }
+      : null;
     if (outbox.active)
       void outbox.setCompleted(targetItem.id, !targetItem.completed);
     else
@@ -1213,7 +1250,11 @@ function CollectionProductDetail({
           <SharedListTripEnd end={tripEnd} onDismiss={() => setTripEnd(null)} />
         ) : null}
         {!embedded ? (
-          <SharedListSummary summary={summary} shopping={shopping} />
+          <SharedListSummary
+            summary={summary}
+            shopping={shopping}
+            people={listPeople(collection, items)}
+          />
         ) : null}
         <div className="shared-list-toolbar">
           {embedded ? (
@@ -1373,6 +1414,9 @@ function CollectionProductDetail({
                     : 'shared-list-group'
                 }
                 aria-label={group.title ?? undefined}
+                {...(shopping && group.key === 'done'
+                  ? { [CART_TARGET_ATTRIBUTE]: '' }
+                  : {})}
               >
                 {group.title ? (
                   <h3 className="shared-list-tray-heading">

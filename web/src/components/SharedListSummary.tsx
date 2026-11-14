@@ -1,5 +1,7 @@
 import { useTranslation } from '../i18n';
 import type { SharedListSummary as Summary } from '../client/sharedListSummary';
+import type { ListPerson } from '../client/sharedListSummary';
+import { ListPeople } from './ListPeople';
 import { PartnerMarker } from './PartnerMarker';
 import './SharedListSummary.css';
 
@@ -11,9 +13,11 @@ import './SharedListSummary.css';
 export function SharedListSummary({
   summary,
   shopping,
+  people = [],
 }: {
   summary: Summary;
   shopping: boolean;
+  people?: readonly ListPerson[];
 }) {
   const { t } = useTranslation();
   if (summary.total === 0) return null;
@@ -24,24 +28,27 @@ export function SharedListSummary({
       className="shared-list-summary"
       aria-label={t('m5s3.collection.summary.region')}
     >
-      <p className="shared-list-summary-count">
-        {complete ? (
-          <span className="shared-list-summary-complete">
-            {t(`m5s3.collection.summary.${prefix}Complete`)}
-          </span>
-        ) : (
-          <>
-            <strong className="shared-list-summary-number">
-              {summary.open}
-            </strong>{' '}
-            <span>
-              {t(`m5s3.collection.summary.${prefix}Open`, {
-                count: summary.open,
-              })}
+      <div className="shared-list-summary-head">
+        <p className="shared-list-summary-count">
+          {complete ? (
+            <span className="shared-list-summary-complete">
+              {t(`m5s3.collection.summary.${prefix}Complete`)}
             </span>
-          </>
-        )}
-      </p>
+          ) : (
+            <>
+              <strong className="shared-list-summary-number">
+                {summary.open}
+              </strong>{' '}
+              <span>
+                {t(`m5s3.collection.summary.${prefix}Open`, {
+                  count: summary.open,
+                })}
+              </span>
+            </>
+          )}
+        </p>
+        <ListPeople people={people} />
+      </div>
       <SharedListBar summary={summary} />
       {summary.shares.length > 0 ? (
         <ul className="shared-list-summary-shares">

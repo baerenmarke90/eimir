@@ -124,3 +124,11 @@ behave identically (bundled catalog, no managed cost beyond a small read).
 - Contracts/migration: additive OpenAPI, generated client, additive nullable
   column (0133) with reversible downgrade.
 - Operations: catalog ships with the release; no configuration.
+
+## Delivery and evidence
+
+Implemented in the pull request for #1892: backend catalog, capability and
+adoption endpoint; the Web entry, discovery page and composer prefill; the
+matrix row (version 1.18). [Runtime evidence](references/date-inspiration/evidence/README.md)
+covers Compact 320 (200 % text)/360/390/430, Expanded, Light/Dark, Free and
+saved states. No native wrapper change; no Product Owner acceptance is implied.

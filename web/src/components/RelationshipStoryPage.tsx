@@ -7,7 +7,7 @@ import { RelationshipPassport } from './RelationshipPassport';
 import './RelationshipStoryPage.css';
 
 /**
- * Prototype: "Eure Geschichte" as a place of its own.
+ * "Eure Geschichte" as a place of its own.
  *
  * The couple's beginning, their next landmarks and what they have kept
  * together used to sit collapsed at the end of the recap library. Here it is

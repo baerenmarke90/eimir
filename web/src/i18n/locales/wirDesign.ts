@@ -4,8 +4,16 @@ export default {
   choices: 'Dein Wir-Design',
   change: 'Design auswählen',
   welcome: 'Unser Platz zu zweit',
-  names: { warm: 'Geborgen', modern: 'Klar & modern', classic: 'Klassisch' },
+  nameJoiner: '&',
+  names: {
+    connected: 'Verbunden',
+    warm: 'Geborgen',
+    modern: 'Klar & modern',
+    classic: 'Klassisch',
+  },
   descriptions: {
+    connected:
+      'Ihr zwei, durch eine Herzlinie verbunden. Eure gemeinsame Zeit steht in der Mitte.',
     warm: 'Euer Rückzugsort. Sanftes Rosé, nahe Porträts und Gedanken wie eine persönliche Notiz.',
     modern:
       'Klar und luftig. Eure Namen neben den Porträts, mit ruhigen blauen Akzenten.',
@@ -13,14 +21,15 @@ export default {
       'Vertraut und großzügig. Große Porträts über euren Namen und die bisherige Anordnung.',
   },
   standard: 'Standard',
+  free: 'Kostenlos',
   pro: 'Pro',
   personal:
-    'Geborgen ist immer verfügbar. Die beiden weiteren Designs kannst du mit Pro auswählen. Ein gespeichertes Design bleibt auch danach erhalten.',
+    'Verbunden und Geborgen sind immer verfügbar. Die beiden weiteren Designs kannst du mit Pro auswählen. Ein gespeichertes Design bleibt auch danach erhalten.',
   loading: 'Dein Design wird geladen …',
   unavailable: 'Dein gespeichertes Design konnte gerade nicht geladen werden.',
   proLoading: 'Pro wird geprüft …',
   proUnavailable:
-    'Pro konnte gerade nicht geprüft werden. Geborgen kannst du weiterhin auswählen.',
+    'Pro konnte gerade nicht geprüft werden. Verbunden und Geborgen kannst du weiterhin auswählen.',
   retry: 'Erneut versuchen',
   save: 'Auswahl speichern',
   saving: 'Wird gespeichert …',

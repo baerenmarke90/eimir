@@ -52,6 +52,11 @@ const relationshipReflections = {
     completedPlans_other: 'gemeinsame Pläne erlebt',
     places_one: 'gemeinsamer Ort',
     places_other: 'gemeinsame Orte',
+    fulfilledWishes_one: 'Erfüllter Wunsch',
+    fulfilledWishes_other: 'Erfüllte Wünsche',
+    placesTitle: 'Eure Orte',
+    topPlace: 'Am häufigsten: {{place}}',
+    chaptersTitle: 'Eure Kapitel',
     empty: 'Eure Geschichte beginnt mit dem ersten festgehaltenen Moment.',
     start: 'Eure Momente entdecken',
     locked:

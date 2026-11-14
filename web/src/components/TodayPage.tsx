@@ -126,13 +126,14 @@ import {
 import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
-import { WirLists } from './WirLists';
 import { UiState } from './UiState';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import { WirLists } from './WirLists';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
 import './TodayPage.css';
+import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { concealedTitle } from '../client/discreetPlans';
-import { useWirDesign } from '../client/wirDesign';
+import { DEFAULT_WIR_DESIGN, useWirDesign } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
 import './WirHeroStage.css';
@@ -823,6 +824,9 @@ export function TodayPage({
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
+  const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
+  // "Verbunden": two portraits joined by a heart line (the default design).
+  const connectedDesign = wirDesignId === WirDesignId.connected;
   const queryClient = useQueryClient();
   // After the app regains focus, refreshed reads land together instead of one
   // module at a time (see useResumeSettling).
@@ -1317,32 +1321,6 @@ export function TodayPage({
 
   // #1792: the distance is a normal Wir module. Directly below the couple
   // hero it stays inside the hero; moved elsewhere it renders in its place.
-  // Local preview only: a simulated distance, set from the preview pages.
-  let heroDistancePreview: Parameters<
-    typeof WirPartnerDistance
-  >[0]['previewLine'];
-  try {
-    const simulated = window.localStorage.getItem('eimir.preview.distance');
-    if (simulated === 'missing') {
-      heroDistancePreview = { kind: 'ownMissing' };
-    } else if (simulated === 'near') {
-      heroDistancePreview = {
-        kind: 'distance',
-        band: { kind: 'NEARBY' },
-        asOf: new Date(),
-        mapAvailable: true,
-      };
-    } else if (simulated && Number.isFinite(Number(simulated))) {
-      heroDistancePreview = {
-        kind: 'distance',
-        band: { kind: 'APPROXIMATE', approximateKm: Number(simulated) },
-        asOf: new Date(),
-        mapAvailable: true,
-      };
-    }
-  } catch {
-    heroDistancePreview = undefined;
-  }
   const heroDistance =
     partner && account?.id && partnerLocationApi ? (
       <WirPartnerDistance
@@ -1352,7 +1330,6 @@ export function TodayPage({
         spaceId={spaceId}
         partnerName={partnerName}
         compact
-        previewLine={heroDistancePreview}
       />
     ) : null;
   const partnerDistance =
@@ -1379,7 +1356,7 @@ export function TodayPage({
     ] === 'partner_distance' &&
     visibleModuleOrder.includes('relationship_presence');
 
-  // Wir hero prototype: two portraits joined by a bridge that carries what the
+  // The "Verbunden" Wir hero: two portraits joined by a bridge that carries what the
   // couple shares, their time together. Everything personal sits under its
   // person; only the two tappable marks sit on a photo.
   const heroDuration = dashboardQuery.data?.relationshipDuration;
@@ -1473,14 +1450,19 @@ export function TodayPage({
     t('m5s5.activity.you', { defaultValue: 'Du' }),
   );
 
-  if (wirHeroIntroStartedAt === null && dashboardQuery.data) {
+  if (
+    connectedDesign &&
+    wirHeroIntroStartedAt === null &&
+    dashboardQuery.data
+  ) {
     wirHeroIntroStartedAt = performance.now();
   }
   const heroIntro =
+    connectedDesign &&
     wirHeroIntroStartedAt !== null &&
     performance.now() - wirHeroIntroStartedAt < WIR_HERO_INTRO_WINDOW_MS;
 
-  const renderRelationshipHero = (
+  const renderConnectedHero = (
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) => (
@@ -1517,10 +1499,9 @@ export function TodayPage({
             <>
               {heroBridge}
               <span className="wir-stage-amp" aria-hidden="true">
-                &amp;
+                {t('wirDesign.nameJoiner')}
               </span>
-              {(partnerDistanceInHero || heroDistancePreview) &&
-              heroDistance ? (
+              {partnerDistanceInHero && heroDistance ? (
                 <span className="wir-stage-distance">{heroDistance}</span>
               ) : null}
             </>
@@ -1585,6 +1566,78 @@ export function TodayPage({
       />
     </div>
   );
+
+  const renderClassicHero = (
+    avatarAction?: CouplePresenceAvatarAction,
+    avatarOverlay?: ReactNode,
+  ) => (
+    <CouplePresence
+      className="today-hero"
+      eyebrow={
+        wirDesignId === WirDesignId.warm ? t('wirDesign.welcome') : undefined
+      }
+      headingLevel="h2"
+      spaceTitle={
+        partner
+          ? t('m5s5.dashboard.partner', {
+              name: partnerName,
+            })
+          : t('m5s5.dashboard.durationTitle')
+      }
+      primaryPerson={{
+        displayName:
+          account?.displayName ||
+          t('m5s5.activity.you', { defaultValue: 'Du' }),
+        imageUrl: userAvatar.avatarUrl,
+      }}
+      secondaryPerson={
+        partner
+          ? {
+              displayName: partnerName,
+              imageUrl: partnerAvatar.avatarUrl,
+            }
+          : null
+      }
+      secondaryLabel={partner ? partnerName : undefined}
+      status={partnerPresenceStatus}
+      relationshipDuration={
+        dashboardQuery.data?.relationshipDuration
+          ? formatRelationshipDuration(
+              dashboardQuery.data.relationshipDuration,
+              t,
+            )
+          : undefined
+      }
+      durationLinkTo={
+        dashboardQuery.data?.relationshipDuration
+          ? '/more/profile#relationship-profile-title'
+          : undefined
+      }
+      durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
+      avatarSize="hero"
+      avatarAction={
+        avatarAction && dailyCheckIn?.partnerAriaLabel
+          ? {
+              ...avatarAction,
+              label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+            }
+          : avatarAction
+      }
+      avatarOverlay={avatarOverlay}
+      primaryAvatarAction={dailyCheckIn?.ownAction}
+      primaryAvatarAdornment={dailyCheckIn?.ownBadge}
+      secondaryAvatarAdornment={dailyCheckIn?.partnerBadge}
+      signal={partnerDistanceInHero ? partnerDistance : undefined}
+    />
+  );
+
+  const renderRelationshipHero = (
+    avatarAction?: CouplePresenceAvatarAction,
+    avatarOverlay?: ReactNode,
+  ) =>
+    connectedDesign
+      ? renderConnectedHero(avatarAction, avatarOverlay)
+      : renderClassicHero(avatarAction, avatarOverlay);
 
   const dailyQuote =
     account?.id && dailyQuoteApi && entitlementApi ? (
@@ -1927,13 +1980,11 @@ export function TodayPage({
       className="page today-page"
       data-wir-intro={heroIntro ? 'true' : undefined}
       data-wir-design={
-        wirDesign?.presentationReady === false
-          ? undefined
-          : (wirDesign?.current ?? 'warm')
+        wirDesign?.presentationReady === false ? undefined : wirDesignId
       }
       data-color-world={
         wirDesign?.presentationReady !== false &&
-        (wirDesign?.current ?? 'warm') === 'warm'
+        wirDesignId === WirDesignId.warm
           ? 'warm'
           : undefined
       }

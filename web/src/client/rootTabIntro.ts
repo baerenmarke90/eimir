@@ -6,7 +6,7 @@ const played = new Set<string>();
 const INTRO_WINDOW_MS = 1400;
 
 /**
- * Prototype: whether a root tab should play its short opening rise.
+ * Whether a root tab should play its short opening rise.
  *
  * True only for the first time the tab is shown after the app loads, and only
  * long enough for the sequence to finish, so returning to a tab is immediate.

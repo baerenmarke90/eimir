@@ -106,7 +106,7 @@ function PlanningSearch({
       ? 'm5s3.overview.searchPlans'
       : 'm5s3.overview.searchWishes',
   );
-  // Prototype: the search rests as an icon on the status row and opens on
+  // The search rests as an icon on the status row and opens on
   // demand, so the first plan sits one row higher.
   const [open, setOpen] = useState(() => Boolean(value));
   const [closing, setClosing] = useState(false);

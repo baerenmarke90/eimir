@@ -26,7 +26,7 @@ export function CoupleExperienceLinks({
     >
       <h2 id="couple-experiences-title">{t('coupleExperiences.title')}</h2>
       <div>
-        {/* Prototype: the couple's own story leads the group it belongs to. */}
+        {/* The couple's own story leads the group it belongs to. */}
         <Link
           to={STORY_OURS_ROUTE}
           onClick={(event) => onOpen(event, STORY_OURS_ROUTE)}

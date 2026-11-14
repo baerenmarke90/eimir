@@ -441,7 +441,7 @@
 }
 
 /*
- * Prototype: the root tabs Momente, Planen and Mehr drop their visible page
+ * The root tabs Momente, Planen and Mehr drop their visible page
  * title, like Wir. The bottom bar names the place and the view switch directly below
  * names the content. The heading stays in the accessibility tree; the
  * floating create action in the header is unaffected.
@@ -476,7 +476,7 @@
 }
 
 /*
- * Prototype: Momente, Planen and Mehr open with the same short rise as the
+ * Momente, Planen and Mehr open with the same short rise as the
  * modules on Wir, once per page load. The header is left out because it holds
  * the floating create action, which must stay fixed to the viewport. The fill
  * only covers the wait, so no transform lingers afterwards.

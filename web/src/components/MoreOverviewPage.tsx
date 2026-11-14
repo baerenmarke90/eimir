@@ -57,7 +57,7 @@ const PRIVATE_DESTINATION: MoreDestination = {
  * index, whose quiet entry leads on to the recaps, so no route is lost.
  */
 const STORY_DESTINATIONS: readonly MoreDestination[] = [
-  // Prototype: the couple's own story overview, first in its own group.
+  // The couple's own story overview, first in its own group.
   {
     path: STORY_OURS_ROUTE,
     icon: 'story',

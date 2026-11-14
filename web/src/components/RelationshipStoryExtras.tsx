@@ -14,7 +14,7 @@ import { AppErrorBoundary } from './AppErrorBoundary';
 import type { MapLocation } from './PlaceMapCanvas';
 
 /*
- * Prototype: further facts for the "Eure Geschichte" information page, read
+ * Further facts for the "Eure Geschichte" information page, read
  * from what the product already knows. Every read is optional: a failed or
  * empty one simply leaves its part of the page out.
  */
@@ -215,11 +215,7 @@ export function StoryPlaces(scope: StoryScope) {
   const zoom = Math.min(11, Math.max(3, Math.log2(360 / (spread * 6))));
   return (
     <div className="passport-places">
-      <h3>
-        {t('relationshipReflections.passport.placesTitle', {
-          defaultValue: 'Eure Orte',
-        })}
-      </h3>
+      <h3>{t('relationshipReflections.passport.placesTitle')}</h3>
       <Link
         className="passport-places-map"
         to="/story/map"
@@ -241,7 +237,6 @@ export function StoryPlaces(scope: StoryScope) {
       {top.count > 1 ? (
         <p className="passport-places-top">
           {t('relationshipReflections.passport.topPlace', {
-            defaultValue: 'Am häufigsten: {{place}}',
             place: top.label,
           })}
           <span>{t('memoryMap.memoryCount', { count: top.count })}</span>
@@ -302,11 +297,7 @@ export function StoryChapters({
   if (!rows.length) return null;
   return (
     <div className="passport-chapters">
-      <h4>
-        {t('relationshipReflections.passport.chaptersTitle', {
-          defaultValue: 'Eure Kapitel',
-        })}
-      </h4>
+      <h4>{t('relationshipReflections.passport.chaptersTitle')}</h4>
       <ul>
         {rows.map((row) => (
           <li key={row.id}>

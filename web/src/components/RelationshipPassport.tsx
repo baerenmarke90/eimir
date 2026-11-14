@@ -156,8 +156,11 @@ function PassportRead({
       ) : null}
       <PassportContent {...props} profiles={apis.profiles} value={read.data} />
       <div className="passport-timeline">
-        <h3>{t('m5s5.dashboard.storyLifelineAria')}</h3>
+        <h3 id="passport-lifeline-title">
+          {t('m5s5.dashboard.storyLifelineAria')}
+        </h3>
         <SharedStorySummary
+          labelledBy="passport-lifeline-title"
           summary={{
             memories: read.data.memories,
             heartMoments: read.data.heartMoments,
@@ -252,10 +255,7 @@ function PassportContent({
   );
   const metricLabel = (key: string, count: number) =>
     key === 'fulfilledWishes'
-      ? t('relationshipReflections.passport.fulfilledWishes', {
-          count,
-          defaultValue: count === 1 ? 'Erfüllter Wunsch' : 'Erfüllte Wünsche',
-        })
+      ? t('relationshipReflections.passport.fulfilledWishes', { count })
       : t(`relationshipReflections.passport.${key}`, { count });
   const metrics = [
     {

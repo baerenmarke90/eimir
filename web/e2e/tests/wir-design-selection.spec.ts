@@ -293,9 +293,12 @@ async function alignedVisibilityControls(page: Page) {
     );
   // The shared couple hero is fixed and has no visibility switch.
   expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
+  // Bounds are single-precision: at a fractional page offset a 44 px target
+  // can measure 43.9999, so the comparison allows a hundredth of a pixel.
+  const minimumTarget = 44 - 0.01;
   for (const target of targets) {
-    expect(target.width).toBeGreaterThanOrEqual(44);
-    expect(target.height).toBeGreaterThanOrEqual(44);
+    expect(target.width).toBeGreaterThanOrEqual(minimumTarget);
+    expect(target.height).toBeGreaterThanOrEqual(minimumTarget);
     expect(target.overlapsLabel).toBe(false);
   }
 }

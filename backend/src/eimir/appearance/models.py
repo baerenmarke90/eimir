@@ -26,9 +26,16 @@ class AppIconId(StrEnum):
 
 
 class WirDesignId(StrEnum):
+    CONNECTED = "connected"
     WARM = "warm"
     MODERN = "modern"
     CLASSIC = "classic"
+
+
+# Product Owner decision 2026-11-14: "connected" is the default composition and,
+# like "warm", Free. Every other design requires ``theme.bespoke_packs``.
+DEFAULT_WIR_DESIGN = WirDesignId.CONNECTED
+FREE_WIR_DESIGNS = frozenset({WirDesignId.CONNECTED, WirDesignId.WARM})
 
 
 class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
@@ -51,5 +58,8 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
     )
     icon_id: Mapped[str] = mapped_column(String(24), nullable=False)
     wir_design: Mapped[str] = mapped_column(
-        String(24), nullable=False, default=WirDesignId.WARM.value, server_default="warm"
+        String(24),
+        nullable=False,
+        default=DEFAULT_WIR_DESIGN.value,
+        server_default=DEFAULT_WIR_DESIGN.value,
     )

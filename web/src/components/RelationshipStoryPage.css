@@ -1,5 +1,5 @@
 /*
- * Prototype: "Eure Geschichte" as an information page about the couple.
+ * "Eure Geschichte" as an information page about the couple.
  *
  * Wir carries the emotional hero. This page is the place for facts: a short
  * line of who and since when, progress towards the next landmarks, what the
@@ -92,8 +92,10 @@
 }
 
 .relationship-story-page .passport-landmarks dl > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Title and remaining time share a line while both fit; with large text
+     the remaining time moves below the title instead of squeezing it. */
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-1) var(--space-3);
   border-radius: var(--radius-card);
@@ -103,6 +105,9 @@
 }
 
 .relationship-story-page .passport-landmarks dt {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 650;
@@ -114,17 +119,15 @@
 }
 
 .relationship-story-page .passport-landmarks dd:has(time) {
-  grid-column: 1;
-  grid-row: 2;
+  flex: 1 1 100%;
+  order: 2;
 }
 
 .relationship-story-page .passport-remaining {
-  grid-column: 2;
-  grid-row: 1;
+  order: 1;
   color: var(--color-brand-text);
   font-size: 0.9rem;
   font-weight: 700;
-  white-space: nowrap;
 }
 
 .relationship-story-page .passport-progress,
@@ -137,7 +140,8 @@
 }
 
 .relationship-story-page .passport-progress {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
+  order: 3;
   margin-top: var(--space-2);
 }
 
@@ -306,9 +310,25 @@
 
 /* The lifeline brings its own section spacing from Wir; here the page's
    rhythm applies. */
+/*
+ * One shrinkable column per stacked section. An implicit grid column is as
+ * wide as its widest content, which pushed the page sideways with large text.
+ */
+.relationship-story-page,
+.relationship-story-page .relationship-passport,
+.relationship-story-page .passport-landmarks,
+.relationship-story-page .passport-history,
+.relationship-story-page .passport-timeline,
+.relationship-story-page .passport-chapters,
+.relationship-story-page .passport-places {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .relationship-story-page .shared-story-summary {
+  min-width: 0;
   margin: 0;
-  padding: 0;
+  /* The "today" mark hangs half its width past the line's end. */
+  padding: 0 calc(var(--space-story-lifeline-dot) / 2) 0 0;
 }
 
 /* The preview is not operable, so its zoom controls would only mislead. */
@@ -320,6 +340,7 @@
 
 .relationship-story-links {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: start;
   gap: var(--space-1);
   margin-top: var(--space-4);
@@ -327,7 +348,9 @@
 
 .relationship-story-links a {
   display: inline-flex;
+  max-width: 100%;
   min-height: 44px;
+  overflow-wrap: anywhere;
   align-items: center;
   color: var(--color-text-secondary);
   font-weight: 650;

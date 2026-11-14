@@ -111,7 +111,7 @@ export function PartnerDistanceLine({
   line: PartnerDistanceLineState;
   partnerName: string;
   now?: Date;
-  /** Wir hero prototype: only the value, on the axis between the two people. */
+  /** The "Verbunden" Wir hero: only the value, on the axis between the two. */
   compact?: boolean;
 }) {
   const { t } = useTranslation();
@@ -129,9 +129,7 @@ export function PartnerDistanceLine({
           to={PARTNER_LOCATION_SETTINGS_ROUTE}
           aria-label={t('partnerLocation.distanceOwnMissingLabel')}
         >
-          {t('partnerLocation.distanceShareShort', {
-            defaultValue: 'Standort teilen',
-          })}
+          {t('partnerLocation.distanceShareShort')}
         </Link>
       );
     }
@@ -141,7 +139,7 @@ export function PartnerDistanceLine({
         line.band,
         locale,
         distanceUnitFor(locale, deviceLanguages()),
-      ) ?? t('partnerLocation.distanceNearShort', { defaultValue: 'Ganz nah' });
+      ) ?? t('partnerLocation.distanceNearShort');
     const compactFresh = isDistanceFresh(line.asOf, now);
     const compactDescription = compactFresh
       ? distanceText(line.band)
@@ -272,7 +270,6 @@ export function WirPartnerDistance({
   spaceId,
   partnerName,
   compact = false,
-  previewLine,
 }: {
   api: Pick<PartnerLocationApi, 'getPartnerDistance' | 'getPartnerLocationMap'>;
   entitlementApi: EntitlementsApi | undefined;
@@ -280,8 +277,6 @@ export function WirPartnerDistance({
   spaceId: string;
   partnerName: string;
   compact?: boolean;
-  /** Local preview only: a simulated state shown instead of the real one. */
-  previewLine?: PartnerDistanceLineState;
 }) {
   const load = useMemo(
     () =>
@@ -305,15 +300,6 @@ export function WirPartnerDistance({
     !capability.isError &&
     settings?.available === true;
   const query = usePartnerDistanceLine({ api, accountId, spaceId, enabled });
-  if (previewLine) {
-    return (
-      <PartnerDistanceLine
-        line={previewLine}
-        partnerName={partnerName}
-        compact={compact}
-      />
-    );
-  }
   if (!enabled || query.isError || !query.data) return null;
   return (
     <PartnerDistanceLine

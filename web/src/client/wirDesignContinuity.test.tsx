@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { AppearanceApi } from '../api/generated/apis/AppearanceApi';
@@ -99,7 +100,8 @@ it('a denied read discards the remembered choice and cannot use it for writes', 
   const view = renderHook(useWirDesign, { wrapper: f.wrapper });
   await waitFor(() => expect(f.fetchApi).toHaveBeenCalledOnce());
   await act(async () => f.finish(new Response(null, { status: 403 })));
-  await waitFor(() => expect(view.result.current?.current).toBe('warm'));
+  // A denied read falls back to the default design, which needs no Pro.
+  await waitFor(() => expect(view.result.current?.current).toBe('connected'));
   expect(readWirDesign(key)).toBeUndefined();
   await expect(view.result.current?.save('classic')).rejects.toBeTruthy();
   view.unmount();

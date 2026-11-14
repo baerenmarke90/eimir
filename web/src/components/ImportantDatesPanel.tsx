@@ -598,6 +598,13 @@ interface OccasionEntry {
 
 type OccasionOccurrence = OccasionEntry & { repeats: DateRepeat };
 
+/**
+ * The occasion last opened per space. Only the chosen month is listed, so a
+ * return from a task started in the reader needs that month shown again; the
+ * key (not the month) is kept because the occasion's date may have changed.
+ */
+const lastOpenedOccasion = new Map<string, string>();
+
 export function ImportantDatesPanel({
   createActionContainer,
   peopleApi,
@@ -638,22 +645,30 @@ export function ImportantDatesPanel({
   const readerReturnRef = useRef<HTMLButtonElement>(null);
   const [readingKey, setReadingKey] = useState<string | null>(null);
   const [readerOpen, setReaderOpen] = useState(false);
-  const openReader = useCallback((key: string) => {
-    setReadingKey(key);
-    setReaderOpen(true);
-  }, []);
+  const openReader = useCallback(
+    (key: string) => {
+      // The sheet follows the opened occasion, so its row exists to return to.
+      lastOpenedOccasion.set(spaceId, key);
+      setCalendarMonth(null);
+      setReadingKey(key);
+      setReaderOpen(true);
+    },
+    [spaceId],
+  );
   const requestedBirthday = (
     location.state as { birthdayPersonId?: string } | null
   )?.birthdayPersonId;
   const [editing, setEditing] = useState<ImportantDateView | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  // Prototype: the month shown on the calendar sheet, as `YYYY-MM`.
+  // The month shown on the calendar sheet, as `YYYY-MM`.
   const [calendarMonth, setCalendarMonth] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [pendingDeleteFocus, setPendingDeleteFocus] =
     useState<DeleteFocusTarget | null>(null);
   const createActionRef = useRef<HTMLButtonElement>(null);
   const dateCardRefs = useRef(new Map<string, HTMLButtonElement>());
+  /** Upcoming occasion key to its `YYYY-MM`, for focus across months. */
+  const occasionMonths = useRef(new Map<string, string>());
 
   const dateFormats = useMemo(
     () => ({
@@ -847,13 +862,23 @@ export function ImportantDatesPanel({
 
   useEffect(() => {
     if (!pendingDeleteFocus || editorOpen) return;
-    const target =
-      pendingDeleteFocus.kind === 'item'
-        ? dateCardRefs.current.get(pendingDeleteFocus.id)
-        : createActionRef.current;
-    target?.focus();
+    if (pendingDeleteFocus.kind === 'item') {
+      const row = dateCardRefs.current.get(pendingDeleteFocus.id);
+      if (!row) {
+        // Only the chosen month is listed. Show the neighbour's month first;
+        // this effect runs again once its row exists.
+        const month = occasionMonths.current.get(pendingDeleteFocus.id);
+        if (month && month !== calendarMonth) {
+          setCalendarMonth(month);
+          return;
+        }
+      }
+      (row ?? createActionRef.current)?.focus();
+    } else {
+      createActionRef.current?.focus();
+    }
     setPendingDeleteFocus(null);
-  }, [editorOpen, pendingDeleteFocus]);
+  }, [calendarMonth, editorOpen, pendingDeleteFocus]);
 
   const holidayEntries: OccasionEntry[] = holidayPreference.enabled
     ? nextOccasionHolidays(today)
@@ -977,6 +1002,12 @@ export function ImportantDatesPanel({
   const past = occurrences
     .filter((entry) => entry.date < today)
     .sort((a, b) => compareDates(b, a) || compareTitles(a, b));
+  occasionMonths.current = new Map(
+    upcoming.map((entry) => [
+      entry.key,
+      dateInputValue(entry.date).slice(0, 7),
+    ]),
+  );
   const selected = occurrences.find((entry) => entry.key === readingKey);
   const canCreatePlan =
     selected &&
@@ -1073,7 +1104,7 @@ export function ImportantDatesPanel({
       );
     });
   }
-  // Prototype: occasions are points in the year, so the view is a calendar in
+  // Occasions are points in the year, so the view is a calendar in
   // three steps from coarse to fine: the next occasion, a band of the coming
   // twelve months, and the chosen month as a quiet sheet with its occasions.
   function renderCalendar() {
@@ -1085,17 +1116,28 @@ export function ImportantDatesPanel({
       const key = monthKey(entry.date);
       byMonth.set(key, [...(byMonth.get(key) ?? []), entry]);
     }
-    const months = Array.from({ length: 12 }, (_, index) => {
+    const comingYear = Array.from({ length: 12 }, (_, index) => {
       const first = new Date(
         Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + index, 1),
       );
       return { key: monthKey(first), first };
     });
+    // An occasion can fall after the coming twelve months: an annual one whose
+    // day already passed this month, or a one-off date further out. Its month
+    // joins the band so every occasion stays reachable.
+    const laterMonths = [...byMonth.keys()]
+      .filter((key) => !comingYear.some((month) => month.key === key))
+      .sort()
+      .map((key) => ({ key, first: new Date(`${key}-01T00:00:00Z`) }));
+    const months = [...comingYear, ...laterMonths];
     const next = upcoming[0];
+    const openedMonth = occasionMonths.current.get(
+      lastOpenedOccasion.get(spaceId) ?? '',
+    );
+    const shown = (key: string | null | undefined) =>
+      key && months.some((month) => month.key === key) ? key : null;
     const activeKey =
-      calendarMonth && months.some((month) => month.key === calendarMonth)
-        ? calendarMonth
-        : monthKey(next.date);
+      shown(calendarMonth) ?? shown(openedMonth) ?? monthKey(next.date);
     const active = months.find((month) => month.key === activeKey) ?? months[0];
     const activeEntries = byMonth.get(active.key) ?? [];
     const year = active.first.getUTCFullYear();
@@ -1242,9 +1284,7 @@ export function ImportantDatesPanel({
             </ul>
           ) : (
             <p className="occasions-sheet-empty">
-              {t('importantDates.monthEmpty', {
-                defaultValue: 'In diesem Monat steht nichts an.',
-              })}
+              {t('importantDates.monthEmpty')}
             </p>
           )}
         </div>

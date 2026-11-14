@@ -231,7 +231,7 @@ export const STORY_YEAR_ROUTE_PATTERN = '/story/years/:year';
  * and Wir link to the same library. The former More addresses are rewritten.
  */
 export const STORY_RECAPS_ROUTE = '/story/recaps';
-/** Prototype: the couple's own story overview as a page of its own. */
+/** The couple's own story overview as a page of its own. */
 export const STORY_OURS_ROUTE = '/story/our-story';
 export const RECAP_DETAIL_ROUTE_PATTERN = `${STORY_RECAPS_ROUTE}/:recapId`;
 export function recapDetailPath(recapId: string): string {
@@ -288,8 +288,14 @@ export const LEGACY_ROUTE_REWRITES = [
   { from: '/memory', to: '/story/memories' },
   { from: '/heart-moment', to: '/story/heart-moments' },
   { from: '/milestone', to: '/story/milestones' },
-  { from: MORE_PASSPORT_ROUTE, to: STORY_OURS_ROUTE },
-] as const satisfies readonly { from: string; to: string }[];
+  // The bare address held the story overview, which has its own page again;
+  // everything below it was a recap reader link and still opens that recap.
+  {
+    from: MORE_PASSPORT_ROUTE,
+    to: STORY_RECAPS_ROUTE,
+    exact: STORY_OURS_ROUTE,
+  },
+] as const satisfies readonly { from: string; to: string; exact?: string }[];
 
 /**
  * Rewrites a legacy path, or returns null when the path is already current.
@@ -297,8 +303,9 @@ export const LEGACY_ROUTE_REWRITES = [
  * mistaken for the `/memory` prefix.
  */
 export function rewriteLegacyPath(pathname: string): string | null {
-  for (const { from, to } of LEGACY_ROUTE_REWRITES) {
-    if (pathname === from) return to;
+  for (const rule of LEGACY_ROUTE_REWRITES) {
+    const { from, to } = rule;
+    if (pathname === from) return 'exact' in rule ? rule.exact : to;
     if (pathname.startsWith(`${from}/`)) {
       return to + pathname.slice(from.length);
     }

@@ -116,6 +116,8 @@ function list(
 }
 
 const summaryText = m5s3.collection.summary;
+// The cart bar starts with the tray name, whatever the count.
+const cartBarName = new RegExp(`^${m5s3.collection.trayShopping} · `);
 
 describe('CollectionProductPage shopping list composition (#1808)', () => {
   let storage: MemoryStorage;
@@ -526,7 +528,7 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
     serverItems = serverItems.filter((entry) => !entry.completed);
     const first = renderPage();
     await screen.findByText('Milch');
-    expect(screen.queryByRole('button', { name: /Im Wagen · / })).toBeNull();
+    expect(screen.queryByRole('button', { name: cartBarName })).toBeNull();
     first.unmount();
 
     getCollection.mockResolvedValue(
@@ -536,7 +538,7 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
     );
     renderPage();
     await screen.findByText('Visum');
-    expect(screen.queryByRole('button', { name: /Im Wagen · / })).toBeNull();
+    expect(screen.queryByRole('button', { name: cartBarName })).toBeNull();
   });
 
   describe('while the list is open', () => {

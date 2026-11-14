@@ -955,7 +955,10 @@
       "you": "You",
       "quantityLabel": "Quantity (optional)",
       "quantityPlaceholder": "Quantity",
-      "cart": { "bar_one": "In the cart · {{count}} entry", "bar_other": "In the cart · {{count}} entries" },
+      "cart": {
+        "bar_one": "In the cart · {{count}} entry",
+        "bar_other": "In the cart · {{count}} entries"
+      },
       "trayShopping": "In the cart",
       "trayGeneric": "Done",
       "addedBy": "Added by {{name}}",

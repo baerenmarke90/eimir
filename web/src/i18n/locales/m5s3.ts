@@ -479,7 +479,10 @@ const m5s3 = {
     you: 'Du',
     quantityLabel: 'Menge (optional)',
     quantityPlaceholder: 'Menge',
-    cart: { bar_one: 'Im Wagen · {{count}} Eintrag', bar_other: 'Im Wagen · {{count}} Einträge' },
+    cart: {
+      bar_one: 'Im Wagen · {{count}} Eintrag',
+      bar_other: 'Im Wagen · {{count}} Einträge',
+    },
     trayShopping: 'Im Wagen',
     trayGeneric: 'Erledigt',
     addedBy: 'Hinzugefügt von {{name}}',

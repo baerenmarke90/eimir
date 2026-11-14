@@ -51,7 +51,7 @@ function fixture() {
 
 beforeEach(() => {
   document.head.innerHTML =
-    '<link id="app-favicon" rel="icon" href="/identity/app-icon-light.png">';
+    '<link id="app-favicon" rel="icon" href="/identity/favicon/light.png">';
   document.documentElement.dataset.theme = 'light';
 });
 afterEach(() => {
@@ -75,15 +75,15 @@ it('keeps a fixed saved icon across theme changes and restores adaptive Original
   const { result, unmount } = renderHook(useAppIcon, { wrapper });
   await waitFor(() => expect(result.current?.preference.isSuccess).toBe(true));
   expect(document.getElementById('app-favicon')?.getAttribute('href')).toBe(
-    '/identity/app-icons/v1/sage.png',
+    '/identity/favicon/sage.png',
   );
   applyResolvedTheme('dark');
   expect(document.getElementById('app-favicon')?.getAttribute('href')).toBe(
-    '/identity/app-icons/v1/sage.png',
+    '/identity/favicon/sage.png',
   );
   unmount();
   expect(document.getElementById('app-favicon')?.getAttribute('href')).toBe(
-    '/identity/app-icon-dark.png',
+    '/identity/favicon/dark.png',
   );
 });
 
@@ -124,7 +124,7 @@ it('requires the last strong ETag and ignores a late write after its query owner
     client.getQueryData(appIconQueryKey('instance', 'account', 'space')),
   ).toBeUndefined();
   expect(document.getElementById('app-favicon')?.getAttribute('href')).toBe(
-    '/identity/app-icon-light.png',
+    '/identity/favicon/light.png',
   );
 });
 
@@ -154,6 +154,6 @@ it('aborts a pending write on owner teardown and does not apply its late result'
     await rejected;
   });
   expect(document.getElementById('app-favicon')?.getAttribute('href')).toBe(
-    '/identity/app-icon-light.png',
+    '/identity/favicon/light.png',
   );
 });

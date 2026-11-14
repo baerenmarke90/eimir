@@ -75,8 +75,9 @@ const CALENDAR_OUTLINE = (
 );
 const INSIGHTS_BUBBLE_PATH =
   'M7 4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-6.5L6 21v-3.2A4 4 0 0 1 3 14V8a4 4 0 0 1 4-4Z';
-const INSIGHTS_WAVE = <path d="M6.4 11.8h2.5l1.7-3.1 2.6 5.3 1.8-2.2h2.6" />;
+const INSIGHTS_WAVE = <path d="M6.5 11.8h2.8l1.9-3.4 2.2 5.9 1.7-2.5h2.4" />;
 const MORE_DOT_POSITIONS = [5, 12, 19];
+const LIST_ROW_POSITIONS = [6, 12, 18];
 
 function moreDots(radius: number) {
   return (
@@ -176,14 +177,12 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   listen: (
     <>
       <path d="M8 6h12M8 12h12M8 18h9" />
-      <g fill="currentColor" stroke="none">
-        <circle cx="4" cy="6" r="1.2" />
-        <circle cx="4" cy="12" r="1.2" />
-        <circle cx="4" cy="18" r="1.2" />
-      </g>
+      {LIST_ROW_POSITIONS.map((y) => (
+        <circle key={y} cx="4" cy={y} r=".35" />
+      ))}
     </>
   ),
-  mehr: moreDots(1.35),
+  mehr: moreDots(1.6),
   neu: (
     <>
       <circle cx="12" cy="12" r="10" />
@@ -375,11 +374,11 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   ),
   spiele: (
     <>
-      <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+      <rect x="3" y="3" width="18" height="18" rx="4" />
       <g fill="currentColor" stroke="none">
-        <circle cx="8" cy="8" r="1.45" />
-        <circle cx="12" cy="12" r="1.45" />
-        <circle cx="16" cy="16" r="1.45" />
+        <circle cx="7.8" cy="7.8" r="1.6" />
+        <circle cx="12" cy="12" r="1.6" />
+        <circle cx="16.2" cy="16.2" r="1.6" />
       </g>
     </>
   ),
@@ -541,7 +540,7 @@ const FILLED: Partial<Record<EimirIconName, IconDrawing>> = {
       <path d="M12 14v4m-2-2h4" stroke="var(--color-on-accent)" />
     </>
   ),
-  mehr: moreDots(1.8),
+  mehr: moreDots(2.05),
 };
 
 const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
@@ -643,10 +642,16 @@ const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
 type Props = {
   name: EimirIconName;
   variant?: EimirIconVariant;
+  compact?: boolean;
   className?: string;
 };
 
-export function EimirIcon({ name, variant = 'outline', className }: Props) {
+export function EimirIcon({
+  name,
+  variant = 'outline',
+  compact = false,
+  className,
+}: Props) {
   const id = useId().replace(/:/g, '');
   const drawing =
     variant === 'filled'
@@ -661,7 +666,7 @@ export function EimirIcon({ name, variant = 'outline', className }: Props) {
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
-      className={`eimir-icon eimir-icon-${name} eimir-icon-${variant}${className ? ` ${className}` : ''}`}
+      className={`eimir-icon eimir-icon-${name} eimir-icon-${variant}${compact ? ' eimir-icon-compact' : ''}${className ? ` ${className}` : ''}`}
     >
       {usesGradient && (
         <defs>

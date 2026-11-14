@@ -55,6 +55,14 @@
   stroke: var(--identity-icon-cool);
 }
 
+.eimir-icon-compact .accent {
+  stroke: color-mix(in srgb, var(--identity-icon-accent) 70%, currentColor);
+}
+
+.eimir-icon-compact .cool {
+  stroke: color-mix(in srgb, var(--identity-icon-cool) 70%, currentColor);
+}
+
 .daily-vibe-icon-monochrome {
   --identity-icon-accent: currentColor;
   --identity-icon-warm-fill: currentColor;

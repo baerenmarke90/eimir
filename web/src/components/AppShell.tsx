@@ -94,6 +94,7 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
         <DestinationIcon
           icon={route.icon}
           variant={isActive ? 'filled' : 'outline'}
+          compact
         />
         {hasUnread ? (
           <span className="notification-dot" aria-hidden="true" />

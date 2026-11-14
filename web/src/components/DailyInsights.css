@@ -431,8 +431,8 @@
 }
 
 .insight-chart-vibe :where(.insight-chart-yaxis) .daily-vibe-icon {
-  width: clamp(var(--icon-size-small), 1.5em, var(--icon-size-standard));
-  height: clamp(var(--icon-size-small), 1.5em, var(--icon-size-standard));
+  width: clamp(var(--icon-size-medium), 1.5em, var(--icon-size-standard));
+  height: auto;
   color: var(--color-text);
 }
 
@@ -907,13 +907,13 @@
 
 .insight-cell-marks {
   display: grid;
-  width: min(100%, var(--icon-size-large));
+  width: min(100%, calc(2 * var(--icon-size-medium)));
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px;
 }
 
 .insight-matrix[data-people="1"] .insight-cell-marks {
-  width: var(--icon-size-small);
+  width: min(100%, var(--icon-size-medium));
   grid-template-columns: minmax(0, 1fr);
 }
 

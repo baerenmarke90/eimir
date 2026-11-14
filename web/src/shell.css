@@ -927,6 +927,16 @@
   max-width: 100%;
 }
 
+.mobile-bottom-nav .shell-nav-icon {
+  width: calc(var(--icon-size-standard) + 4px);
+  height: calc(var(--icon-size-standard) + 4px);
+}
+
+.mobile-bottom-nav .shell-nav-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
 .mobile-bottom-nav .shell-nav-link-active {
   color: var(--color-text);
   font-weight: 700;

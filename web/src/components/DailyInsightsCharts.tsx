@@ -198,7 +198,7 @@ export function VibeWeekChart({
         <ul className="insight-chart-yaxis" aria-hidden="true">
           {VIBE_LANES.map((vibe) => (
             <li key={vibe}>
-              <DailyVibeIcon value={vibe} />
+              <DailyVibeIcon value={vibe} compact />
               <span>{t(`dailyInsights.lanes.${vibe}`)}</span>
             </li>
           ))}

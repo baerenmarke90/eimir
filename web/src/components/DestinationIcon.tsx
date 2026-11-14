@@ -43,9 +43,17 @@ export function AddIcon({ className }: { className?: string } = {}) {
 export function DestinationIcon({
   icon,
   variant = 'outline',
+  compact = false,
 }: {
   icon: AppRouteIcon;
   variant?: EimirIconVariant;
+  compact?: boolean;
 }) {
-  return <EimirIcon name={DESTINATION_MARKS[icon]} variant={variant} />;
+  return (
+    <EimirIcon
+      name={DESTINATION_MARKS[icon]}
+      variant={variant}
+      compact={compact}
+    />
+  );
 }

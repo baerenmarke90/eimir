@@ -57,15 +57,15 @@
 }
 
 .wir-checkin-badge .wir-checkin-glyph {
-  width: max(var(--icon-size-standard), 1.5em);
-  height: max(var(--icon-size-standard), 1.5em);
+  width: max(calc(var(--icon-size-standard) + 4px), 1.5em);
+  height: max(calc(var(--icon-size-standard) + 4px), 1.5em);
   flex: 0 0 auto;
   color: var(--color-brand-text);
 }
 
 .wir-checkin-badge .daily-energy-battery-icon {
-  width: 1.3rem;
-  height: 0.8rem;
+  width: var(--icon-size-standard);
+  height: auto;
 }
 
 .wir-checkin-badge[data-pending="true"] {
@@ -79,8 +79,8 @@
 }
 
 .wir-checkin-lock {
-  width: 1rem;
-  height: 1rem;
+  width: var(--icon-size-medium);
+  height: var(--icon-size-medium);
   color: var(--color-text-secondary);
 }
 
@@ -104,8 +104,10 @@
 }
 
 .wir-checkin-note-dot .eimir-icon {
-  width: 0.9rem;
-  height: 0.9rem;
+  --identity-icon-accent: currentColor;
+
+  width: var(--icon-size-small);
+  height: var(--icon-size-small);
 }
 
 /* The note dot owns the outer top corner; presence moves to the outer side. */

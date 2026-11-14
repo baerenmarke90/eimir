@@ -473,6 +473,10 @@
   stroke-linejoin: round;
 }
 
+.eimir-icon-compact {
+  stroke-width: 2.2;
+}
+
 .eimir-icon .accent {
   stroke: var(--identity-icon-accent);
 }

@@ -174,6 +174,7 @@ declare(
   value('size.touchTarget.floatingCreate'),
 );
 declare('icon-size-small', value('size.icon.small'));
+declare('icon-size-medium', value('size.icon.medium'));
 declare('icon-size-standard', value('size.icon.standard'));
 declare('icon-size-large', value('size.icon.large'));
 declare('add-action-icon', value('size.icon.medium'));

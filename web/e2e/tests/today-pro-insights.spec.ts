@@ -459,9 +459,12 @@ async function visitViews(
   await openInsightsFromMore(page, testInfo, label);
   await goToPreviousWeek(page);
   const vibeChart = page.locator('.insight-chart-vibe');
-  await expect(
-    vibeChart.locator('.insight-chart-yaxis [data-vibe-icon]'),
-  ).toHaveCount(7);
+  const axisIcons = vibeChart.locator('.insight-chart-yaxis [data-vibe-icon]');
+  await expect(axisIcons).toHaveCount(7);
+  await expect(axisIcons.first()).toHaveCSS('stroke-width', '2.2px');
+  expect((await axisIcons.first().boundingBox())?.width).toBeGreaterThanOrEqual(
+    20,
+  );
   await expect(vibeChart.locator('.insight-chart-lane')).toHaveCount(7);
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -477,9 +480,9 @@ async function visitViews(
   await expect(
     page.locator('.insight-legend-scale [data-vibe-icon]'),
   ).toHaveCount(7);
-  await expect(
-    page.locator('.insight-cell [data-vibe-icon]').first(),
-  ).toBeVisible();
+  const firstCellIcon = page.locator('.insight-cell [data-vibe-icon]').first();
+  await expect(firstCellIcon).toBeVisible();
+  await expect(firstCellIcon).toHaveCSS('stroke-width', '2.2px');
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({

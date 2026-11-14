@@ -180,13 +180,18 @@ test('More reflows in Light, Dark, large text and Expanded navigation', async ({
     const activeMore = page
       .locator('.shell-nav-link[aria-current="page"] .eimir-icon-mehr')
       .filter({ visible: true });
-    await expect(activeMore).toHaveCSS('width', '24px');
+    await expect(activeMore).toHaveCSS(
+      'width',
+      variant.width < 840 ? '28px' : '24px',
+    );
     const moreDot = activeMore.locator('circle').first();
+    await expect(moreDot).toHaveAttribute('r', '2.05');
     expect(
       (await renderedContrast(moreDot, 'fill')).ratio,
     ).toBeGreaterThanOrEqual(3);
     const dice = gamesEntry.locator('.eimir-icon-spiele');
     await expect(dice).toHaveCSS('width', '32px');
+    await expect(dice).toHaveCSS('stroke-width', '2.2px');
     expect(
       (await renderedContrast(dice, 'stroke')).ratio,
     ).toBeGreaterThanOrEqual(3);
@@ -194,6 +199,7 @@ test('More reflows in Light, Dark, large text and Expanded navigation', async ({
       'a[href="/more/insights"] .eimir-icon-insights',
     );
     await expect(insights).toHaveClass(/eimir-icon-duotone/);
+    await expect(insights).toHaveCSS('stroke-width', '2.2px');
     await expect(insights.locator('path[fill]')).toHaveAttribute(
       'fill',
       /url\(#.+-cool-warm\)/,
@@ -201,6 +207,10 @@ test('More reflows in Light, Dark, large text and Expanded navigation', async ({
     expect(
       (await renderedContrast(insights, 'stroke')).ratio,
     ).toBeGreaterThanOrEqual(3);
+    const calendar = page
+      .locator('.shell-nav-link .eimir-icon-planen')
+      .filter({ visible: true });
+    await expect(calendar).toHaveCSS('stroke-width', '2.2px');
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

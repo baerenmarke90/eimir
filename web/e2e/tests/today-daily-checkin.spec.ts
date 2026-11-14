@@ -585,7 +585,8 @@ for (const { width, theme, large, reduced } of [
     for (const id of ['wir-checkin-own-badge', 'wir-checkin-partner-badge']) {
       const glyph = page.getByTestId(id).locator('.daily-vibe-icon');
       await expect(glyph).toBeVisible();
-      expect((await glyph.boundingBox())?.width).toBeGreaterThanOrEqual(24);
+      expect((await glyph.boundingBox())?.width).toBeGreaterThanOrEqual(28);
+      await expect(glyph).toHaveCSS('stroke-width', '2.2px');
       expect(
         (await renderedContrast(glyph, 'stroke')).ratio,
       ).toBeGreaterThanOrEqual(3);
@@ -615,6 +616,7 @@ for (const { width, theme, large, reduced } of [
     );
     for (const glyph of await choiceGlyphs.all()) {
       expect((await glyph.boundingBox())?.width).toBeGreaterThanOrEqual(32);
+      await expect(glyph).toHaveCSS('stroke-width', '1.65px');
       expect(
         (await renderedContrast(glyph, 'stroke')).ratio,
       ).toBeGreaterThanOrEqual(3);

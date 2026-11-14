@@ -322,7 +322,7 @@ function DayCell({
                   className={`insight-mark insight-mark-vibe insight-series-${person.key}`}
                   data-vibe={vibe}
                 >
-                  <DailyVibeIcon value={vibe} monochrome />
+                  <DailyVibeIcon value={vibe} compact monochrome />
                 </span>
               );
             })

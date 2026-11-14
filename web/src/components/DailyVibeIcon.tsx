@@ -112,18 +112,94 @@ function vibeFace(value: DailyVibeValue): ReactNode {
   return null;
 }
 
+const COMPACT_EYES = (
+  <>
+    <Dot cx={8.6} cy={9.6} r={1.2} />
+    <Dot cx={15.4} cy={9.6} r={1.2} />
+  </>
+);
+
+const COMPACT_EXPRESSIONS: Record<DailyVibeValue, ReactNode> = {
+  [DailyVibe.VERY_GOOD]: (
+    <>
+      {COMPACT_EYES}
+      <path
+        d="M7.6 12.9h8.8a4.4 4.4 0 0 1-8.8 0Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </>
+  ),
+  [DailyVibe.GOOD]: (
+    <path d="M7.3 10q1.2-1.7 2.4 0m4.6 0q1.2-1.7 2.4 0M8.4 13.9q3.6 3.6 7.2 0" />
+  ),
+  [DailyVibe.OKAY]: (
+    <>
+      {COMPACT_EYES}
+      <path className="accent" d="M8.5 15h7" />
+    </>
+  ),
+  [DailyVibe.STRESSED]: (
+    <path d="m7.5 8.3 2.6 1.8m6.4-1.8-2.6 1.8M8.2 15.6l1.9-1.8 1.9 1.8 1.9-1.8 1.9 1.8" />
+  ),
+  [DailyVibe.SAD]: (
+    <>
+      {COMPACT_EYES}
+      <path d="M8.4 16q3.6-3.6 7.2 0" />
+    </>
+  ),
+  [DailyVibe.NEEDS_CONNECTION]: (
+    <>
+      {COMPACT_EYES}
+      <path d="M8.6 13.9q3.4 3.3 6.8 0" />
+      <path
+        d="M18.6 8.4c-1.3-1-3.8-2.5-3.8-4.4a2 2 0 0 1 3.8-.8 2 2 0 0 1 3.8.8c0 1.9-2.5 3.4-3.8 4.4Z"
+        fill={warmFill}
+        stroke="none"
+      />
+    </>
+  ),
+  [DailyVibe.NEEDS_SPACE]: (
+    <>
+      <path d="M7.3 10.2q1.2 1.5 2.4 0m4.6 0q1.2 1.5 2.4 0M10.4 15h3.2" />
+      <path
+        d="M22 5.9a3.65 3.65 0 0 1-3.9-3.9A3.6 3.6 0 1 0 22 5.9Z"
+        fill={coolFill}
+        stroke="none"
+      />
+    </>
+  ),
+};
+
+/** The small drawings preserve the expression with more space around its features. */
+function compactVibeFace(value: DailyVibeValue): ReactNode {
+  return (
+    <>
+      {value === DailyVibe.NEEDS_CONNECTION ||
+      value === DailyVibe.NEEDS_SPACE ? (
+        <path d="M20.7 9.7A9 9 0 1 1 12.5 3" />
+      ) : (
+        <circle cx="12" cy="12" r="9.2" />
+      )}
+      {COMPACT_EXPRESSIONS[value]}
+    </>
+  );
+}
+
 export function DailyVibeIcon({
   value,
   className = '',
+  compact = false,
   monochrome = false,
 }: {
   value: DailyVibeValue;
   className?: string;
+  compact?: boolean;
   monochrome?: boolean;
 }) {
   return (
     <svg
-      className={`eimir-icon daily-vibe-icon${monochrome ? ' daily-vibe-icon-monochrome' : ''}${className ? ` ${className}` : ''}`}
+      className={`eimir-icon daily-vibe-icon${compact ? ' eimir-icon-compact' : ''}${monochrome ? ' daily-vibe-icon-monochrome' : ''}${className ? ` ${className}` : ''}`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -134,7 +210,7 @@ export function DailyVibeIcon({
       focusable="false"
       data-vibe-icon={value}
     >
-      {vibeFace(value)}
+      {compact ? compactVibeFace(value) : vibeFace(value)}
     </svg>
   );
 }

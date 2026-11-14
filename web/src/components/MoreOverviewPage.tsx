@@ -179,6 +179,7 @@ function MoreDestinationRow({
             <DestinationIcon
               icon={destination.icon}
               variant={destination.iconVariant}
+              compact
             />
           )}
         </span>
@@ -274,7 +275,7 @@ export function MoreOverviewPage({
 
       <Link className="more-search-entry" to={SEARCH_ROUTE}>
         <span className="shell-nav-icon" aria-hidden="true">
-          <DestinationIcon icon="search" />
+          <DestinationIcon icon="search" compact />
         </span>
         <span>{t('navigation.searchAll')}</span>
       </Link>
@@ -346,7 +347,7 @@ export function MoreOverviewPage({
               onClick={replay}
             >
               <span className="more-destination-icon" aria-hidden="true">
-                <EimirIcon name="hilfe" />
+                <EimirIcon name="hilfe" compact />
               </span>
               <span className="more-destination-copy">
                 <strong>{t('productTour.replay')}</strong>

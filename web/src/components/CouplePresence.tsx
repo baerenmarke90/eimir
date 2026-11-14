@@ -48,6 +48,7 @@ export interface CouplePresenceProps {
   eyebrow?: string;
   detailsFirst?: boolean;
   titleAction?: ReactNode;
+  stackNames?: boolean;
   className?: string;
 }
 
@@ -77,6 +78,7 @@ export function CouplePresence({
   eyebrow,
   detailsFirst = false,
   titleAction,
+  stackNames = false,
   className = '',
 }: CouplePresenceProps) {
   const { t } = useTranslation();
@@ -160,7 +162,17 @@ export function CouplePresence({
     <div className="couple-presence-details">
       {eyebrow ? <p className="couple-presence-eyebrow">{eyebrow}</p> : null}
       <HeadingTag id={titleId} className="couple-presence-title">
-        {presenceTitle}
+        {stackNames && secondaryFirstName ? (
+          <>
+            <span>{primaryFirstName}</span>{' '}
+            <span>
+              <span className="couple-presence-joiner">&amp;</span>{' '}
+              {secondaryFirstName}
+            </span>
+          </>
+        ) : (
+          presenceTitle
+        )}
       </HeadingTag>
 
       {titleAction}

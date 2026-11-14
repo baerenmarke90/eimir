@@ -7,7 +7,11 @@ import {
 import { act, render, waitFor } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { AppearanceApi } from '../api/generated/apis/AppearanceApi';
+import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import { Configuration } from '../api/generated/runtime';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { WirDesignProvider, wirDesignQueryKey } from '../client/wirDesign';
 import navigation from '../i18n/locales/navigation';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
@@ -222,6 +226,84 @@ describe('AppShell', () => {
     );
     expect(navigationLinkFor(html, '/story')).not.toContain('ungelesen');
     expect(html.match(/class="notification-dot"/g)).toHaveLength(2);
+  });
+
+  it('applies the saved app palette on a detail route and clears it with the authenticated shell', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    );
+    const instance = 'https://appearance.example';
+    const accountId = 'appearance-owner';
+    const spaceId = 'appearance-space';
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    const configuration = new Configuration({
+      basePath: instance,
+      fetchApi: vi.fn(),
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ unreadCount: 0 }), { status: 200 }),
+    );
+    const key = wirDesignQueryKey(instance, accountId, spaceId);
+    client.setQueryData(key, {
+      preference: { designId: 'quiet_together', version: 1 },
+      etag: '"appearance:1"',
+    });
+    const view = render(
+      <QueryClientProvider client={client}>
+        <WirDesignProvider
+          api={new AppearanceApi(configuration)}
+          entitlementsApi={new EntitlementsApi(configuration)}
+          instance={instance}
+          accountId={accountId}
+          spaceId={spaceId}
+        >
+          <MemoryRouter initialEntries={['/story/memories/example']}>
+            <AppShell
+              apiBaseUrl={instance}
+              accessToken="test-token"
+              account={{ id: accountId, displayName: 'Alex Example' }}
+              spaceId={spaceId}
+              onLogout={() => undefined}
+            >
+              <h1>Memory fixture</h1>
+            </AppShell>
+          </MemoryRouter>
+        </WirDesignProvider>
+      </QueryClientProvider>,
+    );
+    const root = document.documentElement;
+    try {
+      expect(root.dataset.appDesign).toBe('quiet_together');
+      await act(async () =>
+        client.setQueryData(key, {
+          preference: { designId: 'connected', version: 2 },
+          etag: '"appearance:2"',
+        }),
+      );
+      await waitFor(() => expect(root.dataset.appDesign).toBeUndefined());
+      await act(async () =>
+        client.setQueryData(key, {
+          preference: { designId: 'quiet_together', version: 3 },
+          etag: '"appearance:3"',
+        }),
+      );
+      await waitFor(() =>
+        expect(root.dataset.appDesign).toBe('quiet_together'),
+      );
+    } finally {
+      view.unmount();
+      client.clear();
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    }
+    expect(root.dataset.appDesign).toBeUndefined();
   });
 
   it('updates More unread state on refocus without visiting the inbox', async () => {

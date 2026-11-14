@@ -29,6 +29,7 @@ class WirDesignId(StrEnum):
     CONNECTED = "connected"
     WARM = "warm"
     SHARED_ALBUM = "shared_album"
+    QUIET_TOGETHER = "quiet_together"
     MODERN = "modern"
     CLASSIC = "classic"
 

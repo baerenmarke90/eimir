@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
   cleanup,
@@ -8,21 +10,22 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { AppearanceApi } from '../api/generated/apis/AppearanceApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import type { WirDesignId } from '../api/generated/models/WirDesignId';
 import { Configuration } from '../api/generated/runtime';
+import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
 import {
   useWirDesign,
   WirDesignProvider,
   wirDesignQueryKey,
 } from '../client/wirDesign';
+import { clearWirDesignPreferences } from '../client/wirDesignPreferenceStore';
 import { i18n } from '../i18n';
 import { WirDesignSettings } from './WirDesignSettings';
-import { clearWirDesignPreferences } from '../client/wirDesignPreferenceStore';
 
 beforeEach(() => {
   clearWirDesignPreferences();
@@ -46,10 +49,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 const t = (key: string) => i18n.t(`wirDesign.${key}`);
+const preferenceTimeout = { timeout: 5_000 };
 function fixture(
   options: {
     pro?: boolean;
-    initial?: 'warm' | 'modern' | 'classic';
+    initial?: WirDesignId;
     failWrite?: number;
     failRead?: boolean;
     deferred?: () => Promise<Response>;
@@ -143,52 +147,80 @@ function fixture(
   };
 }
 async function open() {
-  await waitFor(() => expect(screen.queryByText(t('loading'))).toBeNull());
+  await waitFor(
+    () => expect(screen.queryByText(t('loading'))).toBeNull(),
+    preferenceTimeout,
+  );
   fireEvent.click(screen.getByRole('button', { name: t('change') }));
-  await waitFor(() => expect(screen.queryByText(t('proLoading'))).toBeNull());
+  await waitFor(
+    () => expect(screen.queryByText(t('proLoading'))).toBeNull(),
+    preferenceTimeout,
+  );
 }
-it('previews without writing, cancels, and saves once only after server confirmation', async () => {
-  const f = fixture();
-  render(<WirDesignSettings />, { wrapper: f.wrapper });
-  await open();
-  fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.shared_album')) }),
-  );
-  expect(f.writes).toHaveLength(0);
-  // Model the browser's Back completion without relying on JSDOM traversal timing.
-  const back = vi.spyOn(window.history, 'back').mockImplementation(() => {
-    window.history.replaceState(null, '');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  });
-  fireEvent.click(screen.getByRole('button', { name: t('close') }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  expect(back).toHaveBeenCalledOnce();
-  back.mockRestore();
-  expect(
-    screen.getByText(t('names.warm'), {
-      selector: '.wir-design-summary strong',
-    }),
-  ).toBeTruthy();
-  await open();
-  fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.shared_album')) }),
-  );
-  const save = screen.getByRole('button', { name: t('save') });
-  fireEvent.click(save);
-  fireEvent.click(save);
-  await waitFor(() => expect(screen.getByText(t('saved'))).toBeTruthy());
-  expect(f.writes).toEqual([
-    { value: 'shared_album', token: '"appearance:1"' },
-  ]);
-});
+it.each(['shared_album', 'quiet_together'] as const)(
+  'previews %s without writing, cancels, and saves once only after confirmation',
+  async (designId) => {
+    const f = fixture();
+    render(<WirDesignSettings />, { wrapper: f.wrapper });
+    await screen.findByText(
+      t('names.warm'),
+      { selector: '.wir-design-summary strong' },
+      preferenceTimeout,
+    );
+    await open();
+    fireEvent.click(
+      screen.getByRole('radio', { name: new RegExp(t(`names.${designId}`)) }),
+    );
+    expect(f.writes).toHaveLength(0);
+    // Model the browser's Back completion without relying on JSDOM traversal timing.
+    await waitFor(
+      () =>
+        expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toEqual(
+          expect.any(String),
+        ),
+      preferenceTimeout,
+    );
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {
+      const state = { ...window.history.state };
+      delete state[EDITOR_HISTORY_STATE_KEY];
+      window.history.replaceState(state, '');
+      window.dispatchEvent(new PopStateEvent('popstate', { state }));
+    });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: t('close') }));
+      await waitFor(
+        () => expect(screen.queryByRole('dialog')).toBeNull(),
+        preferenceTimeout,
+      );
+      expect(back).toHaveBeenCalledOnce();
+    } finally {
+      back.mockRestore();
+    }
+    expect(
+      screen.getByText(t('names.warm'), {
+        selector: '.wir-design-summary strong',
+      }),
+    ).toBeTruthy();
+    await open();
+    fireEvent.click(
+      screen.getByRole('radio', { name: new RegExp(t(`names.${designId}`)) }),
+    );
+    const save = screen.getByRole('button', { name: t('save') });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    await screen.findByText(t('saved'), undefined, preferenceTimeout);
+    expect(f.writes).toEqual([{ value: designId, token: '"appearance:1"' }]);
+  },
+  15_000,
+);
 it('keeps a saved paid choice after downgrade and permits the Free reset', async () => {
-  const f = fixture({ pro: false, initial: 'classic' });
+  const f = fixture({ pro: false, initial: 'quiet_together' });
   render(<WirDesignSettings />, { wrapper: f.wrapper });
   await open();
   expect(
     (
       screen.getByRole('radio', {
-        name: new RegExp(t('names.classic')),
+        name: new RegExp(t('names.quiet_together')),
       }) as HTMLInputElement
     ).checked,
   ).toBe(true);
@@ -202,6 +234,17 @@ it('keeps a saved paid choice after downgrade and permits the Free reset', async
   );
   fireEvent.click(screen.getByRole('button', { name: t('save') }));
   await waitFor(() => expect(f.writes[0]?.value).toBe('warm'));
+});
+it('offers a Pro path instead of writing when Free selects Zu zweit', async () => {
+  const f = fixture({ pro: false });
+  render(<WirDesignSettings />, { wrapper: f.wrapper });
+  await open();
+  fireEvent.click(
+    screen.getByRole('radio', { name: new RegExp(t('names.quiet_together')) }),
+  );
+  expect(screen.getByRole('button', { name: t('discover') })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: t('save') })).toBeNull();
+  expect(f.writes).toHaveLength(0);
 });
 it('retains a failed draft and retries the same explicit choice', async () => {
   const f = fixture({ failWrite: 503 });

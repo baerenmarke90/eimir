@@ -48,7 +48,7 @@ def test_downgrade_resets_only_shared_album_and_invalidates_its_etag(session: Se
         else (design.value, 1, "sage")
         for design in WirDesignId
     )
-    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0131").module
+    migration = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0132").module
     with Operations.context(MigrationContext.configure(session.connection())):
         migration.upgrade()
         assert saved() == original

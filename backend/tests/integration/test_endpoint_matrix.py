@@ -284,6 +284,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}",
         fixture_aliases={"selectionId": "memoryId", "itemId": "attachmentId"},
     ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}/import",
+        fixture_aliases={"selectionId": "memoryId", "itemId": "attachmentId"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/configuration"),
     Endpoint(
         "PATCH",

@@ -191,6 +191,11 @@ entitlement and every ownership check still apply, and demo instances never qual
 list stops polling and reading immediately; cancelling and cleanup keep working. The list is
 operator-local, never committed, and not a production enablement: independent review and the
 remaining acceptance in #1467 are still required before the gate itself changes.
+
+Operator notes: list only addresses that the intended tester has already registered and verified,
+because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
+addresses as verified). Settings are cached per process, so a change to the list takes effect after the
+API is restarted or redeployed.
 ## Configure the selected live FCM transport
 
 The Product Owner selected FCM-only operation on 2026-11-01, superseding the

@@ -251,7 +251,6 @@ function CollectionProductDetail({
   }, [collectionQuery.data]);
 
   const pinCollection = useCollectionPin({ dashboardApi, accountId, spaceId });
-  const pinnedCollectionId = pinCollection.selectedCollectionId;
 
   useEffect(() => {
     if (collectionQuery.data?.title) {
@@ -948,9 +947,9 @@ function CollectionProductDetail({
                   type="button"
                   className="button-link secondary-link"
                   disabled={pinCollection.isBlocked}
-                  aria-pressed={pinnedCollectionId === collection.id}
+                  aria-pressed={pinCollection.isPinned(collection.id)}
                   aria-label={t(
-                    pinnedCollectionId === collection.id
+                    pinCollection.isPinned(collection.id)
                       ? 'm5s3.collection.unpinFromToday'
                       : 'm5s3.collection.pinToToday',
                   )}
@@ -959,15 +958,9 @@ function CollectionProductDetail({
                       ? 'collection-pin-pending'
                       : undefined
                   }
-                  onClick={() =>
-                    pinCollection.changeSelection(
-                      pinnedCollectionId === collection.id
-                        ? null
-                        : collection.id,
-                    )
-                  }
+                  onClick={() => pinCollection.toggle(collection.id)}
                 >
-                  {pinnedCollectionId === collection.id ? (
+                  {pinCollection.isPinned(collection.id) ? (
                     <span aria-hidden="true">✓ </span>
                   ) : null}
                   {t('m5s3.collection.pinLabel')}

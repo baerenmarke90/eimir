@@ -481,7 +481,7 @@ for (const [width, theme, reduced] of [
       serviceWorkers: 'block',
       baseURL,
       viewport: { width, height: 900 },
-      isMobile: width < 840,
+      isMobile: true,
       hasTouch: true,
       colorScheme: theme,
       reducedMotion: reduced ? 'reduce' : 'no-preference',
@@ -492,33 +492,25 @@ for (const [width, theme, reduced] of [
       await signIn(page);
       await page.goto('/today');
       await expect(page.locator('.today-content')).toBeVisible();
-      const overlay = page.getByRole(width < 840 ? 'dialog' : 'menu');
-      const control = page.locator(
-        width < 840
-          ? '[data-floating-create]'
-          : '.shell-primary-action .quick-create-trigger',
-      );
+      const overlay = page.getByRole('dialog');
+      const control = page.locator('[data-floating-create]');
       await expect(control).toHaveCSS(
         '-webkit-tap-highlight-color',
         'rgba(0, 0, 0, 0)',
       );
-      if (width < 840) {
-        await expectFloatingAddAction(
-          control,
-          page.locator('.mobile-bottom-shell'),
-        );
-      }
+      await expectFloatingAddAction(
+        control,
+        page.locator('.mobile-bottom-shell'),
+      );
       const bounds = await control.boundingBox();
       if (!bounds) throw new Error('Create control is not laid out');
-      if (width < 840) {
-        const reveal = page.locator(
-          '.today-moment-media .sensitive-media-preview-control',
-        );
-        await expect(reveal).toBeVisible();
-        const revealBounds = await reveal.boundingBox();
-        if (!revealBounds) throw new Error('Photo reveal is not laid out');
-        expect(revealBounds.x + revealBounds.width).toBeLessThan(bounds.x);
-      }
+      const reveal = page.locator(
+        '.today-moment-media .sensitive-media-preview-control',
+      );
+      await expect(reveal).toBeVisible();
+      const revealBounds = await reveal.boundingBox();
+      if (!revealBounds) throw new Error('Photo reveal is not laid out');
+      expect(revealBounds.x + revealBounds.width).toBeLessThan(bounds.x);
       const session = await context.newCDPSession(page);
       const contact = {
         x: bounds.x + bounds.width / 2,
@@ -542,7 +534,7 @@ for (const [width, theme, reduced] of [
       try {
         await expect
           .poll(() => control.evaluate((node) => getComputedStyle(node).scale))
-          .toBe(reduced ? 'none' : width < 840 ? '0.96' : '0.98');
+          .toBe(reduced ? 'none' : '0.96');
         await captureScreenshot(
           page,
           info,

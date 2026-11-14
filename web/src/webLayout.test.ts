@@ -254,7 +254,6 @@ describe('web layout tokens', () => {
       readSource('./components/MoreOverviewPage.css'),
       readSource('./components/PrivateAreaProductPage.css'),
       readSource('./components/ProfilePage.css'),
-      readSource('./components/QuickCreateMenu.css'),
       readSource('./components/RelatedPeopleAccessibility.css'),
       readSource('./components/RelatedPeoplePage.css'),
       readSource('./components/PlanningReference.css'),

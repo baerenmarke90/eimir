@@ -56,8 +56,7 @@
     max-width: 6rem;
   }
 
-  .shell-nav,
-  .shell-primary-action {
+  .shell-nav {
     display: none;
   }
 

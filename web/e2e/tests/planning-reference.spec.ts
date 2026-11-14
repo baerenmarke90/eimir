@@ -725,7 +725,7 @@ for (const [width, colorScheme] of [
   });
 }
 
-test('Expanded: the Planen column and the Planen/Momente view switches are centered', async ({
+test('Expanded: Wir, Planen, Momente and the text pages are centered', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1920, height: 1000 });
@@ -733,7 +733,7 @@ test('Expanded: the Planen column and the Planen/Momente view switches are cente
   await signIn(page);
 
   const centerOf = async (selector: string) => {
-    const box = await page.locator(selector).first().boundingBox();
+    const box = await page.locator(`${selector}:visible`).first().boundingBox();
     if (!box) throw new Error(`${selector} must be laid out.`);
     return box.x + box.width / 2;
   };
@@ -768,6 +768,15 @@ test('Expanded: the Planen column and the Planen/Momente view switches are cente
   await expectCentered('.story-view-tabs');
   await page.getByRole('tab', { name: memoryMap.entry }).click();
   await expectCentered('.story-view-tabs');
+
+  for (const [path, selector] of [
+    ['/today', '.new-space-experience'],
+    ['/story/our-story', '.page.relationship-story-page'],
+    ['/search', '.page.m4-product-page'],
+  ] as const) {
+    await page.goto(path);
+    await expectCentered(selector);
+  }
 
   await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);

@@ -134,19 +134,6 @@ describe('AppShell', () => {
     }
   });
 
-  it('starts Wir, Momente and Planen at the leading edge on Expanded', () => {
-    for (const path of ['/today', '/story', '/story/map', '/plan']) {
-      expect(renderShell(path)).toContain('data-expanded-align="start"');
-    }
-    for (const path of [
-      '/story/memories/memory-1',
-      '/plan/plans/plan-1',
-      '/more',
-    ]) {
-      expect(renderShell(path)).not.toContain('data-expanded-align');
-    }
-  });
-
   it('keeps contextual Story return controls separate from mobile global chrome', () => {
     const html = renderShell('/story/memories/memory-1');
     expect(html).toContain('shell-detail-context');

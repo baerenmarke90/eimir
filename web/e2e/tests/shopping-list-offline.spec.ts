@@ -1622,11 +1622,9 @@ for (const view of [
       'true',
     );
     await expectNoOverflow(page);
-    await page
-      .locator('.shared-list-summary')
-      .screenshot({
-        path: testInfo.outputPath(`list-people-${view.file}.png`),
-      });
+    await page.locator('.shared-list-summary').screenshot({
+      path: testInfo.outputPath(`list-people-${view.file}.png`),
+    });
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });

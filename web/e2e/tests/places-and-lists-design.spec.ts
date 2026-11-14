@@ -12,6 +12,7 @@ import {
   expectOverviewActionPlacement,
 } from '../support/addAction';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { renderedContrast } from '../support/renderedContrast';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -313,6 +314,25 @@ for (const scenario of [
         .analyze();
       expect(axe.violations).toEqual([]);
       if (kind === 'collections') {
+        const openCheck = page
+          .locator('.shared-list-items .checklist-toggle .eimir-icon-circle')
+          .first();
+        await expect(openCheck).toBeVisible();
+        expect(
+          (await renderedContrast(openCheck, 'stroke')).ratio,
+        ).toBeGreaterThanOrEqual(3);
+        const listAction = page.locator(
+          '.list-entry-icon-button .eimir-icon-edit',
+        );
+        const overflow = page.locator('.eimir-icon-overflow-vertical').first();
+        await expect(listAction).toHaveCSS('stroke-width', '2.2px');
+        expect((await listAction.boundingBox())?.width).toBeGreaterThanOrEqual(
+          20,
+        );
+        expect(
+          (await renderedContrast(listAction, 'stroke')).ratio,
+        ).toBeGreaterThanOrEqual(3);
+        await expect(overflow).toBeVisible();
         const field = page.getByRole('textbox', {
           name: m5s3.collection.newItem,
         });
@@ -435,6 +455,13 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
       name: m5s3.collection.markDone.replace('{{title}}', 'Dschungelcamp'),
     })
     .click();
+  await expect(
+    page
+      .getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Dschungelcamp'),
+      })
+      .locator('.eimir-icon-check'),
+  ).toHaveCSS('width', '16px');
   await expect(
     page.getByRole('button', {
       name: m5s3.collection.markOpen.replace('{{title}}', 'Dschungelcamp'),

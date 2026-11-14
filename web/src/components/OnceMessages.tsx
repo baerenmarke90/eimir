@@ -2,47 +2,48 @@ import './FreeComposer.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import type { OnceMessageCreate } from '../api/generated/models/OnceMessageCreate';
+import type { OnceSealedMessage } from '../api/generated/models/OnceSealedMessage';
 import { authorDisplayName } from '../client/authorPresentation';
 import {
-  deviceKey,
-  removeDeviceKey,
-  encryptOnce,
-  decryptOnce,
+  notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+} from '../client/notificationQueries';
+import {
   base64Bytes,
-  onceMediaBlob,
-  prepareOnceAudio,
-  prepareOncePhoto,
+  decryptOnce,
+  deviceKey,
+  encryptOnce,
   ONCE_TEXT_MAX_LENGTH,
   type OnceContent,
   type OnceDeviceKey,
+  onceMediaBlob,
+  prepareOnceAudio,
+  prepareOncePhoto,
+  removeDeviceKey,
 } from '../client/onceMessageCrypto';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
+  type OnceEnvironment,
   onceMessagePath,
   useOnceEnvironment,
   useOnceInbox,
   useOnceStatus,
-  type OnceEnvironment,
 } from '../client/onceMessages';
 import {
-  normalizeClientError,
   clientProblemKind,
+  normalizeClientError,
 } from '../client/problemDetails';
-import {
-  notificationUnreadCountQueryKey,
-  notificationsListQueryKey,
-} from '../client/notificationQueries';
 import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useVoiceRecorder } from '../client/useVoiceRecorder';
 import { VOICE_ACCEPT, voiceFile, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
-import { DraftExitPrompt } from './DraftExitPrompt';
 import { AddActionContent } from './AddAction';
+import { DraftExitPrompt } from './DraftExitPrompt';
+import { EimirIcon } from './EimirIcon';
 import { MediaActionGroup } from './MediaActionGroup';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -53,17 +54,7 @@ import { VoiceNotePlayer, VoiceWaveform } from './VoiceNotePlayer';
 import './OnceMessages.css';
 
 function EnvelopeIcon() {
-  return (
-    <svg
-      className="once-envelope"
-      viewBox="0 0 64 48"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect x="2" y="2" width="60" height="44" rx="8" />
-      <path d="m5 6 27 22L59 6M5 43l18-17m36 17L41 26" />
-    </svg>
-  );
+  return <EimirIcon name="nachrichten" className="once-envelope" />;
 }
 
 export function OnceIncomingSignal() {
@@ -97,7 +88,7 @@ function IncomingSignal({ environment }: { environment: OnceEnvironment }) {
           </strong>
           <span>{t('onceMessages.singleView')}</span>
         </span>
-        <span aria-hidden="true">›</span>
+        <EimirIcon name="chevron-right" className="inline-icon" />
       </Link>
       {inbox.error ? (
         <p role="status">{t('onceMessages.refreshFailed')}</p>
@@ -566,7 +557,7 @@ function OnceTask({
         </strong>
         <span>{t('onceMessages.singleView')}</span>
       </span>
-      <span aria-hidden="true">›</span>
+      <EimirIcon name="chevron-right" className="inline-icon" />
     </Link>
   );
 

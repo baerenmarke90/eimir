@@ -165,7 +165,7 @@ function Cover({
           {value.status === 'PENDING'
             ? t('recaps.pendingTitle')
             : t('recaps.open')}
-          <span aria-hidden="true"> →</span>
+          <EimirIcon name="arrow-right" className="inline-icon" />
         </Link>
       </div>
     </article>
@@ -696,7 +696,10 @@ function RecapReader({
           }
         }}
       >
-        <span aria-hidden="true">{playback.playing ? 'Ⅱ' : '▶'}</span>
+        <EimirIcon
+          name={playback.playing ? 'pause' : 'play'}
+          className="inline-icon"
+        />
         {overlay ? <span className="sr-only">{toggleLabel}</span> : toggleLabel}
       </button>
     ) : null;
@@ -1036,16 +1039,7 @@ function RecapReader({
                       source.mutualReaction ? (
                         <p className="recap-reaction-line">
                           {source.mutualReaction === 'LOVE' ? (
-                            <svg
-                              viewBox="0 0 24 24"
-                              aria-hidden="true"
-                              focusable="false"
-                            >
-                              <path
-                                fill="currentColor"
-                                d="M12 21.2 10.6 20C5.4 15.3 2 12.2 2 8.4 2 5.4 4.4 3 7.4 3c1.7 0 3.4.8 4.6 2.1C13.2 3.8 14.9 3 16.6 3 19.6 3 22 5.4 22 8.4c0 3.8-3.4 6.9-8.6 11.6L12 21.2Z"
-                              />
-                            </svg>
+                            <EimirIcon name="heart" variant="filled" />
                           ) : null}
                           {t(`recaps.mutualReaction.${source.mutualReaction}`)}
                         </p>
@@ -1072,7 +1066,11 @@ function RecapReader({
                             }
                           }}
                         >
-                          {t('recaps.source')} ↗
+                          {t('recaps.source')}{' '}
+                          <EimirIcon
+                            name="external-link"
+                            className="inline-icon"
+                          />
                         </Link>
                       ) : null}
                     </div>
@@ -1141,7 +1139,7 @@ function RecapReader({
                   aria-label={t('recaps.previous')}
                   onClick={() => setPage(page - 1)}
                 >
-                  ←
+                  <EimirIcon name="arrow-left" className="inline-icon" />
                 </button>
                 <div className="recap-playback-center">
                   {overlayPlay ? null : playbackToggle(false)}
@@ -1156,7 +1154,7 @@ function RecapReader({
                   aria-label={t('recaps.next')}
                   onClick={() => setPage(page + 1)}
                 >
-                  →
+                  <EimirIcon name="arrow-right" className="inline-icon" />
                 </button>
               </nav>
               {page === 0 ? (

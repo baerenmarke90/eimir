@@ -754,7 +754,7 @@ export function MediaGallery({
       <span className="video-poster">
         {url ? <img src={url} alt="" /> : null}
         <span className="video-play-mark" aria-hidden="true">
-          ▶
+          <EimirIcon name="play" className="inline-icon" />
         </span>
         {item.durationSeconds != null ? (
           <span className="video-duration media-overlay">
@@ -1096,7 +1096,7 @@ export function MediaGallery({
                   onClick={() => changeCarousel(-1)}
                   aria-label={t('gallery.previous')}
                 >
-                  <span aria-hidden="true">‹</span>
+                  <EimirIcon name="chevron-left" className="inline-icon" />
                 </button>
                 <button
                   type="button"
@@ -1105,7 +1105,7 @@ export function MediaGallery({
                   onClick={() => changeCarousel(1)}
                   aria-label={t('gallery.next')}
                 >
-                  <span aria-hidden="true">›</span>
+                  <EimirIcon name="chevron-right" className="inline-icon" />
                 </button>
               </>
             ) : null}
@@ -1305,7 +1305,10 @@ export function MediaGallery({
                         onClick={() => changeActive(-1)}
                         aria-label={t('gallery.previous')}
                       >
-                        <span aria-hidden="true">‹</span>
+                        <EimirIcon
+                          name="chevron-left"
+                          className="inline-icon"
+                        />
                       </button>
                       <button
                         type="button"
@@ -1313,7 +1316,10 @@ export function MediaGallery({
                         onClick={() => changeActive(1)}
                         aria-label={t('gallery.next')}
                       >
-                        <span aria-hidden="true">›</span>
+                        <EimirIcon
+                          name="chevron-right"
+                          className="inline-icon"
+                        />
                       </button>
                     </>
                   ) : null}

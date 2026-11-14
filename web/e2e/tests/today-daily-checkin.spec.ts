@@ -1,14 +1,15 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
 import dailyVibe from '../../src/i18n/locales/dailyVibe';
 import de from '../../src/i18n/locales/de';
-import fixtureCopy from '../fixtures/locales/de';
-import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import onceMessages from '../../src/i18n/locales/onceMessages';
+import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import wirCheckIn from '../../src/i18n/locales/wirCheckIn';
+import fixtureCopy from '../fixtures/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { renderedContrast } from '../support/renderedContrast';
 
 /**
  * Daily check-in on the couple avatars on Wir (#1790 slice A): badges on
@@ -564,7 +565,7 @@ for (const { width, theme, large, reduced } of [
       ownVibe: 'GOOD',
       ownEnergy: 80,
       ownNote: fixtureCopy.wirCheckIn.ownNote,
-      partnerVibe: 'OKAY',
+      partnerVibe: 'SAD',
       partnerEnergy: 40,
       partnerNote: fixtureCopy.wirCheckIn.partnerNote,
     });
@@ -581,6 +582,16 @@ for (const { width, theme, large, reduced } of [
     }
     await expect(page.getByTestId('wir-checkin-partner-badge')).toBeVisible();
     await page.waitForTimeout(400);
+    for (const id of ['wir-checkin-own-badge', 'wir-checkin-partner-badge']) {
+      const glyph = page.getByTestId(id).locator('.daily-vibe-icon');
+      await expect(glyph).toBeVisible();
+      expect((await glyph.boundingBox())?.width).toBeGreaterThanOrEqual(28);
+      await expect(glyph).toHaveCSS('stroke-width', '2.2px');
+      expect(
+        (await renderedContrast(glyph, 'stroke')).ratio,
+      ).toBeGreaterThanOrEqual(3);
+      await expectInsideViewport(page, id);
+    }
     await saveEvidence(page, `1790a-${label}-1-resting`);
 
     await ownAvatar(page).click();
@@ -593,13 +604,38 @@ for (const { width, theme, large, reduced } of [
         window.scrollTo(0, hero.getBoundingClientRect().top + window.scrollY);
     });
     await page.waitForTimeout(400);
+    const choiceGlyphs = panel.locator('.daily-vibe-icon');
+    await expect(choiceGlyphs).toHaveCount(5);
+    const selectedGlyph = panel.locator('.is-selected .daily-vibe-icon');
+    const selectedStroke = await selectedGlyph.evaluate(
+      (icon) => getComputedStyle(icon).stroke,
+    );
+    await expect(selectedGlyph.locator('.accent')).not.toHaveCSS(
+      'stroke',
+      selectedStroke,
+    );
+    for (const glyph of await choiceGlyphs.all()) {
+      expect((await glyph.boundingBox())?.width).toBeGreaterThanOrEqual(32);
+      await expect(glyph).toHaveCSS('stroke-width', '1.65px');
+      expect(
+        (await renderedContrast(glyph, 'stroke')).ratio,
+      ).toBeGreaterThanOrEqual(3);
+    }
     await saveEvidence(page, `1790a-${label}-2-dein-tag`);
     await panel.getByRole('button', { name: wirCheckIn.done }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
 
     await partnerAvatar(page).click();
-    await expect(page.getByTestId('wir-checkin-partner-block')).toBeVisible();
+    const partnerBlock = page.getByTestId('wir-checkin-partner-block');
+    await expect(partnerBlock).toBeVisible();
     await page.waitForTimeout(500);
+    const partnerGlyph = partnerBlock.locator('.daily-vibe-icon');
+    expect((await partnerGlyph.boundingBox())?.width).toBeGreaterThanOrEqual(
+      32,
+    );
+    expect(
+      (await renderedContrast(partnerGlyph, 'stroke')).ratio,
+    ).toBeGreaterThanOrEqual(3);
     await saveEvidence(page, `1790a-${label}-3-partner-sheet`);
     await page.keyboard.press('Escape');
 

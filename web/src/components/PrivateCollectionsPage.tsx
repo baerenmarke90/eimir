@@ -27,6 +27,7 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { AddActionButton, AddActionLink } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
+import { EimirIcon } from './EimirIcon';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -673,7 +674,9 @@ function CollectionItems({
           onClick={() => submitItemUpdate(item, { completed: !completed })}
           disabled={!collection.capabilities.canEdit || pending || readBlocked}
         >
-          {completed ? '✓' : ''}
+          {completed ? (
+            <EimirIcon name="check" className="inline-icon" />
+          ) : null}
         </button>
         {editing ? (
           <>
@@ -1057,7 +1060,8 @@ export function PrivateCollectionDetailPage({
                 role="status"
                 aria-live="polite"
               >
-                ✓
+                <EimirIcon name="check" className="inline-icon" />
+                <span className="sr-only">{t('m5s3.common.saved')}</span>
               </span>
             ) : null}
           </span>

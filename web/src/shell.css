@@ -770,20 +770,15 @@
 .shell-nav-icon {
   position: relative;
   display: grid;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
   flex: 0 0 auto;
   place-items: center;
 }
 
-.shell-nav-icon svg {
-  width: 1.35rem;
-  height: 1.35rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.shell-nav-icon > svg {
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
 }
 
 .shell-nav-link-active {
@@ -805,7 +800,7 @@
 }
 
 .shell-nav-link-active .shell-nav-icon {
-  color: var(--color-brand);
+  color: var(--color-brand-text);
 }
 
 .shell-nav .shell-nav-link {
@@ -932,27 +927,19 @@
   max-width: 100%;
 }
 
-.mobile-bottom-nav .shell-nav-link .shell-nav-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: currentColor;
+.mobile-bottom-nav .shell-nav-icon {
+  width: calc(var(--icon-size-standard) + 4px);
+  height: calc(var(--icon-size-standard) + 4px);
 }
 
-.mobile-bottom-nav .shell-nav-link .shell-nav-icon svg {
-  width: 22px;
-  height: 22px;
+.mobile-bottom-nav .shell-nav-icon > svg {
+  width: 100%;
+  height: 100%;
 }
 
 .mobile-bottom-nav .shell-nav-link-active {
   color: var(--color-text);
   font-weight: 700;
-}
-
-.mobile-bottom-nav .shell-nav-link-active .shell-nav-icon {
-  color: var(--color-brand);
 }
 
 /* Give the selected destination a quiet, tactile lift; the dock stays fixed. */
@@ -1070,6 +1057,11 @@
   color: var(--color-brand-text);
   font-size: 1.35rem;
   font-weight: 800;
+}
+
+.ui-state-mark > .eimir-icon {
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
 }
 
 .ui-state-copy {
@@ -1276,6 +1268,11 @@
 .app-pull-refresh-indicator.is-ready .app-pull-refresh-disc {
   border-color: var(--color-brand);
   color: var(--color-brand-strong);
+}
+
+.app-pull-refresh-icon {
+  width: var(--icon-size-medium);
+  height: var(--icon-size-medium);
 }
 
 .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {

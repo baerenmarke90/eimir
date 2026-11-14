@@ -32,6 +32,7 @@ import { useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { AvatarPhoto } from './AvatarPhoto';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { RelatedPersonEditorSheet } from './RelatedPersonEditorSheet';
@@ -512,7 +513,7 @@ export function RelatedPeoplePage({
                 aria-label={t('people.moreActions')}
                 onClick={() => setMenuOpen(true)}
               >
-                <span aria-hidden="true">⋯</span>
+                <EimirIcon name="overflow" className="inline-icon" />
               </button>
             </div>
             <div className="people-profile-hero">
@@ -545,9 +546,10 @@ export function RelatedPeoplePage({
                   }}
                 >
                   <strong>{birthday(person)}</strong>
-                  <span className="people-chevron" aria-hidden="true">
-                    ›
-                  </span>
+                  <EimirIcon
+                    name="chevron-right"
+                    className="people-chevron inline-icon"
+                  />
                 </Link>
               ) : (
                 <AddActionLink
@@ -696,9 +698,10 @@ export function RelatedPeoplePage({
                       </small>
                     ) : null}
                   </span>
-                  <span className="people-chevron" aria-hidden="true">
-                    ›
-                  </span>
+                  <EimirIcon
+                    name="chevron-right"
+                    className="people-chevron inline-icon"
+                  />
                 </Link>
               </li>
             ))}

@@ -13,6 +13,7 @@ const DESTINATION_MARKS: Record<AppRouteIcon, EimirIconName> = {
   more: 'mehr',
   search: 'suche',
   activity: 'aktivitaet',
+  insights: 'insights',
   notifications: 'benachrichtigungen',
   people: 'gemeinsam',
   places: 'orte',

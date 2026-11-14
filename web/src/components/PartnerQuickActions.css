@@ -123,14 +123,9 @@
 }
 
 .partner-quick-action-icon svg {
-  width: 21px;
-  height: 21px;
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
   overflow: visible;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .partner-quick-action-icon-checkin {

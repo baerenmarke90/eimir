@@ -1,5 +1,5 @@
-import { type CSSProperties, useId } from 'react';
 import type { TFunction } from 'i18next';
+import { type CSSProperties, useId } from 'react';
 import type { DailyVibe } from '../api/generated/models/DailyVibe';
 import {
   ENERGY_BANDS,
@@ -9,17 +9,17 @@ import {
   type InsightDay,
   type IsoDate,
   type PersonKey,
-  VIBE_GLYPHS,
   VIBE_LANES,
 } from '../client/dailyInsightsModel';
 import { useTranslation } from '../i18n';
 import {
   formatDayLong,
-  WeekdayLabel,
   InsightIcon,
-  PersonLegend,
   type InsightPerson,
+  PersonLegend,
+  WeekdayLabel,
 } from './DailyInsightsParts';
+import { DailyVibeIcon } from './DailyVibeIcon';
 
 /** Centre of each Energy band on the 10–100 scale (bands are 20 wide). */
 const BAND_CENTRES: Record<(typeof ENERGY_BANDS)[number], number> = {
@@ -193,10 +193,14 @@ export function VibeWeekChart({
       <figure
         className="insight-chart insight-chart-vibe"
         aria-label={t('dailyInsights.chart.vibeChartLabel')}
+        style={{ '--insight-vibe-lanes': VIBE_LANES.length } as CSSProperties}
       >
         <ul className="insight-chart-yaxis" aria-hidden="true">
           {VIBE_LANES.map((vibe) => (
-            <li key={vibe}>{t(`dailyInsights.lanes.${vibe}`)}</li>
+            <li key={vibe}>
+              <DailyVibeIcon value={vibe} compact />
+              <span>{t(`dailyInsights.lanes.${vibe}`)}</span>
+            </li>
           ))}
         </ul>
         <div className="insight-chart-plot">
@@ -219,12 +223,9 @@ export function VibeWeekChart({
                   style={{
                     left: `${((index + 0.5) / days.length) * 100}%`,
                     top: `${((lane + 0.5) / VIBE_LANES.length) * 100}%`,
-                    marginLeft: person.key === 'own' ? '-0.4rem' : '0.4rem',
                   }}
                   aria-hidden="true"
-                >
-                  <span>{VIBE_GLYPHS[vibe]}</span>
-                </span>
+                />
               );
             }),
           )}

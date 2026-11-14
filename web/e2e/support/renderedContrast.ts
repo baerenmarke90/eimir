@@ -3,6 +3,13 @@ import { expect, type Locator } from '@playwright/test';
 export async function renderedContrast(locator: Locator, property = 'color') {
   const pair = await locator.evaluate((element, selectedProperty) => {
     function channels(value: string) {
+      // Mixed colors can use normalized sRGB channels in computed styles.
+      if (value.startsWith('color(srgb ')) {
+        const components = value.slice('color(srgb '.length, -1);
+        const [color, alpha] = components.trim().split(/\s*\/\s*/);
+        const rgb = color.split(/\s+/).map((channel) => Number(channel) * 255);
+        return alpha === undefined ? rgb : [...rgb, Number(alpha)];
+      }
       return value.match(/[\d.]+/g)?.map(Number) ?? [];
     }
     const layers: number[][] = [];

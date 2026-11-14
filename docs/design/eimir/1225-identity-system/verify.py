@@ -55,8 +55,12 @@ for mode, roles in proposal['semanticStatus'].items():
 symbols = re.findall(r'^  ([a-z]+):', (BASE / 'icons.js').read_text().split('const FILLED')[0], re.M)
 assert len(symbols) == len(set(symbols)) == 30, symbols
 registry = (WEB / 'src/components/EimirIcon.tsx').read_text()
-names = re.findall(r"^  '([a-z]+)',", registry.split('] as const', 1)[0], re.M)
-assert len(names) == len(set(names)) == 39 and set(symbols) <= set(names), (symbols, names)
+names = re.findall(r"^  '([a-z][a-z0-9-]*)',", registry.split('] as const', 1)[0], re.M)
+required_names = set(symbols) | {
+    'spiele', 'orte', 'kapitel', 'geburtstag', 'profil', 'geschenk',
+    'aktivitaet', 'hinzufuegen', 'notes', 'insights',
+}
+assert len(names) == len(set(names)) and required_names <= set(names), (required_names, names)
 svgs = list((BASE / 'assets').glob('*.svg'))
 assert len(svgs) == 10, len(svgs)
 for svg in svgs:

@@ -516,6 +516,14 @@ test('three Pro games retain their existing independent home', async ({
   await expect(page.locator('.games-entry-status')).toHaveText(
     Array(3).fill(gameCopy.status.playNow),
   );
+  const catalogIcons = page.locator('.games-entry-icon > .eimir-icon');
+  await expect(catalogIcons).toHaveCount(3);
+  await expect(catalogIcons.nth(0)).toHaveClass(/eimir-icon-photo-library\b/);
+  await expect(catalogIcons.nth(1)).toHaveClass(/eimir-icon-game-wishes/);
+  await expect(catalogIcons.nth(2)).toHaveClass(/eimir-icon-game-perspective/);
+  await expect(catalogIcons.nth(0)).toHaveCSS('width', '32px');
+  await expect(catalogIcons.nth(1)).toHaveCSS('width', '24px');
+  await expect(catalogIcons.nth(2)).toHaveCSS('width', '24px');
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {
     fullPage: true,

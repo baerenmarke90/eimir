@@ -1,10 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import games from '../../src/i18n/locales/games';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import { storyDetailBack } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
+import { renderedContrast } from '../support/renderedContrast';
 import {
   ACCOUNT_ID,
   captureScreenshot,
@@ -142,6 +144,10 @@ test('More reflows in Light, Dark, large text and Expanded navigation', async ({
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
+  const gamesEntry = page.getByRole('link', {
+    name: `${navigation.games} ${games.status.premium}`,
+    exact: true,
+  });
   for (const variant of [
     { width: 360, theme: 'light', large: false },
     { width: 390, theme: 'dark', large: false },
@@ -171,6 +177,40 @@ test('More reflows in Light, Dark, large text and Expanded navigation', async ({
     await expect(
       page.getByRole('link', { name: navigation.searchAll }),
     ).toBeVisible();
+    const activeMore = page
+      .locator('.shell-nav-link[aria-current="page"] .eimir-icon-mehr')
+      .filter({ visible: true });
+    await expect(activeMore).toHaveCSS(
+      'width',
+      variant.width < 840 ? '28px' : '24px',
+    );
+    const moreDot = activeMore.locator('circle').first();
+    await expect(moreDot).toHaveAttribute('r', '2.05');
+    expect(
+      (await renderedContrast(moreDot, 'fill')).ratio,
+    ).toBeGreaterThanOrEqual(3);
+    const dice = gamesEntry.locator('.eimir-icon-spiele');
+    await expect(dice).toHaveCSS('width', '32px');
+    await expect(dice).toHaveCSS('stroke-width', '2.2px');
+    expect(
+      (await renderedContrast(dice, 'stroke')).ratio,
+    ).toBeGreaterThanOrEqual(3);
+    const insights = page.locator(
+      'a[href="/more/insights"] .eimir-icon-insights',
+    );
+    await expect(insights).toHaveClass(/eimir-icon-duotone/);
+    await expect(insights).toHaveCSS('stroke-width', '2.2px');
+    await expect(insights.locator('path[fill]')).toHaveAttribute(
+      'fill',
+      /url\(#.+-cool-warm\)/,
+    );
+    expect(
+      (await renderedContrast(insights, 'stroke')).ratio,
+    ).toBeGreaterThanOrEqual(3);
+    const calendar = page
+      .locator('.shell-nav-link .eimir-icon-planen')
+      .filter({ visible: true });
+    await expect(calendar).toHaveCSS('stroke-width', '2.2px');
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -190,6 +230,14 @@ test('More reflows in Light, Dark, large text and Expanded navigation', async ({
       info,
       `more-${variant.width}-${variant.theme}${variant.large ? '-large-text' : ''}.png`,
     );
+    if (variant.width === 360 || variant.width === 390) {
+      await gamesEntry.scrollIntoViewIfNeeded();
+      await captureScreenshot(
+        page,
+        info,
+        `more-games-${variant.width}-${variant.theme}.png`,
+      );
+    }
     await page.locator('.more-footer').scrollIntoViewIfNeeded();
     await expect(page.locator('.more-footer .brand-mark')).toBeInViewport();
     await expect(page.locator('.more-logout')).toBeInViewport();
@@ -199,6 +247,12 @@ test('More reflows in Light, Dark, large text and Expanded navigation', async ({
       `more-footer-${variant.width}-${variant.theme}.png`,
     );
   }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gamesEntry.click();
+  await expect(page).toHaveURL(/\/games$/);
+  await expect(page.getByRole('heading', { name: games.title })).toBeVisible();
+  await page.goBack();
+  await expect(gamesEntry).toBeVisible();
 });
 
 test('headerless Compact content consumes the safe area once and retains Story return', async ({

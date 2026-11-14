@@ -4,6 +4,7 @@ import { photoPlaceMapUrl } from '../client/photoPlaces';
 import { placeDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { MomentMapLink } from './MomentMapLink';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { ProblemState } from './ProblemState';
@@ -56,7 +57,7 @@ export function MomentPlaceActionsMenu({
           setError(null);
         }}
       >
-        <span aria-hidden="true">⋯</span>
+        <EimirIcon name="overflow" className="inline-icon" />
       </button>
       <ShortTaskSheet
         ref={sheet}

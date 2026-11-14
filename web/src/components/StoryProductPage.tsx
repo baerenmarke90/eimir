@@ -831,19 +831,7 @@ export function StoryProductPage({
         setMobileFiltersOpen(true);
       }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width="20"
-        height="20"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M3 4h18l-7 8v7l-4 2v-9L3 4Z" />
-      </svg>
+      <EimirIcon name="filter" className="story-filter-glyph" />
       {hasActiveFilters ? (
         <span className="story-filter-active-badge" aria-hidden="true">
           {activeFilterCount}
@@ -855,15 +843,11 @@ export function StoryProductPage({
   const emptyState = (
     <div className="new-space-experience">
       <div className="new-space-mark" aria-hidden="true">
-        <svg
-          viewBox="0 0 24 24"
-          width="36"
-          height="36"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
+        <EimirIcon
+          name="heart"
+          variant="filled"
+          className="story-empty-heart"
+        />
       </div>
       <h2 className="new-space-title">{t('story.emptyTitle')}</h2>
       <p className="new-space-body">{t('story.emptyBody')}</p>
@@ -958,16 +942,11 @@ export function StoryProductPage({
                   ) : null}
                   <div className="momente-hero-body">
                     <span className="momente-hero-kicker">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="14"
-                        height="14"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="kicker-icon"
-                      >
-                        <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                      </svg>
+                      <EimirIcon
+                        name="star"
+                        variant="filled"
+                        className="kicker-icon inline-icon"
+                      />
                       <span>
                         {onThisDayKicker
                           ? t('story.onThisDay', {
@@ -1072,15 +1051,11 @@ export function StoryProductPage({
                                 className="momente-tapestry-milestone-icon"
                                 aria-hidden="true"
                               >
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  width="16"
-                                  height="16"
-                                  fill="currentColor"
-                                  aria-hidden="true"
-                                >
-                                  <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                                </svg>
+                                <EimirIcon
+                                  name="star"
+                                  variant="filled"
+                                  className="inline-icon"
+                                />
                               </span>
                               <span className="momente-tapestry-milestone-copy">
                                 <span className="momente-tapestry-milestone-title">
@@ -1394,7 +1369,7 @@ export function StoryProductPage({
                       >
                         <span>{resolveStoryKindLabel(filters.kind, t)}</span>
                         <span className="chip-remove" aria-hidden="true">
-                          ✕
+                          <EimirIcon name="close" className="inline-icon" />
                         </span>
                       </button>
                     )}
@@ -1407,7 +1382,7 @@ export function StoryProductPage({
                       >
                         <span>{filters.year}</span>
                         <span className="chip-remove" aria-hidden="true">
-                          ✕
+                          <EimirIcon name="close" className="inline-icon" />
                         </span>
                       </button>
                     )}
@@ -1420,7 +1395,7 @@ export function StoryProductPage({
                       >
                         <span>{t('storyFilters.oldest')}</span>
                         <span className="chip-remove" aria-hidden="true">
-                          ✕
+                          <EimirIcon name="close" className="inline-icon" />
                         </span>
                       </button>
                     )}

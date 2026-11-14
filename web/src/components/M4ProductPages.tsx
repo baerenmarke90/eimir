@@ -59,6 +59,7 @@ import { ActivityCard } from './ActivityCard';
 import { AutoLoadMore } from './AutoLoadMore';
 import { DestinationIcon } from './DestinationIcon';
 import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
+import { EimirIcon } from './EimirIcon';
 import { HEART_MOMENT_TAGS } from './HeartMomentTagChoices';
 import { MEMORY_TAGS } from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
@@ -609,7 +610,7 @@ function NotificationCard({
           />
         ) : item.kind === 'THINKING_OF_YOU' ? (
           <span className="notification-heart-icon" aria-hidden="true">
-            ♥
+            <EimirIcon name="heart" variant="filled" className="inline-icon" />
           </span>
         ) : null}
         <div className="m4-notification-copy">

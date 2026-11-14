@@ -37,6 +37,22 @@ describe('DailyVibeIcon', () => {
     expect(drawings.size).toBe(vibes.length);
   });
 
+  it('has distinct compact expressions while retaining the detailed drawings', () => {
+    const drawings = new Set<string>();
+    for (const value of vibes) {
+      const detailed = renderIcon(value).innerHTML;
+      cleanup();
+      const { container } = render(<DailyVibeIcon value={value} compact />);
+      const svg = container.querySelector('svg');
+      if (!svg) throw new Error(`no compact glyph for ${value}`);
+      expect(svg.classList.contains('eimir-icon-compact')).toBe(true);
+      expect(svg.innerHTML).not.toBe(detailed);
+      drawings.add(svg.innerHTML);
+      cleanup();
+    }
+    expect(drawings.size).toBe(vibes.length);
+  });
+
   it('follows the shared icon contract and stays decorative', () => {
     for (const value of vibes) {
       const svg = renderIcon(value);

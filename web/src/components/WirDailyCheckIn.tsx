@@ -10,22 +10,22 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
+import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import {
   DailyVibe,
   type DailyVibe as DailyVibeValue,
 } from '../api/generated/models/DailyVibe';
-import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import { dailyCheckInTodayQueryOptions } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
-import type { PartnerAvatarAction } from './PartnerAvatarPair';
 import { useTranslation } from '../i18n';
 import { BatteryIcon } from './DailyEnergyBattery';
 import { DailyVibeIcon } from './DailyVibeIcon';
 import { EimirIcon } from './EimirIcon';
-import { usePresentationPresence } from './useOverlayPresence';
+import type { PartnerAvatarAction } from './PartnerAvatarPair';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
+import { usePresentationPresence } from './useOverlayPresence';
 import { useViewportClamp } from './useViewportClamp';
 import './WirDailyCheckIn.css';
 
@@ -598,13 +598,18 @@ export function useWirDailyCheckIn({
         {ownHasValue ? (
           <>
             {ownVibe ? (
-              <DailyVibeIcon value={ownVibe} className="wir-checkin-glyph" />
+              <DailyVibeIcon
+                value={ownVibe}
+                className="wir-checkin-glyph"
+                compact
+              />
             ) : null}
             {ownEnergy !== null ? <BatteryIcon value={ownEnergy} /> : null}
           </>
         ) : (
           <span className="wir-checkin-prompt">
-            <span aria-hidden="true">+</span> {t('wirCheckIn.ownPrompt')}
+            <EimirIcon name="hinzufuegen" className="inline-icon" />{' '}
+            {t('wirCheckIn.ownPrompt')}
           </span>
         )}
       </span>
@@ -625,13 +630,18 @@ export function useWirDailyCheckIn({
             className={`wir-checkin-badge-content${revealKey > 0 && partnerState === 'visible' ? ' is-revealed' : ''}`}
           >
             {partnerState === 'hidden' ? (
-              <EimirIcon name="privatsphaere" className="wir-checkin-lock" />
+              <EimirIcon
+                name="privatsphaere"
+                className="wir-checkin-lock"
+                compact
+              />
             ) : (
               <>
                 {partnerVibeValue ? (
                   <DailyVibeIcon
                     value={partnerVibeValue}
                     className="wir-checkin-glyph"
+                    compact
                   />
                 ) : null}
                 {partnerEnergyValue !== null ? (
@@ -648,7 +658,7 @@ export function useWirDailyCheckIn({
             data-testid="wir-checkin-note-dot"
             aria-hidden="true"
           >
-            <EimirIcon name="nachrichten" />
+            <EimirIcon name="nachrichten" compact />
           </span>
         ) : null}
       </>

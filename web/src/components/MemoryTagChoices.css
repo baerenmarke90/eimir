@@ -43,8 +43,13 @@
   font-weight: 650;
 }
 
-.memory-tag-choice:has(input:checked) span::before {
-  content: "✓ ";
+.memory-tag-check {
+  display: none;
+  margin-inline-end: var(--space-1);
+}
+
+.memory-tag-choice:has(input:checked) .memory-tag-check {
+  display: block;
 }
 
 .memory-tag-choice:has(input:focus-visible) {

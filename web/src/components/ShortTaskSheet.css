@@ -135,13 +135,8 @@
 
 .short-task-sheet-close-icon {
   display: none;
-  width: var(--space-5);
-  height: var(--space-5);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  width: var(--icon-size-medium);
+  height: var(--icon-size-medium);
 }
 
 .short-task-sheet-body {

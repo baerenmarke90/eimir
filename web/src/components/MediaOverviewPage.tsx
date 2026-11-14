@@ -260,7 +260,7 @@ export function MediaOverviewPage({
       <span className="video-poster">
         {attachment.hasThumbnail ? preview : null}
         <span className="video-play-mark" aria-hidden="true">
-          ▶
+          <EimirIcon name="play" className="inline-icon" />
         </span>
         {attachment.durationSeconds != null ? (
           <span className="video-duration media-overlay">

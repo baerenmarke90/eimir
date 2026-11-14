@@ -6,12 +6,13 @@ import {
   readSystemPrefersDark,
   readThemePreference,
   resolveTheme,
-  storeThemePreference,
   SYSTEM_THEME_EVENT,
+  storeThemePreference,
   THEME_PREFERENCE_EVENT,
   THEME_STORAGE_KEY,
   type ThemePreference,
 } from '../theme';
+import { EimirIcon } from './EimirIcon';
 
 function applyCurrentTheme(): ThemePreference {
   const preference = readThemePreference();
@@ -96,7 +97,7 @@ function ThemePreferenceSelector() {
   return (
     <div className="theme-control theme-control-inline">
       <span className="theme-control-icon" aria-hidden="true">
-        ◐
+        <EimirIcon name="theme" className="inline-icon" />
       </span>
       <label htmlFor="theme-preference">{t('theme.label')}</label>
       <select

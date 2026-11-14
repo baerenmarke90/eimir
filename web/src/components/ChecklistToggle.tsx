@@ -1,3 +1,4 @@
+import { EimirIcon } from './EimirIcon';
 import './ChecklistToggle.css';
 
 export function ChecklistToggle({
@@ -23,29 +24,7 @@ export function ChecklistToggle({
       onClick={onToggle}
     >
       <span className="checklist-toggle-indicator" aria-hidden="true">
-        {completed ? (
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m6 12 4 4 8-9" />
-          </svg>
-        ) : (
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          >
-            <circle cx="12" cy="12" r="9" />
-          </svg>
-        )}
+        <EimirIcon name={completed ? 'check' : 'circle'} />
       </span>
     </button>
   );

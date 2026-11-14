@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import {
+  onlineManager,
   QueryClient,
   QueryClientProvider,
-  onlineManager,
 } from '@tanstack/react-query';
 import {
   act,
@@ -271,7 +271,8 @@ describe('WirDailyCheckIn badges and accessible names', () => {
     const { api } = apiFor(projection({ partnerNote: 'Must stay hidden' }));
     renderCheckIn({ api });
     const own = await screen.findByTestId('wir-checkin-own-badge');
-    expect(own.textContent).toBe(`+ ${wirCheckIn.ownPrompt}`);
+    expect(own.textContent?.trim()).toBe(wirCheckIn.ownPrompt);
+    expect(own.querySelector('.eimir-icon-hinzufuegen')).toBeTruthy();
     expect(own.querySelector('[data-vibe-icon]')).toBeNull();
     expect(own.querySelector('.daily-energy-battery-icon')).toBeNull();
     expect(screen.getByTestId('own-trigger').getAttribute('aria-label')).toBe(

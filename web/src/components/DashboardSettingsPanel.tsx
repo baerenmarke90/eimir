@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useRef, useState, type ReactNode } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardModulePreferenceView } from '../api/generated/models/DashboardModulePreferenceView';
@@ -907,7 +907,7 @@ export function DashboardSettingsPanel({
                 <span>
                   {itemLimit}
                   {selectedLimit === itemLimit ? (
-                    <span aria-hidden="true"> ✓</span>
+                    <EimirIcon name="check" className="inline-icon" />
                   ) : null}
                 </span>
               </label>

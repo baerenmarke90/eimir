@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import './ListEntryActions.css';
 
 export function moveSortableItem(
@@ -410,72 +411,20 @@ export const ListEntryIconButton = forwardRef<
 });
 
 export function EditPencilIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      viewBox="0 0 24 24"
-      className={className}
-    >
-      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-    </svg>
-  );
+  return <EimirIcon name="edit" className={className} />;
 }
 
-function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
-  if (kind === 'edit') {
-    return <EditPencilIcon className="list-entry-icon" />;
-  }
-  if (kind === 'unlink') {
-    return (
-      <svg
-        aria-hidden="true"
-        focusable="false"
-        viewBox="0 0 24 24"
-        className="list-entry-icon"
-      >
-        <path d="m6 6 12 12M18 6 6 18" />
-      </svg>
-    );
-  }
+const LIST_ACTION_ICONS: Record<IconButtonProps['icon'], EimirIconName> = {
+  delete: 'trash',
+  edit: 'edit',
+  more: 'overflow-vertical',
+  reorder: 'reorder',
+  save: 'save',
+  unlink: 'close',
+};
 
+function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
   return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      viewBox="0 0 24 24"
-      className="list-entry-icon"
-    >
-      {kind === 'more' ? (
-        <>
-          <circle cx="12" cy="5" r="1" />
-          <circle cx="12" cy="12" r="1" />
-          <circle cx="12" cy="19" r="1" />
-        </>
-      ) : null}
-      {kind === 'save' ? (
-        <>
-          <path d="M5 3h11l3 3v15H5z" />
-          <path d="M8 3v6h8V3" />
-          <path d="M8 14h8v7H8z" />
-        </>
-      ) : null}
-      {kind === 'delete' ? (
-        <>
-          <path d="M4 7h16" />
-          <path d="M9 7V4h6v3" />
-          <path d="m6 7 1 14h10l1-14" />
-          <path d="M10 11v6" />
-          <path d="M14 11v6" />
-        </>
-      ) : null}
-      {kind === 'reorder' ? (
-        <>
-          <path d="M5 7h14" />
-          <path d="M5 12h14" />
-          <path d="M5 17h14" />
-        </>
-      ) : null}
-    </svg>
+    <EimirIcon name={LIST_ACTION_ICONS[kind]} className="list-entry-icon" />
   );
 }

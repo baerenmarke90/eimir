@@ -1,4 +1,5 @@
 import { type ReactNode, type RefObject, useEffect, useState } from 'react';
+import { EimirIcon } from './EimirIcon';
 import { PlanningDiscardConfirmation } from './PlanningEditorLifecycle';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
@@ -74,16 +75,5 @@ export function SharedContentSheet({
 }
 
 export function ContentChevron() {
-  return (
-    <svg
-      className="content-chevron"
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="m9 5 7 7-7 7" />
-    </svg>
-  );
+  return <EimirIcon name="chevron-right" className="content-chevron" />;
 }

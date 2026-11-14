@@ -92,6 +92,9 @@ for (const world of worldNames.filter(
 css.push(
   `.eimir-icon { fill: none; stroke: currentColor; stroke-width: ${identity.icon.strokePx}; stroke-linecap: round; stroke-linejoin: round; }`,
 );
+css.push(
+  `.eimir-icon-compact { stroke-width: ${identity.icon.compactStrokePx}; }`,
+);
 css.push('.eimir-icon .accent { stroke: var(--identity-icon-accent); }');
 css.push('.eimir-icon .cool { stroke: var(--identity-icon-cool); }');
 css.push(

@@ -231,8 +231,8 @@
 }
 
 .story-card-footer .story-card-meta-item svg {
-  width: 1.2em;
-  height: 1.2em;
+  width: max(var(--icon-size-small), 1.2em);
+  height: max(var(--icon-size-small), 1.2em);
   flex: 0 0 auto;
 }
 
@@ -354,6 +354,8 @@
 
 .story-timeline-item .story-timeline-marker svg {
   display: block;
+  width: var(--icon-size-small);
+  height: var(--icon-size-small);
 }
 
 /* Narrow viewport reflow (320px) */
@@ -387,8 +389,8 @@
   }
 
   .story-timeline-item .story-timeline-marker-heart-moment svg {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
   }
 
   .story-timeline-marker-milestone {
@@ -397,8 +399,8 @@
   }
 
   .story-timeline-item .story-timeline-marker-milestone svg {
-    width: 10px;
-    height: 10px;
+    width: 14px;
+    height: 14px;
   }
 }
 

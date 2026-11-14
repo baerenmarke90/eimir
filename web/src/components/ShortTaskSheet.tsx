@@ -1,6 +1,6 @@
 import {
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   type Ref,
   type RefObject,
   useEffect,
@@ -12,6 +12,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { useModalLifecycle } from './useModalLifecycle';
 import { useOverlayPresence } from './useOverlayPresence';
 import './ShortTaskSheet.css';
@@ -710,14 +711,7 @@ export function ShortTaskSheet({
           onClick={() => requestClose()}
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />
-          <svg
-            className="short-task-sheet-close-icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M6 6 18 18M18 6 6 18" />
-          </svg>
+          <EimirIcon name="close" className="short-task-sheet-close-icon" />
         </button>
       </header>
       <section

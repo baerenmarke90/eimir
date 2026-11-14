@@ -131,7 +131,7 @@ function PlanningSearch({
               inputRef.current?.focus();
             }}
           >
-            <span aria-hidden="true">×</span>
+            <EimirIcon name="close" className="inline-icon" />
           </button>
         ) : null}
       </div>

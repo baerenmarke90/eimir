@@ -59,6 +59,29 @@ The existing routes and content also need nine symbols absent from the board: Sp
 
 The control owns its accessible name and interaction state; decorative SVGs are hidden from assistive technology. Use the existing localized label, `aria-current` for active destinations, native `disabled` semantics where applicable, and the semantic focus role. Do not place an unlabeled icon alone in a button.
 
+### Compact legibility follow-up
+
+[Compact reference in Light and Dark](../../../product/design/references/icon-palette/compact-more-reference.webp). The 390 px reference was generated on `main` at `3d3ff5e462a599c3c4260a6375f4b3ea0fc28069` with local fixture data and temporary SVG changes. It retains the full More overview, including profile, privacy, utilities and the bottom navigation. Product Reference v1 R4 and R5 and the existing Today and Settings/Privacy templates govern the check-in and destination list.
+
+- Use the existing 24 px grid, rounded strokes, semantic size roles and color worlds. Keep the approved filled and duotone motifs, gradient stops and heart interaction states. Use a 24 px box for primary navigation and an emphasis size where an existing row or picker has room. Use the approved `DailyVibeIcon` artwork from [#1790](https://github.com/baerenmarke90/eimir/issues/1790) and [#1793](https://github.com/baerenmarke90/eimir/pull/1793) on Wir and in insights/history. Dense charts pair person markers with labeled mood lanes or a labeled legend and day details.
+- The Games link shows a three-pip cube, People shows two figures and Activity uses a clock. Lists show bullets with horizontal lines. The speech bubble for Insights has a waveform and a soft fill from the existing cool-to-warm gradient. Destination names stay visible.
+- Compact and Expanded reuse the existing destination rows, navigation, check-in controls and chart interactions. The avatar badges, choices, Energy battery, loading, hidden, empty, error, offline and success states stay in their current contexts. Motion, focus, Back, visible labels and privacy/reveal follow the existing flows. Verify Compact Light/Dark, large text, reduced motion and the Expanded layout in the real product. Exercise check-in selection and clearing and the More-to-Games and More-to-Insights paths.
+- Reuse `EimirIcon`, `DestinationIcon`, `DailyVibeIcon` and semantic theme tokens. A separate icon library or raster sprite catalog would duplicate the approved artwork and state model. **No business/freemium impact.** The change applies to the existing daily check-in, Pro Insights and Games surfaces in Cloud and Self-Hosted. It changes glyph presentation without affecting access, storage, usage or retention.
+
+The [Compact browser comparison](../../../product/design/references/icon-palette/compact-runtime.webp) shows More, the avatar badges and the Insights calendar at 390 px. The [Expanded browser capture](../../../product/design/references/icon-palette/expanded-insights-runtime.webp) shows the weekly Vibe lanes and Energy chart. All captures use local fixtures.
+
+Small-size rendering uses a 2.2-unit rounded stroke on the same 24-unit grid. Bottom navigation uses a 28 px box and keeps its labeled destinations. More rows use the stronger contours inside their 32 px boxes. The avatar badges and chart use simplified renditions of the same seven expressions with wider spacing between the eyes and mouth. The labeled choices and partner sheet use the approved detailed drawings. The weekly chart gives its faces at least 20 px and the calendar uses the available cell width for compact faces. The labeled legend and the selected day's text carry the mood names.
+
+### Shared controls and detail views
+
+The [390 px list reference](../../../product/design/references/icon-palette/compact-list-reference.webp) uses existing list fixtures, navigation and full task layout on the icon branch with main at `4aaba65010e71b59968bd3ade7ad52e621c98d6e` integrated. It applies the proposed stroke and target glyph sizes in the browser before implementation. The baseline review also covered the media gallery and saved voice playback in both themes.
+
+- Follow R1, R2 and R3 and the Detail, Story Timeline and Plan Hub templates. The list item, photo or voice message remains the focal point. Reuse the shared icon registry for the reading, editing, playback, privacy and status controls, including the small pictograms inside Insights. Use optical sizes from the design tokens for the existing controls.
+- Keep visible labels, Back, focus return, RTL direction, loading and error messages, playback and check states in their present controls. Preserve the established single-ink on-action treatment and the existing filled, gradient and two-tone artwork. Retain the dedicated visuals for changing data, including the Energy battery, waveform and graph.
+- Compact provides the primary layouts. Expanded reuses the same actions and icon roles. Exercise returning from Media and toggling or editing a list item, including failure recovery. Check actual icon dimensions and contrast on light and dark surfaces, with large text and reduced motion. No business/freemium impact.
+
+The [Compact browser captures](../../../product/design/references/icon-palette/shared-controls-compact.webp) show list actions, voice playback and the games catalog at 390 px. The [Expanded capture](../../../product/design/references/icon-palette/shared-controls-expanded.webp) shows the same voice player at 1280 px.
+
 | Control state | Visual treatment | Non-color signal |
 | --- | --- | --- |
 | Default | Outline, normal text/icon color | Recognizable contour and visible label |

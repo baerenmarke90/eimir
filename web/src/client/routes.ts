@@ -18,6 +18,7 @@ export type AppRouteIcon =
   | 'more'
   | 'search'
   | 'activity'
+  | 'insights'
   | 'notifications'
   | 'people'
   | 'places'

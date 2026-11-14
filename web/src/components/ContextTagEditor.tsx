@@ -1,6 +1,6 @@
 import {
-  type Ref,
   type ReactNode,
+  type Ref,
   useEffect,
   useId,
   useImperativeHandle,
@@ -12,8 +12,8 @@ import { useApiRuntime } from '../client/apiRuntimeContext';
 import { useContextTagSuggestions } from '../client/useContextTagSuggestions';
 import { useTranslation } from '../i18n';
 import './MemoryTagChoices.css';
-import { EimirIcon } from './EimirIcon';
 import { AddActionButton } from './AddAction';
+import { EimirIcon } from './EimirIcon';
 import { ComposerChip, ComposerTool } from './PageComposer';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
@@ -176,7 +176,7 @@ function ContextTagEditorContent({
                 }}
               >
                 <span>{labelForTag(tag)}</span>
-                <span aria-hidden="true">×</span>
+                <EimirIcon name="close" className="inline-icon" />
               </button>
             </li>
           ))}
@@ -281,6 +281,10 @@ function ContextTagEditorContent({
                           )
                         }
                       />
+                      <EimirIcon
+                        name="check"
+                        className="memory-tag-check inline-icon"
+                      />
                       <span>{tag}</span>
                     </label>
                   ))}
@@ -308,6 +312,10 @@ function ContextTagEditorContent({
                         : selected.filter((entry) => entry !== tag),
                     )
                   }
+                />
+                <EimirIcon
+                  name="check"
+                  className="memory-tag-check inline-icon"
                 />
                 <span>{labelForTag(tag)}</span>
               </label>

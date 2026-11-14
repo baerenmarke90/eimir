@@ -25,6 +25,12 @@ const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
+const GAME_ICONS: Record<GameEntry, EimirIconName> = {
+  moments: 'photo-library',
+  wishes: 'game-wishes',
+  perspective: 'game-perspective',
+};
+
 function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
   if (entry === 'wishes') return GAMES_WISH_DETECTIVE_ROUTE;
@@ -108,24 +114,14 @@ export function GamesProductArea({
         />
       ) : (
         <section className="games-shelf" aria-label={t('games.title')}>
-          {GAME_ENTRIES.map((entry, index) => {
+          {GAME_ENTRIES.map((entry) => {
             const route = gamesUnlocked ? gameRoute(entry) : null;
             const localGameAvailable = gamesUnlocked && entry === 'perspective';
             const playable = Boolean(route || localGameAvailable);
             const content = (
               <>
-                <div className="games-entry-index" aria-hidden="true">
-                  <EimirIcon
-                    name={
-                      (
-                        [
-                          'foto',
-                          'wuensche',
-                          'gemeinsam',
-                        ] satisfies EimirIconName[]
-                      )[index]
-                    }
-                  />
+                <div className="games-entry-icon" aria-hidden="true">
+                  <EimirIcon name={GAME_ICONS[entry]} />
                 </div>
                 <div className="games-entry-copy">
                   <p className="games-entry-role">

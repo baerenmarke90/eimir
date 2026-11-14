@@ -1,21 +1,22 @@
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
-import { ProfilesApi } from '../client/mediaApis';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { Configuration } from '../client/apiConfiguration';
 import { formatRelativeTime } from '../client/formatRecency';
 import { notificationPath, opaqueNextCursor } from '../client/m4Product';
+import { ProfilesApi } from '../client/mediaApis';
 import { notificationsListQueryKey } from '../client/notificationQueries';
-import { getNotificationItemTitle } from '../client/notificationTitle';
 import { beginNotificationRead } from '../client/notificationRead';
+import { getNotificationItemTitle } from '../client/notificationTitle';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { AuthorAvatar } from './PersonIdentity';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import { useOverlayPresence } from './useOverlayPresence';
@@ -234,7 +235,11 @@ export function HeaderNotificationsMenu({
                           className="notification-heart-icon"
                           aria-hidden="true"
                         >
-                          ♥
+                          <EimirIcon
+                            name="heart"
+                            variant="filled"
+                            className="inline-icon"
+                          />
                         </span>
                       ) : (
                         <span className="header-notifications-fallback-icon">

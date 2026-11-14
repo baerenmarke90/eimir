@@ -40,6 +40,8 @@
     var(--easing-enter);
 }
 .memory-photo-picker button {
+  display: grid;
+  place-items: center;
   min-width: 0;
   min-height: 44px;
   border: 0;
@@ -48,6 +50,17 @@
   font-size: 1.5rem;
   background: transparent;
   box-shadow: none;
+}
+
+.memory-photo-picker .eimir-icon {
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
+}
+
+.memory-photo-reactions .eimir-icon {
+  width: var(--icon-size-medium);
+  height: var(--icon-size-medium);
+  display: block;
 }
 .memory-photo-picker button[aria-pressed="true"],
 .memory-photo-picker button:hover {

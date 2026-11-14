@@ -48,6 +48,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { isCapacitorNative } from '../pwa';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { GamesProductArea } from './GamesProductArea';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { QuickCreateMenu } from './QuickCreateMenu';
@@ -347,12 +348,17 @@ function AuthenticatedAppShell({
               >
                 {isPrivateArea ? (
                   <>
-                    <span aria-hidden="true">🔒</span>{' '}
+                    <EimirIcon name="lock" className="inline-icon" />{' '}
                     {t('privateArea.privacyLabel')}
                   </>
                 ) : (
                   <>
-                    <span aria-hidden="true">♥</span> {t('header.sharedArea')}
+                    <EimirIcon
+                      name="heart"
+                      className="inline-icon"
+                      variant="filled"
+                    />{' '}
+                    {t('header.sharedArea')}
                   </>
                 )}
               </span>
@@ -362,14 +368,14 @@ function AuthenticatedAppShell({
 
         {cachedAtLabel ? (
           <div className="offline-banner" role="status">
-            <span aria-hidden="true">↯</span>
+            <EimirIcon name="cloud-off" className="inline-icon" />
             <span>
               {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
             </span>
           </div>
         ) : !online ? (
           <div className="offline-banner" role="status">
-            <span aria-hidden="true">↯</span>
+            <EimirIcon name="cloud-off" className="inline-icon" />
             <span>{t('states.offline.banner')}</span>
           </div>
         ) : null}

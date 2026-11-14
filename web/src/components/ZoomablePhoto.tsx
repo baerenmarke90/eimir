@@ -209,7 +209,7 @@ export function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
             disabled={scale >= 4}
             onClick={() => zoom.current?.zoomIn({ animate: false })}
           >
-            <span aria-hidden="true">+</span>
+            <EimirIcon name="hinzufuegen" className="inline-icon" />
           </button>
           <button
             type="button"
@@ -219,7 +219,7 @@ export function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
             disabled={scale <= 1}
             onClick={() => zoom.current?.zoomOut({ animate: false })}
           >
-            <span aria-hidden="true">−</span>
+            <EimirIcon name="minus" className="inline-icon" />
           </button>
           <button
             type="button"

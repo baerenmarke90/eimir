@@ -55,8 +55,6 @@
 .once-envelope {
   width: var(--space-8);
   height: var(--space-8);
-  stroke: currentColor;
-  stroke-width: 2;
   flex: 0 0 auto;
 }
 .once-sealed-link {

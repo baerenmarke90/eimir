@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { MemoryDetailToJSON } from '../api/generated/models/MemoryDetail';
-import type { PhotoReaction } from '../api/generated/models/PhotoReaction';
+import { PhotoReaction } from '../api/generated/models/PhotoReaction';
 import type { PhotoReactionSummary } from '../api/generated/models/PhotoReactionSummary';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
@@ -18,19 +18,29 @@ import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { EimirIcon } from './EimirIcon';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { ProblemState } from './ProblemState';
 import './MemoryPhotoGallery.css';
 
-export const PHOTO_REACTIONS = [
-  { value: 'LOVE', emoji: '❤️' },
-  { value: 'LAUGH', emoji: '😂' },
-  { value: 'SURPRISE', emoji: '😮' },
-  { value: 'SAD', emoji: '😢' },
-  { value: 'CELEBRATE', emoji: '🙌' },
-  { value: 'LIKE', emoji: '👍' },
-] as const;
+const PHOTO_REACTION_ICONS: Record<PhotoReaction, EimirIconName> = {
+  LOVE: 'heart',
+  LAUGH: 'face-laugh',
+  SURPRISE: 'face-surprised',
+  SAD: 'face-sad',
+  CELEBRATE: 'sparkle',
+  LIKE: 'thumbs-up',
+};
+const PHOTO_REACTIONS = Object.values(PhotoReaction);
+
+function PhotoReactionIcon({ value }: { value: PhotoReaction }) {
+  return (
+    <EimirIcon
+      name={PHOTO_REACTION_ICONS[value]}
+      variant={value === 'LOVE' ? 'filled' : 'outline'}
+    />
+  );
+}
 
 function PhotoActions({
   request,
@@ -104,7 +114,7 @@ function PhotoActions({
           }}
           aria-busy={saving}
         >
-          {PHOTO_REACTIONS.map(({ value, emoji }, index) => (
+          {PHOTO_REACTIONS.map((value, index) => (
             <button
               type="button"
               key={value}
@@ -118,7 +128,7 @@ function PhotoActions({
                 });
               }}
             >
-              <span aria-hidden="true">{emoji}</span>
+              <PhotoReactionIcon value={value} />
             </button>
           ))}
         </fieldset>
@@ -184,10 +194,7 @@ function PhotoReactionChips({
                   : undefined
               }
             >
-              {
-                PHOTO_REACTIONS.find((choice) => choice.value === reaction)
-                  ?.emoji
-              }
+              <PhotoReactionIcon value={reaction} />
             </span>
             {count > 1 ? (
               <span aria-hidden="true">{formatCount.format(count)}</span>

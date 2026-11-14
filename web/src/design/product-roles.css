@@ -91,6 +91,8 @@
   --touch-target-web: 44px;
   --touch-target-comfortable: 48px;
   --touch-target-floating-create: 60px;
+  --icon-size-small: 16px;
+  --icon-size-medium: 20px;
   --icon-size-standard: 24px;
   --icon-size-large: 32px;
   --add-action-icon: 20px;

@@ -57,15 +57,15 @@
 }
 
 .wir-checkin-badge .wir-checkin-glyph {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: max(calc(var(--icon-size-standard) + 4px), 1.5em);
+  height: max(calc(var(--icon-size-standard) + 4px), 1.5em);
   flex: 0 0 auto;
   color: var(--color-brand-text);
 }
 
 .wir-checkin-badge .daily-energy-battery-icon {
-  width: 1.3rem;
-  height: 0.8rem;
+  width: var(--icon-size-standard);
+  height: auto;
 }
 
 .wir-checkin-badge[data-pending="true"] {
@@ -79,8 +79,8 @@
 }
 
 .wir-checkin-lock {
-  width: 1rem;
-  height: 1rem;
+  width: var(--icon-size-medium);
+  height: var(--icon-size-medium);
   color: var(--color-text-secondary);
 }
 
@@ -104,8 +104,10 @@
 }
 
 .wir-checkin-note-dot .eimir-icon {
-  width: 0.9rem;
-  height: 0.9rem;
+  --identity-icon-accent: currentColor;
+
+  width: var(--icon-size-small);
+  height: var(--icon-size-small);
 }
 
 /* The note dot owns the outer top corner; presence moves to the outer side. */
@@ -238,8 +240,8 @@
 }
 
 .wir-checkin-vibe-circle .daily-vibe-icon {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: max(var(--icon-size-large), 2em);
+  height: max(var(--icon-size-large), 2em);
 }
 
 .wir-checkin-vibe.is-selected {
@@ -252,9 +254,23 @@
   animation: wir-checkin-vibe-pop var(--duration-context) var(--easing-standard);
 }
 
-/* The selected face keeps its warm/cool accents legible on the fill. */
+/* Retain the warm and cool accents with the selected action's foreground. */
 .wir-checkin-vibe.is-selected .daily-vibe-icon {
-  --identity-icon-accent: var(--color-on-action-primary);
+  --identity-icon-warm-fill: color-mix(
+    in srgb,
+    var(--identity-icon-accent) 25%,
+    currentColor
+  );
+  --identity-icon-cool-fill: color-mix(
+    in srgb,
+    var(--identity-icon-cool) 25%,
+    currentColor
+  );
+}
+
+/* The accent on the neutral expression is its only mouth line. */
+.wir-checkin-vibe.is-selected .daily-vibe-icon .accent {
+  stroke: var(--identity-icon-warm-fill);
 }
 
 .wir-checkin-vibe-clear {
@@ -515,8 +531,9 @@
 }
 
 .wir-checkin-partner-vibe .daily-vibe-icon {
-  width: 1.4rem;
-  height: 1.4rem;
+  width: max(var(--icon-size-large), 2em);
+  height: max(var(--icon-size-large), 2em);
+  flex: 0 0 auto;
   color: var(--color-brand-text);
 }
 

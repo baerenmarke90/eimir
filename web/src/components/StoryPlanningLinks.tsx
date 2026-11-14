@@ -422,7 +422,7 @@ function ScopedStoryPlanningLinks({
                     })}
                     onClick={() => save(target.kind, target.id, true)}
                   >
-                    ×
+                    <EimirIcon name="close" className="inline-icon" />
                   </button>
                 ) : null}
               </li>
@@ -706,7 +706,7 @@ export function StoryPlanningDraftLinks({
                 )
               }
             >
-              {target.title} ×
+              {target.title} <EimirIcon name="close" className="inline-icon" />
             </button>
           ))}
         </div>

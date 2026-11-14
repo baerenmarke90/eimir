@@ -23466,6 +23466,16 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "X-Eimir-Shared-Achievement": {
+                "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
+                "schema": {
+                  "enum": [
+                    "plan-completed",
+                    "collection-completed"
+                  ],
+                  "type": "string"
+                }
               }
             }
           },

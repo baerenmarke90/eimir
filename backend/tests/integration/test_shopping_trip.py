@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from eimir.collections import service as collection_service
 from eimir.collections.models import CollectionSuggestion
 from eimir.outbox.models import OutboxEvent
+from eimir.relationship import configuration as relationship_configuration
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -416,3 +417,48 @@ class TestEvents:
         assert types.count("COLLECTION_ITEM_DELETED") == 2
         assert types.count("COLLECTION_UPDATED") == 1
         assert SECRET_TITLE not in json.dumps([event.payload for event in events], default=str)
+
+
+class TestSharedMoment:
+    def _enable(self, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
+        configuration = relationship_configuration.load(session, couple["space"].id)
+        assert configuration is not None
+        configuration.shared_achievements_enabled = True
+        session.flush()
+
+    def test_finishing_the_last_entries_is_a_shared_moment_when_the_couple_enabled_it(  # type: ignore[no-untyped-def]
+        self, client, couple, session
+    ) -> None:
+        self._enable(session, couple)
+        collection = make_collection(client, couple)
+        milk = add_item(client, couple, collection["id"], "Milch")
+        check(client, couple, collection["id"], milk)
+
+        response = finish(client, couple, collection["id"], [milk["id"]])
+
+        assert response.headers["X-Eimir-Shared-Achievement"] == "collection-completed"
+
+    def test_it_is_not_a_moment_when_entries_are_still_open_or_nothing_was_finished(  # type: ignore[no-untyped-def]
+        self, client, couple, session
+    ) -> None:
+        self._enable(session, couple)
+        collection = make_collection(client, couple)
+        milk = add_item(client, couple, collection["id"], "Milch")
+        add_item(client, couple, collection["id"], "Brot")
+        check(client, couple, collection["id"], milk)
+
+        partly = finish(client, couple, collection["id"], [milk["id"]])
+        nothing = finish(client, couple, collection["id"], [milk["id"]])
+
+        assert "X-Eimir-Shared-Achievement" not in partly.headers
+        assert "X-Eimir-Shared-Achievement" not in nothing.headers
+
+    def test_it_is_never_sent_when_the_couple_did_not_enable_it(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        collection = make_collection(client, couple)
+        milk = add_item(client, couple, collection["id"], "Milch")
+        check(client, couple, collection["id"], milk)
+
+        response = finish(client, couple, collection["id"], [milk["id"]])
+
+        assert response.json()["finishedCount"] == 1
+        assert "X-Eimir-Shared-Achievement" not in response.headers

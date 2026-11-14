@@ -955,6 +955,28 @@
       "you": "You",
       "quantityLabel": "Quantity (optional)",
       "quantityPlaceholder": "Quantity",
+      "suggestions": {
+        "heading": "Bought before",
+        "add": "Add {{title}} again",
+        "remove": "Remove suggestion “{{title}}”",
+        "note": "From your finished trips. Only the two of you see this."
+      },
+      "finish": {
+        "action": "Finish trip",
+        "pending": "Finishing …",
+        "offline": "You need a connection to finish the trip.",
+        "waiting": "Waiting changes are sent first.",
+        "failed": "The trip could not be finished. Please try again."
+      },
+      "endState": {
+        "title": "You did it together!",
+        "body": "Everything is in the cart. The trip is done.",
+        "bodyShares": "Everything is in the cart: {{shares}}.",
+        "share": "{{count}} from {{name}}",
+        "done_one": "Trip finished: {{count}} entry.",
+        "done_other": "Trip finished: {{count}} entries.",
+        "dismiss": "Close"
+      },
       "cart": {
         "bar_one": "In the cart · {{count}} entry",
         "bar_other": "In the cart · {{count}} entries"

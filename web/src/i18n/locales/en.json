@@ -1077,25 +1077,18 @@
       "recent": {
         "allAction": "All activity"
       },
-      "pinnedCollection": {
-        "kicker": "Shared list",
-        "openAction": "Open list",
-        "openAriaLabel": "Open “{{title}}”",
-        "addPlaceholder": "Add entry",
-        "addAction": "Add entry",
-        "addRequired": "Enter something first.",
+      "wirLists": {
+        "titleOne": "Our list",
+        "titleMany": "Our lists",
+        "allLists": "All lists",
+        "allListsAria": "View all shared lists",
+        "openAria": "Open “{{title}}”",
+        "add": "Add",
         "empty": "Nothing on this list yet.",
-        "more_one": "{{count}} more entry",
-        "more_other": "{{count}} more entries",
-        "showMore_one": "Show {{count}} more entry",
-        "showMore_other": "Show {{count}} more entries",
-        "showLess": "Show less",
-        "loadError": "The pinned list could not be loaded right now.",
-        "toggleFailed": "This change was not saved. Try again.",
-        "sharedAchievementConfirmed": "{{title}} marked as done",
-        "sharedAchievementTitle": "You did it together!",
-        "sharedAchievementBody": "You have completed every item on your list “{{title}}”. What a team! 💙",
-        "sharedAchievementAction": "View list"
+        "loadError": "The lists could not be loaded right now.",
+        "lastAdded": "{{name}} added “{{title}}”",
+        "lastCart": "{{name}} put “{{title}}” in the cart",
+        "lastDone": "{{name}} finished “{{title}}”"
       },
       "living": {
         "kicker": "In your life right now",

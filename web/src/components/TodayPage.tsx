@@ -29,14 +29,13 @@ import {
   useAttentionReceipt,
   useAttentionReceipts,
 } from '../client/attentionReceipt';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
   isDashboardModuleVisible,
   limitUpcomingItems,
   orderedDashboardModuleKeys,
-  selectedDashboardCollectionId,
+  selectedDashboardCollectionIds,
 } from '../client/dashboardPreferences';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
@@ -66,7 +65,7 @@ import {
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
-  collectionDetailPath,
+  MORE_COLLECTIONS_ROUTE,
 } from '../client/routes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
@@ -125,7 +124,7 @@ import {
 import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
-import { TodayPinnedCollection } from './TodayPinnedCollection';
+import { WirLists } from './WirLists';
 import { UiState } from './UiState';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
@@ -893,9 +892,6 @@ export function TodayPage({
   const vibeCheckEnabled =
     !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.vibeCheckEnabled === true;
-  const sharedAchievementsEnabled =
-    spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
-    true;
   const liveDashboardPreferencesQuery = useQuery({
     queryKey: dashboardPreferencesQueryKey(account?.id ?? '', spaceId),
     queryFn: () =>
@@ -912,41 +908,13 @@ export function TodayPage({
   const dashboardPreferences =
     dashboardPreferencesQuery.data ?? dashboardQuery.data?.modulePreferences;
 
-  const pinnedCollectionId = selectedDashboardCollectionId(
+  const pinnedCollectionIds = selectedDashboardCollectionIds(
     dashboardPreferences,
     'pinned_collection',
   );
   const pinnedCollectionVisible = isDashboardModuleVisible(
     dashboardPreferences,
     'pinned_collection',
-  );
-  const livePinnedCollectionQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.collectionDetail(
-      spaceId,
-      pinnedCollectionId ?? undefined,
-    ),
-    queryFn: () => {
-      if (!collectionsApi || !pinnedCollectionId) {
-        throw new Error('Pinned Collection is not available.');
-      }
-      return apiCall(() =>
-        collectionsApi.getCollection({
-          spaceId,
-          collectionId: pinnedCollectionId,
-        }),
-      );
-    },
-    enabled: Boolean(
-      collectionsApi &&
-        pinnedCollectionId &&
-        pinnedCollectionVisible &&
-        account?.id,
-    ),
-    retry: false,
-  });
-  const pinnedCollectionQuery = useHeldQuery(
-    livePinnedCollectionQuery,
-    resumeSettling,
   );
 
   const activityQuery = useHeldQuery(
@@ -1334,7 +1302,7 @@ export function TodayPage({
       !retrospective &&
       !livingModule &&
       !serverKeepsake &&
-      !(pinnedCollectionVisible && pinnedCollectionId),
+      !(pinnedCollectionVisible && pinnedCollectionIds.length > 0),
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
@@ -1556,56 +1524,40 @@ export function TodayPage({
       <>
         {!dashboardQuery.isCached &&
         pinnedCollectionVisible &&
-        pinnedCollectionId &&
-        pinnedCollectionQuery.data ? (
+        pinnedCollectionIds.length > 0 &&
+        collectionsApi ? (
           <TodayModuleSection
             className={
               revealAfterCache
                 ? 'today-section-pinned-collection today-module-reveal'
                 : 'today-section-pinned-collection'
             }
-            title={pinnedCollectionQuery.data.title}
+            title={t(
+              pinnedCollectionIds.length === 1
+                ? 'm5s5.today.wirLists.titleOne'
+                : 'm5s5.today.wirLists.titleMany',
+            )}
             headerAction={
               <TodayDestinationLink
-                to={collectionDetailPath(pinnedCollectionId)}
+                to={MORE_COLLECTIONS_ROUTE}
                 className="today-section-link"
-                ariaLabel={t('m5s5.today.pinnedCollection.openAriaLabel', {
-                  title: pinnedCollectionQuery.data.title,
-                })}
+                ariaLabel={t('m5s5.today.wirLists.allListsAria')}
               >
-                {t('m5s5.today.pinnedCollection.openAction')}
+                {t('m5s5.today.wirLists.allLists')}
               </TodayDestinationLink>
             }
           >
-            {collectionsApi ? (
-              <TodayPinnedCollection
-                api={collectionsApi}
-                accountId={account?.id ?? ''}
-                spaceId={spaceId}
-                collection={pinnedCollectionQuery.data}
-                sharedAchievementsEnabled={sharedAchievementsEnabled}
-              />
-            ) : null}
+            <WirLists
+              api={collectionsApi}
+              spaceId={spaceId}
+              collectionIds={pinnedCollectionIds}
+              enabled={Boolean(account?.id)}
+            />
           </TodayModuleSection>
         ) : dashboardQuery.isCached &&
           pinnedCollectionVisible &&
-          pinnedCollectionId ? (
+          pinnedCollectionIds.length > 0 ? (
           <TodayModulePlaceholder kind="pinned-collection" />
-        ) : null}
-
-        {pinnedCollectionVisible &&
-        pinnedCollectionId &&
-        pinnedCollectionQuery.error ? (
-          <div className="today-partial-error" role="status">
-            <span>{t('m5s5.today.pinnedCollection.loadError')}</span>
-            <button
-              type="button"
-              className="today-partial-error-action"
-              onClick={() => void pinnedCollectionQuery.refetch()}
-            >
-              {t('common.retry')}
-            </button>
-          </div>
         ) : null}
       </>
     ),

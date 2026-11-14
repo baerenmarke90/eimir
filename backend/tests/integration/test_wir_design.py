@@ -114,16 +114,18 @@ def test_switching_between_the_free_designs_stays_free(client, couple) -> None:
     assert connected.json() == {"designId": "connected", "version": 2}
 
 
-def test_pro_designs_are_exactly_shared_album_modern_and_classic() -> None:
+def test_only_the_optional_wir_designs_require_pro() -> None:
     assert {design for design in WirDesignId if design not in FREE_WIR_DESIGNS} == {
         WirDesignId.SHARED_ALBUM,
+        WirDesignId.QUIET_TOGETHER,
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
     }
 
 
 @pytest.mark.parametrize(
-    "design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.MODERN, WirDesignId.CLASSIC]
+    "design_id",
+    [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER, WirDesignId.MODERN, WirDesignId.CLASSIC],
 )
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:
     initial = client.get(path(couple), headers=couple["b"])
@@ -135,27 +137,33 @@ def test_every_alternative_is_pro_for_both_partners(client, session, couple, des
     grant(session, couple)
     saved = client.patch(path(couple), headers=headers, json={"designId": design_id.value})
     assert saved.status_code == 200
-    assert saved.json()["designId"] == design_id.value
+    assert saved.json() == {"designId": design_id.value, "version": 1}
+    assert client.get(path(couple), headers=couple["b"]).json() == saved.json()
     assert client.get(path(couple), headers=couple["a"]).json()["designId"] == "connected"
 
 
+@pytest.mark.parametrize("design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER])
 def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is_free(
     client,
     session,
     couple,
+    design_id: WirDesignId,
 ) -> None:
     entitlement = grant(session, couple)
     initial = client.get(path(couple), headers=couple["a"])
     saved = client.patch(
         path(couple),
         headers={**couple["a"], "If-Match": initial.headers["ETag"]},
-        json={"designId": "shared_album"},
+        json={"designId": design_id.value},
     )
+    assert saved.status_code == 200
     entitlements.revoke_grant(session, entitlement.id)
     retained = client.get(path(couple), headers=couple["a"])
     assert retained.status_code == 200
-    assert retained.json()["designId"] == "shared_album"
+    assert retained.json()["designId"] == design_id.value
     assert retained.headers["ETag"] == saved.headers["ETag"]
+    other_path = f"/api/v1/spaces/{couple['other'].id}/appearance/wir-design"
+    assert client.get(other_path, headers=couple["a"]).json()["designId"] == "connected"
     blocked = client.patch(
         path(couple),
         headers={**couple["a"], "If-Match": saved.headers["ETag"]},
@@ -248,14 +256,15 @@ def test_membership_owner_scope_invalid_ids_and_required_concurrency(
     assert client.get(other_path, headers=couple["a"]).json()["designId"] == "connected"
 
 
+@pytest.mark.parametrize("design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.QUIET_TOGETHER])
 def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
-    session, couple
+    session, couple, design_id: WirDesignId
 ) -> None:
     own = AppIconPreference(
         icon_id="original",
         account_id=couple["anna"].id,
         space_id=couple["space"].id,
-        wir_design="shared_album",
+        wir_design=design_id.value,
     )
     partner = AppIconPreference(
         icon_id="original",
@@ -272,7 +281,7 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
             if scope is TransferScope.PERSONAL:
                 assert account_document["personalAppearance"] == {
                     "appIconId": "original",
-                    "wirDesign": "shared_album",
+                    "wirDesign": design_id.value,
                 }
             else:
                 assert "personalAppearance" not in account_document

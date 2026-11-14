@@ -1,0 +1,669 @@
+:root[data-app-design="quiet_together"]
+  .product-shell[data-top-surface="today"]::before,
+.today-page[data-wir-design="quiet_together"] .wir-minimal-hero::before {
+  content: none;
+}
+
+:root[data-app-design="quiet_together"] .product-shell .mobile-bottom-shell {
+  background: var(--color-surface-overlay);
+  box-shadow: 0 -1px 0
+    color-mix(in srgb, var(--color-border-subtle) 48%, transparent);
+}
+
+:root[data-app-design="quiet_together"]
+  .product-shell
+  .mobile-bottom-nav
+  .shell-nav-link-active {
+  color: var(--color-brand-text);
+  background: var(--color-brand-surface);
+}
+
+.today-page[data-wir-design="quiet_together"] .today-content {
+  inline-size: min(100%, 38rem);
+  margin-inline: auto;
+}
+
+.today-page[data-wir-design="quiet_together"] .wir-minimal-hero {
+  margin: 0 0 var(--space-6);
+  padding: clamp(var(--space-3), 5vh, var(--space-9)) 0 0;
+}
+
+.today-page .wir-minimal-hero .couple-presence-main {
+  display: grid;
+  inline-size: 100%;
+  gap: var(--space-4);
+}
+
+.today-page .wir-minimal-hero .couple-presence-details {
+  align-items: start;
+  gap: 0;
+}
+
+.today-page .wir-minimal-hero .couple-presence-title {
+  display: grid;
+  inline-size: 100%;
+  font: 520 clamp(3.3rem, 15vw, 6.8rem) / 0.98 var(--font-ui);
+  letter-spacing: -0.072em;
+  overflow-wrap: anywhere;
+  padding-block-end: var(--space-2);
+  text-align: start;
+}
+
+.wir-minimal-hero .couple-presence-title > span + span {
+  padding-inline-start: clamp(0.65rem, 5vw, 2.3rem);
+}
+
+.wir-minimal-hero .couple-presence-joiner {
+  color: var(--color-brand-text);
+  font-weight: 440;
+}
+
+.wir-minimal-story-link {
+  display: inline-flex;
+  min-block-size: 44px;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-brand-text);
+  font: 650 0.9rem / 1.2 var(--font-ui);
+  order: 1;
+  text-underline-offset: 0.2em;
+}
+
+.wir-minimal-story-link .eimir-icon {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+.today-page .wir-minimal-hero .couple-presence-meta {
+  align-items: start;
+  min-inline-size: 0;
+}
+.today-page .wir-minimal-hero .today-hero-duration-link {
+  min-block-size: 44px;
+  padding-inline: 0;
+  color: var(--color-text-secondary);
+  font: 520 0.85rem / 1.3 var(--font-ui);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-subtle);
+  text-underline-offset: 0.18em;
+}
+.today-page .wir-minimal-hero .today-hero-pill-icon {
+  display: none;
+}
+.today-page
+  .wir-minimal-hero
+  :is(.couple-presence-avatar-anchor, .partner-avatar-pair) {
+  display: block;
+  inline-size: 100%;
+  border-radius: 0;
+}
+.wir-minimal-hero .partner-avatar-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  column-gap: var(--space-3);
+}
+.wir-minimal-hero .partner-avatar-slot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 57px;
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-medium);
+  text-align: start;
+}
+.wir-minimal-hero button.partner-avatar-slot {
+  padding-inline: var(--space-3);
+  background: var(--color-surface-subtle);
+}
+.wir-minimal-hero button.partner-avatar-slot:hover {
+  background: var(--color-brand-surface);
+}
+.wir-minimal-hero .partner-avatar-pair .partner-avatar {
+  margin: 0;
+  box-shadow: none;
+}
+.wir-minimal-hero
+  .partner-avatar-pair-split
+  button.partner-avatar-slot
+  .partner-avatar {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  clip-path: inset(50%);
+}
+.wir-minimal-hero .partner-avatar-waiting {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+.wir-minimal-person {
+  min-inline-size: 0;
+  display: grid;
+  gap: 0.15rem;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+.wir-minimal-person strong {
+  font-weight: 660;
+}
+.wir-minimal-hero .wir-checkin-badge {
+  position: static;
+  min-block-size: 1rem;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  translate: none;
+  white-space: normal;
+  font-size: 0.72rem;
+}
+.wir-minimal-hero .wir-checkin-badge .wir-checkin-glyph {
+  inline-size: 1.17rem;
+  block-size: 1.17rem;
+}
+.wir-minimal-hero .wir-checkin-note-dot {
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-1);
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+}
+.wir-minimal-hero .wir-checkin-note-dot .eimir-icon {
+  inline-size: 0.73rem;
+  block-size: 0.73rem;
+}
+.today-page
+  .wir-minimal-hero
+  .partner-avatar-pair-split
+  .partner-presence-avatar-state {
+  inset: auto var(--space-2) var(--space-2) auto;
+  box-shadow: none;
+}
+
+.today-page[data-wir-design="quiet_together"] .today-section-header {
+  padding-inline: 0;
+  margin-block-end: var(--space-1);
+}
+
+.today-page[data-wir-design="quiet_together"] .today-section-title {
+  font: 680 1.02rem / 1.25 var(--font-ui);
+  letter-spacing: -0.022em;
+}
+
+.today-page[data-wir-design="quiet_together"]
+  .today-section-moment
+  .today-section-header {
+  align-items: center;
+  gap: var(--space-2);
+}
+.today-page[data-wir-design="quiet_together"]
+  .today-section-moment
+  .add-action {
+  font-size: 0.8rem;
+  min-block-size: 44px;
+}
+.today-page[data-wir-design="quiet_together"] .today-section-moment {
+  margin-block-end: var(--space-10);
+}
+.today-page[data-wir-design="quiet_together"] .today-moment-figure {
+  display: grid;
+  grid-template-columns: clamp(3.3rem, 17vw, 4.6rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-1);
+  border-radius: var(--radius-small);
+  background: transparent;
+  box-shadow: none;
+}
+
+.today-page[data-wir-design="quiet_together"]
+  .today-moment-media
+  :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
+  aspect-ratio: 1;
+  border-radius: var(--radius-small);
+}
+
+.today-page[data-wir-design="quiet_together"] .today-moment-caption {
+  position: static;
+  padding: 0;
+  background: transparent;
+}
+
+.today-page[data-wir-design="quiet_together"] .today-moment-title {
+  color: var(--color-text);
+  font: 620 1rem / 1.25 var(--font-ui);
+  overflow-wrap: anywhere;
+}
+
+.today-page[data-wir-design="quiet_together"] .today-moment-date {
+  color: var(--color-text-secondary);
+}
+
+.today-page[data-wir-design="quiet_together"] .today-moment-text {
+  border: 0;
+  border-inline-start: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+}
+
+.today-page[data-wir-design="quiet_together"] .today-moment-text-content {
+  font-size: 1rem;
+}
+
+.today-page[data-wir-design="quiet_together"] .daily-quote-content {
+  justify-items: start;
+  padding: 0;
+  text-align: start;
+}
+.today-page[data-wir-design="quiet_together"] .daily-quote-mark {
+  display: none;
+}
+.today-page[data-wir-design="quiet_together"] .daily-quote-block p {
+  color: var(--color-text-secondary);
+  font: 500 0.9rem / 1.5 var(--font-ui);
+}
+
+.today-page[data-wir-design="quiet_together"] .today-agenda-list {
+  display: grid;
+  gap: 0;
+  overflow: visible;
+}
+.today-page[data-wir-design="quiet_together"]
+  .today-agenda-list
+  > .today-agenda-row {
+  max-inline-size: 100%;
+  border: 0;
+  border-radius: var(--radius-medium);
+  padding-inline: 0;
+  background: transparent;
+}
+.today-page[data-wir-design="quiet_together"] .today-agenda-icon {
+  background: transparent;
+}
+
+@media (forced-colors: active) {
+  .wir-minimal-hero button.partner-avatar-slot {
+    border: 1px solid ButtonText;
+  }
+}
+
+/* The same surfaces carry through the other primary destinations. */
+:root[data-app-design="quiet_together"]
+  .product-shell
+  :is(.story-page-unified, .planen-overview, .more-page) {
+  max-inline-size: 48rem;
+  margin-inline: auto;
+}
+
+:root[data-app-design="quiet_together"]
+  :is(.story-view-tabs, .planen-overview .planen-segmented) {
+  background: var(--color-surface-subtle);
+}
+
+:root[data-app-design="quiet_together"]
+  .story-view-tabs
+  .planen-segment.is-active {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+:root[data-app-design="quiet_together"]
+  .planen-overview
+  .planen-segmented:not(.story-view-tabs)::before {
+  background: var(--color-action-primary);
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"]
+  .planen-overview
+  .planen-segmented
+  > .planen-segment.is-active {
+  color: var(--color-on-action-primary);
+}
+
+/* In Momente the photo and the authored text lead. Captions sit below the
+ * image so they stay legible without another overlay. */
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .momente-hero-highlight {
+  background: var(--color-surface);
+  border: 0;
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .momente-hero-link.has-media
+  > * {
+  grid-area: auto;
+}
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .momente-hero-link.has-media
+  .momente-hero-media {
+  aspect-ratio: 16 / 9;
+}
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .momente-hero-link
+  .momente-hero-body {
+  padding: var(--space-4);
+  gap: var(--space-2);
+  background: transparent;
+  color: var(--color-text);
+}
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .momente-hero-link.has-media
+  :is(.momente-hero-meta, .momente-hero-kicker) {
+  color: var(--color-text-secondary);
+}
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  :is(.momente-hero-title, .momente-tapestry-title) {
+  font-family: var(--font-ui);
+  font-weight: 660;
+  letter-spacing: -0.025em;
+}
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .momente-tapestry-media {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .momente-tapestry-media
+  .momente-tapestry-body {
+  padding-inline: 0;
+}
+
+/* Keep one visible lead in Planen and group the rest with space. */
+:root[data-app-design="quiet_together"] .planen-overview .planen-next-link {
+  background: var(--color-surface);
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"]
+  .planen-overview
+  :is(.planen-agenda-link, .planen-undated-link) {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"]
+  .planen-overview
+  :is(.planen-undated, .planen-history)
+  li
+  + li {
+  border-block-start: 0;
+}
+:root[data-app-design="quiet_together"]
+  .planen-overview
+  :is(
+    .planen-next-copy > strong,
+    .planen-agenda-title,
+    .planen-wish-copy > strong
+  ) {
+  font-family: var(--font-ui);
+  font-weight: 660;
+  letter-spacing: -0.022em;
+}
+
+/* Mehr needs a legible index. The headings and gaps group the destinations. */
+:root[data-app-design="quiet_together"] .more-page .more-search-entry {
+  background: var(--color-surface-subtle);
+}
+:root[data-app-design="quiet_together"]
+  .more-page
+  :is(.more-destinations, .more-destinations > li) {
+  background: transparent;
+}
+:root[data-app-design="quiet_together"]
+  .more-page
+  .more-destinations
+  > li
+  + li {
+  border-block-start: 0;
+}
+:root[data-app-design="quiet_together"]
+  .more-page
+  .more-group-separated
+  .more-destinations {
+  gap: 0;
+}
+:root[data-app-design="quiet_together"] .more-page .more-destination {
+  padding-inline: 0 var(--space-2);
+  min-block-size: 55px;
+  grid-template-columns: 2.35rem minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+:root[data-app-design="quiet_together"] .more-page .more-profile-destination {
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+}
+:root[data-app-design="quiet_together"] .more-page .more-destination-icon {
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  background: transparent;
+}
+:root[data-app-design="quiet_together"] .more-page .more-group-title {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root[data-app-design="quiet_together"]
+    .product-shell
+    :is(.planen-agenda-link, .more-destination):hover {
+    background: var(--color-surface-subtle);
+  }
+}
+/* Insight controls share the preview palette. Chart colors and marks remain
+   distinct so that the two people and their values stay easy to compare. */
+:root[data-app-design="quiet_together"] .daily-insights {
+  gap: var(--space-5);
+}
+:root[data-app-design="quiet_together"] .daily-insights .insight-body {
+  gap: var(--space-6);
+}
+:root[data-app-design="quiet_together"]
+  .daily-insights
+  :is(
+    .insight-header h1,
+    .insight-card h2,
+    .insight-closing h2,
+    .insight-hero h2
+  ) {
+  font-family: var(--font-ui);
+  letter-spacing: -0.04em;
+}
+:root[data-app-design="quiet_together"] .daily-insights .insight-nav {
+  background: var(--color-surface-subtle);
+}
+:root[data-app-design="quiet_together"]
+  .daily-insights
+  .insight-nav
+  a[aria-current="page"] {
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"] .daily-insights .insight-picker {
+  padding-inline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"]
+  .daily-insights
+  .insight-picker
+  button:not(:disabled) {
+  color: var(--color-brand-text);
+}
+:root[data-app-design="quiet_together"]
+  .daily-insights
+  .insight-card:not(.insight-gate) {
+  padding-inline: 0;
+  background: transparent;
+}
+:root[data-app-design="quiet_together"]
+  .daily-insights
+  :is(.insight-closing, .insight-hero) {
+  min-height: 0;
+  padding: var(--space-4);
+  background: var(--color-surface-subtle);
+}
+:root[data-app-design="quiet_together"] .daily-insights .insight-landscape {
+  display: none;
+}
+:root[data-app-design="quiet_together"]
+  .daily-insights
+  :is(.insight-closing, .insight-hero)
+  > .insight-handwriting {
+  position: static;
+  max-width: none;
+  text-align: start;
+  transform: none;
+}
+:root[data-app-design="quiet_together"] .daily-insights .insight-cta {
+  color: var(--color-on-action-primary);
+  background: var(--color-action-primary);
+}
+:root[data-app-design="quiet_together"] .daily-insights .insight-cta:hover {
+  box-shadow: none;
+}
+
+/* The games are peers. Preserve the real play and Pro state on each entry. */
+:root[data-app-design="quiet_together"] .games-product-page {
+  width: min(100%, 42rem);
+}
+:root[data-app-design="quiet_together"] .games-product-page .games-shelf {
+  gap: var(--space-3);
+}
+:root[data-app-design="quiet_together"] .games-product-page .games-entry {
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  min-height: 0;
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .games-entry:first-child {
+  background: transparent;
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .games-entry
+  .games-entry-index {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon,
+:root[data-app-design="quiet_together"]
+  .more-page
+  .more-destination-icon
+  .eimir-icon-spiele {
+  --identity-icon-accent: currentColor;
+  --identity-icon-cool: currentColor;
+  --identity-icon-warm-fill: currentColor;
+  --identity-icon-cool-fill: currentColor;
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .games-entry-index
+  .eimir-icon {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+:root[data-app-design="quiet_together"] .games-product-page .games-entry-copy {
+  grid-column: 2;
+}
+:root[data-app-design="quiet_together"] .games-product-page .games-entry h2 {
+  font: 680 clamp(1.12rem, 4.7vw, 1.3rem) / 1.14 var(--font-ui);
+  letter-spacing: -0.027em;
+}
+:root[data-app-design="quiet_together"] .games-product-page .games-entry-role {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .games-entry-status {
+  grid-column: 2;
+  justify-self: start;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  background: transparent;
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .games-entry-link
+  .games-entry-status {
+  color: var(--color-brand-text);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .games-entry-link:focus-visible {
+  outline-offset: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  :root[data-app-design="quiet_together"]
+    .games-product-page
+    .games-entry-link:hover {
+    background: var(--color-surface-subtle);
+  }
+}
+:root[data-app-design="quiet_together"]
+  .games-product-page
+  .local-couple-session {
+  background: var(--color-surface-subtle);
+}
+
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .minimal-story-create {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: var(--space-4);
+}
+
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .minimal-story-create
+  .add-action {
+  font-size: 0.8rem;
+}
+
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .couple-experience-links
+  a {
+  background: transparent;
+  padding-inline: var(--space-2);
+}
+
+:root[data-app-design="quiet_together"]
+  .story-page-unified
+  .couple-experience-links
+  a:hover {
+  background: var(--color-surface-subtle);
+}
+
+:root[data-app-design="quiet_together"] .games-product-page .games-heading h1 {
+  font-family: var(--font-ui);
+  letter-spacing: -0.045em;
+}

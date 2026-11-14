@@ -436,3 +436,59 @@
 .wir-design-preview-shared_album .wir-design-preview-moment {
   background: linear-gradient(#92a287 72%, #3d543c 72%);
 }
+
+.wir-design-preview-quiet_together {
+  --quiet-preview-ink: #4b3945;
+  --quiet-preview-accent: #865e74;
+  --quiet-preview-detail: #e3d5dd;
+  grid-template-rows: 26px 11px 12px 1fr;
+  background: #f8f6f7;
+}
+:root[data-theme="dark"] .wir-design-preview-quiet_together {
+  --quiet-preview-ink: #f2ebf0;
+  --quiet-preview-accent: #d9afc6;
+  --quiet-preview-detail: #594c57;
+  background: #221f23;
+}
+.wir-design-preview-quiet_together .wir-design-preview-hero {
+  padding: 3px 4px 0;
+  justify-items: stretch;
+}
+.wir-design-preview-wordmark {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+.wir-design-preview-wordmark i {
+  width: 72%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--quiet-preview-ink);
+}
+.wir-design-preview-wordmark i + i {
+  width: 65%;
+  margin-inline-start: 22%;
+}
+.wir-design-preview-quiet_together .wir-design-preview-vibes {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 4px;
+  padding-inline: 4px;
+}
+.wir-design-preview-quiet_together .wir-design-preview-vibes i {
+  min-height: 3px;
+  background: var(--quiet-preview-accent);
+}
+.wir-design-preview-quiet_together .wir-design-preview-quote {
+  align-self: center;
+  width: 64%;
+  min-height: 2px;
+  margin-inline-start: 4px;
+  background: var(--quiet-preview-detail);
+}
+.wir-design-preview-quiet_together .wir-design-preview-moment {
+  width: 28%;
+  min-height: 0;
+  margin-inline-start: 4px;
+  background: var(--quiet-preview-detail);
+}

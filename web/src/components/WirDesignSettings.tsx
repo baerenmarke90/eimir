@@ -37,6 +37,11 @@ function DesignPreview({ design }: { design: WirDesignId }) {
               <b />
             </span>
           </>
+        ) : design === WirDesignId.quiet_together ? (
+          <span className="wir-design-preview-wordmark">
+            <i />
+            <i />
+          </span>
         ) : (
           <>
             <span className="wir-design-preview-portraits">

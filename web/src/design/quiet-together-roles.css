@@ -1,0 +1,55 @@
+/* Account-scoped palette, including portaled sheets and browser chrome. */
+:root[data-app-design="quiet_together"] {
+  --color-background: #f8f6f7;
+  --color-surface: #fffdfd;
+  --color-surface-raised: #fffdfd;
+  --color-surface-subtle: #f0ebee;
+  --color-surface-overlay: #f8f6f7;
+  --color-surface-panel: var(--color-surface);
+  --color-surface-panel-tint: var(--color-surface-subtle);
+  --color-header-surface: var(--color-background);
+  --color-header-border: var(--color-border-subtle);
+  --color-brand-glow: var(--color-brand-surface);
+  --color-page-tint-brand: var(--color-brand-surface);
+  --color-page-tint-shared: var(--color-shared-surface);
+  --memory-detail-background: var(--color-background);
+  --color-text: #29232a;
+  --color-text-secondary: #62565f;
+  --color-text-muted: #635660;
+  --color-border: #ad9fa9;
+  --color-border-subtle: #dcd3d9;
+  --color-brand: #76475e;
+  --color-brand-text: #724359;
+  --color-brand-strong: #523346;
+  --color-brand-surface: #efe6ed;
+  --color-shared-surface: #f0e8ec;
+  --color-link-text: var(--color-brand-text);
+  --color-focus: #844666;
+  --color-action-primary: #70475d;
+  --color-on-action-primary: #fffafc;
+  --color-action-emphasis: var(--color-action-primary);
+  --color-on-action-emphasis: var(--color-on-action-primary);
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+:root[data-app-design="quiet_together"][data-theme="dark"] {
+  --color-background: #221f23;
+  --color-surface: #2c272d;
+  --color-surface-raised: #322c33;
+  --color-surface-subtle: #322c33;
+  --color-surface-overlay: #221f23;
+  --color-text: #f2ebf0;
+  --color-text-secondary: #c7b9c4;
+  --color-text-muted: #c7b9c4;
+  --color-border: #8a7885;
+  --color-border-subtle: #594c57;
+  --color-brand: #e0b6cd;
+  --color-brand-text: #e0b6cd;
+  --color-brand-strong: #765068;
+  --color-brand-surface: #40313d;
+  --color-shared-surface: #40343d;
+  --color-focus: #efb0d2;
+  --color-action-primary: #d9afc6;
+  --color-on-action-primary: #281d26;
+}

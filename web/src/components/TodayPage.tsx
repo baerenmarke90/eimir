@@ -29,7 +29,10 @@ import {
   useAttentionReceipt,
   useAttentionReceipts,
 } from '../client/attentionReceipt';
-import type { DashboardModuleKey } from '../client/dashboardModules';
+import {
+  DASHBOARD_MODULE_KEYS,
+  type DashboardModuleKey,
+} from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
   isDashboardModuleVisible,
@@ -885,6 +888,7 @@ export function TodayPage({
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
+  const minimal = wirDesignId === WirDesignId.quiet_together;
   const sharedAlbum = wirDesignId === WirDesignId.shared_album;
   // "Verbunden": two portraits joined by a heart line (the default design).
   const connectedDesign = wirDesignId === WirDesignId.connected;
@@ -1633,16 +1637,29 @@ export function TodayPage({
     avatarOverlay?: ReactNode,
   ) => (
     <CouplePresence
-      className={sharedAlbum ? 'today-hero shared-album-hero' : 'today-hero'}
-      detailsFirst={sharedAlbum}
+      className={
+        minimal
+          ? 'today-hero wir-minimal-hero'
+          : sharedAlbum
+            ? 'today-hero shared-album-hero'
+            : 'today-hero'
+      }
+      detailsFirst={minimal || sharedAlbum}
+      stackNames={minimal}
       titleAction={
-        sharedAlbum ? (
+        (minimal && partner) || sharedAlbum ? (
           <TodayDestinationLink
             to={STORY_OURS_ROUTE}
-            className="shared-album-story-link"
+            className={
+              minimal ? 'wir-minimal-story-link' : 'shared-album-story-link'
+            }
           >
             <span>{t('m5s5.dashboard.storySummaryTitle')}</span>
-            <WirSharedAlbumArrow />
+            {minimal ? (
+              <EimirIcon name="chevron-right" />
+            ) : (
+              <WirSharedAlbumArrow />
+            )}
           </TodayDestinationLink>
         ) : undefined
       }
@@ -1687,7 +1704,7 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-      avatarSize={sharedAlbum ? 'medium' : 'hero'}
+      avatarSize={minimal ? 'small' : sharedAlbum ? 'medium' : 'hero'}
       avatarAction={
         avatarAction && dailyCheckIn?.partnerAriaLabel
           ? {
@@ -1699,9 +1716,15 @@ export function TodayPage({
       avatarOverlay={avatarOverlay}
       primaryAvatarAction={dailyCheckIn?.ownAction}
       primaryAvatarAdornment={
-        sharedAlbum ? (
-          <span className="shared-album-person">
-            <strong>{heroOwnName}</strong>
+        minimal || sharedAlbum ? (
+          <span
+            className={minimal ? 'wir-minimal-person' : 'shared-album-person'}
+          >
+            <strong>
+              {minimal && dailyCheckIn
+                ? t('wirDesign.minimal.own')
+                : heroOwnName}
+            </strong>
             {dailyCheckIn?.ownBadge}
           </span>
         ) : (
@@ -1709,9 +1732,15 @@ export function TodayPage({
         )
       }
       secondaryAvatarAdornment={
-        sharedAlbum ? (
-          <span className="shared-album-person">
-            <strong>{partnerName}</strong>
+        minimal || sharedAlbum ? (
+          <span
+            className={minimal ? 'wir-minimal-person' : 'shared-album-person'}
+          >
+            <strong>
+              {minimal && avatarAction
+                ? t('wirDesign.minimal.partner', { name: partnerName })
+                : partnerName}
+            </strong>
             {dailyCheckIn?.partnerBadge}
           </span>
         ) : (
@@ -1817,6 +1846,7 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-moment"
             title={t('m5s5.today.keepsake.title')}
+            headerAction={minimal ? <MomentCreateMenu /> : undefined}
           >
             <TodayMomentFeature
               item={focalItem.item}
@@ -2075,6 +2105,20 @@ export function TodayPage({
     ),
   };
   const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);
+  // Keep custom orders intact. With the catalog order, the keepsake sits
+  // directly below the people while all other modules keep their positions.
+  const useMinimalDefaultOrder =
+    minimal &&
+    orderedModuleKeys.every(
+      (key, index) => key === DASHBOARD_MODULE_KEYS[index],
+    );
+  const visibleOrder: DashboardModuleKey[] = useMinimalDefaultOrder
+    ? [
+        'relationship_presence',
+        'keepsake',
+        ...orderedModuleKeys.slice(1).filter((key) => key !== 'keepsake'),
+      ]
+    : orderedModuleKeys;
 
   return (
     <div
@@ -2124,10 +2168,14 @@ export function TodayPage({
             variant="root"
             className="content-overview-heading"
             title={t('navigation.today')}
-            action={<MomentCreateMenu floating={!sharedAlbum} />}
+            action={
+              minimal && showMomentSection && keepsakeVisible ? undefined : (
+                <MomentCreateMenu floating={!sharedAlbum} />
+              )
+            }
           />
 
-          {orderedModuleKeys.map((key) => (
+          {visibleOrder.map((key) => (
             <Fragment key={key}>{moduleContent[key]}</Fragment>
           ))}
           {isSparse ? (

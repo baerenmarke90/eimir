@@ -77,6 +77,8 @@ import type { StoryStartupReads } from '../client/storyStartup';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { useTaskListReturn } from '../client/useTaskListReturn';
+import { WirDesignId } from '../api/generated/models/WirDesignId';
+import { useWirDesign } from '../client/wirDesign';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
@@ -282,6 +284,7 @@ export function StoryProductPage({
 }) {
   const rootIntro = useRootTabIntro('story');
   const { t } = useTranslation();
+  const quietTogether = useWirDesign()?.current === WirDesignId.quiet_together;
   const recapEntry = (
     <RecapEntry
       api={recapsApi}
@@ -895,9 +898,14 @@ export function StoryProductPage({
         variant="root"
         className="content-overview-heading"
         title={t('story.timelineTitle')}
-        action={<MomentCreateMenu floating />}
+        action={quietTogether ? undefined : <MomentCreateMenu floating />}
       />
       <StoryViewTabs activeView={activeView} onSelect={setView} />
+      {quietTogether ? (
+        <div className="minimal-story-create">
+          <MomentCreateMenu />
+        </div>
+      ) : null}
 
       <div
         id="momente-panel-discover"

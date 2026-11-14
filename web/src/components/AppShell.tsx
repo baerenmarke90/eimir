@@ -10,6 +10,7 @@ import {
 import { Link, useLocation, useNavigationType } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
+import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
@@ -44,8 +45,10 @@ import { TaskOriginProvider } from '../client/taskOrigin';
 import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import { useWirDesign } from '../client/wirDesign';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { isCapacitorNative } from '../pwa';
+import { syncDocumentThemeColor } from '../theme';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
@@ -257,6 +260,17 @@ function AuthenticatedAppShell({
     location.pathname === '/plan/chapters/new' ||
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
+  const quietTogether = useWirDesign()?.current === WirDesignId.quiet_together;
+  useLayoutEffect(() => {
+    if (!quietTogether) return;
+    const root = document.documentElement;
+    root.dataset.appDesign = WirDesignId.quiet_together;
+    syncDocumentThemeColor();
+    return () => {
+      delete root.dataset.appDesign;
+      syncDocumentThemeColor();
+    };
+  }, [quietTogether]);
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (isFocusedTask) return;

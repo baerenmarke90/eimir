@@ -46,6 +46,8 @@ import './components/FreeComposer.css';
 import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/identity-components.css';
+import './design/quiet-together-roles.css';
+import './components/QuietTogether.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
 
 markNativeRuntime();

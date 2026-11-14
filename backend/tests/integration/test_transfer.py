@@ -428,8 +428,10 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     )
 
 
+@pytest.mark.parametrize("design_id", ["shared_album", "quiet_together"])
 def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
     session: Session,
+    design_id: str,
 ) -> None:
     target = make_account(session, "Target")
     _verified_email(session, target, "target@example.test")
@@ -439,7 +441,7 @@ def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
     bundle = _minimal_bundle(
         source_id,
         "target@example.test",
-        appearance={"appIconId": "sage", "wirDesign": "shared_album"},
+        appearance={"appIconId": "sage", "wirDesign": design_id},
     )
 
     transfer = service.create_import(

@@ -18,7 +18,6 @@ import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/Atta
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { Configuration } from './client/apiConfiguration';
-import { createPartnerLocationApi } from './client/partnerLocation';
 import { AppIconProvider } from './client/appIconContext';
 import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
@@ -49,6 +48,7 @@ import {
   ONCE_ROUTE,
   OnceMessagesProvider,
 } from './client/onceMessages';
+import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
@@ -100,12 +100,13 @@ import {
   REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
-  settingsCategoryPath,
   STORY_CHAPTERS_ROUTE,
+  STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_RECAPS_ROUTE,
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
+  settingsCategoryPath,
   TIME_TRAVEL_ROUTE,
   WISH_CREATE_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
@@ -186,6 +187,7 @@ import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
 import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
+import { RelationshipStoryPage } from './components/RelationshipStoryPage';
 import { ReminderReadPage } from './components/ReminderReadPage';
 import {
   ServerAdminAccessGate,
@@ -861,6 +863,17 @@ function AuthenticatedApp({
                 }
               />
             ))}
+            <Route
+              path={STORY_OURS_ROUTE}
+              element={
+                <RelationshipStoryPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
             {[STORY_RECAPS_ROUTE, RECAP_DETAIL_ROUTE_PATTERN].map((path) => (
               <Route
                 key={path}

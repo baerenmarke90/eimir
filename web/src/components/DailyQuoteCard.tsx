@@ -24,6 +24,7 @@ import {
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
+import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
@@ -436,6 +437,7 @@ export function DailyQuoteCard({
 
     body = (
       <blockquote className="daily-quote-block" lang={quote.locale}>
+        <EimirIcon name="quote" className="daily-quote-mark" />
         <p>
           {t('dailyQuote.quoteText', {
             text: quote.text,
@@ -477,7 +479,6 @@ export function DailyQuoteCard({
       ) : (
         <section
           className="daily-quote-card"
-          data-color-world="warm"
           aria-labelledby="daily-quote-title"
         >
           <h2 id="daily-quote-title" className="sr-only">

@@ -1,9 +1,24 @@
 import './FreeComposer.css';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import {
+  onlineManager,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
-import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import {
+  type CollectionDetail,
+  CollectionDetailFromJSON,
+  CollectionDetailToJSON,
+} from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import {
   authorSummaryQueryKeys,
@@ -23,6 +38,11 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import {
+  deleteCollectionOutbox,
+  deleteProductReadCacheEntry,
+  loadProductWithReadCache,
+} from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
 import {
@@ -40,6 +60,7 @@ import {
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
 import { UiState } from './UiState';
+import { useCollectionOutbox } from './useCollectionOutbox';
 import { useCollectionPin } from './useCollectionPin';
 import { useTransientFlag } from './useTransientFlag';
 import './SharedPlanningPages.css';
@@ -129,15 +150,62 @@ function CollectionProductDetail({
 
   const collectionQuery = useQuery({
     queryKey: key,
-    queryFn: () => {
+    queryFn: async () => {
       if (!collectionId) throw new Error('Missing Collection route parameter.');
-      return apiCall(() =>
-        apis.collections.getCollection({ spaceId, collectionId }),
-      );
+      const load = () =>
+        apiCall(() =>
+          apis.collections.getCollection({ spaceId, collectionId }),
+        );
+      if (!accountId) return load();
+      // A list opens from its last saved copy when there is no connection, so
+      // a shopping list still works after the app was closed in a store.
+      const read = await loadProductWithReadCache({
+        accountId,
+        spaceId,
+        kind: 'collection',
+        resourceId: collectionId,
+        load,
+        // A saved copy is an extra: if it cannot be written, reading still works.
+        serialize: (value) => {
+          try {
+            return CollectionDetailToJSON(value);
+          } catch {
+            return null;
+          }
+        },
+        deserialize: (payload) => CollectionDetailFromJSON(payload),
+      });
+      return read.value;
     },
     enabled: Boolean(collectionId),
+    // A read that knows it is offline must still resolve its saved copy.
+    networkMode: 'always',
     retry: false,
   });
+
+  // Shopping lists keep their changes on the device while there is no
+  // connection and send them later (#1808).
+  const outbox = useCollectionOutbox({
+    apis,
+    queryClient,
+    queryKey: key,
+    accountId,
+    spaceId,
+    collectionId,
+    enabled: collectionQuery.data?.kind === 'SHOPPING',
+  });
+  const viewed = collectionQuery.data
+    ? outbox.apply(collectionQuery.data, {
+        id: accountId ?? '',
+        displayName: '',
+      })
+    : undefined;
+  const online =
+    useSyncExternalStore(
+      (listener) => onlineManager.subscribe(listener),
+      () => onlineManager.isOnline(),
+      () => true,
+    ) && navigator.onLine !== false;
 
   useEffect(() => {
     const target = deleteFocusRef.current;
@@ -467,8 +535,18 @@ function CollectionProductDetail({
         collection.id,
       ),
     }),
-    onSuccess: async (_result, _collection, context) => {
+    onSuccess: async (_result, deleted, context) => {
       queryClient.removeQueries({ queryKey: key });
+      if (accountId) {
+        // The list is gone: its saved copy and unsent changes go with it.
+        void deleteProductReadCacheEntry(
+          accountId,
+          spaceId,
+          'collection',
+          deleted.id,
+        );
+        void deleteCollectionOutbox(accountId, spaceId, deleted.id);
+      }
       await Promise.all([
         invalidateCollectionConsumers(queryClient, spaceId),
         queryClient.invalidateQueries({
@@ -528,13 +606,14 @@ function CollectionProductDetail({
     return () => onPendingChange?.(false);
   }, [embeddedPending, onPendingChange]);
 
-  const baseItemIds = [...(collectionQuery.data?.items ?? [])]
+  const baseItemIds = [...(viewed?.collection.items ?? [])]
     .sort((left, right) => left.position - right.position)
     .map((item) => item.id);
   const reorder = useListItemReorder({
     itemIds: baseItemIds,
     disabled:
       !collectionQuery.data?.capabilities.canEdit ||
+      outbox.pendingCount > 0 ||
       isReordering ||
       updateItem.isPending ||
       createItem.isPending ||
@@ -572,7 +651,8 @@ function CollectionProductDetail({
     );
   const collection = collectionQuery.data;
   if (!collection) return null;
-  const itemById = new Map(collection.items.map((item) => [item.id, item]));
+  const shown = viewed?.collection ?? collection;
+  const itemById = new Map(shown.items.map((item) => [item.id, item]));
   const items = reorder.orderedItemIds
     .map((itemId) => itemById.get(itemId))
     .filter((item): item is CollectionItemDetail => Boolean(item));
@@ -591,9 +671,21 @@ function CollectionProductDetail({
     event.preventDefault();
     if (!collection || hasCurrentReorder() || createItemInFlightRef.current)
       return;
-    createItemInFlightRef.current = true;
     const form = event.currentTarget;
     const data = new FormData(form);
+    if (outbox.active) {
+      // Kept on the device first, then sent when a connection is there.
+      const title = String(data.get('title')).trim();
+      if (!title) return;
+      void outbox.addItem({ title }).then((kept) => {
+        if (!kept) return;
+        form.reset();
+        onDirtyChange?.(false);
+        addInputRef.current?.focus();
+      });
+      return;
+    }
+    createItemInFlightRef.current = true;
     createItem.mutate(
       { collection, title: String(data.get('title')).trim() },
       {
@@ -809,7 +901,7 @@ function CollectionProductDetail({
               type="button"
               className="tertiary"
               aria-pressed={isSorting}
-              disabled={isReordering}
+              disabled={isReordering || outbox.pendingCount > 0}
               onClick={() => setIsSorting((value) => !value)}
             >
               {t(
@@ -820,6 +912,72 @@ function CollectionProductDetail({
             </button>
           ) : null}
         </div>
+        {outbox.active ? (
+          <>
+            {outbox.pendingCount > 0 ? (
+              <p className="shared-list-outbox" role="status">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                  className="shared-list-outbox-icon"
+                >
+                  {online ? (
+                    <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
+                  ) : (
+                    <>
+                      <path d="M7 18h10a4 4 0 0 0 .8-7.9A6 6 0 0 0 6.3 9.5 4.4 4.4 0 0 0 7 18z" />
+                      <path d="M4 4l16 16" />
+                    </>
+                  )}
+                </svg>
+                {t(
+                  online
+                    ? 'm5s3.collection.outbox.waitingOnline'
+                    : 'm5s3.collection.outbox.waitingOffline',
+                  { count: outbox.pendingCount },
+                )}
+              </p>
+            ) : null}
+            {outbox.storageFailed ? (
+              <p className="shared-list-outbox-warning" role="alert">
+                {t('m5s3.collection.outbox.storageFailed')}
+              </p>
+            ) : null}
+            {outbox.notices.map((notice) => (
+              <p
+                key={notice.id}
+                className="shared-list-outbox-notice"
+                role="status"
+              >
+                <span>
+                  {notice.kind === 'addDropped'
+                    ? t(
+                        notice.reason === 'expired'
+                          ? 'm5s3.collection.outbox.noticeExpired'
+                          : 'm5s3.collection.outbox.noticeRejected',
+                        { title: notice.title },
+                      )
+                    : t(
+                        {
+                          itemGone: 'm5s3.collection.outbox.noticeItemGone',
+                          collectionGone:
+                            'm5s3.collection.outbox.noticeCollectionGone',
+                          full: 'm5s3.collection.outbox.noticeFull',
+                        }[notice.kind],
+                      )}
+                </span>
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => outbox.dismissNotice(notice.id)}
+                >
+                  {t('m5s3.collection.outbox.dismiss')}
+                </button>
+              </p>
+            ))}
+          </>
+        ) : null}
         {isSorting ? (
           <p className="planning-meta">{t('m5s3.collection.sortHelp')}</p>
         ) : null}
@@ -866,12 +1024,18 @@ function CollectionProductDetail({
                   submitItemUpdate({ collection, item: targetItem, title })
                 }
                 onToggleComplete={(targetItem) =>
-                  submitItemUpdate({
-                    collection,
-                    item: targetItem,
-                    completed: !targetItem.completed,
-                  })
+                  outbox.active
+                    ? void outbox.setCompleted(
+                        targetItem.id,
+                        !targetItem.completed,
+                      )
+                    : submitItemUpdate({
+                        collection,
+                        item: targetItem,
+                        completed: !targetItem.completed,
+                      })
                 }
+                waiting={viewed?.pendingItemIds.has(item.id)}
                 onDelete={(targetItem) => {
                   const index = items.findIndex(
                     (item) => item.id === targetItem.id,

@@ -1124,6 +1124,9 @@
         "web/src/components/PlaceMapCanvas.tsx",
         "web/src/components/PartnerLocationSync.tsx"
       ]
+    },
+    "shopping-list-offline.spec.ts": {
+      "roots": ["web/src/components/CollectionProductPage.tsx"]
     }
   }
 }

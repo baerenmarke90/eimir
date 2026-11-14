@@ -938,6 +938,20 @@
       "deleteItem": "Delete “{{title}}”",
       "reordering": "Saving order …",
       "deleteConsequence": "The list and its own entries will be deleted. Other eimir. content will not be deleted.",
+      "outbox": {
+        "waitingOffline_one": "Offline · {{count}} change waiting",
+        "waitingOffline_other": "Offline · {{count}} changes waiting",
+        "waitingOnline_one": "{{count}} change is being sent",
+        "waitingOnline_other": "{{count}} changes are being sent",
+        "itemWaiting": "Waiting for a connection",
+        "storageFailed": "Your device cannot keep changes for later right now. Keep the app open until they have been sent.",
+        "dismiss": "Close notice",
+        "noticeExpired": "“{{title}}” could not be saved because it waited too long for a connection. Please add it again.",
+        "noticeRejected": "“{{title}}” was not accepted. Please add it again.",
+        "noticeItemGone": "An entry was deleted in the meantime. Your change to it was not sent.",
+        "noticeCollectionGone": "This list was deleted in the meantime. Changes that were not sent were discarded.",
+        "noticeFull": "Too many changes are waiting. Please wait until the connection is back."
+      },
       "scopeLabel": "Filter lists",
       "scope": {
         "OPEN": "Open",

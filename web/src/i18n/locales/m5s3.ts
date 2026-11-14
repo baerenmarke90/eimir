@@ -462,6 +462,26 @@ const m5s3 = {
     reordering: 'Reihenfolge wird gespeichert …',
     deleteConsequence:
       'Die Liste und ihre eigenen Listeneinträge werden gelöscht. Andere eimir.-Inhalte werden nicht gelöscht.',
+    outbox: {
+      waitingOffline_one: 'Offline · {{count}} Änderung wartet',
+      waitingOffline_other: 'Offline · {{count}} Änderungen warten',
+      waitingOnline_one: '{{count}} Änderung wird gesendet',
+      waitingOnline_other: '{{count}} Änderungen werden gesendet',
+      itemWaiting: 'Wartet auf Verbindung',
+      storageFailed:
+        'Dein Gerät kann Änderungen gerade nicht für später speichern. Lass die App geöffnet, bis sie gesendet sind.',
+      dismiss: 'Hinweis schließen',
+      noticeExpired:
+        '„{{title}}“ konnte nicht gespeichert werden, weil es zu lange auf eine Verbindung gewartet hat. Füge es bitte noch einmal hinzu.',
+      noticeRejected:
+        '„{{title}}“ wurde nicht angenommen. Füge es bitte noch einmal hinzu.',
+      noticeItemGone:
+        'Ein Eintrag wurde inzwischen gelöscht. Deine Änderung daran wurde nicht gesendet.',
+      noticeCollectionGone:
+        'Diese Liste wurde inzwischen gelöscht. Nicht gesendete Änderungen wurden verworfen.',
+      noticeFull:
+        'Es warten zu viele Änderungen. Bitte warte, bis die Verbindung wieder da ist.',
+    },
   },
 };
 

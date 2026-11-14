@@ -2,6 +2,8 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { normalizeClientError } from '../client/problemDetails';
 import { usePhotoSources } from '../client/usePhotoSources';
 import { useTranslation } from '../i18n';
+import { ShortTaskSheet } from './ShortTaskSheet';
+import './PhotoSourcePicker.css';
 import './GoogleAccountSettings.css';
 
 /**
@@ -19,11 +21,12 @@ export function GoogleAccountSettings(props: {
   const email = availability?.googleAccountEmail ?? null;
   const token = availability?.googleAccountToken ?? '';
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   const inFlight = useRef(false);
   const lifetime = useRef(new AbortController());
   useEffect(() => {
@@ -31,7 +34,14 @@ export function GoogleAccountSettings(props: {
     lifetime.current = owner;
     return () => owner.abort();
   }, []);
-  const showForm = editing || !email;
+
+  function close() {
+    if (busy) return;
+    setLinking(false);
+    setValue('');
+    setMessage('');
+    setFailed(false);
+  }
 
   async function run(
     action: (signal: AbortSignal) => Promise<void>,
@@ -48,7 +58,7 @@ export function GoogleAccountSettings(props: {
       if (signal.aborted) return;
       await refreshAvailability();
       if (signal.aborted) return;
-      setEditing(false);
+      setLinking(false);
       setValue('');
       setMessage(t(success));
     } catch (error) {
@@ -58,7 +68,7 @@ export function GoogleAccountSettings(props: {
       setFailed(true);
       if (problem.status === 409) {
         await refreshAvailability().catch(() => {});
-        setEditing(false);
+        setLinking(false);
         setValue('');
         setMessage(t('photoSources.googleAccountChanged'));
       } else {
@@ -76,7 +86,7 @@ export function GoogleAccountSettings(props: {
     }
   }
 
-  function save(event: FormEvent) {
+  function link(event: FormEvent) {
     event.preventDefault();
     const address = value.trim();
     if (!address) return;
@@ -90,18 +100,18 @@ export function GoogleAccountSettings(props: {
           },
           { signal },
         ),
-      'photoSources.googleAccountSaved',
+      'photoSources.googleAccountLinked',
     );
   }
 
-  function remove() {
+  function unlink() {
     void run(
       async (signal) =>
         apiRef.current.removeGooglePhotoAccount(
           { spaceId, ifMatch: JSON.stringify(token) },
           { signal },
         ),
-      'photoSources.googleAccountRemoved',
+      'photoSources.googleAccountUnlinked',
     );
   }
 
@@ -111,12 +121,64 @@ export function GoogleAccountSettings(props: {
       className="settings-functional-panel google-account-settings"
       aria-labelledby="google-account-settings-title"
     >
-      <h2 id="google-account-settings-title">
-        {t('photoSources.googleAccountTitle')}
-      </h2>
-      <p>{t('photoSources.googleAccountHelp')}</p>
-      {showForm ? (
-        <form onSubmit={save}>
+      <h2 id="google-account-settings-title">{t('photoSources.google')}</h2>
+      {message && !linking ? (
+        <p role={failed ? 'alert' : 'status'}>{message}</p>
+      ) : null}
+      {email ? (
+        <>
+          <p>{email}</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={unlink}
+          >
+            {t('photoSources.googleAccountUnlink')}
+          </button>
+        </>
+      ) : (
+        <button
+          ref={trigger}
+          type="button"
+          className="secondary"
+          onClick={() => {
+            setMessage('');
+            setLinking(true);
+          }}
+        >
+          {t('photoSources.googleAccountLink')}
+        </button>
+      )}
+      <ShortTaskSheet
+        open={linking}
+        title={t('photoSources.googleAccountSheetTitle')}
+        onClose={close}
+        isCloseBlocked={busy}
+        restoreFocusRef={trigger}
+        className="photo-source-sheet"
+        footer={
+          <div className="photo-source-footer">
+            <button
+              type="button"
+              className="secondary"
+              onClick={close}
+              disabled={busy}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              form="google-account-form"
+              disabled={busy || !value.trim()}
+            >
+              {t('photoSources.connect')}
+            </button>
+          </div>
+        }
+      >
+        {message ? <p role="alert">{message}</p> : null}
+        <form id="google-account-form" onSubmit={link}>
           <label className="field-group">
             {t('photoSources.googleAccountEmail')}
             <input
@@ -132,56 +194,8 @@ export function GoogleAccountSettings(props: {
               onChange={(event) => setValue(event.target.value)}
             />
           </label>
-          <div className="photo-source-footer">
-            {email ? (
-              <button
-                type="button"
-                className="secondary"
-                disabled={busy}
-                onClick={() => {
-                  setEditing(false);
-                  setValue('');
-                  setMessage('');
-                }}
-              >
-                {t('common.cancel')}
-              </button>
-            ) : null}
-            <button type="submit" disabled={busy || !value.trim()}>
-              {t('photoSources.googleAccountSave')}
-            </button>
-          </div>
         </form>
-      ) : (
-        <>
-          <p>
-            <strong>{email}</strong>
-          </p>
-          <div className="photo-source-footer">
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => {
-                setMessage('');
-                setValue(email ?? '');
-                setEditing(true);
-              }}
-            >
-              {t('photoSources.googleAccountChange')}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={remove}
-            >
-              {t('photoSources.googleAccountRemove')}
-            </button>
-          </div>
-        </>
-      )}
-      {message ? <p role={failed ? 'alert' : 'status'}>{message}</p> : null}
+      </ShortTaskSheet>
     </section>
   );
 }

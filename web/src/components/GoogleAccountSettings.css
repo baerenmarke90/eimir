@@ -1,31 +1,9 @@
 .google-account-settings {
-  display: grid;
-  gap: var(--space-3);
   margin-block-start: var(--space-6);
   min-inline-size: 0;
 }
 
-.google-account-settings > h2,
-.google-account-settings > p,
-.google-account-settings > form {
-  margin: 0;
-}
-
-.google-account-settings > form {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.google-account-settings .photo-source-footer {
-  justify-content: stretch;
-}
-
-.google-account-settings .field-group {
+#google-account-form .field-group {
   display: grid;
   gap: var(--space-2);
-}
-
-.google-account-settings > form,
-.google-account-settings .photo-source-footer {
-  max-inline-size: 28rem;
 }

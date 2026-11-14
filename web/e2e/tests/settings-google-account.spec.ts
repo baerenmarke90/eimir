@@ -17,6 +17,7 @@ interface GoogleAccountScenario {
   saves: { email: string; consent: boolean; ifMatch: string | null }[];
   removals: (string | null)[];
   conflictOnNextWrite?: boolean;
+  rejectNext?: boolean;
 }
 
 function scenario(googleAvailable = true): GoogleAccountScenario {
@@ -73,6 +74,19 @@ async function installApiMocks(
             title: 'Conflict',
           },
           409,
+        );
+        return;
+      }
+      if (state.rejectNext) {
+        state.rejectNext = false;
+        await fulfillJson(
+          {
+            code: 'VALIDATION_FAILED',
+            detail: 'Enter a valid email address.',
+            status: 422,
+            title: 'Invalid request',
+          },
+          422,
         );
         return;
       }
@@ -213,43 +227,64 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 const ADDRESS = 'anna.private@gmail.example';
 
+function googleSection(page: Page) {
+  return page.getByRole('region', { name: photoSources.google, exact: true });
+}
+
+async function openLinkDialog(page: Page) {
+  await googleSection(page)
+    .getByRole('button', {
+      name: photoSources.googleAccountLink,
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole('dialog', {
+    name: photoSources.googleAccountSheetTitle,
+  });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
 for (const [width, colorScheme] of [
   [390, 'light'],
   [390, 'dark'],
   [1280, 'light'],
 ] as const) {
-  test(`the Google account is saved, changed and removed in the media settings (${width} ${colorScheme})`, async ({
+  test(`the Google account is linked and disconnected in the media settings (${width} ${colorScheme})`, async ({
     page,
   }, testInfo) => {
     const state = scenario();
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     await openMediaSettings(page, state);
-    const section = page.getByRole('region', {
-      name: photoSources.googleAccountTitle,
-    });
-    await expect(
-      section.getByText(photoSources.googleAccountHelp, { exact: true }),
-    ).toBeVisible();
-    const field = section.getByLabel(photoSources.googleAccountEmail, {
-      exact: true,
-    });
-    const save = section.getByRole('button', {
-      name: photoSources.googleAccountSave,
-      exact: true,
-    });
-    await expect(save).toBeDisabled();
-    await field.fill(ADDRESS);
+    const section = googleSection(page);
+    await expect(section).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await captureScreenshot(
       page,
       testInfo,
-      `google-account-empty-${width}-${colorScheme}.png`,
+      `google-account-button-${width}-${colorScheme}.png`,
       { fullPage: true },
     );
-    await save.click();
+    const dialog = await openLinkDialog(page);
+    const link = dialog.getByRole('button', {
+      name: photoSources.connect,
+      exact: true,
+    });
+    await expect(link).toBeDisabled();
+    await dialog
+      .getByLabel(photoSources.googleAccountEmail, { exact: true })
+      .fill(ADDRESS);
+    await expectNoHorizontalOverflow(page);
+    await captureScreenshot(
+      page,
+      testInfo,
+      `google-account-dialog-${width}-${colorScheme}.png`,
+    );
+    await link.click();
+    await expect(dialog).toHaveCount(0);
     await expect(
-      section.getByText(photoSources.googleAccountSaved, { exact: true }),
+      section.getByText(photoSources.googleAccountLinked, { exact: true }),
     ).toBeVisible();
     await expect(section.getByText(ADDRESS, { exact: true })).toBeVisible();
     expect(state.saves).toEqual([
@@ -263,7 +298,7 @@ for (const [width, colorScheme] of [
     await captureScreenshot(
       page,
       testInfo,
-      `google-account-saved-${width}-${colorScheme}.png`,
+      `google-account-linked-${width}-${colorScheme}.png`,
       { fullPage: true },
     );
     const accessibility = await new AxeBuilder({ page })
@@ -273,47 +308,56 @@ for (const [width, colorScheme] of [
 
     await section
       .getByRole('button', {
-        name: photoSources.googleAccountChange,
-        exact: true,
-      })
-      .click();
-    await expect(field).toHaveValue(ADDRESS);
-    await field.fill('second@gmail.example');
-    await save.click();
-    await expect(
-      section.getByText('second@gmail.example', { exact: true }),
-    ).toBeVisible();
-    expect(state.saves).toHaveLength(2);
-
-    await section
-      .getByRole('button', {
-        name: photoSources.googleAccountRemove,
+        name: photoSources.googleAccountUnlink,
         exact: true,
       })
       .click();
     await expect(
-      section.getByText(photoSources.googleAccountRemoved, { exact: true }),
+      section.getByText(photoSources.googleAccountUnlinked, { exact: true }),
     ).toBeVisible();
-    await expect(field).toHaveValue('');
-    expect(state.removals).toHaveLength(1);
+    await expect(
+      section.getByRole('button', {
+        name: photoSources.googleAccountLink,
+        exact: true,
+      }),
+    ).toBeVisible();
+    expect(state.removals).toEqual([JSON.stringify(`hint-row:1`)]);
     expect(state.email).toBeNull();
   });
 }
+
+test('a malformed address is explained and nothing is saved', async ({
+  page,
+}) => {
+  const state = scenario();
+  state.rejectNext = true;
+  await openMediaSettings(page, state);
+  const dialog = await openLinkDialog(page);
+  await dialog
+    .getByLabel(photoSources.googleAccountEmail, { exact: true })
+    .fill('anna@gmail');
+  await dialog
+    .getByRole('button', { name: photoSources.connect, exact: true })
+    .click();
+  await expect(
+    dialog.getByText(photoSources.googleAccountInvalid, { exact: true }),
+  ).toBeVisible();
+  expect(state.saves).toEqual([]);
+});
 
 test('a change from another window is reloaded instead of overwritten', async ({
   page,
 }) => {
   const state = scenario();
   await openMediaSettings(page, state);
-  const section = page.getByRole('region', {
-    name: photoSources.googleAccountTitle,
-  });
+  const section = googleSection(page);
+  const dialog = await openLinkDialog(page);
   state.conflictOnNextWrite = true;
-  await section
+  await dialog
     .getByLabel(photoSources.googleAccountEmail, { exact: true })
     .fill(ADDRESS);
-  await section
-    .getByRole('button', { name: photoSources.googleAccountSave, exact: true })
+  await dialog
+    .getByRole('button', { name: photoSources.connect, exact: true })
     .click();
   await expect(
     section.getByText(photoSources.googleAccountChanged, { exact: true }),
@@ -324,11 +368,9 @@ test('a change from another window is reloaded instead of overwritten', async ({
   expect(state.saves).toEqual([]);
 });
 
-test('without the Google import the media settings show no Google account', async ({
+test('without the Google import the media settings show no Google section', async ({
   page,
 }) => {
   await openMediaSettings(page, scenario(false));
-  await expect(
-    page.getByRole('region', { name: photoSources.googleAccountTitle }),
-  ).toHaveCount(0);
+  await expect(googleSection(page)).toHaveCount(0);
 });

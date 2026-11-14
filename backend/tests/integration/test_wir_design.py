@@ -114,16 +114,16 @@ def test_switching_between_the_free_designs_stays_free(client, couple) -> None:
     assert connected.json() == {"designId": "connected", "version": 2}
 
 
-def test_pro_designs_are_exactly_side_by_side_modern_and_classic() -> None:
+def test_pro_designs_are_exactly_shared_album_modern_and_classic() -> None:
     assert {design for design in WirDesignId if design not in FREE_WIR_DESIGNS} == {
-        WirDesignId.SIDE_BY_SIDE,
+        WirDesignId.SHARED_ALBUM,
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
     }
 
 
 @pytest.mark.parametrize(
-    "design_id", [WirDesignId.SIDE_BY_SIDE, WirDesignId.MODERN, WirDesignId.CLASSIC]
+    "design_id", [WirDesignId.SHARED_ALBUM, WirDesignId.MODERN, WirDesignId.CLASSIC]
 )
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:
     initial = client.get(path(couple), headers=couple["b"])
@@ -149,12 +149,12 @@ def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is
     saved = client.patch(
         path(couple),
         headers={**couple["a"], "If-Match": initial.headers["ETag"]},
-        json={"designId": "side_by_side"},
+        json={"designId": "shared_album"},
     )
     entitlements.revoke_grant(session, entitlement.id)
     retained = client.get(path(couple), headers=couple["a"])
     assert retained.status_code == 200
-    assert retained.json()["designId"] == "side_by_side"
+    assert retained.json()["designId"] == "shared_album"
     assert retained.headers["ETag"] == saved.headers["ETag"]
     blocked = client.patch(
         path(couple),
@@ -255,7 +255,7 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
         icon_id="original",
         account_id=couple["anna"].id,
         space_id=couple["space"].id,
-        wir_design="side_by_side",
+        wir_design="shared_album",
     )
     partner = AppIconPreference(
         icon_id="original",
@@ -272,7 +272,7 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
             if scope is TransferScope.PERSONAL:
                 assert account_document["personalAppearance"] == {
                     "appIconId": "original",
-                    "wirDesign": "side_by_side",
+                    "wirDesign": "shared_album",
                 }
             else:
                 assert "personalAppearance" not in account_document

@@ -20,7 +20,7 @@
 export const WirDesignId = {
     connected: 'connected',
     warm: 'warm',
-    side_by_side: 'side_by_side',
+    shared_album: 'shared_album',
     modern: 'modern',
     classic: 'classic'
 } as const;

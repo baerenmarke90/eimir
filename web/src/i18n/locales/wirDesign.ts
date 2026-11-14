@@ -7,7 +7,7 @@ export default {
   nameJoiner: '&',
   names: {
     connected: 'Verbunden',
-    side_by_side: 'Seite an Seite',
+    shared_album: 'Seite an Seite',
     warm: 'Geborgen',
     modern: 'Klar & modern',
     classic: 'Klassisch',
@@ -15,7 +15,7 @@ export default {
   descriptions: {
     connected:
       'Ihr zwei, durch eine Herzlinie verbunden. Eure gemeinsame Zeit steht in der Mitte.',
-    side_by_side:
+    shared_album:
       'Euer Foto im Mittelpunkt, mit Leinentönen und Platz für euren Vibe.',
     warm: 'Euer Rückzugsort. Sanftes Rosé, nahe Porträts und Gedanken wie eine persönliche Notiz.',
     modern:

@@ -1539,14 +1539,14 @@
     "nameJoiner": "&",
     "names": {
       "connected": "Connected",
-      "side_by_side": "Side by Side",
+      "shared_album": "Our Album",
       "warm": "Cosy",
       "modern": "Clear & modern",
       "classic": "Classic"
     },
     "descriptions": {
       "connected": "The two of you, joined by a heart line. Your time together sits in the middle.",
-      "side_by_side": "A shared photo takes the lead, with linen tones and space for your daily check-ins.",
+      "shared_album": "A shared photo takes the lead, with linen tones and space for your daily check-ins.",
       "warm": "Your retreat. Soft rose, close portraits and thoughts like a personal note.",
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement."

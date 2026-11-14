@@ -152,7 +152,7 @@ it('previews without writing, cancels, and saves once only after server confirma
   render(<WirDesignSettings />, { wrapper: f.wrapper });
   await open();
   fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.side_by_side')) }),
+    screen.getByRole('radio', { name: new RegExp(t('names.shared_album')) }),
   );
   expect(f.writes).toHaveLength(0);
   // Model the browser's Back completion without relying on JSDOM traversal timing.
@@ -171,14 +171,14 @@ it('previews without writing, cancels, and saves once only after server confirma
   ).toBeTruthy();
   await open();
   fireEvent.click(
-    screen.getByRole('radio', { name: new RegExp(t('names.side_by_side')) }),
+    screen.getByRole('radio', { name: new RegExp(t('names.shared_album')) }),
   );
   const save = screen.getByRole('button', { name: t('save') });
   fireEvent.click(save);
   fireEvent.click(save);
   await waitFor(() => expect(screen.getByText(t('saved'))).toBeTruthy());
   expect(f.writes).toEqual([
-    { value: 'side_by_side', token: '"appearance:1"' },
+    { value: 'shared_album', token: '"appearance:1"' },
   ]);
 });
 it('keeps a saved paid choice after downgrade and permits the Free reset', async () => {

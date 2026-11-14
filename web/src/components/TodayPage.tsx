@@ -137,7 +137,7 @@ import { DEFAULT_WIR_DESIGN, useWirDesign } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
 import './WirDesign.css';
 import './WirHeroStage.css';
-import './SideBySide.css';
+import './WirSharedAlbum.css';
 
 // The hero's opening sequence plays once per page load, not on every return
 // to the tab. The window covers the whole sequence with some margin.
@@ -324,7 +324,7 @@ function RecentSharedItemCard({
   );
 }
 
-function SideBySideArrow() {
+function WirSharedAlbumArrow() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
       <path
@@ -340,10 +340,10 @@ function SideBySideArrow() {
 
 function TodayAgendaRow({
   item,
-  sideBySide = false,
+  sharedAlbum = false,
 }: {
   item: DashboardItem;
-  sideBySide?: boolean;
+  sharedAlbum?: boolean;
 }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
@@ -380,7 +380,7 @@ function TodayAgendaRow({
 
   const stampDate = calendarDate ?? rawDate;
   const stamp =
-    sideBySide && stampDate
+    sharedAlbum && stampDate
       ? new Intl.DateTimeFormat(resolvedLocale(), {
           weekday: 'short',
           day: 'numeric',
@@ -400,7 +400,7 @@ function TodayAgendaRow({
   const rowInner = (
     <>
       {stamp ? (
-        <span className="side-by-side-date-stamp" aria-hidden="true">
+        <span className="shared-album-date-stamp" aria-hidden="true">
           <span>{stamp.find((part) => part.type === 'weekday')?.value}</span>
           <strong>{stamp.find((part) => part.type === 'day')?.value}</strong>
           <span>{stamp.find((part) => part.type === 'month')?.value}</span>
@@ -433,9 +433,9 @@ function TodayAgendaRow({
           </time>
         ) : null}
       </span>
-      {sideBySide && path ? (
-        <span className="side-by-side-row-arrow">
-          <SideBySideArrow />
+      {sharedAlbum && path ? (
+        <span className="shared-album-row-arrow">
+          <WirSharedAlbumArrow />
         </span>
       ) : null}
     </>
@@ -885,7 +885,7 @@ export function TodayPage({
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
-  const sideBySide = wirDesignId === WirDesignId.side_by_side;
+  const sharedAlbum = wirDesignId === WirDesignId.shared_album;
   // "Verbunden": two portraits joined by a heart line (the default design).
   const connectedDesign = wirDesignId === WirDesignId.connected;
   const queryClient = useQueryClient();
@@ -1633,16 +1633,16 @@ export function TodayPage({
     avatarOverlay?: ReactNode,
   ) => (
     <CouplePresence
-      className={sideBySide ? 'today-hero side-by-side-hero' : 'today-hero'}
-      detailsFirst={sideBySide}
+      className={sharedAlbum ? 'today-hero shared-album-hero' : 'today-hero'}
+      detailsFirst={sharedAlbum}
       titleAction={
-        sideBySide ? (
+        sharedAlbum ? (
           <TodayDestinationLink
             to={STORY_OURS_ROUTE}
-            className="side-by-side-story-link"
+            className="shared-album-story-link"
           >
             <span>{t('m5s5.dashboard.storySummaryTitle')}</span>
-            <SideBySideArrow />
+            <WirSharedAlbumArrow />
           </TodayDestinationLink>
         ) : undefined
       }
@@ -1687,7 +1687,7 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-      avatarSize={sideBySide ? 'medium' : 'hero'}
+      avatarSize={sharedAlbum ? 'medium' : 'hero'}
       avatarAction={
         avatarAction && dailyCheckIn?.partnerAriaLabel
           ? {
@@ -1699,8 +1699,8 @@ export function TodayPage({
       avatarOverlay={avatarOverlay}
       primaryAvatarAction={dailyCheckIn?.ownAction}
       primaryAvatarAdornment={
-        sideBySide ? (
-          <span className="side-by-side-person">
+        sharedAlbum ? (
+          <span className="shared-album-person">
             <strong>{heroOwnName}</strong>
             {dailyCheckIn?.ownBadge}
           </span>
@@ -1709,8 +1709,8 @@ export function TodayPage({
         )
       }
       secondaryAvatarAdornment={
-        sideBySide ? (
-          <span className="side-by-side-person">
+        sharedAlbum ? (
+          <span className="shared-album-person">
             <strong>{partnerName}</strong>
             {dailyCheckIn?.partnerBadge}
           </span>
@@ -1720,7 +1720,7 @@ export function TodayPage({
       }
       signal={
         partnerDistanceInHero
-          ? sideBySide
+          ? sharedAlbum
             ? heroDistance
             : partnerDistance
           : undefined
@@ -1852,7 +1852,7 @@ export function TodayPage({
                 <TodayAgendaRow
                   key={item.id}
                   item={item}
-                  sideBySide={sideBySide}
+                  sharedAlbum={sharedAlbum}
                 />
               ))}
             </div>
@@ -2124,7 +2124,7 @@ export function TodayPage({
             variant="root"
             className="content-overview-heading"
             title={t('navigation.today')}
-            action={<MomentCreateMenu floating={!sideBySide} />}
+            action={<MomentCreateMenu floating={!sharedAlbum} />}
           />
 
           {orderedModuleKeys.map((key) => (

@@ -1,7 +1,7 @@
 /* Scope the palette to the active Wir route and its portaled sheets. */
 body:has(
   .product-shell[data-top-surface="today"]
-    .today-page[data-wir-design="side_by_side"]
+    .today-page[data-wir-design="shared_album"]
 ) {
   --color-background: #f6f4ec;
   --color-surface: #fbfaf5;
@@ -42,7 +42,7 @@ body:has(
 :root[data-theme="dark"]
   body:has(
     .product-shell[data-top-surface="today"]
-      .today-page[data-wir-design="side_by_side"]
+      .today-page[data-wir-design="shared_album"]
   ) {
   --color-background: #182823;
   --color-surface: #23362e;
@@ -73,7 +73,7 @@ body:has(
 
 body:has(
     .product-shell[data-top-surface="today"]
-      .today-page[data-wir-design="side_by_side"]
+      .today-page[data-wir-design="shared_album"]
   )
   .product-shell[data-top-surface="today"]::before {
   opacity: 0;
@@ -81,7 +81,7 @@ body:has(
 
 body:has(
     .product-shell[data-top-surface="today"]
-      .today-page[data-wir-design="side_by_side"]
+      .today-page[data-wir-design="shared_album"]
   )
   .product-shell
   .mobile-bottom-shell {
@@ -89,7 +89,7 @@ body:has(
 }
 body:has(
     .product-shell[data-top-surface="today"]
-      .today-page[data-wir-design="side_by_side"]
+      .today-page[data-wir-design="shared_album"]
   )
   .product-shell
   .mobile-bottom-nav
@@ -99,7 +99,7 @@ body:has(
 }
 body:has(
     .product-shell[data-top-surface="today"]
-      .today-page[data-wir-design="side_by_side"]
+      .today-page[data-wir-design="shared_album"]
   )
   .product-shell
   .mobile-bottom-nav
@@ -114,7 +114,7 @@ body:has(
   --identity-icon-warm-fill: var(--side-icon-fill);
 }
 
-.today-page[data-wir-design="side_by_side"] {
+.today-page[data-wir-design="shared_album"] {
   --space-section: clamp(var(--space-5), 5.6vw, var(--space-8));
   width: calc(100% + 2 * var(--page-gutter));
   margin-inline: calc(-1 * var(--page-gutter));
@@ -126,7 +126,7 @@ body:has(
 }
 
 /* Keep the add action visible at the top without covering a plan at 320 px. */
-.today-page[data-wir-design="side_by_side"]
+.today-page[data-wir-design="shared_album"]
   .content-overview-heading
   .page-heading-action {
   position: absolute;
@@ -135,39 +135,39 @@ body:has(
   inset-inline-end: 0;
   min-inline-size: 0;
 }
-.today-page[data-wir-design="side_by_side"]
+.today-page[data-wir-design="shared_album"]
   .content-overview-heading
   .add-action {
   min-block-size: var(--touch-target-comfortable);
   max-inline-size: min(48vw, 15rem);
 }
 
-.today-page[data-wir-design="side_by_side"] .today-content {
+.today-page[data-wir-design="shared_album"] .today-content {
   position: relative;
   width: min(100%, 43rem);
   margin-inline: auto;
 }
 
-.today-page .side-by-side-hero.couple-presence-card {
+.today-page .shared-album-hero.couple-presence-card {
   margin-bottom: var(--space-section);
   padding-block: 0.1rem 0.75rem;
   border-bottom: 1px solid var(--side-rule);
 }
-.today-page .side-by-side-hero.couple-presence-card::before {
+.today-page .shared-album-hero.couple-presence-card::before {
   content: none;
 }
-.today-page .side-by-side-hero .couple-presence-main {
+.today-page .shared-album-hero .couple-presence-main {
   display: grid;
   gap: 0.65rem;
   width: 100%;
 }
-.today-page .side-by-side-hero .couple-presence-details {
+.today-page .shared-album-hero .couple-presence-details {
   position: relative;
   display: flex;
   align-items: start;
   gap: 0;
 }
-.today-page .side-by-side-hero .couple-presence-title {
+.today-page .shared-album-hero .couple-presence-title {
   margin: 0;
   font-size: clamp(2.15rem, 8.6vw, 3.6rem);
   line-height: 1.1;
@@ -175,22 +175,22 @@ body:has(
   letter-spacing: -0.055em;
   overflow-wrap: anywhere;
 }
-.today-page .side-by-side-hero .couple-presence-meta {
+.today-page .shared-album-hero .couple-presence-meta {
   min-width: 0;
   align-items: start;
   justify-content: start;
 }
-.today-page .side-by-side-hero .today-hero-duration-link {
+.today-page .shared-album-hero .today-hero-duration-link {
   min-height: 44px;
   margin-block: -0.2rem -0.35rem;
   padding-inline: 0;
   font-size: 0.83rem;
 }
-.today-page .side-by-side-hero .today-hero-pill-icon {
+.today-page .shared-album-hero .today-hero-pill-icon {
   display: none;
 }
 
-.side-by-side-story-link {
+.shared-album-story-link {
   order: -1;
   display: inline-flex;
   min-height: 44px;
@@ -202,30 +202,30 @@ body:has(
   font-weight: 650;
   text-decoration: none;
 }
-.side-by-side-story-link:is(:hover, :focus-visible) {
+.shared-album-story-link:is(:hover, :focus-visible) {
   text-decoration: underline;
   text-underline-offset: 0.2rem;
 }
-.side-by-side-story-link svg,
-.side-by-side-row-arrow svg {
+.shared-album-story-link svg,
+.shared-album-row-arrow svg {
   display: block;
   width: 1.25rem;
   height: 1.25rem;
   flex: none;
 }
 
-.today-page .side-by-side-hero .couple-presence-avatar-anchor,
-.today-page .side-by-side-hero .partner-avatar-pair {
+.today-page .shared-album-hero .couple-presence-avatar-anchor,
+.today-page .shared-album-hero .partner-avatar-pair {
   display: block;
   width: 100%;
   border-radius: 0;
 }
-.today-page .side-by-side-hero .partner-avatar-stack {
+.today-page .shared-album-hero .partner-avatar-stack {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
 }
-.today-page .side-by-side-hero .partner-avatar-slot {
+.today-page .shared-album-hero .partner-avatar-slot {
   display: flex;
   align-items: center;
   gap: clamp(0.35rem, 2vw, 0.6rem);
@@ -236,36 +236,36 @@ body:has(
   border-radius: 0.3rem;
   text-align: start;
 }
-.today-page .side-by-side-hero button.partner-avatar-slot:hover {
+.today-page .shared-album-hero button.partner-avatar-slot:hover {
   background: var(--color-brand-surface);
 }
-.today-page .side-by-side-hero .partner-avatar-slot-secondary {
+.today-page .shared-album-hero .partner-avatar-slot-secondary {
   padding-inline-start: clamp(0.5rem, 2.4vw, 0.9rem);
   border-inline-start: 1px solid var(--side-rule);
   border-radius: 0 0.3rem 0.3rem 0;
 }
-.today-page .side-by-side-hero .partner-avatar {
+.today-page .shared-album-hero .partner-avatar {
   width: clamp(2.15rem, 11vw, 3.25rem);
   height: clamp(2.15rem, 11vw, 3.25rem);
   margin: 0;
   box-shadow: none;
 }
-.today-page .side-by-side-hero .partner-avatar-waiting {
+.today-page .shared-album-hero .partner-avatar-waiting {
   justify-self: center;
   align-self: center;
   min-width: 44px;
   min-height: 44px;
 }
-.side-by-side-person {
+.shared-album-person {
   min-width: 0;
   display: grid;
   gap: 0.13rem;
 }
-.side-by-side-person strong {
+.shared-album-person strong {
   font: 680 0.99rem / 1.15 var(--font-display);
   overflow-wrap: anywhere;
 }
-.today-page .side-by-side-hero .wir-checkin-badge {
+.today-page .shared-album-hero .wir-checkin-badge {
   position: static;
   z-index: auto;
   min-height: 1.25rem;
@@ -277,27 +277,27 @@ body:has(
   white-space: normal;
   font-size: 0.77rem;
 }
-.today-page .side-by-side-hero .wir-checkin-badge .wir-checkin-glyph {
+.today-page .shared-album-hero .wir-checkin-badge .wir-checkin-glyph {
   width: 1.23rem;
   height: 1.23rem;
 }
-.today-page .side-by-side-hero .wir-checkin-badge .daily-energy-battery-icon {
+.today-page .shared-album-hero .wir-checkin-badge .daily-energy-battery-icon {
   width: 1.05rem;
   height: 0.68rem;
 }
-.today-page .side-by-side-hero .wir-checkin-note-dot {
+.today-page .shared-album-hero .wir-checkin-note-dot {
   top: 0.1rem;
   inset-inline-end: 0.12rem;
   width: 1.1rem;
   height: 1.1rem;
   box-shadow: none;
 }
-.today-page .side-by-side-hero .wir-checkin-note-dot svg {
+.today-page .shared-album-hero .wir-checkin-note-dot svg {
   width: 0.67rem;
   height: 0.67rem;
 }
 .today-page
-  .side-by-side-hero
+  .shared-album-hero
   .partner-avatar-pair-split
   .partner-presence-avatar-state {
   top: auto;
@@ -306,31 +306,31 @@ body:has(
   inset-inline-start: clamp(2.05rem, 10vw, 3.05rem);
 }
 
-.today-page[data-wir-design="side_by_side"] .today-section-header {
+.today-page[data-wir-design="shared_album"] .today-section-header {
   margin-bottom: 0.5rem;
   padding: 0;
   align-items: center;
 }
-.today-page[data-wir-design="side_by_side"] .today-section-title {
+.today-page[data-wir-design="shared_album"] .today-section-title {
   font: 640 clamp(1.3rem, 5.7vw, 1.75rem) / 1.2 var(--font-display);
   letter-spacing: -0.04em;
 }
-.today-page[data-wir-design="side_by_side"] .today-section-link {
+.today-page[data-wir-design="shared_album"] .today-section-link {
   color: var(--color-brand-text);
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
-.today-page[data-wir-design="side_by_side"] .today-moment-figure {
+.today-page[data-wir-design="shared_album"] .today-moment-figure {
   border-radius: var(--radius-card);
   box-shadow: none;
 }
-.today-page[data-wir-design="side_by_side"]
+.today-page[data-wir-design="shared_album"]
   .today-moment-media
   :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
   aspect-ratio: 16 / 9;
 }
-.today-page[data-wir-design="side_by_side"] .today-moment-caption {
+.today-page[data-wir-design="shared_album"] .today-moment-caption {
   position: static;
   flex-flow: row wrap;
   align-items: baseline;
@@ -339,22 +339,22 @@ body:has(
   padding: 0.65rem 0.85rem 0.75rem;
   background: var(--side-caption);
 }
-.today-page[data-wir-design="side_by_side"] .today-moment-title {
+.today-page[data-wir-design="shared_album"] .today-moment-title {
   font-size: clamp(1.05rem, 4.5vw, 1.45rem);
   color: var(--side-caption-text);
   overflow-wrap: anywhere;
 }
-.today-page[data-wir-design="side_by_side"] .today-moment-date {
+.today-page[data-wir-design="shared_album"] .today-moment-date {
   color: var(--side-caption-muted);
 }
 
-.today-page[data-wir-design="side_by_side"] .today-agenda-list {
+.today-page[data-wir-design="shared_album"] .today-agenda-list {
   display: grid;
   gap: 0;
   overflow: visible;
   border-top: 1px solid var(--side-rule);
 }
-.today-page[data-wir-design="side_by_side"]
+.today-page[data-wir-design="shared_album"]
   .today-agenda-list
   > .today-agenda-row {
   min-height: 4.2rem;
@@ -366,13 +366,13 @@ body:has(
   padding: 0.5rem 0.25rem;
   background: transparent;
 }
-.today-page[data-wir-design="side_by_side"] .today-agenda-row-link:hover {
+.today-page[data-wir-design="shared_album"] .today-agenda-row-link:hover {
   background: var(--color-surface-subtle);
 }
-.today-page[data-wir-design="side_by_side"] .today-agenda-title {
+.today-page[data-wir-design="shared_album"] .today-agenda-title {
   font: 680 1rem / 1.25 var(--font-display);
 }
-.side-by-side-date-stamp {
+.shared-album-date-stamp {
   min-width: 2.65rem;
   min-height: 3rem;
   display: grid;
@@ -387,19 +387,19 @@ body:has(
   line-height: 1.15;
   text-align: center;
 }
-.side-by-side-date-stamp strong {
+.shared-album-date-stamp strong {
   font: 750 1.05rem / 1 var(--font-display);
 }
-.side-by-side-row-arrow {
+.shared-album-row-arrow {
   margin-inline-start: auto;
   color: var(--color-brand-text);
 }
 
 @media (min-width: 768px) {
-  .today-page .side-by-side-hero .couple-presence-main {
+  .today-page .shared-album-hero .couple-presence-main {
     gap: 0.85rem;
   }
-  .today-page[data-wir-design="side_by_side"]
+  .today-page[data-wir-design="shared_album"]
     .today-moment-media
     :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
     aspect-ratio: 2 / 1;

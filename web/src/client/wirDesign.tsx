@@ -36,7 +36,7 @@ import {
 
 export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.connected,
-  WirDesignId.side_by_side,
+  WirDesignId.shared_album,
   WirDesignId.warm,
   WirDesignId.modern,
   WirDesignId.classic,

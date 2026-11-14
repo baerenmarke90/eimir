@@ -439,7 +439,7 @@ def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
     bundle = _minimal_bundle(
         source_id,
         "target@example.test",
-        appearance={"appIconId": "sage", "wirDesign": "side_by_side"},
+        appearance={"appIconId": "sage", "wirDesign": "shared_album"},
     )
 
     transfer = service.create_import(

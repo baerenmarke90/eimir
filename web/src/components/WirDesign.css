@@ -396,11 +396,11 @@
   }
 }
 
-.wir-design-preview-side_by_side {
+.wir-design-preview-shared_album {
   background: #f2efe4;
   grid-template-rows: 25px 1fr 6px 19px;
 }
-.wir-design-preview-side_by_side .wir-design-preview-hero {
+.wir-design-preview-shared_album .wir-design-preview-hero {
   justify-items: stretch;
   gap: 1px;
 }
@@ -426,13 +426,13 @@
   border-radius: var(--radius-pill);
   background: #596f57;
 }
-.wir-design-preview-side_by_side .wir-design-preview-vibes {
+.wir-design-preview-shared_album .wir-design-preview-vibes {
   grid-template-columns: 1fr 1fr;
 }
-.wir-design-preview-side_by_side .wir-design-preview-quote {
+.wir-design-preview-shared_album .wir-design-preview-quote {
   min-height: 0;
   background: #e1ddcf;
 }
-.wir-design-preview-side_by_side .wir-design-preview-moment {
+.wir-design-preview-shared_album .wir-design-preview-moment {
   background: linear-gradient(#92a287 72%, #3d543c 72%);
 }

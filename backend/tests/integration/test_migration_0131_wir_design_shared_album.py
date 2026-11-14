@@ -14,7 +14,7 @@ from tests.conftest import make_account, make_space, requires_database
 pytestmark = [pytest.mark.integration, requires_database]
 
 
-def test_downgrade_resets_only_side_by_side_and_invalidates_its_etag(session: Session) -> None:
+def test_downgrade_resets_only_shared_album_and_invalidates_its_etag(session: Session) -> None:
     owner = make_account(session, "Owner")
     space = make_space(session, owner)
     for design_id in WirDesignId:

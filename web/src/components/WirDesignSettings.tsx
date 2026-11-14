@@ -26,7 +26,7 @@ function DesignPreview({ design }: { design: WirDesignId }) {
       aria-hidden="true"
     >
       <span className="wir-design-preview-hero">
-        {design === WirDesignId.side_by_side ? (
+        {design === WirDesignId.shared_album ? (
           <>
             <span className="wir-design-preview-person">
               <i />

@@ -27,6 +27,6 @@ def downgrade() -> None:
         sa.text(
             "UPDATE app_icon_preferences "
             "SET wir_design = 'connected', version = version + 1 "
-            "WHERE wir_design = 'side_by_side'"
+            "WHERE wir_design = 'shared_album'"
         )
     )

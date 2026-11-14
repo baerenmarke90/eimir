@@ -298,6 +298,12 @@ export function applyOutbox(
   collection: CollectionDetail,
   record: OutboxRecord,
   viewer: OutboxViewer,
+  /**
+   * Waiting adds the server has already confirmed, by local id to server id.
+   * The confirmed item is in `collection`, so its waiting copy must not be
+   * shown next to it while the queue still holds the op.
+   */
+  confirmed: ReadonlyMap<string, string> = new Map(),
 ): { collection: CollectionDetail; pendingItemIds: ReadonlySet<string> } {
   if (record.ops.length === 0) return { collection, pendingItemIds: new Set() };
   const items = collection.items.map((item) => ({ ...item }));
@@ -307,6 +313,7 @@ export function applyOutbox(
     items.reduce((highest, item) => Math.max(highest, item.position), -1) + 1;
   for (const op of record.ops) {
     if (op.kind === 'add') {
+      if (confirmed.has(op.localId)) continue;
       const created: CollectionItemDetail = {
         id: op.localId,
         collectionId: collection.id,
@@ -329,7 +336,7 @@ export function applyOutbox(
       pending.add(created.id);
       continue;
     }
-    const target = byId.get(op.itemId);
+    const target = byId.get(confirmed.get(op.itemId) ?? op.itemId);
     if (!target) continue;
     pending.add(target.id);
     if (op.kind === 'setCompleted') {
@@ -403,6 +410,12 @@ export interface OutboxReplayInput {
   /** The newest server state known for an item, for its version and current value. */
   known(itemId: string): CollectionItemDetail | undefined;
   onItem(item: CollectionItemDetail): void;
+  /**
+   * The server created the item for a waiting add. Called before `onItem`
+   * puts it into the list, so the owner can stop showing the waiting copy in
+   * the same render in which the confirmed item appears.
+   */
+  onAddConfirmed?(localId: string, created: CollectionItemDetail): void;
   onCollection(collection: CollectionDetail): void;
   now(): number;
 }
@@ -527,6 +540,7 @@ export async function replayOutbox(
           throw new Blocked();
         }
         named.set(op.localId, created.id);
+        input.onAddConfirmed?.(op.localId, created);
         remember(created);
         await input.store.settle(op.opId, {
           localId: op.localId,

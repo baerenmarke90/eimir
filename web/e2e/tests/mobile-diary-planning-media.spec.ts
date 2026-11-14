@@ -111,6 +111,14 @@ async function fixture(page: Page, photoCount = 2) {
         proposed: [],
       });
     if (await fulfillDefaultProductContext(route)) return;
+    if (
+      request.method() === 'GET' &&
+      wishes.some((wish) => path === `${base}/wishes/${wish.id}/reminder`)
+    )
+      return route.fulfill({
+        json: { dueAt: null },
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
     if (path === `${base}/places`) {
       if (request.method() === 'POST') placeCreates++;
       return json({ items: [place], nextCursor: null, hasMore: false });
@@ -244,7 +252,10 @@ for (const view of [
       .getByLabel(copy.wish.intentionLabel)
       .fill(fixtures.planningFollowup.wishNew);
     await showContextTags(page);
-    await page.getByLabel(tagCopy.newLabel).fill(fixtures.planningFollowup.tag);
+    const tagInput = page.getByLabel(tagCopy.newLabel);
+    await tagInput.fill(fixtures.planningFollowup.tag);
+    await tagInput.press('Enter');
+    await expect(tagInput).toHaveValue('');
     await closeContextTags(page);
     await page
       .getByRole('button', { name: copy.common.save, exact: true })

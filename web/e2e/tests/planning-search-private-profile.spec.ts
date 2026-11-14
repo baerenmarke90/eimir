@@ -153,6 +153,14 @@ async function fixture(page: Page, failLater = false) {
     }
     if (path === `${base}/wishes/${wishId}`)
       return route.fulfill({ json: targetWish });
+    if (
+      route.request().method() === 'GET' &&
+      path === `${base}/wishes/${wishId}/reminder`
+    )
+      return route.fulfill({
+        json: { dueAt: null },
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
     if (path === `${base}/places`)
       return route.fulfill({
         json: {

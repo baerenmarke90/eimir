@@ -17,12 +17,15 @@ from eimir.identity.models import Account
 # opted-in comment Email digests follow the same recipient window.
 DEFERABLE_KINDS = frozenset(
     {
+        NotificationKind.ONCE_MESSAGE_RECEIVED,
         NotificationKind.REMINDER_CREATED,
         NotificationKind.TRANSFER_READY,
         NotificationKind.TRANSFER_COMPLETED,
         NotificationKind.TRANSFER_FAILED,
         NotificationKind.PLAN_CHANGED,
+        NotificationKind.PLAN_CREATED,
         NotificationKind.PLAN_CANCELLED,
+        NotificationKind.PARTNER_JOINED,
         NotificationKind.WISH_SELECTION_SHARED,
         NotificationKind.WISH_SELECTION_READY,
         NotificationKind.THINKING_OF_YOU,
@@ -30,6 +33,7 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.PARTNER_KISS,
         NotificationKind.PARTNER_CHECK_IN,
         NotificationKind.COMMENT_CREATED,
+        NotificationKind.PHOTO_REACTION,
     }
 )
 

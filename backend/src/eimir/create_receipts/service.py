@@ -110,23 +110,22 @@ def attach(session: Session, receipt_id: UUID, resource_id: UUID) -> None:
     )
 
 
-def replay[ResourceT: PrivateResourceMixin](
+def resolve(
     session: Session,
     context: AuthorizationContext,
-    model: type[ResourceT],
     *,
     resource_type: str,
     key: UUID,
     request_fingerprint: str,
-    deleted_error: DomainError,
-) -> ResourceT:
-    """Return the original resource for an already committed request identity.
+) -> UUID | None:
+    """Return the resource ID recorded for an already committed request identity.
 
     The lookup is bound to the caller's own Space and Account by
     construction; another Account's identity is indistinguishable from an
-    unknown one. Raises ``deleted_error`` rather than recreating the
-    resource when the committed row no longer exists or is no longer
-    readable by the caller.
+    unknown one. Raises ``IDEMPOTENCY_KEY_REUSED`` when the identity was used
+    for a different request. ``None`` means the receipt no longer points at a
+    resource. The caller must still check that the resource exists and is
+    readable, and must never recreate it.
     """
     receipt = session.execute(
         select(CreateReceipt).where(
@@ -141,14 +140,39 @@ def replay[ResourceT: PrivateResourceMixin](
             "The Idempotency-Key was already used for a different request.",
             ErrorCode.IDEMPOTENCY_KEY_REUSED,
         )
+    return receipt.resource_id
+
+
+def replay[ResourceT: PrivateResourceMixin](
+    session: Session,
+    context: AuthorizationContext,
+    model: type[ResourceT],
+    *,
+    resource_type: str,
+    key: UUID,
+    request_fingerprint: str,
+    deleted_error: DomainError,
+) -> ResourceT:
+    """Return the original resource for an already committed request identity.
+
+    Raises ``deleted_error`` rather than recreating the resource when the
+    committed row no longer exists or is no longer readable by the caller.
+    """
+    resource_id = resolve(
+        session,
+        context,
+        resource_type=resource_type,
+        key=key,
+        request_fingerprint=request_fingerprint,
+    )
     resource = None
-    if receipt.resource_id is not None:
+    if resource_id is not None:
         # Structural cast for `.id`, mirroring `authorization.guard._rule_model`:
         # SQLAlchemy exposes it at runtime, but the generic bound stays
         # `PrivateResourceMixin` so callers pass ordinary domain models.
         rule_model = cast("type[PrivateResource]", model)
         resource = session.execute(
-            readable(model, context).where(rule_model.id == receipt.resource_id)
+            readable(model, context).where(rule_model.id == resource_id)
         ).scalar_one_or_none()
     if resource is None:
         # Never recreate: the original was committed and has since been removed.

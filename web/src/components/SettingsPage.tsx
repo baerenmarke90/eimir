@@ -42,7 +42,7 @@ import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
-import { PartnerDistanceWirSetting } from './PartnerDistanceWirSetting';
+import { WirDashboardSettingsPanel } from './PartnerDistanceWirSetting';
 import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
@@ -216,18 +216,12 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'today') {
     categoryContent = (
       <div className="settings-category-content">
-        <DashboardSettingsPanel
+        <WirDashboardSettingsPanel
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
           dashboardApi={dashboardApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
-          heroControls={
-            <PartnerDistanceWirSetting
-              apiBaseUrl={props.apiBaseUrl}
-              accessToken={props.accessToken}
-              accountId={props.account.id}
-              spaceId={props.spaceId}
-            />
-          }
           moduleControls={{
             shared_story_summary: (
               <WirStatisticsSetting

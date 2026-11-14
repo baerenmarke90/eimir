@@ -12,7 +12,7 @@ const between = (distance: string) =>
 function show(line: Line) {
   return render(
     <MemoryRouter>
-      <PartnerDistanceLine line={line} now={now} />
+      <PartnerDistanceLine line={line} partnerName="Alex" now={now} />
     </MemoryRouter>,
   );
 }
@@ -20,6 +20,19 @@ function show(line: Line) {
 afterEach(cleanup);
 
 describe('PartnerDistanceLine', () => {
+  it('shows the sharer a status chip without any partner distance', () => {
+    show({ kind: 'sharing' });
+    const text = copy.distanceSharing.replace('{{partner}}', 'Alex');
+    const link = screen.getByRole('link', {
+      name: copy.distanceSharingLabel.replace('{{partner}}', 'Alex'),
+    });
+    expect(link.getAttribute('href')).toBe(
+      '/more/settings/relationship/location',
+    );
+    expect(screen.getByText(text)).toBeTruthy();
+    expect(screen.queryByText(/km/)).toBeNull();
+  });
+
   it('renders nothing, not even a placeholder, when unavailable', () => {
     const { container } = show({ kind: 'hidden' });
     expect(container.innerHTML).toBe('');

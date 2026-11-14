@@ -2454,6 +2454,7 @@ describe('formatRelationshipDuration', () => {
      */
     const MODULE_SECTION_MARKER: Record<DashboardModuleKey, string> = {
       relationship_presence: 'today-hero',
+      partner_distance: 'partner-distance-signal',
       shared_experience: 'shared-experience-section',
       daily_quote: 'daily-quote-card',
       upcoming: 'today-section-upcoming',
@@ -2472,7 +2473,10 @@ describe('formatRelationshipDuration', () => {
       ([key]) =>
         key !== 'relationship_presence' &&
         key !== 'shared_story_summary' &&
-        key !== 'daily_quote',
+        key !== 'daily_quote' &&
+        // Rendered only with the partner-location API and capability; covered
+        // by `PartnerDistanceLine.test.tsx` and `partner-distance-wir.spec.ts`.
+        key !== 'partner_distance',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {

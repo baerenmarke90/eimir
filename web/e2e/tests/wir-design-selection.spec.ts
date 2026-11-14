@@ -267,7 +267,9 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 1);
+  // Not listed: the fixed couple hero, and partner distance (#1792), which
+  // this fixture's Space cannot use.
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 2);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -290,7 +292,7 @@ async function alignedVisibilityControls(page: Page) {
       }),
     );
   // The shared couple hero is fixed and has no visibility switch.
-  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 1);
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
   for (const target of targets) {
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);
@@ -772,8 +774,13 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-    // The fixed couple hero keeps its stored slot but is not sortable.
-  ).toEqual(order.filter((key) => key !== 'relationship_presence'));
+    // The fixed couple hero keeps its stored slot but is not sortable; partner
+    // distance (#1792) keeps its slot but is not listed for this Space.
+  ).toEqual(
+    order.filter(
+      (key) => key !== 'relationship_presence' && key !== 'partner_distance',
+    ),
+  );
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });
@@ -798,6 +805,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await page.locator('.product-shell a[href="/today"]:visible').click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.shared-story-summary')).toBeVisible();
+  await expect(page.locator('.daily-quote-card')).toBeVisible();
   expect(
     await page
       .locator('.today-section-moment')
@@ -918,7 +926,15 @@ for (const [width, theme] of [
     };
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultProductContext(route)) return;
-      const path = new URL(route.request().url()).pathname;
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      if (
+        request.method() === 'GET' &&
+        path === '/api/v1/push-endpoints/configuration'
+      )
+        return route.fulfill({
+          json: { fcm: null, unifiedPush: null, webPush: null, apns: null },
+        });
       if (path === '/api/v1/notification-preferences')
         return route.fulfill({ json: notifications });
       if (path.startsWith('/api/v1/notification-preferences/')) {

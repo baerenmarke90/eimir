@@ -23,12 +23,13 @@ two layers cannot silently drift apart.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Literal, cast
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -36,13 +37,14 @@ from eimir.authorization import AuthorizationContext
 from eimir.collections import service as collection_service
 from eimir.core.errors import NotFoundError, ValidationError
 from eimir.core.ids import new_id
-from eimir.dashboard.models import DashboardModulePreference
+from eimir.dashboard.models import DashboardModuleCollection, DashboardModulePreference
 
 
 class DashboardModuleKey(StrEnum):
     """Stable internal product keys for registered Dashboard modules."""
 
     RELATIONSHIP_PRESENCE = "relationship_presence"
+    PARTNER_DISTANCE = "partner_distance"
     SHARED_EXPERIENCE = "shared_experience"
     DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
@@ -55,10 +57,15 @@ class DashboardModuleKey(StrEnum):
     SHARED_STORY_SUMMARY = "shared_story_summary"
 
 
+# Technical bound against abusive payloads, not a product limit on pinned lists.
+MAX_SELECTED_COLLECTIONS = 20
+
+
 class DashboardPreferenceErrorCode:
     MODULE_NOT_FOUND = "DASHBOARD_MODULE_NOT_FOUND"
     FACET_NOT_SUPPORTED = "DASHBOARD_MODULE_FACET_NOT_SUPPORTED"
     INVALID_ORDER = "DASHBOARD_MODULE_INVALID_ORDER"
+    INVALID_SELECTION = "DASHBOARD_MODULE_INVALID_SELECTION"
 
 
 DashboardItemLimit = Literal[1, 2, 3]
@@ -86,6 +93,9 @@ class DashboardModuleState:
     visible: bool
     item_limit: DashboardItemLimit | None
     selected_collection_id: UUID | None
+    # Every selected list in the person's order; ``selected_collection_id`` is
+    # its first entry, kept for clients that only know a single selection.
+    selected_collection_ids: tuple[UUID, ...] = ()
 
 
 # Default Settings/Today order, matching the current Today composition
@@ -99,6 +109,9 @@ class DashboardModuleState:
 # same per-Account+Space visibility behavior as every other Dashboard module.
 CATALOG: tuple[DashboardModuleDefinition, ...] = (
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_PRESENCE, default_visible=True),
+    # #1792: the partner distance signal; directly below the couple hero by
+    # default, hideable and movable like every other Wir module.
+    DashboardModuleDefinition(key=DashboardModuleKey.PARTNER_DISTANCE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.SHARED_EXPERIENCE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.DAILY_QUOTE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
@@ -156,6 +169,10 @@ def read_module_preferences(
         )
     ).scalars()
     overrides = {DashboardModuleKey(row.module_key): row for row in rows}
+    selections = _read_selections(
+        session,
+        [row.id for key, row in overrides.items() if _DEFINITIONS[key].selects_collection],
+    )
     ordered = [definition.key for definition in CATALOG]
     positioned = sorted(
         (key for key in ordered if key in overrides and overrides[key].sort_position is not None),
@@ -181,7 +198,29 @@ def read_module_preferences(
                     result.index(successor) if successor is not None else len(result), key
                 )
         ordered = result
-    return [_effective_state(_DEFINITIONS[key], overrides.get(key)) for key in ordered]
+    return [
+        _effective_state(
+            _DEFINITIONS[key],
+            overrides.get(key),
+            selections.get(overrides[key].id) if key in overrides else None,
+        )
+        for key in ordered
+    ]
+
+
+def _read_selections(session: Session, preference_ids: list[UUID]) -> dict[UUID, list[UUID]]:
+    """Selected collections per preference row, in the person's order."""
+    selections: dict[UUID, list[UUID]] = {}
+    if not preference_ids:
+        return selections
+    rows = session.execute(
+        select(DashboardModuleCollection.preference_id, DashboardModuleCollection.collection_id)
+        .where(DashboardModuleCollection.preference_id.in_(preference_ids))
+        .order_by(DashboardModuleCollection.preference_id, DashboardModuleCollection.position)
+    )
+    for preference_id, collection_id in rows:
+        selections.setdefault(preference_id, []).append(collection_id)
+    return selections
 
 
 def set_module_order(
@@ -194,6 +233,7 @@ def set_module_order(
         DashboardModuleKey.DAILY_QUOTE.value,
         DashboardModuleKey.SHARED_EXPERIENCE.value,
         DashboardModuleKey.RETROSPECTIVE.value,
+        DashboardModuleKey.PARTNER_DISTANCE.value,
     }
     missing = expected - set(module_keys)
     if (
@@ -247,6 +287,7 @@ def set_module_order(
 def _effective_state(
     definition: DashboardModuleDefinition,
     override: DashboardModulePreference | None,
+    selected_ids: Sequence[UUID] | None = None,
 ) -> DashboardModuleState:
     """Absence of an explicit override resolves to the catalog product default."""
     visible = (
@@ -262,16 +303,19 @@ def _effective_state(
             if candidate in definition.item_limit.allowed
             else definition.item_limit.default
         )
-    selected_collection_id = (
-        override.selected_collection_id
-        if definition.selects_collection and override is not None
-        else None
-    )
+    selected: tuple[UUID, ...] = ()
+    if definition.selects_collection and override is not None:
+        if selected_ids:
+            selected = tuple(selected_ids)
+        elif override.selected_collection_id is not None:
+            # Written by an application version that only knows one selection.
+            selected = (override.selected_collection_id,)
     return DashboardModuleState(
         key=definition.key,
         visible=visible,
         item_limit=item_limit,
-        selected_collection_id=selected_collection_id,
+        selected_collection_id=selected[0] if selected else None,
+        selected_collection_ids=selected,
     )
 
 
@@ -283,8 +327,8 @@ def set_module_preference(
     module_key: str,
     visible: bool | None,
     item_limit: int | None,
-    selected_collection_id: UUID | None,
-    selected_collection_id_changed: bool,
+    selected_collection_ids: Sequence[UUID] | None,
+    selected_collection_ids_changed: bool,
 ) -> DashboardModuleState:
     """Persist one private Account+Space override with a PostgreSQL-safe upsert.
 
@@ -295,9 +339,9 @@ def set_module_preference(
     """
     definition = module_definition(module_key)
 
-    if visible is None and item_limit is None and not selected_collection_id_changed:
+    if visible is None and item_limit is None and not selected_collection_ids_changed:
         raise ValidationError(
-            "At least one of visible, itemLimit or selectedCollectionId must be supplied.",
+            "At least one of visible, itemLimit or selectedCollectionIds must be supplied.",
             DashboardPreferenceErrorCode.FACET_NOT_SUPPORTED,
         )
     if item_limit is not None and definition.item_limit is None:
@@ -315,17 +359,26 @@ def set_module_preference(
             DashboardPreferenceErrorCode.FACET_NOT_SUPPORTED,
         )
 
-    if selected_collection_id_changed and not definition.selects_collection:
+    selected_ids: list[UUID] = list(selected_collection_ids or [])
+    if selected_collection_ids_changed and not definition.selects_collection:
         raise ValidationError(
             f"The '{definition.key.value}' Dashboard module does not support collection selection.",
             DashboardPreferenceErrorCode.FACET_NOT_SUPPORTED,
         )
-    if selected_collection_id_changed and selected_collection_id is not None:
-        collection_service.get_collection(
-            session,
-            AuthorizationContext(account_id=account_id, space_id=space_id),
-            selected_collection_id,
-        )
+    if selected_collection_ids_changed:
+        if len(selected_ids) != len(set(selected_ids)):
+            raise ValidationError(
+                "selectedCollectionIds must not contain the same Collection twice.",
+                DashboardPreferenceErrorCode.INVALID_SELECTION,
+            )
+        if len(selected_ids) > MAX_SELECTED_COLLECTIONS:
+            raise ValidationError(
+                f"At most {MAX_SELECTED_COLLECTIONS} Collections can be selected.",
+                DashboardPreferenceErrorCode.INVALID_SELECTION,
+            )
+        context = AuthorizationContext(account_id=account_id, space_id=space_id)
+        for collection_id in selected_ids:
+            collection_service.get_collection(session, context, collection_id)
 
     values: dict[str, object] = {
         "id": new_id(),
@@ -340,9 +393,11 @@ def set_module_preference(
     if item_limit is not None:
         values["item_limit"] = item_limit
         changes["item_limit"] = item_limit
-    if selected_collection_id_changed:
-        values["selected_collection_id"] = selected_collection_id
-        changes["selected_collection_id"] = selected_collection_id
+    if selected_collection_ids_changed:
+        # Compatibility mirror: the association rows below are authoritative.
+        mirror = selected_ids[0] if selected_ids else None
+        values["selected_collection_id"] = mirror
+        changes["selected_collection_id"] = mirror
 
     statement = (
         insert(DashboardModulePreference)
@@ -352,15 +407,42 @@ def set_module_preference(
             set_=changes,
         )
         .returning(
+            DashboardModulePreference.id,
             DashboardModulePreference.visible,
             DashboardModulePreference.item_limit,
             DashboardModulePreference.selected_collection_id,
         )
     )
-    persisted_visible, persisted_item_limit, persisted_selected_collection_id = session.execute(
-        statement
-    ).one()
+    (
+        preference_id,
+        persisted_visible,
+        persisted_item_limit,
+        persisted_selected_collection_id,
+    ) = session.execute(statement).one()
+    # The upsert above holds the preference row lock until commit, so two
+    # concurrent updates of the same selection are applied one after the other.
+    if selected_collection_ids_changed:
+        session.execute(
+            delete(DashboardModuleCollection).where(
+                DashboardModuleCollection.preference_id == preference_id
+            )
+        )
+        for position, collection_id in enumerate(selected_ids):
+            session.add(
+                DashboardModuleCollection(
+                    preference_id=preference_id,
+                    collection_id=collection_id,
+                    position=position,
+                )
+            )
     session.flush()
+    selected_now = (
+        tuple(selected_ids)
+        if selected_collection_ids_changed
+        else tuple(_read_selections(session, [preference_id]).get(preference_id, []))
+    )
+    if not selected_now and persisted_selected_collection_id is not None:
+        selected_now = (persisted_selected_collection_id,)
 
     effective_visible = (
         persisted_visible if persisted_visible is not None else definition.default_visible
@@ -377,6 +459,7 @@ def set_module_preference(
         visible=effective_visible,
         item_limit=effective_item_limit,
         selected_collection_id=(
-            persisted_selected_collection_id if definition.selects_collection else None
+            selected_now[0] if definition.selects_collection and selected_now else None
         ),
+        selected_collection_ids=selected_now if definition.selects_collection else (),
     )

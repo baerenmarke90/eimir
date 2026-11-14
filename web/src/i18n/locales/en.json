@@ -622,6 +622,21 @@
       "converting": "Converting …",
       "completeHeading": "Already experienced it?",
       "actionsHeading": "Continue wish",
+      "reminder": {
+        "action": "Remind me",
+        "edit": "Change reminder",
+        "privacy": "This reminder is just for you.",
+        "tomorrow": "Tomorrow",
+        "nextWeek": "In a week",
+        "when": "Date and time",
+        "save": "Save",
+        "saving": "Saving …",
+        "remove": "Remove reminder",
+        "scheduled": "Reminder on {{date}}",
+        "invalid": "Choose a valid future date and time.",
+        "offline": "You are offline. Connect to save.",
+        "notification": "You asked to be reminded about a wish."
+      },
       "completeIntro": "If this wish has come true without a plan, you can mark it as fulfilled directly.",
       "complete": "Mark as fulfilled",
       "completing": "Completing …",
@@ -923,6 +938,20 @@
       "deleteItem": "Delete “{{title}}”",
       "reordering": "Saving order …",
       "deleteConsequence": "The list and its own entries will be deleted. Other eimir. content will not be deleted.",
+      "outbox": {
+        "waitingOffline_one": "Offline · {{count}} change waiting",
+        "waitingOffline_other": "Offline · {{count}} changes waiting",
+        "waitingOnline_one": "{{count}} change is being sent",
+        "waitingOnline_other": "{{count}} changes are being sent",
+        "itemWaiting": "Waiting for a connection",
+        "storageFailed": "Your device cannot keep changes for later right now. Keep the app open until they have been sent.",
+        "dismiss": "Close notice",
+        "noticeExpired": "“{{title}}” could not be saved because it waited too long for a connection. Please add it again.",
+        "noticeRejected": "“{{title}}” was not accepted. Please add it again.",
+        "noticeItemGone": "An entry was deleted in the meantime. Your change to it was not sent.",
+        "noticeCollectionGone": "This list was deleted in the meantime. Changes that were not sent were discarded.",
+        "noticeFull": "Too many changes are waiting. Please wait until the connection is back."
+      },
       "scopeLabel": "Filter lists",
       "scope": {
         "OPEN": "Open",
@@ -2178,7 +2207,7 @@
   },
   "notificationSettings": {
     "title": "Which messages you receive",
-    "sharedActivityDescription": "Comments, new reminders and due reminders.",
+    "sharedActivityDescription": "Comments, photo reactions, new reminders and due reminders.",
     "closenessDescription": "Thoughts of each other, kisses and check-ins.",
     "individual": "Adjust individually",
     "dates": "Important days",
@@ -2190,7 +2219,7 @@
     "closeness": "Closeness",
     "comment": "Comments",
     "commentDescription": "New comments are collected in your inbox.",
-    "commentPushDescription": "New comments from your partner directly by push. Quiet hours are respected.",
+    "commentPushDescription": "Push notifications for new comments and photo reactions from your partner. Quiet hours apply to both.",
     "commentEmailDescription": "At most one neutral email per hour.",
     "reminder": "Due reminders",
     "reminderCreated": "New reminders",
@@ -2208,6 +2237,11 @@
     "endpointMissing": "Push reception has not been set up on this device yet.",
     "pushUnavailable": "Push is currently unavailable.",
     "deviceToggle": "Push on this device",
+    "browserToggle": "Push in this browser",
+    "browserPermissionDenied": "Allow notifications for eimir. in this browser's settings.",
+    "browserOtherAccount": "Push is connected to another account in this browser. Turn it off in that account to enable it here.",
+    "browserUpdatePending": "Reopen eimir. when the browser update is ready.",
+    "browserOffline": "You're offline. Try again when you're connected.",
     "onboardingTitle": "Enable notifications?",
     "onboardingIntro": "Hear when your partner shares something with you or a reminder is due. Small prompts occasionally remind you of your time together. You can turn each one off at any time.",
     "onboardingPromptsFailed": "Push is set up. Small prompts could not be enabled yet. Try again or change your choices later in Settings.",
@@ -2215,6 +2249,7 @@
     "onboardingLater": "Later",
     "onboardingOffline": "You are offline. Notifications have not been enabled yet.",
     "deviceIntro": "Notifications may show names and titles. Your Android setting for sensitive content applies on the lock screen. Specific previews are encrypted for delivery. Google or your push service receives an installation identifier and connection data.",
+    "iosDeviceIntro": "Your device shows a neutral notification. Tap it to open the content in eimir. after signing in.",
     "deviceLoading": "Checking push setup …",
     "deviceUnavailable": "Push is unavailable on this installation.",
     "deviceOff": "Push is off on this device.",
@@ -3308,6 +3343,31 @@
     "hintAwaitingMemory_other": "{{count}} wishes are waiting for a memory",
     "fulfilledTitle": "Wish fulfilled",
     "fulfilledBody": "You wished for “{{title}}” – and you did it."
+  },
+  "wishRepeat": {
+    "action": "Experience it again",
+    "sheet": {
+      "title": "Experience it again",
+      "intro": "A new wish that remembers the first time.",
+      "titleLabel": "Title",
+      "create": "Create wish",
+      "creating": "Creating …",
+      "planNow": "Plan it now",
+      "planning": "Planning …"
+    },
+    "series": {
+      "experienced_one": "Experienced once",
+      "experienced_other": "Experienced {{count}} times",
+      "nthTime": "Time {{position}}",
+      "showAll": "See every time",
+      "timesLabel": "Every time",
+      "timeOn": "Time {{position}} · {{date}}"
+    },
+    "reminder": {
+      "fromWish": "From your wish",
+      "fromWishTitled": "From your wish “{{title}}”",
+      "fromWishTitledNth": "From your wish “{{title}}” · time {{position}}"
+    }
   },
   "memoryProduct": {
     "planning": {
@@ -4585,8 +4645,9 @@
     "distanceOwnMissing": "Your location is missing",
     "distanceOwnMissingAction": "Turn on",
     "distanceOwnMissingLabel": "Your location is missing. Only you see this hint. Turn on",
-    "wirToggleLabel": "Show distance on “Us”",
-    "wirToggleHint": "Only changes your view. What you share stays the same.",
+    "distanceSharing": "You share your distance with {{partner}}",
+    "distanceSharingLabel": "You share your distance with {{partner}}. Adjust sharing",
+    "wirModuleLabel": "Distance between you",
     "mapTitle": "Where we are",
     "mapShowUs": "Show us",
     "mapLoading": "Loading map …",

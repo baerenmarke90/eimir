@@ -74,6 +74,7 @@ def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
         WISH_COMPLETE,
         CONVERT,
         f"{WISH_DETAIL}/repeat",
+        f"{WISH_DETAIL}/reminder",
     }
     assert plan_paths == {
         COLLECTION,

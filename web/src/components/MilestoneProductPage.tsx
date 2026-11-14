@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { type FormEvent, useRef } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
@@ -42,12 +42,17 @@ import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import { ExpandableDescription } from './ExpandableDescription';
+import {
+  ComposerDateContext,
+  type ComposerDateContextHandle,
+} from './ComposerDateContext';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import {
+  ComposerHeader,
   StoryCreatePageShell,
   StoryEditorPageShell,
 } from './StoryFormPageShell';
@@ -137,6 +142,9 @@ export function MilestoneProductPage({
   const updating = useIsMutating({ mutationKey: updateKey, exact: true }) > 0;
   const createAttemptRef =
     useRef<CreateRequestAttempt<MilestoneCreateSnapshot> | null>(null);
+  const dateContextRef = useRef<ComposerDateContextHandle>(null);
+  const [createDate, setCreateDate] = useState(localDateInputValue);
+  const [createTitle, setCreateTitle] = useState('');
 
   const milestoneQuery = useQuery({
     queryKey,
@@ -293,6 +301,7 @@ export function MilestoneProductPage({
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
       if (sourceLoading || createMutation.isPending) return;
+      if (!dateContextRef.current?.reportValidity()) return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
@@ -307,12 +316,37 @@ export function MilestoneProductPage({
     return (
       <StoryCreatePageShell
         header={
-          <PageHeader
-            before={<TaskBackButton onClick={() => requestReturn(originKey)} />}
+          <ComposerHeader
+            before={
+              <TaskBackButton
+                inline
+                type="button"
+                onClick={() => requestReturn(originKey)}
+              />
+            }
             title={t('milestoneProduct.createHeading')}
             className="create-heading"
+            action={
+              <button
+                type="submit"
+                form="milestone-create-form"
+                className="composer-save-action"
+                data-saveable={createTitle.trim().length > 0}
+                aria-label={
+                  createMutation.isPending
+                    ? t('milestoneProduct.saving')
+                    : t('milestoneProduct.save')
+                }
+                disabled={createMutation.isPending || sourceLoading}
+              >
+                {createMutation.isPending
+                  ? t('milestoneProduct.saving')
+                  : t('m5s3.common.save')}
+              </button>
+            }
           />
         }
+        pageClassName="milestone-create-page quiet-composer page-composer"
         labelledBy="milestone-form-heading"
       >
         <>
@@ -328,58 +362,61 @@ export function MilestoneProductPage({
               onRetry={() => void sourcePlan.refetch()}
             />
           ) : null}
-          <form onSubmit={submitCreate} className="immersive-create-form">
-            <NativeDateField
-              id="milestone-date"
-              name="happenedOn"
-              label={t('milestoneProduct.happenedOnLabel')}
-              required
-              defaultValue={localDateInputValue()}
-              openPickerOnClick
-            />
-            <div className="immersive-create-hero">
-              <label htmlFor="milestone-title">
-                {t('milestoneProduct.titleLabel')}
-              </label>
-              <input
-                id="milestone-title"
-                name="title"
-                required
-                maxLength={200}
-                placeholder={t('milestoneProduct.titlePlaceholder')}
-                className="immersive-create-title"
-              />
-            </div>
-
-            <div className="field-group">
-              <label htmlFor="milestone-body">
-                {t('milestoneProduct.bodyLabel')}
-              </label>
-              <textarea
-                id="milestone-body"
-                name="body"
-                rows={4}
-                placeholder={t('milestoneProduct.bodyPlaceholder')}
-              />
-            </div>
-
-            <div className="form-actions">
-              <button
-                type="button"
-                className="button-link secondary-link"
-                onClick={() => requestReturn(originKey)}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={createMutation.isPending || sourceLoading}
-              >
-                {createMutation.isPending
-                  ? t('milestoneProduct.saving')
-                  : t('milestoneProduct.save')}
-              </button>
-            </div>
+          <form
+            id="milestone-create-form"
+            onSubmit={submitCreate}
+            className="immersive-create-form"
+          >
+            <fieldset
+              className="memory-task-fields"
+              disabled={createMutation.isPending}
+            >
+              <legend className="sr-only">
+                {t('milestoneProduct.createHeading')}
+              </legend>
+              <div className="composer-context">
+                <ComposerDateContext
+                  ref={dateContextRef}
+                  idPrefix="milestone-date"
+                  name="happenedOn"
+                  formId="milestone-create-form"
+                  label={t('milestoneProduct.happenedOnLabel')}
+                  required
+                  value={createDate}
+                  onChange={setCreateDate}
+                />
+              </div>
+              <div className="composer-content">
+                <div className="composer-writing-surface composer-authored-surface">
+                  <div className="field-group immersive-create-title-field">
+                    <label htmlFor="milestone-title">
+                      {t('milestoneProduct.titleLabel')}
+                    </label>
+                    <input
+                      id="milestone-title"
+                      name="title"
+                      required
+                      maxLength={200}
+                      value={createTitle}
+                      onChange={(event) => setCreateTitle(event.target.value)}
+                      placeholder={t('milestoneProduct.titlePlaceholder')}
+                      className="immersive-create-title-input"
+                    />
+                  </div>
+                  <div className="field-group immersive-create-narrative">
+                    <label htmlFor="milestone-body">
+                      {t('milestoneProduct.bodyLabel')}
+                    </label>
+                    <textarea
+                      id="milestone-body"
+                      name="body"
+                      rows={4}
+                      placeholder={t('milestoneProduct.bodyPlaceholder')}
+                    />
+                  </div>
+                </div>
+              </div>
+            </fieldset>
           </form>
           {createMutation.error ? (
             <ProblemState error={createMutation.error} />

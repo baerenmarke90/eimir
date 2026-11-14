@@ -364,6 +364,33 @@
         "title": "AnnualSchedule",
         "type": "object"
       },
+      "ApnsConfiguration": {
+        "properties": {
+          "bundleId": {
+            "title": "Bundleid",
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "development",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "providerKey": {
+            "title": "Providerkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "bundleId",
+          "environment"
+        ],
+        "title": "ApnsConfiguration",
+        "type": "object"
+      },
       "AppIconId": {
         "enum": [
           "original",
@@ -1272,6 +1299,10 @@
       "CollectionCreate": {
         "additionalProperties": false,
         "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/CollectionKind",
+            "default": "GENERIC"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -1312,6 +1343,10 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CollectionKind",
+            "default": "GENERIC"
           },
           "spaceId": {
             "format": "uuid",
@@ -1355,6 +1390,17 @@
             "title": "Completed",
             "type": "boolean"
           },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -1380,6 +1426,40 @@
             "title": "Completed",
             "type": "boolean"
           },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedat"
+          },
+          "completedBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedby"
+          },
+          "completer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -1401,6 +1481,17 @@
           "position": {
             "title": "Position",
             "type": "integer"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
           },
           "title": {
             "title": "Title",
@@ -1439,6 +1530,17 @@
             "title": "Completed",
             "type": "boolean"
           },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -1446,6 +1548,15 @@
         },
         "title": "CollectionItemUpdate",
         "type": "object"
+      },
+      "CollectionKind": {
+        "description": "Presentation variant of a Collection, fixed when it is created (#1808).",
+        "enum": [
+          "GENERIC",
+          "SHOPPING"
+        ],
+        "title": "CollectionKind",
+        "type": "string"
       },
       "CollectionOrder": {
         "additionalProperties": false,
@@ -2592,6 +2703,15 @@
             ],
             "title": "Selectedcollectionid"
           },
+          "selectedCollectionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Selectedcollectionids",
+            "type": "array"
+          },
           "visible": {
             "title": "Visible",
             "type": "boolean"
@@ -2619,6 +2739,14 @@
             "format": "uuid",
             "title": "Selectedcollectionid",
             "type": "string"
+          },
+          "selectedCollectionIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Selectedcollectionids",
+            "type": "array"
           },
           "visible": {
             "title": "Visible",
@@ -2900,6 +3028,16 @@
       },
       "DevicePushConfiguration": {
         "properties": {
+          "apns": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApnsConfiguration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "fcm": {
             "anyOf": [
               {
@@ -2911,6 +3049,16 @@
             ]
           },
           "unifiedPush": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnifiedPushConfiguration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "webPush": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/UnifiedPushConfiguration"
@@ -3218,6 +3366,18 @@
             "title": "Localeversion",
             "type": "integer"
           },
+          "neutralReferenceVersion": {
+            "anyOf": [
+              {
+                "const": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neutralreferenceversion"
+          },
           "projectId": {
             "title": "Projectid",
             "type": "string"
@@ -3243,6 +3403,11 @@
             "minLength": 43,
             "title": "Key",
             "type": "string"
+          },
+          "neutralReference": {
+            "default": false,
+            "title": "Neutralreference",
+            "type": "boolean"
           },
           "version": {
             "enum": [
@@ -6007,7 +6172,8 @@
           "THINKING_OF_YOU",
           "PARTNER_KISS",
           "PARTNER_CHECK_IN",
-          "REMINDER_DUE"
+          "REMINDER_DUE",
+          "WISH_REMINDER_DUE"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -7306,6 +7472,43 @@
         ],
         "title": "PersonRelationship",
         "type": "string"
+      },
+      "PersonalWishReminder": {
+        "description": "Current pending schedule visible only to its owner.",
+        "properties": {
+          "dueAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dueat"
+          }
+        },
+        "required": [
+          "dueAt"
+        ],
+        "title": "PersonalWishReminder",
+        "type": "object"
+      },
+      "PersonalWishReminderUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "dueAt": {
+            "format": "date-time",
+            "title": "Dueat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dueAt"
+        ],
+        "title": "PersonalWishReminderUpdate",
+        "type": "object"
       },
       "PhotoLocationPreference": {
         "properties": {
@@ -9291,7 +9494,7 @@
             ]
           },
           "endpointValue": {
-            "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; FCM uses compact JSON containing fid and activationId (canonical UUIDv4). The configured provider validates its own format. Treat this value as a secret.",
+            "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; FCM uses compact JSON containing fid and activationId (canonical UUIDv4). Browser Web Push adds activationId, and APNs uses token and activationId. The configured provider validates its own format. Treat this value as a secret.",
             "maxLength": 2048,
             "minLength": 1,
             "title": "Endpointvalue",
@@ -22700,6 +22903,29 @@
               "$ref": "#/components/schemas/CollectionScope",
               "default": "ALL"
             }
+          },
+          {
+            "description": "Return only these Collections, so several known lists need one request.",
+            "in": "query",
+            "name": "ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "maxItems": 50,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Return only these Collections, so several known lists need one request.",
+              "title": "Ids"
+            }
           }
         ],
         "responses": {
@@ -23119,6 +23345,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -23132,6 +23376,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionItemDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Item in its current state; no second Item is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -23169,6 +23431,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -42143,6 +42415,228 @@
         "summary": "Convert Wish To Plan",
         "tags": [
           "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder": {
+      "delete": {
+        "operationId": "clearPersonalWishReminder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "wishId",
+            "required": true,
+            "schema": {
+              "title": "Wishid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Clear Personal Wish Reminder",
+        "tags": [
+          "wishes"
+        ]
+      },
+      "get": {
+        "operationId": "getPersonalWishReminder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "wishId",
+            "required": true,
+            "schema": {
+              "title": "Wishid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalWishReminder"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Personal Wish Reminder",
+        "tags": [
+          "wishes"
+        ]
+      },
+      "put": {
+        "operationId": "setPersonalWishReminder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "wishId",
+            "required": true,
+            "schema": {
+              "title": "Wishid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalWishReminderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalWishReminder"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Personal Wish Reminder",
+        "tags": [
+          "wishes"
         ]
       }
     },

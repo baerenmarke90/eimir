@@ -25,6 +25,7 @@
 
 export type DashboardModuleKey =
   | 'relationship_presence'
+  | 'partner_distance'
   | 'shared_experience'
   | 'daily_quote'
   | 'upcoming'
@@ -52,6 +53,7 @@ export interface DashboardModuleCatalogEntry {
 export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [
     { key: 'relationship_presence', labelKey: 'm5s5.today.roles.hero' },
+    { key: 'partner_distance', labelKey: 'partnerLocation.wirModuleLabel' },
     { key: 'shared_experience', labelKey: 'coupleExperiences.incoming.title' },
     { key: 'daily_quote', labelKey: 'dailyQuote.title' },
     { key: 'keepsake', labelKey: 'm5s5.today.keepsake.kicker' },

@@ -13,7 +13,7 @@ from datetime import timedelta
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from urllib.parse import urlsplit
 
 from pydantic import (
@@ -326,17 +326,33 @@ class Settings(IdentityCompatibleSettings):
     smtp_password: SecretStr | None = None
     smtp_starttls: bool = True
 
-    # UnifiedPush uses Web Push for the server-to-distributor hop. No provider
-    # is active until an operator configures a VAPID key and explicit origins.
+    # Operator identity shown in the footer of every authentication mail. The
+    # legal texts name the provider and an imprint; the mail must carry the same
+    # facts so a recipient can identify who sent it without opening the app.
+    # Empty values are omitted instead of printing a placeholder.
+    legal_provider_name: str = ""
+    legal_provider_address: str = ""
+    legal_imprint_url: str = ""
+    legal_privacy_url: str = ""
+    legal_terms_url: str = ""
+    support_email: str = ""
+
+    # Both Web Push adapters require VAPID and their own explicit origin list.
     push_vapid_private_key: SecretStr | None = None
     push_vapid_subject: str = ""
     push_webpush_allowed_origins: list[str] = Field(default_factory=list)
+    push_browser_allowed_origins: list[str] = Field(default_factory=list)
 
     # Both processes share the operator-managed sender configuration. Credentials
     # stay in a mounted file; Settings validation never reads it or calls Google.
     push_fcm_project_id: str = ""
     push_fcm_android_package: str = ""
     push_fcm_credentials_file: str = ""
+    push_apns_bundle_id: str = ""
+    push_apns_team_id: str = ""
+    push_apns_key_id: str = ""
+    push_apns_key_file: str = ""
+    push_apns_environment: Literal["development", "production"] = "production"
 
     # Observability and logging configuration.
     log_format: LogFormat | None = None
@@ -375,6 +391,38 @@ class Settings(IdentityCompatibleSettings):
                     "EIMIR_ENCRYPTION_KEYS must be a JSON object of key id to base64 key."
                 ) from None
         return value
+
+    @field_validator("legal_provider_name", "legal_provider_address")
+    @classmethod
+    def legal_identity_is_single_line(cls, value: str) -> str:
+        """Keep the identity a plain line so it renders the same in text and HTML."""
+        return " ".join(value.split())
+
+    @field_validator("legal_imprint_url", "legal_privacy_url", "legal_terms_url")
+    @classmethod
+    def legal_links_are_absolute_http(cls, value: str) -> str:
+        link = value.strip()
+        if not link:
+            return ""
+        parsed = urlsplit(link)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("EIMIR_LEGAL_*_URL must be an absolute http(s) address.")
+        return link
+
+    @field_validator("support_email")
+    @classmethod
+    def support_email_is_plausible(cls, value: str) -> str:
+        address = value.strip()
+        local_part, separator, domain = address.partition("@")
+        if address and (
+            not separator
+            or not local_part
+            or "." not in domain
+            or any(character.isspace() for character in address)
+            or len(address) > 320
+        ):
+            raise ValueError("EIMIR_SUPPORT_EMAIL must be an email address.")
+        return address
 
     @field_validator("server_admin_emails")
     @classmethod
@@ -602,21 +650,14 @@ class Settings(IdentityCompatibleSettings):
 
     @model_validator(mode="after")
     def web_push_configuration_is_complete(self) -> Self:
-        configured = bool(
-            self.push_vapid_private_key
-            or self.push_vapid_subject
-            or self.push_webpush_allowed_origins
-        )
+        origins = self.push_webpush_allowed_origins + self.push_browser_allowed_origins
+        configured = bool(self.push_vapid_private_key or self.push_vapid_subject or origins)
         if not configured:
             return self
-        if not (
-            self.push_vapid_private_key
-            and self.push_vapid_subject
-            and self.push_webpush_allowed_origins
-        ):
+        if not (self.push_vapid_private_key and self.push_vapid_subject and origins):
             raise ValueError(
                 "Web Push requires EIMIR_PUSH_VAPID_PRIVATE_KEY, "
-                "EIMIR_PUSH_VAPID_SUBJECT and EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS."
+                "EIMIR_PUSH_VAPID_SUBJECT and an explicit push origin list."
             )
         subject = urlsplit(self.push_vapid_subject)
         if not (
@@ -630,14 +671,12 @@ class Settings(IdentityCompatibleSettings):
             Vapid.from_string(self.push_vapid_private_key.get_secret_value())
         except Exception:
             raise ValueError("EIMIR_PUSH_VAPID_PRIVATE_KEY is invalid.") from None
-        for raw_origin in self.push_webpush_allowed_origins:
+        for raw_origin in origins:
             try:
                 origin = urlsplit(raw_origin)
                 _ = origin.port
             except ValueError:
-                raise ValueError(
-                    "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS must contain HTTPS origins only."
-                ) from None
+                raise ValueError("Push origin lists must contain HTTPS origins only.") from None
             if (
                 origin.scheme != "https"
                 or not origin.hostname
@@ -648,9 +687,7 @@ class Settings(IdentityCompatibleSettings):
                 or origin.fragment
                 or any(ord(character) < 33 or ord(character) == 127 for character in raw_origin)
             ):
-                raise ValueError(
-                    "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS must contain HTTPS origins only."
-                )
+                raise ValueError("Push origin lists must contain HTTPS origins only.")
         return self
 
     @model_validator(mode="after")
@@ -682,6 +719,25 @@ class Settings(IdentityCompatibleSettings):
             ord(character) < 33 or ord(character) == 127 for character in path
         ):
             raise ValueError("EIMIR_PUSH_FCM_CREDENTIALS_FILE must be an absolute file path.")
+        return self
+
+    @model_validator(mode="after")
+    def apns_configuration_is_complete(self) -> Self:
+        identifiers = (self.push_apns_team_id, self.push_apns_key_id)
+        values = (*identifiers, self.push_apns_bundle_id, self.push_apns_key_file)
+        if not any(values):
+            return self
+        if not all(values):
+            raise ValueError("APNs requires bundle ID, Team ID, key ID and a private key file.")
+        if any(re.fullmatch(r"[A-Z0-9]{10}", value) is None for value in identifiers):
+            raise ValueError("APNs Team ID and key ID must be valid Apple identifiers.")
+        if re.fullmatch(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+", self.push_apns_bundle_id) is None:
+            raise ValueError("EIMIR_PUSH_APNS_BUNDLE_ID must be a valid bundle ID.")
+        path = self.push_apns_key_file
+        if not Path(path).is_absolute() or any(
+            ord(character) < 33 or ord(character) == 127 for character in path
+        ):
+            raise ValueError("EIMIR_PUSH_APNS_KEY_FILE must be an absolute file path.")
         return self
 
 

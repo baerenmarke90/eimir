@@ -731,14 +731,15 @@ test('Milestone Create defaults the date to local today and stays typeable', asy
   await signIn(page);
 
   await page.goto('/story/milestones/new');
-  const dateInput = page.getByLabel(
+  const dateInput = await showComposerDate(
+    page,
     storyProducts.milestoneProduct.happenedOnLabel,
-    { exact: true },
   );
   await expect(dateInput).toHaveValue(localToday());
 
   await dateInput.fill('2025-12-24');
   await expect(dateInput).toHaveValue('2025-12-24');
+  await closeComposerDate(page, storyProducts.milestoneProduct.happenedOnLabel);
 });
 
 for (const colorScheme of ['light', 'dark'] as const) {

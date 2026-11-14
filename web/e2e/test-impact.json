@@ -47,9 +47,11 @@
     },
     "android-push-onboarding.spec.ts": {
       "roots": [
+        "web/src/client/devicePush.ts",
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/OnceMessages.tsx",
         "web/src/components/SettingsPage.tsx"
       ]
     },
@@ -68,6 +70,16 @@
         "web/src/components/SettingsPage.tsx",
         "web/src/client/appUpdates.ts",
         "web/src/client/useAppUpdateState.ts"
+      ]
+    },
+    "browser-push.spec.ts": {
+      "roots": [
+        "web/src/client/browserPush.ts",
+        "web/src/client/devicePush.ts",
+        "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/client/m4Product.ts",
+        "web/src/components/SharedPlanningOverviewPage.tsx"
       ]
     },
     "automatic-recaps.spec.ts": {
@@ -569,10 +581,18 @@
         "web/src/components/MemoryCreatePage.tsx"
       ]
     },
+    "wish-repeat.spec.ts": {
+      "roots": [
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/ReminderReadPage.tsx"
+      ]
+    },
     "wish-journey.spec.ts": {
       "roots": [
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishReminderAction.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/TodayPage.tsx"
       ]
@@ -831,8 +851,10 @@
     },
     "today-living-home.spec.ts": {
       "roots": [
+        "web/src/components/AppShell.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/M4ProductPages.tsx",
         "web/src/components/SharedStorySummary.tsx",
@@ -893,6 +915,8 @@
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx",
+        "web/src/components/NotificationSettingsPanel.tsx",
+        "web/src/client/browserPush.ts",
         "web/src/components/ProfilePage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx"
       ]
@@ -970,6 +994,7 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishReminderAction.tsx",
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/PrivateAreaProductPage.tsx",
         "web/src/components/PrivatePartnerNotesPage.tsx"
@@ -980,6 +1005,7 @@
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/WishProductPage.tsx",
+        "web/src/components/WishReminderAction.tsx",
         "web/src/components/ContextTagEditor.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/StoryYearsPage.tsx",
@@ -1101,6 +1127,9 @@
       "roots": [
         "web/src/components/PartnerDistanceLine.tsx",
         "web/src/components/PartnerDistanceWirSetting.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/client/dashboardModules.ts",
+        "web/src/client/dashboardPreferences.ts",
         "web/src/components/PartnerLocationMapPage.tsx",
         "web/src/client/partnerDistance.ts",
         "web/src/components/CouplePresence.tsx",
@@ -1109,6 +1138,9 @@
         "web/src/components/PlaceMapCanvas.tsx",
         "web/src/components/PartnerLocationSync.tsx"
       ]
+    },
+    "shopping-list-offline.spec.ts": {
+      "roots": ["web/src/components/CollectionProductPage.tsx"]
     }
   }
 }

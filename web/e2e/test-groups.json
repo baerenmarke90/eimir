@@ -65,6 +65,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 3
     },
+    "browser-push.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Browser-only opt-in through the authentic settings switch, authorized push tap and revocation across compact and expanded layouts."
+    },
     "chapter-create-navigation.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 2
@@ -191,10 +196,15 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 11
     },
+    "wish-repeat.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9,
+      "reason": "Feature-owned #1816 acceptance: a series is one row under Erfüllt with its times folded away, repeating a completed wish from an editable proposal with one idempotency key and no write on dismiss, the open repeat mark, and the Wish line on a Plan reminder, with 360/390/430 px, Light/Dark, 200% text, reduced motion and Expanded evidence."
+    },
     "wish-journey.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 8,
-      "reason": "Feature-owned #1790 F2 wish journey acceptance: Planning origin lines and quiet hint, open/planned/fulfilled wish scope, wish detail path and plan link, plan origin and the wish fulfilment moment, with 360/390/430 px, Light/Dark, 200% text, reduced motion and Expanded evidence."
+      "baselineTests": 11,
+      "reason": "Feature-owned #1790 F2 Wish journey and #812 personal reminder acceptance, including confirmed save, reload, removal, focus return, Compact/Expanded, Light/Dark, large text and reduced motion."
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -462,8 +472,8 @@
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, independent registration and revocation through the device settings switch, and narrow/large-text theme and accessibility evidence."
+      "baselineTests": 13,
+      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound FCM/APNs endpoint confirmation, notification tap to the sealed message, independent registration and revocation, and narrow/large-text theme and accessibility evidence."
     },
     "content-reading.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -563,6 +573,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 11,
       "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
+    },
+    "shopping-list-offline.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 8,
+      "reason": "Feature-owned acceptance for the shopping list without a connection (#1808): changes made offline are kept on the device, shown as waiting, sent once with the same request identity when the connection is back, survive a reload, and the waiting state is readable, accessible and bounded at 360/390/430px (Light, plus Dark at 390), in the Expanded 1280px view and at 320px with text enlarged to 200%."
     }
   }
 }

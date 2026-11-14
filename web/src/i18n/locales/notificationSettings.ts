@@ -1,6 +1,7 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
-  sharedActivityDescription: 'Kommentare, neue und fällige Erinnerungen.',
+  sharedActivityDescription:
+    'Kommentare, Fotoreaktionen, neue und fällige Erinnerungen.',
   closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
   individual: 'Einzeln anpassen',
   dates: 'Wichtige Tage',
@@ -15,7 +16,7 @@ const notificationSettings = {
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
   commentPushDescription:
-    'Neue Kommentare deines Partners direkt als Push. Ruhezeiten werden berücksichtigt.',
+    'Push für neue Kommentare und Fotoreaktionen deines Partners. Ruhezeiten gelten für beide.',
   commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
   reminderCreated: 'Neue Erinnerungen',
@@ -34,6 +35,15 @@ const notificationSettings = {
   endpointMissing: 'Auf diesem Gerät ist noch kein Push-Empfang eingerichtet.',
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
   deviceToggle: 'Push auf diesem Gerät',
+  browserToggle: 'Push in diesem Browser',
+  browserPermissionDenied:
+    'Erlaube Benachrichtigungen für eimir. in den Einstellungen dieses Browsers.',
+  browserOtherAccount:
+    'Push ist hier mit einem anderen Konto verbunden. Schalte ihn in diesem Konto aus, um ihn hier zu aktivieren.',
+  browserUpdatePending:
+    'Öffne eimir. neu, sobald das Browser-Update bereit ist.',
+  browserOffline:
+    'Du bist offline. Versuche es erneut, sobald du verbunden bist.',
   onboardingTitle: 'Benachrichtigungen aktivieren?',
   onboardingIntro:
     'Erfahre, wenn dein Partner etwas mit dir teilt oder eine Erinnerung fällig ist. Kleine Impulse erinnern euch gelegentlich an eure gemeinsame Zeit. Du kannst sie jederzeit einzeln ausschalten.',
@@ -45,6 +55,8 @@ const notificationSettings = {
     'Du bist gerade offline. Benachrichtigungen wurden noch nicht aktiviert.',
   deviceIntro:
     'Hinweise können Namen und Titel zeigen. Auf dem Sperrbildschirm gilt deine Android-Auswahl für sensible Inhalte. Konkrete Vorschauen werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
+  iosDeviceIntro:
+    'Auf deinem Gerät erscheint ein neutraler Hinweis. Wenn du darauf tippst, öffnet eimir. den Inhalt nach der Anmeldung.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',
   deviceUnavailable: 'Push ist auf dieser Installation nicht verfügbar.',
   deviceOff: 'Push ist auf diesem Gerät aus.',

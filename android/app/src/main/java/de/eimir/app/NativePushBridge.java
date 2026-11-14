@@ -340,7 +340,7 @@ public final class NativePushBridge extends Plugin {
                 // Keep the shared key out of plaintext activation preferences.
                 // Only this transient authenticated-registration event carries it.
                 if (active.apiBaseUrl.startsWith("https://")) {
-                    value = new JSONObject(value).put("previewVersion", 1)
+                    value = new JSONObject(value).put("neutralReferenceVersion", 1).put("previewVersion", 1)
                         .put("previewMaxVersion", 2)
                         .put("previewKey", PushPreviewKeys.registrationKey(context, active)).toString();
                 }

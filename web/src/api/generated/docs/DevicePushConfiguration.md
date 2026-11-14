@@ -6,8 +6,10 @@
 
 Name | Type
 ------------ | -------------
+`apns` | [ApnsConfiguration](ApnsConfiguration.md)
 `fcm` | [FcmConfiguration](FcmConfiguration.md)
 `unifiedPush` | [UnifiedPushConfiguration](UnifiedPushConfiguration.md)
+`webPush` | [UnifiedPushConfiguration](UnifiedPushConfiguration.md)
 
 ## Example
 
@@ -16,8 +18,10 @@ import type { DevicePushConfiguration } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "apns": null,
   "fcm": null,
   "unifiedPush": null,
+  "webPush": null,
 } satisfies DevicePushConfiguration
 
 console.log(example)

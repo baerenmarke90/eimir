@@ -14,6 +14,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.shared_achievements import (
     COLLECTION_COMPLETED_ACHIEVEMENT,
@@ -21,7 +22,7 @@ from eimir.api.shared_achievements import (
     SHARED_ACHIEVEMENT_RESPONSE_HEADER,
 )
 from eimir.collections import service
-from eimir.collections.models import Collection, CollectionItem
+from eimir.collections.models import Collection, CollectionItem, CollectionKind
 from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["collections"])
@@ -47,10 +48,23 @@ COLLECTION_ITEM_UPDATE_HEADERS = {
 }
 
 
+def _clean_quantity(value: str | None) -> str | None:
+    """Trim free-text quantity; blank means none; over-long is a validation error."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    if len(cleaned) > service.ITEM_QUANTITY_MAX_LENGTH:
+        raise ValueError(f"must be at most {service.ITEM_QUANTITY_MAX_LENGTH} characters")
+    return cleaned
+
+
 class CollectionCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str
+    kind: CollectionKind = CollectionKind.GENERIC
 
     @field_validator("title")
     @classmethod
@@ -82,6 +96,7 @@ class CollectionItemCreate(ApiModel):
 
     title: str
     completed: bool = False
+    quantity: str | None = None
 
     @field_validator("title")
     @classmethod
@@ -91,12 +106,19 @@ class CollectionItemCreate(ApiModel):
             raise ValueError("must not be blank")
         return cleaned
 
+    @field_validator("quantity")
+    @classmethod
+    def _quantity_clean(cls, value: str | None) -> str | None:
+        return _clean_quantity(value)
+
 
 class CollectionItemUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | SkipJsonSchema[None] = None
     completed: bool | SkipJsonSchema[None] = None
+    # An explicit null (or blank text) clears the quantity.
+    quantity: str | None = None
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
@@ -108,6 +130,8 @@ class CollectionItemUpdate(ApiModel):
             self.title = self.title.strip()
         if "completed" in self.model_fields_set and self.completed is None:
             raise ValueError("completed must not be null")
+        if "quantity" in self.model_fields_set:
+            self.quantity = _clean_quantity(self.quantity)
         return self
 
 
@@ -122,12 +146,20 @@ class CollectionItemDetail(ApiModel):
     collection_id: UUID
     created_by: UUID
     title: str
+    # Additive (#1808): defaults keep clients and fixtures that predate these
+    # fields valid; current servers always send them.
+    quantity: str | None = None
     completed: bool
+    # Both are null while the item is open and for items completed before the
+    # actor was recorded.
+    completed_by: UUID | None = None
+    completed_at: datetime | None = None
     position: int
     version: int
     created_at: datetime
     updated_at: datetime
     creator: AuthorSummary
+    completer: AuthorSummary | None = None
     capabilities: ResourceCapabilities
 
 
@@ -135,6 +167,7 @@ class CollectionDetail(ApiModel):
     id: UUID
     space_id: UUID
     created_by: UUID
+    kind: CollectionKind = CollectionKind.GENERIC
     title: str
     version: int
     created_at: datetime
@@ -166,17 +199,27 @@ def collection_item_detail(
             creator = authors[item.created_by]
         else:
             creator = _creator(session, item.created_by, resource="Collection Item")
+    completer: AuthorSummary | None = None
+    if item.completed_by is not None:
+        if authors is not None and item.completed_by in authors:
+            completer = authors[item.completed_by]
+        else:
+            completer = _creator(session, item.completed_by, resource="Collection Item completer")
     return CollectionItemDetail(
         id=item.id,
         collection_id=item.collection_id,
         created_by=item.created_by,
         title=item.payload.title,
+        quantity=item.payload.quantity,
         completed=item.completed,
+        completed_by=item.completed_by,
+        completed_at=item.completed_at,
         position=item.position,
         version=item.version,
         created_at=item.created_at,
         updated_at=item.updated_at,
         creator=creator,
+        completer=completer,
         capabilities=ResourceCapabilities(
             can_edit=True,
             can_delete=True,
@@ -204,6 +247,8 @@ def collection_detail(
         id=collection.id,
         space_id=collection.space_id,
         created_by=collection.owner_id,
+        # A not yet flushed Collection has no column default applied.
+        kind=CollectionKind(collection.kind or CollectionKind.GENERIC.value),
         title=collection.payload.title,
         version=collection.version,
         created_at=collection.created_at,
@@ -226,6 +271,7 @@ def collection_details(session: DbSession, collections: list[Collection]) -> lis
     account_ids = {collection.owner_id for collection in collections}
     for items in items_by_collection.values():
         account_ids.update(item.created_by for item in items)
+        account_ids.update(item.completed_by for item in items if item.completed_by is not None)
     authors = resolve_author_summaries(session, account_ids)
     return [
         collection_detail(
@@ -255,6 +301,7 @@ def create_collection(
         session,
         authorization,
         title=body.title,
+        kind=body.kind,
     )
     response.headers["ETag"] = etag_for(collection.version)
     return collection_detail(session, collection)
@@ -272,8 +319,17 @@ def list_collections(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     scope: Annotated[service.CollectionScope, Query()] = service.CollectionScope.ALL,
+    ids: Annotated[
+        list[UUID] | None,
+        Query(
+            max_length=50,
+            description="Return only these Collections, so several known lists need one request.",
+        ),
+    ] = None,
 ) -> CollectionPage:
-    page = service.list_collections(session, authorization, cursor=cursor, limit=limit, scope=scope)
+    page = service.list_collections(
+        session, authorization, cursor=cursor, limit=limit, scope=scope, ids=ids
+    )
     return CollectionPage(
         items=collection_details(session, page.items),
         next_cursor=page.next_cursor,
@@ -351,7 +407,19 @@ def delete_collection(
     response_model=CollectionItemDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createCollectionItem",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the original Item in its "
+                "current state; no second Item is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": CollectionItemDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_collection_item(
     authorization: Authorization,
@@ -359,16 +427,21 @@ def create_collection_item(
     response: Response,
     body: CollectionItemCreate,
     collection_id: Annotated[str, Path(alias="collectionId")],
+    idempotency_key: IdempotencyKey,
 ) -> CollectionItemDetail:
-    item = service.create_item(
+    result = service.create_item_once(
         session,
         authorization,
         collection_id,
+        idempotency_key=idempotency_key,
         title=body.title,
         completed=body.completed,
+        quantity=body.quantity,
     )
-    response.headers["ETag"] = etag_for(item.version)
-    return collection_item_detail(session, item)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.item.version)
+    return collection_item_detail(session, result.item)
 
 
 @router.patch(
@@ -404,6 +477,7 @@ def update_collection_item(
         changed_fields=frozenset(body.model_fields_set),
         title=body.title,
         completed=body.completed,
+        quantity=body.quantity,
     )
     response.headers["ETag"] = etag_for(result.item.version)
     response.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] = (

@@ -16,6 +16,7 @@ DETAIL = "/api/v1/spaces/{spaceId}/wishes/{wishId}"
 COMPLETE = f"{DETAIL}/complete"
 PLAN = f"{DETAIL}/plan"
 REPEAT = f"{DETAIL}/repeat"
+REMINDER = f"{DETAIL}/reminder"
 
 
 def _schema() -> dict[str, object]:
@@ -44,12 +45,15 @@ def test_wish_routes_have_frozen_operation_ids() -> None:
     assert paths[COMPLETE]["post"]["operationId"] == "completeWish"
     assert paths[PLAN]["post"]["operationId"] == "convertWishToPlan"
     assert paths[REPEAT]["post"]["operationId"] == "repeatWish"
+    assert paths[REMINDER]["get"]["operationId"] == "getPersonalWishReminder"
+    assert paths[REMINDER]["put"]["operationId"] == "setPersonalWishReminder"
+    assert paths[REMINDER]["delete"]["operationId"] == "clearPersonalWishReminder"
 
 
 def test_the_contract_carries_exactly_the_decided_wish_surface() -> None:
     """Wish lifecycle commands are explicit rather than generic status writes."""
     wish_paths = _wish_paths()
-    assert wish_paths == {COLLECTION, DETAIL, COMPLETE, PLAN, REPEAT}
+    assert wish_paths == {COLLECTION, DETAIL, COMPLETE, PLAN, REPEAT, REMINDER}
 
 
 def test_wish_status_has_no_generic_mutation_route() -> None:
@@ -91,7 +95,7 @@ def test_no_request_body_accepts_status_or_ownership() -> None:
         "createdAt",
         "updatedAt",
     }
-    for name in ("WishCreate", "WishUpdate", "WishRepeat"):
+    for name in ("WishCreate", "WishUpdate", "WishRepeat", "PersonalWishReminderUpdate"):
         schema = _components()[name]
         assert set(schema["properties"]) & forbidden == set()
         assert not {"followedFromWishId", "seriesId", "seriesPosition"} & set(schema["properties"])

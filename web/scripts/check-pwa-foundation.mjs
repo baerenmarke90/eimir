@@ -359,6 +359,124 @@ assert(
   );
 }
 
+const browserNotificationId = '2f36b77e-e4f8-46a1-9600-6790e1117a05';
+const browserActivationId = 'bf9184d5-5225-4891-bda6-9fcaa51c7f5d';
+const pushReference = {
+  notificationId: browserNotificationId,
+  activationId: browserActivationId,
+};
+const displayed = [];
+const focused = [];
+const opened = [];
+let browserClients = [];
+let browserBinding = { activationId: browserActivationId };
+
+serviceWorkerContext.MessageChannel = MessageChannel;
+serviceWorkerContext.setTimeout = setTimeout;
+serviceWorkerContext.clearTimeout = clearTimeout;
+serviceWorkerContext.self.registration = {
+  async showNotification(title, options) {
+    displayed.push({ title, ...options });
+  },
+};
+serviceWorkerContext.self.clients = {
+  matchAll: async () => browserClients,
+  async openWindow(path) {
+    opened.push(path);
+  },
+};
+serviceWorkerContext.caches.open = async (cache) => ({
+  async match(key) {
+    if (
+      cache === 'eimir-browser-push-v1' &&
+      key === '/_eimir/browser-push-binding' &&
+      browserBinding
+    )
+      return { json: async () => browserBinding };
+  },
+});
+
+function dispatchWorkerEvent(type, input) {
+  let outcome;
+  serviceWorkerHandlers.get(type)({
+    ...input,
+    waitUntil(value) {
+      outcome = value;
+    },
+  });
+  return outcome;
+}
+
+for (const [locale, body] of [
+  ['de', 'Du hast neue Nachrichten.'],
+  ['en', 'You have new messages.'],
+]) {
+  await dispatchWorkerEvent('push', {
+    data: {
+      json: () => ({
+        type: 'wake',
+        ...pushReference,
+        locale,
+        title: 'Private title',
+        body: 'Private content',
+      }),
+    },
+  });
+  const shown = displayed.at(-1);
+  assert(
+    shown.title === 'eimir.' && shown.body === body,
+    'Browser push must render only the neutral copy for the given locale.',
+  );
+  assert(
+    Object.keys(shown.data).length === 2 &&
+      shown.data.notificationId === browserNotificationId &&
+      shown.data.activationId === browserActivationId,
+    'Click data may keep only the delivery reference and its activation.',
+  );
+}
+await dispatchWorkerEvent('push', {
+  data: {
+    json: () => ({ type: 'wake', ...pushReference, activationId: 'invalid' }),
+  },
+});
+assert(displayed.length === 2, 'Malformed push references must stay silent.');
+
+browserClients = [
+  ['stale', 'ignored'],
+  ['current', 'received'],
+].map(([tab, response]) => ({
+  url: 'https://eimir.test/today',
+  postMessage(message, [port]) {
+    assert(
+      message.type === 'eimir-notification-open' &&
+        message.notificationId === browserNotificationId,
+      'The worker must hand only a reference to a candidate tab.',
+    );
+    port.postMessage(response);
+    port.close();
+  },
+  async focus() {
+    focused.push(tab);
+  },
+}));
+const click = { notification: { data: displayed[0].data, close() {} } };
+await dispatchWorkerEvent('notificationclick', click);
+assert(
+  focused.join() === 'current' && opened.length === 0,
+  'Only a tab that accepts the push activation may be focused.',
+);
+
+browserClients = [];
+await dispatchWorkerEvent('notificationclick', click);
+assert(
+  opened[0] ===
+    `/more/notifications#eimir-push=${browserActivationId}.${browserNotificationId}`,
+  'A cold open must go to the inbox with an opaque activation-bound hint.',
+);
+browserBinding = null;
+await dispatchWorkerEvent('notificationclick', click);
+assert(opened.length === 1, 'A click after local revocation must stay silent.');
+
 const registration = read('src/pwa.ts');
 assert(
   registration.includes('import.meta.env.PROD'),

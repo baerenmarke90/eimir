@@ -2,6 +2,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import m5s5 from '../../src/i18n/locales/m5s5';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expectToday } from '../support/today';
@@ -887,4 +889,62 @@ test('a shopping list is created from the list overview', async ({
   expect(api.createCollectionBodies()).toEqual([
     { title: 'Einkauf', kind: 'SHOPPING' },
   ]);
+});
+
+test('a shopping list opens from its Wir tile as a sheet with the cart bar at its bottom edge', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  // The sheet slides in; reduced motion makes its position stable to measure.
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  api.pin(COLLECTION_ID);
+  await signIn(page);
+
+  const tile = page.locator('.today-section-pinned-collection');
+  await expect(
+    tile.getByRole('heading', { name: 'Einkauf', level: 3 }),
+  ).toBeVisible();
+  await tile
+    .getByRole('link', {
+      name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
+    })
+    .click();
+
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+  await expect(page).toHaveURL(/\/today$/);
+  const bar = sheet.getByRole('button', {
+    name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+  });
+  await expect(bar).toBeVisible();
+  // There is no bottom navigation under the sheet: the bar sits at its edge.
+  const sheetBox = await sheet.boundingBox();
+  const barBox = await bar.boundingBox();
+  expect(sheetBox && barBox).toBeTruthy();
+  if (sheetBox && barBox) {
+    const gap = sheetBox.y + sheetBox.height - (barBox.y + barBox.height);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(40);
+  }
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-wir-sheet-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+
+  // The cart opens above the list sheet and closing it returns to the list.
+  await bar.click();
+  await expect(
+    page.getByRole('dialog').last().getByText('Äpfel'),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sheet.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+
+  await sheet.getByRole('button', { name: taskSheets.close }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/today$/);
 });

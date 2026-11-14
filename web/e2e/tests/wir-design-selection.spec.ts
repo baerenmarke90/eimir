@@ -304,6 +304,38 @@ async function expectSharedAlbumComposition(page: Page) {
   await expect(story).toHaveAttribute('href', '/story/our-story');
 }
 
+// The quiet composition: both people lead as compact portrait targets with
+// their names, the story entry sits in the heading and the keepsake follows.
+async function expectQuietTogetherComposition(page: Page) {
+  const hero = page.locator('.wir-minimal-hero');
+  await expect(hero).toHaveCount(1);
+  await expect(hero.locator('.wir-minimal-person strong')).toHaveCount(2);
+  const portraits = hero.locator('.partner-avatar-slot');
+  await expect(portraits).toHaveCount(2);
+  for (const portrait of await portraits.all()) {
+    const box = await portrait.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01);
+  }
+  await expect(hero.locator('.wir-minimal-story-link')).toHaveAttribute(
+    'href',
+    '/story/our-story',
+  );
+  const keepsakeFollowsPeople = await page.evaluate(() => {
+    const people = document.querySelector('.wir-minimal-hero');
+    const keepsake = document.querySelector('.today-section-moment');
+    return (
+      !!people &&
+      !!keepsake &&
+      !!(
+        people.compareDocumentPosition(keepsake) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+      )
+    );
+  });
+  expect(keepsakeFollowsPeople).toBe(true);
+}
+
 async function alignedVisibilityControls(page: Page) {
   const centers = await page
     .locator('.dashboard-module-option input[type="checkbox"]')
@@ -585,8 +617,8 @@ for (const [width, theme, large] of [
   test(`personal designs save, return and reload at ${width} ${theme}${large ? ' large text' : ''}`, async ({
     page,
   }, info) => {
-    // Four full save/return/reload cycles and four axe passes share this journey.
-    test.setTimeout(120_000);
+    // Five full save/return/reload cycles and five axe passes share this journey.
+    test.setTimeout(150_000);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     const f = await fixture(page, { agenda: true });
@@ -611,6 +643,7 @@ for (const [width, theme, large] of [
       'modern',
       'classic',
       'shared_album',
+      'quiet_together',
     ] as const) {
       if (design !== 'warm') {
         await open(page);
@@ -662,6 +695,19 @@ for (const [width, theme, large] of [
         design === 'shared_album' ? 1 : 0,
       );
       if (design === 'shared_album') await expectSharedAlbumComposition(page);
+      if (design === 'quiet_together')
+        await expectQuietTogetherComposition(page);
+      // The scoped app palette exists only while this design is active.
+      if (design === 'quiet_together')
+        await expect(page.locator('html')).toHaveAttribute(
+          'data-app-design',
+          'quiet_together',
+        );
+      else
+        await expect(page.locator('html')).not.toHaveAttribute(
+          'data-app-design',
+          /.+/,
+        );
       await reflow(page);
       const ownAvatar = page
         .locator('.today-hero')
@@ -690,7 +736,12 @@ for (const [width, theme, large] of [
         design,
       );
     }
-    expect(f.writes).toEqual(['modern', 'classic', 'shared_album']);
+    expect(f.writes).toEqual([
+      'modern',
+      'classic',
+      'shared_album',
+      'quiet_together',
+    ]);
     expect(f.unexpected).toEqual([]);
   });
 }

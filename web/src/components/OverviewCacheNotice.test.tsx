@@ -5,7 +5,11 @@ import {
   REVEAL_AFTER_CACHE_MS,
   useRevealAfterCache,
 } from '../client/useRevealAfterCache';
-import { NOTICE_COLLAPSE_MS, OverviewCacheNotice } from './OverviewCacheNotice';
+import {
+  NOTICE_COLLAPSE_MS,
+  NOTICE_REVEAL_DELAY_MS,
+  OverviewCacheNotice,
+} from './OverviewCacheNotice';
 
 describe('OverviewCacheNotice', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -16,11 +20,31 @@ describe('OverviewCacheNotice', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('announces a saved read, collapses once live and then leaves the DOM', () => {
+  it('stays silent when live data replaces the saved read quickly', () => {
     const cachedAt = new Date('2026-11-13T08:00:00Z');
     const { container, rerender } = render(
       <OverviewCacheNotice cachedAt={cachedAt} />,
     );
+    expect(container.firstChild).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(NOTICE_REVEAL_DELAY_MS - 1);
+    });
+    expect(container.firstChild).toBeNull();
+    rerender(<OverviewCacheNotice />);
+    act(() => {
+      vi.advanceTimersByTime(NOTICE_REVEAL_DELAY_MS + NOTICE_COLLAPSE_MS);
+    });
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('announces a slow saved read, collapses once live and then leaves the DOM', () => {
+    const cachedAt = new Date('2026-11-13T08:00:00Z');
+    const { container, rerender } = render(
+      <OverviewCacheNotice cachedAt={cachedAt} />,
+    );
+    act(() => {
+      vi.advanceTimersByTime(NOTICE_REVEAL_DELAY_MS + 1);
+    });
     const slot = container.querySelector('.overview-cache-notice-slot');
     expect(slot?.getAttribute('data-open')).toBe('true');
     expect(screen.getByRole('status')).toBeTruthy();
@@ -36,6 +60,9 @@ describe('OverviewCacheNotice', () => {
     expect(container.querySelector('.overview-cache-notice')).toBeNull();
 
     rerender(<OverviewCacheNotice cachedAt={cachedAt} />);
+    act(() => {
+      vi.advanceTimersByTime(NOTICE_REVEAL_DELAY_MS + 1);
+    });
     expect(screen.getByRole('status')).toBeTruthy();
   });
 });

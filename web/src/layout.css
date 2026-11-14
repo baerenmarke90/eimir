@@ -23,6 +23,18 @@
 }
 
 /*
+ * Expanded: text and list pages that would otherwise run the full content
+ * width with their copy at the leading edge sit in a centered reading column.
+ */
+@media (min-width: 840px) {
+  .page.relationship-story-page,
+  .page.m4-product-page {
+    width: min(100%, var(--reading-max));
+    margin-inline: auto;
+  }
+}
+
+/*
  * Long-form reading and single-intent editors stay in a reading column.
  * Detail bodies, creation forms, and confirmation flows use this variant.
  */

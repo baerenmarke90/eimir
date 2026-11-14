@@ -533,8 +533,10 @@ The actual browser renders `docs/product/design/references/1459/evidence/1459-*.
 
 The repository now contains project-specific image and SVG assets. They were
 created for eimir. or its Roadmap and M2 handoff; assets of unclear
-third-party or predecessor origin continue to be excluded. The store preview images
-are explicitly mockups. Runtime QA screenshots are identified separately below.
+third-party or predecessor origin continue to be excluded. The README preview
+images are real runtime screenshots of the current Web client with synthetic
+demo data; the earlier AI-generated store mockups were removed. Further runtime
+QA screenshots are identified separately below.
 
 No separate public license is currently granted for files marked below as
 **project assets**. This classification does not change the still-open license
@@ -544,16 +546,7 @@ decision for the project's own source code.
 |---|---|---|---|
 | `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
 | `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
-| `docs/assets/playstore/app-icon.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/feature-graphic.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-01-onboarding.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-02-heute.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-03-story.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-04-wuensche.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-05-plan.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-06-discovery.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-07-einkauf.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-08-privacy.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
+| `docs/assets/readme/01-anmelden.webp` … `07-mehr.webp` (seven named files) | README product preview: actual browser captures of the current Web client at ~390 px width in the Light theme, taken from the canonical demo Space (fictional identities and content) | eimir. project workflow; embedded demo photographs by the creators named in `backend/demo_assets/manifest.json` (Pixabay) | UI screenshots: project asset, no separate public license grant; embedded photographs: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |

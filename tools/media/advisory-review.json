@@ -53,6 +53,16 @@
     "CVE-2026-120247": {
       "evidenceSha256": "1dba6398642ed626fbbfe80a857ea8496f09aa6eccf68fc86c785753ca9132c5",
       "review": "The affected Huffyuv decoder is not compiled in the restricted build. Audio input changes do not enable Huffyuv."
+    },
+    "CVE-2026-125202": {
+      "evidenceSha256": "cf780706aa700903cf653976cf4f1e9d66279bb487005976e0d586284daf10db",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected libavcodec/vaapi_hevc.c is built only with CONFIG_HEVC_VAAPI_HWACCEL, which depends on vaapi. build-ffmpeg.sh enables no hwaccel after --disable-everything and --disable-autodetect weakly disables vaapi; configuring the pinned source with the restricted component flags reports no enabled hwaccels and CONFIG_HEVC_VAAPI_HWACCEL 0. HEVC input is decoded by the native software decoder only, and the workers pass no hwaccel option."
+    },
+    "CVE-2026-125204": {
+      "evidenceSha256": "323e2cf9707f927796a31f3eda91061314f5bceb6a66214a7c7d82af3367e3ea",
+      "reviewedAt": "2026-11-14",
+      "review": "The affected libavcodec/libwebpenc_common.c is built only with the libwebp or libwebp_anim encoder, both of which depend on the opt-in external library libwebp. build-ffmpeg.sh never passes --enable-libwebp and its explicit encoder list is libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le; configuring the pinned source reports CONFIG_LIBWEBP_ENCODER 0 and CONFIG_LIBWEBP_ANIM_ENCODER 0 even with libwebp installed on the host."
     }
   },
   "dependencies": {

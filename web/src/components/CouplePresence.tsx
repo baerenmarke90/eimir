@@ -166,7 +166,9 @@ export function CouplePresence({
           <>
             <span>{primaryFirstName}</span>{' '}
             <span>
-              <span className="couple-presence-joiner">&amp;</span>{' '}
+              <span className="couple-presence-joiner">
+                {t('wirDesign.nameJoiner')}
+              </span>{' '}
               {secondaryFirstName}
             </span>
           </>

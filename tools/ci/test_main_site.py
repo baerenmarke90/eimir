@@ -86,6 +86,21 @@ class MainSiteTests(unittest.TestCase):
         else:
             self.assertEqual(production.returncode, 0, production.stderr)
 
+    def test_container_reuses_the_pinned_web_image_and_sends_security_headers(self) -> None:
+        dockerfile = (SITE / "Dockerfile").read_text()
+        web_dockerfile = (ROOT / "web/Dockerfile").read_text()
+        nginx_pin = re.search(r"FROM (ghcr\.io/nginx/nginx-unprivileged:\S+@sha256:[0-9a-f]{64})", web_dockerfile)
+        self.assertIsNotNone(nginx_pin)
+        self.assertIn(nginx_pin.group(1), dockerfile, "site and web must share one pinned nginx image")
+        self.assertRegex(dockerfile, r"FROM python:\S+@sha256:[0-9a-f]{64} AS build")
+        self.assertIn("build_main_site.py --production", dockerfile)
+        nginx = (SITE / "nginx.conf").read_text()
+        headers = (SITE / "security-headers.conf").read_text()
+        for directive in ("Content-Security-Policy", "frame-ancestors 'none'", "Referrer-Policy", "X-Content-Type-Options"):
+            self.assertIn(directive, headers)
+        self.assertEqual(nginx.count("include /etc/nginx/security-headers.conf;"), nginx.count("location "))
+        self.assertIn("/etc/nginx/security-headers.conf", dockerfile)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -51,16 +51,54 @@ python3 -m http.server 8765 --directory site/dist
 
 ## Deploying
 
-Upload the contents of `site/dist/` to the web space or server that answers for `eimir.de`
-(the domain is registered at netcup, which also hosts its DNS zone). Serve it over HTTPS with the
-security headers below. The pages carry their own CSP as a fallback, but only real HTTP headers can
-send `frame-ancestors` and HSTS:
+The site ships as a small container: `site/Dockerfile` builds the production bundle (and fails while the
+imprint still has placeholders) and serves it with the same pinned unprivileged nginx image as the Web
+app, using `site/nginx.conf` and `site/security-headers.conf`. The image answers on port 8080, sends the
+security headers on every response (including redirects and 404), and exposes `/healthz`. It was checked
+locally with a read-only filesystem, dropped capabilities and `no-new-privileges`.
 
-```text
-Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; font-src 'self'; style-src 'self'
-Referrer-Policy: no-referrer
-X-Content-Type-Options: nosniff
+Compose project for the Docker host, next to other projects behind Nginx Proxy Manager. It joins the
+same external proxy network as the other sites (`npm_default` in the current setup) under a unique alias:
+
+```yaml
+services:
+  eimir-site:
+    build:
+      context: https://github.com/baerenmarke90/eimir.git#main
+      dockerfile: site/Dockerfile
+    image: eimir-site:local
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "8080"
+    networks:
+      npm_proxy:
+        aliases:
+          - eimir-site-internal
+
+networks:
+  npm_proxy:
+    external: true
+    name: npm_default
 ```
+
+Replace `#main` with a commit SHA or tag to pin a reviewed revision. The repository is public, so no
+credentials are needed. If the deployment tool does not build images, run
+`docker compose up -d --build` on the host once and again after every site change.
+
+In Nginx Proxy Manager add a proxy host for `eimir.de` (and `www.eimir.de`, redirecting to `eimir.de`)
+forwarding `http://eimir-site-internal:8080`, with a Let's Encrypt certificate and "Force SSL". Enable
+HSTS only after the HTTPS setup has been verified.
+
+The imprint facts (name, address, contact) become part of the public repository when the placeholders
+are replaced. They must be public on the site anyway; replace them in `site/impressum/index.html` in a
+reviewed change. Until then the production build, and therefore the container build, fails on purpose.
 
 Before relying on the site for Google OAuth verification, the privacy page
 `https://app.eimir.de/legal/privacy` must be live and the final imprint must be published.

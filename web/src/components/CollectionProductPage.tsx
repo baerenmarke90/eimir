@@ -74,6 +74,7 @@ import {
   SharedListTripEnd,
   type TripEnd,
 } from './SharedListFinish';
+import { SharedContentSheet } from './SharedContentSheet';
 import { SharedListSuggestions } from './SharedListSuggestions';
 import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
@@ -164,6 +165,8 @@ function CollectionProductDetail({
   const createItemInFlightRef = useRef(false);
   const refocusAddRef = useRef(false);
   const refocusToggleRef = useRef<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   // Refreshing under the person's hands would fight an edit in progress.
   const pollPausedRef = useRef(false);
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -884,6 +887,24 @@ function CollectionProductDetail({
       }}
     />
   ) : null;
+  // The list's menu (#1808): sorting lives here instead of in the page. Without
+  // a page header (the Wir sheet) the button sits in the list's toolbar.
+  const hasListMenu =
+    !embedded &&
+    collection.capabilities.canEdit &&
+    items.length > 1 &&
+    !isSorting;
+  const listMenuButton = hasListMenu ? (
+    <ListEntryIconButton
+      ref={menuTriggerRef}
+      icon="more"
+      className="tertiary"
+      label={t('m5s3.collection.menu.open')}
+      aria-haspopup="dialog"
+      aria-expanded={menuOpen}
+      onClick={() => setMenuOpen(true)}
+    />
+  ) : null;
   const suggestionsShown =
     shopping && !embedded && !isSorting && collection.capabilities.canEdit
       ? visibleSuggestions(suggestionsQuery.data ?? [], items)
@@ -1106,42 +1127,47 @@ function CollectionProductDetail({
             ) : undefined
           }
           action={
-            dashboardApi && accountId ? (
-              <div className="planning-collection-dashboard-action">
-                <button
-                  type="button"
-                  className="button-link secondary-link"
-                  disabled={pinCollection.isBlocked}
-                  aria-pressed={pinCollection.isPinned(collection.id)}
-                  aria-label={t(
-                    pinCollection.isPinned(collection.id)
-                      ? 'm5s3.collection.unpinFromToday'
-                      : 'm5s3.collection.pinToToday',
-                  )}
-                  aria-describedby={
-                    pinCollection.isSaving
-                      ? 'collection-pin-pending'
-                      : undefined
-                  }
-                  onClick={() => pinCollection.toggle(collection.id)}
-                >
-                  {pinCollection.isPinned(collection.id) ? (
-                    <span aria-hidden="true">✓ </span>
-                  ) : null}
-                  {t('m5s3.collection.pinLabel')}
-                </button>
-                {pinCollection.isSaving ? (
-                  <small id="collection-pin-pending" role="status">
-                    {t('common.saving')}
-                  </small>
+            (dashboardApi && accountId) || listMenuButton ? (
+              <>
+                {dashboardApi && accountId ? (
+                  <div className="planning-collection-dashboard-action">
+                    <button
+                      type="button"
+                      className="button-link secondary-link"
+                      disabled={pinCollection.isBlocked}
+                      aria-pressed={pinCollection.isPinned(collection.id)}
+                      aria-label={t(
+                        pinCollection.isPinned(collection.id)
+                          ? 'm5s3.collection.unpinFromToday'
+                          : 'm5s3.collection.pinToToday',
+                      )}
+                      aria-describedby={
+                        pinCollection.isSaving
+                          ? 'collection-pin-pending'
+                          : undefined
+                      }
+                      onClick={() => pinCollection.toggle(collection.id)}
+                    >
+                      {pinCollection.isPinned(collection.id) ? (
+                        <span aria-hidden="true">✓ </span>
+                      ) : null}
+                      {t('m5s3.collection.pinLabel')}
+                    </button>
+                    {pinCollection.isSaving ? (
+                      <small id="collection-pin-pending" role="status">
+                        {t('common.saving')}
+                      </small>
+                    ) : null}
+                    {pinCollection.error ? (
+                      <ProblemState
+                        error={pinCollection.error}
+                        onRetry={() => void pinCollection.retryRead()}
+                      />
+                    ) : null}
+                  </div>
                 ) : null}
-                {pinCollection.error ? (
-                  <ProblemState
-                    error={pinCollection.error}
-                    onRetry={() => void pinCollection.retryRead()}
-                  />
-                ) : null}
-              </div>
+                {listMenuButton}
+              </>
             ) : null
           }
         />
@@ -1177,23 +1203,18 @@ function CollectionProductDetail({
               })}
             </p>
           ) : null}
-          {!embedded &&
-          collection.capabilities.canEdit &&
-          (items.length > 1 || isSorting) ? (
+          {!embedded && collection.capabilities.canEdit && isSorting ? (
             <button
               type="button"
               className="tertiary"
-              aria-pressed={isSorting}
+              aria-pressed
               disabled={isReordering || outbox.pendingCount > 0}
-              onClick={() => setIsSorting((value) => !value)}
+              onClick={() => setIsSorting(false)}
             >
-              {t(
-                isSorting
-                  ? 'm5s3.collection.finishSorting'
-                  : 'm5s3.collection.sort',
-              )}
+              {t('m5s3.collection.finishSorting')}
             </button>
           ) : null}
+          {inSheet && listMenuButton}
         </div>
         {outbox.active ? (
           <>
@@ -1429,6 +1450,29 @@ function CollectionProductDetail({
           />
         ) : null}
       </section>
+
+      <SharedContentSheet
+        open={menuOpen && hasListMenu}
+        title={collection.title}
+        restoreFocusRef={menuTriggerRef}
+        onClose={() => setMenuOpen(false)}
+      >
+        {() => (
+          <div className="shared-content-actions">
+            <button
+              type="button"
+              className="tertiary"
+              disabled={isReordering || outbox.pendingCount > 0}
+              onClick={() => {
+                setMenuOpen(false);
+                setIsSorting(true);
+              }}
+            >
+              {t('m5s3.collection.sort')}
+            </button>
+          </div>
+        )}
+      </SharedContentSheet>
 
       {shopping && !embedded && !isSorting ? (
         <SharedListCartBar

@@ -904,6 +904,7 @@
     },
     "collection": {
       "overviewHeading": "Lists",
+      "menu": { "open": "List menu" },
       "kindLabel": "Type of list",
       "kind": { "GENERIC": "List", "SHOPPING": "Shopping list" },
       "progress": "{{count}} entries · {{completed}} done",

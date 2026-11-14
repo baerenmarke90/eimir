@@ -29,7 +29,7 @@
   margin-left: clamp(0rem, 3vw, var(--space-5));
 }
 
-.games-entry-index {
+.games-entry-icon {
   display: grid;
   width: 2.75rem;
   height: 2.75rem;
@@ -37,9 +37,11 @@
   border-radius: 50%;
   background: var(--color-surface-subtle);
   color: var(--color-text-secondary);
-  font-family: var(--font-display);
-  font-size: 0.9rem;
-  font-weight: 700;
+}
+
+.games-entry-icon > .eimir-icon {
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
 }
 
 .games-entry-copy {
@@ -501,7 +503,7 @@
     grid-template-columns: 1fr;
   }
 
-  .games-entry-index,
+  .games-entry-icon,
   .games-entry-status {
     grid-column: 1;
   }
@@ -565,16 +567,20 @@
   );
   padding-block: var(--space-6);
 }
-.games-entry:first-child .games-entry-index {
+.games-entry:first-child .games-entry-icon {
   width: 4rem;
   height: 4rem;
   background: var(--color-surface-raised);
   color: var(--color-brand-text);
 }
+.games-entry:first-child .games-entry-icon > .eimir-icon {
+  width: var(--icon-size-large);
+  height: var(--icon-size-large);
+}
 .games-entry:first-child h2 {
   font-size: 1.75rem;
 }
-.games-entry-index {
+.games-entry-icon {
   color: var(--color-brand-text);
   background: var(--color-shared-surface);
 }

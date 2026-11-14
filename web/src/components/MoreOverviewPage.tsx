@@ -29,7 +29,7 @@ import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
-import { EimirIcon } from './EimirIcon';
+import { EimirIcon, type EimirIconVariant } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
 import { TaskOriginLink } from './TodayDestinationLink';
@@ -38,6 +38,7 @@ import './MoreOverviewPage.css';
 interface MoreDestination {
   path: string;
   icon: AppRouteIcon;
+  iconVariant?: EimirIconVariant;
   titleKey: string;
   /** Short localized line that tells what the destination holds. */
   subtitleKey?: string;
@@ -75,7 +76,8 @@ const STORY_DESTINATIONS: readonly MoreDestination[] = [
   },
   {
     path: MORE_INSIGHTS_ROUTE,
-    icon: 'activity',
+    icon: 'insights',
+    iconVariant: 'duotone',
     titleKey: 'more.destinations.insights',
     subtitleKey: 'more.subtitles.insights',
     badgeKey: 'dailyInsights.pro',
@@ -173,7 +175,12 @@ function MoreDestinationRow({
           className={leading ? 'more-profile-avatar' : 'more-destination-icon'}
           aria-hidden="true"
         >
-          {leading ?? <DestinationIcon icon={destination.icon} />}
+          {leading ?? (
+            <DestinationIcon
+              icon={destination.icon}
+              variant={destination.iconVariant}
+            />
+          )}
         </span>
         <span className="more-destination-copy">
           <span className="more-destination-title-row">
@@ -339,7 +346,7 @@ export function MoreOverviewPage({
               onClick={replay}
             >
               <span className="more-destination-icon" aria-hidden="true">
-                <DestinationIcon icon="story" />
+                <EimirIcon name="hilfe" />
               </span>
               <span className="more-destination-copy">
                 <strong>{t('productTour.replay')}</strong>

@@ -347,6 +347,8 @@
     },
     "mobile-header-more.spec.ts": {
       "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/GamesProductArea.tsx",
         "web/src/components/PageHeader.tsx",
         "web/src/components/MoreOverviewPage.tsx",
         "web/src/components/StoryProductPage.tsx",
@@ -816,7 +818,8 @@
     "today-daily-checkin.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx"
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/WirDailyCheckIn.tsx"
       ]
     },
     "today-daily-quote.spec.ts": {

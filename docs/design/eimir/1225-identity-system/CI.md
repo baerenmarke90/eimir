@@ -68,6 +68,8 @@ The control owns its accessible name and interaction state; decorative SVGs are 
 - Compact and Expanded reuse the existing destination rows, navigation, check-in controls and chart interactions. The avatar badges, choices, Energy battery, loading, hidden, empty, error, offline and success states stay in their current contexts. Motion, focus, Back, visible labels and privacy/reveal follow the existing flows. Verify Compact Light/Dark, large text, reduced motion and the Expanded layout in the real product. Exercise check-in selection and clearing and the More-to-Games and More-to-Insights paths.
 - Reuse `EimirIcon`, `DestinationIcon`, `DailyVibeIcon` and semantic theme tokens. A separate icon library or raster sprite catalog would duplicate the approved artwork and state model. **No business/freemium impact.** The change applies to the existing daily check-in, Pro Insights and Games surfaces in Cloud and Self-Hosted. It changes glyph presentation without affecting access, storage, usage or retention.
 
+The [Compact browser captures](../../../product/design/references/icon-palette/compact-runtime.webp) show More and the daily check-in in Light and Dark. The [Expanded browser capture](../../../product/design/references/icon-palette/expanded-insights-runtime.webp) shows the weekly Vibe lanes and Energy chart. All captures use local fixtures.
+
 | Control state | Visual treatment | Non-color signal |
 | --- | --- | --- |
 | Default | Outline, normal text/icon color | Recognizable contour and visible label |

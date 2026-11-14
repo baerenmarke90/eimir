@@ -8,8 +8,8 @@ import {
  * The single source of the duotone vibe faces (#1790, Product Owner decision
  * 2026-11-13). Contour and features follow `currentColor`; warm and cool
  * accents come from the identity tokens so they adapt to Light and Dark.
- * Accents only clarify a face: the localized vibe label always accompanies
- * the glyph, which stays decorative for assistive technology.
+ * Accents clarify the expression. The surrounding control, badge or chart
+ * owns the localized label and the glyph stays decorative.
  */
 const warmFill = 'var(--identity-icon-warm-fill)';
 const coolFill = 'var(--identity-icon-cool-fill)';
@@ -115,13 +115,15 @@ function vibeFace(value: DailyVibeValue): ReactNode {
 export function DailyVibeIcon({
   value,
   className = '',
+  monochrome = false,
 }: {
   value: DailyVibeValue;
   className?: string;
+  monochrome?: boolean;
 }) {
   return (
     <svg
-      className={`eimir-icon daily-vibe-icon ${className}`.trim()}
+      className={`eimir-icon daily-vibe-icon${monochrome ? ' daily-vibe-icon-monochrome' : ''}${className ? ` ${className}` : ''}`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

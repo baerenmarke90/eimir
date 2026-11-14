@@ -190,14 +190,9 @@
   border: 0;
 }
 
-.more-destination-icon svg {
-  width: 1.35rem;
-  height: 1.35rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.more-destination-icon > .eimir-icon {
+  width: var(--icon-size-large);
+  height: var(--icon-size-large);
 }
 
 .more-destination-copy {
@@ -272,9 +267,11 @@
   }
 }
 
-.more-logout svg {
-  width: 1.35rem;
-  height: 1.35rem;
+.more-logout > .eimir-icon {
+  --identity-icon-accent: currentColor;
+
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
 }
 .more-legal {
   display: flex;

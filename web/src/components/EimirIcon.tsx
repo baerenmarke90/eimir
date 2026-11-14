@@ -35,6 +35,7 @@ export const EIMIR_ICON_NAMES = [
   'einstellungen',
   'privatsphaere',
   'statistiken',
+  'insights',
   'pro',
   'hilfe',
   'logout',
@@ -64,6 +65,30 @@ export const EIMIR_ICON_NAMES = [
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
+
+const CALENDAR_OUTLINE = (
+  <>
+    <rect x="3.5" y="5.5" width="17" height="15" rx="2.7" />
+    <path d="M3.5 10h17" />
+    <path className="accent" d="M8 3.5v4M16 3.5v4" />
+  </>
+);
+const INSIGHTS_BUBBLE_PATH =
+  'M7 4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-6.5L6 21v-3.2A4 4 0 0 1 3 14V8a4 4 0 0 1 4-4Z';
+const INSIGHTS_WAVE = <path d="M6.4 11.8h2.5l1.7-3.1 2.6 5.3 1.8-2.2h2.6" />;
+const MORE_DOT_POSITIONS = [5, 12, 19];
+
+function moreDots(radius: number) {
+  return (
+    <g fill="currentColor" stroke="none">
+      {MORE_DOT_POSITIONS.flatMap((y) =>
+        MORE_DOT_POSITIONS.map((x) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r={radius} />
+        )),
+      )}
+    </g>
+  );
+}
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
   paperclip: (
@@ -146,39 +171,19 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
       <path className="accent" d="M12 7.1a4.5 4.5 0 0 1 5.4-1.9" />
     </>
   ),
-  planen: (
-    <>
-      <rect x="3.5" y="5.5" width="17" height="15" rx="2.7" />
-      <path d="M3.5 10h17M8 3.5v4M16 3.5v4" />
-      <path className="accent" d="M8 3.5v4M16 3.5v4" />
-    </>
-  ),
-  kalender: (
-    <>
-      <rect x="3.5" y="5.5" width="17" height="15" rx="2.7" />
-      <path d="M3.5 10h17M8 3.5v4M16 3.5v4" />
-      <path className="accent" d="M8 3.5v4M16 3.5v4" />
-    </>
-  ),
+  planen: CALENDAR_OUTLINE,
+  kalender: CALENDAR_OUTLINE,
   listen: (
     <>
-      <path d="M3 6.5h12M3 12h15M3 17.5h10" />
-      <path className="accent" d="M18 4v7m-3.5-3.5h7" />
+      <path d="M8 6h12M8 12h12M8 18h9" />
+      <g fill="currentColor" stroke="none">
+        <circle cx="4" cy="6" r="1.2" />
+        <circle cx="4" cy="12" r="1.2" />
+        <circle cx="4" cy="18" r="1.2" />
+      </g>
     </>
   ),
-  mehr: (
-    <>
-      <circle cx="5" cy="5" r=".9" />
-      <circle cx="12" cy="5" r=".9" />
-      <circle cx="19" cy="5" r=".9" />
-      <circle cx="5" cy="12" r=".9" />
-      <circle cx="12" cy="12" r=".9" />
-      <circle cx="19" cy="12" r=".9" />
-      <circle cx="5" cy="19" r=".9" />
-      <circle cx="12" cy="19" r=".9" />
-      <circle cx="19" cy="19" r=".9" />
-    </>
-  ),
+  mehr: moreDots(1.35),
   neu: (
     <>
       <circle cx="12" cy="12" r="10" />
@@ -334,6 +339,12 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
       <rect x="17" y="3" width="4" height="18" rx="1" />
     </>
   ),
+  insights: (
+    <>
+      <path d={INSIGHTS_BUBBLE_PATH} />
+      {INSIGHTS_WAVE}
+    </>
+  ),
   pro: (
     <>
       <path
@@ -364,13 +375,12 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   ),
   spiele: (
     <>
-      <circle cx="8" cy="10" r="3" />
-      <circle className="accent" cx="16" cy="10" r="3" />
-      <path d="M4.5 20c.8-3 2.5-4.5 5-4.5h5c2.5 0 4.2 1.5 5 4.5" />
-      <path
-        className="accent"
-        d="m12 2 .8 1.8L14.6 4.6l-1.8.8L12 7.2l-.8-1.8-1.8-.8 1.8-.8L12 2Z"
-      />
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+      <g fill="currentColor" stroke="none">
+        <circle cx="8" cy="8" r="1.45" />
+        <circle cx="12" cy="12" r="1.45" />
+        <circle cx="16" cy="16" r="1.45" />
+      </g>
     </>
   ),
   orte: (
@@ -409,8 +419,8 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   ),
   aktivitaet: (
     <>
-      <path d="M4 6h16M4 12h16M4 18h10" />
-      <circle className="accent" cx="19" cy="18" r="2" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l4 2" />
     </>
   ),
   hinzufuegen: (
@@ -434,16 +444,35 @@ const PLANE_PATH =
 const STAR_PATH =
   'm12 2.2 2.1 7.7 7.7 2.1-7.7 2.1-2.1 7.7-2.1-7.7-7.7-2.1 7.7-2.1 2.1-7.7Z';
 
-const FILLED: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
+function filledCalendar(id: string) {
+  return (
+    <>
+      <rect
+        x="3.5"
+        y="5.5"
+        width="17"
+        height="15"
+        rx="2.7"
+        fill={`url(#${id}-cool)`}
+      />
+      <path d="M3.5 10h17" />
+      <path className="accent" d="M8 3.5v2.3M16 3.5v2.3" />
+    </>
+  );
+}
+
+type IconDrawing = ReactNode | ((id: string) => ReactNode);
+
+const FILLED: Partial<Record<EimirIconName, IconDrawing>> = {
   wir: (id) => (
     <>
-      <circle cx="9" cy="12" r="6.5" fill={`url(#${id}-cool)`} stroke="none" />
-      <circle cx="15" cy="12" r="6.5" fill={`url(#${id}-warm)`} stroke="none" />
+      <circle cx="9" cy="12" r="6.5" fill={`url(#${id}-cool)`} />
+      <circle cx="15" cy="12" r="6.5" fill={`url(#${id}-warm)`} />
     </>
   ),
   momente: (id) => (
     <>
-      <path d={HEART_PATH} fill={`url(#${id}-heart)`} stroke="none" />
+      <path d={HEART_PATH} fill={`url(#${id}-heart)`} />
       <path
         className="icon-pressed-detail"
         d="M7.4 17.1c1.5 1.3 3.1 2.5 4.6 3.4 2.1-1.3 4.5-3.2 6.1-5.2"
@@ -453,23 +482,7 @@ const FILLED: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
       />
     </>
   ),
-  planen: (id) => (
-    <>
-      <rect
-        x="3.5"
-        y="5.5"
-        width="17"
-        height="15"
-        rx="2.7"
-        fill={`url(#${id}-cool)`}
-        stroke="none"
-      />
-      <path
-        d="M3.5 10h17M8 3.5v4M16 3.5v4"
-        stroke="var(--identity-icon-accent)"
-      />
-    </>
-  ),
+  planen: filledCalendar,
   kalender: (id) => (
     <>
       <rect
@@ -528,15 +541,7 @@ const FILLED: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
       <path d="M12 14v4m-2-2h4" stroke="var(--color-on-accent)" />
     </>
   ),
-  mehr: () => (
-    <g fill="currentColor" stroke="none">
-      {[5, 12, 19].flatMap((y) =>
-        [5, 12, 19].map((x) => (
-          <circle key={`${x}-${y}`} cx={x} cy={y} r="1.3" />
-        )),
-      )}
-    </g>
-  ),
+  mehr: moreDots(1.8),
 };
 
 const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
@@ -555,6 +560,16 @@ const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
   ),
   momente: (id) => (
     <path d={HEART_PATH} fill={`url(#${id}-cool-warm)`} stroke="none" />
+  ),
+  insights: (id) => (
+    <>
+      <path
+        d={INSIGHTS_BUBBLE_PATH}
+        fill={`url(#${id}-cool-warm)`}
+        fillOpacity="0.25"
+      />
+      {INSIGHTS_WAVE}
+    </>
   ),
   kalender: (id) => (
     <>
@@ -633,12 +648,14 @@ type Props = {
 
 export function EimirIcon({ name, variant = 'outline', className }: Props) {
   const id = useId().replace(/:/g, '');
-  const content =
-    variant === 'outline'
-      ? OUTLINE[name]
-      : variant === 'filled'
-        ? (FILLED[name]?.(id) ?? OUTLINE[name])
-        : (DUOTONE[name]?.(id) ?? OUTLINE[name]);
+  const drawing =
+    variant === 'filled'
+      ? FILLED[name]
+      : variant === 'duotone'
+        ? DUOTONE[name]
+        : undefined;
+  const usesGradient = typeof drawing === 'function';
+  const content = usesGradient ? drawing(id) : (drawing ?? OUTLINE[name]);
   return (
     <svg
       viewBox="0 0 24 24"
@@ -646,7 +663,7 @@ export function EimirIcon({ name, variant = 'outline', className }: Props) {
       focusable="false"
       className={`eimir-icon eimir-icon-${name} eimir-icon-${variant}${className ? ` ${className}` : ''}`}
     >
-      {variant !== 'outline' && (
+      {usesGradient && (
         <defs>
           <linearGradient id={`${id}-cool`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop stopColor="var(--identity-icon-cool-fill)" />

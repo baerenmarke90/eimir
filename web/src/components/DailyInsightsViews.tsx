@@ -24,7 +24,7 @@ import {
   monthStart,
   monthWeeks,
   relationSummary,
-  VIBE_GLYPHS,
+  VIBE_LANES,
   weekDates,
 } from '../client/dailyInsightsModel';
 import {
@@ -52,6 +52,7 @@ import {
   PersonLegend,
   WeekdayLabel,
 } from './DailyInsightsParts';
+import { DailyVibeIcon } from './DailyVibeIcon';
 
 export interface ViewProps {
   /** Days that are part of the displayed period (already windowed). */
@@ -321,7 +322,7 @@ function DayCell({
                   className={`insight-mark insight-mark-vibe insight-series-${person.key}`}
                   data-vibe={vibe}
                 >
-                  {VIBE_GLYPHS[vibe]}
+                  <DailyVibeIcon value={vibe} monochrome />
                 </span>
               );
             })
@@ -452,14 +453,14 @@ export function PatternsView({
           aria-label={t('dailyInsights.patterns.legendVibe')}
         >
           {modules.vibe
-            ? Object.keys(VIBE_GLYPHS).map((vibe) => (
+            ? VIBE_LANES.map((vibe) => (
                 <li key={vibe}>
                   <span
                     className="insight-mark insight-mark-vibe"
                     data-vibe={vibe}
                     aria-hidden="true"
                   >
-                    {VIBE_GLYPHS[vibe as keyof typeof VIBE_GLYPHS]}
+                    <DailyVibeIcon value={vibe} />
                   </span>
                   {t(`dailyVibe.values.${vibe}`)}
                 </li>
@@ -534,7 +535,7 @@ export function PatternsView({
                         data-vibe={lane.vibe}
                         aria-hidden="true"
                       >
-                        {VIBE_GLYPHS[lane.vibe]}
+                        <DailyVibeIcon value={lane.vibe} />
                       </span>
                       {t(`dailyInsights.lanes.${lane.vibe}`)}
                       <span className="insight-strip-count">
@@ -721,11 +722,11 @@ export function RecapView({
                               })
                         }`}
                       >
-                        {highlight.kind === 'bothGood' && value.vibe
-                          ? VIBE_GLYPHS[value.vibe]
-                          : t('dailyInsights.percentage', {
-                              value: value.energy,
-                            })}
+                        {highlight.kind === 'bothGood' && value.vibe ? (
+                          <DailyVibeIcon value={value.vibe} />
+                        ) : (
+                          t('dailyInsights.percentage', { value: value.energy })
+                        )}
                       </span>
                     );
                   })}

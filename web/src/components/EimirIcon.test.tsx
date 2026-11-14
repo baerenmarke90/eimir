@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { DestinationIcon } from './DestinationIcon';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 
 describe('owner identity icons', () => {
@@ -20,6 +21,25 @@ describe('owner identity icons', () => {
         expect(markup).toContain('fill="url(#');
       }
     }
+  });
+
+  it('keeps a gradient on the selected Planning destination', () => {
+    const markup = renderToStaticMarkup(
+      <DestinationIcon icon="plan" variant="filled" />,
+    );
+    expect(markup).toMatch(/<rect[^>]+fill="url\(#([^)]+)-cool\)"/);
+    expect(markup).toContain('var(--identity-icon-cool-fill)');
+  });
+
+  it('renders the Insights bubble with a gradient and a visible waveform', () => {
+    const markup = renderToStaticMarkup(
+      <DestinationIcon icon="insights" variant="duotone" />,
+    );
+    expect(markup).toContain('eimir-icon-insights');
+    expect(markup).toMatch(/<path[^>]+fill="url\(#([^)]+)-cool-warm\)"/);
+    expect(markup.match(/<path\b/g)).toHaveLength(2);
+    expect(markup).not.toContain('<rect');
+    expect(markup).toContain('aria-hidden="true"');
   });
 
   it('delivers distinct filled and duotone heart artwork with resolvable gradients', () => {

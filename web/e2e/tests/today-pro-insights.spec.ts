@@ -458,6 +458,11 @@ async function visitViews(
 ) {
   await openInsightsFromMore(page, testInfo, label);
   await goToPreviousWeek(page);
+  const vibeChart = page.locator('.insight-chart-vibe');
+  await expect(
+    vibeChart.locator('.insight-chart-yaxis [data-vibe-icon]'),
+  ).toHaveCount(7);
+  await expect(vibeChart.locator('.insight-chart-lane')).toHaveCount(7);
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
@@ -468,6 +473,12 @@ async function visitViews(
   await page.getByRole('link', { name: dailyInsights.nav.patterns }).click();
   await expect(
     page.getByRole('heading', { name: dailyInsights.patterns.glanceTitle }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.insight-legend-scale [data-vibe-icon]'),
+  ).toHaveCount(7);
+  await expect(
+    page.locator('.insight-cell [data-vibe-icon]').first(),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);

@@ -45,14 +45,6 @@
 .brand-dot {
   color: var(--identity-icon-accent);
 }
-.shell-nav-icon svg.eimir-icon {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.65;
-}
-.shell-nav-link-active .shell-nav-icon {
-  color: var(--color-brand-text);
-}
 .shell-nav-link-active::before {
   background: var(--color-brand);
 }
@@ -61,6 +53,12 @@
 }
 .eimir-icon .cool {
   stroke: var(--identity-icon-cool);
+}
+
+.daily-vibe-icon-monochrome {
+  --identity-icon-accent: currentColor;
+  --identity-icon-warm-fill: currentColor;
+  --identity-icon-cool-fill: currentColor;
 }
 
 .eimir-icon-momente .icon-pressed-detail {

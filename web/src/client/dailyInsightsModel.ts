@@ -13,8 +13,9 @@
  * causality or diagnosis, and every statement is gated by a minimum data
  * threshold so sparse data yields no statement instead of a weak one.
  */
-import { DailyVibe } from '../api/generated/models/DailyVibe';
+
 import type { DailyCheckInInsightsView } from '../api/generated/models/DailyCheckInInsightsView';
+import { DailyVibe } from '../api/generated/models/DailyVibe';
 
 export type IsoDate = string;
 export type PersonKey = 'own' | 'partner';
@@ -149,16 +150,6 @@ export const VIBE_LANES = [
   DailyVibe.STRESSED,
   DailyVibe.SAD,
 ] as const;
-
-export const VIBE_GLYPHS: Record<DailyVibe, string> = {
-  [DailyVibe.VERY_GOOD]: '✺',
-  [DailyVibe.GOOD]: '☀',
-  [DailyVibe.OKAY]: '●',
-  [DailyVibe.STRESSED]: '↯',
-  [DailyVibe.SAD]: '☂',
-  [DailyVibe.NEEDS_CONNECTION]: '♡',
-  [DailyVibe.NEEDS_SPACE]: '○',
-};
 
 export const ENERGY_MIN = 10;
 export const ENERGY_MAX = 100;

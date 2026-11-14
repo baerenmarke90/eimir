@@ -249,7 +249,9 @@ export function PhotoSourcePicker({
               { signal: current.request.signal, cache: 'no-store' },
             );
           const blob = await read().catch((error) => {
-            if (current.request.signal.aborted) throw error;
+            // Only the Google task retries quietly; other sources keep their contract.
+            if (ready.source !== 'google' || current.request.signal.aborted)
+              throw error;
             return read();
           });
           current.ticket.signal.throwIfAborted();

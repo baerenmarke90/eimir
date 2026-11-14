@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 from PIL import Image
 from pydantic import SecretStr
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 
 from eimir.auth.sessions import resolve
 from eimir.auth.tokens import hash_token
@@ -18,6 +18,7 @@ from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability, EntitlementSourceType, EntitlementStatus
 from eimir.photo_sources import service
 from eimir.photo_sources.models import (
+    GoogleAccountHint,
     PhotoConnection,
     PhotoSelection,
     PhotoSelectionPayload,
@@ -494,7 +495,7 @@ def synthetic_google(monkeypatch):
     monkeypatch.setattr(service, "google_import_available", lambda: True)
     states = []
 
-    def authorization(*, client):
+    def authorization(*, client, login_hint=None):
         assert client == oauth_client
         state = generate_token()
         states.append(state)
@@ -752,7 +753,7 @@ def eligible_google(monkeypatch):
     monkeypatch.setattr(service.google_photos, "client_configuration", lambda: oauth_client)
     states = []
 
-    def authorization(*, client):
+    def authorization(*, client, login_hint=None):
         state = generate_token()
         states.append(state)
         return "https://accounts.google.com/synthetic", state, "synthetic-verifier"
@@ -969,3 +970,219 @@ def test_removing_the_verified_address_revokes_reading_as_well(
         headers=owners["a"],
     )
     assert read.status_code == 503
+
+
+GOOGLE_HINT = "Anna.Private@Gmail.Example"
+GOOGLE_HINT_NORMALIZED = "anna.private@gmail.example"
+
+
+def hint_endpoint(owners):
+    return path(owners) + "/photo-sources/google/account"
+
+
+def hint_token(client, owners, who="a"):
+    return client.get(path(owners) + "/photo-sources", headers=owners[who]).json()[
+        "googleAccountToken"
+    ]
+
+
+def save_hint(client, owners, email=GOOGLE_HINT, *, who="a", token=None, consent=True):
+    return client.put(
+        hint_endpoint(owners),
+        headers={**owners[who], "If-Match": token or hint_token(client, owners, who)},
+        json={"email": email, "consent": consent},
+    )
+
+
+def remove_hint(client, owners, *, who="a", token=None):
+    return client.delete(
+        hint_endpoint(owners),
+        headers={**owners[who], "If-Match": token or hint_token(client, owners, who)},
+    )
+
+
+@pytest.fixture
+def hinted_google(session, owners, eligible_google, monkeypatch):
+    """An eligible, entitled Account plus a spy on the address handed to Google."""
+    grant(session, owners)
+    add_address(session, owners["anna"], LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    fake = service.google_photos.authorization
+    hints = []
+
+    def spy(*, client, login_hint=None):
+        hints.append(login_hint)
+        return fake(client=client, login_hint=login_hint)
+
+    monkeypatch.setattr(service.google_photos, "authorization", spy)
+    return hints
+
+
+def test_saved_google_account_is_private_encrypted_and_reaches_only_the_google_url(
+    client, session, owners, hinted_google
+):
+    assert start_google(client, owners).status_code == 201
+    assert hinted_google == [None]  # without a saved account Google keeps asking
+    assert save_hint(client, owners).status_code == 204
+    own = client.get(path(owners) + "/photo-sources", headers=owners["a"])
+    assert own.json()["googleAccountEmail"] == GOOGLE_HINT_NORMALIZED
+    assert own.headers["Cache-Control"] == "private, no-store"
+    partner = client.get(path(owners) + "/photo-sources", headers=owners["b"]).json()
+    assert partner["googleAccountEmail"] is None
+    assert partner["googleAccountToken"].endswith(":google-account:absent")
+    raw = session.execute(text("SELECT payload FROM google_account_hints")).scalar_one()
+    assert raw["_enc"] == 2
+    assert GOOGLE_HINT_NORMALIZED not in str(raw)
+    assert "gmail.example" not in str(raw)
+    # The pre-existing selection is kept; only a new start uses the new address.
+    other = client.post(
+        path(owners) + "/photo-selections",
+        headers=owners["a"],
+        json={
+            "source": "google",
+            "maxItems": 2,
+            "consent": True,
+            "mediaRecoveryPolicy": "memory-only-v1",
+        },
+    )
+    assert other.status_code == 201
+    assert hinted_google == [None, GOOGLE_HINT_NORMALIZED]
+    assert GOOGLE_HINT_NORMALIZED not in other.text
+
+
+def test_changing_and_removing_the_google_account_restores_the_previous_behavior(
+    client, session, owners, hinted_google
+):
+    assert save_hint(client, owners).status_code == 204
+    assert save_hint(client, owners, "second@gmail.example").status_code == 204
+    assert (
+        client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()[
+            "googleAccountEmail"
+        ]
+        == "second@gmail.example"
+    )
+    assert remove_hint(client, owners).status_code == 204
+    assert session.scalar(select(GoogleAccountHint)) is None
+    available = client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()
+    assert available["googleAccountEmail"] is None
+    assert start_google(client, owners).status_code == 201
+    assert hinted_google == [None]
+
+
+def test_google_account_uses_if_match_and_cannot_cross_accounts(
+    client, session, owners, hinted_google
+):
+    assert save_hint(client, owners).status_code == 204
+    stale = hint_token(client, owners)
+    assert save_hint(client, owners, "second@gmail.example").status_code == 204
+    assert save_hint(client, owners, token=stale).status_code == 409
+    assert remove_hint(client, owners, token=stale).status_code == 409
+    # A missing precondition neither replaces nor removes the saved address.
+    endpoint = hint_endpoint(owners)
+    body = {"email": GOOGLE_HINT, "consent": True}
+    assert client.put(endpoint, headers=owners["a"], json=body).status_code == 422
+    assert client.delete(endpoint, headers=owners["a"]).status_code == 422
+    # The partner shares the Space but not the Account: reading, replacing and removing
+    # never see or touch Anna's row, even when Anna's own token is presented.
+    anna_token = hint_token(client, owners)
+    assert save_hint(client, owners, "partner@gmail.example", who="b").status_code == 503
+    assert remove_hint(client, owners, who="b", token=anna_token).status_code == 409
+    assert remove_hint(client, owners, who="b").status_code == 204  # nothing of his own to erase
+    own = client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()
+    assert own["googleAccountEmail"] == "second@gmail.example"
+    anonymous = client.put(endpoint, headers={"If-Match": '"x"'}, json=body)
+    assert anonymous.status_code == 401
+    outsider = client.put(endpoint, headers={**owners["out"], "If-Match": '"x"'}, json=body)
+    assert outsider.status_code in (403, 404)
+    assert session.scalar(select(func.count()).select_from(GoogleAccountHint)) == 1
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "no-at-sign",
+        "a@b",
+        "two@@gmail.example",
+        "white space@gmail.example",
+        "tab\t@gmail.example",
+        'quote"@gmail.example',
+        "angle<@gmail.example",
+        "a" * 250 + "@gmail.example",
+        "",
+    ],
+)
+def test_malformed_or_oversized_google_account_is_rejected_without_echo(
+    client, session, owners, hinted_google, email
+):
+    response = save_hint(client, owners, email)
+    assert response.status_code == 422
+    assert email.strip() == "" or email not in response.text
+    assert session.scalar(select(GoogleAccountHint)) is None
+
+
+def test_google_account_needs_explicit_consent_and_no_extra_fields(
+    client, session, owners, hinted_google
+):
+    assert save_hint(client, owners, consent=False).status_code == 422
+    response = client.put(
+        hint_endpoint(owners),
+        headers={**owners["a"], "If-Match": hint_token(client, owners)},
+        json={"email": GOOGLE_HINT, "consent": True, "scope": "everything"},
+    )
+    assert response.status_code == 422
+    assert session.scalar(select(GoogleAccountHint)) is None
+
+
+def test_google_account_follows_the_entitlement_and_the_closed_gate(
+    client, session, owners, eligible_google, monkeypatch
+):
+    # No Pro entitlement: refused like every external-sync setting.
+    add_address(session, owners["anna"], LISTED, verified=True)
+    set_test_list(monkeypatch, LISTED)
+    assert save_hint(client, owners).status_code == 403
+    grant(session, owners)
+    assert save_hint(client, owners).status_code == 204
+    # The operator closes the test list: nothing new can be saved, removal always works.
+    set_test_list(monkeypatch)
+    assert save_hint(client, owners, "second@gmail.example").status_code == 503
+    available = client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()
+    assert available["googleAvailable"] is False
+    assert remove_hint(client, owners).status_code == 204
+    assert session.scalar(select(GoogleAccountHint)) is None
+
+
+def test_google_account_never_reaches_logs_or_other_exports_and_is_purged_with_the_account(
+    client, session, owners, hinted_google, caplog
+):
+    import json
+    from zipfile import ZipFile
+
+    from eimir.authorization import AuthorizationContext
+    from eimir.identity.deletion import apply_accepted_tombstone, apply_core_cleanup
+    from eimir.transfer.models import TransferScope
+    from eimir.transfer.service import build_export_archive
+
+    with caplog.at_level("DEBUG"):
+        assert save_hint(client, owners).status_code == 204
+        assert start_google(client, owners).status_code == 201
+        assert save_hint(client, owners, "bad address").status_code == 422
+        assert remove_hint(client, owners).status_code == 204
+        assert save_hint(client, owners).status_code == 204
+    assert "gmail.example" not in caplog.text.lower()
+
+    def exported(account, scope):
+        context = AuthorizationContext(account_id=account.id, space_id=owners["space"].id)
+        with build_export_archive(session, context, scope) as buffer, ZipFile(buffer) as archive:
+            return json.loads(archive.read("accounts.json")), b"".join(
+                archive.read(name) for name in archive.namelist()
+            )
+
+    personal, _ = exported(owners["anna"], TransferScope.PERSONAL)
+    assert personal["personalGoogleAccountHint"] == GOOGLE_HINT_NORMALIZED
+    shared, shared_bytes = exported(owners["anna"], TransferScope.SHARED)
+    assert "personalGoogleAccountHint" not in shared
+    assert b"gmail.example" not in shared_bytes
+    apply_accepted_tombstone(session, owners["anna"].id, accepted_at=now())
+    apply_core_cleanup(session, owners["anna"].id)
+    session.expire_all()
+    assert session.scalar(select(GoogleAccountHint)) is None

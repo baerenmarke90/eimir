@@ -219,7 +219,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('keeps the quotation and accessible heading without a decorative symbol', async () => {
+  it('shows the saying and its visible section heading without a decorative symbol', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -238,7 +238,9 @@ describe('DailyQuoteCard', () => {
         .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
-    expect(screen.queryByText('Mindfulness')).toBeNull();
+    expect(
+      screen.queryByText(dailyQuote.catalog.categories.mindfulness),
+    ).toBeNull();
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(document.querySelector('.daily-quote-card .pro-mark')).toBeNull();
     expect(
@@ -258,6 +260,29 @@ describe('DailyQuoteCard', () => {
 
     expect(await screen.findByText(dailyQuote.discovery)).toBeTruthy();
     expect(screen.queryByText(dailyQuote.empty)).toBeNull();
+  });
+
+  it('shows an anonymous proverb without an attribution footer', async () => {
+    const text = 'Good things take time.';
+    renderCard({
+      quoteResult: {
+        ...quote,
+        quote: {
+          attributionRequired: false,
+          authorDisplay: '',
+          categoryIds: ['motivation'],
+          id: 'saying-de-simrock-001',
+          locale: 'de',
+          rightsClassification: 'PUBLIC_DOMAIN',
+          sourceDisplay: null,
+          sourceId: 'poetic_wisdom',
+          text,
+        },
+      },
+    });
+
+    const saying = await screen.findByText(`„${text}“`);
+    expect(saying.closest('blockquote')?.querySelector('footer')).toBeNull();
   });
 
   it('renders the neutral no-quote state without error styling or retry', async () => {
@@ -309,7 +334,11 @@ describe('DailyQuoteCard', () => {
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
     );
-    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     expect(await screen.findByText(dailyQuote.preferencesOffline)).toBeTruthy();
@@ -328,7 +357,11 @@ describe('DailyQuoteCard', () => {
         name: dailyQuote.enabledLabel,
       }),
     ).toBeNull();
-    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     await waitFor(() =>
@@ -340,7 +373,6 @@ describe('DailyQuoteCard', () => {
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
         },
       }),
       undefined,
@@ -361,11 +393,19 @@ describe('DailyQuoteCard', () => {
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
     );
-    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    );
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     expect(await screen.findByText(dailyQuote.conflict)).toBeTruthy();
-    expect(screen.getByRole('checkbox', { name: /Mindfulness/u })).toBeTruthy();
+    expect(
+      screen.getByRole('checkbox', {
+        name: dailyQuote.catalog.categories.mindfulness,
+      }),
+    ).toBeTruthy();
     expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1);
   });
 
@@ -383,7 +423,7 @@ describe('DailyQuoteCard', () => {
     ).toBeTruthy();
 
     const mindfulness = screen.getByRole('checkbox', {
-      name: /Mindfulness/u,
+      name: dailyQuote.catalog.categories.mindfulness,
     });
     await user.click(mindfulness);
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
@@ -395,10 +435,9 @@ describe('DailyQuoteCard', () => {
       expect.objectContaining({
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
-        dailyQuotePreferencePatch: expect.objectContaining({
+        dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
-        }),
+        },
       }),
       undefined,
     );

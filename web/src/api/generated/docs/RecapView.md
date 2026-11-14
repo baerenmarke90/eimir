@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`facts` | [RecapFactsView](RecapFactsView.md)
 `generatedAt` | Date
 `headline` | string
 `id` | string
@@ -14,6 +15,7 @@ Name | Type
 `kind` | [RecapKind](RecapKind.md)
 `locale` | string
 `month` | number
+`mood` | [RecapMoodView](RecapMoodView.md)
 `ownDraft` | [RecapDraftView](RecapDraftView.md)
 `reflections` | [Array&lt;RecapReflectionView&gt;](RecapReflectionView.md)
 `savedAt` | Date
@@ -33,6 +35,7 @@ import type { RecapView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "facts": null,
   "generatedAt": null,
   "headline": null,
   "id": null,
@@ -41,6 +44,7 @@ const example = {
   "kind": null,
   "locale": null,
   "month": null,
+  "mood": null,
   "ownDraft": null,
   "reflections": null,
   "savedAt": null,

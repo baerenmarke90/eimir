@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   cleanup,
   fireEvent,
@@ -9,19 +10,44 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
-import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
 import { ImportantDateType } from '../api/generated/models/ImportantDateType';
+import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
-import importantDates from '../i18n/locales/importantDates';
 import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
+import {
+  occasionHolidayPreferenceKey,
+  saveOccasionHolidayPreference,
+} from '../client/occasionHolidayPreferences';
+import importantDates from '../i18n/locales/importantDates';
 import { ImportantDatesPanel } from './ImportantDatesPanel';
 
-afterEach(() => cleanup());
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: vi.fn().mockImplementation((media: string) => ({
+      matches: media === '(prefers-reduced-motion: reduce)',
+      media,
+      addEventListener() {},
+      removeEventListener() {},
+    })),
+  });
+});
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
 const person: RelatedPersonView = {
   id: 'person-1',
@@ -59,35 +85,44 @@ function importantDate(
 }
 
 function createMockPeopleApi(dates: ImportantDateView[] = [date]): PeopleApi {
+  let values = [...dates];
   return {
     listImportantDatesApiV1SpacesSpaceIdImportantDatesGet: vi
       .fn()
-      .mockResolvedValue(dates),
+      .mockImplementation(async () => values),
     createImportantDateApiV1SpacesSpaceIdImportantDatesPost: vi
       .fn()
       .mockImplementation(({ importantDateFields }) =>
-        Promise.resolve({
-          id: 'date-new',
-          ...importantDateFields,
-          version: 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
+        Promise.resolve(
+          values[
+            values.push({
+              id: 'date-new',
+              ...importantDateFields,
+              version: 1,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }) - 1
+          ],
+        ),
       ),
     updateImportantDateApiV1SpacesSpaceIdImportantDatesDateIdPut: vi
       .fn()
-      .mockImplementation(({ dateId, importantDateFields }) =>
-        Promise.resolve({
+      .mockImplementation(async ({ dateId, importantDateFields }) => {
+        const saved = {
           id: dateId,
           ...importantDateFields,
           version: 4,
           createdAt: new Date(),
           updatedAt: new Date(),
-        }),
-      ),
+        };
+        values = values.map((value) => (value.id === dateId ? saved : value));
+        return saved;
+      }),
     deleteImportantDateApiV1SpacesSpaceIdImportantDatesDateIdDelete: vi
       .fn()
-      .mockResolvedValue(undefined),
+      .mockImplementation(async ({ dateId }) => {
+        values = values.filter((value) => value.id !== dateId);
+      }),
   } as unknown as PeopleApi;
 }
 
@@ -98,23 +133,100 @@ function renderPanel(
     birthday: Date;
     displayName: string;
   } | null = null,
+  people = [person],
+  holidayContext?: { accountId: string; instance: string },
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <ImportantDatesPanel
-        peopleApi={peopleApi}
-        spaceId="space-1"
-        people={[person]}
-        partnerBirthday={partnerBirthday}
-      />
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={['/plan#dates']}>
+      <QueryClientProvider client={queryClient}>
+        <ImportantDatesPanel
+          peopleApi={peopleApi}
+          spaceId="space-1"
+          people={people}
+          partnerBirthday={partnerBirthday}
+          accountId={holidayContext?.accountId}
+          instance={holidayContext?.instance}
+        />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
 describe('ImportantDatesPanel mobile-first surface', () => {
+  it('shows opt-in holidays in the existing agenda without persisting or editing generated dates', async () => {
+    const holidayContext = {
+      instance: 'https://api.example.test',
+      accountId: 'account-one',
+    };
+    saveOccasionHolidayPreference(
+      occasionHolidayPreferenceKey(
+        holidayContext.instance,
+        holidayContext.accountId,
+        'space-1',
+      ),
+      true,
+    );
+    const api = createMockPeopleApi([]);
+    const { container } = renderPanel(api, null, [], holidayContext);
+    const christmas = await screen.findByRole('button', {
+      name: new RegExp(importantDates.holidays.christmasDay),
+    });
+    expect(christmas.querySelector('.people-chevron')).toBeNull();
+    expect(
+      await screen.findByRole('button', {
+        name: new RegExp(importantDates.holidays.easterSunday),
+      }),
+    ).toBeTruthy();
+    fireEvent.click(christmas);
+    const reader = screen.getByRole('dialog');
+    expect(
+      within(reader).getByRole('button', {
+        name: importantDates.holidaySettings.manage,
+      }),
+    ).toBeTruthy();
+    expect(
+      within(reader).queryByRole('button', { name: importantDates.edit }),
+    ).toBeNull();
+    expect(container.querySelector('.occasions-list')).toBeTruthy();
+    expect(
+      api.createImportantDateApiV1SpacesSpaceIdImportantDatesPost,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not add a generated duplicate for an existing annual named occasion', async () => {
+    const holidayContext = {
+      instance: 'https://api.example.test',
+      accountId: 'account-two',
+    };
+    saveOccasionHolidayPreference(
+      occasionHolidayPreferenceKey(
+        holidayContext.instance,
+        holidayContext.accountId,
+        'space-1',
+      ),
+      true,
+    );
+    renderPanel(
+      createMockPeopleApi([
+        importantDate('christmas', importantDates.holidays.christmasDay, {
+          date: new Date('2024-12-25T00:00:00Z'),
+          repeats: DateRepeat.ANNUALLY,
+          type: ImportantDateType.CUSTOM,
+        }),
+      ]),
+      null,
+      [],
+      holidayContext,
+    );
+    const matches = await screen.findAllByRole('button', {
+      name: new RegExp(importantDates.holidays.christmasDay),
+    });
+    expect(matches).toHaveLength(1);
+  });
+
   it('projects the active partner birthday without creating an editable ImportantDate', async () => {
     const { container } = renderPanel(createMockPeopleApi([]), {
       accountId: 'partner-1',
@@ -123,17 +235,85 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     });
 
     await screen.findByText('Geburtstag von Alex');
-    const derived = container.querySelector('.important-date-card-derived');
-    expect(derived).not.toBeNull();
-    expect(derived?.textContent).toContain(importantDates.type.BIRTHDAY);
-    expect(derived?.textContent).toContain(importantDates.repeats.ANNUALLY);
+    const derived = screen.getByRole('button', { name: /Geburtstag von Alex/ });
+    fireEvent.click(derived);
     expect(
-      screen.queryByRole('button', { name: /Geburtstag von Alex/i }),
+      within(screen.getByRole('dialog')).queryByRole('textbox'),
     ).toBeNull();
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('button', {
+        name: importantDates.edit,
+      }),
+    ).toBeNull();
+    expect(container.querySelectorAll('.important-date-card')).toHaveLength(1);
     expect(screen.queryByText(importantDates.emptyTitle)).toBeNull();
   });
 
-  it('renders W50 as a date-led timeline with relationship and explicit privacy context', async () => {
+  it('deduplicates an existing shared birthday without hiding an independent private date', async () => {
+    const birthday = { ...person, birthday: new Date('2000-05-14T00:00:00Z') };
+    const explicit = {
+      ...date,
+      label: 'Existing birthday',
+      type: ImportantDateType.BIRTHDAY,
+      date: birthday.birthday,
+    };
+    renderPanel(
+      createMockPeopleApi([
+        explicit,
+        {
+          ...explicit,
+          id: 'private-birthday',
+          label: 'Private birthday note',
+          visibility: ContentVisibility.PRIVATE,
+        },
+      ]),
+      null,
+      [birthday],
+    );
+    await screen.findByRole('button', { name: /Existing birthday/ });
+    expect(
+      screen.queryByRole('button', {
+        name: new RegExp(
+          importantDates.partnerBirthdayLabel.replace(
+            '{{name}}',
+            person.displayName,
+          ),
+        ),
+      }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: /Private birthday note/ }),
+    ).not.toBeNull();
+  });
+
+  it('projects a shared birthday even when the only explicit birthday date is private', async () => {
+    const birthday = { ...person, birthday: new Date('2000-05-14T00:00:00Z') };
+    renderPanel(
+      createMockPeopleApi([
+        {
+          ...date,
+          type: ImportantDateType.BIRTHDAY,
+          date: birthday.birthday,
+          visibility: ContentVisibility.PRIVATE,
+        },
+      ]),
+      null,
+      [birthday],
+    );
+    await screen.findByRole('button', {
+      name: new RegExp(
+        importantDates.partnerBirthdayLabel.replace(
+          '{{name}}',
+          person.displayName,
+        ),
+      ),
+    });
+    await waitFor(() =>
+      expect(document.querySelectorAll('.important-date-card')).toHaveLength(2),
+    );
+  });
+
+  it('renders a date-led timeline with concise independent-date privacy context', async () => {
     const { container } = renderPanel();
 
     const card = await screen.findByRole('button', {
@@ -142,17 +322,12 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     expect(card.classList.contains('important-date-card')).toBe(true);
     expect(card.querySelector('.important-date-marker')).not.toBeNull();
     expect(card.textContent).toContain(date.label);
-    expect(card.textContent).toContain(person.displayName);
-    expect(card.textContent).toContain(importantDates.type.ANNIVERSARY);
     expect(card.textContent).toContain(importantDates.repeats.ANNUALLY);
-    expect(card.textContent).toContain(importantDates.visibility.SHARED);
-    expect(card.getAttribute('aria-label')).toContain(person.displayName);
-    expect(card.getAttribute('aria-label')).toContain(
-      importantDates.visibility.SHARED,
-    );
+    expect(card.textContent).not.toContain(importantDates.visibility.SHARED);
     expect(
-      card.querySelector('.important-date-visibility-icon svg'),
+      within(card).getByRole('img', { name: importantDates.visibility.SHARED }),
     ).not.toBeNull();
+    expect(card.querySelector('svg')).not.toBeNull();
     expect(container.querySelector('.important-date-chip')).toBeNull();
   });
 
@@ -302,13 +477,18 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('opens W52 from the full timeline item and separates delete from Save', async () => {
+  it('opens the reader then the focused editor from the full timeline item and separates delete from Save', async () => {
     const { container } = renderPanel();
     const card = await screen.findByRole('button', {
       name: new RegExp(date.label, 'i'),
     });
     card.focus();
     fireEvent.click(card);
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('textbox'),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
+    await screen.findByLabelText(importantDates.labelLabel);
 
     const dialog = screen.getByRole('dialog');
     expect(
@@ -338,6 +518,11 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       name: new RegExp(date.label, 'i'),
     });
     fireEvent.click(card);
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('textbox'),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
+    await screen.findByLabelText(importantDates.labelLabel);
 
     fireEvent.click(
       screen.getByRole('button', { name: importantDates.delete }),
@@ -367,6 +552,11 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     });
     card.focus();
     fireEvent.click(card);
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('textbox'),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
+    await screen.findByLabelText(importantDates.labelLabel);
 
     fireEvent.change(screen.getByLabelText(importantDates.labelLabel), {
       target: { value: 'Our seaside anniversary' },
@@ -380,6 +570,12 @@ describe('ImportantDatesPanel mobile-first surface', () => {
         peopleApi.updateImportantDateApiV1SpacesSpaceIdImportantDatesDateIdPut,
       ).toHaveBeenCalledTimes(1);
     });
+    await screen.findByRole('heading', { name: /Our seaside anniversary/ });
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Schließen',
+      }),
+    );
     await waitFor(() => expect(document.activeElement).toBe(card));
     const call = (
       peopleApi.updateImportantDateApiV1SpacesSpaceIdImportantDatesDateIdPut as ReturnType<
@@ -403,6 +599,11 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     });
     expect(card.textContent).toContain(longLabel);
     fireEvent.click(card);
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('textbox'),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
+    await screen.findByLabelText(importantDates.labelLabel);
     expect(screen.getByDisplayValue(longLabel)).not.toBeNull();
   });
 
@@ -452,11 +653,14 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     const card = await screen.findByRole('button', {
       name: new RegExp(importantDates.visibility.PRIVATE, 'i'),
     });
-    expect(card.getAttribute('aria-label')).toContain(privateDate.label);
-    expect(card.getAttribute('aria-label')).toContain(
-      importantDates.visibility.PRIVATE,
-    );
-    expect(card.getAttribute('aria-label')).not.toContain(person.displayName);
+    expect(card.textContent).toContain(privateDate.label);
+    expect(card.textContent).not.toContain(importantDates.visibility.PRIVATE);
+    expect(
+      within(card).getByRole('img', {
+        name: importantDates.visibility.PRIVATE,
+      }),
+    ).not.toBeNull();
+    expect(card.textContent).not.toContain(person.displayName);
   });
 
   async function expectFocusAfterDelete(
@@ -469,6 +673,8 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       name: new RegExp(deletedLabel, 'i'),
     });
     fireEvent.click(deletedCard);
+    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
+    await screen.findByLabelText(importantDates.labelLabel);
     fireEvent.click(
       screen.getByRole('button', { name: importantDates.delete }),
     );

@@ -6,9 +6,8 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
 } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import {
   afterEach,
   beforeAll,
@@ -25,14 +24,6 @@ import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { SharedPlanningOverviewPage } from './SharedPlanningOverviewPage';
 
-beforeAll(() => {
-  HTMLDialogElement.prototype.showModal = function () {
-    this.setAttribute('open', '');
-  };
-  HTMLDialogElement.prototype.close = function () {
-    this.removeAttribute('open');
-  };
-});
 afterEach(async () => {
   cleanup();
   await act(async () => {
@@ -40,190 +31,11 @@ afterEach(async () => {
   });
 });
 
-function LocationTracker({
-  onLocation,
-}: {
-  onLocation: (path: string) => void;
-}) {
-  const location = useLocation();
-  onLocation(`${location.pathname}${location.hash}`);
-  return null;
-}
-
-describe('QuickCreateMenu - Mobile Action Sheet', () => {
-  it('opens mobile action sheet, displays all 8 actions with sublines and title, and manages scroll lock', async () => {
-    document.body.style.overflow = 'auto';
-
-    render(
-      <MemoryRouter initialEntries={['/today']}>
-        <QuickCreateMenu variant="mobile" />
-      </MemoryRouter>,
-    );
-
-    const trigger = screen.getByRole('button', { name: navigation.newContent });
-    expect(trigger.style.visibility).not.toBe('hidden');
-    expect(screen.queryByRole('dialog')).toBeNull();
-
-    // Open sheet
-    fireEvent.click(trigger);
-
-    // Dialog is open
-    const dialog = screen.getByRole('dialog', {
-      name: navigation.quickCreateTitle,
-    });
-    expect(dialog).toBeDefined();
-    expect(dialog.className).toContain('quick-create-mobile-sheet');
-    expect(document.body.style.overflow).toBe('hidden');
-
-    // Sheet title
-    expect(screen.getByText(navigation.quickCreateTitle)).toBeDefined();
-
-    // Trigger is hidden while sheet is open
-    expect(trigger.style.visibility).toBe('hidden');
-
-    // All 8 action titles and sublines are present
-    expect(screen.getByText(navigation.quickCreateMemory)).toBeDefined();
-    expect(screen.getByText(navigation.quickCreateMemorySubline)).toBeDefined();
-
-    expect(screen.getByText(navigation.quickCreateHeartMoment)).toBeDefined();
-    expect(
-      screen.getByText(navigation.quickCreateHeartMomentSubline),
-    ).toBeDefined();
-
-    expect(screen.getByText(navigation.quickCreateMilestone)).toBeDefined();
-    expect(
-      screen.getByText(navigation.quickCreateMilestoneSubline),
-    ).toBeDefined();
-
-    expect(screen.getByText(navigation.quickCreateWish)).toBeDefined();
-    expect(screen.getByText(navigation.quickCreateWishSubline)).toBeDefined();
-
-    expect(screen.getByText(navigation.quickCreatePlan)).toBeDefined();
-    expect(screen.getByText(navigation.quickCreatePlanSubline)).toBeDefined();
-
-    // Private section header
-    expect(screen.getByText(navigation.quickCreateForMe)).toBeDefined();
-
-    expect(screen.getByText(navigation.quickCreatePrivateNote)).toBeDefined();
-    expect(
-      screen.getByText(navigation.quickCreatePrivateNoteSubline),
-    ).toBeDefined();
-
-    expect(screen.getByText(navigation.quickCreateGiftIdea)).toBeDefined();
-    expect(
-      screen.getByText(navigation.quickCreateGiftIdeaSubline),
-    ).toBeDefined();
-
-    // Removed actions (chapter, place) must NOT be present in Quick Create
-    expect(screen.queryByText(navigation.quickCreateChapter)).toBeNull();
-    expect(screen.queryByText(navigation.quickCreatePlace)).toBeNull();
-    expect(screen.getByText(navigation.quickCreateCollection)).toBeDefined();
-    expect(
-      screen.getByText(navigation.quickCreateCollectionSubline),
-    ).toBeDefined();
-
-    // Close button dismisses and restores body scroll
-    const closeBtn = screen.getByRole('button', { name: navigation.closeMenu });
-    fireEvent.click(closeBtn);
-
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(document.body.style.overflow).toBe('auto');
-    expect(trigger.style.visibility).not.toBe('hidden');
-  });
-
-  it('closes on backdrop click and returns focus to trigger', async () => {
-    render(
-      <MemoryRouter initialEntries={['/today']}>
-        <QuickCreateMenu variant="mobile" />
-      </MemoryRouter>,
-    );
-
-    const trigger = screen.getByRole('button', { name: navigation.newContent });
-    fireEvent.click(trigger);
-
-    const dialog = screen.getByRole('dialog');
-    fireEvent.click(dialog, { clientX: -1, clientY: -1 });
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  });
-
-  it('closes on Escape key press', async () => {
-    render(
-      <MemoryRouter initialEntries={['/today']}>
-        <QuickCreateMenu variant="mobile" />
-      </MemoryRouter>,
-    );
-
-    const trigger = screen.getByRole('button', { name: navigation.newContent });
-    fireEvent.click(trigger);
-    expect(screen.getByRole('dialog')).toBeDefined();
-
-    fireEvent(
-      screen.getByRole('dialog'),
-      new Event('cancel', { cancelable: true }),
-    );
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  });
-
-  it('navigates to wish action and closes sheet', async () => {
-    let currentPath = '/today';
-
-    render(
-      <MemoryRouter initialEntries={['/today']}>
-        <LocationTracker
-          onLocation={(path) => {
-            currentPath = path;
-          }}
-        />
-        <QuickCreateMenu variant="mobile" />
-      </MemoryRouter>,
-    );
-
-    const trigger = screen.getByRole('button', { name: navigation.newContent });
-    fireEvent.click(trigger);
-
-    // Select wish
-    const wishItem = screen.getByText(navigation.quickCreateWish);
-    fireEvent.click(wishItem);
-
-    // Sheet closes after its history entry is consumed.
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    // Path updated to wish anchor under /plan
-    expect(currentPath).toBe('/plan/wishes/new');
-  });
-
-  it('navigates to gift idea action and closes sheet', async () => {
-    let currentPath = '/today';
-
-    render(
-      <MemoryRouter initialEntries={['/today']}>
-        <LocationTracker
-          onLocation={(path) => {
-            currentPath = path;
-          }}
-        />
-        <QuickCreateMenu variant="mobile" />
-      </MemoryRouter>,
-    );
-
-    const trigger = screen.getByRole('button', { name: navigation.newContent });
-    fireEvent.click(trigger);
-
-    // Select gift idea
-    const giftItem = screen.getByText(navigation.quickCreateGiftIdea);
-    fireEvent.click(giftItem);
-
-    // Sheet closes after its history entry is consumed.
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    // Path updated to gift ideas create route
-    expect(currentPath).toBe('/more/private/gift-ideas/new');
-  });
-});
-
 describe('QuickCreateMenu - Desktop Popover', () => {
-  it('renders desktop menu popover when opened with title and 8 actions', () => {
+  it('renders desktop menu popover when opened with title and 9 actions', () => {
     render(
       <MemoryRouter initialEntries={['/today']}>
-        <QuickCreateMenu variant="desktop" />
+        <QuickCreateMenu />
       </MemoryRouter>,
     );
 
@@ -238,17 +50,20 @@ describe('QuickCreateMenu - Desktop Popover', () => {
     expect(screen.getByText(navigation.quickCreateTitle)).toBeDefined();
 
     const items = screen.getAllByRole('menuitem');
-    expect(items).toHaveLength(8);
+    expect(items).toHaveLength(9);
 
-    // Order: memory, heart moment, milestone, wish, collection, plan, note, gift idea
-    expect(items[0].getAttribute('href')).toBe('/story/memories/new');
-    expect(items[1].getAttribute('href')).toBe('/story/heart-moments/new');
-    expect(items[2].getAttribute('href')).toBe('/story/milestones/new');
-    expect(items[3].getAttribute('href')).toBe('/plan/wishes/new');
-    expect(items[4].getAttribute('href')).toBe('/more/collections/new');
-    expect(items[5].getAttribute('href')).toBe('/plan/plans/new');
-    expect(items[6].getAttribute('href')).toBe('/more/private/notes/new');
-    expect(items[7].getAttribute('href')).toBe('/more/private/gift-ideas/new');
+    // Existing capture entries keep their relative order around the optional Pro action.
+    expect(items.map((item) => item.getAttribute('href'))).toEqual([
+      '/story/memories/new',
+      '/story/heart-moments/new',
+      '/today/only-you/new',
+      '/story/milestones/new',
+      '/plan/wishes/new',
+      '/more/collections/new',
+      '/plan/plans/new',
+      '/more/private/notes/new',
+      '/more/private/gift-ideas/new',
+    ]);
 
     // Verify sublines exist
     expect(screen.getByText(navigation.quickCreateMemorySubline)).toBeDefined();
@@ -262,7 +77,7 @@ describe('QuickCreateMenu - Desktop Popover', () => {
   it('dismisses the desktop menu on outside pointer input', () => {
     render(
       <MemoryRouter initialEntries={['/today']}>
-        <QuickCreateMenu variant="desktop" />
+        <QuickCreateMenu />
       </MemoryRouter>,
     );
 
@@ -278,7 +93,7 @@ describe('QuickCreateMenu - Desktop Popover', () => {
   it('does not let stale Escape focus restoration steal focus after a rapid reopen', async () => {
     render(
       <MemoryRouter initialEntries={['/today']}>
-        <QuickCreateMenu variant="desktop" />
+        <QuickCreateMenu />
       </MemoryRouter>,
     );
 
@@ -303,7 +118,7 @@ describe('QuickCreateMenu - Desktop Popover', () => {
   it('supports arrow key navigation on desktop', () => {
     render(
       <MemoryRouter initialEntries={['/today']}>
-        <QuickCreateMenu variant="desktop" />
+        <QuickCreateMenu />
       </MemoryRouter>,
     );
 
@@ -321,7 +136,7 @@ describe('QuickCreateMenu - Desktop Popover', () => {
 
     // End key moves to last item (gift idea)
     fireEvent.keyDown(menu, { key: 'End' });
-    expect(document.activeElement).toBe(items[7]);
+    expect(document.activeElement).toBe(items.at(-1));
 
     // Home key moves to first item (memory)
     fireEvent.keyDown(menu, { key: 'Home' });
@@ -347,7 +162,7 @@ describe('QuickCreateMenu -> shared route-entry handoff (#810/#839)', () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
-          <QuickCreateMenu variant="mobile" />
+          <QuickCreateMenu />
           <RouteEntryHandoff />
           <Routes>
             <Route

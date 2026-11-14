@@ -6,6 +6,7 @@ import io
 import re
 from collections.abc import Iterator
 from typing import BinaryIO
+from urllib.parse import quote
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response, StreamingResponse
@@ -38,6 +39,7 @@ def content_response(
     media_type: str,
     filename: str,
     range_header: str | None = None,
+    download_name: str | None = None,
 ) -> Response:
     """Consume an already-authorized seekable source; always close its ownership."""
     headers = {
@@ -47,6 +49,10 @@ def content_response(
         "X-Content-Type-Options": "nosniff",
         "Accept-Ranges": "bytes",
     }
+    if download_name is not None:
+        headers["Content-Disposition"] = (
+            f"attachment; filename=\"{filename}\"; filename*=UTF-8''{quote(download_name, safe='')}"
+        )
     try:
         size = source.seek(0, io.SEEK_END)
         selected = _bounds(range_header, size)

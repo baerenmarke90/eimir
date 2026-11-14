@@ -50,6 +50,7 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 class Registration:
     fid: str
     activation_id: str
+    locale_version: int = 0
 
     def identity(self) -> str:
         return json.dumps(
@@ -62,7 +63,13 @@ def _parse(value: str) -> Registration | None:
         return None
     try:
         raw = json.loads(value, object_pairs_hook=_unique_object)
-        if not isinstance(raw, dict) or set(raw) != {"fid", "activationId"}:
+        if not isinstance(raw, dict) or set(raw) not in (
+            {"fid", "activationId"},
+            {"fid", "activationId", "localeVersion"},
+        ):
+            return None
+        locale_version = raw.get("localeVersion", 0)
+        if type(locale_version) is not int or locale_version not in {0, 1}:
             return None
         fid, activation = raw["fid"], raw["activationId"]
         if not isinstance(fid, str) or _FID.fullmatch(fid) is None:
@@ -72,7 +79,7 @@ def _parse(value: str) -> Registration | None:
         parsed = UUID(activation)
         if parsed.version != 4 or str(parsed) != activation:
             return None
-        return Registration(fid, activation)
+        return Registration(fid, activation, locale_version)
     except (TypeError, ValueError):
         return None
 
@@ -106,6 +113,10 @@ def encrypt_preview(endpoint: str, key: str, plaintext: str) -> str:
 
 def _wake(registration: Registration, reference: dict[str, str]) -> dict[str, str]:
     data = {"type": "wake", "activationId": registration.activation_id}
+    if registration.locale_version == 1 and "locale" in reference:
+        from eimir.i18n import detect_locale
+
+        data["locale"] = detect_locale([reference["locale"]])
     encrypted = reference.get("encryptedPreview")
     if encrypted is not None:
         if (
@@ -316,7 +327,7 @@ class FcmPushProvider:
                     "fid": registration.fid,
                     "data": _wake(registration, notification_reference),
                     "android": {
-                        "ttl": "300s",
+                        "ttl": f"{notification_reference.get('ttl', '300')}s",
                         "restricted_package_name": self.android_package,
                         **(
                             {"collapse_key": "eimir-wake"}

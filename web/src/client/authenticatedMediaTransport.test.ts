@@ -154,6 +154,48 @@ it('does not retry a photo upload with an unknown network outcome', async () => 
   expect(fetch).not.toHaveBeenCalled();
 });
 
+it('keeps progress monotonic through token renewal and reserves completion for accepted bytes', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...tokens,
+            accessToken: 'access-b',
+            refreshToken: 'refresh-b',
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+    ),
+  );
+  const progress = vi.fn();
+  result = (request) => {
+    const first = uploads.length === 1;
+    for (const loaded of first ? [40, 20, 100] : [10, 60, 100]) {
+      request.upload.onprogress?.({
+        loaded,
+        total: 100,
+        lengthComputable: true,
+      } as ProgressEvent);
+    }
+    expect(progress).not.toHaveBeenCalledWith(100);
+    request.status = first ? 401 : 204;
+    request.onload?.();
+    // A queued event from a completed transport cannot update the next one.
+    request.upload.onprogress?.({
+      loaded: 1,
+      total: 100,
+      lengthComputable: true,
+    } as ProgressEvent);
+  };
+  await uploadAttachmentBytesWithProgress(api, 'access-a', descriptor, file, {
+    onProgress: progress,
+  });
+  expect(uploads).toHaveLength(2);
+  expect(progress.mock.calls.map(([value]) => value)).toEqual([40, 99, 100]);
+});
+
 it('keeps signed object-storage uploads free of session credentials', async () => {
   const fetch = vi.fn();
   vi.stubGlobal('fetch', fetch);

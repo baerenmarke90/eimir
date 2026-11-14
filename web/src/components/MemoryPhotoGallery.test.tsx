@@ -112,7 +112,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('tap toggles the photo and long press opens only the fixed picker without revealing it', async () => {
+it('reveals on tap, conceals through the explicit control, and preserves the six-reaction long press', async () => {
   const save = vi.fn();
   const { view } = setup(save);
   await waitFor(() =>
@@ -122,14 +122,16 @@ it('tap toggles the photo and long press opens only the fixed picker without rev
   );
   const photo = screen.getByRole('button', { name: 'Bild anzeigen' });
   fireEvent.click(photo, { detail: 1 });
-  expect(photo.getAttribute('aria-pressed')).toBe('true');
-  fireEvent.click(photo, { detail: 1 });
+  expect(view.container.querySelector('.sensitive-media-blurred')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Wieder verbergen' }));
   vi.useFakeTimers();
   fireEvent.pointerDown(photo, { button: 0, clientX: 100, clientY: 100 });
   act(() => vi.advanceTimersByTime(450));
   fireEvent.pointerUp(photo);
   fireEvent.click(photo, { detail: 1 });
-  expect(photo.getAttribute('aria-pressed')).toBe('false');
+  expect(
+    view.container.querySelector('.sensitive-media-blurred img'),
+  ).not.toBeNull();
   const picker = screen.getByRole('group', { name: 'Reaktion auswählen' });
   expect(picker.querySelectorAll('button')).toHaveLength(6);
   expect(save).not.toHaveBeenCalled();
@@ -197,6 +199,7 @@ it('shows a chip only after confirmed persistence and permits removal', async ()
   const chip = await screen.findByRole('button', {
     name: /Liebe: 1 Reaktion.*entfernen/,
   });
+  expect(chip.textContent).toBe('❤️');
   fireEvent.click(chip);
   await waitFor(() =>
     expect(view.container.querySelector('.memory-photo-reactions')).toBeNull(),
@@ -207,6 +210,28 @@ it('shows a chip only after confirmed persistence and permits removal', async ()
     attachmentId: 'photo',
     photoReactionSet: { reaction: null },
   });
+});
+
+it('shows the total for matching reactions', async () => {
+  const { client, memory } = setup(vi.fn());
+  act(() => {
+    client.setQueryData(key, {
+      source: 'network',
+      value: {
+        ...memory,
+        attachments: [
+          {
+            ...memory.attachments[0]!,
+            reactions: [{ reaction: 'LOVE', count: 2, own: true }],
+          },
+        ],
+      },
+    });
+  });
+  const repeated = await screen.findByRole('button', {
+    name: /Liebe: 2 Reaktionen/,
+  });
+  expect(repeated.textContent).toBe('❤️2');
 });
 
 it('retains the previous server state on failure and ignores completion after a context change', async () => {

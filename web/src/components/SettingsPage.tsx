@@ -34,12 +34,15 @@ import {
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
+import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
+import { WirDashboardSettingsPanel } from './PartnerDistanceWirSetting';
+import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
+import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { ProInformationPanel } from './ProInformationPanel';
-import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { SettingsIndex } from './SettingsIndex';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
@@ -130,6 +133,17 @@ export function SettingsPage(props: SettingsPageProps) {
           spacesApi={spacesApi}
           spaceId={props.spaceId}
         />
+        <PartnerLocationSettingsEntry
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <OccasionHolidaySettings
+          instance={props.apiBaseUrl}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
         <SpaceConfigurationPanel
           spacesApi={spacesApi}
           accountId={props.account.id}
@@ -150,17 +164,29 @@ export function SettingsPage(props: SettingsPageProps) {
           accountId={props.account.id}
           devicePush={props.devicePush}
         />
-        <details className="notification-event-details">
-          <summary>{t('notificationSettings.dates')}</summary>
-          <AnniversaryReminderSettings
-            rulesApi={rulesApi}
-            spaceId={props.spaceId}
-          />
-          <PartnerBirthdayReminderSettings
-            rulesApi={rulesApi}
-            spaceId={props.spaceId}
-          />
-        </details>
+        <section
+          className="important-dates-settings"
+          aria-labelledby="important-dates-heading"
+        >
+          <div className="settings-section-head">
+            <h2 id="important-dates-heading">
+              {t('notificationSettings.dates')}
+            </h2>
+            <p className="settings-section-intro">
+              {t('profileIdentity.importantDatesIntro')}
+            </p>
+          </div>
+          <div className="important-date-reminder-list">
+            <AnniversaryReminderSettings
+              rulesApi={rulesApi}
+              spaceId={props.spaceId}
+            />
+            <PartnerBirthdayReminderSettings
+              rulesApi={rulesApi}
+              spaceId={props.spaceId}
+            />
+          </div>
+        </section>
         <div className="form-actions settings-notification-inbox-action">
           <Link
             className="button-link secondary-link"
@@ -174,7 +200,9 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'today') {
     categoryContent = (
       <div className="settings-category-content">
-        <DashboardSettingsPanel
+        <WirDashboardSettingsPanel
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
           dashboardApi={dashboardApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
@@ -199,7 +227,7 @@ export function SettingsPage(props: SettingsPageProps) {
           }}
         />
         <DailyQuoteSettingsPanel
-          variant="sources"
+          variant="categories"
           quoteApi={dailyQuoteApi}
           entitlementsApi={entitlementsApi}
           accountId={props.account.id}
@@ -213,7 +241,14 @@ export function SettingsPage(props: SettingsPageProps) {
         id="settings-appearance"
         className="settings-category-content settings-appearance-block"
       >
-        <ProfileAppearancePanel id="settings-appearance-panel" />
+        <ProfileAppearancePanel
+          id="settings-appearance-panel"
+          language={{
+            apiBaseUrl: props.apiBaseUrl,
+            accessToken: props.accessToken,
+            accountId: props.account.id,
+          }}
+        />
       </div>
     );
   } else if (categoryId === 'media') {
@@ -291,7 +326,7 @@ export function SettingsPage(props: SettingsPageProps) {
         eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={
-          categoryId === 'today'
+          categoryId === 'today' || categoryId === 'notifications'
             ? undefined
             : category
               ? t(category.descriptionKey)

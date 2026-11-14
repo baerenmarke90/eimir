@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from eimir.attachments import binding, photo_locations
 from eimir.attachments import service as attachments
-from eimir.attachments.models import Attachment
+from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ForbiddenError, ValidationError
 from eimir.heart_moments.models import HeartMoment
@@ -73,9 +73,16 @@ def replace(
             account_id=candidate.owner_id if existing and candidate else context.account_id,
             already_bound=existing,
             allow_submitted_video=True,
+            allow_audio=True,
         )
         binding.ensure_unlinked(session, identifier, allow=("HEART_MOMENT", moment.id))
         selected.append(candidate)
+    if sum(item.media_type == MediaType.AUDIO for item in selected) > 1:
+        raise ValidationError("Only one voice note is allowed.", "AUDIO_LIMIT_EXCEEDED")
+    if selected_cover is not None and any(
+        item.id == selected_cover and item.media_type == MediaType.AUDIO for item in selected
+    ):
+        raise ValidationError("Audio cannot be a gallery cover.", "GALLERY_COVER_INVALID")
     binding.ensure_within_limits(selected)
     for identifier in previous - set(ids):
         if context.account_id not in (moment.owner_id, locked[identifier].owner_id):
@@ -86,7 +93,9 @@ def replace(
         binding.set_sensitive(
             candidate,
             sensitive,
-            allow_change=context.account_id in (moment.owner_id, candidate.owner_id),
+            allow_change=binding.can_edit_sensitivity(
+                candidate, account_id=context.account_id, parent_owner_id=moment.owner_id
+            ),
         )
     for row in session.scalars(
         select(binding.HeartMomentAttachment).where(

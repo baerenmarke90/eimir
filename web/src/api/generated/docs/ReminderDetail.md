@@ -14,6 +14,7 @@ Name | Type
 `id` | string
 `muted` | boolean
 `offsets` | Array&lt;number&gt;
+`originWish` | [ReminderWishOrigin](ReminderWishOrigin.md)
 `ruleKey` | string
 `schedule` | [Schedule](Schedule.md)
 `source` | [ReminderSource](ReminderSource.md)
@@ -39,6 +40,7 @@ const example = {
   "id": null,
   "muted": null,
   "offsets": null,
+  "originWish": null,
   "ruleKey": null,
   "schedule": null,
   "source": null,

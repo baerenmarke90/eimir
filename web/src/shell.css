@@ -47,6 +47,20 @@
   background: transparent;
 }
 
+@media (max-width: 839px) {
+  .product-shell:has([data-floating-create]) {
+    --shell-floating-create-bottom: calc(
+      var(--shell-floating-nav-footprint) +
+      var(--space-3)
+    );
+    --shell-content-bottom-clearance: calc(
+      var(--shell-floating-create-bottom) +
+      var(--touch-target-floating-create) +
+      var(--space-4)
+    );
+  }
+}
+
 .shell-detail-context {
   margin-bottom: var(--space-3);
 }
@@ -55,14 +69,30 @@
   --shell-header-safe-top: 0px;
 }
 
-.product-shell[data-top-surface="today"] {
-  background:
-    radial-gradient(
-      120% 24rem at 30% 0%,
-      var(--color-brand-glow),
-      transparent 70%
-    )
-    top center / 100% 24rem no-repeat;
+/* The Today glow fades with the route handoff instead of popping in or out. */
+.product-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.product-shell::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 24rem;
+  background: radial-gradient(
+    120% 24rem at 30% 0%,
+    var(--color-brand-glow),
+    transparent 70%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
+.product-shell[data-top-surface="today"]::before {
+  opacity: 1;
 }
 
 .product-shell[data-top-surface="today"]
@@ -582,13 +612,97 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
+.primary-tab-panel {
+  /* Measured per peek by the tab panels; these are the neutral defaults. */
+  --primary-tab-peek-left: 0px;
+  --primary-tab-peek-width: 100%;
+  --primary-tab-peek-origin: 0px;
+
+  display: contents;
+}
+
+.primary-tab-panel[hidden],
+.product-main:not([data-primary-tab-dragging])
+  > .primary-tab-panel[data-primary-tab-peek] {
+  display: none;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+  --primary-tab-peek-offset: 0px;
+  --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
   padding: clamp(var(--space-6), 4vw, var(--space-10)) 0
     var(--shell-content-bottom-clearance);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* A swipe drags the pages themselves, like a pager: the current page follows
+     the finger and the neighbouring tab travels beside it. */
+  .product-main[data-primary-tab-dragging] > .page,
+  .product-main[data-primary-tab-dragging]
+    > .primary-tab-panel:not([data-primary-tab-peek])
+    > .page {
+    /* Offset, don't transform: a transformed page would become the containing
+       block of its fixed add action, which then sits at the page's bottom edge
+       and snaps to the viewport corner once the page settles. */
+    position: relative;
+    left: var(--primary-tab-offset, 0px);
+  }
+
+  .product-main[data-navigation-slide] > .page,
+  .product-main[data-navigation-slide]
+    > .primary-tab-panel:not([hidden], [data-primary-tab-peek])
+    > .page {
+    position: relative;
+  }
+
+  /* Only the page that stays is a destination for the add action. */
+  .product-main
+    > .primary-tab-panel[data-primary-tab-peek]
+    [data-floating-create] {
+    visibility: hidden;
+  }
+
+  /* The neighbour is laid over the viewport at the reading position it was
+     left in, in the column the tab panels measured, and clipped to the screen
+     (not the column) so it travels in from the edge like a pager page. */
+  .product-main[data-primary-tab-dragging]
+  > .primary-tab-panel[data-primary-tab-peek] {
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .product-main[data-primary-tab-dragging]
+    > .primary-tab-panel[data-primary-tab-peek]
+    > .page {
+    width: var(--primary-tab-peek-width, 100%);
+    margin-top: var(--primary-tab-peek-origin, 0px);
+    margin-left: var(--primary-tab-peek-left, 0px);
+    transform: translate3d(var(--primary-tab-peek-offset, 0px), 0, 0);
+    will-change: transform;
+  }
+
+  .product-shell-body:has(.product-main[data-primary-tab-dragging]),
+  .product-shell-body:has(.product-main[data-navigation-slide]) {
+    overflow-x: clip;
+  }
+
+  .product-main[data-navigation-motion="create"]
+    :is(.page-composer-writing, .composer-writing-surface) {
+    animation: eimir-create-entry-rise var(--duration-transition)
+      var(--easing-standard);
+  }
 }
 
 /* Native focus/scroll alignment must clear the fixed bar as well as the
@@ -640,10 +754,11 @@
 }
 
 /* Persistent destinations respond at contact, including touch without hover. */
-.shell-nav-link:active,
-.mobile-bottom-nav .shell-nav-link:active {
+.shell-nav-link:is(:active, [data-control-pressed]),
+.mobile-bottom-nav .shell-nav-link:is(:active, [data-control-pressed]) {
   background: var(--color-brand-surface);
   color: var(--color-brand-text);
+  transition: none;
 }
 
 .shell-nav-link {
@@ -750,9 +865,7 @@
     var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
   );
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
-  justify-items: center;
   padding: var(--space-1) var(--space-2);
   padding-inline-start: max(var(--space-2), env(safe-area-inset-left, 0px));
   padding-inline-end: max(var(--space-2), env(safe-area-inset-right, 0px));
@@ -786,37 +899,8 @@
 }
 
 .mobile-bottom-shell .mobile-bottom-nav {
-  display: contents;
-}
-
-.mobile-bottom-nav .shell-nav-link:nth-child(1) {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.mobile-bottom-nav .shell-nav-link:nth-child(2) {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.mobile-bottom-shell .mobile-quick-create {
-  grid-column: 3;
-  grid-row: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-.mobile-bottom-nav .shell-nav-link:nth-child(3) {
-  grid-column: 4;
-  grid-row: 1;
-}
-
-.mobile-bottom-nav .shell-nav-link:nth-child(4) {
-  grid-column: 5;
-  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .mobile-bottom-nav .shell-nav-link {
@@ -871,6 +955,17 @@
   color: var(--color-brand);
 }
 
+/* Give the selected destination a quiet, tactile lift; the dock stays fixed. */
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-bottom-nav .shell-nav-link .shell-nav-icon {
+    transition: transform var(--duration-transition) var(--easing-standard);
+  }
+
+  .mobile-bottom-nav .shell-nav-link-active .shell-nav-icon {
+    transform: translate3d(0, -2px, 0) scale(1.05);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .mobile-bottom-nav .shell-nav-link:hover {
     color: var(--color-text);
@@ -918,6 +1013,10 @@
   .snackbar {
     bottom: calc(var(--shell-floating-nav-footprint) + var(--space-2));
   }
+
+  .product-shell:has([data-floating-create]) .snackbar {
+    bottom: var(--shell-content-bottom-clearance);
+  }
 }
 
 .snackbar-message {
@@ -931,6 +1030,17 @@
   color: var(--color-text);
   font-size: 1.1rem;
   line-height: 1;
+  cursor: pointer;
+}
+
+.snackbar-action {
+  min-height: 44px;
+  border: 0;
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  color: var(--color-link-text);
+  font: inherit;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1042,7 +1152,7 @@
   }
 
   .page-heading-action,
-  .page-heading-action .button-link {
+  .page-heading-action .button-link:not(.add-action) {
     width: 100%;
   }
 
@@ -1191,4 +1301,19 @@ html.app-pull-refresh-enabled body {
   .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
     animation: none;
   }
+}
+
+/*
+ * The native app follows the platform convention for touch scrolling and shows
+ * no persistent scrollbar. Browsers keep their own scrollbars. The Android
+ * shell also disables the WebView's own root scrollbar.
+ */
+:root[data-runtime="native"],
+:root[data-runtime="native"] * {
+  scrollbar-width: none;
+}
+
+:root[data-runtime="native"]::-webkit-scrollbar,
+:root[data-runtime="native"] ::-webkit-scrollbar {
+  display: none;
 }

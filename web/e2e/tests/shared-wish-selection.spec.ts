@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/wishSelection';
 import planning from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localizedFixtures from '../fixtures/locales/de';
 import {
   ACCOUNT_ID,
@@ -204,6 +205,10 @@ async function install(page: Page, initial = emptyRound()) {
       });
       return;
     }
+    if (path === `${ROOT}/wishes/${WISH_IDS[0]}` && method === 'GET') {
+      await json({ ...wish(0), version: selectedPlan ? 2 : 1 });
+      return;
+    }
     if (path === `${ROOT}/plans` && method === 'GET') {
       await json({
         items: [
@@ -313,7 +318,15 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await page.getByLabel(copy.occasion, { exact: true }).fill(demo.occasion);
   await capture(page, info, 'setup-390-light');
   await page.getByRole('button', { name: copy.start, exact: true }).click();
-  await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
+  // Setup already has a checked input with this label; wait for the new task.
+  const favorites = page.getByRole('group', {
+    name: copy.favorites,
+    exact: true,
+  });
+  await expect(favorites).toBeVisible();
+  const favorite = favorites.getByRole('checkbox', { name: demo.wishes[0] });
+  await favorite.check();
+  await expect(favorite).toBeChecked();
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     0,
   );
@@ -342,7 +355,10 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(
     fixture.requests.find((item) => item.kind === 'plan')?.body.schedule,
   ).toEqual({ plannedOn: '2026-11-01' });
-  await page.locator('.subpage-back-slot .task-back-control').click();
+  await page
+    .locator('.composer-header')
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/plan\/choose$/);
   await expect(
     page.getByRole('link', {

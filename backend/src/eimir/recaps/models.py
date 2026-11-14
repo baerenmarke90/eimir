@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     CheckConstraint,
     Date,
@@ -43,9 +44,25 @@ class RecapSourceKind(StrEnum):
     PLAN = "PLAN"
 
 
+class MoodBucket(ProtectedPayload):
+    """Mutual check-in days of one week (month edition) or one month (year edition)."""
+
+    index: int = Field(ge=1, le=12)
+    mutual_days: int = Field(ge=0, le=31)
+    good_days: int = Field(ge=0, le=31)
+
+
+class MoodRhythm(ProtectedPayload):
+    """Frozen aggregate; never an individual value, ranking or relationship claim."""
+
+    buckets: list[MoodBucket] = Field(max_length=12)
+    leading: int | None = None
+
+
 class RecapPayload(ProtectedPayload):
     headline: str | None = None
     introduction: str | None = None
+    mood: MoodRhythm | None = None
 
 
 class RecapEdition(IdMixin, TimestampMixin, VersionMixin, Base):

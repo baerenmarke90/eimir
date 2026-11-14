@@ -252,7 +252,15 @@ class TestSessionManagement:
             "/api/v1/auth/me", headers=auth(session_data["tokens"]["accessToken"])
         )
         assert response.status_code == 200
-        assert set(response.json()) == {"id", "displayName", "gentlePromptsEnabled"}
+        assert set(response.json()) == {
+            "id",
+            "displayName",
+            "gentlePromptsEnabled",
+            "languagePreference",
+            "locale",
+            "languageVersion",
+        }
+        assert response.json() == session_data["account"]
         assert response.json()["gentlePromptsEnabled"] is False
 
     def test_refresh_rotates(self, client, session_data) -> None:  # type: ignore[no-untyped-def]

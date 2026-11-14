@@ -30,6 +30,12 @@ export interface CollectionItemUpdate {
      * @type {string}
      * @memberof CollectionItemUpdate
      */
+    quantity?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CollectionItemUpdate
+     */
     title?: string;
 }
 
@@ -51,6 +57,7 @@ export function CollectionItemUpdateFromJSONTyped(json: any, ignoreDiscriminator
     return {
         
         'completed': json['completed'] == null ? undefined : json['completed'],
+        'quantity': json['quantity'] === undefined ? undefined : json['quantity'] === null ? null : json['quantity'],
         'title': json['title'] == null ? undefined : json['title'],
     };
 }
@@ -67,6 +74,7 @@ export function CollectionItemUpdateToJSONTyped(value?: CollectionItemUpdate | n
     return {
         
         'completed': value['completed'],
+        'quantity': value['quantity'],
         'title': value['title'],
     };
 }

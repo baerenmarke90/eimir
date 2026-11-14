@@ -34,7 +34,8 @@ export function recapPeriodStatus(
   locale: string,
   translate: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  return value.savedAt
+  // A retained snapshot of a running period is the only "kept" state couples see.
+  return value.savedAt && value.isPartial
     ? translate('recaps.saved')
     : value.isPartial
       ? translate('recaps.partial', {
@@ -97,4 +98,127 @@ export function monthlyRecapInvitation(
         Number(Boolean(a.savedAt)) - Number(Boolean(b.savedAt)) ||
         (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
     )[0];
+}
+
+/**
+ * The edition Momente points to: the newest ready one, else the newest still
+ * being prepared. Nothing is invented when there is none.
+ */
+export function recapEntryEdition(
+  editions: RecapView[],
+): RecapView | undefined {
+  const newest = (values: RecapView[]) =>
+    [...values].sort(
+      (a, b) =>
+        b.year * 12 + (b.month ?? 0) - (a.year * 12 + (a.month ?? 0)) ||
+        (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
+    )[0];
+  return (
+    newest(
+      editions.filter(
+        (edition) =>
+          edition.status === 'READY' &&
+          edition.sources.some((source) => source.available),
+      ),
+    ) ?? newest(editions.filter((edition) => edition.status === 'PENDING'))
+  );
+}
+
+/** Mirrors the server's bounded manual selection. */
+export const RECAP_SELECTION_LIMIT = 24;
+
+export type RecapScene =
+  | { type: 'cover'; key: string }
+  | {
+      type: 'facts';
+      key: string;
+      lines: RecapFactLine[];
+      busiestMonth: number | null;
+    }
+  | {
+      type: 'rhythm';
+      key: string;
+      buckets: { index: number; goodDays: number }[];
+      leading: number | null;
+      total: number;
+    }
+  | {
+      type: 'highlight';
+      key: string;
+      source: RecapSourceView;
+      layout: 'photo' | 'words' | 'title';
+    }
+  | { type: 'closing'; key: string };
+
+export type RecapFactLine = {
+  kind: 'MEMORY' | 'HEART_MOMENT' | 'MILESTONE' | 'CHAPTER' | 'PLAN' | 'DAYS';
+  count: number;
+};
+
+/** Counted lines worth a scene of their own; a near-empty period shows none. */
+export function recapFactLines(value: RecapView): RecapFactLine[] {
+  const facts = value.facts;
+  if (!facts) return [];
+  const kinds: RecapFactLine[] = [
+    { kind: 'MEMORY' as const, count: facts.memories },
+    { kind: 'HEART_MOMENT' as const, count: facts.heartMoments },
+    { kind: 'PLAN' as const, count: facts.plans },
+    { kind: 'MILESTONE' as const, count: facts.milestones },
+    { kind: 'CHAPTER' as const, count: facts.chapters },
+  ].filter((line) => line.count > 0);
+  if (kinds.reduce((sum, line) => sum + line.count, 0) < 3) return [];
+  const lines = kinds.sort((a, b) => b.count - a.count).slice(0, 3);
+  return facts.activeDays > 1
+    ? [...lines, { kind: 'DAYS', count: facts.activeDays }]
+    : lines;
+}
+
+/** Fewer good days are no rhythm worth a scene of their own. */
+export const RECAP_RHYTHM_MIN_GOOD_DAYS = 3;
+
+/** Days both partners marked a good day, per week (month) or month (year). */
+export function recapRhythm(
+  value: RecapView,
+): Extract<RecapScene, { type: 'rhythm' }> | null {
+  const mood = value.mood;
+  if (!mood) return null;
+  const buckets = mood.buckets.map(({ index, goodDays }) => ({
+    index,
+    goodDays,
+  }));
+  const total = buckets.reduce((sum, bucket) => sum + bucket.goodDays, 0);
+  return total >= RECAP_RHYTHM_MIN_GOOD_DAYS
+    ? { type: 'rhythm', key: 'rhythm', buckets, leading: mood.leading, total }
+    : null;
+}
+
+/** One ordered scene list drives pages, progress and playback. */
+export function recapScenes(value: RecapView): RecapScene[] {
+  const lines = recapFactLines(value);
+  return [
+    { type: 'cover', key: 'cover' },
+    ...(lines.length
+      ? [
+          {
+            type: 'facts' as const,
+            key: 'facts',
+            lines,
+            busiestMonth: value.facts?.busiestMonth ?? null,
+          },
+        ]
+      : []),
+    ...(recapRhythm(value) ? [recapRhythm(value) as RecapScene] : []),
+    ...value.sources.map((source) => ({
+      type: 'highlight' as const,
+      key: source.key,
+      source,
+      layout:
+        source.available && source.previewAttachmentId
+          ? ('photo' as const)
+          : source.available && source.kind === 'HEART_MOMENT'
+            ? ('words' as const)
+            : ('title' as const),
+    })),
+    { type: 'closing', key: 'reflections' },
+  ];
 }

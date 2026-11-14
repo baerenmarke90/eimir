@@ -101,8 +101,10 @@ export function useMemoryDiaryDraft({
           );
         // A tab that lost ownership must never publish a stale recovered task.
         const requiresJournal =
-          Boolean(value.attempt || value.partial) &&
-          value.files.some(({ file }) => memoryOnlyPhotoDescriptor(file));
+          Boolean(
+            value.partial ||
+              (value.attempt && !value.attempt.atomicAttachments),
+          ) && value.files.some(({ file }) => memoryOnlyPhotoDescriptor(file));
         return (
           !(error instanceof MemoryDraftOwnershipError) && !requiresJournal
         );

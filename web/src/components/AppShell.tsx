@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigationType } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
@@ -19,13 +19,16 @@ import {
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
 import { ProductTourProvider } from '../client/productTour';
+import { ProPresentationProvider } from '../client/proPresentation';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
   type AppRouteDefinition,
   activeNavigationArea,
   appRoutePath,
+  COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
 } from '../client/routes';
 import {
@@ -42,6 +45,7 @@ import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { isCapacitorNative } from '../pwa';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
@@ -51,7 +55,7 @@ import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
-import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
+import { useNavigationMotion } from './useNavigationMotion';
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
@@ -75,17 +79,6 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
           event.altKey
         )
           return;
-        if (location.pathname === route.path) {
-          event.preventDefault();
-          window.scrollTo({
-            top: 0,
-            behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
-              .matches
-              ? 'instant'
-              : 'smooth',
-          });
-          return;
-        }
         event.preventDefault();
         navigatePrimary(route.path);
       }}
@@ -161,6 +154,8 @@ function useCachedReadTimestamp(): string | null {
 
 interface AppShellProps {
   children: ReactNode;
+  /** Kept primary tabs; rendered outside the subpage frame so they survive detail routes. */
+  primaryTabs?: ReactNode;
   onLogout: () => void | Promise<void>;
   apiBaseUrl: string;
   accessToken: string;
@@ -177,18 +172,20 @@ export function AppShell(props: AppShellProps) {
       accountId={props.account.id}
       spaceId={props.spaceId}
     >
-      <TaskOriginProvider
-        key={`${props.account.id}:${props.spaceId}`}
-        accountId={props.account.id}
-        spaceId={props.spaceId}
-      >
-        <ProductTourProvider
+      <ProPresentationProvider>
+        <TaskOriginProvider
+          key={`${props.account.id}:${props.spaceId}`}
           accountId={props.account.id}
           spaceId={props.spaceId}
         >
-          <AuthenticatedAppShell {...props} />
-        </ProductTourProvider>
-      </TaskOriginProvider>
+          <ProductTourProvider
+            accountId={props.account.id}
+            spaceId={props.spaceId}
+          >
+            <AuthenticatedAppShell {...props} />
+          </ProductTourProvider>
+        </TaskOriginProvider>
+      </ProPresentationProvider>
     </ApiRuntimeProvider>
   );
 }
@@ -201,6 +198,7 @@ function AuthenticatedAppShell({
   account,
   spaceId,
   serverAdmin = false,
+  primaryTabs,
 }: AppShellProps) {
   const { t } = useTranslation();
   const online = useOnlineStatus();
@@ -227,18 +225,32 @@ function AuthenticatedAppShell({
 
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+  const pathname = location.pathname.replace(/\/$/, '');
+  const navigationType = useNavigationType();
   const { navigatePrimary } = usePrimaryNavigation();
-  usePrimaryTabSwipe({
+  useNavigationMotion({
     surfaceRef: mainRef,
-    pathname: location.pathname,
+    pathname,
     routeKey: location.key,
+    skipEntry: Boolean(location.hash) || pathname === COLLECTION_CREATE_ROUTE,
+    createEntry: navigationType === 'PUSH' && pathname.endsWith('/new'),
+    // History Back (button, gesture, system Back) and explicit task returns.
+    returning:
+      navigationType === 'POP' ||
+      Boolean(
+        (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
+      ),
     onNavigate: navigatePrimary,
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
-    /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
+    /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
+    /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
+    location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
+    location.pathname === PARTNER_LOCATION_MAP_ROUTE ||
+    location.pathname === '/story/heart-moments/new' ||
     /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||
@@ -325,9 +337,11 @@ function AuthenticatedAppShell({
               <PrimaryNavigationLinks />
             </nav>
             <div className="header-actions">
-              <div className="shell-primary-action">
-                <QuickCreateMenu variant="desktop" />
-              </div>
+              {!isPrivateArea && !isCapacitorNative() ? (
+                <div className="shell-primary-action">
+                  <QuickCreateMenu />
+                </div>
+              ) : null}
               <span
                 className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
               >
@@ -371,11 +385,13 @@ function AuthenticatedAppShell({
             tabIndex={-1}
           >
             <AppSurfacePullToRefresh pathname={location.pathname} />
+            {primaryTabs}
             <SubpageNavigation>
               {isGamesHub ? (
                 <GamesProductArea
                   apiBaseUrl={apiBaseUrl}
                   accessToken={accessToken}
+                  accountId={account.id}
                   spaceId={spaceId}
                 />
               ) : (
@@ -393,9 +409,6 @@ function AuthenticatedAppShell({
             >
               <PrimaryNavigationLinks />
             </nav>
-            <div className="mobile-quick-create">
-              <QuickCreateMenu variant="mobile" />
-            </div>
           </div>
         ) : null}
 

@@ -1,6 +1,8 @@
+import './FreeComposer.css';
 import { type ButtonHTMLAttributes, useEffect, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { useTranslation } from '../i18n';
+import { isLocalItemId } from '../client/collectionOutbox';
 import { ChecklistToggle } from './ChecklistToggle';
 import { ListEntryIconButton } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
@@ -20,6 +22,7 @@ export function SharedCollectionItemRow({
   isTogglePending,
   isDeleting,
   error,
+  waiting = false,
 }: {
   item: CollectionItemDetail;
   canSort: boolean;
@@ -37,6 +40,8 @@ export function SharedCollectionItemRow({
   isTogglePending: boolean;
   isDeleting: boolean;
   error: unknown;
+  /** A change to this item has not been sent yet (#1808). */
+  waiting?: boolean;
 }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<'actions' | 'edit' | 'delete' | null>(null);
@@ -79,6 +84,22 @@ export function SharedCollectionItemRow({
         {isTogglePending ? (
           <small role="status">{t('m5s3.common.saving')}</small>
         ) : null}
+        {waiting ? (
+          <small className="shared-list-item-waiting">
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+              className="shared-list-item-waiting-icon"
+            >
+              <circle cx="12" cy="12" r="8" />
+              <path d="M12 8v4l3 2" />
+            </svg>
+            <span className="sr-only">
+              {t('m5s3.collection.outbox.itemWaiting')}
+            </span>
+          </small>
+        ) : null}
       </div>
       {isSorting && canSort ? (
         <ListEntryIconButton
@@ -89,6 +110,7 @@ export function SharedCollectionItemRow({
         />
       ) : null}
       {!isSorting &&
+      !isLocalItemId(item.id) &&
       (item.capabilities.canEdit || item.capabilities.canDelete) ? (
         <ListEntryIconButton
           ref={triggerRef}
@@ -114,7 +136,7 @@ export function SharedCollectionItemRow({
           <>
             {mode === 'edit' ? (
               <form
-                className="form-grid"
+                className="form-grid free-composer"
                 onSubmit={async (event) => {
                   event.preventDefault();
                   if (!draft.trim() || pending) return;

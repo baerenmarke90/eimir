@@ -1,6 +1,6 @@
 """Shared create-receipt reconciliation (decision 0012) for the domains that
 adopted `eimir.create_receipts` instead of `memories.create_receipts`: Comment,
-Wish, Plan, Milestone, HeartMoment.
+Wish, Plan, Milestone, HeartMoment, Collection Item (decision 0015).
 
 `test_memory_create_reconciliation.py` already proves the generic mechanics
 (claim/replay/lock/purge/prune) exhaustively against Memory's own bespoke
@@ -19,6 +19,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from eimir.collections.models import CollectionItem
 from eimir.comments.models import Comment
 from eimir.create_receipts.models import CreateReceipt
 from eimir.heart_moments.models import HeartMoment
@@ -323,3 +324,255 @@ class TestHeartMomentReplay:
         partner_attempt = client.post(path, json=body, headers=with_key(couple["token_b"], key))
         assert partner_attempt.status_code == 201
         assert partner_attempt.json()["id"] != created.json()["id"]
+
+
+class TestCollectionItemReplay:
+    """A queued "add item" request can be sent more than once (decision 0015)."""
+
+    def _collection(self, client, couple, *, kind: str = "SHOPPING", title: str = "Einkauf"):  # type: ignore[no-untyped-def]
+        response = client.post(
+            f"{base_path(couple['space'].id)}/collections",
+            json={"title": title, "kind": kind},
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 201, response.text
+        return response.json()
+
+    def _path(self, couple, collection_id: str) -> str:  # type: ignore[no-untyped-def]
+        return f"{base_path(couple['space'].id)}/collections/{collection_id}/items"
+
+    def _count(self, session: Session) -> int:
+        return session.execute(select(func.count()).select_from(CollectionItem)).scalar_one()
+
+    def test_a_repeat_returns_the_original_item_without_a_second_one(
+        self, client, session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        key = uuid4()
+        path = self._path(couple, collection["id"])
+        headers = with_key(couple["token_a"], key)
+
+        first = client.post(path, json={"title": "Hafermilch", "quantity": "2 l"}, headers=headers)
+        again = client.post(path, json={"title": "Hafermilch", "quantity": "2 l"}, headers=headers)
+
+        assert first.status_code == 201
+        assert again.status_code == 200
+        assert again.json()["id"] == first.json()["id"]
+        assert again.headers["ETag"] == first.headers["ETag"]
+        assert self._count(session) == 1
+
+    def test_a_repeat_returns_the_item_as_it_is_now(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        key = uuid4()
+        path = self._path(couple, collection["id"])
+        headers = with_key(couple["token_a"], key)
+        created = client.post(path, json={"title": "Brot"}, headers=headers).json()
+        client.patch(
+            f"{path}/{created['id']}",
+            json={"completed": True},
+            headers={**auth(couple["token_b"]), "If-Match": f'"{created["version"]}"'},
+        )
+
+        again = client.post(path, json={"title": "Brot"}, headers=headers)
+
+        assert again.status_code == 200
+        assert again.json()["completed"] is True
+        assert again.json()["completedBy"] == str(couple["ben"].id)
+
+    def test_a_create_without_a_key_keeps_the_previous_behaviour(
+        self, client, session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        path = self._path(couple, collection["id"])
+
+        for _ in range(2):
+            response = client.post(path, json={"title": "Ei"}, headers=auth(couple["token_a"]))
+            assert response.status_code == 201
+
+        assert self._count(session) == 2
+        assert _receipt_count(session) == 0
+
+    def test_equivalent_requests_with_different_spelling_replay(
+        self, client, session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        key = uuid4()
+        path = self._path(couple, collection["id"])
+        headers = with_key(couple["token_a"], key)
+
+        first = client.post(path, json={"title": "Milch", "quantity": "1 l"}, headers=headers)
+        again = client.post(path, json={"title": "  Milch ", "quantity": " 1 l  "}, headers=headers)
+
+        assert again.status_code == 200
+        assert again.json()["id"] == first.json()["id"]
+        assert self._count(session) == 1
+
+    @pytest.mark.parametrize(
+        "changed",
+        [
+            {"title": "Butter"},
+            {"title": "Milch", "quantity": "2 l"},
+            {"title": "Milch", "completed": True},
+        ],
+    )
+    def test_the_same_identity_with_a_different_request_is_a_conflict(
+        self, client, session, couple, changed: dict
+    ) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        key = uuid4()
+        path = self._path(couple, collection["id"])
+        headers = with_key(couple["token_a"], key)
+        first = client.post(path, json={"title": "Milch", "quantity": "1 l"}, headers=headers)
+        assert first.status_code == 201
+
+        conflict = client.post(path, json=changed, headers=headers)
+
+        assert conflict.status_code == 409
+        assert conflict.json()["code"] == "IDEMPOTENCY_KEY_REUSED"
+        assert self._count(session) == 1
+
+    def test_the_same_identity_cannot_create_an_item_in_another_list(
+        self, client, session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        first_list = self._collection(client, couple, title="Einkauf")
+        second_list = self._collection(client, couple, title="Drogerie")
+        key = uuid4()
+        headers = with_key(couple["token_a"], key)
+        client.post(self._path(couple, first_list["id"]), json={"title": "Milch"}, headers=headers)
+
+        other = client.post(
+            self._path(couple, second_list["id"]), json={"title": "Milch"}, headers=headers
+        )
+
+        assert other.status_code == 409
+        assert other.json()["code"] == "IDEMPOTENCY_KEY_REUSED"
+        assert self._count(session) == 1
+
+    def test_a_replay_after_the_item_was_deleted_never_recreates_it(
+        self, client, session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        key = uuid4()
+        path = self._path(couple, collection["id"])
+        headers = with_key(couple["token_a"], key)
+        created = client.post(path, json={"title": "Weg damit"}, headers=headers).json()
+        deleted = client.delete(
+            f"{path}/{created['id']}",
+            headers={**auth(couple["token_a"]), "If-Match": f'"{created["version"]}"'},
+        )
+        assert deleted.status_code == 204
+
+        replay = client.post(path, json={"title": "Weg damit"}, headers=headers)
+
+        assert replay.status_code == 404
+        assert replay.json()["code"] == "COLLECTION_ITEM_CREATE_RESULT_DELETED"
+        assert self._count(session) == 0
+
+    def test_a_partner_using_the_same_key_gets_an_unrelated_create(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        key = uuid4()
+        path = self._path(couple, collection["id"])
+
+        anna_item = client.post(path, json={"title": "A"}, headers=with_key(couple["token_a"], key))
+        ben_item = client.post(path, json={"title": "B"}, headers=with_key(couple["token_b"], key))
+
+        assert anna_item.status_code == 201
+        assert ben_item.status_code == 201
+        assert anna_item.json()["id"] != ben_item.json()["id"]
+
+    def test_a_rejected_quantity_writes_no_receipt(self, client, session, couple) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple, kind="GENERIC", title="Packliste")
+        headers = with_key(couple["token_a"], uuid4())
+
+        rejected = client.post(
+            self._path(couple, collection["id"]),
+            json={"title": "Sandalen", "quantity": "2"},
+            headers=headers,
+        )
+
+        assert rejected.status_code == 422
+        assert rejected.json()["code"] == "COLLECTION_ITEM_QUANTITY_NOT_SUPPORTED"
+        assert _receipt_count(session) == 0
+
+    def test_the_receipt_keeps_a_fingerprint_and_never_the_content(
+        self, client, session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        client.post(
+            self._path(couple, collection["id"]),
+            json={"title": "Geheimer Titel", "quantity": "7 geheim"},
+            headers=with_key(couple["token_a"], uuid4()),
+        )
+
+        receipt = session.execute(select(CreateReceipt)).scalar_one()
+
+        assert receipt.resource_type == "COLLECTION_ITEM"
+        assert len(receipt.request_fingerprint) == 64
+        stored = " ".join(
+            str(getattr(receipt, column.name)) for column in CreateReceipt.__table__.columns
+        )
+        assert "Geheimer Titel" not in stored
+        assert "geheim" not in stored.replace("Geheimer", "")
+
+    def test_the_same_key_for_an_item_and_a_wish_does_not_collide(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+        key = uuid4()
+
+        item = client.post(
+            self._path(couple, collection["id"]),
+            json={"title": "Milch"},
+            headers=with_key(couple["token_a"], key),
+        )
+        wish = client.post(
+            f"{base_path(couple['space'].id)}/wishes",
+            json={"title": "Wunsch"},
+            headers=with_key(couple["token_a"], key),
+        )
+
+        assert item.status_code == 201
+        assert wish.status_code == 201
+
+    def test_a_malformed_key_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        collection = self._collection(client, couple)
+
+        response = client.post(
+            self._path(couple, collection["id"]),
+            json={"title": "Milch"},
+            headers={**auth(couple["token_a"]), "Idempotency-Key": "not-a-uuid"},
+        )
+
+        assert response.status_code == 422
+        assert response.json()["code"] == "IDEMPOTENCY_KEY_MALFORMED"
+
+    def test_parallel_equivalent_requests_create_exactly_one_item(self, production_client) -> None:  # type: ignore[no-untyped-def]
+        client, maker = production_client
+        with maker.begin() as setup:
+            anna = make_account(setup, "Anna")
+            ben = make_account(setup, "Ben")
+            space = make_space(setup, anna)
+            relationship_service.add_member(setup, space.id, ben)
+            token = sign_in(setup, anna)
+            space_id = space.id
+
+        collection = client.post(
+            f"{base_path(space_id)}/collections",
+            json={"title": "Einkauf", "kind": "SHOPPING"},
+            headers=auth(token),
+        ).json()
+        key = uuid4()
+        path = f"{base_path(space_id)}/collections/{collection['id']}/items"
+        headers = with_key(token, key)
+
+        def submit() -> tuple[int, str]:
+            response = client.post(path, json={"title": "Gleichzeitig"}, headers=headers)
+            return response.status_code, response.json().get("id", "")
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(lambda _: submit(), range(8)))
+
+        assert sorted(status for status, _ in results) == [200] * 7 + [201]
+        assert len({item_id for _, item_id in results}) == 1
+        with maker() as verify:
+            assert (
+                verify.execute(select(func.count()).select_from(CollectionItem)).scalar_one() == 1
+            )

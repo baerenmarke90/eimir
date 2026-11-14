@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.attachments.service import binding_window_expired
-from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError
+from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, ValidationError
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin
 
@@ -87,6 +87,24 @@ class PlanAttachment(IdMixin, Base):
         UniqueConstraint("plan_id", "position", name="uq_plan_attachments_position"),
         CheckConstraint("position > 0", name="position_is_supplemental"),
         Index("ix_plan_attachments_plan_id", "plan_id"),
+    )
+
+
+class PlanFileAttachment(IdMixin, Base):
+    """One exclusively bound document in the shared Plan's file list."""
+
+    __tablename__ = "plan_file_attachments"
+
+    plan_id: Mapped[UUID] = mapped_column(
+        ForeignKey("plans.id", ondelete="CASCADE"), nullable=False
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("attachments.id", ondelete="CASCADE"), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_plan_file_attachments_attachment"),
+        Index("ix_plan_file_attachments_plan_id", "plan_id"),
     )
 
 
@@ -177,6 +195,8 @@ def ensure_bindable(
     account_id: UUID,
     already_bound: bool = False,
     allow_submitted_video: bool = False,
+    allow_audio: bool = False,
+    allow_documents: bool = False,
 ) -> Attachment:
     """Validate whether this attachment may be bound now.
 
@@ -189,16 +209,31 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.owner_id != account_id:
         raise Attachment.privacy_absence.error()
+    if attachment.media_type == MediaType.AUDIO and not allow_audio:
+        raise ValidationError("Audio requires a HeartMoment.", "AUDIO_PARENT_INVALID")
+    if attachment.media_type == MediaType.DOCUMENT and not allow_documents:
+        raise ValidationError("Documents require a Plan.", ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED)
+    pending_video = (
+        allow_submitted_video
+        and attachment.media_type == MediaType.VIDEO.value
+        and attachment.status in {AttachmentStatus.PENDING.value, AttachmentStatus.UPLOADING.value}
+    )
     submitted_video = (
         allow_submitted_video
         and attachment.media_type == MediaType.VIDEO.value
         and attachment.status in {AttachmentStatus.VALIDATING.value, AttachmentStatus.FAILED.value}
-        and attachment.uploaded_at is not None
+        and (attachment.uploaded_at is not None or already_bound)
         and (already_bound or attachment.failed_media_purged_at is None)
     )
-    if attachment.status != AttachmentStatus.READY.value and not submitted_video:
+    if attachment.status != AttachmentStatus.READY.value and not (submitted_video or pending_video):
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
-    if submitted_video and not already_bound:
+    if pending_video:
+        from eimir.attachments.cleanup import UPLOAD_RETENTION
+        from eimir.attachments.service import expired
+
+        if not already_bound and expired(attachment.created_at, UPLOAD_RETENTION):
+            raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
+    elif submitted_video and not already_bound:
         from eimir.attachments.service import BINDING_WINDOW, expired
 
         if expired(attachment.uploaded_at, BINDING_WINDOW):
@@ -254,6 +289,12 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     plan_id = session.execute(
         select(PlanAttachment.plan_id).where(PlanAttachment.attachment_id == attachment_id)
     ).scalar_one_or_none()
+    if plan_id is not None:
+        return "PLAN", plan_id
+
+    plan_id = session.scalar(
+        select(PlanFileAttachment.plan_id).where(PlanFileAttachment.attachment_id == attachment_id)
+    )
     if plan_id is not None:
         return "PLAN", plan_id
 
@@ -376,6 +417,13 @@ def attachments_of_memory(session: Session, memory_id: UUID) -> list[BoundAttach
     return [BoundAttachment(attachment=row[1], position=row[0].position) for row in rows]
 
 
+def can_edit_sensitivity(
+    attachment: Attachment, *, account_id: UUID, parent_owner_id: UUID
+) -> bool:
+    """Match the existing parent-author or individual-uploader write authority."""
+    return account_id in (parent_owner_id, attachment.owner_id)
+
+
 def set_sensitive(attachment: Attachment, value: bool | None, *, allow_change: bool = True) -> None:
     """Update protected metadata only under the authorized parent's write/lock contract.
 
@@ -395,7 +443,12 @@ def set_sensitive(attachment: Attachment, value: bool | None, *, allow_change: b
 
 def cover_of(entries: list[BoundAttachment], selected: UUID | None) -> Attachment | None:
     """Choose a presentation cover without changing binding order."""
-    entries = [entry for entry in entries if entry.attachment.status == AttachmentStatus.READY]
+    entries = [
+        entry
+        for entry in entries
+        if entry.attachment.status == AttachmentStatus.READY
+        and entry.attachment.media_type != MediaType.AUDIO
+    ]
     if selected is not None:
         for entry in entries:
             if entry.attachment.id == selected:

@@ -11,6 +11,7 @@ import {
   registerMediaClient,
   rememberAuthorizedMediaPreviews,
   consumeAuthorizedMediaPreview,
+  readStoredMediaBlob,
 } from './authorizedMediaCache';
 
 function deferred<T>() {
@@ -328,4 +329,29 @@ it('also bounds the number of tiny preview entries', async () => {
   expect(load).toHaveBeenCalledTimes(MEDIA_CACHE_MAX_ENTRIES + 1);
   await loadCachedMediaBlob(lease, ['0'], load);
   expect(load).toHaveBeenCalledTimes(MEDIA_CACHE_MAX_ENTRIES + 2);
+});
+
+it('returns stored bytes without a network read, and none after revocation or for another login', async () => {
+  const client = authorizedClient();
+  const lease = () =>
+    captureMediaCacheLease(client, 'space', ['attachment', 'MEMORY', 'parent']);
+  expect(await readStoredMediaBlob(lease(), preview)).toBeUndefined();
+  const blob = new Blob(['photo'], { type: 'image/jpeg' });
+  await loadCachedMediaBlob(lease(), preview, async () => blob);
+  expect(await readStoredMediaBlob(lease(), preview)).toBe(blob);
+  expect(
+    await readStoredMediaBlob(
+      captureMediaCacheLease(
+        authorizedClient('https://api.example', 'other'),
+        'space',
+      ),
+      preview,
+    ),
+  ).toBeUndefined();
+  const held = lease();
+  evictAuthorizedMedia(held, ['attachment', 'MEMORY', 'parent']);
+  await expect(readStoredMediaBlob(held, preview)).rejects.toMatchObject({
+    name: 'AbortError',
+  });
+  expect(await readStoredMediaBlob(lease(), preview)).toBeUndefined();
 });

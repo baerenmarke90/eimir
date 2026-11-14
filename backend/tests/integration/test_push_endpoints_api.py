@@ -59,12 +59,16 @@ def test_device_configuration_is_authenticated_private_and_truthful(
     assert configured.headers["Cache-Control"] == "private, no-store"
     assert configured.json() == {
         "unifiedPush": None,
+        "webPush": None,
+        "apns": None,
         "fcm": {
             "providerKey": "fcm",
             "projectId": "eimir-test",
             "androidPackage": "de.eimir.app",
             "encryptedPreviewVersion": 1,
             "encryptedPreviewMaxVersion": 2,
+            "neutralReferenceVersion": 1,
+            "localeVersion": 1,
         },
     }
     assert "test-fixture" not in configured.text
@@ -217,10 +221,16 @@ def test_unified_push_public_key_requires_auth_and_configuration(
         "providerKey": "unifiedpush",
         "vapidPublicKey": provider.vapid_public_key,
         "notificationReferenceVersion": 1,
+        "localeVersion": 1,
     }
     assert private_key.decode() not in response.text
     unified_only = client.get(f"{BASE}/configuration", headers=auth(token))
-    assert unified_only.json() == {"unifiedPush": response.json(), "fcm": None}
+    assert unified_only.json() == {
+        "unifiedPush": response.json(),
+        "fcm": None,
+        "webPush": None,
+        "apns": None,
+    }
     push.providers.register("fcm", fcm_provider)
     both = client.get(f"{BASE}/configuration", headers=auth(token))
     assert both.json()["unifiedPush"] == response.json()
@@ -456,3 +466,47 @@ def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
     assert invalid.status_code == 422 and key not in invalid.text
     assert client.delete(f"{BASE}/{endpoint_id}", headers=headers).status_code == 204
     assert session.scalar(select(PushPreviewSecret)) is None
+
+
+@pytest.mark.parametrize("provider_key", [unified_push.BROWSER_PROVIDER_KEY, "apns"])
+def test_endpoint_is_bound_to_live_login_and_latest_account(
+    client, session: Session, provider_key: str
+) -> None:  # type: ignore[no-untyped-def]
+    account = make_account(session, "Anna")
+    first_login = sign_in(session, account)
+    second_login = sign_in(session, account)
+    push.providers.register(provider_key, FakeProvider())
+    body = {"providerKey": provider_key, "endpointValue": "opaque:browser-test"}
+
+    def registered() -> str:
+        response = client.post(BASE, json=body, headers=auth(first_login))
+        assert response.status_code == 200, response.text
+        return response.json()["id"]
+
+    endpoint_id = registered()
+    assert registered() == endpoint_id
+    row = session.get(PushEndpoint, endpoint_id)
+    assert row is not None and row.device_session_id is not None
+    family = session.get(DeviceSession, row.device_session_id)
+    assert family is not None and family.revoked_at is None
+
+    def available(token: str) -> bool:
+        response = client.get("/api/v1/notification-preferences", headers=auth(token))
+        assert response.status_code == 200
+        return next(
+            v["available"] for v in response.json()["capabilities"] if v["channel"] == "PUSH"
+        )
+
+    assert available(second_login)
+    assert client.post("/api/v1/auth/sign-out", headers=auth(first_login)).status_code == 204
+    assert not available(second_login)
+
+    rebound = client.post(BASE, json=body, headers=auth(second_login))
+    assert rebound.status_code == 200 and rebound.json()["id"] == endpoint_id
+    assert available(second_login)
+
+    new_account_login = sign_in(session, make_account(session, "Another account"))
+    moved = client.post(BASE, json=body, headers=auth(new_account_login))
+    assert moved.status_code == 200 and moved.json()["id"] != endpoint_id
+    assert not available(second_login)
+    assert available(new_account_login)

@@ -36,6 +36,12 @@ import {
 export interface SearchResult {
     /**
      * 
+     * @type {boolean}
+     * @memberof SearchResult
+     */
+    concealed?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof SearchResult
      */
@@ -104,6 +110,7 @@ export function SearchResultFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
+        'concealed': json['concealed'] == null ? undefined : json['concealed'],
         'excerpt': json['excerpt'],
         'id': json['id'],
         'occurredOn': (json['occurredOn'] == null ? null : new Date(json['occurredOn'])),
@@ -125,6 +132,7 @@ export function SearchResultToJSONTyped(value?: SearchResult | null, ignoreDiscr
 
     return {
         
+        'concealed': value['concealed'],
         'excerpt': value['excerpt'],
         'id': value['id'],
         'occurredOn': value['occurredOn'] == null ? value['occurredOn'] : value['occurredOn'].toISOString().substring(0,10),

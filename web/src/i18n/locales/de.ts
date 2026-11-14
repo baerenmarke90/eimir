@@ -17,20 +17,35 @@ const de = {
   more: {
     yearsTitle: 'Jahre',
     destinations: {
-      photos: 'Fotos',
+      media: 'Medien',
       chapters: 'Kapitel',
       years: 'Jahre',
       recaps: 'Rückblicke',
+      yearsAndRecaps: 'Jahre & Rückblicke',
       insights: 'Einblicke',
       lists: 'Listen',
+    },
+    subtitles: {
+      private: 'Notizen und Geschenkideen · {{visibility}}',
+      media: 'Alle Fotos und Videos',
+      chapters: 'Reisen, Umzüge, große Abschnitte',
+      yearsAndRecaps: 'Eure Monate und Jahre im Überblick',
+      insights: 'Wie es euch zuletzt ging',
+      lists: 'Packlisten, Einkauf, Checklisten',
+      places: 'Eure Lieblingsorte',
+      people: 'Familie, Freunde und ihre wichtigen Tage',
+      games: 'Fragen und Spiele für euch zwei',
+    },
+    visibility: {
+      onlyYou: 'Nur du siehst das',
     },
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro: 'Persönliches, gemeinsame Listen und Einstellungen.',
     groups: {
       personal: 'Für dich',
-      shared: 'Gemeinsam',
-      moments: 'Momente',
+      shared: 'Euer Alltag',
+      moments: 'Eure Geschichte',
       utility: 'App und Konto',
     },
     people: {
@@ -119,6 +134,8 @@ const de = {
   },
   brand: {
     homeAria: 'eimir. – zum gemeinsamen Ort',
+    pageTitle: 'eimir. – Euer gemeinsamer Ort.',
+    description: 'Euer gemeinsamer Ort.',
   },
   spaceContext: {
     eyebrow: 'Gemeinsamer Bereich',
@@ -252,6 +269,7 @@ const de = {
     timelineTitle: 'Momente',
     timelineIntro: 'Eure gemeinsame Geschichte.',
     addMemory: 'Erinnerung',
+    addMoment: 'Moment hinzufügen',
     timelineKicker: 'Tagebuch',
     timelineHeading: 'Gemeinsame Geschichte',
     discoverKicker: 'Entdecken',
@@ -328,6 +346,8 @@ const de = {
     title: 'Unsere Jahre',
     intro: 'Eure gemeinsame Geschichte, Jahr für Jahr.',
     listAria: 'Gemeinsame Jahre',
+    recapsEntryTitle: 'Eure Rückblicke',
+    recapsEntryHint: 'Monate und Jahre, für euch zusammengestellt',
     currentYearLabel: 'Unser Jahr bisher',
     currentYearHint: 'Die Momente, die ihr dieses Jahr festgehalten habt.',
     pastYearLabel: 'Unser Jahr {{year}}',
@@ -379,7 +399,7 @@ const de = {
       keepDraft: 'Entwurf behalten und schließen',
       draft: {
         memoryOnlyUnavailable:
-          'Dein Entwurf bleibt hier geöffnet. Die Sicherung des Speicherstatus ist auf diesem Gerät gerade nicht verfügbar. Versuche es erneut, bevor du diesen Eintrag speicherst.',
+          'Dein Entwurf bleibt hier geöffnet. Die Sicherung auf diesem Gerät ist gerade nicht verfügbar.',
         memoryOnly:
           'Deine Worte und dein Speicherstatus sind auf diesem Gerät gesichert. Ausgewählte externe oder ältere Fotos bleiben nur im geöffneten Entwurf. Nach einem Neustart können verfügbare Serverfotos erneut geladen werden.',
         loading: 'Entwurfssicherung wird vorbereitet …',

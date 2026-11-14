@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="product_locale">en</string>
     <string name="app_name">eimir.</string>
     <string name="runtime_recovery_title">eimir. was interrupted</string>
     <string name="runtime_recovery_message">The app view could not continue. You can reopen eimir. Saved content is still available. Unsaved input may have been lost.</string>
@@ -23,6 +24,7 @@
     <string name="push_reminder_created_title">%1$s created the reminder “%2$s”.</string>
     <string name="push_reminder_due">A reminder is due.</string>
     <string name="push_reminder_due_title">Your reminder “%2$s” is due.</string>
+    <string name="push_wish_reminder_due">You asked to be reminded about a wish.</string>
     <string name="push_shared_moment">%1$s shared a moment with you.</string>
     <string name="push_shared_moment_title">%1$s shared the moment “%2$s” with you.</string>
     <string name="push_plan_created">%1$s scheduled a shared plan.</string>
@@ -46,6 +48,12 @@
     <string name="push_view_moment">View moment</string>
     <string name="push_view_comments">View comments</string>
     <string name="push_view_wish_selection">View wish selection</string>
+    <string name="push_view_wish">View wish</string>
     <string name="push_view_transfer">View data transfer</string>
     <string name="push_view">View</string>
+    <string name="media_transfer_channel">Video uploads</string>
+    <string name="media_transfer_title">Uploading video</string>
+    <string name="media_transfer_progress">%1$d%% uploaded</string>
+    <string name="media_transfer_processing">Upload complete. Preparing video.</string>
+    <string name="media_transfer_failed">Upload interrupted. Open eimir. to resume.</string>
 </resources>

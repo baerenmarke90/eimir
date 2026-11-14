@@ -34,7 +34,7 @@ export interface PushEndpointRegistration {
      */
     encryptedPreview?: FcmPreviewRegistration | null;
     /**
-     * Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; FCM uses compact JSON containing fid and activationId (canonical UUIDv4). The configured provider validates its own format. Treat this value as a secret.
+     * Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; FCM uses compact JSON containing fid and activationId (canonical UUIDv4). Browser Web Push adds activationId, and APNs uses token and activationId. The configured provider validates its own format. Treat this value as a secret.
      * @type {string}
      * @memberof PushEndpointRegistration
      */

@@ -1,12 +1,32 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import './FreeComposer.css';
+import {
+  onlineManager,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
-import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import {
+  type CollectionDetail,
+  CollectionDetailFromJSON,
+  CollectionDetailToJSON,
+} from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { captureCollectionOrder } from '../client/collectionOrder';
+import {
+  authorSummaryQueryKeys,
+  invalidateCollectionConsumers,
+} from '../client/authorSummaryConsumers';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
+import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
@@ -19,16 +39,18 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import {
-  captureAuthorizedQuery,
-  captureQueryIdentity,
-} from '../client/queryIdentity';
+  deleteCollectionOutbox,
+  deleteProductReadCacheEntry,
+  loadProductWithReadCache,
+} from '../client/productReadCache';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
 import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
-import { SharedCollectionItemRow } from './SharedCollectionItemRow';
+import { AddActionButton } from './AddAction';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -36,7 +58,9 @@ import {
   usePlanningEditorLifecycle,
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
+import { SharedCollectionItemRow } from './SharedCollectionItemRow';
 import { UiState } from './UiState';
+import { useCollectionOutbox } from './useCollectionOutbox';
 import { useCollectionPin } from './useCollectionPin';
 import { useTransientFlag } from './useTransientFlag';
 import './SharedPlanningPages.css';
@@ -47,6 +71,10 @@ type Props = {
   spaceId: string;
   dashboardApi?: DashboardApi;
   accountId?: string;
+  collectionId?: string;
+  embedded?: boolean;
+  onPendingChange?: (pending: boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 type ReorderRequest = { collection: CollectionDetail; itemIds: string[] };
 
@@ -59,11 +87,13 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 }
 
 export function CollectionProductPage(props: Props) {
-  const { collectionId } = useParams();
+  const { collectionId: routeId } = useParams();
+  const collectionId = props.collectionId ?? routeId;
   return (
     <CollectionProductDetail
       key={`${props.accountId ?? ''}:${props.spaceId}:${collectionId}`}
       {...props}
+      collectionId={collectionId}
     />
   );
 }
@@ -73,10 +103,23 @@ function CollectionProductDetail({
   spaceId,
   dashboardApi,
   accountId,
+  collectionId,
+  embedded = false,
+  onPendingChange,
+  onDirtyChange,
 }: Props) {
   const { t } = useTranslation();
-  const { collectionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { resolveOrigin, requestReturn } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const origin = resolveOrigin(originKey);
+  const rawScope = origin
+    ? new URL(origin.to, 'https://eimir.invalid').searchParams.get('scope')
+    : null;
+  const overviewScope =
+    rawScope === 'COMPLETED' || rawScope === 'ALL' ? rawScope : 'OPEN';
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -107,15 +150,62 @@ function CollectionProductDetail({
 
   const collectionQuery = useQuery({
     queryKey: key,
-    queryFn: () => {
+    queryFn: async () => {
       if (!collectionId) throw new Error('Missing Collection route parameter.');
-      return apiCall(() =>
-        apis.collections.getCollection({ spaceId, collectionId }),
-      );
+      const load = () =>
+        apiCall(() =>
+          apis.collections.getCollection({ spaceId, collectionId }),
+        );
+      if (!accountId) return load();
+      // A list opens from its last saved copy when there is no connection, so
+      // a shopping list still works after the app was closed in a store.
+      const read = await loadProductWithReadCache({
+        accountId,
+        spaceId,
+        kind: 'collection',
+        resourceId: collectionId,
+        load,
+        // A saved copy is an extra: if it cannot be written, reading still works.
+        serialize: (value) => {
+          try {
+            return CollectionDetailToJSON(value);
+          } catch {
+            return null;
+          }
+        },
+        deserialize: (payload) => CollectionDetailFromJSON(payload),
+      });
+      return read.value;
     },
     enabled: Boolean(collectionId),
+    // A read that knows it is offline must still resolve its saved copy.
+    networkMode: 'always',
     retry: false,
   });
+
+  // Shopping lists keep their changes on the device while there is no
+  // connection and send them later (#1808).
+  const outbox = useCollectionOutbox({
+    apis,
+    queryClient,
+    queryKey: key,
+    accountId,
+    spaceId,
+    collectionId,
+    enabled: collectionQuery.data?.kind === 'SHOPPING',
+  });
+  const viewed = collectionQuery.data
+    ? outbox.apply(collectionQuery.data, {
+        id: accountId ?? '',
+        displayName: '',
+      })
+    : undefined;
+  const online =
+    useSyncExternalStore(
+      (listener) => onlineManager.subscribe(listener),
+      () => onlineManager.isOnline(),
+      () => true,
+    ) && navigator.onLine !== false;
 
   useEffect(() => {
     const target = deleteFocusRef.current;
@@ -151,10 +241,7 @@ function CollectionProductDetail({
   const commitCollection = async (collection: CollectionDetail) => {
     queryClient.setQueryData(key, collection);
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-        refetchType: isClientOnline() ? 'active' : 'none',
-      }),
+      invalidateCollectionConsumers(queryClient, spaceId),
       queryClient.invalidateQueries({
         queryKey: key,
         refetchType: isClientOnline() ? 'active' : 'none',
@@ -208,9 +295,7 @@ function CollectionProductDetail({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-      });
+      await invalidateCollectionConsumers(queryClient, spaceId);
     },
   });
 
@@ -250,14 +335,20 @@ function CollectionProductDetail({
         { title, completed },
       ),
     onError: (_error, _variables, context) => context?.rollback(),
-    onSuccess: async (updatedItem, _variables, context) => {
+    onSuccess: async (updatedItem, variables, context) => {
       if (!context?.isCurrentQuery()) return;
       context.confirm(updatedItem);
-      await queryClient.invalidateQueries({
-        queryKey: context.key,
-        exact: true,
-        refetchType: isClientOnline() ? 'active' : 'none',
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: context.key,
+          exact: true,
+          refetchType: isClientOnline() ? 'active' : 'none',
+        }),
+        invalidateCollectionConsumers(
+          queryClient,
+          variables.collection.spaceId,
+        ),
+      ]);
     },
     onSettled: () => {
       itemUpdateInFlightRef.current = false;
@@ -322,9 +413,7 @@ function CollectionProductDetail({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-      });
+      await invalidateCollectionConsumers(queryClient, spaceId);
     },
   });
 
@@ -347,15 +436,13 @@ function CollectionProductDetail({
         collection.spaceId,
         collection.id,
       );
-      const listKey = authorSummaryQueryKeys.collections(collection.spaceId);
-      const isCurrentList = captureQueryIdentity(queryClient, listKey);
       const order = await captureCollectionOrder<CollectionDetail>(
         queryClient,
         key,
         collection.version,
         itemIds,
       );
-      return { ...order, listKey, isCurrentList };
+      return order;
     },
     onError: async (error, _variables, context) => {
       if (!context?.isCurrentQuery()) return;
@@ -377,13 +464,7 @@ function CollectionProductDetail({
           exact: true,
           refetchType: isClientOnline() ? 'active' : 'none',
         }),
-        context.isCurrentList()
-          ? queryClient.invalidateQueries({
-              queryKey: context.listKey,
-              exact: true,
-              refetchType: isClientOnline() ? 'active' : 'none',
-            })
-          : Promise.resolve(),
+        invalidateCollectionConsumers(queryClient, spaceId),
       ]);
     },
     onSettled: (_data, _error, variables) => {
@@ -449,25 +530,38 @@ function CollectionProductDetail({
     onMutate: (collection) => ({
       focusTarget: deleteFocusTargetFromInfiniteData(
         queryClient.getQueryData<InfiniteItemsData<CollectionDetail>>(
-          authorSummaryQueryKeys.collections(spaceId),
+          authorSummaryQueryKeys.collectionOverview(spaceId, overviewScope),
         ),
         collection.id,
       ),
     }),
-    onSuccess: async (_result, _collection, context) => {
+    onSuccess: async (_result, deleted, context) => {
       queryClient.removeQueries({ queryKey: key });
+      if (accountId) {
+        // The list is gone: its saved copy and unsent changes go with it.
+        void deleteProductReadCacheEntry(
+          accountId,
+          spaceId,
+          'collection',
+          deleted.id,
+        );
+        void deleteCollectionOutbox(accountId, spaceId, deleted.id);
+      }
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['m5-s3', 'collections', spaceId],
-        }),
+        invalidateCollectionConsumers(queryClient, spaceId),
         queryClient.invalidateQueries({
           queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
         }),
       ]);
-      navigate(MORE_COLLECTIONS_ROUTE, {
+      if (origin && !origin.to.startsWith(MORE_COLLECTIONS_ROUTE)) {
+        requestReturn(originKey, MORE_COLLECTIONS_ROUTE);
+        return;
+      }
+      navigate(origin?.to ?? MORE_COLLECTIONS_ROUTE, {
         replace: true,
         state: {
           [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
+          taskReturnKey: originKey,
         },
       });
     },
@@ -502,13 +596,24 @@ function CollectionProductDetail({
     }
   }, [confirmDelete]);
 
-  const baseItemIds = [...(collectionQuery.data?.items ?? [])]
+  const embeddedPending =
+    createItem.isPending ||
+    updateItem.isPending ||
+    deleteItem.isPending ||
+    isReordering;
+  useEffect(() => {
+    onPendingChange?.(embeddedPending);
+    return () => onPendingChange?.(false);
+  }, [embeddedPending, onPendingChange]);
+
+  const baseItemIds = [...(viewed?.collection.items ?? [])]
     .sort((left, right) => left.position - right.position)
     .map((item) => item.id);
   const reorder = useListItemReorder({
     itemIds: baseItemIds,
     disabled:
       !collectionQuery.data?.capabilities.canEdit ||
+      outbox.pendingCount > 0 ||
       isReordering ||
       updateItem.isPending ||
       createItem.isPending ||
@@ -546,7 +651,8 @@ function CollectionProductDetail({
     );
   const collection = collectionQuery.data;
   if (!collection) return null;
-  const itemById = new Map(collection.items.map((item) => [item.id, item]));
+  const shown = viewed?.collection ?? collection;
+  const itemById = new Map(shown.items.map((item) => [item.id, item]));
   const items = reorder.orderedItemIds
     .map((itemId) => itemById.get(itemId))
     .filter((item): item is CollectionItemDetail => Boolean(item));
@@ -565,12 +671,29 @@ function CollectionProductDetail({
     event.preventDefault();
     if (!collection || hasCurrentReorder() || createItemInFlightRef.current)
       return;
-    createItemInFlightRef.current = true;
     const form = event.currentTarget;
     const data = new FormData(form);
+    if (outbox.active) {
+      // Kept on the device first, then sent when a connection is there.
+      const title = String(data.get('title')).trim();
+      if (!title) return;
+      void outbox.addItem({ title }).then((kept) => {
+        if (!kept) return;
+        form.reset();
+        onDirtyChange?.(false);
+        addInputRef.current?.focus();
+      });
+      return;
+    }
+    createItemInFlightRef.current = true;
     createItem.mutate(
       { collection, title: String(data.get('title')).trim() },
-      { onSuccess: () => form.reset() },
+      {
+        onSuccess: () => {
+          form.reset();
+          onDirtyChange?.(false);
+        },
+      },
     );
   }
 
@@ -590,151 +713,159 @@ function CollectionProductDetail({
     createItem.error || itemUpdateError || deleteItem.error || reorderError;
 
   return (
-    <div className="page shared-content-page">
-      <PageHeader
-        className="shared-authored-heading"
-        title={
-          <span
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-            }}
-          >
-            {collection.title}
-            {showTitleSaved ? (
-              <span
-                className="planning-title-saved-hint"
-                role="status"
-                aria-live="polite"
-              >
-                ✓
-              </span>
-            ) : null}
-          </span>
-        }
-        titleAction={
-          collection.capabilities.canEdit && !isEditing ? (
-            <ListEntryIconButton
-              ref={editTriggerRef}
-              icon="edit"
-              className="tertiary"
-              label={t('common.edit')}
-              onClick={() => {
-                setTitleDraft(collection.title);
-                setIsEditing(true);
-              }}
-            />
-          ) : undefined
-        }
-        titleEditor={
-          isEditing ? (
-            <form
-              className="planning-collection-title-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                submitCollection(e);
+    <div
+      className={embedded ? 'shared-list-composer' : 'page shared-content-page'}
+    >
+      {!embedded ? (
+        <PageHeader
+          className="shared-authored-heading"
+          title={
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
               }}
             >
-              <label htmlFor="collection-edit-title" className="sr-only">
-                {t('m5s3.common.title')}
-              </label>
-              <div className="planning-collection-title-row">
-                <input
-                  ref={titleInputRef}
-                  id="collection-edit-title"
-                  name="title"
-                  required
-                  maxLength={200}
-                  value={titleDraft}
-                  onChange={(e) => setTitleDraft(e.target.value)}
-                  placeholder={t('m5s3.common.title')}
-                  aria-label={t('m5s3.common.title')}
-                />
-                <ListEntryIconButton
-                  type="submit"
-                  icon="save"
-                  className="tertiary"
-                  label={
-                    updateCollection.isPending
-                      ? t('m5s3.common.saving')
-                      : t('m5s3.common.saveChanges')
-                  }
-                  disabled={
-                    !isTitleDirty ||
-                    updateCollection.isPending ||
-                    deleteCollection.isPending ||
-                    isReordering
-                  }
-                />
+              {collection.title}
+              {showTitleSaved ? (
+                <span
+                  className="planning-title-saved-hint"
+                  role="status"
+                  aria-live="polite"
+                >
+                  ✓
+                </span>
+              ) : null}
+            </span>
+          }
+          titleAction={
+            collection.capabilities.canEdit && !isEditing ? (
+              <ListEntryIconButton
+                ref={editTriggerRef}
+                icon="edit"
+                className="tertiary"
+                label={t('common.edit')}
+                onClick={() => {
+                  setTitleDraft(collection.title);
+                  setIsEditing(true);
+                }}
+              />
+            ) : undefined
+          }
+          titleEditor={
+            isEditing ? (
+              <form
+                className="planning-collection-title-form free-composer"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitCollection(e);
+                }}
+              >
+                <label htmlFor="collection-edit-title" className="sr-only">
+                  {t('m5s3.common.title')}
+                </label>
+                <div className="planning-collection-title-row">
+                  <input
+                    ref={titleInputRef}
+                    id="collection-edit-title"
+                    name="title"
+                    required
+                    maxLength={200}
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    placeholder={t('m5s3.common.title')}
+                    aria-label={t('m5s3.common.title')}
+                  />
+                  <ListEntryIconButton
+                    type="submit"
+                    icon="save"
+                    className="tertiary"
+                    label={
+                      updateCollection.isPending
+                        ? t('m5s3.common.saving')
+                        : t('m5s3.common.saveChanges')
+                    }
+                    disabled={
+                      !isTitleDirty ||
+                      updateCollection.isPending ||
+                      deleteCollection.isPending ||
+                      isReordering
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="button-link secondary-link"
+                    onClick={editorLifecycle.requestClose}
+                    disabled={
+                      updateCollection.isPending || deleteCollection.isPending
+                    }
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+                {editorLifecycle.showDiscardConfirm ? (
+                  <PlanningDiscardConfirmation
+                    onKeepEditing={editorLifecycle.keepEditing}
+                    onDiscard={editorLifecycle.discard}
+                  />
+                ) : null}
+                {updateCollection.error ? (
+                  <ProblemState
+                    error={updateCollection.error}
+                    onRetry={() => void collectionQuery.refetch()}
+                  />
+                ) : null}
+              </form>
+            ) : undefined
+          }
+          action={
+            dashboardApi && accountId ? (
+              <div className="planning-collection-dashboard-action">
                 <button
                   type="button"
                   className="button-link secondary-link"
-                  onClick={editorLifecycle.requestClose}
-                  disabled={
-                    updateCollection.isPending || deleteCollection.isPending
+                  disabled={pinCollection.isBlocked}
+                  aria-pressed={pinnedCollectionId === collection.id}
+                  aria-label={t(
+                    pinnedCollectionId === collection.id
+                      ? 'm5s3.collection.unpinFromToday'
+                      : 'm5s3.collection.pinToToday',
+                  )}
+                  aria-describedby={
+                    pinCollection.isSaving
+                      ? 'collection-pin-pending'
+                      : undefined
+                  }
+                  onClick={() =>
+                    pinCollection.changeSelection(
+                      pinnedCollectionId === collection.id
+                        ? null
+                        : collection.id,
+                    )
                   }
                 >
-                  {t('common.cancel')}
+                  {pinnedCollectionId === collection.id ? (
+                    <span aria-hidden="true">✓ </span>
+                  ) : null}
+                  {t('m5s3.collection.pinLabel')}
                 </button>
-              </div>
-              {editorLifecycle.showDiscardConfirm ? (
-                <PlanningDiscardConfirmation
-                  onKeepEditing={editorLifecycle.keepEditing}
-                  onDiscard={editorLifecycle.discard}
-                />
-              ) : null}
-              {updateCollection.error ? (
-                <ProblemState
-                  error={updateCollection.error}
-                  onRetry={() => void collectionQuery.refetch()}
-                />
-              ) : null}
-            </form>
-          ) : undefined
-        }
-        action={
-          dashboardApi && accountId ? (
-            <div className="planning-collection-dashboard-action">
-              <button
-                type="button"
-                className="button-link secondary-link"
-                disabled={pinCollection.isBlocked}
-                aria-pressed={pinnedCollectionId === collection.id}
-                aria-label={t(
-                  pinnedCollectionId === collection.id
-                    ? 'm5s3.collection.unpinFromToday'
-                    : 'm5s3.collection.pinToToday',
-                )}
-                aria-describedby={
-                  pinCollection.isSaving ? 'collection-pin-pending' : undefined
-                }
-                onClick={() =>
-                  pinCollection.changeSelection(
-                    pinnedCollectionId === collection.id ? null : collection.id,
-                  )
-                }
-              >
-                {pinnedCollectionId === collection.id ? (
-                  <span aria-hidden="true">✓ </span>
+                {pinCollection.isSaving ? (
+                  <small id="collection-pin-pending" role="status">
+                    {t('common.saving')}
+                  </small>
                 ) : null}
-                {t('m5s3.collection.pinLabel')}
-              </button>
-              {pinCollection.isSaving ? (
-                <small id="collection-pin-pending" role="status">
-                  {t('common.saving')}
-                </small>
-              ) : null}
-              {pinCollection.error ? (
-                <ProblemState
-                  error={pinCollection.error}
-                  onRetry={() => void pinCollection.retryRead()}
-                />
-              ) : null}
-            </div>
-          ) : null
-        }
-      />
+                {pinCollection.error ? (
+                  <ProblemState
+                    error={pinCollection.error}
+                    onRetry={() => void pinCollection.retryRead()}
+                  />
+                ) : null}
+              </div>
+            ) : null
+          }
+        />
+      ) : null}
 
       {collectionQuery.error ? (
         <ProblemState
@@ -753,18 +884,24 @@ function CollectionProductDetail({
 
         <div className="shared-list-toolbar">
           <p>
-            {t('m5s3.collection.progress', {
-              count: items.length,
-              completed: items.filter((item) => item.completed).length,
-            })}
+            {t(
+              embedded
+                ? 'composer.sharedListProgress'
+                : 'm5s3.collection.progress',
+              {
+                count: items.length,
+                completed: items.filter((item) => item.completed).length,
+              },
+            )}
           </p>
-          {collection.capabilities.canEdit &&
+          {!embedded &&
+          collection.capabilities.canEdit &&
           (items.length > 1 || isSorting) ? (
             <button
               type="button"
               className="tertiary"
               aria-pressed={isSorting}
-              disabled={isReordering}
+              disabled={isReordering || outbox.pendingCount > 0}
               onClick={() => setIsSorting((value) => !value)}
             >
               {t(
@@ -775,6 +912,72 @@ function CollectionProductDetail({
             </button>
           ) : null}
         </div>
+        {outbox.active ? (
+          <>
+            {outbox.pendingCount > 0 ? (
+              <p className="shared-list-outbox" role="status">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                  className="shared-list-outbox-icon"
+                >
+                  {online ? (
+                    <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" />
+                  ) : (
+                    <>
+                      <path d="M7 18h10a4 4 0 0 0 .8-7.9A6 6 0 0 0 6.3 9.5 4.4 4.4 0 0 0 7 18z" />
+                      <path d="M4 4l16 16" />
+                    </>
+                  )}
+                </svg>
+                {t(
+                  online
+                    ? 'm5s3.collection.outbox.waitingOnline'
+                    : 'm5s3.collection.outbox.waitingOffline',
+                  { count: outbox.pendingCount },
+                )}
+              </p>
+            ) : null}
+            {outbox.storageFailed ? (
+              <p className="shared-list-outbox-warning" role="alert">
+                {t('m5s3.collection.outbox.storageFailed')}
+              </p>
+            ) : null}
+            {outbox.notices.map((notice) => (
+              <p
+                key={notice.id}
+                className="shared-list-outbox-notice"
+                role="status"
+              >
+                <span>
+                  {notice.kind === 'addDropped'
+                    ? t(
+                        notice.reason === 'expired'
+                          ? 'm5s3.collection.outbox.noticeExpired'
+                          : 'm5s3.collection.outbox.noticeRejected',
+                        { title: notice.title },
+                      )
+                    : t(
+                        {
+                          itemGone: 'm5s3.collection.outbox.noticeItemGone',
+                          collectionGone:
+                            'm5s3.collection.outbox.noticeCollectionGone',
+                          full: 'm5s3.collection.outbox.noticeFull',
+                        }[notice.kind],
+                      )}
+                </span>
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => outbox.dismissNotice(notice.id)}
+                >
+                  {t('m5s3.collection.outbox.dismiss')}
+                </button>
+              </p>
+            ))}
+          </>
+        ) : null}
         {isSorting ? (
           <p className="planning-meta">{t('m5s3.collection.sortHelp')}</p>
         ) : null}
@@ -787,21 +990,21 @@ function CollectionProductDetail({
               disabled={createItem.isPending || isReordering}
               ref={addInputRef}
               id="collection-new-item"
+              className="composer-authored-field"
               name="title"
               required
               maxLength={200}
               placeholder={t('m5s3.collection.newItemPlaceholder')}
+              onChange={(event) =>
+                onDirtyChange?.(Boolean(event.target.value.trim()))
+              }
             />
-            <ListEntryIconButton
+            <AddActionButton
               ref={addButtonRef}
               type="submit"
-              icon="add"
-              className="list-entry-add-button"
-              label={
-                createItem.isPending
-                  ? t('m5s3.common.saving')
-                  : t('m5s3.collection.addItem')
-              }
+              label={t('m5s3.collection.addItem')}
+              pending={createItem.isPending}
+              pendingLabel={t('m5s3.common.saving')}
               disabled={createItem.isPending || isReordering}
             />
           </form>
@@ -821,12 +1024,18 @@ function CollectionProductDetail({
                   submitItemUpdate({ collection, item: targetItem, title })
                 }
                 onToggleComplete={(targetItem) =>
-                  submitItemUpdate({
-                    collection,
-                    item: targetItem,
-                    completed: !targetItem.completed,
-                  })
+                  outbox.active
+                    ? void outbox.setCompleted(
+                        targetItem.id,
+                        !targetItem.completed,
+                      )
+                    : submitItemUpdate({
+                        collection,
+                        item: targetItem,
+                        completed: !targetItem.completed,
+                      })
                 }
+                waiting={viewed?.pendingItemIds.has(item.id)}
                 onDelete={(targetItem) => {
                   const index = items.findIndex(
                     (item) => item.id === targetItem.id,

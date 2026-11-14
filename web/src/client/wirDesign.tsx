@@ -1,32 +1,38 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
+  type ReactNode,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppearanceApi } from '../api/generated/apis/AppearanceApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { WirDesignId } from '../api/generated/models/WirDesignId';
 import {
-  WirDesignPreferenceViewFromJSON,
   type WirDesignPreferenceView,
+  WirDesignPreferenceViewFromJSON,
 } from '../api/generated/models/WirDesignPreferenceView';
 import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
+import {
+  ClientProblemError,
+  clientProblemKind,
+  normalizeClientError,
+} from './problemDetails';
 import { captureAuthorizedQuery } from './queryIdentity';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+  withdrawSpaceCapability,
+} from './spaceEntitlement';
 import {
   forgetWirDesign,
   readWirDesign,
   rememberWirDesign,
   wirDesignStorageKey,
 } from './wirDesignPreferenceStore';
-import {
-  ClientProblemError,
-  clientProblemKind,
-  normalizeClientError,
-} from './problemDetails';
 
 export const WIR_DESIGNS = Object.values(WirDesignId);
 export interface WirDesignSnapshot {
@@ -78,7 +84,6 @@ function useWirDesignState({
   }));
   const initialDesign =
     remembered.key === storageKey ? remembered.design : undefined;
-  const capabilityKey = [...key, 'capability'] as const;
   const active = useRef(true);
   const writing = useRef(false);
   const pendingController = useRef<AbortController | null>(null);
@@ -107,23 +112,17 @@ function useWirDesignState({
       }
     },
   });
-  const capability = useQuery({
-    queryKey: capabilityKey,
-    gcTime: 0,
-    retry: false,
+  const loadEntitlement = useMemo(
+    () => entitlementLoader(entitlementsApi, spaceId),
+    [entitlementsApi, spaceId],
+  );
+  // Reuses the session's single entitlement read from app start.
+  const capability = useSpaceCapability({
+    accountId,
+    spaceId,
+    load: loadEntitlement,
     enabled: inspect,
-    queryFn: async ({ signal }) => {
-      try {
-        const state =
-          await entitlementsApi.getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet(
-            { spaceId },
-            { signal },
-          );
-        return state.capabilities.includes(APP_ICON_CAPABILITY);
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
+    capability: APP_ICON_CAPABILITY,
   });
   const mutation = useMutation({
     retry: false,
@@ -179,7 +178,12 @@ function useWirDesignState({
         error instanceof ClientProblemError &&
         error.code === 'PREMIUM_ENTITLEMENT_REQUIRED'
       )
-        client.setQueryData(capabilityKey, false);
+        withdrawSpaceCapability(
+          client,
+          accountId,
+          spaceId,
+          APP_ICON_CAPABILITY,
+        );
     },
   });
   const readDenied = ['unauthorized', 'permission', 'notFound'].includes(
@@ -212,8 +216,9 @@ function useWirDesignState({
         initialDesign ??
         WirDesignId.warm),
     inspectCapability: () => {
-      if (inspect) void capability.refetch();
-      else setInspect(true);
+      // Opening the settings never re-reads a completed startup read.
+      if (!inspect) setInspect(true);
+      else if (capability.isError) void capability.refetch();
     },
     save: async (designId: WirDesignId) => {
       if (

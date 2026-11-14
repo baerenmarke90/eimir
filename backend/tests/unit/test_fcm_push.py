@@ -115,6 +115,29 @@ def test_identity_includes_activation_and_survives_json_key_order(
     )
 
 
+@pytest.mark.parametrize("version", [0, 1])
+def test_recipient_language_requires_negotiation_without_changing_activation_identity(
+    provider: fcm_push.FcmPushProvider, version: int
+) -> None:
+    raw = json.loads(endpoint())
+    if version:
+        raw["localeVersion"] = version
+    registered = json.dumps(raw, separators=(",", ":"))
+    parsed = fcm_push._parse(registered)
+    assert parsed is not None
+    assert provider.registration_identity(registered) == provider.registration_identity(endpoint())
+    wake = fcm_push._wake(parsed, {"locale": "en-US", "body": "private authored prose"})
+    assert wake == {
+        "type": "wake",
+        "activationId": ACTIVATION,
+        **({"locale": "en"} if version else {}),
+    }
+    raw["localeVersion"] = True
+    assert not provider.accepts_endpoint(json.dumps(raw, separators=(",", ":")))
+    raw["localeVersion"] = 2
+    assert not provider.accepts_endpoint(json.dumps(raw, separators=(",", ":")))
+
+
 @pytest.mark.parametrize(
     "value",
     [
@@ -143,8 +166,10 @@ def test_endpoint_validation_rejects_untrusted_variants(
     assert not failure.value.retryable
 
 
+@pytest.mark.parametrize("ttl", [None, "17"])
 def test_send_uses_only_activation_wake_and_fixed_google_destination(
     fake_credentials: FakeCredentials,
+    ttl: str | None,
 ) -> None:
     observed: list[httpx.Request] = []
 
@@ -155,7 +180,10 @@ def test_send_uses_only_activation_wake_and_fixed_google_destination(
     client = httpx.Client(transport=httpx.MockTransport(capture))
     provider = fcm_push.FcmPushProvider(configuration(), client=client)
     try:
-        receipt = send(provider)
+        reference = {"id": "sensitive-reference", "kind": "PARTNER_KISS"}
+        if ttl is not None:
+            reference["ttl"] = ttl
+        receipt = send(provider, notification_reference=reference)
         assert receipt.provider_message_id == "projects/eimir-test/messages/accepted-123"
         assert len(observed) == 1
         request = observed[0]
@@ -172,7 +200,7 @@ def test_send_uses_only_activation_wake_and_fixed_google_destination(
                 "fid": FID,
                 "data": {"type": "wake", "activationId": ACTIVATION},
                 "android": {
-                    "ttl": "300s",
+                    "ttl": f"{ttl or '300'}s",
                     "restricted_package_name": "de.eimir.app",
                     "collapse_key": "eimir-wake",
                     "priority": "high",

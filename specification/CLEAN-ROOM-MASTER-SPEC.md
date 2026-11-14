@@ -625,6 +625,14 @@ Children/family members are not SideBySide Accounts.
 
 RelatedPerson:
 
+PO decision [#1683](https://github.com/baerenmarke90/eimir/issues/1683)
+(2026-11-06): related people are always shared and collaboratively editable by
+the existing Space members. The compatibility visibility field accepts SHARED
+only; the UI presents no audience decision or hint. Existing person records are
+migrated with their identity, birthday and photo intact. Linked ImportantDates
+retain their own visibility; this decision does not share independent private
+dates or expand Space membership.
+
 ```text
 - id
 - spaceId
@@ -632,6 +640,7 @@ RelatedPerson:
 - displayName
 - relationship
 - birthday?
+- note? (bounded protected text)
 - birthdayYearKnown
 - visibility
 ```
@@ -645,6 +654,13 @@ SIBLING
 FRIEND
 OTHER
 ```
+
+PO extension #1693 (2026-11-07): concrete family and social relationships extend
+the legacy categories without guessing a more specific value for existing
+records. An optional note of at most 2,000 characters belongs to the shared
+person's ProtectedPayload and its existing authorization, export and deletion
+lifecycle. Omitted/null notes on updates preserve existing content; explicit
+empty text clears it. There is no new public or private-person mode.
 
 Data minimization:
 
@@ -749,6 +765,12 @@ The shared mobile arrangement subtask applies only to the parent draft until Sav
 HeartMoments use the same bounded 20-media/500 MiB gallery lifecycle while retaining owner-only privacy and backward-compatible primary attachment reads.
 Plans retain image-only galleries. Device photos and these authoring controls remain Core; existing video and external-source capabilities still apply.
 
+PO extension #1674 (2026-11-06): both active partners may mark and unmark
+sensitive photos already bound to a shared Memory. This metadata decision is
+independent of uploader/Memory authorship; it does not broaden removal, new
+binding, private HeartMoment or authored experience-answer rights. Versioned
+atomic writes and Space membership/tenant checks still apply.
+
 Authorship matters.
 
 Base rule:
@@ -758,6 +780,20 @@ The partner may read the shared Memory.
 ---
 
 # 15. Heart Moments
+
+PO extension #1682 (2026-11-06): optional authored location snapshots (name,
+address and paired coordinates) belong to the protected HeartMoment payload and
+inherit its current visibility, version, deletion and portability. PRIVATE
+locations never create shared Places, shared relations or shared map entries.
+Existing shared Place relations remain supported.
+
+PO extension #1671 (2026-11-06): one optional voice note per HeartMoment, up to
+180 seconds and 20 MiB input. Audio alone is valid. Reuse Attachment/MediaStore
+binding, parent privacy, deletion and transfer; validate decoded duration and
+normalize metadata-stripped audio in the restricted media role. Optional audio
+title and speaker name are protected authored payload, distinct from authorship.
+Recording/import is Free/Core and an operator media capability; existing reads
+and essential export do not depend on intake availability.
 
 HeartMoment:
 
@@ -1144,6 +1180,7 @@ Wish:
 - id
 - spaceId
 - title
+- description?
 - createdBy
 - createdAt
 - updatedAt
@@ -1173,6 +1210,10 @@ PO extension #1586 (2026-11-02): an existing non-completed direct Plan may
 explicitly adopt one open Wish. Both versions are checked; the same unique
 source relation, atomic Wish lifecycle, completion and return rules apply.
 No duplicate Plan is created and neither resource's authored content is replaced.
+
+PO extension #1757 (2026-11-11): the optional Wish description is shared,
+protected authored text. Either partner can add, update or clear it through
+the existing versioned Wish write. Wish detail uses the Plan's prose disclosure.
 
 Functions:
 - Search
@@ -1224,6 +1265,26 @@ Wish
 Model and test transitions explicitly.
 
 ---
+
+PO extension #1705 (2026-11-09): a Plan may reference several existing shared
+Collections, and the same Collection may support several Plans. Typed
+`plan_collections` foreign keys enforce one Space. Removing a reference or
+parent never deletes the other content; list progress and Plan completion stay
+independent. Completed Plan continuations reuse canonical Memory/HeartMoment
+capture, prefilling the existing Place without replacing manual edits or
+recovered drafts. PRIVATE HeartMoments keep only the protected location
+snapshot, with no shared Place relation or source backlink.
+
+PO follow-up #1709 (2026-11-09): completed Plans display their original linked
+Memories, shared HeartMoments and Milestones. Each source retains the reverse
+Plan context. Extend typed same-Space relations to shared HeartMoments and
+Milestones; management stays in the source editor, and canonical capture carries
+scoped, retryable association intent. PRIVATE HeartMoments never participate in
+shared Plan links. A shared-to-private transition removes these links atomically,
+and later sharing does not restore them. Existing Memory associations remain
+valid. Plan context uses authorized, paginated Story projection with Plan/viewer
+cursor binding; content and Plan lifecycle, deletion and portability remain
+independent.
 
 # 25. Places
 
@@ -1363,6 +1424,11 @@ Functions:
 - bulk select
 - bulk delete
 - reorder
+
+PO extension #1705: shared list browsing supports Open / Completed / All.
+Completion is derived from current items: a non-empty list with every item
+checked is completed; an empty list is open. Apply the scope before pagination
+and bind cursors to it. A Plan keeps its linked completed lists visible.
 
 The Shopping List is a separate later Domain and is NOT simply a Collection.
 
@@ -1915,6 +1981,13 @@ If PresenceSnapshot is required:
 Short TTL.
 
 Dawarich remains a separate Location History integration.
+
+Reconciliation (#1524, #1792): the Product Owner approved bounded and
+indefinite partner sharing, an optional map area, an opt-in passive background
+update and a Premium classification. These remain consistent with this section
+and §42 because only one short-lived snapshot per person exists and no history
+is kept; there is still no permanent Cloud location tracking. The normative
+runtime contract is `docs/m9/PARTNER-LOCATION.md`.
 
 ---
 

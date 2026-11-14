@@ -8,6 +8,9 @@ export const DEFAULT_UPCOMING_ITEM_LIMIT = 1;
 export const UPCOMING_MODULE_KEY: DashboardModuleKey = 'upcoming';
 export const PINNED_COLLECTION_MODULE_KEY: DashboardModuleKey =
   'pinned_collection';
+/** The couple identity stays visible above the personal section stack. */
+export const COUPLE_HERO_MODULE_KEY: DashboardModuleKey =
+  'relationship_presence';
 export const UPCOMING_ITEM_LIMITS = [1, 2, 3] as const;
 
 /** Absence of an explicit override resolves to visible, the product default. */
@@ -56,6 +59,7 @@ export function isDashboardModuleVisible(
   preferences: DashboardModulePreferenceList | undefined,
   moduleKey: DashboardModuleKey,
 ): boolean {
+  if (moduleKey === COUPLE_HERO_MODULE_KEY) return true;
   if (moduleKey === 'shared_story_summary') return false;
   const value = preferences?.items.find(
     (item) => item.moduleKey === moduleKey,
@@ -75,6 +79,8 @@ export function orderedDashboardModuleKeys(
         key === 'daily_quote' ||
         key === 'shared_experience' ||
         key === 'retrospective' ||
+        // #1792: older saved orders predate the partner distance module.
+        key === 'partner_distance' ||
         keys.includes(key),
     );
   if (
@@ -87,7 +93,12 @@ export function orderedDashboardModuleKeys(
   ) {
     return [...DASHBOARD_MODULE_KEYS];
   }
-  const result = [...keys] as DashboardModuleKey[];
+  // Older personal orders can put the hero lower down. Preserve the relative
+  // order of every other section while keeping the shared entry point first.
+  const result = [
+    COUPLE_HERO_MODULE_KEY,
+    ...keys.filter((key) => key !== COUPLE_HERO_MODULE_KEY),
+  ] as DashboardModuleKey[];
   for (const [index, key] of DASHBOARD_MODULE_KEYS.entries()) {
     if (result.includes(key)) continue;
     const predecessor = [...DASHBOARD_MODULE_KEYS.slice(0, index)]

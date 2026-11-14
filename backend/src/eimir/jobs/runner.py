@@ -30,8 +30,10 @@ from eimir.identity import deletion_jobs as account_deletion_jobs
 from eimir.jobs import maintenance
 from eimir.jobs.worker import run_once
 from eimir.observability import configure_logging
+from eimir.once_messages import service as once_messages
 from eimir.photo_sources import retention as photo_source_retention
 from eimir.places import photo_enrichment
+from eimir.presence import retention as presence_retention
 from eimir.recaps import invalidation as _recap_invalidation  # noqa: F401
 from eimir.recaps import jobs as recap_jobs
 from eimir.relationship import retention as space_retention
@@ -73,6 +75,7 @@ def _ensure_maintenance() -> None:
             reminder_runtime.ensure_scheduled(session)
             demo_reset.ensure_scheduled(session)
             daily_checkin_retention.ensure_scheduled(session)
+            presence_retention.ensure_scheduled(session)
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
             photo_source_retention.ensure_scheduled(session)
@@ -105,6 +108,7 @@ def main() -> None:
     recap_jobs.register_handlers()
     context_tag_jobs.register_handlers()
     maintenance.register_handlers()
+    once_messages.register_handlers()
     gentle_jobs.register_handlers()
     media_cleanup.register_handlers()
     account_media.register_handlers()
@@ -113,6 +117,7 @@ def main() -> None:
     reminder_runtime.register_handlers()
     demo_reset.register_handlers()
     daily_checkin_retention.register_handlers()
+    presence_retention.register_handlers()
     transfer_jobs.register_handlers()
     space_retention.register_handlers()
     account_deletion_jobs.register_handlers()
@@ -126,9 +131,14 @@ def main() -> None:
 
         try:
             projected = _run_engagement_projection()
-            from eimir.attachments.service import ATTACHMENT_VIDEO_VALIDATION
+            from eimir.attachments.service import (
+                ATTACHMENT_AUDIO_VALIDATION,
+                ATTACHMENT_VIDEO_VALIDATION,
+            )
 
-            completed = projected + run_once(name, excluded_kinds=[ATTACHMENT_VIDEO_VALIDATION])
+            completed = projected + run_once(
+                name, excluded_kinds=[ATTACHMENT_VIDEO_VALIDATION, ATTACHMENT_AUDIO_VALIDATION]
+            )
         except Exception:
             # A failure while polling must not terminate the process; otherwise
             # any brief database connection disruption would take down the

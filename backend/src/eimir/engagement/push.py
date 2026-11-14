@@ -9,14 +9,21 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode, UnauthenticatedError
-from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
+from eimir.db.locks import lock_subject
+from eimir.engagement import (
+    notification_policy,
+    notification_preferences,
+    plan_push,
+    quiet_hours_preferences,
+)
 from eimir.engagement.models import (
     Notification,
     NotificationKind,
@@ -34,6 +41,7 @@ from eimir.jobs import queue
 from eimir.jobs.errors import DeferredJobError, RetryableJobError
 from eimir.jobs.worker import registry
 from eimir.relationship import configuration as space_configuration
+from eimir.wishes import reminders as wish_reminders
 
 JOB_KIND = "push-delivery"
 GENERIC_PRESENTATION_KEY = notification_policy.GENERIC_PRESENTATION_KEY
@@ -41,6 +49,7 @@ ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
 POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
 MAX_ACTIVE_ENDPOINTS = 10
+SESSION_BOUND_PROVIDERS = frozenset({"webpush", "apns"})
 QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 _TERMINAL_DELIVERY_STATUSES = {
@@ -122,6 +131,10 @@ def supports_targeted_delivery(session: Session, endpoint: PushEndpoint) -> bool
     supports_reference = getattr(provider, "supports_notification_reference", None)
     if not callable(supports_reference):
         return False
+    if endpoint.provider_key in SESSION_BOUND_PROVIDERS and not _lock_live_device_family(
+        session, account_id=endpoint.account_id, family_id=endpoint.device_session_id
+    ):
+        return False
     secret = session.scalar(
         select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
     )
@@ -132,7 +145,7 @@ def supports_targeted_delivery(session: Session, endpoint: PushEndpoint) -> bool
         preview = session.scalar(
             select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
         )
-        return preview is not None and _lock_live_preview_family(
+        return preview is not None and _lock_live_device_family(
             session, account_id=endpoint.account_id, family_id=preview.device_session_id
         )
     return True
@@ -146,10 +159,10 @@ def register_handlers() -> None:
         registry.register(JOB_KIND, handle_delivery, prepare=prepare)
 
 
-def _lock_live_preview_family(
-    session: Session, *, account_id: UUID, family_id: UUID | None
-) -> bool:
-    """Serialize preview handoff with logout, then check the current family clock."""
+def _lock_live_device_family(session: Session, *, account_id: UUID, family_id: UUID | None) -> bool:
+    """Serialize the device handoff with logout and check the current family clock."""
+    if family_id is None:
+        return False
     family = session.execute(
         select(
             DeviceSession.revoked_at, DeviceSession.expires_at, DeviceSession.absolute_expires_at
@@ -166,6 +179,24 @@ def _lock_live_preview_family(
     )
 
 
+def active_endpoint_predicate(account_id: UUID) -> ColumnElement[bool]:
+    now = clock.now()
+    live_sessions = select(DeviceSession.id).where(
+        DeviceSession.account_id == account_id,
+        DeviceSession.revoked_at.is_(None),
+        DeviceSession.expires_at > now,
+        DeviceSession.absolute_expires_at > now,
+    )
+    return (
+        (PushEndpoint.account_id == account_id)
+        & PushEndpoint.disabled_at.is_(None)
+        & or_(
+            PushEndpoint.provider_key.not_in(SESSION_BOUND_PROVIDERS),
+            PushEndpoint.device_session_id.in_(live_sessions),
+        )
+    )
+
+
 def register_endpoint(
     session: Session,
     *,
@@ -173,9 +204,11 @@ def register_endpoint(
     provider_key: str,
     endpoint_value: str,
     registration_identity: str | None = None,
+    device_session_id: UUID | None = None,
     preview_key: str | None = None,
     preview_session_id: UUID | None = None,
     preview_version: int = 1,
+    neutral_reference: bool = False,
 ) -> PushEndpoint:
     """Create/reactivate one technical endpoint without exposing it publicly."""
     provider = provider_key.strip()
@@ -197,35 +230,58 @@ def register_endpoint(
 
     # Account -> session is also the delivery lock order. A concurrent
     # sign-out either precedes this check or waits for the current handoff.
-    if preview_key is not None and not _lock_live_preview_family(
+    if preview_key is not None and not _lock_live_device_family(
         session, account_id=account_id, family_id=preview_session_id
     ):
         raise UnauthenticatedError("Authentication required.", ErrorCode.AUTHENTICATION_REQUIRED)
 
     fingerprint = hashlib.sha256((registration_identity or endpoint).encode("utf-8")).hexdigest()
+    if provider in SESSION_BOUND_PROVIDERS:
+        lock_subject(session, "push-destination", provider, fingerprint)
+        if not _lock_live_device_family(
+            session, account_id=account_id, family_id=device_session_id
+        ):
+            raise UnauthenticatedError(
+                "Authentication required.", ErrorCode.AUTHENTICATION_REQUIRED
+            )
     stored_reference = f"sha256:{fingerprint}"
-    existing = session.execute(
-        select(PushEndpoint.id, PushEndpoint.disabled_at).where(
-            PushEndpoint.account_id == account_id,
+    existing_active = session.scalar(
+        select(PushEndpoint.id).where(
+            active_endpoint_predicate(account_id),
             PushEndpoint.provider_key == provider,
             PushEndpoint.fingerprint == fingerprint,
         )
-    ).one_or_none()
-    if existing is None or existing.disabled_at is not None:
+    )
+    if existing_active is None:
         active_count = session.execute(
             select(func.count())
             .select_from(PushEndpoint)
-            .where(PushEndpoint.account_id == account_id, PushEndpoint.disabled_at.is_(None))
+            .where(active_endpoint_predicate(account_id))
         ).scalar_one()
         if active_count >= MAX_ACTIVE_ENDPOINTS:
             raise ConflictError(
                 "Active push endpoint limit reached.", ErrorCode.PUSH_ENDPOINT_LIMIT_REACHED
             )
 
+    if provider in SESSION_BOUND_PROVIDERS:
+        # The platform may reuse its subscription or token after an offline
+        # sign-out. The latest registration owns the technical destination.
+        session.execute(
+            update(PushEndpoint)
+            .where(
+                PushEndpoint.provider_key == provider,
+                PushEndpoint.fingerprint == fingerprint,
+                PushEndpoint.account_id != account_id,
+                PushEndpoint.disabled_at.is_(None),
+            )
+            .values(disabled_at=clock.now())
+        )
+
     statement = (
         postgresql.insert(PushEndpoint)
         .values(
             account_id=account_id,
+            device_session_id=device_session_id,
             provider_key=provider,
             endpoint_value=stored_reference,
             fingerprint=fingerprint,
@@ -233,7 +289,11 @@ def register_endpoint(
         )
         .on_conflict_do_update(
             index_elements=["account_id", "provider_key", "fingerprint"],
-            set_={"endpoint_value": stored_reference, "disabled_at": None},
+            set_={
+                "endpoint_value": stored_reference,
+                "disabled_at": None,
+                "device_session_id": device_session_id,
+            },
         )
         .returning(PushEndpoint.id)
     )
@@ -267,12 +327,14 @@ def register_endpoint(
                     push_endpoint_id=endpoint_id,
                     device_session_id=preview_session_id,
                     preview_version=preview_version,
+                    neutral_reference=neutral_reference,
                     payload=PushPreviewKeyPayload(key=preview_key),
                 )
             )
         else:
             preview.device_session_id = preview_session_id
             preview.preview_version = preview_version
+            preview.neutral_reference = neutral_reference
             if preview.payload.key != preview_key:
                 preview.payload = PushPreviewKeyPayload(key=preview_key)
     return endpoint_row
@@ -321,6 +383,10 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
         select(Notification).where(Notification.source_event_id == source_event_id)
     ).scalars()
     for notification in notifications:
+        if notification.kind == NotificationKind.PLAN_CREATED.value:
+            recipient = session.get(Account, notification.recipient_account_id)
+            if recipient is None or not plan_push.short_term(session, notification, recipient):
+                continue
         digest = (
             notification_policy.presentation_for(notification.kind, notification.id) is None
             and notification_policy.digest_presentation_for(notification.kind, notification.id)
@@ -349,10 +415,7 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
         endpoints = list(
             session.scalars(
                 select(PushEndpoint)
-                .where(
-                    PushEndpoint.account_id == notification.recipient_account_id,
-                    PushEndpoint.disabled_at.is_(None),
-                )
+                .where(active_endpoint_predicate(notification.recipient_account_id))
                 .order_by(PushEndpoint.created_at.desc(), PushEndpoint.id.desc())
             )
         )
@@ -592,8 +655,20 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if not _target_available(session, notification):
         _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
         return
+    if (
+        notification.kind == NotificationKind.PLAN_CREATED.value
+        and not plan_push.schedule_is_current(
+            session, notification, accounts[notification.recipient_account_id]
+        )
+    ):
+        _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
+        return
 
     checked_at = clock.now()
+    expires_at = notification.expires_at
+    if expires_at is not None and clock.ensure_utc(expires_at) <= checked_at:
+        _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
+        return
     digest_start: datetime | None = None
     if digest:
         digest_start, end = notification_policy.digest_window(delivery.created_at)
@@ -643,6 +718,23 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if provider is None:
         _finish_unavailable(delivery)
         return
+    if plan_push.overlaps_attempted_delivery(session, notification, delivery):
+        _finish_unavailable(delivery, "PLAN_PUSH_COALESCED")
+        return
+    if notification.kind == NotificationKind.WISH_REMINDER_DUE.value and (
+        notification.target_id is None
+        or not wish_reminders.lock_delivery_source(session, notification.target_id, notification.id)
+    ):
+        _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
+        return
+    if endpoint.provider_key in SESSION_BOUND_PROVIDERS:
+        lock_subject(session, "push-destination", endpoint.provider_key, endpoint.fingerprint)
+        session.refresh(endpoint, attribute_names=["disabled_at"])
+        if endpoint.disabled_at is not None or not _lock_live_device_family(
+            session, account_id=endpoint.account_id, family_id=endpoint.device_session_id
+        ):
+            _finish_unavailable(delivery, "PUSH_SESSION_UNAVAILABLE")
+            return
 
     adaptive = notification.kind == NotificationKind.GENTLE_PROMPT.value
     if adaptive:
@@ -660,19 +752,38 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         secret = session.execute(
             select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
         ).scalar_one_or_none()
-        reference = presentation.reference
-        endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
-        if endpoint.provider_key == "fcm":
-            from eimir.engagement import fcm_push, push_preview
+        from eimir.i18n import account_locale
 
+        reference = {
+            **presentation.reference,
+            "locale": account_locale(accounts[notification.recipient_account_id]),
+        }
+        if expires_at is not None:
+            remaining = int((clock.ensure_utc(expires_at) - checked_at).total_seconds())
+            reference["ttl"] = str(max(0, min(300, remaining)))
+        endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
+        from eimir.engagement import fcm_push, push_preview
+
+        neutral = notification.kind in push_preview.NEUTRAL_ONLY_KINDS
+        if endpoint.provider_key == "fcm":
             preview_secret = session.scalar(
                 select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
             )
-            if preview_secret is not None and _lock_live_preview_family(
-                session, account_id=endpoint.account_id, family_id=preview_secret.device_session_id
+            if (
+                preview_secret is not None
+                and (not neutral or preview_secret.neutral_reference)
+                and _lock_live_device_family(
+                    session,
+                    account_id=endpoint.account_id,
+                    family_id=preview_secret.device_session_id,
+                )
             ):
                 preview = push_preview.for_notification(
-                    session, notification, digest=digest, version=preview_secret.preview_version
+                    session,
+                    notification,
+                    digest=digest,
+                    version=preview_secret.preview_version,
+                    neutral_reference=neutral,
                 )
                 if preview is None:
                     _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")

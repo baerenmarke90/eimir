@@ -7,6 +7,9 @@ import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { AttachmentMediaDropZone } from './MediaDropZone';
 import type { VideoCaptureContext } from './VideoUploadAction';
+import { type ReactNode, useRef, useState } from 'react';
+import { EimirIcon } from './EimirIcon';
+import { MediaActionGroup } from './MediaActionGroup';
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
@@ -31,7 +34,19 @@ export function AttachmentDraftPicker({
   sourceContext,
   selectedCoverKey,
   onSelectCover,
+  additionalActions,
+  gallery,
+  presentation = 'default',
+  mediaTrigger,
+  pageWideDrop = false,
+  hasMedia,
 }: {
+  presentation?: 'default' | 'diary' | 'tools';
+  mediaTrigger?: (open: () => void) => ReactNode;
+  pageWideDrop?: boolean;
+  additionalActions?: ReactNode;
+  gallery?: ReactNode | ((addAction: ReactNode) => ReactNode);
+  hasMedia?: boolean;
   id: string;
   selectedCoverKey?: string | null;
   onSelectCover?: (key: string | null) => void;
@@ -50,11 +65,34 @@ export function AttachmentDraftPicker({
   };
 }) {
   const { t } = useTranslation();
-  const devicePicker = (close: () => void) => (
+  const openSource = useRef<() => void>(() => {});
+  // #1790 D1: with an external source the diary intake opens the shared sheet.
+  const [externalSources, setExternalSources] = useState(false);
+  const populated =
+    hasMedia ?? (attachments.items.length > 0 || Boolean(gallery));
+  const addAction =
+    presentation !== 'default' ? (
+      <button
+        type="button"
+        className="photo-draft-add"
+        aria-label={t('photoSources.addMedia')}
+        disabled={disabled}
+        onClick={() => openSource.current()}
+      >
+        <EimirIcon name="hinzufuegen" />
+      </button>
+    ) : undefined;
+  const devicePicker = (
+    close: () => void,
+    actionContainer?: HTMLElement | null,
+    blocked = false,
+  ) => (
     <DeviceMediaPicker
-      id={id}
+      id={`${id}-source`}
       multiple={multiple}
-      disabled={disabled}
+      disabled={disabled || blocked}
+      inSourceChooser={Boolean(sourceContext)}
+      actionContainer={actionContainer}
       context={videoContext}
       onFiles={(files) => {
         if (!multiple && files.length)
@@ -68,6 +106,7 @@ export function AttachmentDraftPicker({
   return (
     <AttachmentMediaDropZone
       videoContext={videoContext}
+      pageWide={pageWideDrop}
       multiple={multiple}
       disabled={disabled}
       onFiles={(files) => {
@@ -76,62 +115,142 @@ export function AttachmentDraftPicker({
         attachments.addFiles(files);
       }}
     >
-      <div className="field-group attachment-draft-picker">
-        {sourceContext ? (
-          <PhotoSourcePicker
-            {...sourceContext}
-            beginSelection={() => {
-              const ticket = sourceContext.beginSelection();
-              return {
-                ...ticket,
-                commit: (files) => {
-                  if (ticket.signal.aborted || !files.length) return false;
-                  if (!multiple)
-                    for (const item of attachments.items)
-                      attachments.remove(item.id);
-                  return ticket.commit(files);
-                },
-              };
-            }}
-            disabled={disabled}
-            devicePicker={devicePicker}
-          />
-        ) : (
-          devicePicker(() => {})
-        )}
+      <div
+        className="field-group attachment-draft-picker"
+        data-presentation={presentation}
+        data-has-media={populated}
+      >
+        <MediaActionGroup unframed>
+          {typeof gallery === 'function' ? gallery(addAction) : gallery}
+          {showItems && attachments.items.length > 0 ? (
+            <PhotoDraftGallery
+              key={JSON.stringify([
+                id,
+                sourceContext?.apiBaseUrl,
+                sourceContext?.accountId,
+                sourceContext?.spaceId,
+                videoContext?.accountId,
+                videoContext?.spaceId,
+              ])}
+              resourceScopeKey={JSON.stringify([
+                id,
+                sourceContext?.apiBaseUrl,
+                sourceContext?.accountId,
+                sourceContext?.spaceId,
+                videoContext?.accountId,
+                videoContext?.spaceId,
+              ])}
+              disabled={disabled}
+              items={attachments.items.map((attachment) => ({
+                key: attachment.id,
+                name: attachment.file.name,
+                draft: attachment,
+                isSensitive: attachment.isSensitive === true,
+                preview: (
+                  <DraftMediaPreview
+                    draft={attachment}
+                    context={videoContext}
+                    blurSensitivePreview={presentation !== 'default'}
+                  />
+                ),
+              }))}
+              addAction={
+                presentation !== 'default' ? (
+                  <button
+                    type="button"
+                    className="photo-draft-add"
+                    aria-label={t('photoSources.addMedia')}
+                    disabled={disabled}
+                    onClick={() => openSource.current()}
+                  >
+                    <EimirIcon name="hinzufuegen" />
+                  </button>
+                ) : undefined
+              }
+              onOrderChange={multiple ? attachments.reorder : undefined}
+              selectedCoverKey={selectedCoverKey}
+              onSelectCover={onSelectCover}
+              onSensitive={attachments.setSensitive}
+              onRemove={attachments.remove}
+              onRetry={(key) => {
+                const draft = attachments.items.find((item) => item.id === key);
+                if (draft) attachments.retry(draft);
+              }}
+            />
+          ) : null}
 
-        {showItems && attachments.items.length > 0 ? (
-          <PhotoDraftGallery
-            key={JSON.stringify([
-              id,
-              sourceContext?.apiBaseUrl,
-              sourceContext?.accountId,
-              sourceContext?.spaceId,
-              videoContext?.accountId,
-              videoContext?.spaceId,
-            ])}
-            disabled={disabled}
-            items={attachments.items.map((attachment) => ({
-              key: attachment.id,
-              name: attachment.file.name,
-              draft: attachment,
-              isSensitive: attachment.isSensitive === true,
-              preview: (
-                <DraftMediaPreview draft={attachment} context={videoContext} />
-              ),
-            }))}
-            onMove={multiple ? attachments.move : undefined}
-            onOrderChange={multiple ? attachments.reorder : undefined}
-            selectedCoverKey={selectedCoverKey}
-            onSelectCover={onSelectCover}
-            onSensitive={attachments.setSensitive}
-            onRemove={attachments.remove}
-            onRetry={(key) => {
-              const draft = attachments.items.find((item) => item.id === key);
-              if (draft) attachments.retry(draft);
-            }}
-          />
-        ) : null}
+          <div
+            className={
+              presentation === 'diary' && !populated
+                ? 'composer-diary-intake'
+                : undefined
+            }
+          >
+            {presentation === 'diary' && !populated ? (
+              <DeviceMediaPicker
+                id={id}
+                multiple={multiple}
+                disabled={disabled}
+                intake
+                onChooseSource={
+                  sourceContext && externalSources
+                    ? () => openSource.current()
+                    : undefined
+                }
+                context={videoContext}
+                onFiles={attachments.addFiles}
+              />
+            ) : null}
+            {sourceContext ? (
+              <PhotoSourcePicker
+                {...sourceContext}
+                unified
+                onExternalAvailability={setExternalSources}
+                renderTrigger={
+                  presentation !== 'default'
+                    ? (open) => {
+                        openSource.current = open;
+                        return mediaTrigger?.(open) ?? null;
+                      }
+                    : undefined
+                }
+                beginSelection={() => {
+                  const ticket = sourceContext.beginSelection();
+                  return {
+                    ...ticket,
+                    commit: (files) => {
+                      if (ticket.signal.aborted || !files.length) return false;
+                      if (!multiple)
+                        for (const item of attachments.items)
+                          attachments.remove(item.id);
+                      return ticket.commit(files);
+                    },
+                  };
+                }}
+                disabled={disabled}
+                devicePicker={devicePicker}
+              />
+            ) : (
+              <DeviceMediaPicker
+                id={presentation === 'default' ? id : `${id}-fallback`}
+                multiple={multiple}
+                disabled={disabled}
+                context={videoContext}
+                onFiles={attachments.addFiles}
+                renderTrigger={
+                  presentation !== 'default'
+                    ? (open) => {
+                        openSource.current = open;
+                        return mediaTrigger?.(open) ?? null;
+                      }
+                    : undefined
+                }
+              />
+            )}
+          </div>
+          {additionalActions}
+        </MediaActionGroup>
+
         {attachments.hasPending ? (
           <p className="field-help" role="status" aria-live="polite">
             {t(

@@ -1,14 +1,26 @@
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  Link,
+  matchPath,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { ProfilesApi } from '../client/mediaApis';
 import {
+  PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
   PRIVATE_PARTNER_NOTES_PATH,
 } from '../client/privateArea';
 import { useTranslation } from '../i18n';
+import {
+  ContextualCreateMenu,
+  type ContextualCreateTarget,
+} from './ContextualCreateMenu';
 import { EimirIcon } from './EimirIcon';
 import {
   GiftIdeaCreatePage,
@@ -60,6 +72,24 @@ const destinations = [
   },
 ] as const;
 
+const createTargets = [
+  {
+    to: `${PRIVATE_NOTES_PATH}/new`,
+    labelKey: 'privateArea.notes.add',
+    icon: 'notes',
+  },
+  {
+    to: `${PRIVATE_GIFT_IDEAS_PATH}/new`,
+    labelKey: 'privateArea.gifts.add',
+    icon: 'geschenk',
+  },
+  {
+    to: `${PRIVATE_COLLECTIONS_PATH}/new`,
+    labelKey: 'privateArea.collections.add',
+    icon: 'listen',
+  },
+] as const satisfies readonly ContextualCreateTarget[];
+
 function PrivateAreaOverview() {
   const { t } = useTranslation();
   return (
@@ -106,10 +136,28 @@ export function PrivateAreaProductPage({
   const props = { api, accountId, spaceId };
   const { pathname } = useLocation();
   const isOverview =
-    pathname === '/more/private' || pathname === '/more/private/';
+    pathname === PRIVATE_AREA_ROOT_PATH ||
+    pathname === `${PRIVATE_AREA_ROOT_PATH}/`;
+  const isGiftEditor = Boolean(
+    matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/new`, pathname) ||
+      matchPath(`${PRIVATE_GIFT_IDEAS_PATH}/:giftIdeaId/edit`, pathname),
+  );
 
   return (
-    <PrivateAreaFrame showNavigation={!isOverview}>
+    <PrivateAreaFrame
+      showNavigation={!isOverview}
+      editorFirst={isGiftEditor}
+      overviewAction={
+        isOverview ? (
+          <ContextualCreateMenu
+            labelKey="privateArea.createAction"
+            targets={createTargets}
+            taskItemKey="private-area-create"
+            floating
+          />
+        ) : undefined
+      }
+    >
       <Routes>
         <Route index element={<PrivateAreaOverview />} />
         {profilesApi && spacesApi ? (

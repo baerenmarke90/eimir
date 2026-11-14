@@ -1,5 +1,4 @@
-import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
-import { AutoLoadMore } from './AutoLoadMore';
+import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
   type ReactNode,
@@ -10,37 +9,60 @@ import {
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import type { PeopleApi } from '../api/generated/apis/PeopleApi';
+import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import { planListTitle } from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import {
+  MEMORY_CREATE_ROUTE,
   PLAN_CREATE_ROUTE,
   planDetailPath,
   WISH_CREATE_ROUTE,
   wishDetailPath,
 } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
-import { OverviewCacheNotice } from './OverviewCacheNotice';
+import {
+  sortPlannedWishes,
+  wishJourneyHint,
+  wishPlanDateLabel,
+} from '../client/wishJourney';
+import { groupCompletedSeries, type WishSeriesRow } from '../client/wishSeries';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionLink } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
+import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
-import { PlanningStatusScope, type PlanningScope } from './PlanningStatusScope';
+import { PlanningOccasions } from './PlanningOccasions';
+import {
+  type PlanningScope,
+  PlanningStatusScope,
+  type WishScope,
+} from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
 const PAGE_SIZE = 20;
-type PlanenSegment = 'wishes' | 'plans';
+const JOURNEY_PAGE_SIZE = 100;
+const JOURNEY_MAX_PAGES = 10;
+type PlanenSegment = 'wishes' | 'plans' | 'dates';
 type PageShape<T> = { items: T[]; nextCursor: string | null };
 
 function searchText(value: string): string {
@@ -138,6 +160,7 @@ function nextCursor<T>(
 }
 
 function segmentForHash(hash: string): PlanenSegment | null {
+  if (hash === '#dates') return 'dates';
   if (
     hash === '#plan-title' ||
     hash === '#plans' ||
@@ -147,10 +170,24 @@ function segmentForHash(hash: string): PlanenSegment | null {
   if (
     hash === '#wish-title' ||
     hash === '#wishes' ||
+    hash === '#planned-wishes' ||
     hash === '#fulfilled-wishes'
   )
     return 'wishes';
   return null;
+}
+
+function wishScopeForHash(hash: string): WishScope | null {
+  if (hash === '#fulfilled-wishes') return 'COMPLETED';
+  if (hash === '#planned-wishes') return 'PLANNED';
+  if (hash === '#wishes' || hash === '#wish-title') return 'OPEN';
+  return null;
+}
+
+function wishScopeHash(status: WishScope): string {
+  if (status === 'COMPLETED') return '#fulfilled-wishes';
+  if (status === 'PLANNED') return '#planned-wishes';
+  return '#wishes';
 }
 
 function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
@@ -168,52 +205,67 @@ function PlanenSegmentedControl({
   onChange,
   wishesTabId,
   plansTabId,
+  datesTabId,
   wishesPanelId,
   plansPanelId,
+  datesPanelId,
 }: {
   active: PlanenSegment;
   onChange: (segment: PlanenSegment) => void;
   wishesTabId: string;
   plansTabId: string;
+  datesTabId: string;
   wishesPanelId: string;
   plansPanelId: string;
+  datesPanelId: string;
 }) {
   const { t } = useTranslation();
+  const tabs = [
+    {
+      key: 'plans',
+      id: plansTabId,
+      panel: plansPanelId,
+      label: t('m5s3.overview.segmentPlans'),
+    },
+    {
+      key: 'wishes',
+      id: wishesTabId,
+      panel: wishesPanelId,
+      label: t('m5s3.overview.segmentWishes'),
+    },
+    {
+      key: 'dates',
+      id: datesTabId,
+      panel: datesPanelId,
+      label: t('importantDates.heading'),
+    },
+  ] as const;
   return (
     <div
-      className="planen-segmented"
+      className="planen-segmented planen-segmented-occasions"
       role="tablist"
       aria-label={t('m5s3.overview.segmentedLabel')}
       onKeyDown={(event) =>
         handleTabKeyDown(event, (tab) =>
-          onChange(tab.id === plansTabId ? 'plans' : 'wishes'),
+          onChange(tabs.find((t) => t.id === tab.id)?.key ?? 'plans'),
         )
       }
     >
-      <button
-        type="button"
-        role="tab"
-        id={plansTabId}
-        aria-selected={active === 'plans'}
-        aria-controls={plansPanelId}
-        tabIndex={active === 'plans' ? 0 : -1}
-        className={`planen-segment ${active === 'plans' ? 'is-active' : ''}`}
-        onClick={() => onChange('plans')}
-      >
-        {t('m5s3.overview.segmentPlans')}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id={wishesTabId}
-        aria-selected={active === 'wishes'}
-        aria-controls={wishesPanelId}
-        tabIndex={active === 'wishes' ? 0 : -1}
-        className={`planen-segment ${active === 'wishes' ? 'is-active' : ''}`}
-        onClick={() => onChange('wishes')}
-      >
-        {t('m5s3.overview.segmentWishes')}
-      </button>
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          role="tab"
+          id={tab.id}
+          aria-selected={active === tab.key}
+          aria-controls={tab.panel}
+          tabIndex={active === tab.key ? 0 : -1}
+          className={`planen-segment ${active === tab.key ? 'is-active' : ''}`}
+          onClick={() => onChange(tab.key)}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -247,7 +299,12 @@ export function SharedPlanningOverviewPage({
   spaceId,
   apiBaseUrl,
   accessToken,
+  peopleApi,
+  profilesApi,
+  accountId,
 }: {
+  peopleApi?: PeopleApi;
+  profilesApi?: ProfilesApi;
   apis: SharedPlanningApis;
   spaceId: string;
   accountId?: string;
@@ -257,39 +314,38 @@ export function SharedPlanningOverviewPage({
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const {
-    captureOrigin,
-    registerOriginMetadata,
-    resolveOrigin,
-    primaryDestination,
-  } = useTaskOrigin();
+  const { captureOrigin, registerOriginMetadata, resolveOrigin } =
+    useTaskOrigin();
   const wishesTabId = useId();
   const plansTabId = useId();
   const wishesPanelId = useId();
   const plansPanelId = useId();
+  const datesTabId = useId();
+  const datesPanelId = useId();
   const [activeSegment, setActiveSegment] = useState<PlanenSegment>(
     () => segmentForHash(location.hash) ?? 'plans',
   );
-  const [wishStatus, setWishStatus] = useState<PlanningScope>(() =>
-    location.hash === '#fulfilled-wishes' ? 'COMPLETED' : 'OPEN',
+  const [wishStatus, setWishStatus] = useState<WishScope>(
+    () => wishScopeForHash(location.hash) ?? 'OPEN',
   );
   const [planStatus, setPlanStatus] = useState<PlanningScope>(() =>
     location.hash === '#experienced-plans' ? 'COMPLETED' : 'OPEN',
   );
   const [planSearch, setPlanSearch] = useState('');
   const [wishSearch, setWishSearch] = useState('');
+  const [occasionActionHost, setOccasionActionHost] =
+    useState<HTMLSpanElement | null>(null);
   const restoredOrigin = useRef<unknown>(null);
-  function changeStatus(kind: PlanenSegment, status: PlanningScope) {
-    if (kind === 'plans') setPlanStatus(status);
+  function changeStatus(kind: PlanenSegment, status: WishScope) {
+    if (kind === 'plans')
+      setPlanStatus(status === 'COMPLETED' ? status : 'OPEN');
     else setWishStatus(status);
     const hash =
       kind === 'plans'
         ? status === 'COMPLETED'
           ? '#experienced-plans'
           : '#plans'
-        : status === 'COMPLETED'
-          ? '#fulfilled-wishes'
-          : '#wishes';
+        : wishScopeHash(status);
     void navigate(
       { pathname: location.pathname, search: location.search, hash },
       { replace: true, state: location.state },
@@ -297,6 +353,17 @@ export function SharedPlanningOverviewPage({
   }
   function changeSegment(segment: PlanenSegment) {
     setActiveSegment(segment);
+    if (segment === 'dates') {
+      void navigate(
+        {
+          pathname: location.pathname,
+          search: location.search,
+          hash: '#dates',
+        },
+        { replace: true, state: location.state },
+      );
+      return;
+    }
     changeStatus(segment, segment === 'plans' ? planStatus : wishStatus);
   }
 
@@ -306,9 +373,8 @@ export function SharedPlanningOverviewPage({
     if (location.hash === '#experienced-plans') setPlanStatus('COMPLETED');
     else if (location.hash === '#plans' || location.hash === '#plan-title')
       setPlanStatus('OPEN');
-    if (location.hash === '#fulfilled-wishes') setWishStatus('COMPLETED');
-    else if (location.hash === '#wishes' || location.hash === '#wish-title')
-      setWishStatus('OPEN');
+    const hashWishScope = wishScopeForHash(location.hash);
+    if (hashWishScope) setWishStatus(hashWishScope);
   }, [location.hash]);
 
   useEffect(
@@ -332,10 +398,23 @@ export function SharedPlanningOverviewPage({
 
   useLayoutEffect(() => {
     const state = location.state as { taskReturnKey?: unknown } | null;
-    const originKey =
-      state?.taskReturnKey ?? primaryDestination('/plan').returnKey;
+    const originKey = state?.taskReturnKey;
     const origin = resolveOrigin(originKey);
-    if (!origin || restoredOrigin.current === originKey) return;
+    if (!origin) {
+      if (
+        !location.hash &&
+        (location.state as { primaryRootEntry?: boolean } | null)
+          ?.primaryRootEntry
+      ) {
+        setActiveSegment('plans');
+        setPlanStatus('OPEN');
+        setWishStatus('OPEN');
+        setPlanSearch('');
+        setWishSearch('');
+      }
+      return;
+    }
+    if (restoredOrigin.current === originKey) return;
     restoredOrigin.current = originKey;
     setPlanSearch(origin.planningPlanSearch ?? '');
     setWishSearch(origin.planningWishSearch ?? '');
@@ -346,9 +425,8 @@ export function SharedPlanningOverviewPage({
       setPlanStatus('OPEN');
     else if (origin.planningPlanStatus)
       setPlanStatus(origin.planningPlanStatus);
-    if (location.hash === '#fulfilled-wishes') setWishStatus('COMPLETED');
-    else if (location.hash === '#wishes' || location.hash === '#wish-title')
-      setWishStatus('OPEN');
+    const hashWishScope = wishScopeForHash(location.hash);
+    if (hashWishScope) setWishStatus(hashWishScope);
     else if (origin.planningWishStatus)
       setWishStatus(origin.planningWishStatus);
     window.requestAnimationFrame(() => {
@@ -361,14 +439,14 @@ export function SharedPlanningOverviewPage({
           ?.focus({ preventScroll: true });
       }
     });
-  }, [location.state, location.hash, resolveOrigin, primaryDestination]);
+  }, [location.state, location.hash, resolveOrigin]);
 
   const wishes = useWarmInfiniteQuery({
     queryKey: [
       'm5-s3',
       'wishes',
       spaceId,
-      ...(wishStatus === 'COMPLETED' ? [wishStatus] : []),
+      ...(wishStatus === 'OPEN' ? [] : [wishStatus]),
     ],
     enabled: activeSegment === 'wishes',
     queryFn: ({ pageParam, signal }) =>
@@ -433,6 +511,36 @@ export function SharedPlanningOverviewPage({
     { revalidateOnRestore: true },
   );
 
+  // #1790 F2: one quiet hint above the Plans list, derived from the wishes
+  // that left OPEN. Both lifecycle lists are small, so read them completely.
+  const journeyWishes = useQuery({
+    queryKey: ['m5-s3', 'wishes', spaceId, 'journey-hint'],
+    staleTime: OVERVIEW_STALE_TIME,
+    enabled: activeSegment === 'plans' && planStatus === 'OPEN',
+    retry: false,
+    queryFn: async ({ signal }) => {
+      const items: WishDetail[] = [];
+      for (const status of ['PLANNED', 'COMPLETED'] as const) {
+        let cursor: string | null = null;
+        for (let page = 0; page < JOURNEY_MAX_PAGES; page += 1) {
+          const result = await apiCall(() =>
+            apis.wishes.listWishes(
+              { spaceId, cursor, limit: JOURNEY_PAGE_SIZE, status },
+              { signal },
+            ),
+          );
+          items.push(...result.items);
+          if (!result.hasMore || !result.nextCursor) break;
+          cursor = result.nextCursor;
+        }
+      }
+      return items;
+    },
+  });
+  const journeyHint = journeyWishes.data
+    ? wishJourneyHint(journeyWishes.data)
+    : null;
+
   // A search must inspect the whole authorized scope, not just visible pages.
   useEffect(() => {
     if (
@@ -456,22 +564,30 @@ export function SharedPlanningOverviewPage({
     planSearch.trim() && plans.hasNextPage && !plans.error,
   );
 
-  const wishOrder = new Intl.Collator(resolvedLocale(), {
-    sensitivity: 'base',
-    numeric: true,
-  });
-  const wishItems = [
-    ...new Map(
-      (wishes.data?.pages.flatMap((page) => page.items) ?? [])
-        .filter((wish) => wish.status === wishStatus)
-        .filter((wish) =>
-          matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
-        )
-        .map((wish) => [wish.id, wish]),
-    ).values(),
-  ].sort(
-    (a, b) => wishOrder.compare(a.title, b.title) || a.id.localeCompare(b.id),
+  const alphabeticalWishes = sortByProductLabel(
+    [
+      ...new Map(
+        (wishes.data?.pages.flatMap((page) => page.items) ?? [])
+          .filter((wish) => wish.status === wishStatus)
+          .filter((wish) =>
+            matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
+          )
+          .map((wish) => [wish.id, wish]),
+      ).values(),
+    ],
+    (wish) => wish.title,
+    resolvedLocale(),
   );
+  // Planned wishes read in the order they will happen; the others by title.
+  const wishItems =
+    wishStatus === 'PLANNED'
+      ? sortPlannedWishes(
+          alphabeticalWishes,
+          (left, right) =>
+            alphabeticalWishes.indexOf(left) -
+            alphabeticalWishes.indexOf(right),
+        )
+      : alphabeticalWishes;
   const wishGroups = new Map<string, WishDetail[]>();
   for (const wish of wishItems) {
     const initial = wishInitial(wish.title);
@@ -510,6 +626,7 @@ export function SharedPlanningOverviewPage({
     to: string,
     segment: PlanenSegment,
     selectedKey?: string,
+    extraState?: Record<string, unknown>,
   ) {
     if (isModifiedClick(event)) return;
     event.preventDefault();
@@ -522,8 +639,155 @@ export function SharedPlanningOverviewPage({
       selectedKey,
     });
     void navigate(to, {
-      state: taskOriginKey ? { taskOriginKey } : undefined,
+      state:
+        taskOriginKey || extraState
+          ? { ...(taskOriginKey ? { taskOriginKey } : {}), ...extraState }
+          : undefined,
     });
+  }
+
+  function openWishScope(
+    event: MouseEvent<HTMLAnchorElement>,
+    status: WishScope,
+  ) {
+    if (isModifiedClick(event)) return;
+    event.preventDefault();
+    setActiveSegment('wishes');
+    changeStatus('wishes', status);
+    window.requestAnimationFrame(() =>
+      document.getElementById(wishesTabId)?.focus(),
+    );
+  }
+
+  function seriesTimeLabel(wish: WishDetail) {
+    const experiencedOn = wish.plan?.experiencedOn;
+    if (!experiencedOn)
+      return t('wishRepeat.series.nthTime', { position: wish.seriesPosition });
+    return t('wishRepeat.series.timeOn', {
+      position: wish.seriesPosition,
+      date: new Intl.DateTimeFormat(resolvedLocale(), {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(experiencedOn),
+    });
+  }
+
+  function renderCompletedRow(row: WishSeriesRow) {
+    const wish = row.latest;
+    return (
+      <li key={row.seriesId} className="planen-wish-journey-card">
+        <Link
+          className="planen-wish-link"
+          {...planningLinkProps(wishDetailPath(wish.id), 'wishes', wish.id)}
+        >
+          <span className="planen-wish-copy">
+            <strong>{wish.title}</strong>
+          </span>
+        </Link>
+        {row.times.length > 1 ? (
+          <span className="planen-wish-series-mark">
+            <WishOriginMark>
+              {t('wishRepeat.series.experienced', { count: row.times.length })}
+            </WishOriginMark>
+          </span>
+        ) : null}
+        {renderWishJourneyLink(wish)}
+        {row.times.length > 1 ? (
+          <details className="planen-wish-series">
+            <summary>{t('wishRepeat.series.showAll')}</summary>
+            <ul aria-label={t('wishRepeat.series.timesLabel')}>
+              {row.times.map((time) => (
+                <li key={time.id}>
+                  <Link
+                    {...planningLinkProps(
+                      wishDetailPath(time.id),
+                      'wishes',
+                      time.id,
+                    )}
+                  >
+                    {seriesTimeLabel(time)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+      </li>
+    );
+  }
+
+  function renderWishJourneyLink(wish: WishDetail) {
+    const selectedKey = `${wish.id}:journey`;
+    if (wish.status === 'PLANNED') {
+      const date = wishPlanDateLabel(wish.plan);
+      const label = date
+        ? t('wishJourney.plannedOn', { date })
+        : t('wishJourney.plannedUndated');
+      const to = wish.plan
+        ? planDetailPath(wish.plan.id)
+        : wishDetailPath(wish.id);
+      return (
+        <Link
+          className="planen-wish-journey-link"
+          aria-label={`${label} – ${wish.title}`}
+          {...planningLinkProps(to, 'wishes', selectedKey)}
+        >
+          <span>{label}</span>
+          <EimirIcon name="chevron-right" />
+        </Link>
+      );
+    }
+    if (wish.hasMemory) {
+      const label = t('wishJourney.remembered');
+      const to = wish.plan
+        ? planDetailPath(wish.plan.id)
+        : wishDetailPath(wish.id);
+      return (
+        <Link
+          className="planen-wish-journey-link is-warm"
+          aria-label={`${label} – ${wish.title}`}
+          {...planningLinkProps(to, 'wishes', selectedKey)}
+        >
+          <span>{label}</span>
+          <EimirIcon name="chevron-right" />
+        </Link>
+      );
+    }
+    const label = t('wishJourney.captureMoment');
+    // The Plan's memory capture links the new Memory to the Plan, which is
+    // exactly what moves this wish on to "remembered".
+    const sourcePlan =
+      wish.plan && accountId && apiBaseUrl
+        ? {
+            sourcePlan: {
+              id: wish.plan.id,
+              spaceId,
+              accountId,
+              instance: apiBaseUrl,
+            },
+          }
+        : undefined;
+    return (
+      <Link
+        className="planen-wish-journey-link is-warm"
+        aria-label={`${label} – ${wish.title}`}
+        to={MEMORY_CREATE_ROUTE}
+        data-planning-key={selectedKey}
+        onClick={(event) =>
+          openFromOverview(
+            event,
+            MEMORY_CREATE_ROUTE,
+            'wishes',
+            selectedKey,
+            sourcePlan,
+          )
+        }
+      >
+        <span>{label}</span>
+        <EimirIcon name="chevron-right" />
+      </Link>
+    );
   }
 
   function planningLinkProps(
@@ -540,6 +804,14 @@ export function SharedPlanningOverviewPage({
   }
 
   function renderPlanPreview(plan: PlanDetail, focal = false) {
+    // Discreet: list title, date and neutral lines only (#1790 F3).
+    const discreet = Boolean(plan.discreet);
+    const coverLock = discreet && Boolean(plan.coverAttachment);
+    const title = (
+      <strong className={focal ? undefined : 'planen-agenda-title'}>
+        {planListTitle(plan, t)}
+      </strong>
+    );
     return (
       <Link
         className={`${focal ? 'planen-next-link' : 'planen-agenda-link'}${plan.coverAttachment ? ' planen-preview-has-cover' : ''}`}
@@ -552,11 +824,20 @@ export function SharedPlanningOverviewPage({
           accessToken={accessToken}
           interactive={false}
           presentation="preview"
+          discreet={discreet}
         />
         <span className={focal ? 'planen-next-copy' : 'planen-agenda-copy'}>
-          <strong className={focal ? undefined : 'planen-agenda-title'}>
-            {plan.title}
-          </strong>
+          {plan.sourceWishId && plan.status !== 'COMPLETED' ? (
+            <WishOriginMark>{t('wishJourney.planOrigin')}</WishOriginMark>
+          ) : null}
+          {discreet && !coverLock ? (
+            <span className="discreet-title-row">
+              {title}
+              <DiscreetLock />
+            </span>
+          ) : (
+            title
+          )}
           <span
             className={
               focal ? 'planen-next-schedule' : 'planen-agenda-schedule'
@@ -570,7 +851,16 @@ export function SharedPlanningOverviewPage({
                 : t('m5s3.overview.completedLabel')
               : planScheduleLabel(plan)}
           </span>
-          {plan.description ? (
+          {discreet ? (
+            <>
+              <DiscreetPlaceholderLines />
+              {focal ? (
+                <span className="discreet-open-hint">
+                  {t('discreetPlans.openHint')}
+                </span>
+              ) : null}
+            </>
+          ) : plan.description ? (
             <span
               className={
                 focal ? 'planen-next-description' : 'planen-agenda-description'
@@ -586,7 +876,32 @@ export function SharedPlanningOverviewPage({
 
   return (
     <div className="page planning-page planning-sanctuary planen-overview">
-      <PageHeader variant="root" title={t('m5s3.overview.title')} />
+      <PageHeader
+        variant="root"
+        className="content-overview-heading"
+        title={t('m5s3.overview.title')}
+        action={
+          activeSegment === 'dates' ? (
+            <span ref={setOccasionActionHost} />
+          ) : (
+            <AddActionLink
+              floating
+              label={t(
+                activeSegment === 'plans'
+                  ? 'm5s3.overview.addPlan'
+                  : 'm5s3.overview.addWish',
+              )}
+              {...planningLinkProps(
+                activeSegment === 'plans'
+                  ? PLAN_CREATE_ROUTE
+                  : WISH_CREATE_ROUTE,
+                activeSegment,
+                'planning-create',
+              )}
+            />
+          )
+        }
+      />
       <PlanenSegmentedControl
         active={activeSegment}
         onChange={changeSegment}
@@ -594,6 +909,8 @@ export function SharedPlanningOverviewPage({
         plansTabId={plansTabId}
         wishesPanelId={wishesPanelId}
         plansPanelId={plansPanelId}
+        datesTabId={datesTabId}
+        datesPanelId={datesPanelId}
       />
 
       <PlanenPanel
@@ -601,13 +918,6 @@ export function SharedPlanningOverviewPage({
         labelledBy={plansTabId}
         hidden={activeSegment !== 'plans'}
       >
-        <Link
-          className="planen-local-add"
-          {...planningLinkProps(PLAN_CREATE_ROUTE, 'plans')}
-        >
-          <span aria-hidden="true">+</span>
-          {t('m5s3.overview.addPlan')}
-        </Link>
         <PlanningSearch
           kind="plans"
           value={planSearch}
@@ -666,6 +976,35 @@ export function SharedPlanningOverviewPage({
           </div>
         ) : null}
 
+        {planStatus === 'OPEN' &&
+        journeyHint &&
+        !planSearch.trim() &&
+        !plans.error ? (
+          <a
+            className="planen-wish-journey-hint"
+            href={
+              journeyHint.kind === 'underway'
+                ? '#planned-wishes'
+                : '#fulfilled-wishes'
+            }
+            onClick={(event) =>
+              openWishScope(
+                event,
+                journeyHint.kind === 'underway' ? 'PLANNED' : 'COMPLETED',
+              )
+            }
+          >
+            <WishOriginMark trailing>
+              {t(
+                journeyHint.kind === 'underway'
+                  ? 'wishJourney.hintUnderway'
+                  : 'wishJourney.hintAwaitingMemory',
+                { count: journeyHint.count },
+              )}
+            </WishOriginMark>
+          </a>
+        ) : null}
+
         {planStatus === 'OPEN' && planGroups.focal ? (
           <section
             className="planen-next"
@@ -713,7 +1052,21 @@ export function SharedPlanningOverviewPage({
                       plan.id,
                     )}
                   >
-                    <strong>{plan.title}</strong>
+                    <span className="planen-undated-copy">
+                      {plan.sourceWishId ? (
+                        <WishOriginMark>
+                          {t('wishJourney.planOrigin')}
+                        </WishOriginMark>
+                      ) : null}
+                      {plan.discreet ? (
+                        <span className="discreet-title-row">
+                          <strong>{planListTitle(plan, t)}</strong>
+                          <DiscreetLock />
+                        </span>
+                      ) : (
+                        <strong>{plan.title}</strong>
+                      )}
+                    </span>
                     <span>{t('m5s3.overview.undatedHeading')}</span>
                   </Link>
                 </li>
@@ -765,13 +1118,6 @@ export function SharedPlanningOverviewPage({
         labelledBy={wishesTabId}
         hidden={activeSegment !== 'wishes'}
       >
-        <Link
-          className="planen-local-add"
-          {...planningLinkProps(WISH_CREATE_ROUTE, 'wishes')}
-        >
-          <span aria-hidden="true">+</span>
-          {t('m5s3.overview.addWish')}
-        </Link>
         <PlanningSearch
           kind="wishes"
           value={wishSearch}
@@ -782,7 +1128,9 @@ export function SharedPlanningOverviewPage({
           value={wishStatus}
           onChange={(status) => changeStatus('wishes', status)}
         />
-        <WishSelectionEntry segment="wishes" compact />
+        {wishStatus === 'OPEN' ? (
+          <WishSelectionEntry segment="wishes" compact />
+        ) : null}
         {(wishes.isLoading && !wishes.data) || assemblingWishes ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
@@ -819,12 +1167,44 @@ export function SharedPlanningOverviewPage({
                   ? 'm5s3.overview.noSearchResults'
                   : wishStatus === 'COMPLETED'
                     ? 'm5s3.overview.fulfilledWishesEmpty'
-                    : 'm5s3.overview.wishesEmpty',
+                    : wishStatus === 'PLANNED'
+                      ? 'wishJourney.plannedEmpty'
+                      : 'm5s3.overview.wishesEmpty',
               )}
             </h2>
           </div>
         ) : null}
-        {!assemblingWishes && wishItems.length ? (
+        {!assemblingWishes && wishItems.length && wishStatus !== 'OPEN' ? (
+          <div className="planen-wish-groups planen-wish-journey">
+            {wishStatus === 'PLANNED' && !wishSearch.trim() ? (
+              <p className="planen-wish-journey-intro">
+                {t('wishJourney.plannedIntro')}
+              </p>
+            ) : null}
+            <ul className="planen-wish-list">
+              {wishStatus === 'COMPLETED'
+                ? groupCompletedSeries(wishItems).map(renderCompletedRow)
+                : wishItems.map((wish) => (
+                    <li key={wish.id} className="planen-wish-journey-card">
+                      <Link
+                        className="planen-wish-link"
+                        {...planningLinkProps(
+                          wishDetailPath(wish.id),
+                          'wishes',
+                          wish.id,
+                        )}
+                      >
+                        <span className="planen-wish-copy">
+                          <strong>{wish.title}</strong>
+                        </span>
+                      </Link>
+                      {renderWishJourneyLink(wish)}
+                    </li>
+                  ))}
+            </ul>
+          </div>
+        ) : null}
+        {!assemblingWishes && wishItems.length && wishStatus === 'OPEN' ? (
           <div className="planen-wish-groups">
             {[...wishGroups].map(([initial, items]) => (
               <section
@@ -846,6 +1226,13 @@ export function SharedPlanningOverviewPage({
                       >
                         <span className="planen-wish-copy">
                           <strong>{wish.title}</strong>
+                          {wish.seriesPosition > 1 ? (
+                            <WishOriginMark>
+                              {t('wishRepeat.series.nthTime', {
+                                position: wish.seriesPosition,
+                              })}
+                            </WishOriginMark>
+                          ) : null}
                         </span>
                       </Link>
                     </li>
@@ -865,6 +1252,23 @@ export function SharedPlanningOverviewPage({
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
           </AutoLoadMore>
+        ) : null}
+      </PlanenPanel>
+      <PlanenPanel
+        id={datesPanelId}
+        labelledBy={datesTabId}
+        hidden={activeSegment !== 'dates'}
+      >
+        {activeSegment === 'dates' && peopleApi ? (
+          <PlanningOccasions
+            createActionContainer={occasionActionHost}
+            peopleApi={peopleApi}
+            profilesApi={profilesApi}
+            spaceId={spaceId}
+            accountId={accountId}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+          />
         ) : null}
       </PlanenPanel>
     </div>

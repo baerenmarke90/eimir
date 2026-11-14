@@ -12,13 +12,22 @@ export async function nextFrame(page: Page): Promise<void> {
 export async function swipeCarousel(
   page: Page,
   direction: 'previous' | 'next',
+  surface: 'inline' | 'lightbox' = 'inline',
 ): Promise<{
   startScrollLeft: number;
   midScrollLeft: number;
   viewportWidth: number;
   visibleSlides: number;
+  position: {
+    dots: number[];
+    markers: { center: number; opacity: number }[];
+  } | null;
 }> {
-  const track = page.locator('.media-gallery-carousel-track');
+  const track = page.locator(
+    surface === 'inline'
+      ? '.media-gallery-carousel-track'
+      : '.media-lightbox-track',
+  );
   const box = await track.boundingBox();
   if (!box) throw new Error('Carousel track did not render.');
 
@@ -27,7 +36,20 @@ export async function swipeCarousel(
   const endX =
     direction === 'next' ? box.x + box.width * 0.12 : box.x + box.width * 0.88;
   const midX = startX + (endX - startX) * 0.58;
-  const clientY = box.y + box.height / 2;
+  // Inline galleries expose 44px Previous/Next overlays at their vertical
+  // center. Start the real touch on unobstructed media, above those controls.
+  const clientY = box.y + box.height * (surface === 'inline' ? 0.3 : 0.5);
+  if (surface === 'inline') {
+    const touchesMedia = await track.evaluate(
+      (element, point) => {
+        const hit = document.elementFromPoint(point.x, point.y);
+        return hit !== null && element.contains(hit);
+      },
+      { x: startX, y: clientY },
+    );
+    if (!touchesMedia)
+      throw new Error('The inline swipe starts outside the carousel media.');
+  }
   const startScrollLeft = await track.evaluate((element) => element.scrollLeft);
   const client = await page.context().newCDPSession(page);
 
@@ -45,15 +67,37 @@ export async function swipeCarousel(
     const midState = await track.evaluate((element) => {
       const viewport = element.getBoundingClientRect();
       const visibleSlides = Array.from(
-        element.querySelectorAll<HTMLElement>('.media-gallery-carousel-slide'),
+        element.querySelectorAll<HTMLElement>(
+          '[data-carousel-index], [data-lightbox-index]',
+        ),
       ).filter((slide) => {
         const rect = slide.getBoundingClientRect();
         return rect.right > viewport.left + 1 && rect.left < viewport.right - 1;
       }).length;
+      const positions = element
+        .closest('.media-gallery-carousel')
+        ?.querySelector('.media-gallery-position');
+      const center = (node: Element) => {
+        const rect = node.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      };
+      const position = positions
+        ? {
+            dots: Array.from(positions.querySelectorAll('button'), center),
+            markers: Array.from(
+              positions.querySelectorAll('.media-gallery-position-marker'),
+              (marker) => ({
+                center: center(marker),
+                opacity: Number(getComputedStyle(marker).opacity),
+              }),
+            ),
+          }
+        : null;
       return {
         scrollLeft: element.scrollLeft,
         viewportWidth: element.clientWidth,
         visibleSlides,
+        position,
       };
     });
 
@@ -71,6 +115,7 @@ export async function swipeCarousel(
       midScrollLeft: midState.scrollLeft,
       viewportWidth: midState.viewportWidth,
       visibleSlides: midState.visibleSlides,
+      position: midState.position,
     };
   } finally {
     await client.detach();

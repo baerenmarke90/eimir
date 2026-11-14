@@ -36,9 +36,21 @@ ETAG_HEADERS = {
 class RelatedPersonFields(ApiModel):
     display_name: str = Field(min_length=1, max_length=120)
     relationship: PersonRelationship
+    note: str | None = Field(
+        default=None,
+        max_length=2000,
+        description=(
+            "Optional shared note. Omission or null preserves an existing note; "
+            "empty text clears it."
+        ),
+    )
     birthday: date | None = None
     birthday_year_known: bool = False
-    visibility: ContentVisibility
+    visibility: ContentVisibility = Field(
+        default=ContentVisibility.SHARED,
+        json_schema_extra={"deprecated": True},
+        description="People are always shared within their Space. Only SHARED is accepted.",
+    )
     show_birthday_on_dashboard: bool = False
     """Explicit opt-in for this birthday to appear on the shared Dashboard.
 
@@ -46,6 +58,13 @@ class RelatedPersonFields(ApiModel):
     off, and requires ``birthday`` to be set.
     """
     avatar_attachment_id: UUID | None = None
+
+    @field_validator("visibility")
+    @classmethod
+    def _shared_person(cls, value: ContentVisibility) -> ContentVisibility:
+        if value is not ContentVisibility.SHARED:
+            raise ValueError("People are always shared within their Space.")
+        return value
 
     @field_validator("display_name")
     @classmethod
@@ -60,6 +79,7 @@ class RelatedPersonView(ApiModel):
     id: UUID
     display_name: str
     relationship: PersonRelationship
+    note: str = ""
     birthday: date | None
     birthday_year_known: bool
     """When the year is unknown, ``birthday`` contains a placeholder year.
@@ -109,6 +129,7 @@ def _person_view(person: RelatedPerson) -> RelatedPersonView:
         id=person.id,
         display_name=person.payload.display_name,
         relationship=PersonRelationship(person.relationship),
+        note=person.payload.note,
         birthday=person.birthday,
         birthday_year_known=person.birthday_year_known,
         visibility=visibility_of(person.privacy_class),
@@ -172,6 +193,7 @@ def create_related_person(
         visibility=body.visibility,
         show_birthday_on_dashboard=body.show_birthday_on_dashboard,
         avatar_attachment_id=body.avatar_attachment_id,
+        note=body.note,
     )
     response.headers["ETag"] = etag_for(person.version)
     return _person_view(person)
@@ -224,6 +246,7 @@ def update_related_person(
         visibility=body.visibility,
         show_birthday_on_dashboard=body.show_birthday_on_dashboard,
         avatar_attachment_id=body.avatar_attachment_id,
+        note=body.note,
     )
     response.headers["ETag"] = etag_for(person.version)
     return _person_view(person)

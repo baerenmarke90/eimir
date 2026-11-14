@@ -39,6 +39,18 @@ export interface FcmConfiguration {
     encryptedPreviewVersion?: FcmConfigurationEncryptedPreviewVersionEnum;
     /**
      * 
+     * @type {FcmConfigurationLocaleVersionEnum}
+     * @memberof FcmConfiguration
+     */
+    localeVersion?: FcmConfigurationLocaleVersionEnum;
+    /**
+     * 
+     * @type {FcmConfigurationNeutralReferenceVersionEnum}
+     * @memberof FcmConfiguration
+     */
+    neutralReferenceVersion?: FcmConfigurationNeutralReferenceVersionEnum | null;
+    /**
+     * 
      * @type {string}
      * @memberof FcmConfiguration
      */
@@ -68,6 +80,22 @@ export const FcmConfigurationEncryptedPreviewVersionEnum = {
 } as const;
 export type FcmConfigurationEncryptedPreviewVersionEnum = typeof FcmConfigurationEncryptedPreviewVersionEnum[keyof typeof FcmConfigurationEncryptedPreviewVersionEnum];
 
+/**
+ * @export
+ */
+export const FcmConfigurationLocaleVersionEnum = {
+    NUMBER_1: 1
+} as const;
+export type FcmConfigurationLocaleVersionEnum = typeof FcmConfigurationLocaleVersionEnum[keyof typeof FcmConfigurationLocaleVersionEnum];
+
+/**
+ * @export
+ */
+export const FcmConfigurationNeutralReferenceVersionEnum = {
+    NUMBER_1: 1
+} as const;
+export type FcmConfigurationNeutralReferenceVersionEnum = typeof FcmConfigurationNeutralReferenceVersionEnum[keyof typeof FcmConfigurationNeutralReferenceVersionEnum];
+
 
 /**
  * Check if a given object implements the FcmConfiguration interface.
@@ -92,6 +120,8 @@ export function FcmConfigurationFromJSONTyped(json: any, ignoreDiscriminator: bo
         'androidPackage': json['androidPackage'],
         'encryptedPreviewMaxVersion': json['encryptedPreviewMaxVersion'] == null ? undefined : json['encryptedPreviewMaxVersion'],
         'encryptedPreviewVersion': json['encryptedPreviewVersion'] == null ? undefined : json['encryptedPreviewVersion'],
+        'localeVersion': json['localeVersion'] == null ? undefined : json['localeVersion'],
+        'neutralReferenceVersion': json['neutralReferenceVersion'] === undefined ? undefined : json['neutralReferenceVersion'] === null ? null : json['neutralReferenceVersion'],
         'projectId': json['projectId'],
         'providerKey': json['providerKey'],
     };
@@ -111,6 +141,8 @@ export function FcmConfigurationToJSONTyped(value?: FcmConfiguration | null, ign
         'androidPackage': value['androidPackage'],
         'encryptedPreviewMaxVersion': value['encryptedPreviewMaxVersion'],
         'encryptedPreviewVersion': value['encryptedPreviewVersion'],
+        'localeVersion': value['localeVersion'],
+        'neutralReferenceVersion': value['neutralReferenceVersion'],
         'projectId': value['projectId'],
         'providerKey': value['providerKey'],
     };

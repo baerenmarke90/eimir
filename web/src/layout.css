@@ -184,6 +184,36 @@
   min-width: 0;
 }
 
+.page-heading.content-overview-heading {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.page-heading.content-overview-heading > div:first-child {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+}
+
+.content-overview-heading .page-heading-title-container {
+  margin-block-end: 0;
+}
+
+.page-heading.content-overview-heading .page-heading-action {
+  display: flex;
+  flex: 1 1 8rem;
+  justify-content: flex-end;
+  width: auto;
+  min-inline-size: min(100%, 8rem);
+  max-inline-size: 100%;
+  margin-inline-start: auto;
+}
+
+.content-overview-heading .page-heading-action > * {
+  max-inline-size: 100%;
+}
+
 .page-heading h1,
 .page-heading-title-container {
   margin-bottom: var(--space-2);
@@ -244,8 +274,19 @@
  * single title scale and one header-to-content spacing contract.
  */
 .page-heading-root {
+  align-items: center;
+  /* One header band for Wir, Momente, Planen and Mehr, so the title sits at the
+     same height and position whatever action or tabs follow it. */
+  min-block-size: var(--touch-target-comfortable);
   margin-bottom: var(--space-section);
   padding-bottom: 0;
+}
+
+@media (max-width: 839px) {
+  /* One taller band on Compact, shared by all root destinations. */
+  .page-heading-root {
+    min-block-size: calc(var(--touch-target-comfortable) + var(--space-1));
+  }
 }
 
 .page-heading-root .page-heading-title-container {
@@ -383,8 +424,8 @@
   }
 
   .layout-section-action,
-  .layout-section-action > .button-link,
-  .layout-section-action > button {
+  .layout-section-action > .button-link:not(.add-action),
+  .layout-section-action > button:not(.add-action) {
     width: 100%;
   }
 

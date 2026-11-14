@@ -1,4 +1,9 @@
-import { NativeDateInput } from './NativeDateField';
+import './FreeComposer.css';
+import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
+import { AvatarPhoto } from './AvatarPhoto';
+import { PageHeader } from './PageHeader';
+import { TaskBackButton } from './TaskBackButton';
+import './PeopleProfiles.css';
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -9,35 +14,48 @@ import {
   useState,
 } from 'react';
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
-import { MediaDropZone } from './MediaDropZone';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
-import {
-  type DraftUploadPhase,
-  uploadMemoryDraftAttachment,
-} from '../client/memoryAttachmentDraft';
-import {
-  createOwnedObjectUrl,
-  type OwnedObjectUrl,
-} from '../client/objectUrlResource';
 import { createReferenceApis } from '../client/referenceFlow';
 import {
   birthdayFromInput,
   birthdayInputParts,
   daysInMonth,
 } from '../client/relatedPersonBirthday';
+import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
-import { DestinationIcon } from './DestinationIcon';
-import { personInitials } from './PersonIdentity';
+import { MediaDropZone } from './MediaDropZone';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
+import { MediaActionGroup } from './MediaActionGroup';
+import { AddActionButton } from './AddAction';
 import { ProblemState } from './ProblemState';
-import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
-const RELATIONSHIPS = Object.values(PersonRelationship);
-const VISIBILITIES = Object.values(ContentVisibility);
+const RELATIONSHIPS: PersonRelationship[] = [
+  PersonRelationship.DAUGHTER,
+  PersonRelationship.SON,
+  PersonRelationship.MOTHER,
+  PersonRelationship.FATHER,
+  PersonRelationship.SISTER,
+  PersonRelationship.BROTHER,
+  PersonRelationship.GRANDMOTHER,
+  PersonRelationship.GRANDFATHER,
+  PersonRelationship.GRANDDAUGHTER,
+  PersonRelationship.GRANDSON,
+  PersonRelationship.MOTHER_IN_LAW,
+  PersonRelationship.FATHER_IN_LAW,
+  PersonRelationship.AUNT,
+  PersonRelationship.UNCLE,
+  PersonRelationship.COUSIN,
+  PersonRelationship.RELATIVE,
+  PersonRelationship.FRIEND,
+  PersonRelationship.ACQUAINTANCE,
+  PersonRelationship.COLLEAGUE,
+  PersonRelationship.OTHER,
+];
 
 function dateInputValue(value: Date | null): string {
   if (!value) return '';
@@ -48,22 +66,26 @@ function personFields(
   form: FormData,
   avatarAttachmentId: string | null,
 ): RelatedPersonFields {
-  const birthdayYearKnown = form.get('birthdayYearKnown') === 'on';
+  const month = String(form.get('birthdayMonth') || '');
+  const day = String(form.get('birthdayDay') || '');
+  const year = String(form.get('birthdayYear') || '');
+  const birthdayYearKnown = Boolean(year && month && day);
   const birthday = birthdayFromInput({
     yearKnown: birthdayYearKnown,
-    dateValue: String(form.get('birthday') || ''),
-    monthValue: String(form.get('birthdayMonth') || ''),
-    dayValue: String(form.get('birthdayDay') || ''),
+    dateValue: birthdayYearKnown
+      ? `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      : '',
+    monthValue: month,
+    dayValue: day,
   });
 
   return {
     displayName: String(form.get('displayName') || '').trim(),
+    note: String(form.get('note') || '').trim(),
     relationship: String(
       form.get('relationship'),
     ) as RelatedPersonFields['relationship'],
-    visibility: String(
-      form.get('visibility'),
-    ) as RelatedPersonFields['visibility'],
+    visibility: ContentVisibility.SHARED,
     birthday,
     birthdayYearKnown: Boolean(birthday && birthdayYearKnown),
     showBirthdayOnDashboard: Boolean(
@@ -80,10 +102,11 @@ export function RelatedPersonEditorSheet({
   spaceId,
   apiBaseUrl,
   accessToken,
+  accountId,
   attachmentsApi,
   onCancel,
   onSubmit,
-  onDeleteRequest,
+  onSaved,
 }: {
   person: RelatedPersonView | null;
   pending: boolean;
@@ -91,14 +114,13 @@ export function RelatedPersonEditorSheet({
   spaceId: string;
   apiBaseUrl?: string;
   accessToken?: string;
+  accountId?: string;
   attachmentsApi?: AttachmentsApi | null;
   onCancel: () => void;
-  onSubmit: (fields: RelatedPersonFields) => void;
-  onDeleteRequest?: () => void;
+  onSubmit: (fields: RelatedPersonFields) => Promise<RelatedPersonView>;
+  onSaved: (person: RelatedPersonView) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,6 +132,7 @@ export function RelatedPersonEditorSheet({
       birthdayMonth: birthdayParts.monthValue,
       birthdayYearKnown: person?.birthday ? person.birthdayYearKnown : true,
       displayName: person?.displayName ?? '',
+      note: person?.note ?? '',
       knownBirthday:
         person?.birthday && person.birthdayYearKnown
           ? dateInputValue(person.birthday)
@@ -118,16 +141,15 @@ export function RelatedPersonEditorSheet({
       showBirthdayOnDashboard: person?.birthday
         ? person.showBirthdayOnDashboard
         : false,
-      visibility: person?.visibility ?? ContentVisibility.SHARED,
     };
   }, [person]);
   const [displayName, setDisplayName] = useState(initialDraft.displayName);
+  const [note, setNote] = useState(initialDraft.note);
   const [relationship, setRelationship] = useState(initialDraft.relationship);
-  const [birthdayYearKnown, setBirthdayYearKnown] = useState(
-    initialDraft.birthdayYearKnown,
-  );
-  const [knownBirthday, setKnownBirthday] = useState(
-    initialDraft.knownBirthday,
+  const [birthdayYear, setBirthdayYear] = useState(
+    initialDraft.birthdayYearKnown
+      ? initialDraft.knownBirthday.slice(0, 4)
+      : '',
   );
   const [birthdayMonth, setBirthdayMonth] = useState(
     initialDraft.birthdayMonth,
@@ -136,14 +158,33 @@ export function RelatedPersonEditorSheet({
   const [showBirthdayOnDashboard, setShowBirthdayOnDashboard] = useState(
     initialDraft.showBirthdayOnDashboard,
   );
-  const [visibility, setVisibility] = useState(initialDraft.visibility);
 
   const [currentAvatarId, setCurrentAvatarId] = useState<string | null>(
     initialDraft.avatarAttachmentId,
   );
-  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
-  const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const referenceApis = useMemo(
+    () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
+    [apiBaseUrl, accessToken],
+  );
+  const avatarDrafts = useAttachmentDrafts({
+    apis: referenceApis,
+    apiBaseUrl: apiBaseUrl ?? '',
+    accessToken: accessToken ?? '',
+    spaceId,
+    accountId: accountId ?? '',
+    resourceKey: `related-person:${person?.id ?? 'new'}`,
+    maxAttachments: 1,
+    preserveMetadata: false,
+  });
+  const avatarDraft = avatarDrafts.items[0];
+  const avatarPreviewUrl = avatarDraft?.previewUrl ?? null;
+  const uploadPhase = avatarDrafts.hasPending ? avatarDraft?.status : null;
+  const uploadError = selectionError ?? avatarDraft?.error;
+  const avatarNotReady = Boolean(avatarDraft && avatarDraft.status !== 'ready');
+  const avatarId = avatarDraft
+    ? (avatarDraft.attachmentId ?? null)
+    : currentAvatarId;
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const { avatarUrl: existingAvatarUrl } = useRelatedPersonAvatarUrl(
@@ -153,10 +194,6 @@ export function RelatedPersonEditorSheet({
   );
   const displayedAvatarUrl =
     avatarPreviewUrl || (currentAvatarId ? existingAvatarUrl : null);
-  const initials = useMemo(
-    () => (person ? personInitials(person.displayName) : '?'),
-    [person],
-  );
 
   const monthOptions = useMemo(
     () =>
@@ -169,34 +206,35 @@ export function RelatedPersonEditorSheet({
       })),
     [i18n.language],
   );
-  const birthdayPartRequired = Boolean(birthdayMonth || birthdayDay);
-  const hasBirthday = birthdayYearKnown
-    ? Boolean(knownBirthday)
-    : Boolean(birthdayMonth && birthdayDay);
+  const birthdayPartRequired = Boolean(
+    birthdayMonth || birthdayDay || birthdayYear,
+  );
+  const hasBirthday = Boolean(birthdayMonth && birthdayDay);
   const isDirty = useMemo(
     () =>
       displayName !== initialDraft.displayName ||
+      note !== initialDraft.note ||
       relationship !== initialDraft.relationship ||
-      birthdayYearKnown !== initialDraft.birthdayYearKnown ||
-      knownBirthday !== initialDraft.knownBirthday ||
+      birthdayYear !==
+        (initialDraft.birthdayYearKnown
+          ? initialDraft.knownBirthday.slice(0, 4)
+          : '') ||
       birthdayMonth !== initialDraft.birthdayMonth ||
       birthdayDay !== initialDraft.birthdayDay ||
       showBirthdayOnDashboard !== initialDraft.showBirthdayOnDashboard ||
-      visibility !== initialDraft.visibility ||
       currentAvatarId !== initialDraft.avatarAttachmentId ||
       avatarPreviewUrl !== null,
     [
       avatarPreviewUrl,
       birthdayDay,
       birthdayMonth,
-      birthdayYearKnown,
+      birthdayYear,
       currentAvatarId,
       displayName,
       initialDraft,
-      knownBirthday,
+      note,
       relationship,
       showBirthdayOnDashboard,
-      visibility,
     ],
   );
 
@@ -204,25 +242,7 @@ export function RelatedPersonEditorSheet({
     if (!hasBirthday) setShowBirthdayOnDashboard(false);
   }, [hasBirthday]);
 
-  const previewResourceRef = useRef<OwnedObjectUrl | null>(null);
-  const setPreviewFile = useCallback((file: File | null) => {
-    previewResourceRef.current?.dispose();
-    const resource = file ? createOwnedObjectUrl(file) : null;
-    previewResourceRef.current = resource;
-    setAvatarPreviewUrl(resource?.url ?? null);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      previewResourceRef.current?.dispose();
-      previewResourceRef.current = null;
-    };
-  }, []);
-
-  useModalLifecycle({
-    active: true,
-    initialFocusRef: nameInputRef,
-  });
+  useDocumentLeaveGuard(isDirty || pending || Boolean(uploadPhase));
 
   const closeEditor = useEditorHistoryEntry({
     isDirty,
@@ -241,18 +261,25 @@ export function RelatedPersonEditorSheet({
   }, [closeEditor, isDirty, pending, uploadPhase]);
 
   useEffect(() => {
-    const backdrop = backdropRef.current;
-    if (!backdrop) return;
-
-    function handleBackdropClick(event: MouseEvent) {
-      if (event.target === backdrop) handleCloseAttempt();
-    }
-
-    backdrop.addEventListener('click', handleBackdropClick);
-    return () => backdrop.removeEventListener('click', handleBackdropClick);
-  }, [handleCloseAttempt]);
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      // Nested photo/source dialogs own Escape before the focused page does.
+      if (
+        event.key !== 'Escape' ||
+        event.defaultPrevented ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      event.preventDefault();
+      if (showDiscardConfirm) setShowDiscardConfirm(false);
+      else handleCloseAttempt();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [handleCloseAttempt, showDiscardConfirm]);
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
+    // Portalled source tasks own their keyboard and native dialog focus.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     if (event.key === 'Escape' && !pending && !uploadPhase) {
       event.preventDefault();
       if (showDiscardConfirm) {
@@ -262,451 +289,325 @@ export function RelatedPersonEditorSheet({
       }
       return;
     }
-    containModalTabFocus(event, dialogRef.current, { visibleOnly: true });
   }
 
-  async function selectAvatar(file?: File) {
+  function selectAvatar(file?: File) {
     if (!file || pending || uploadPhase) return;
 
-    setUploadError(null);
+    setSelectionError(null);
     if (!file.type.startsWith('image/')) {
-      setUploadError(t('flow.imageOnly'));
+      setSelectionError(t('flow.imageOnly'));
       return;
     }
 
-    if (apiBaseUrl && accessToken) {
-      try {
-        const referenceApis = createReferenceApis(apiBaseUrl, accessToken);
-        const ready = await uploadMemoryDraftAttachment(
-          referenceApis,
-          apiBaseUrl,
-          accessToken,
-          spaceId,
-          file,
-          setUploadPhase,
-        );
-        setCurrentAvatarId(ready.attachmentId);
-        setPreviewFile(file);
-      } catch (err) {
-        setUploadError(
-          err instanceof Error ? err.message : t('flow.uploadFailed'),
-        );
-      } finally {
-        setUploadPhase(null);
-      }
-      return;
-    }
-
-    setPreviewFile(file);
+    for (const draft of avatarDrafts.items) avatarDrafts.remove(draft.id);
+    avatarDrafts.addFiles([file]);
   }
 
   function handleAvatarRemove() {
     setCurrentAvatarId(null);
-    setPreviewFile(null);
-    setUploadError(null);
+    for (const draft of avatarDrafts.items) avatarDrafts.remove(draft.id);
+    setSelectionError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit(personFields(new FormData(event.currentTarget), currentAvatarId));
+    if (pending || avatarNotReady) return;
+    const form = event.currentTarget;
+    const fields = personFields(new FormData(form), avatarId);
+    if (
+      fields.birthday &&
+      (fields.birthday.getUTCDate() !== Number(birthdayDay) ||
+        fields.birthday.getUTCMonth() + 1 !== Number(birthdayMonth))
+    ) {
+      const day = form.elements.namedItem('birthdayDay') as HTMLInputElement;
+      day.setCustomValidity(t('people.invalidBirthday'));
+      day.reportValidity();
+      day.addEventListener('input', () => day.setCustomValidity(''), {
+        once: true,
+      });
+      return;
+    }
+    try {
+      const saved = await onSubmit(fields);
+      closeEditor(() => onSaved(saved));
+    } catch {
+      /* The mutation presents the failure without discarding this draft. */
+    }
   }
 
-  const privacyIcon =
-    visibility === ContentVisibility.PRIVATE ? 'private' : 'people';
-
   return (
-    <div
-      ref={backdropRef}
-      className="focused-editor-backdrop"
-      role="presentation"
+    <section
+      className="page page-reading person-editor-page free-composer"
+      aria-label={t('people.formRailAria')}
+      onKeyDown={handleDialogKeyDown}
     >
-      <section
-        ref={dialogRef}
-        className="focused-editor-sheet related-person-editor"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="related-person-editor-title"
-        onKeyDown={handleDialogKeyDown}
+      <TaskBackButton
+        onClick={handleCloseAttempt}
+        disabled={pending || Boolean(uploadPhase)}
+      />
+      <PageHeader
+        title={person ? t('people.editTitle') : t('people.createTitle')}
+      />
+      <form
+        onInput={(event) => {
+          const day = event.currentTarget.elements.namedItem(
+            'birthdayDay',
+          ) as HTMLInputElement | null;
+          day?.setCustomValidity('');
+        }}
+        onSubmit={(event) => void submit(event)}
+        className="people-editor-form"
       >
-        <header className="focused-editor-header">
-          <div className="focused-editor-heading">
-            <span className="focused-editor-kicker">{t('people.eyebrow')}</span>
-            <h2 id="related-person-editor-title">
-              {person ? t('people.editTitle') : t('people.createTitle')}
-            </h2>
-          </div>
-          <button
-            type="button"
-            className="focused-editor-close"
-            onClick={handleCloseAttempt}
-            aria-label={t('people.closeDialogAria')}
-            disabled={pending || Boolean(uploadPhase)}
-          >
-            <span aria-hidden="true">✕</span>
-          </button>
-        </header>
-
-        <form
-          key={person?.id ?? 'new'}
-          className="focused-editor-form"
-          onSubmit={submit}
-        >
-          <div className="focused-editor-scroll">
-            <div className="focused-editor-stack">
-              {showDiscardConfirm ? (
-                <div
-                  className="inline-message inline-message-danger focused-editor-confirmation"
-                  role="alert"
-                >
-                  <strong>{t('people.discardTitle')}</strong>
-                  <span>{t('people.discardBody')}</span>
-                  <div className="form-actions choice-row">
-                    <button
-                      type="button"
-                      className="secondary compact-action"
-                      onClick={() => setShowDiscardConfirm(false)}
-                    >
-                      {t('people.keepEditing')}
-                    </button>
-                    <button
-                      type="button"
-                      className="danger compact-action"
-                      onClick={closeEditor}
-                    >
-                      {t('people.discardConfirm')}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              <section
-                className="focused-editor-primary"
-                aria-labelledby="related-person-identity-title"
+        {showDiscardConfirm ? (
+          <div className="inline-message inline-message-danger" role="alert">
+            <strong>{t('people.discardTitle')}</strong>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setShowDiscardConfirm(false)}
               >
-                <div className="focused-editor-section-heading">
-                  <h3 id="related-person-identity-title">
-                    {t('people.identitySectionTitle')}
-                  </h3>
-                  <p>{t('people.identitySectionHelp')}</p>
-                </div>
-
-                <MediaDropZone
-                  multiple={false}
-                  disabled={pending || Boolean(uploadPhase)}
-                  onFiles={(files) => void selectAvatar(files[0])}
-                >
-                  <div className="related-person-identity-row">
-                    <div className="people-editor-avatar" aria-hidden="true">
-                      {displayedAvatarUrl ? (
-                        <img src={displayedAvatarUrl} alt="" />
-                      ) : (
-                        <span>{initials}</span>
-                      )}
-                    </div>
-                    <div className="people-editor-avatar-actions">
-                      <span className="field-label">
-                        {t('people.avatarLabel')}
-                      </span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) => {
-                          void selectAvatar(event.currentTarget.files?.[0]);
-                          event.currentTarget.value = '';
-                        }}
-                        className="visually-hidden-file-input"
-                        aria-label={t('people.avatarLabel')}
-                      />
-                      <div className="people-editor-avatar-buttons">
-                        <button
-                          type="button"
-                          className="secondary compact-action"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={pending || Boolean(uploadPhase)}
-                        >
-                          {displayedAvatarUrl
-                            ? t('people.avatarChange')
-                            : t('people.avatarUpload')}
-                        </button>
-                        {displayedAvatarUrl ? (
-                          <button
-                            type="button"
-                            className="tertiary compact-action"
-                            onClick={handleAvatarRemove}
-                            disabled={pending || Boolean(uploadPhase)}
-                          >
-                            {t('people.avatarRemove')}
-                          </button>
-                        ) : null}
-                      </div>
-                      {uploadPhase ? (
-                        <small className="field-help" role="status">
-                          {uploadPhase === 'validating'
-                            ? t('people.avatarValidating')
-                            : t('people.avatarUploading')}
-                        </small>
-                      ) : null}
-                    </div>
-                  </div>
-                </MediaDropZone>
-                {uploadError ? (
-                  <p className="field-help field-error" role="alert">
-                    {uploadError}
-                  </p>
-                ) : null}
-
-                <div className="field-group">
-                  <label htmlFor="related-person-name">
-                    {t('people.nameLabel')}
-                  </label>
-                  <input
-                    ref={nameInputRef}
-                    id="related-person-name"
-                    name="displayName"
-                    required
-                    maxLength={120}
-                    value={displayName}
-                    onChange={(event) =>
-                      setDisplayName(event.currentTarget.value)
-                    }
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div className="field-group">
-                  <label htmlFor="related-person-relationship">
-                    {t('people.relationshipLabel')}
-                  </label>
-                  <select
-                    id="related-person-relationship"
-                    name="relationship"
-                    value={relationship}
-                    onChange={(event) =>
-                      setRelationship(
-                        event.currentTarget.value as PersonRelationship,
-                      )
-                    }
-                  >
-                    {RELATIONSHIPS.map((relationship) => (
-                      <option key={relationship} value={relationship}>
-                        {t(`people.relationship.${relationship}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </section>
-
-              <details
-                className="focused-editor-disclosure"
-                open={person?.birthday ? true : undefined}
+                {t('people.keepEditing')}
+              </button>
+              <button
+                type="button"
+                className="danger"
+                onClick={() => closeEditor()}
               >
-                <summary>
-                  <span>
-                    <strong>{t('people.birthdayLabel')}</strong>
-                    <small>{t('people.birthdayOptionalHelp')}</small>
-                  </span>
-                </summary>
-                <div className="focused-editor-disclosure-content">
-                  <label
-                    className="choice-row"
-                    htmlFor="related-person-birthday-year-known"
-                  >
-                    <input
-                      id="related-person-birthday-year-known"
-                      name="birthdayYearKnown"
-                      type="checkbox"
-                      checked={birthdayYearKnown}
-                      onChange={(event) => {
-                        const nextYearKnown = event.currentTarget.checked;
-                        if (!nextYearKnown && knownBirthday) {
-                          const knownDate = new Date(
-                            `${knownBirthday}T00:00:00.000Z`,
-                          );
-                          setBirthdayMonth(String(knownDate.getUTCMonth() + 1));
-                          setBirthdayDay(String(knownDate.getUTCDate()));
-                        }
-                        setBirthdayYearKnown(nextYearKnown);
-                      }}
-                    />
-                    <span>{t('people.birthdayYearKnown')}</span>
-                  </label>
-
-                  {birthdayYearKnown ? (
-                    <div className="field-group">
-                      <label htmlFor="related-person-birthday">
-                        {t('people.birthdayDateLabel')}
-                      </label>
-                      <NativeDateInput
-                        id="related-person-birthday"
-                        name="birthday"
-                        value={knownBirthday}
-                        onChange={(event) =>
-                          setKnownBirthday(event.currentTarget.value)
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="birthday-parts-grid">
-                        <div className="field-group">
-                          <label htmlFor="related-person-birthday-day">
-                            {t('people.birthdayDayLabel')}
-                          </label>
-                          <input
-                            id="related-person-birthday-day"
-                            name="birthdayDay"
-                            type="number"
-                            inputMode="numeric"
-                            min={1}
-                            max={daysInMonth(Number(birthdayMonth))}
-                            required={birthdayPartRequired}
-                            value={birthdayDay}
-                            onChange={(event) =>
-                              setBirthdayDay(event.currentTarget.value)
-                            }
-                          />
-                        </div>
-                        <div className="field-group">
-                          <label htmlFor="related-person-birthday-month">
-                            {t('people.birthdayMonthLabel')}
-                          </label>
-                          <select
-                            id="related-person-birthday-month"
-                            name="birthdayMonth"
-                            required={birthdayPartRequired}
-                            value={birthdayMonth}
-                            onChange={(event) =>
-                              setBirthdayMonth(event.currentTarget.value)
-                            }
-                          >
-                            <option value="">
-                              {t('people.birthdayMonthPlaceholder')}
-                            </option>
-                            {monthOptions.map((month) => (
-                              <option key={month.value} value={month.value}>
-                                {month.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <p className="field-help">
-                        {t('people.birthdayUnknownYearHelp')}
-                      </p>
-                    </>
-                  )}
-
-                  {hasBirthday ? (
-                    <div className="birthday-dashboard-option">
-                      <label
-                        className="choice-row"
-                        htmlFor="related-person-show-birthday-on-dashboard"
-                      >
-                        <input
-                          id="related-person-show-birthday-on-dashboard"
-                          name="showBirthdayOnDashboard"
-                          type="checkbox"
-                          checked={showBirthdayOnDashboard}
-                          onChange={(event) =>
-                            setShowBirthdayOnDashboard(
-                              event.currentTarget.checked,
-                            )
-                          }
-                        />
-                        <span>{t('people.birthdayShowOnDashboard')}</span>
-                      </label>
-                      <p className="field-help">
-                        {t('people.birthdayShowOnDashboardHelp')}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              </details>
-
-              <section
-                className="focused-editor-privacy"
-                aria-labelledby="related-person-privacy-title"
-              >
-                <span
-                  className="focused-editor-privacy-icon"
-                  aria-hidden="true"
-                >
-                  <DestinationIcon icon={privacyIcon} />
-                </span>
-                <div className="focused-editor-privacy-content">
-                  <div className="focused-editor-section-heading compact">
-                    <h3 id="related-person-privacy-title">
-                      {t('people.visibilityLabel')}
-                    </h3>
-                    <p>{t('people.visibilityHelp')}</p>
-                  </div>
-                  <select
-                    id="related-person-visibility"
-                    name="visibility"
-                    value={visibility}
-                    aria-label={t('people.visibilityLabel')}
-                    onChange={(event) =>
-                      setVisibility(
-                        event.currentTarget.value as ContentVisibility,
-                      )
-                    }
-                  >
-                    {VISIBILITIES.map((visibilityOption) => (
-                      <option key={visibilityOption} value={visibilityOption}>
-                        {t(`people.visibility.${visibilityOption}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </section>
-
-              {error ? <ProblemState error={error} /> : null}
-
-              {person && onDeleteRequest ? (
-                <section
-                  className="focused-editor-danger-zone"
-                  aria-labelledby="related-person-lifecycle-title"
-                >
-                  <div className="focused-editor-section-heading compact">
-                    <h3 id="related-person-lifecycle-title">
-                      {t('people.lifecycleTitle')}
-                    </h3>
-                    <p>{t('people.lifecycleHelp')}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="secondary danger compact-action"
-                    onClick={onDeleteRequest}
-                    disabled={pending || Boolean(uploadPhase)}
-                  >
-                    {t('people.delete')}
-                  </button>
-                </section>
-              ) : null}
+                {t('people.discardConfirm')}
+              </button>
             </div>
           </div>
-
-          <footer className="focused-editor-actions">
-            <button type="submit" disabled={pending || Boolean(uploadPhase)}>
-              {pending
-                ? t('people.saving')
-                : person
-                  ? t('people.saveChanges')
-                  : t('people.create')}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={handleCloseAttempt}
-              disabled={pending || Boolean(uploadPhase)}
-            >
-              {t('common.cancel')}
-            </button>
-          </footer>
-        </form>
-      </section>
-    </div>
+        ) : null}
+        <label className="field-group" htmlFor="related-person-name">
+          {t('people.nameLabel')}
+          <input
+            ref={nameInputRef}
+            id="related-person-name"
+            name="displayName"
+            required
+            maxLength={120}
+            value={displayName}
+            autoComplete="off"
+            onChange={(event) => setDisplayName(event.currentTarget.value)}
+          />
+        </label>
+        <MediaDropZone
+          multiple={false}
+          disabled={pending || Boolean(uploadPhase)}
+          onFiles={(files) => selectAvatar(files[0])}
+        >
+          <div className="people-editor-photo">
+            <AvatarPhoto
+              name={displayName || '?'}
+              url={displayedAvatarUrl}
+              identity={`${spaceId}:person-editor:${person?.id ?? 'new'}:${avatarId}`}
+            />
+            <details className="people-photo-options">
+              <summary>
+                {displayedAvatarUrl
+                  ? t('people.avatarChange')
+                  : t('people.avatarUpload')}
+              </summary>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  aria-label={t('people.avatarUpload')}
+                  onChange={(event) =>
+                    selectAvatar(event.currentTarget.files?.[0])
+                  }
+                />
+                <MediaActionGroup>
+                  {apiBaseUrl && accessToken && accountId ? (
+                    <PhotoSourcePicker
+                      apiBaseUrl={apiBaseUrl}
+                      accessToken={accessToken}
+                      spaceId={spaceId}
+                      accountId={accountId}
+                      remaining={1}
+                      disabled={pending || Boolean(uploadPhase)}
+                      beginSelection={() => {
+                        const ticket = avatarDrafts.beginSelection();
+                        return {
+                          ...ticket,
+                          commit: (files) => {
+                            if (ticket.signal.aborted || !files.length)
+                              return false;
+                            if (!files[0].type.startsWith('image/')) {
+                              setSelectionError(t('flow.imageOnly'));
+                              return false;
+                            }
+                            setSelectionError(null);
+                            for (const draft of avatarDrafts.items)
+                              avatarDrafts.remove(draft.id);
+                            return ticket.commit(files.slice(0, 1));
+                          },
+                        };
+                      }}
+                      devicePicker={(close) => (
+                        <AddActionButton
+                          label={t('people.avatarUpload')}
+                          onClick={() => {
+                            fileInputRef.current?.click();
+                            close();
+                          }}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <AddActionButton
+                      label={t('people.avatarUpload')}
+                      onClick={() => fileInputRef.current?.click()}
+                    />
+                  )}
+                </MediaActionGroup>
+                {displayedAvatarUrl ? (
+                  <button
+                    type="button"
+                    className="tertiary danger"
+                    onClick={handleAvatarRemove}
+                    disabled={pending || Boolean(uploadPhase)}
+                  >
+                    {t('people.avatarRemove')}
+                  </button>
+                ) : null}
+              </div>
+            </details>
+          </div>
+        </MediaDropZone>
+        {uploadPhase ? (
+          <p className="field-help" role="status">
+            {t(
+              uploadPhase === 'validating'
+                ? 'people.avatarValidating'
+                : 'people.avatarUploading',
+            )}
+          </p>
+        ) : null}
+        {uploadError ? (
+          <div className="field-error" role="alert">
+            <p>{uploadError}</p>
+            {avatarDraft?.status === 'failed' ? (
+              <button
+                type="button"
+                onClick={() => avatarDrafts.retry(avatarDraft)}
+              >
+                {t('common.retry')}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        <label className="field-group" htmlFor="related-person-relationship">
+          {t('people.relationshipLabel')}
+          <select
+            id="related-person-relationship"
+            name="relationship"
+            value={relationship}
+            onChange={(event) =>
+              setRelationship(event.currentTarget.value as PersonRelationship)
+            }
+          >
+            {!RELATIONSHIPS.includes(relationship) ? (
+              <option value={relationship}>
+                {t(`people.relationship.${relationship}`)}
+              </option>
+            ) : null}
+            {RELATIONSHIPS.map((value) => (
+              <option key={value} value={value}>
+                {t(`people.relationship.${value}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <details
+          className="people-birthday-options"
+          open={person?.birthday ? true : undefined}
+        >
+          <summary>{t('people.birthdayLabel')}</summary>
+          <div className="people-birthday-parts">
+            <label className="field-group">
+              {t('people.birthdayDayLabel')}
+              <input
+                name="birthdayDay"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={daysInMonth(Number(birthdayMonth))}
+                required={birthdayPartRequired}
+                value={birthdayDay}
+                onChange={(event) => setBirthdayDay(event.currentTarget.value)}
+              />
+            </label>
+            <label className="field-group">
+              {t('people.birthdayMonthLabel')}
+              <select
+                name="birthdayMonth"
+                required={birthdayPartRequired}
+                value={birthdayMonth}
+                onChange={(event) =>
+                  setBirthdayMonth(event.currentTarget.value)
+                }
+              >
+                <option value="">{t('people.birthdayMonthPlaceholder')}</option>
+                {monthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field-group">
+              {t('people.optionalYear')}
+              <input
+                name="birthdayYear"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={9999}
+                value={birthdayYear}
+                onChange={(event) => setBirthdayYear(event.currentTarget.value)}
+              />
+            </label>
+          </div>
+          {hasBirthday ? (
+            <label className="choice-row">
+              <input
+                name="showBirthdayOnDashboard"
+                type="checkbox"
+                checked={showBirthdayOnDashboard}
+                onChange={(event) =>
+                  setShowBirthdayOnDashboard(event.currentTarget.checked)
+                }
+              />
+              {t('people.birthdayShowOnDashboard')}
+            </label>
+          ) : null}
+        </details>
+        <label className="field-group" htmlFor="related-person-note">
+          {t('people.noteLabel')}
+          <textarea
+            id="related-person-note"
+            name="note"
+            rows={3}
+            disabled={pending}
+            maxLength={2000}
+            value={note}
+            placeholder={t('people.notePlaceholder')}
+            onChange={(event) => setNote(event.currentTarget.value)}
+          />
+        </label>
+        {error ? <ProblemState error={error} /> : null}
+        <footer className="people-editor-footer">
+          <button type="submit" disabled={pending || avatarNotReady}>
+            {t(pending ? 'people.saving' : 'people.saveChanges')}
+          </button>
+        </footer>
+      </form>
+    </section>
   );
 }

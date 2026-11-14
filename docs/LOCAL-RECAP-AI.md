@@ -48,12 +48,17 @@ The editorial request is a short album caption rather than fictional storytellin
 at most ten title words and two introductory sentences, forty introduction words,
 64 title characters and 240 introduction characters. Source kind, occurrence date
 and the existing bounded original text provide context; identical title/excerpt
-text is sent once. The prompt explicitly rules out invented authors/recipients,
-third-party reactions, inferred day-long emotions, superlatives and filler.
+text is sent once. The prompt states the wanted caption positively, names the
+output language from the Space locale (German or English, English for any other
+tag) and shows one paraphrased example in that language, so the instructions'
+language does not leak into the answer. It then limits the caption to what the
+sources say: no invented authors/recipients, third-party reactions, inferred
+day-long emotions, superlatives or filler. The prompt wording is not benchmarked.
 The parser rejects overlong/blank/multiline copy, repeated four-word phrases,
 duplicate or unknown source references, and numeric claims absent from the cited
 original wording. Source dates and identifiers cannot justify numbers in prose.
-Rejected copy uses the complete rules fallback with no extra inference retry.
+Rejected copy gets one retry with the broken rule as feedback and otherwise
+uses the complete rules fallback.
 These checks constrain known failure modes; they are not semantic fact checking,
 and a short false claim can still pass. Assess real German model output on the
 operator's host. The model and hardware requirements have not changed.
@@ -130,14 +135,37 @@ source SHA and the running images before acceptance. See
 The worker automatically checks active Pro Spaces every six hours, prepares the
 current month/year and available most recent completed periods, and only queues
 changed periods once. Opening the library also schedules preparation without
-waiting for the next scan. Saved editions are not overwritten. Current periods
+waiting for the next scan. Earlier periods with shared material follow without
+a request: newest first, six per batch, continued every two minutes by one
+`recap.backfill.v1` job per Space until none is left. This bounds worker and
+inference load for couples with a long history. The same runs retain a completed
+month or year seven days after it ends. Saved editions are not overwritten. Current periods
 are explicitly partial; annual selection uses the entire calendar interval.
+
+A rejected narration is retried once with the broken rule as feedback, so one
+job may spend up to twice `EIMIR_RECAP_AI_TIMEOUT_SECONDS` on inference. After a
+source edit, an unretained automatic proposal shows the factual template at once
+and is rewritten by one `recap.generate.v1` job delayed by ten minutes.
+
+## Model evaluation (2026-11-12)
+
+`qwen3.5:4b-q4_K_M` was measured on an 8-core operator host (two cores allowed,
+6 GiB ceiling) with `backend/scripts/measure_recap_wording.py` and five synthetic
+cases. It needed 46-67 s for a month and 160 s for a year with eight entries;
+with the 90 s limit two of five cases fell back to the template. Peak memory was
+at least 4.6 GiB. The editorial checks accepted every answer, but the wording was
+poor (meta statements about sources and numbers, awkward German, the quoted
+instruction of a source). It was therefore **not adopted**: the default stays
+`qwen3:1.7b-q4_K_M` with a 4 GiB ceiling, and recap texts are composed from the
+couple's own words and localised templates (#1744). Inference remains optional.
+Use the script to evaluate any other model before changing the default.
 
 ## Verification and rollback
 
 Check API/worker readiness through Arcane; open More → Relationship passport,
 read monthly and yearly editions, follow a source and return, save a private
-draft, deliberately share words and retain an edition. The model can be stopped
+draft and deliberately share words. A completed period shows as retained once
+its grace week has passed. The model can be stopped
 to verify fallback independently. `ollama ps` should show no retained loaded model
 after generation. Logs contain operation/status metadata rather than prompts.
 

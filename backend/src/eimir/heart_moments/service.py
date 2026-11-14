@@ -40,6 +40,7 @@ from eimir.create_receipts import service as create_receipts
 from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.heart_moments import media
+from eimir.heart_moments.location import HeartMomentLocation
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.heart_moments.tags import HeartMomentTags
 from eimir.outbox import service as outbox_service
@@ -134,6 +135,9 @@ def create_heart_moment(
     place_id: UUID | None = None,
     attachments: media.MediaSelection | None = None,
     selected_cover_attachment_id: UUID | None = None,
+    audio_title: str | None = None,
+    audio_speaker_name: str | None = None,
+    location: HeartMomentLocation | None = None,
 ) -> HeartMoment:
     normalized_text = _normalize_text(text)
     selected_tags = tags if tags is not None else []
@@ -145,7 +149,14 @@ def create_heart_moment(
         owner_id=context.account_id,
         privacy_class=privacy_for(visibility).value,
         happened_on=happened_on,
-        payload=HeartMomentPayload(text=normalized_text, emotion=emotion, tags=selected_tags),
+        payload=HeartMomentPayload(
+            text=normalized_text,
+            location=location,
+            emotion=emotion,
+            tags=selected_tags,
+            audio_title=(audio_title or "").strip(),
+            audio_speaker_name=(audio_speaker_name or "").strip(),
+        ),
     )
     session.add(heart_moment)
     _flush(session)
@@ -195,6 +206,9 @@ def create_heart_moment_once(
     place_id: UUID | None = None,
     attachments: media.MediaSelection | None = None,
     selected_cover_attachment_id: UUID | None = None,
+    audio_title: str | None = None,
+    audio_speaker_name: str | None = None,
+    location: HeartMomentLocation | None = None,
 ) -> HeartMomentCreateResult:
     """Create a HeartMoment, or return the one an earlier request with this identity created.
 
@@ -217,6 +231,9 @@ def create_heart_moment_once(
             place_id=place_id,
             attachments=attachments,
             selected_cover_attachment_id=selected_cover_attachment_id,
+            audio_title=audio_title,
+            audio_speaker_name=audio_speaker_name,
+            location=location,
         )
         return HeartMomentCreateResult(heart_moment, created=True)
 
@@ -246,6 +263,12 @@ def create_heart_moment_once(
         ]
     if selected_cover_attachment_id is not None:
         fingerprint_content["selected_cover_attachment_id"] = str(selected_cover_attachment_id)
+    if audio_title:
+        fingerprint_content["audio_title"] = audio_title.strip()
+    if audio_speaker_name:
+        fingerprint_content["audio_speaker_name"] = audio_speaker_name.strip()
+    if location is not None:
+        fingerprint_content["location"] = location.model_dump(mode="json")
     request_fingerprint = create_receipts.fingerprint(_RECEIPT_RESOURCE_TYPE, fingerprint_content)
     receipt_id = create_receipts.claim(
         session,
@@ -282,6 +305,9 @@ def create_heart_moment_once(
         place_id=place_id,
         attachments=attachments,
         selected_cover_attachment_id=selected_cover_attachment_id,
+        audio_title=audio_title,
+        audio_speaker_name=audio_speaker_name,
+        location=location,
     )
     create_receipts.attach(session, receipt_id, heart_moment.id)
     return HeartMomentCreateResult(heart_moment, created=True)
@@ -310,6 +336,9 @@ def update_heart_moment(
     tags: HeartMomentTags | None = None,
     attachments: media.MediaSelection | None = None,
     selected_cover_attachment_id: UUID | None = None,
+    audio_title: str | None = None,
+    audio_speaker_name: str | None = None,
+    location: HeartMomentLocation | None = None,
 ) -> HeartMoment:
     """Change content but explicitly not visibility.
 
@@ -341,6 +370,21 @@ def update_heart_moment(
     if "happened_on" in changed_fields:
         assert happened_on is not None
         heart_moment.happened_on = happened_on
+
+    if "location" in changed_fields:
+        heart_moment.payload = heart_moment.payload.model_copy(update={"location": location})
+
+    if {"audio_title", "audio_speaker_name"} & changed_fields:
+        heart_moment.payload = heart_moment.payload.model_copy(
+            update={
+                key: (value or "").strip()
+                for key, value in {
+                    "audio_title": audio_title,
+                    "audio_speaker_name": audio_speaker_name,
+                }.items()
+                if key in changed_fields
+            }
+        )
 
     if {"text", "emotion", "tags"} & changed_fields:
         heart_moment.payload = heart_moment.payload.model_copy(
@@ -507,6 +551,19 @@ def delete_heart_moment(
         kind=StoryKind.HEART_MOMENT,
         item_id=heart_moment.id,
     )
+    # The parent lock precedes attachment locks, matching media publication.
+    # Deleted voice notes must not fall back to owner-only unbound reads.
+    from eimir.attachments import binding
+    from eimir.attachments import service as attachment_service
+    from eimir.attachments.models import MediaType
+
+    voice_ids = [
+        entry.attachment.id
+        for entry in media.galleries(session, [heart_moment])[heart_moment.id]
+        if entry.attachment.media_type == MediaType.AUDIO
+    ]
+    for attachment in binding.lock_for_binding(session, sorted(voice_ids)).values():
+        attachment_service.mark_for_deletion(session, attachment)
     session.delete(heart_moment)
     _flush(session)
     _record(
@@ -630,5 +687,7 @@ def _set_attachment_sensitive(
     binding.set_sensitive(
         attachment,
         value,
-        allow_change=context.account_id in (heart_moment.owner_id, attachment.owner_id),
+        allow_change=binding.can_edit_sensitivity(
+            attachment, account_id=context.account_id, parent_owner_id=heart_moment.owner_id
+        ),
     )

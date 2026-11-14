@@ -51,6 +51,7 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_RECAP_AI_MODEL: "${EIMIR_RECAP_AI_MODEL:-qwen3:1.7b-q4_K_M}"
   EIMIR_RECAP_AI_TIMEOUT_SECONDS: "${EIMIR_RECAP_AI_TIMEOUT_SECONDS:-90}"
   EIMIR_PHOTO_SOURCES_ENABLED: "${EIMIR_PHOTO_SOURCES_ENABLED:-true}"
+  EIMIR_AUDIO_UPLOAD_ENABLED: "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}"
   EIMIR_VIDEO_UPLOAD_ENABLED: "${EIMIR_VIDEO_UPLOAD_ENABLED:-false}"
   EIMIR_GOOGLE_PHOTOS_CLIENT_ID: "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}"
   EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET: "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}"
@@ -67,11 +68,12 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_SMTP_STARTTLS: "${EIMIR_SMTP_STARTTLS:-${SBS_SMTP_STARTTLS:-true}}"
 
 # Only API/worker configure transports. In particular, migration/bootstrap must
-# not inherit a partial FCM setup or a sender credential path they cannot read.
+# not inherit partial push setup or sender credential paths they cannot read.
 x-push-runtime-environment: &push-runtime-environment
   EIMIR_PUSH_VAPID_PRIVATE_KEY: "${EIMIR_PUSH_VAPID_PRIVATE_KEY:-}"
   EIMIR_PUSH_VAPID_SUBJECT: "${EIMIR_PUSH_VAPID_SUBJECT:-}"
   EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS: '${EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS:-[]}'
+  EIMIR_PUSH_BROWSER_ALLOWED_ORIGINS: '${EIMIR_PUSH_BROWSER_ALLOWED_ORIGINS:-[]}'
   EIMIR_PUSH_FCM_PROJECT_ID: "${EIMIR_PUSH_FCM_PROJECT_ID:-}"
   EIMIR_PUSH_FCM_ANDROID_PACKAGE: "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:-}"
   EIMIR_PUSH_FCM_CREDENTIALS_FILE: "${EIMIR_PUSH_FCM_CREDENTIALS_FILE:-}"

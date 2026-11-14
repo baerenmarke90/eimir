@@ -1,19 +1,21 @@
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import mapCopy from '../../src/i18n/locales/memoryMap';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import mapCopy from '../../src/i18n/locales/memoryMap';
 import profiles from '../../src/i18n/locales/profiles';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { mockMapTiles } from '../support/mapTiles';
+import { storyDetailBack } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  PARTNER,
-  SPACE_ID,
   captureScreenshot,
   getTimelineItems,
   installMocks,
+  ME,
+  PARTNER,
+  SPACE_ID,
   signIn,
   TINY_PNG,
 } from '../support/storyTimelineFixture';
@@ -40,9 +42,7 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await installMocks(page);
   await installPhoto(page);
-  await page.route('https://tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ contentType: 'image/png', body: TINY_PNG }),
-  );
+  await mockMapTiles(page);
   await page.route(`**${base}/memory-map*`, (route) =>
     route.fulfill({
       json: {
@@ -77,7 +77,7 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
   });
   await page.getByRole('tab', { name: mapCopy.entry, exact: true }).click();
   await expect(page).toHaveURL(/\/story\/map\?type=MEMORY&year=2026$/);
-  const tiles = page.locator('.leaflet-tile-pane');
+  const tiles = page.locator('.place-map-viewport .maplibregl-canvas');
   const marker = page.locator('.memory-map-marker-photo img');
   await expect(marker).toBeVisible();
   await expect(tiles).not.toHaveCSS('filter', 'none');
@@ -222,7 +222,7 @@ test('Own activity filters requests before pagination and retains its scope thro
   });
   await page.getByRole('link', { name: /My saved memory/ }).click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
-  await page.locator('.shell-detail-back').click();
+  await storyDetailBack(page).click();
   await expect(page).toHaveURL(/\/today\/activity\?scope=own$/);
   await expect(
     page.getByText('An earlier memory', { exact: true }),
@@ -233,7 +233,7 @@ test('Own activity filters requests before pagination and retains its scope thro
   ).toBeVisible();
 });
 
-test('one icon on the photo opens the existing comment task, while text keeps an inline icon', async ({
+test('inline reading comments retain deliberate focus and one canonical save', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -279,35 +279,26 @@ test('one icon on the photo opens the existing comment task, while text keeps an
   });
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  const trigger = page
-    .locator('.media-comment-action')
-    .getByRole('button', { name: comments.send });
-  await expect(trigger).toBeVisible();
-  await expect(trigger).toHaveText('');
-  await expect(trigger).toHaveCSS('color', 'rgb(255, 255, 255)');
-  await trigger.click();
-  const input = page.getByRole('textbox', { name: comments.inputLabel });
-  await expect(input).toBeFocused();
+  const input = page
+    .locator('.comment-form')
+    .getByRole('textbox', { name: comments.inputLabel, exact: true });
+  await expect(input).toBeVisible();
+  await expect(input).not.toBeFocused();
   await input.fill('I remember that morning.');
   await page.getByRole('button', { name: comments.send, exact: true }).click();
   await expect(
     page.getByText('I remember that morning.', { exact: true }),
   ).toBeVisible();
   expect(posts).toBe(1);
-  await expect(trigger).toBeFocused();
+  await expect(input).toBeFocused();
   await captureScreenshot(page, info, 'photo-comments-390.png', {
     fullPage: true,
   });
   await page.goto('/story/heart-moments/hm-love');
-  const inline = page
-    .locator('.comments-panel')
-    .getByRole('button', { name: comments.send });
-  await expect(inline).toBeVisible();
-  await expect(inline).toHaveText('');
-  await inline.click();
-  await expect(
-    page.getByRole('textbox', { name: comments.inputLabel }),
-  ).toBeFocused();
+  await expect(input).toBeVisible();
+  await expect(input).not.toBeFocused();
+  await input.click();
+  await expect(input).toBeFocused();
 });
 
 test('Pro information lives in App and Account and legacy profile links reach it', async ({

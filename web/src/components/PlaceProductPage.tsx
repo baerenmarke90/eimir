@@ -1,3 +1,4 @@
+import './FreeComposer.css';
 import { assertOnlineWrite } from '../client/connectivity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -169,7 +170,11 @@ function PlaceEditor({
     >
       {(requestClose) => (
         <>
-          <form id="place-edit-form" className="form-grid" onSubmit={submit}>
+          <form
+            id="place-edit-form"
+            className="form-grid free-composer"
+            onSubmit={submit}
+          >
             <fieldset
               disabled={isPending}
               className="shared-content-fields form-grid"

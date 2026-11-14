@@ -86,6 +86,9 @@ class ChangeScopeTest(unittest.TestCase):
     def test_backend_unit_test_only_enables_fast_backend_gate(self) -> None:
         self.assert_scope(["backend/tests/test_config.py"], enabled={"backend"})
 
+    def test_legal_document_change_enables_only_the_fast_backend_gate(self) -> None:
+        self.assert_scope(["legal/de/terms-of-use.md"], enabled={"backend"})
+
     def test_backend_runtime_change_enables_postgres_integration(self) -> None:
         self.assert_scope(
             ["backend/src/eimir/memories/service.py"],

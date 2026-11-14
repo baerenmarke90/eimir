@@ -1,4 +1,3 @@
-import { NativeDateInput } from './NativeDateField';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -18,6 +17,7 @@ import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
 import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import { Configuration } from '../client/apiConfiguration';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { ProfilesApi } from '../client/mediaApis';
 import { usePartnerNickname } from '../client/partnerNickname';
@@ -37,7 +37,9 @@ import {
 } from '../client/relationshipPreview';
 import { settingsCategoryPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { AddActionButton } from './AddAction';
+import { DestinationIcon } from './DestinationIcon';
+import { NativeDateInput } from './NativeDateField';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -252,7 +254,12 @@ export function RelationshipSettingsSection({
           queryKey: ['space-profile', spaceId],
         });
       }
-      await invalidateDashboard(queryClient, spaceId);
+      await Promise.all([
+        invalidateDashboard(queryClient, spaceId),
+        queryClient.invalidateQueries({
+          queryKey: authorSummaryQueryKeys.space(spaceId),
+        }),
+      ]);
     },
   });
 
@@ -658,6 +665,7 @@ export function PreferenceManager({
   intro,
   emptyTitle,
   emptyBody,
+  floatingAdd = false,
 }: {
   profilesApi: ProfilesApi;
   spaceId: string;
@@ -668,6 +676,7 @@ export function PreferenceManager({
   intro: string;
   emptyTitle: string;
   emptyBody: string;
+  floatingAdd?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -769,9 +778,10 @@ export function PreferenceManager({
           <h2 id={`profile-manager-${visibility}`}>{title}</h2>
           {intro ? <p className="profile-section-intro">{intro}</p> : null}
         </div>
-        <button
-          type="button"
-          className="secondary compact-action"
+        <AddActionButton
+          floating={floatingAdd}
+          label={triggerButtonLabel}
+          aria-haspopup="dialog"
           onClick={(e) => {
             triggerElementRef.current = e.currentTarget;
             setEditing(null);
@@ -779,10 +789,7 @@ export function PreferenceManager({
             saveMutation.reset();
             deleteMutation.reset();
           }}
-        >
-          <AddIcon />
-          <span>{triggerButtonLabel}</span>
-        </button>
+        />
       </div>
 
       {savedMessage ? (
@@ -1009,6 +1016,7 @@ export function PrivatePartnerNotesSection({
     <div className="private-partner-notes-wrapper">
       {showPrivacyNotice ? <PrivatePartnerNotesPrivacyNotice /> : null}
       <PreferenceManager
+        floatingAdd
         profilesApi={profilesApi}
         spaceId={spaceId}
         accountId={partnerId}

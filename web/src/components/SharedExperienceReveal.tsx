@@ -24,6 +24,7 @@ export function SharedExperienceReveal({
     entry.createdAt.getTime() + 3 * 24 * 60 * 60_000,
   );
   if (!receipt.visible) return null;
+  const senderName = partnerName.trim();
   const date = entry.happenedOn ?? entry.createdAt;
   const dateLabel = new Intl.DateTimeFormat(resolvedLocale(), {
     dateStyle: 'medium',
@@ -37,9 +38,10 @@ export function SharedExperienceReveal({
       <div className="today-section-header">
         <h2 id="shared-experience-heading" className="today-section-title">
           {t(
-            happiness
-              ? 'coupleExperiences.incoming.happiness'
-              : 'coupleExperiences.incoming.timeTravel',
+            senderName
+              ? 'coupleExperiences.incoming.from'
+              : 'coupleExperiences.incoming.title',
+            { name: senderName },
           )}
         </h2>
       </div>
@@ -54,7 +56,11 @@ export function SharedExperienceReveal({
               className="shared-experience-symbol"
             />
             <p className="shared-experience-from">
-              {t('coupleExperiences.incoming.from', { name: partnerName })}
+              {t(
+                happiness
+                  ? 'coupleExperiences.incoming.happiness'
+                  : 'coupleExperiences.incoming.timeTravel',
+              )}
             </p>
           </div>
           <p className="shared-experience-question">

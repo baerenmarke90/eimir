@@ -14,6 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, ContentVisibility
+from eimir.collections import service as collection_service
+from eimir.collections.models import Collection
 from eimir.core.clock import now
 from eimir.heart_moments import service as heart_moment_service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
@@ -21,16 +23,24 @@ from eimir.identity.models import AccountEmail
 from eimir.media import get_media_store
 from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
+from eimir.milestones import service as milestone_service
+from eimir.milestones.models import Milestone
 from eimir.places import service as place_service
 from eimir.places.models import Place
+from eimir.plans import service as plan_service
+from eimir.plans.models import Plan
 from eimir.private_notes import service as private_note_service
 from eimir.profiles import service as profile_service
 from eimir.profiles.models import PartnerProfile
+from eimir.relations import service as relation_service
+from eimir.relations.models import HeartMomentPlan, MilestonePlan, PlanCollection
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders.runtime_models import RulePreference
 from eimir.transfer import jobs, service
 from eimir.transfer.models import ExportStatus, ImportStatus, TransferScope
+from eimir.wishes import service as wish_service
+from eimir.wishes.models import Wish
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -268,7 +278,7 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     )
     assert len(target_profile_ids) == 2
 
-    memory_service.create_memory(
+    memory = memory_service.create_memory(
         session,
         source_authorization,
         title="Portable day",
@@ -276,7 +286,7 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
         happened_on=date(2026, 9, 1),
         tags=["home", "Our first summer"],
     )
-    heart_moment_service.create_heart_moment(
+    heart = heart_moment_service.create_heart_moment(
         session,
         source_authorization,
         text="",
@@ -307,6 +317,32 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
         address=None,
         latitude=None,
         longitude=None,
+    )
+
+    plan = plan_service.create_plan(
+        session, source_authorization, title="Portable trip", description=None, place_id=place.id
+    )
+    milestone = milestone_service.create_milestone(
+        session,
+        source_authorization,
+        title="Portable milestone",
+        body=None,
+        happened_on=date(2026, 9, 1),
+    )
+    for source, kind in (
+        (memory, relation_service.MEMORY_PLANS),
+        (heart, relation_service.HEART_MOMENT_PLANS),
+        (milestone, relation_service.MILESTONE_PLANS),
+    ):
+        relation_service.link(session, source_authorization, source.id, plan.id, kind)
+    collection = collection_service.create_collection(
+        session, source_authorization, title="Portable packing"
+    )
+    collection_service.create_item(
+        session, source_authorization, collection.id, title="Camera", completed=True
+    )
+    relation_service.link(
+        session, source_authorization, plan.id, collection.id, relation_service.PLAN_COLLECTIONS
     )
 
     with service.build_export_archive(
@@ -354,6 +390,43 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     assert imported_place.payload.name == "Portable place"
     assert imported_memory.payload.tags == ["home", "Our first summer"]
     assert imported_heart.payload.tags == ["everyday", "Our tradition"]
+
+    imported_plan = session.scalars(select(Plan).where(Plan.space_id == target_space.id)).one()
+    imported_collection = session.scalars(
+        select(Collection).where(Collection.space_id == target_space.id)
+    ).one()
+    imported_link = session.scalars(
+        select(PlanCollection).where(PlanCollection.space_id == target_space.id)
+    ).one()
+    assert imported_plan.place_id == imported_place.id
+    assert imported_plan.id != plan.id
+    assert imported_collection.id != collection.id
+    assert imported_link.plan_id == imported_plan.id
+    assert imported_link.collection_id == imported_collection.id
+    assert collection_service.list_items(session, imported_collection)[0].completed is True
+    imported_milestone = session.scalars(
+        select(Milestone).where(Milestone.space_id == target_space.id)
+    ).one()
+    for source, kind in (
+        (imported_memory, relation_service.MEMORY_PLANS),
+        (imported_heart, relation_service.HEART_MOMENT_PLANS),
+        (imported_milestone, relation_service.MILESTONE_PLANS),
+    ):
+        assert relation_service.list_targets(session, target_authorization, source.id, kind) == [
+            imported_plan.id
+        ]
+    assert (
+        session.scalars(select(HeartMomentPlan).where(HeartMomentPlan.space_id == target_space.id))
+        .one()
+        .source_privacy_class
+        == "SPACE_SHARED"
+    )
+    assert (
+        session.scalars(select(MilestonePlan).where(MilestonePlan.space_id == target_space.id))
+        .one()
+        .plan_id
+        == imported_plan.id
+    )
 
 
 def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session) -> None:
@@ -447,3 +520,59 @@ def test_expired_staged_import_is_physically_deleted_idempotently(session: Sessi
     assert transfer.status == ImportStatus.EXPIRED.value
     assert not store.exists(key)
     assert service.cleanup_expired(session) == 0
+
+
+def test_import_remaps_repeated_wish_links_and_series(
+    session: Session,
+) -> None:
+    """#1816: follow-up links and series IDs are remapped to the imported Wishes."""
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    source_space = make_space(session, anna)
+    relationship_service.add_member(session, source_space.id, ben)
+    target_space = make_space(session, anna)
+    relationship_service.add_member(session, target_space.id, ben)
+    source_authorization = AuthorizationContext(account_id=anna.id, space_id=source_space.id)
+    target_authorization = AuthorizationContext(account_id=anna.id, space_id=target_space.id)
+
+    first = wish_service.create_wish(session, source_authorization, title="Baltic Sea")
+    first = wish_service.complete_direct_wish(
+        session, source_authorization, first.id, expected_version=first.version
+    )
+    second = wish_service.repeat_wish_once(
+        session, source_authorization, first.id, idempotency_key=None
+    ).wish
+    second = wish_service.complete_direct_wish(
+        session, source_authorization, second.id, expected_version=second.version
+    )
+    third = wish_service.repeat_wish_once(
+        session, source_authorization, second.id, idempotency_key=None
+    ).wish
+    session.flush()
+
+    with service.build_export_archive(
+        session, source_authorization, TransferScope.SHARED
+    ) as bundle:
+        bundle.seek(0, io.SEEK_END)
+        size = bundle.tell()
+        bundle.seek(0)
+        transfer = service.create_import(session, target_authorization, bundle, size=size)
+    session.flush()
+    jobs.handle_validate_import(session, {"importId": str(transfer.id)})
+    session.flush()
+    service.request_apply(session, target_authorization, str(transfer.id))
+    session.flush()
+    jobs.handle_apply_import(session, {"importId": str(transfer.id)})
+    session.flush()
+
+    assert transfer.status == ImportStatus.COMPLETED.value
+    imported = {
+        wish.series_position: wish
+        for wish in session.scalars(select(Wish).where(Wish.space_id == target_space.id))
+    }
+    assert set(imported) == {1, 2, 3}
+    assert imported[1].followed_from_wish_id is None
+    assert imported[2].followed_from_wish_id == imported[1].id
+    assert imported[3].followed_from_wish_id == imported[2].id
+    assert {wish.series_id for wish in imported.values()} == {imported[1].id}
+    assert imported[3].id != third.id

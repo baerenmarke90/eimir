@@ -122,12 +122,34 @@ def test_reference_routing_requires_explicit_client_capability(monkeypatch, vers
     provider.send(
         idempotency_key="synthetic-send",
         endpoint=json.dumps(subscription),
-        notification_reference={"id": identifier, "kind": "PARTNER_KISS"},
+        notification_reference={"id": identifier, "kind": "PARTNER_KISS", "ttl": "17"},
         generic_presentation_key=push.GENERIC_PRESENTATION_KEY,
     )
     wake = json.loads(captured["data"])
     assert wake == ({"type": "wake", "notificationId": identifier} if version else {"type": "wake"})
+    assert captured["ttl"] == 17
     subscription["notificationReferenceVersion"] = 2
+    assert not provider.accepts_endpoint(json.dumps(subscription))
+
+
+@pytest.mark.parametrize("version", [0, 1])
+def test_recipient_language_requires_its_own_capability(monkeypatch, version):  # type: ignore[no-untyped-def]
+    subscription = json.loads(_subscription())
+    if version:
+        subscription["localeVersion"] = version
+    captured = {}
+    monkeypatch.setattr(unified_push, "webpush", lambda **kwargs: captured.update(kwargs))
+    provider = _provider()
+    provider.send(
+        idempotency_key="synthetic-language-send",
+        endpoint=json.dumps(subscription),
+        notification_reference={"locale": "en-US", "body": "private authored prose"},
+        generic_presentation_key=push.GENERIC_PRESENTATION_KEY,
+    )
+    assert json.loads(captured["data"]) == {"type": "wake", **({"locale": "en"} if version else {})}
+    subscription["localeVersion"] = True
+    assert not provider.accepts_endpoint(json.dumps(subscription))
+    subscription["localeVersion"] = 2
     assert not provider.accepts_endpoint(json.dumps(subscription))
 
 

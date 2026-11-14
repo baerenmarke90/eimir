@@ -14,6 +14,16 @@
 
 import * as runtime from '../runtime';
 import {
+    type PersonalWishReminder,
+    PersonalWishReminderFromJSON,
+    PersonalWishReminderToJSON,
+} from '../models/PersonalWishReminder';
+import {
+    type PersonalWishReminderUpdate,
+    PersonalWishReminderUpdateFromJSON,
+    PersonalWishReminderUpdateToJSON,
+} from '../models/PersonalWishReminderUpdate';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -34,6 +44,11 @@ import {
     WishPageToJSON,
 } from '../models/WishPage';
 import {
+    type WishRepeat,
+    WishRepeatFromJSON,
+    WishRepeatToJSON,
+} from '../models/WishRepeat';
+import {
     type WishStatus,
     WishStatusFromJSON,
     WishStatusToJSON,
@@ -43,6 +58,11 @@ import {
     WishUpdateFromJSON,
     WishUpdateToJSON,
 } from '../models/WishUpdate';
+
+export interface ClearPersonalWishReminderRequest {
+    wishId: string;
+    spaceId: string;
+}
 
 export interface CompleteWishRequest {
     wishId: string;
@@ -62,6 +82,11 @@ export interface DeleteWishRequest {
     ifMatch: string;
 }
 
+export interface GetPersonalWishReminderRequest {
+    wishId: string;
+    spaceId: string;
+}
+
 export interface GetWishRequest {
     wishId: string;
     spaceId: string;
@@ -72,6 +97,19 @@ export interface ListWishesRequest {
     cursor?: string | null;
     limit?: number;
     status?: WishStatus | null;
+}
+
+export interface RepeatWishRequest {
+    wishId: string;
+    spaceId: string;
+    idempotencyKey?: string | null;
+    wishRepeat?: WishRepeat | null;
+}
+
+export interface SetPersonalWishReminderRequest {
+    wishId: string;
+    spaceId: string;
+    personalWishReminderUpdate: PersonalWishReminderUpdate;
 }
 
 export interface UpdateWishRequest {
@@ -85,6 +123,58 @@ export interface UpdateWishRequest {
  * 
  */
 export class WishesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for clearPersonalWishReminder without sending the request
+     */
+    async clearPersonalWishReminderRequestOpts(requestParameters: ClearPersonalWishReminderRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling clearPersonalWishReminder().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling clearPersonalWishReminder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Clear Personal Wish Reminder
+     */
+    async clearPersonalWishReminderRaw(requestParameters: ClearPersonalWishReminderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.clearPersonalWishReminderRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Clear Personal Wish Reminder
+     */
+    async clearPersonalWishReminder(requestParameters: ClearPersonalWishReminderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.clearPersonalWishReminderRaw(requestParameters, initOverrides);
+    }
 
     /**
      * Creates request options for completeWish without sending the request
@@ -273,6 +363,59 @@ export class WishesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPersonalWishReminder without sending the request
+     */
+    async getPersonalWishReminderRequestOpts(requestParameters: GetPersonalWishReminderRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling getPersonalWishReminder().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getPersonalWishReminder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Personal Wish Reminder
+     */
+    async getPersonalWishReminderRaw(requestParameters: GetPersonalWishReminderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PersonalWishReminder>> {
+        const requestOptions = await this.getPersonalWishReminderRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PersonalWishReminderFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Personal Wish Reminder
+     */
+    async getPersonalWishReminder(requestParameters: GetPersonalWishReminderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PersonalWishReminder> {
+        const response = await this.getPersonalWishReminderRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getWish without sending the request
      */
     async getWishRequestOpts(requestParameters: GetWishRequest): Promise<runtime.RequestOpts> {
@@ -379,6 +522,129 @@ export class WishesApi extends runtime.BaseAPI {
      */
     async listWishes(requestParameters: ListWishesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishPage> {
         const response = await this.listWishesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for repeatWish without sending the request
+     */
+    async repeatWishRequestOpts(requestParameters: RepeatWishRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling repeatWish().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling repeatWish().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/repeat`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WishRepeatToJSON(requestParameters['wishRepeat']),
+        };
+    }
+
+    /**
+     * Repeat Wish
+     */
+    async repeatWishRaw(requestParameters: RepeatWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishDetail>> {
+        const requestOptions = await this.repeatWishRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Repeat Wish
+     */
+    async repeatWish(requestParameters: RepeatWishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishDetail> {
+        const response = await this.repeatWishRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setPersonalWishReminder without sending the request
+     */
+    async setPersonalWishReminderRequestOpts(requestParameters: SetPersonalWishReminderRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['wishId'] == null) {
+            throw new runtime.RequiredError(
+                'wishId',
+                'Required parameter "wishId" was null or undefined when calling setPersonalWishReminder().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling setPersonalWishReminder().'
+            );
+        }
+
+        if (requestParameters['personalWishReminderUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'personalWishReminderUpdate',
+                'Required parameter "personalWishReminderUpdate" was null or undefined when calling setPersonalWishReminder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder`;
+        urlPath = urlPath.replace('{wishId}', encodeURIComponent(String(requestParameters['wishId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PersonalWishReminderUpdateToJSON(requestParameters['personalWishReminderUpdate']),
+        };
+    }
+
+    /**
+     * Set Personal Wish Reminder
+     */
+    async setPersonalWishReminderRaw(requestParameters: SetPersonalWishReminderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PersonalWishReminder>> {
+        const requestOptions = await this.setPersonalWishReminderRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PersonalWishReminderFromJSON(jsonValue));
+    }
+
+    /**
+     * Set Personal Wish Reminder
+     */
+    async setPersonalWishReminder(requestParameters: SetPersonalWishReminderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PersonalWishReminder> {
+        const response = await this.setPersonalWishReminderRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

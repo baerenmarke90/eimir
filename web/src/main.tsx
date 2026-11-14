@@ -1,19 +1,22 @@
-import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
+import { markNativeRuntime, useCapacitorShell } from './capacitorShell';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
+import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
+import { startNativeSystemTheme } from './client/nativeSystemTheme';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { restoreNativeSession } from './client/sessionPersistence';
+import { useControlPressFeedback } from './client/useControlPressFeedback';
+import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuck';
 import { DemoBanner } from './components/DemoBanner';
 import { NativeSessionGate } from './components/NativeSessionGate';
-import { i18n } from './i18n';
+import { useTranslation } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
-import { useCapacitorShell } from './capacitorShell';
 import { initializeTheme } from './theme';
-import { useControlPressFeedback } from './client/useControlPressFeedback';
 import './styles.css';
 import './story-media.css';
 import './theme.css';
@@ -39,11 +42,15 @@ import './components/StoryDetailContentFirst.css';
 import './components/StoryMomentMetadata.css';
 import './components/SharedPlanningSanctuary.css';
 import './product-reflow.css';
-import './memory-create-polish.css';
+import './components/FreeComposer.css';
+import './components/StoryReading.css';
 import './design/identity-roles.css';
 import './design/identity-components.css';
+import { dateAwareStructuralSharing } from './client/structuralSharing';
 
+markNativeRuntime();
 initializeTheme();
+startNativeSystemTheme();
 registerProductionServiceWorker();
 
 const queryClient = new QueryClient({
@@ -56,6 +63,8 @@ const queryClient = new QueryClient({
       refetchOnMount: true,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
+      // Equal refetches keep their references, dates included.
+      structuralSharing: dateAwareStructuralSharing,
     },
   },
 });
@@ -77,12 +86,16 @@ const demoUrl = String(identityBuildVariable('DEMO_URL'))
   .replace(/\/+$/, '');
 
 function RootApp() {
+  const { t } = useTranslation();
   useCapacitorShell();
   useControlPressFeedback();
+  useFloatingCreateScrollTuck();
+  // Startup placeholders hold the launch screen; anything else ends it.
+  useEffect(() => releaseLaunchScreenWhenPainted(), []);
   return (
     <NativeSessionGate
       restoration={nativeRestoration}
-      label={i18n.t('states.loading.title')}
+      label={t('states.loading.title')}
     >
       {demoMode ? (
         <DemoBanner
@@ -93,7 +106,7 @@ function RootApp() {
       <App demoMode={demoMode} />
       {!demoMode && demoUrl ? (
         <a className="demo-launch" href={demoUrl}>
-          {i18n.t('demo.launch')}
+          {t('demo.launch')}
         </a>
       ) : null}
     </NativeSessionGate>

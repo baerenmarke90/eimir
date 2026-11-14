@@ -36,6 +36,8 @@ from eimir.auth.tokens import hash_token
 from eimir.config import Deployment, MailTransport, get_settings
 from eimir.core.clock import now
 from eimir.identity.models import Account, AccountEmail, MagicLinkToken, SignupProof
+from eimir.legal.models import TermsAcceptance
+from eimir.legal.terms import TERMS_OF_USE_VERSION
 from eimir.mail import MailMessage, MailSender
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
@@ -129,8 +131,11 @@ def production_cloud(production_client, monkeypatch: pytest.MonkeyPatch):  # typ
     return client, maker, mailbox
 
 
-def request_signup(client: TestClient, address: str) -> None:
-    response = client.post(SIGNUP_REQUEST, json={"email": address})
+def request_signup(client: TestClient, address: str, *, accept_terms: bool = True) -> None:
+    body: dict[str, str] = {"email": address}
+    if accept_terms:
+        body["acceptedTermsVersion"] = TERMS_OF_USE_VERSION
+    response = client.post(SIGNUP_REQUEST, json=body)
     assert response.status_code == 202, response.text
 
 
@@ -199,11 +204,36 @@ class TestLegacyCloudEntry:
         assert response.status_code == 202
         assert [message.to for message in mailbox.messages] == [BEN]
         assert f"{PUBLIC_BASE_URL}/auth/signup?token=" in mailbox.messages[0].body
-        result = consume(cloud_client, mailbox.token_for(BEN))
-        assert result.status_code == 201
+        # The sign-in form carries no terms acceptance, so creation pauses.
+        paused = consume(cloud_client, mailbox.token_for(BEN))
+        assert paused.status_code == 409
+        assert paused.json()["code"] == "TERMS_ACCEPTANCE_REQUIRED"
+        assert accounts_with(session, BEN) == 0
+
+    def test_a_legacy_proof_creates_the_account_once_terms_are_accepted(
+        self, production_cloud
+    ) -> None:  # type: ignore[no-untyped-def]
+        client, maker, mailbox = production_cloud
+        assert (
+            client.post("/api/v1/auth/magic-link/request", json={"email": BEN}).status_code == 202
+        )
+        token = mailbox.token_for(BEN)
+        assert consume(client, token).status_code == 409
+
+        result = consume(client, token, acceptedTermsVersion=TERMS_OF_USE_VERSION)
+
+        assert result.status_code == 201, result.text
         assert result.json()["accountCreated"] is True
-        assert accounts_with(session, BEN) == 1
-        assert active_memberships(session, UUID(result.json()["account"]["id"])) == []
+        account_id = UUID(result.json()["account"]["id"])
+        with maker() as session:
+            assert accounts_with(session, BEN) == 1
+            assert active_memberships(session, account_id) == []
+            acceptance = session.scalars(select(TermsAcceptance)).one()
+            assert (acceptance.account_id, acceptance.version, acceptance.origin) == (
+                account_id,
+                TERMS_OF_USE_VERSION,
+                "signup_redemption",
+            )
 
     def test_known_and_unknown_addresses_take_the_same_legacy_entry_path(
         self, cloud_client, mailbox, session
@@ -224,7 +254,9 @@ class TestLegacyCloudEntry:
     def test_the_alias_shares_generation_and_address_rate_limits(
         self, cloud_client, mailbox
     ) -> None:  # type: ignore[no-untyped-def]
-        cloud_client.post(SIGNUP_REQUEST, json={"email": BEN})
+        cloud_client.post(
+            SIGNUP_REQUEST, json={"email": BEN, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+        )
         older = mailbox.token_for(BEN)
         for index in range(4):
             endpoint = "/api/v1/auth/magic-link/request" if index % 2 == 0 else SIGNUP_REQUEST
@@ -233,18 +265,29 @@ class TestLegacyCloudEntry:
         assert consume(cloud_client, older).status_code == 422
         for endpoint in ("/api/v1/auth/magic-link/request", SIGNUP_REQUEST):
             assert cloud_client.post(endpoint, json={"email": BEN}).status_code == 429
-        assert consume(cloud_client, latest).status_code == 201
+        accepted = consume(cloud_client, latest, acceptedTermsVersion=TERMS_OF_USE_VERSION)
+        assert accepted.status_code == 201
 
     def test_the_alias_shares_the_actual_client_network_budget(
         self, cloud_client, mailbox, monkeypatch
     ) -> None:  # type: ignore[no-untyped-def]
         monkeypatch.setattr(cloud, "SIGNUP_NETWORK", rate_limit.Limit(2, timedelta(minutes=15)))
-        assert cloud_client.post(SIGNUP_REQUEST, json={"email": ANNA}).status_code == 202
+        assert (
+            cloud_client.post(
+                SIGNUP_REQUEST, json={"email": ANNA, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+            ).status_code
+            == 202
+        )
         assert (
             cloud_client.post("/api/v1/auth/magic-link/request", json={"email": BEN}).status_code
             == 202
         )
-        assert cloud_client.post(SIGNUP_REQUEST, json={"email": CARA}).status_code == 429
+        assert (
+            cloud_client.post(
+                SIGNUP_REQUEST, json={"email": CARA, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+            ).status_code
+            == 429
+        )
         assert [message.to for message in mailbox.messages] == [ANNA, BEN]
 
     @pytest.mark.parametrize("maintenance", [False, True])
@@ -278,7 +321,10 @@ class TestNewCloudUser:
     def test_unknown_address_receives_a_proof_from_the_configured_base_url(
         self, cloud_client, mailbox
     ) -> None:  # type: ignore[no-untyped-def]
-        response = cloud_client.post(SIGNUP_REQUEST, json={"email": " Anna@Example.org "})
+        response = cloud_client.post(
+            SIGNUP_REQUEST,
+            json={"email": " Anna@Example.org ", "acceptedTermsVersion": TERMS_OF_USE_VERSION},
+        )
 
         assert response.status_code == 202
         assert response.content == b""
@@ -344,8 +390,12 @@ class TestEnumerationNeutrality:
     ) -> None:  # type: ignore[no-untyped-def]
         existing_account(session, ANNA)
 
-        known = cloud_client.post(SIGNUP_REQUEST, json={"email": ANNA})
-        unknown = cloud_client.post(SIGNUP_REQUEST, json={"email": BEN})
+        known = cloud_client.post(
+            SIGNUP_REQUEST, json={"email": ANNA, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+        )
+        unknown = cloud_client.post(
+            SIGNUP_REQUEST, json={"email": BEN, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+        )
 
         assert known.status_code == unknown.status_code == 202
         assert known.content == unknown.content == b""
@@ -362,13 +412,19 @@ class TestEnumerationNeutrality:
         existing_account(session, ANNA)
         for address in (ANNA, BEN):
             statuses = [
-                cloud_client.post(SIGNUP_REQUEST, json={"email": address}).status_code
+                cloud_client.post(
+                    SIGNUP_REQUEST,
+                    json={"email": address, "acceptedTermsVersion": TERMS_OF_USE_VERSION},
+                ).status_code
                 for _ in range(6)
             ]
             assert statuses == [202] * 5 + [429]
 
     def test_invalid_address_is_rejected_independently_of_accounts(self, cloud_client) -> None:  # type: ignore[no-untyped-def]
-        response = cloud_client.post(SIGNUP_REQUEST, json={"email": "not-an-address"})
+        response = cloud_client.post(
+            SIGNUP_REQUEST,
+            json={"email": "not-an-address", "acceptedTermsVersion": TERMS_OF_USE_VERSION},
+        )
         assert response.status_code == 422
         assert response.json()["code"] == "EMAIL_INVALID"
 
@@ -378,8 +434,12 @@ class TestEnumerationNeutrality:
         existing_account(session, ANNA)
         set_access(session, registration=False)
 
-        known = cloud_client.post(SIGNUP_REQUEST, json={"email": ANNA})
-        unknown = cloud_client.post(SIGNUP_REQUEST, json={"email": BEN})
+        known = cloud_client.post(
+            SIGNUP_REQUEST, json={"email": ANNA, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+        )
+        unknown = cloud_client.post(
+            SIGNUP_REQUEST, json={"email": BEN, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+        )
 
         assert known.status_code == unknown.status_code == 202
         assert sorted(message.to for message in mailbox.messages) == [ANNA, BEN]
@@ -400,6 +460,9 @@ class TestExistingCloudUser:
             "id": str(anna.id),
             "displayName": "Anna",
             "gentlePromptsEnabled": False,
+            "languagePreference": anna.language_preference,
+            "locale": anna.locale,
+            "languageVersion": anna.language_version,
         }
         assert accounts_with(session, ANNA) == 1
         session.expire_all()
@@ -799,7 +862,12 @@ class TestInvitedPartner:
             own_space = relationship_service.create_first_space(session, partner)
 
         requested = cloud_client.post(
-            SIGNUP_REQUEST, json={"email": BEN, "invitationToken": invitation}
+            SIGNUP_REQUEST,
+            json={
+                "email": BEN,
+                "acceptedTermsVersion": TERMS_OF_USE_VERSION,
+                "invitationToken": invitation,
+            },
         )
         assert requested.status_code == 202
         message = mailbox.messages[-1]
@@ -863,7 +931,14 @@ class TestInvitedPartner:
                     else:
                         relationship_service.add_member(db, UUID(space["id"]), other)
 
-        response = client.post(SIGNUP_REQUEST, json={"email": BEN, "invitationToken": invitation})
+        response = client.post(
+            SIGNUP_REQUEST,
+            json={
+                "email": BEN,
+                "acceptedTermsVersion": TERMS_OF_USE_VERSION,
+                "invitationToken": invitation,
+            },
+        )
         assert response.status_code == 202
         token = mailbox.token_for(BEN)
         with maker() as db:
@@ -893,7 +968,12 @@ class TestInvitedPartner:
         space, invitation = self.founder_invitation(client, mailbox)
         for address in (BEN, CARA):
             response = client.post(
-                SIGNUP_REQUEST, json={"email": address, "invitationToken": invitation}
+                SIGNUP_REQUEST,
+                json={
+                    "email": address,
+                    "acceptedTermsVersion": TERMS_OF_USE_VERSION,
+                    "invitationToken": invitation,
+                },
             )
             assert response.status_code == 202
         tokens = [mailbox.token_for(address) for address in (BEN, CARA)]
@@ -1017,7 +1097,9 @@ class TestDeploymentIsolation:
     def test_self_hosted_rejects_the_signup_request_before_any_work(
         self, self_hosted_client, session, mailbox
     ) -> None:  # type: ignore[no-untyped-def]
-        response = self_hosted_client.post(SIGNUP_REQUEST, json={"email": ANNA})
+        response = self_hosted_client.post(
+            SIGNUP_REQUEST, json={"email": ANNA, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+        )
 
         assert response.status_code == 403
         assert response.json()["code"] == "AUTH_METHOD_DISABLED"
@@ -1083,7 +1165,9 @@ class TestDeploymentIsolation:
 
         # The policy rejects before the mail transport is used, so no further
         # proof is issued even when a transport happens to be resolvable.
-        rejected = client.post(SIGNUP_REQUEST, json={"email": ANNA})
+        rejected = client.post(
+            SIGNUP_REQUEST, json={"email": ANNA, "acceptedTermsVersion": TERMS_OF_USE_VERSION}
+        )
         assert rejected.status_code == 403
         assert rejected.json()["code"] == "AUTH_METHOD_DISABLED"
         assert mailbox.messages == []
@@ -1113,7 +1197,7 @@ class TestLinkHostAndLogs:
     def test_link_host_ignores_forged_request_headers(self, cloud_client, mailbox) -> None:  # type: ignore[no-untyped-def]
         response = cloud_client.post(
             SIGNUP_REQUEST,
-            json={"email": ANNA},
+            json={"email": ANNA, "acceptedTermsVersion": TERMS_OF_USE_VERSION},
             headers={
                 "Host": "attacker.example",
                 "X-Forwarded-Host": "attacker.example",
@@ -1142,3 +1226,140 @@ class TestLinkHostAndLogs:
             assert token not in rendered
             assert hash_token(token) not in rendered
             assert ANNA not in rendered
+
+
+class TestTermsOfUseAcceptance:
+    """No Cloud Account comes into being without the current terms acceptance."""
+
+    def test_acceptance_from_the_signup_form_is_recorded_with_the_new_account(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        body = signed_up(cloud_client, mailbox, ANNA, displayName="Anna")
+
+        acceptance = session.scalars(select(TermsAcceptance)).one()
+        assert acceptance.account_id == UUID(body["account"]["id"])
+        assert acceptance.version == TERMS_OF_USE_VERSION
+        assert acceptance.origin == "signup_request"
+        assert acceptance.accepted_at is not None
+
+    def test_a_proof_without_acceptance_creates_nothing_and_stays_redeemable(
+        self, production_cloud
+    ) -> None:  # type: ignore[no-untyped-def]
+        client, maker, mailbox = production_cloud
+        request_signup(client, ANNA, accept_terms=False)
+        token = mailbox.token_for(ANNA)
+
+        paused = consume(client, token, displayName="Anna")
+        assert paused.status_code == 409
+        assert paused.json()["code"] == "TERMS_ACCEPTANCE_REQUIRED"
+        with maker() as session:
+            assert accounts_with(session, ANNA) == 0
+            assert list(session.scalars(select(TermsAcceptance))) == []
+
+        created = consume(
+            client, token, displayName="Anna", acceptedTermsVersion=TERMS_OF_USE_VERSION
+        )
+        assert created.status_code == 201, created.text
+        assert created.json()["accountCreated"] is True
+        with maker() as session:
+            acceptance = session.scalars(select(TermsAcceptance)).one()
+            assert acceptance.origin == "signup_redemption"
+
+    def test_an_existing_account_signs_in_without_any_acceptance(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        account = existing_account(session, ANNA)
+        request_signup(cloud_client, ANNA, accept_terms=False)
+
+        response = consume(cloud_client, mailbox.token_for(ANNA))
+
+        assert response.status_code == 201
+        assert response.json()["account"]["id"] == str(account.id)
+        assert response.json()["accountCreated"] is False
+        assert list(session.scalars(select(TermsAcceptance))) == []
+
+    def test_an_outdated_version_issues_no_proof_for_known_or_unknown_addresses(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        existing_account(session, ANNA)
+        responses = [
+            cloud_client.post(
+                SIGNUP_REQUEST, json={"email": address, "acceptedTermsVersion": "2000-01-01"}
+            )
+            for address in (ANNA, BEN)
+        ]
+
+        assert [response.status_code for response in responses] == [409, 409]
+        assert {response.json()["code"] for response in responses} == {"TERMS_VERSION_OUTDATED"}
+        assert responses[0].json() == responses[1].json()
+        assert mailbox.messages == []
+        assert list(session.scalars(select(SignupProof))) == []
+
+    def test_an_outdated_redemption_keeps_the_proof_unconsumed(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        request_signup(cloud_client, ANNA, accept_terms=False)
+        token = mailbox.token_for(ANNA)
+
+        stale = consume(cloud_client, token, acceptedTermsVersion="2000-01-01")
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "TERMS_VERSION_OUTDATED"
+        assert accounts_with(session, ANNA) == 0
+
+        current = consume(cloud_client, token, acceptedTermsVersion=TERMS_OF_USE_VERSION)
+        assert current.status_code == 201
+
+    def test_an_acceptance_of_an_older_version_is_asked_for_again(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        request_signup(cloud_client, ANNA)
+        proof = session.scalars(select(SignupProof)).one()
+        proof.accepted_terms_version = "2000-01-01"
+        session.flush()
+
+        response = consume(cloud_client, mailbox.token_for(ANNA))
+
+        assert response.status_code == 409
+        assert response.json()["code"] == "TERMS_ACCEPTANCE_REQUIRED"
+        assert accounts_with(session, ANNA) == 0
+
+    def test_an_invited_partner_accepts_in_the_invitation_form(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        founder = signed_up(cloud_client, mailbox, ANNA, displayName="Anna")
+        headers = auth(founder["tokens"]["accessToken"])
+        space = cloud_client.post("/api/v1/spaces", headers=headers)
+        assert space.status_code == 201, space.text
+        invitation = cloud_client.post(
+            f"/api/v1/spaces/{space.json()['id']}/invitations", headers=headers
+        )
+        assert invitation.status_code == 201, invitation.text
+        response = cloud_client.post(
+            SIGNUP_REQUEST,
+            json={
+                "email": BEN,
+                "invitationToken": invitation.json()["token"],
+                "acceptedTermsVersion": TERMS_OF_USE_VERSION,
+            },
+        )
+        assert response.status_code == 202
+
+        joined = consume(cloud_client, mailbox.token_for(BEN), displayName="Ben")
+
+        assert joined.status_code == 201, joined.text
+        assert joined.json()["spaceId"] == space.json()["id"]
+        versions = {
+            (row.account_id, row.version) for row in session.scalars(select(TermsAcceptance))
+        }
+        assert (UUID(joined.json()["account"]["id"]), TERMS_OF_USE_VERSION) in versions
+
+    def test_instance_status_publishes_the_version_only_where_it_applies(
+        self, session, mailbox, monkeypatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        use_deployment(monkeypatch)
+        cloud = app_client(session, mailbox).get("/api/v1/instance/status")
+        assert cloud.json()["termsOfUseVersion"] == TERMS_OF_USE_VERSION
+
+        use_deployment(monkeypatch, deployment=Deployment.SELF_HOSTED)
+        self_hosted = app_client(session, mailbox).get("/api/v1/instance/status")
+        assert self_hosted.json()["termsOfUseVersion"] is None

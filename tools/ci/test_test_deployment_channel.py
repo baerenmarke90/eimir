@@ -822,6 +822,62 @@ class CanonicalWiringTest(unittest.TestCase):
     def setUpClass(cls):
         cls.canonical = channel.canonical_compose()
 
+    def test_audio_opt_in_resolves_from_instance_settings_with_verified_media(self):
+        import re
+
+        media = "ghcr.io/baerenmarke90/eimir-media@sha256:" + "5" * 64
+        with patch.dict(os.environ, {"EIMIR_AUDIO_UPLOAD_ENABLED": "publisher-value"}):
+            config = channel.export_compose(
+                channel.canonical_compose(video=True), BACKEND, WEB, media
+            )
+        roles = ("cloud-api", "cloud-worker", "cloud-video-worker")
+        for name in roles:
+            self.assertEqual(
+                config["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"],
+                "${EIMIR_AUDIO_UPLOAD_ENABLED:-false}",
+            )
+        self.assertNotIn("publisher-value", json.dumps(config))
+        required = set(re.findall(r"\$\{([A-Z_]+):\?", json.dumps(config)))
+        environment = {key: os.environ[key] for key in ("PATH", "HOME") if key in os.environ}
+        environment.update({key: "fixture" for key in required})
+        with tempfile.TemporaryDirectory() as temporary:
+            compose = Path(temporary) / "compose.yaml"
+            compose.write_text(json.dumps(config))
+            for setting, expected in ((None, "false"), ("", "false"), ("true", "true"), ("false", "false")):
+                local = dict(environment)
+                if setting is not None:
+                    local["EIMIR_AUDIO_UPLOAD_ENABLED"] = setting
+                with self.subTest(setting=setting):
+                    result = subprocess.run(
+                        ["docker", "compose", "--env-file", os.devnull,
+                         "--file", str(compose), "config", "--format", "json"],
+                        env=local, text=True, capture_output=True,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    resolved = json.loads(result.stdout)
+                    for name in roles:
+                        self.assertEqual(
+                            resolved["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"],
+                            expected,
+                        )
+                    self.assertNotIn(
+                        "EIMIR_AUDIO_UPLOAD_ENABLED",
+                        resolved["services"]["cloud-migrate"]["environment"],
+                    )
+
+    def test_audio_cannot_be_enabled_without_the_verified_media_role(self):
+        canonical = copy.deepcopy(self.canonical)
+        for name in ("cloud-api", "cloud-worker"):
+            canonical["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"] = "true"
+        with patch.dict(os.environ, {"EIMIR_AUDIO_UPLOAD_ENABLED": "true"}):
+            config = channel.export_compose(canonical, BACKEND, WEB)
+        self.assertNotIn("cloud-video-worker", config["services"])
+        for name in ("cloud-api", "cloud-worker"):
+            self.assertEqual(
+                config["services"][name]["environment"]["EIMIR_AUDIO_UPLOAD_ENABLED"],
+                "false",
+            )
+
     def test_private_video_worker_is_exact_source_bounded_and_receives_only_its_credentials(
         self,
     ):

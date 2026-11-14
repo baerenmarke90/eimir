@@ -9,6 +9,7 @@ describe('surfaceRefreshDecision', () => {
     '/story/years',
     '/story/years/2026',
     '/story/chapters',
+    '/story/map',
     '/more/places',
     '/more/collections',
     '/more/notifications',

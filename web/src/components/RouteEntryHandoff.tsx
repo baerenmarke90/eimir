@@ -1,6 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { applyRouteEntryHandoff } from '../client/routeEntryHandoff';
+import {
+  applyRouteEntryHandoff,
+  takeSmoothRouteEntry,
+} from '../client/routeEntryHandoff';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 
 /**
@@ -54,8 +57,10 @@ export function RouteEntryHandoff(): null {
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
   const previousPath = useRef<string | null>(null);
+  const completedOriginEntry = useRef<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const smoothRequested = takeSmoothRouteEntry();
     const state = location.state as {
       taskReturnKey?: unknown;
       taskOriginKey?: unknown;
@@ -74,20 +79,36 @@ export function RouteEntryHandoff(): null {
       origin.to === taskOriginPath(location.pathname, location.search)
     ) {
       if (location.pathname === '/story') return undefined;
+      const entry = `${location.key}:${String(state?.taskReturnKey)}`;
+      if (completedOriginEntry.current === entry) return undefined;
       const frame = window.requestAnimationFrame(() => {
+        if (!resolveOrigin(state?.taskReturnKey)) return;
         window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
-        if (origin.focusTarget === 'quick-create') {
-          Array.from(
-            document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
-          )
-            .find((element) => element.getClientRects().length > 0)
-            ?.focus({ preventScroll: true });
-        }
+        completedOriginEntry.current = entry;
+        const target = origin.selectedKey
+          ? Array.from(
+              document.querySelectorAll<HTMLElement>('[data-task-item-key]'),
+            ).find(
+              // Kept, hidden primary tabs can render the same item.
+              (element) =>
+                element.dataset.taskItemKey === origin.selectedKey &&
+                !element.closest('[hidden]'),
+            )
+          : origin.focusTarget === 'quick-create'
+            ? Array.from(
+                document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
+              ).find((element) => element.getClientRects().length > 0)
+            : null;
+        target?.focus({ preventScroll: true });
       });
       return () => window.cancelAnimationFrame(frame);
     }
     if (navigationType === 'POP' && !location.hash) return undefined;
-    applyRouteEntryHandoff(location.hash);
+    // Tapping the navigation item of the page already shown scrolls it back
+    // to the start; make that a glide rather than a jump.
+    applyRouteEntryHandoff(location.hash, {
+      smooth: samePath && smoothRequested,
+    });
     const cleanup = stabilizePlanRouteEntry(location.hash);
     // `location` (not just `.hash`) is the dependency: a pathname-only
     // change between two hash-less routes must still re-run the handoff.
@@ -102,7 +123,9 @@ export function RouteEntryHandoff(): null {
             )
           )
             return;
-          const heading = document.querySelector<HTMLElement>('main h1');
+          const heading = Array.from(
+            document.querySelectorAll<HTMLElement>('main h1'),
+          ).find((candidate) => !candidate.closest('[hidden]'));
           if (heading) {
             heading.tabIndex = -1;
             heading.focus({ preventScroll: true });

@@ -22,6 +22,7 @@ export type AppRouteIcon =
   | 'people'
   | 'places'
   | 'collections'
+  | 'media'
   | 'chapter'
   | 'birthday'
   | 'private'
@@ -106,6 +107,7 @@ export function subpageParentPath(pathname: string): string {
     return '/story';
   if (/^\/plan\/(?:plans|wishes|reminders)\/(?:new|[^/]+)$/.test(path))
     return '/plan';
+  if (path.startsWith('/today/only-you')) return '/today';
   if (path === '/search' || path === '/games' || path === '/server-admin')
     return '/more';
   const parent = path.slice(0, path.lastIndexOf('/'));
@@ -167,6 +169,12 @@ export const SETTINGS_CATEGORY_ROUTES = {
   account: `${MORE_SETTINGS_ROUTE}/account`,
 } as const satisfies Record<SettingsCategoryId, string>;
 
+/** Settings › Relationship › Location & distance (#1792). */
+export const PARTNER_LOCATION_SETTINGS_ROUTE = `${SETTINGS_CATEGORY_ROUTES.relationship}/location`;
+
+/** The dedicated "where we are" map task, reached from the Wir distance (#1792). */
+export const PARTNER_LOCATION_MAP_ROUTE = '/today/where-we-are';
+
 export function isSettingsCategoryId(
   value: string | undefined,
 ): value is SettingsCategoryId {
@@ -202,6 +210,9 @@ export const MORE_PRIVATE_ROUTE = '/more/private';
  */
 export const SERVER_ADMIN_ROUTE = '/server-admin';
 
+/** Public, login-free reading page for the eimir. Cloud terms of use. */
+export const LEGAL_TERMS_ROUTE = '/legal/terms';
+
 /* Games content ---------------------------------------------------------- */
 
 export const GAMES_MOMENTS_ROUTE = '/games/our-moments';
@@ -215,6 +226,17 @@ export const STORY_PHOTOS_ROUTE = '/story/photos';
 export const HAPPINESS_ROUTE = '/story/happiness';
 export const TIME_TRAVEL_ROUTE = '/story/time-travel';
 export const STORY_YEAR_ROUTE_PATTERN = '/story/years/:year';
+/**
+ * Automatic relationship recaps live under Momente so that tab stays active; More
+ * and Wir link to the same library. The former More addresses are rewritten.
+ */
+export const STORY_RECAPS_ROUTE = '/story/recaps';
+export const RECAP_DETAIL_ROUTE_PATTERN = `${STORY_RECAPS_ROUTE}/:recapId`;
+export function recapDetailPath(recapId: string): string {
+  return `${STORY_RECAPS_ROUTE}/${encodeURIComponent(recapId)}`;
+}
+/** Former home of the library and reader, kept as a legacy rewrite. */
+export const MORE_PASSPORT_ROUTE = '/more/passport';
 export const MEMORY_CREATE_ROUTE = '/story/memories/new';
 export const MEMORY_DETAIL_ROUTE_PATTERN = '/story/memories/:memoryId';
 export const MEMORY_EDIT_ROUTE_PATTERN = '/story/memories/:memoryId/edit';
@@ -264,6 +286,7 @@ export const LEGACY_ROUTE_REWRITES = [
   { from: '/memory', to: '/story/memories' },
   { from: '/heart-moment', to: '/story/heart-moments' },
   { from: '/milestone', to: '/story/milestones' },
+  { from: MORE_PASSPORT_ROUTE, to: STORY_RECAPS_ROUTE },
 ] as const satisfies readonly { from: string; to: string }[];
 
 /**
@@ -374,10 +397,3 @@ export function collectionDetailPath(collectionId: string): string {
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
 export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
 export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;
-
-/** Automatic relationship recaps, discovered in More and the profile. */
-export const MORE_PASSPORT_ROUTE = '/more/passport';
-export const RECAP_DETAIL_ROUTE_PATTERN = `${MORE_PASSPORT_ROUTE}/:recapId`;
-export function recapDetailPath(recapId: string): string {
-  return `${MORE_PASSPORT_ROUTE}/${encodeURIComponent(recapId)}`;
-}

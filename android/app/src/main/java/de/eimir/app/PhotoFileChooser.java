@@ -91,13 +91,24 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
     }
 
     @Override
+    public void onPermissionRequest(android.webkit.PermissionRequest request) {
+        Uri origin = request.getOrigin();
+        Uri app = Uri.parse(bridge.getAppUrl());
+        if (!app.getScheme().equals(origin.getScheme())
+                || !app.getAuthority().equals(origin.getAuthority())) {
+            request.deny(); return;
+        }
+        super.onPermissionRequest(request);
+    }
+
+    @Override
     public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
             FileChooserParams params) {
         if (disposed || pending != null) {
             callback.onReceiveValue(null);
             return true;
         }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+        if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && isPhotoSelection(params))
                 || (!isPhotoSelection(params) && !isVideoSelection(params) && !isMixedSelection(params))) {
             return super.onShowFileChooser(view, callback, params);
         }
@@ -106,7 +117,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         pending = selection;
         if (video || selection.pickerMetadata || hasLocationPermission(bridge.getContext())) {
             openMediaPicker(selection);
-        } else if (!askedLocationPermission) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !askedLocationPermission) {
             askedLocationPermission = true;
             locationPermission.launch(Manifest.permission.ACCESS_MEDIA_LOCATION);
         } else {

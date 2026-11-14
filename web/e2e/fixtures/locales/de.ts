@@ -1,4 +1,50 @@
 const de = {
+  wirCheckIn: {
+    ownNote: 'Endlich Wochenende, ich freu mich auf unseren Abend.',
+    ownShortNote: 'Endlich Wochenende.',
+    partnerNote: 'Schlecht geschlafen, Kaffee hilft. Heute Abend nur Sofa?',
+    partnerShortNote: 'Schlecht geschlafen, Kaffee hilft.',
+  },
+  monthStory: {
+    photoTitles: [
+      'Mit Bruno im Wald',
+      'Sonnenaufgang am See',
+      'Abend auf dem Feld',
+    ],
+  },
+  pageComposer: {
+    memoryTitle: 'Frühstück am See',
+    memoryBody:
+      'Viel zu früh aufgestanden, aber der Nebel über dem Wasser war es wert. Den Kaffee hast du natürlich vergessen.\n\nBeim nächsten Mal bringen wir eine große Thermoskanne mit.',
+    heartText: 'Danke für den Kaffee ans Bett heute früh.',
+    planTitle: 'Picknick am Rhein',
+    planBody:
+      'Treffpunkt an der großen Wiese hinter dem Bootshaus.\n\nWir bringen Decke, Thermoskanne und das Brot vom Wochenmarkt mit. Falls es regnet, suchen wir uns einen Platz unter den Bäumen. Am Nachmittag bleiben wir noch eine Weile am Wasser und nehmen uns Zeit für einen Spaziergang. Danach fahren wir gemeinsam nach Hause.',
+    placeName: 'Bootssteg',
+    placeAddress: 'Am See 1, Nohfelden',
+    listTitle: 'Picknick-Liste',
+    listItems: ['Decke', 'Thermoskanne', 'Brot vom Wochenmarkt', 'Kuchen'],
+    addedListItem: 'Obst für den Nachmittag',
+    tag: 'Urlaub',
+    suggestedTags: ['Sonnenaufgang', 'Am Wasser'],
+    newPlace: 'Unser Lieblingsplatz',
+    wishTitle: 'Mehr Tagesausflüge zu zweit',
+  },
+  planLinkedLists: {
+    newPlanTitle: 'Picknick am See',
+    newListTitle: 'Für unseren Ausflug',
+    title: 'Ein Tag am See',
+    description: 'Zeit am Wasser und ein Picknick.',
+    memoryTitle: 'Unser Picknick am See',
+    memoryBody: 'Unser gemeinsamer Rückblick.',
+    heartText: 'Mit dir war dieser Tag besonders.',
+    milestoneTitle: 'Unser erster gemeinsamer Ausflug',
+    milestoneBody: 'Ein wichtiger Tag für uns.',
+    savedMemoryBody: 'Unser eigener Rückblick.',
+    savedHeartText: 'Dieser Tag bleibt bei uns.',
+    savedMilestoneTitle: 'Unser erster Tag am See',
+    unsavedPlanDescription: 'Unser noch nicht gespeicherter Plantext.',
+  },
   planningFollowup: {
     plan: 'Österreich entdecken',
     street: 'Eine kleine Straße am See',
@@ -89,6 +135,28 @@ const de = {
     wordsTitle: 'Deine Nachricht am Morgen',
     previousHeadline: 'Ein Tag nur für uns.',
     reflection: 'Das möchte ich für uns behalten.',
+    dense: {
+      headline: 'Ein Oktober am Wasser.',
+      introduction:
+        'Der See, der Herbstmarkt und ein Frühstück auf dem Balkon. Dazwischen Worte, die ihr euch geschrieben habt.',
+      market: 'Herbstmarkt in der Altstadt',
+      marketText: 'Maronen, Lichterketten und viel zu viel Apfelpunsch.',
+      breakfast: 'Sonntagsfrühstück auf dem Balkon',
+      breakfastText: 'Decke, Kaffee, Zeitung. Bis mittags.',
+      key: 'Unser erster gemeinsamer Schlüssel',
+      keyText: 'Zwei Schlüssel, ein Anhänger. Ab jetzt beide an einem Brett.',
+      jetty: 'Abendlicht am Steg',
+      jettyText: 'Noch einmal zurück, weil das Licht so schön war.',
+      thanks: 'Danke, dass du gewartet hast.',
+      chapter: 'Unser Herbst',
+      chapterText:
+        'Alles, was zwischen den ersten bunten Blättern und dem ersten Frost passiert.',
+    },
+    ownWords: {
+      photoQuote: 'Ich denke so oft an diesen Abend am Wasser.',
+      wordsQuote: 'Das war der schönste Abend der Woche.',
+      reaction: 'Dieses Foto habt ihr beide geliebt',
+    },
   },
   placesAndLists: {
     placeDescription: 'Unser Platz im Grünen.',

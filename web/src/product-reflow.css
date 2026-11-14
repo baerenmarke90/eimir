@@ -16,7 +16,8 @@
   min-width: 0;
 }
 
-.product-main > .page {
+.product-main > .page,
+.product-main > .primary-tab-panel > .page {
   container-name: product-content;
   container-type: inline-size;
   min-width: 0;
@@ -332,8 +333,8 @@
   }
 
   .page-heading-action,
-  .page-heading-action .button-link,
-  .page-heading-action button {
+  .page-heading-action .button-link:not(.add-action),
+  .page-heading-action button:not(.add-action) {
     width: 100%;
   }
 

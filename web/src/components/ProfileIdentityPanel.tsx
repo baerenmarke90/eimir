@@ -1,6 +1,5 @@
-import { type FormEvent, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProfilesApi } from '../client/mediaApis';
+import { type FormEvent, useMemo, useRef, useState } from 'react';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { ProfileIdentityUpdate } from '../api/generated/models/ProfileIdentityUpdate';
 import { Configuration } from '../client/apiConfiguration';
@@ -8,6 +7,7 @@ import {
   authorSummaryQueryKeys,
   invalidateAuthorSummaryConsumers,
 } from '../client/authorSummaryConsumers';
+import { ProfilesApi } from '../client/mediaApis';
 import {
   type DraftUploadPhase,
   uploadMemoryDraftAttachment,
@@ -16,9 +16,10 @@ import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
-import { NativeDateField } from './NativeDateField';
+import { AvatarPhoto } from './AvatarPhoto';
 import { ListEntryIconButton } from './ListEntryActions';
-import { PersonIdentity } from './PersonIdentity';
+import { NativeDateField } from './NativeDateField';
+import './PeopleProfiles.css';
 import { MediaDropZone } from './MediaDropZone';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -261,15 +262,11 @@ export function ProfileIdentityPanel({
       {profile ? (
         <div className="profile-identity-hero">
           <div className="profile-identity-avatar-col">
-            <PersonIdentity
-              displayName={visibleName}
-              imageUrl={avatarUrl}
-              size="large"
-              showName={false}
-              imageAlt={t('profileIdentity.imageAlt', { name: visibleName })}
-              fallbackAlt={t('profileIdentity.fallbackAlt', {
-                name: visibleName,
-              })}
+            <AvatarPhoto
+              name={visibleName}
+              url={avatarUrl}
+              identity={`${spaceId}:profile:${account.id}:${profile.profileAttachmentId}`}
+              large
             />
           </div>
 

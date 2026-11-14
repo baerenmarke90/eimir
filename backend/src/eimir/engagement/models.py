@@ -43,6 +43,7 @@ class ActivityKind(StrEnum):
 
 
 class NotificationKind(StrEnum):
+    ONCE_MESSAGE_RECEIVED = "ONCE_MESSAGE_RECEIVED"
     GENTLE_PROMPT = "GENTLE_PROMPT"
     REMINDER_CREATED = "REMINDER_CREATED"
     TRANSFER_READY = "TRANSFER_READY"
@@ -62,6 +63,7 @@ class NotificationKind(StrEnum):
     PARTNER_KISS = "PARTNER_KISS"
     PARTNER_CHECK_IN = "PARTNER_CHECK_IN"
     REMINDER_DUE = "REMINDER_DUE"
+    WISH_REMINDER_DUE = "WISH_REMINDER_DUE"
 
 
 class NotificationChannel(StrEnum):
@@ -76,6 +78,7 @@ class SupportGestureKind(StrEnum):
 
 
 class EngagementTarget(StrEnum):
+    ONCE_MESSAGE = "ONCE_MESSAGE"
     REMINDER = "REMINDER"
     TRANSFER_EXPORT = "TRANSFER_EXPORT"
     TRANSFER_IMPORT = "TRANSFER_IMPORT"
@@ -459,6 +462,12 @@ class PushEndpoint(IdMixin, Base):
         ForeignKey("accounts.id", ondelete="CASCADE"),
         nullable=False,
     )
+    device_session_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     provider_key: Mapped[str] = mapped_column(String(64), nullable=False)
     endpoint_value: Mapped[str] = mapped_column(String(2048), nullable=False)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -475,6 +484,12 @@ class PushEndpoint(IdMixin, Base):
             name="uq_push_endpoints_account_provider_fingerprint",
         ),
         Index("ix_push_endpoints_account_active", "account_id", "disabled_at"),
+        Index(
+            "ix_push_endpoints_active_destination",
+            "provider_key",
+            "fingerprint",
+            postgresql_where=text("disabled_at IS NULL AND provider_key IN ('apns', 'webpush')"),
+        ),
     )
 
 
@@ -531,6 +546,9 @@ class PushPreviewSecret(IdMixin, Base):
     )
     preview_version: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=1, server_default=text("1")
+    )
+    neutral_reference: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
     )
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=CRYPTO_VERSION_PLAINTEXT, server_default=text("0")

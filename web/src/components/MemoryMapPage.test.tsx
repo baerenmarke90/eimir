@@ -3,18 +3,28 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { ClientProblemError } from '../client/problemDetails';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import copy from '../i18n/locales/memoryMap';
+import { MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryMapPage } from './MemoryMapPage';
 
 vi.mock('./PlaceMapCanvas', () => ({
   default: ({
     onLocationSelect,
+    locations,
+    focus,
   }: {
     onLocationSelect: (id: string) => void;
+    locations: { id: string }[];
+    focus?: { latitude: number; longitude: number };
   }) => (
-    <div data-testid="external-map">
+    <div
+      data-testid="external-map"
+      data-locations={locations.map((item) => item.id).join(',')}
+      data-focus={focus ? `${focus.latitude}:${focus.longitude}` : ''}
+    >
       <button type="button" onClick={() => onLocationSelect('49:7')}>
         Map marker
       </button>
@@ -60,7 +70,113 @@ function setup(
   );
 }
 describe('Pro memory map', () => {
-  it('commits a fullscreen location only after closing its owned history entry', async () => {
+  it('bounds stacks to three distinct sources, prefers photos and retains the selected text source', () => {
+    const entries = Array.from({ length: 40 }, (_, index) => ({
+      ...item,
+      memoryId: `source-${index}`,
+      title: `Visit ${index}`,
+      previewAttachmentId: index % 2 ? `photo-${index}` : undefined,
+    }));
+    const preview = vi.fn((entry: MemoryMapEntry) => (
+      <span>{entry.title}</span>
+    ));
+    const view = render(
+      <MemoryMapPhotoStack
+        entries={entries}
+        expanded={false}
+        preview={preview}
+      />,
+    );
+    expect(
+      view.container.querySelectorAll('.memory-map-stack-photo'),
+    ).toHaveLength(3);
+    expect(view.container.querySelector('[data-slot="0"]')?.textContent).toBe(
+      'Visit 1',
+    );
+    expect(preview).toHaveBeenCalledTimes(3);
+    view.rerender(
+      <MemoryMapPhotoStack
+        entries={entries}
+        expanded
+        activeMemoryId="source-38"
+        preview={preview}
+      />,
+    );
+    expect(view.container.querySelector('[data-slot="0"]')?.textContent).toBe(
+      'Visit 38',
+    );
+    expect(
+      view.container.querySelectorAll('.memory-map-stack-photo'),
+    ).toHaveLength(3);
+    expect(preview).toHaveBeenCalledTimes(6);
+  });
+  it('focuses a selected place, hides other markers and resets through the standard filter', async () => {
+    setup(
+      vi.fn().mockResolvedValue({
+        items: [
+          item,
+          {
+            ...item,
+            memoryId: 'm2',
+            placeName: 'Zoo',
+            latitude: 53,
+            longitude: 10,
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' }),
+    );
+    expect(
+      (await screen.findByTestId('external-map')).getAttribute(
+        'data-locations',
+      ),
+    ).toBe('49:7');
+    expect(screen.getByTestId('external-map').getAttribute('data-focus')).toBe(
+      '49:7',
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.filter }));
+    fireEvent.click(await screen.findByRole('radio', { name: 'Zoo' }));
+    await screen.findByRole('heading', { name: 'Zoo' });
+    expect(
+      screen.getByTestId('external-map').getAttribute('data-locations'),
+    ).toBe('53:10');
+    fireEvent.click(screen.getByRole('button', { name: copy.filter }));
+    fireEvent.click(await screen.findByRole('radio', { name: copy.allPlaces }));
+    await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' });
+    expect(
+      screen.getByTestId('external-map').getAttribute('data-locations'),
+    ).toBe('49:7,53:10');
+    expect(screen.getByTestId('external-map').getAttribute('data-focus')).toBe(
+      '',
+    );
+  });
+  it('sorts place choices by name after loading another page and retains grouping', async () => {
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [{ ...item, placeName: 'Zoo' }],
+        nextCursor: 'next',
+      })
+      .mockResolvedValueOnce({
+        items: [
+          { ...item, placeName: 'Äpfel', memoryId: 'm2', latitude: 50 },
+          { ...item, placeName: 'Zoo', memoryId: 'm3' },
+        ],
+        nextCursor: null,
+      });
+    setup(list);
+    fireEvent.click(await screen.findByRole('button', { name: copy.loadMore }));
+    await screen.findByRole('button', { name: 'Äpfel · 1 Erinnerung' });
+    const choices = screen.getAllByRole('button', { name: / · \d Erinner/ });
+    expect(choices.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Äpfel · 1 Erinnerung',
+      'Zoo · 2 Erinnerungen',
+    ]);
+  });
+  it('browses a fullscreen location without closing the map, then retains its selected scope on close', async () => {
     setup(vi.fn().mockResolvedValue({ items: [item], nextCursor: null }));
     fireEvent.click(
       await screen.findByRole('button', { name: copy.fullscreen }),
@@ -73,7 +189,21 @@ describe('Pro memory map', () => {
         'href',
       ),
     ).toBe('/story/memories/m1');
-    expect(screen.queryByRole('dialog', { name: copy.title })).toBeNull();
+    expect(screen.getByRole('dialog', { name: copy.title })).toBe(dialog);
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: copy.closeFullscreen }),
+    );
+    await vi.waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: copy.title })).toBeNull(),
+    );
+    expect(
+      (await screen.findByRole('link', { name: /By the lake/ })).getAttribute(
+        'href',
+      ),
+    ).toBe('/story/memories/m1');
+    expect(screen.getByTestId('external-map').getAttribute('data-focus')).toBe(
+      '49:7',
+    );
   });
   it('opens the map immediately, groups co-located sources and opens canonical memories', async () => {
     setup(

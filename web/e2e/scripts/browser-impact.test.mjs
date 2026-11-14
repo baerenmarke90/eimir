@@ -94,7 +94,7 @@ test('cross-surface journeys follow their real destination rather than their his
     ['DailyInsightsPage', 'today-pro-insights'],
     ['PlaceProductPage', 'moment-relation-picker'],
     ['PlanProductPage', 'relationship-reflections'],
-    ['SharedPhotosPage', 'story-discover-tapestry'],
+    ['MediaOverviewPage', 'story-discover-tapestry'],
     ['CollectionProductPage', 'today-pinned-collection'],
     ['M4ProductPages', 'private-area-reference'],
   ]) {
@@ -139,6 +139,8 @@ test('shared foundations, dependencies, workflow and unknown paths require every
     'web/src/client/sessionPersistence.ts',
     'web/src/client/routes.ts',
     'web/src/api/generated/runtime.ts',
+    'web/src/i18n/locales/en.json',
+    'web/src/i18n/locale.ts',
     'web/package-lock.json',
     '.github/workflows/web-browser-qa.yml',
     'web/src/client/new-unknown.ts',

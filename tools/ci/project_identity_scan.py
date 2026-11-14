@@ -168,6 +168,17 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "the exact Vibe reference prompt describes adjacent person cards, not a project name",
         )
 
+    if (
+        path == Path("docs/product/design/references/once-messages/prompt.md")
+        and match == "side by side"
+        and "three complete smartphone app screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact one-time-message reference prompt describes adjacent screens, not a project name",
+        )
+
     planning_prompt_phrases = {
         Path("docs/product/design/references/planning-search-private-profile/prompt.txt"): (
             "four complete flat smartphone screen compositions, each 390 css pixels wide, "
@@ -186,6 +197,17 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         return (
             Classification.FALSE_POSITIVE,
             "the exact planning reference prompt describes adjacent screens, not a project name",
+        )
+
+    if (
+        path == Path("docs/product/design/references/contextual-create/reference-prompts.md")
+        and match == "side by side"
+        and normalized.count("side by side") == 1
+        and "both complete screens side by side at the same 390:844 proportions" in normalized
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact contextual-creation prompt describes adjacent screens, not a project name",
         )
 
     if match == "side by side" and (

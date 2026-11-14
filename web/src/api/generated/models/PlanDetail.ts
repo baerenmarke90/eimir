@@ -27,6 +27,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { PlanFileSummary } from './PlanFileSummary';
+import {
+    PlanFileSummaryFromJSON,
+    PlanFileSummaryFromJSONTyped,
+    PlanFileSummaryToJSON,
+    PlanFileSummaryToJSONTyped,
+} from './PlanFileSummary';
 import type { OrderedAttachmentSummary } from './OrderedAttachmentSummary';
 import {
     OrderedAttachmentSummaryFromJSON,
@@ -41,6 +48,13 @@ import {
     AttachmentSummaryToJSON,
     AttachmentSummaryToJSONTyped,
 } from './AttachmentSummary';
+import type { DiscreetTitleMode } from './DiscreetTitleMode';
+import {
+    DiscreetTitleModeFromJSON,
+    DiscreetTitleModeFromJSONTyped,
+    DiscreetTitleModeToJSON,
+    DiscreetTitleModeToJSONTyped,
+} from './DiscreetTitleMode';
 import type { PlanStatus } from './PlanStatus';
 import {
     PlanStatusFromJSON,
@@ -105,10 +119,28 @@ export interface PlanDetail {
     description: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof PlanDetail
+     */
+    discreet?: boolean;
+    /**
+     * 
+     * @type {DiscreetTitleMode}
+     * @memberof PlanDetail
+     */
+    discreetTitleMode?: DiscreetTitleMode;
+    /**
+     * 
      * @type {Date}
      * @memberof PlanDetail
      */
     experiencedOn: Date | null;
+    /**
+     * 
+     * @type {Array<PlanFileSummary>}
+     * @memberof PlanDetail
+     */
+    fileAttachments?: Array<PlanFileSummary>;
     /**
      * 
      * @type {string}
@@ -139,6 +171,12 @@ export interface PlanDetail {
      * @memberof PlanDetail
      */
     plannedStart: Date | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanDetail
+     */
+    previewTitle?: string | null;
     /**
      * 
      * @type {string}
@@ -232,12 +270,16 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
         'description': json['description'],
+        'discreet': json['discreet'] == null ? undefined : json['discreet'],
+        'discreetTitleMode': json['discreetTitleMode'] == null ? undefined : DiscreetTitleModeFromJSON(json['discreetTitleMode']),
         'experiencedOn': (json['experiencedOn'] == null ? null : new Date(json['experiencedOn'])),
+        'fileAttachments': json['fileAttachments'] == null ? undefined : ((json['fileAttachments'] as Array<any>).map(PlanFileSummaryFromJSON)),
         'id': json['id'],
         'placeId': json['placeId'],
         'plannedEnd': (json['plannedEnd'] == null ? null : new Date(json['plannedEnd'])),
         'plannedOn': json['plannedOn'] === undefined ? undefined : json['plannedOn'] === null ? null : (new Date(json['plannedOn'])),
         'plannedStart': (json['plannedStart'] == null ? null : new Date(json['plannedStart'])),
+        'previewTitle': json['previewTitle'] === undefined ? undefined : json['previewTitle'] === null ? null : json['previewTitle'],
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'sourceWishId': json['sourceWishId'],
         'spaceId': json['spaceId'],
@@ -268,12 +310,16 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
         'description': value['description'],
+        'discreet': value['discreet'],
+        'discreetTitleMode': DiscreetTitleModeToJSON(value['discreetTitleMode']),
         'experiencedOn': value['experiencedOn'] == null ? value['experiencedOn'] : value['experiencedOn'].toISOString().substring(0,10),
+        'fileAttachments': value['fileAttachments'] == null ? undefined : ((value['fileAttachments'] as Array<any>).map(PlanFileSummaryToJSON)),
         'id': value['id'],
         'placeId': value['placeId'],
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),
         'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
         'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
+        'previewTitle': value['previewTitle'],
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'sourceWishId': value['sourceWishId'],
         'spaceId': value['spaceId'],

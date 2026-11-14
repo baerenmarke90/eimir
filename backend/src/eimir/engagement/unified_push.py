@@ -27,6 +27,7 @@ from eimir.config import Settings
 from eimir.engagement import push
 
 PROVIDER_KEY = "unifiedpush"
+BROWSER_PROVIDER_KEY = "webpush"
 _BASE64URL = re.compile(r"[A-Za-z0-9_-]+={0,2}\Z")
 _MAX_SUBSCRIPTION_BYTES = 2048
 _MAX_ENDPOINT_BYTES = 1000
@@ -68,6 +69,8 @@ class Subscription:
     p256dh: str
     auth: str
     notification_reference_version: int = 0
+    locale_version: int = 0
+    activation_id: str | None = None
 
     def as_webpush(self) -> dict[str, object]:
         return {
@@ -152,15 +155,19 @@ class _PinnedPushSession(requests.Session):
 
 
 class UnifiedPushProvider:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, browser: bool = False) -> None:
         if settings.push_vapid_private_key is None:
             raise ValueError("UnifiedPush requires a configured VAPID key.")
         self._private_key = settings.push_vapid_private_key.get_secret_value()
         self._subject = settings.push_vapid_subject
+        self._browser = browser
+        origins = (
+            settings.push_browser_allowed_origins
+            if browser
+            else settings.push_webpush_allowed_origins
+        )
         self._allowed_origins = frozenset(
-            origin
-            for raw in settings.push_webpush_allowed_origins
-            if (origin := _origin(urlsplit(raw))) is not None
+            origin for raw in origins if (origin := _origin(urlsplit(raw))) is not None
         )
         vapid = Vapid.from_string(self._private_key)
         public_key = vapid.public_key.public_bytes(
@@ -175,13 +182,37 @@ class UnifiedPushProvider:
             raw = json.loads(value)
         except (TypeError, ValueError):
             return None
-        if not isinstance(raw, dict) or set(raw) not in (
-            {"endpoint", "keys"},
-            {"endpoint", "keys", "notificationReferenceVersion"},
+        if (
+            not isinstance(raw, dict)
+            or not {"endpoint", "keys"}.issubset(raw)
+            or not set(raw).issubset(
+                {
+                    "endpoint",
+                    "keys",
+                    "notificationReferenceVersion",
+                    "localeVersion",
+                    "activationId",
+                }
+            )
         ):
+            return None
+        locale_version = raw.get("localeVersion", 0)
+        if type(locale_version) is not int or locale_version not in {0, 1}:
             return None
         version = raw.get("notificationReferenceVersion", 0)
         if type(version) is not int or version not in {0, 1}:
+            return None
+        activation = raw.get("activationId")
+        if self._browser:
+            if not isinstance(activation, str) or len(activation) != 36 or version != 1:
+                return None
+            try:
+                parsed = UUID(activation)
+            except ValueError:
+                return None
+            if parsed.version != 4 or str(parsed) != activation:
+                return None
+        elif "activationId" in raw:
             return None
         endpoint = raw["endpoint"]
         keys = raw["keys"]
@@ -207,7 +238,9 @@ class UnifiedPushProvider:
             ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), public)
         except ValueError:
             return None
-        return Subscription(endpoint, keys["p256dh"], keys["auth"], version)
+        return Subscription(
+            endpoint, keys["p256dh"], keys["auth"], version, locale_version, activation
+        )
 
     def accepts_endpoint(self, endpoint: str) -> bool:
         return self._parse(endpoint) is not None
@@ -236,9 +269,15 @@ class UnifiedPushProvider:
         registration = self._parse(endpoint)
         if registration is None:
             raise push.PushProviderError("PUSH_SUBSCRIPTION_INVALID", retryable=False)
+        if registration.locale_version == 1 and "locale" in notification_reference:
+            from eimir.i18n import detect_locale
+
+            wake["locale"] = detect_locale([notification_reference["locale"]])
         if registration.notification_reference_version == 1:
             with contextlib.suppress(KeyError, ValueError, TypeError, AttributeError):
                 wake["notificationId"] = str(UUID(notification_reference["id"]))
+        if registration.activation_id is not None:
+            wake["activationId"] = registration.activation_id
         if generic_presentation_key != push.GENERIC_PRESENTATION_KEY:
             raise push.PushProviderError("PUSH_PRESENTATION_BLOCKED", retryable=False)
         topic = base64.urlsafe_b64encode(hashlib.sha256(idempotency_key.encode()).digest())[
@@ -251,7 +290,7 @@ class UnifiedPushProvider:
                 vapid_private_key=self._private_key,
                 vapid_claims={"sub": self._subject},
                 content_encoding="aes128gcm",
-                ttl=_PUSH_TTL_SECONDS,
+                ttl=int(notification_reference.get("ttl", str(_PUSH_TTL_SECONDS))),
                 timeout=_CONNECT_TIMEOUT_SECONDS,
                 headers={"Topic": topic},
                 requests_session=_PinnedPushSession(self._allowed_origins),

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { RecapViewFromJSON } from '../api/generated/models/RecapView';
-import { monthlyRecapInvitation, recapPeriodStatus } from './recaps';
+import {
+  monthlyRecapInvitation,
+  recapEntryEdition,
+  recapPeriodStatus,
+  recapRhythm,
+  recapScenes,
+} from './recaps';
 
 const edition = (
   year = 2026,
@@ -91,5 +97,78 @@ describe('monthly recap invitation', () => {
   it('does not promise that a saved partial edition continues growing', () => {
     const saved = edition(2026, 10, { savedAt: '2026-10-30T13:00:00Z' });
     expect(recapPeriodStatus(saved, 'en', (key) => key)).toBe('recaps.saved');
+  });
+});
+
+describe('recap rhythm scene', () => {
+  const mood = (goodDays: number[], leading: number | null = null) => ({
+    buckets: goodDays.map((days, index) => ({
+      index: index + 1,
+      mutualDays: days,
+      goodDays: days,
+    })),
+    leading,
+  });
+  const facts = {
+    memories: 3,
+    heartMoments: 1,
+    milestones: 0,
+    chapters: 0,
+    plans: 0,
+    activeDays: 4,
+    busiestMonth: null,
+  };
+
+  it('follows the counted facts and counts the good days', () => {
+    const value = edition(2026, 10, { facts, mood: mood([3, 2, 4, 0, 0], 3) });
+    expect(recapScenes(value).map((scene) => scene.type)).toEqual([
+      'cover',
+      'facts',
+      'rhythm',
+      'highlight',
+      'closing',
+    ]);
+    expect(recapRhythm(value)).toMatchObject({ total: 9, leading: 3 });
+  });
+
+  it('is omitted without a mood and below three good days', () => {
+    expect(recapRhythm(edition())).toBeNull();
+    expect(
+      recapRhythm(edition(2026, 10, { mood: mood([1, 1, 0]) })),
+    ).toBeNull();
+    expect(
+      recapScenes(edition(2026, 10, { mood: mood([1, 1, 0]) })).map(
+        (scene) => scene.type,
+      ),
+    ).not.toContain('rhythm');
+  });
+});
+
+describe('recap entry in Momente', () => {
+  const ready = (id: string, year: number, month: number) =>
+    edition(year, month, { id });
+  it('points to the newest ready edition, else the newest pending one', () => {
+    expect(
+      recapEntryEdition([
+        ready('old', 2026, 8),
+        ready('new', 2026, 10),
+        edition(2026, 11, { id: 'pending', status: 'PENDING', sources: [] }),
+      ])?.id,
+    ).toBe('new');
+    expect(
+      recapEntryEdition([
+        edition(2026, 9, { id: 'a', status: 'PENDING', sources: [] }),
+        edition(2026, 10, { id: 'b', status: 'PENDING', sources: [] }),
+      ])?.id,
+    ).toBe('b');
+  });
+
+  it('invents nothing without editions or readable sources', () => {
+    expect(recapEntryEdition([])).toBeUndefined();
+    expect(
+      recapEntryEdition([
+        edition(2026, 10, { id: 'empty', status: 'EMPTY', sources: [] }),
+      ]),
+    ).toBeUndefined();
   });
 });

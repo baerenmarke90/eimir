@@ -57,6 +57,24 @@ export interface CollectionItemDetail {
      * @type {Date}
      * @memberof CollectionItemDetail
      */
+    completedAt?: Date | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CollectionItemDetail
+     */
+    completedBy?: string | null;
+    /**
+     * 
+     * @type {AuthorSummary}
+     * @memberof CollectionItemDetail
+     */
+    completer?: AuthorSummary | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof CollectionItemDetail
+     */
     createdAt: Date;
     /**
      * 
@@ -82,6 +100,12 @@ export interface CollectionItemDetail {
      * @memberof CollectionItemDetail
      */
     position: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CollectionItemDetail
+     */
+    quantity?: string | null;
     /**
      * 
      * @type {string}
@@ -133,11 +157,15 @@ export function CollectionItemDetailFromJSONTyped(json: any, ignoreDiscriminator
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'collectionId': json['collectionId'],
         'completed': json['completed'],
+        'completedAt': json['completedAt'] === undefined ? undefined : json['completedAt'] === null ? null : (new Date(json['completedAt'])),
+        'completedBy': json['completedBy'] === undefined ? undefined : json['completedBy'] === null ? null : json['completedBy'],
+        'completer': json['completer'] === undefined ? undefined : json['completer'] === null ? null : AuthorSummaryFromJSON(json['completer']),
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
         'id': json['id'],
         'position': json['position'],
+        'quantity': json['quantity'] === undefined ? undefined : json['quantity'] === null ? null : json['quantity'],
         'title': json['title'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
@@ -158,11 +186,15 @@ export function CollectionItemDetailToJSONTyped(value?: CollectionItemDetail | n
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'collectionId': value['collectionId'],
         'completed': value['completed'],
+        'completedAt': value['completedAt'] == null ? value['completedAt'] : value['completedAt'].toISOString(),
+        'completedBy': value['completedBy'],
+        'completer': AuthorSummaryToJSON(value['completer']),
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
         'id': value['id'],
         'position': value['position'],
+        'quantity': value['quantity'],
         'title': value['title'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],

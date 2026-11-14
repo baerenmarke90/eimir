@@ -25,6 +25,8 @@ class SearchResult(ApiModel):
     title: str | None
     excerpt: str | None
     occurred_on: date | None
+    concealed: bool = False
+    """Show the list title with placeholder lines; a discreet Plan (#1790 F3)."""
 
 
 class SearchPage(ApiModel):
@@ -67,6 +69,7 @@ def search_space_content(
                 title=item.title,
                 excerpt=item.excerpt,
                 occurred_on=item.occurred_on,
+                concealed=item.concealed,
             )
             for item in page.items
         ],

@@ -9,6 +9,8 @@ Name | Type
 `androidPackage` | string
 `encryptedPreviewMaxVersion` | number
 `encryptedPreviewVersion` | number
+`localeVersion` | number
+`neutralReferenceVersion` | number
 `projectId` | string
 `providerKey` | string
 
@@ -22,6 +24,8 @@ const example = {
   "androidPackage": null,
   "encryptedPreviewMaxVersion": null,
   "encryptedPreviewVersion": null,
+  "localeVersion": null,
+  "neutralReferenceVersion": null,
   "projectId": null,
   "providerKey": null,
 } satisfies FcmConfiguration

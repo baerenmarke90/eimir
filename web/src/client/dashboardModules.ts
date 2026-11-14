@@ -11,9 +11,10 @@
  * modules: the App Shell is out of #817's scope entirely, and the empty state
  * only ever appears in place of the configurable module stack, never as one
  * of its members. `relationship_presence` (the Couple Presence hero) IS a
- * module like any other - #817 has no core/high-priority exception - it is
- * simply the one whose Today rendering doubles as the page's `<h1>`; see
- * `TodayPage.tsx` for how hiding it preserves an accessible heading.
+ * module in the persisted API contract. The Wir presentation now pins it at
+ * the top and always displays it, even for older saved preferences that hid or
+ * moved it; the other sections remain independently configurable.
+ * The page H1 stays in PageHeader rather than in the couple hero.
  *
  * This list must stay in sync with the backend catalog in
  * `backend/src/eimir/dashboard/preferences.py`. Both are tested against
@@ -24,6 +25,7 @@
 
 export type DashboardModuleKey =
   | 'relationship_presence'
+  | 'partner_distance'
   | 'shared_experience'
   | 'daily_quote'
   | 'upcoming'
@@ -37,7 +39,7 @@ export type DashboardModuleKey =
 
 export interface DashboardModuleCatalogEntry {
   key: DashboardModuleKey;
-  /** i18n key for the module's Settings-facing (and Today-facing) label. */
+  /** i18n key for the module's label in Settings, without interpolation. */
   labelKey: string;
 }
 
@@ -51,6 +53,7 @@ export interface DashboardModuleCatalogEntry {
 export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [
     { key: 'relationship_presence', labelKey: 'm5s5.today.roles.hero' },
+    { key: 'partner_distance', labelKey: 'partnerLocation.wirModuleLabel' },
     { key: 'shared_experience', labelKey: 'coupleExperiences.incoming.title' },
     { key: 'daily_quote', labelKey: 'dailyQuote.title' },
     { key: 'keepsake', labelKey: 'm5s5.today.keepsake.kicker' },
@@ -61,11 +64,11 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
     },
     { key: 'retrospective', labelKey: 'm5s5.today.living.retrospectiveLabel' },
     { key: 'relationship_signal', labelKey: 'm5s5.today.living.kicker' },
-    { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.title' },
+    { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.settingsTitle' },
     { key: 'recent_shared', labelKey: 'm5s5.dashboard.recentTitle' },
     {
       key: 'shared_story_summary',
-      labelKey: 'relationshipReflections.passport.wirStatisticsTitle',
+      labelKey: 'm5s5.dashboard.storySummaryTitle',
     },
   ];
 

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoReactions from '../../src/i18n/locales/photoReactions';
@@ -9,7 +10,10 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
-import { closeDraftActions, openDraftActions } from '../support/mediaDraft';
+import {
+  expectInlineDraftActions,
+  selectDraftMedia,
+} from '../support/mediaDraft';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
@@ -113,6 +117,14 @@ function counterLabel(index: number, count: number): string {
   return GALLERY.counter
     .replace('{{index}}', String(index))
     .replace('{{count}}', String(count));
+}
+
+function inlineCounterLabel(index: number, count: number): string {
+  return `${index} / ${count}`;
+}
+
+function privacyControl(scope: Page | Locator, label: string): Locator {
+  return scope.getByRole('button', { name: label, exact: true });
 }
 
 async function pointerClickWithoutScroll(
@@ -802,17 +814,12 @@ for (const state of [
           detailPhoto.locator('.sensitive-media-cover'),
         ).toBeVisible();
         const detailGallery = page.locator('.media-gallery-carousel');
-        await detailGallery
-          .getByRole('button', { name: sensitiveMedia.show, exact: true })
-          .click();
+        await privacyControl(detailGallery, sensitiveMedia.show).click();
         await expect(detailPhoto.locator('.sensitive-media-cover')).toHaveCount(
           0,
         );
         await expect(
-          detailGallery.getByRole('button', {
-            name: sensitiveMedia.hide,
-            exact: true,
-          }),
+          privacyControl(detailGallery, sensitiveMedia.hide),
         ).toBeVisible();
         await page.goBack();
         await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
@@ -938,15 +945,29 @@ for (const state of [
   test(`Memory context stays above media and preserves reactions at ${state.width}px ${state.theme}`, async ({
     page,
   }, info) => {
+    const reducedMotion = state.width === 390 ? 'no-preference' : 'reduce';
     await page.setViewportSize({ width: state.width, height: 900 });
     await page.emulateMedia({
       colorScheme: state.theme,
-      reducedMotion: 'reduce',
+      reducedMotion,
     });
-    await page.addInitScript(
-      (theme) => localStorage.setItem('eimir.theme', theme),
-      state.theme,
-    );
+    await page.addInitScript((theme) => {
+      localStorage.setItem('eimir.theme', theme);
+      document.addEventListener('animationstart', (event) => {
+        if (
+          event.animationName === 'eimir-affectionate-pulse' &&
+          event.target instanceof Element &&
+          event.target.closest('.memory-photo-reactions')
+        ) {
+          const data = document.documentElement.dataset;
+          data.reactionPulses = String(Number(data.reactionPulses ?? 0) + 1);
+        }
+      });
+    }, state.theme);
+    const reactionPulses = () =>
+      page.evaluate(() =>
+        Number(document.documentElement.dataset.reactionPulses ?? 0),
+      );
     const { unexpectedRequests, writes } =
       await installApprovedMemoryDetail(page);
     await page.goto('/');
@@ -954,19 +975,24 @@ for (const state of [
     await page.goto(`/story/memories/${MEMORY_ID}`);
     await expect(
       page.getByRole('heading', {
-        name: fixtureCopy.subpageNavigation.approvedDate,
+        name: composer.diaryEntry,
         level: 1,
       }),
     ).toBeVisible();
-    const place = page.locator('header .moment-metadata').getByRole('button', {
+    const context = page.locator('.page-composer-detail .moment-metadata');
+    const place = context.getByRole('link', {
       name: fixtureCopy.subpageNavigation.approvedPlace,
       exact: true,
     });
     await expect(place).toBeVisible();
+    await expect(place).toHaveAttribute('href', '/story/map?place=0%3A0');
     await expect(page.locator('.moment-places h2')).toHaveClass('sr-only');
-    await expect(page.locator('header .moment-date svg')).toBeVisible();
-    await expect(page.locator('header time')).toHaveCount(1);
-    await expect(page.locator('header time')).toHaveAttribute(
+    await expect(context.locator('.moment-date svg')).toBeVisible();
+    await expect(context.locator('time')).toHaveCount(1);
+    await expect(context.locator('time')).toHaveText(
+      fixtureCopy.subpageNavigation.approvedDate,
+    );
+    await expect(context.locator('time')).toHaveAttribute(
       'datetime',
       '2026-10-27',
     );
@@ -975,9 +1001,8 @@ for (const state of [
     ).toHaveCount(0);
     await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
     const placeBox = await place.boundingBox();
-    const mediaBox = await page
-      .locator('.media-gallery-carousel-viewport')
-      .boundingBox();
+    const frame = page.locator('.media-gallery-carousel-viewport');
+    const mediaBox = await frame.boundingBox();
     if (!placeBox || !mediaBox)
       throw new Error('Place and media bounds must be measurable');
     expect(placeBox.y + placeBox.height).toBeLessThanOrEqual(mediaBox.y);
@@ -986,16 +1011,13 @@ for (const state of [
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    const photo = page.getByRole('button', {
-      name: sensitiveMedia.show,
-      exact: true,
-    });
+    const photo = page.locator('.media-gallery-carousel-slide.is-active');
     await expect(photo.locator('.sensitive-media-blurred img')).toHaveAttribute(
       'src',
       /^blob:/,
     );
     await page.screenshot({
-      path: `../../docs/product/design/references/1485/approved-${state.theme}-${state.width}.png`,
+      path: info.outputPath(`approved-${state.theme}-${state.width}.png`),
       fullPage: true,
     });
     await photo.hover();
@@ -1005,32 +1027,121 @@ for (const state of [
     const picker = page.getByRole('group', { name: 'Reaktion auswählen' });
     await expect(picker).toBeVisible();
     await expect(picker.getByRole('button')).toHaveCount(6);
-    await expect(photo).toHaveAttribute('aria-pressed', 'false');
+    await expect(photo).toHaveAccessibleName(sensitiveMedia.show);
+    await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
     await page.screenshot({
       path: info.outputPath('preset-picker.png'),
       fullPage: true,
     });
+    const beforeReaction = await geometry(page);
     await picker.getByRole('button', { name: 'Liebe', exact: true }).click();
+    const summary = frame.locator('.memory-photo-reactions');
     await expect(
-      page.getByRole('button', { name: /Liebe: 1 Reaktion.*entfernen/ }),
+      summary.getByRole('button', {
+        name: /Liebe: 1 Reaktion.*entfernen/,
+      }),
     ).toBeVisible();
+    await expect(picker).toHaveCount(0);
+    expectStableGeometry(beforeReaction, await geometry(page));
+    if (reducedMotion === 'reduce') {
+      expect(
+        await summary
+          .locator('.eimir-motion-pulse')
+          .evaluate((element) => getComputedStyle(element).animationName),
+      ).toBe('none');
+    } else {
+      await expect.poll(reactionPulses).toBe(1);
+    }
     expect(writes).toEqual([{ reaction: 'LOVE' }]);
-    await page.reload();
-    const chip = page.getByRole('button', {
-      name: /Liebe: 1 Reaktion.*entfernen/,
+
+    const openReaction = page.getByRole('button', {
+      name: photoReactions.open,
     });
+    const savedReaction = reducedMotion === 'no-preference' ? 'LAUGH' : 'LOVE';
+    const chip = summary.getByRole('button', {
+      name: new RegExp(
+        `${photoReactions.names[savedReaction]}: 1 Reaktion.*entfernen`,
+      ),
+    });
+    if (savedReaction === 'LAUGH') {
+      await openReaction.click();
+      const beforeChange = await geometry(page);
+      await picker
+        .getByRole('button', { name: photoReactions.names.LAUGH, exact: true })
+        .click();
+      await expect(chip).toBeVisible();
+      await expect(picker).toHaveCount(0);
+      await expect.poll(reactionPulses).toBe(2);
+      expectStableGeometry(beforeChange, await geometry(page));
+    }
+
+    await page.reload();
     await expect(chip).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-    ).toHaveAttribute('aria-pressed', 'false');
-    await chip.click();
-    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
-    expect(writes).toEqual([{ reaction: 'LOVE' }, { reaction: null }]);
+    const chipStyle = await chip.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        boxShadow: style.boxShadow,
+        borderTopWidth: style.borderTopWidth,
+        outlineStyle: style.outlineStyle,
+      };
+    });
+    expect(chipStyle).toEqual({
+      boxShadow: 'none',
+      borderTopWidth: '0px',
+      outlineStyle: 'none',
+    });
+    await expect(chip.locator('.eimir-motion-pulse')).toHaveCount(0);
+    await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
+    await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
     if (state.width === 320) {
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '200%';
       });
-      await page.getByRole('button', { name: photoReactions.open }).click();
+    }
+    const [savedFrame, chipBounds, reactionButton] = await Promise.all([
+      frame.boundingBox(),
+      chip.boundingBox(),
+      openReaction.boundingBox(),
+    ]);
+    if (!savedFrame || !chipBounds || !reactionButton) {
+      throw new Error('Saved reaction and frame must be measurable');
+    }
+    expect(chipBounds.x - savedFrame.x).toBeCloseTo(
+      savedFrame.x + savedFrame.width - reactionButton.x - reactionButton.width,
+      0,
+    );
+    expect(chipBounds.y + chipBounds.height).toBeCloseTo(
+      reactionButton.y + reactionButton.height,
+      0,
+    );
+    expect(chipBounds.y + chipBounds.height).toBeLessThan(
+      savedFrame.y + savedFrame.height,
+    );
+    expect(chipBounds.width).toBeGreaterThanOrEqual(44);
+    expect(chipBounds.height).toBeGreaterThanOrEqual(44);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.memory-media-context')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await chip.evaluate((element) =>
+      element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+    );
+    await nextFrame(page);
+    await page.screenshot({ path: info.outputPath('reaction-overlay.png') });
+    const beforeRemoval = await geometry(page);
+    await chip.click();
+    await expect(summary).toHaveCount(0);
+    expectStableGeometry(beforeRemoval, await geometry(page));
+    expect(writes).toEqual([
+      { reaction: 'LOVE' },
+      ...(savedReaction === 'LAUGH' ? [{ reaction: savedReaction }] : []),
+      { reaction: null },
+    ]);
+    if (state.width === 320) {
+      await openReaction.click();
       const enlarged = page.getByRole('group', { name: 'Reaktion auswählen' });
       await expect(enlarged.getByRole('button')).toHaveCount(6);
       for (const choice of await enlarged.getByRole('button').all()) {
@@ -1045,13 +1156,6 @@ for (const state of [
       ).toBe(true);
       await page.keyboard.press('Escape');
     }
-    expect(
-      (
-        await new AxeBuilder({ page })
-          .include('.memory-media-context')
-          .analyze()
-      ).violations,
-    ).toEqual([]);
     expect(unexpectedRequests).toEqual([]);
   });
 }
@@ -1153,7 +1257,7 @@ for (const state of [
     if (state.width < 600) await swipeCarousel(page, 'next');
     else await page.getByRole('button', { name: GALLERY.next }).click();
     await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-      counterLabel(2, 6),
+      inlineCounterLabel(2, 6),
     );
     await expectCarouselSettled(page, 1);
     await expect
@@ -1162,6 +1266,28 @@ for (const state of [
 
     await page.getByRole('button', { name: openItemLabel(2, 6) }).click();
     await expectLightboxSettled(page, 1);
+    await expect(page.locator('.media-lightbox-close')).toBeFocused();
+    // Reflow the actual track during the native advance. The resize observer
+    // must preserve its destination while the media and viewport settle.
+    await page.locator('.media-lightbox-track').evaluate((track) => {
+      window.addEventListener(
+        'keydown',
+        () => {
+          track.addEventListener(
+            'scroll',
+            () => {
+              // Resize the owning stage, as a viewport change does. Shrinking
+              // only its centered track invents a different offset origin.
+              const stage = track.closest<HTMLElement>('.media-lightbox-stage');
+              if (!stage) throw new Error('The lightbox stage must exist.');
+              stage.style.inlineSize = 'calc(100% - 8px)';
+            },
+            { once: true },
+          );
+        },
+        { capture: true, once: true },
+      );
+    });
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('.media-lightbox-counter')).toHaveText(
       counterLabel(3, 6),
@@ -1170,8 +1296,17 @@ for (const state of [
     await expect
       .poll(() => contentReads.slice().sort())
       .toEqual([0, 1, 2, 3, 5].map((index) => sixImages[index]!.id).sort());
+    await expect(page.locator('.media-lightbox-close')).toBeFocused();
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `story-lightbox-resize-${state.width}-${state.theme}.png`,
+      ),
+    });
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: openItemLabel(2, 6) }),
+    ).toBeFocused();
     await expectCarouselSettled(page, 1);
     await expect(
       page.locator(
@@ -1206,17 +1341,14 @@ test('Memory carousel keeps document and layout position stable across pointer a
 
   await expect(page.locator('.media-gallery-carousel-footer')).toHaveCount(0);
   await expect(page.locator('.media-gallery-carousel-dots')).toHaveCount(0);
-  expect(
-    await page
-      .locator('.media-gallery-carousel-content')
-      .first()
-      .evaluate((element) => getComputedStyle(element).objectFit),
-  ).toBe('contain');
+  await expect(
+    page.locator('.media-gallery-carousel-content').first(),
+  ).toHaveCSS('object-fit', 'contain');
 
   const ambientBackdrop = page
     .locator('.media-gallery-carousel-backdrop')
     .first();
-  await expect(ambientBackdrop).toBeVisible();
+  await expect(ambientBackdrop).toBeHidden();
   expect(
     await ambientBackdrop.evaluate(
       (element) => getComputedStyle(element).objectFit,
@@ -1249,7 +1381,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
   for (const step of pointerSteps) {
     const before = await geometry(page);
     await pointerClickWithoutScroll(page, step.control);
-    await expect(counter).toHaveText(counterLabel(step.expected, 3));
+    await expect(counter).toHaveText(inlineCounterLabel(step.expected, 3));
     await expectCarouselSettled(page, step.expected - 1);
     await expect(
       page.locator('.media-gallery-carousel-slide.is-active'),
@@ -1264,7 +1396,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
   await expect(next).toBeFocused();
   const beforeKeyboard = await geometry(page);
   await page.keyboard.press('Enter');
-  await expect(counter).toHaveText(counterLabel(3, 3));
+  await expect(counter).toHaveText(inlineCounterLabel(3, 3));
   await expectCarouselSettled(page, 2);
   await expect(next).toBeFocused();
   expectStableGeometry(beforeKeyboard, await geometry(page));
@@ -1358,6 +1490,7 @@ for (const width of [320, 390] as const) {
     try {
       await page.emulateMedia({
         colorScheme: width === 390 ? 'dark' : 'light',
+        reducedMotion: 'no-preference',
       });
       const { unexpectedRequests } = await installApiMocks(page);
       await page.goto('/today');
@@ -1366,10 +1499,11 @@ for (const width of [320, 390] as const) {
       await positionGalleryForReading(page);
 
       const next = page.locator('.media-gallery-carousel-next');
-      await expect(next).toHaveCSS('clip-path', 'inset(50%)');
-      expect(
-        await next.evaluate((node) => node.getBoundingClientRect().width),
-      ).toBeLessThanOrEqual(1);
+      await expect(next).toBeVisible();
+      await expect(next).toHaveCSS('clip-path', 'none');
+      const nextBox = await next.boundingBox();
+      expect(nextBox?.width).toBeGreaterThanOrEqual(44);
+      expect(nextBox?.height).toBeGreaterThanOrEqual(44);
 
       const interaction = await carouselInteractionContract(page);
       expect(interaction.usesSharedTrack).toBe(true);
@@ -1382,22 +1516,39 @@ for (const width of [320, 390] as const) {
       await expectCarouselSettled(page, 0);
 
       const touchSteps = [
-        { direction: 'next', expected: 2 },
-        { direction: 'previous', expected: 1 },
-        { direction: 'previous', expected: 3 },
-        { direction: 'next', expected: 1 },
+        { direction: 'next', from: 1, expected: 2 },
+        { direction: 'previous', from: 2, expected: 1 },
+        { direction: 'previous', from: 1, expected: 3 },
+        { direction: 'next', from: 3, expected: 1 },
       ] as const;
 
       for (const step of touchSteps) {
         const before = await geometry(page);
         const drag = await swipeCarousel(page, step.direction);
-        expect(
-          Math.abs(drag.midScrollLeft - drag.startScrollLeft),
-        ).toBeGreaterThan(drag.viewportWidth * 0.2);
+        const progress =
+          Math.abs(drag.midScrollLeft - drag.startScrollLeft) /
+          drag.viewportWidth;
+        expect(progress).toBeGreaterThan(0.2);
         expect(drag.visibleSlides).toBeGreaterThanOrEqual(2);
+        if (!drag.position) throw new Error('Position markers did not render');
+        const { dots, markers } = drag.position;
+        const from = dots[step.from - 1];
+        const to = dots[step.expected - 1];
+        if (from === undefined || to === undefined)
+          throw new Error('Position dots did not render');
+        const markerCenter = markers.reduce(
+          (center, marker) => center + marker.center * marker.opacity,
+          0,
+        );
+        expect(
+          Math.abs(markerCenter - (from + (to - from) * progress)),
+        ).toBeLessThanOrEqual(2);
+        expect(markers.filter(({ opacity }) => opacity > 0)).toHaveLength(
+          Math.abs(step.expected - step.from) === 1 ? 1 : 2,
+        );
         await expect(
           page.locator('.media-gallery-carousel-counter'),
-        ).toHaveText(counterLabel(step.expected, 3));
+        ).toHaveText(inlineCounterLabel(step.expected, 3));
         await expectCarouselSettled(page, step.expected - 1);
         await expect(
           page.locator('.media-gallery-carousel-slide.is-outgoing'),
@@ -1470,7 +1621,7 @@ test('Memory carousel is effectively static with reduced motion and reflows at 2
   const before = await geometry(page);
   await page.getByRole('button', { name: GALLERY.next }).click();
   await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-    counterLabel(2, 3),
+    inlineCounterLabel(2, 3),
   );
   await nextFrame(page);
   expectStableGeometry(before, await geometry(page));
@@ -1648,15 +1799,10 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   await expect(
     page.getByRole('heading', { name: MULTI_MEMORY.title }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: sensitiveMedia.show, exact: true })
-    .click();
+  await privacyControl(page, sensitiveMedia.show).click();
   await page.getByRole('button', { name: photoReactions.fullscreen }).click();
   const dialog = page.getByRole('dialog');
-  const privacy = dialog.getByRole('button', {
-    name: sensitiveMedia.hide,
-    exact: true,
-  });
+  const privacy = privacyControl(dialog, sensitiveMedia.hide);
   const close = dialog.getByRole('button', {
     name: GALLERY.close,
     exact: true,
@@ -1675,14 +1821,10 @@ test('photo overlay controls remain separate, readable and operable in fullscree
     path: info.outputPath('fullscreen-glass-controls.png'),
   });
   await privacy.click();
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.show)).toBeVisible();
   await page.setViewportSize({ width: 320, height: 844 });
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-  await dialog
-    .getByRole('button', { name: sensitiveMedia.show, exact: true })
-    .click();
+  await privacyControl(dialog, sensitiveMedia.show).click();
   const largePrivacy = await privacy.boundingBox();
   const largeClose = await close.boundingBox();
   const largeStage = await dialog
@@ -1695,7 +1837,10 @@ test('photo overlay controls remain separate, readable and operable in fullscree
     largePrivacy.x + largePrivacy.width < largeClose.x ||
       largePrivacy.y >= largeClose.y + largeClose.height,
   ).toBe(true);
-  expect(largePrivacy.width).toBeGreaterThan(largePrivacy.height);
+  expect(largePrivacy.width).toBeGreaterThanOrEqual(44);
+  expect(largePrivacy.height).toBeGreaterThanOrEqual(44);
+  await expect(privacy).toHaveText('');
+  await expect(privacy.locator('.eimir-icon-eye-off')).toBeVisible();
   expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
     largeStage.y + largeStage.height,
   );
@@ -1703,9 +1848,7 @@ test('photo overlay controls remain separate, readable and operable in fullscree
     path: info.outputPath('fullscreen-sensitive-320-large.png'),
   });
   await privacy.click();
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.show)).toBeVisible();
   await close.click();
   await expect(dialog).toHaveCount(0);
 });
@@ -1723,7 +1866,9 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
     page.getByRole('button', { name: GALLERY.previous }),
   ).toHaveCount(0);
   await expect(page.getByRole('button', { name: GALLERY.next })).toHaveCount(0);
-  await expect(page.locator('.media-gallery-carousel-counter')).toHaveCount(0);
+  await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
+    inlineCounterLabel(1, 1),
+  );
   await expect(page.locator('.media-gallery-carousel-footer')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: openItemLabel(1, 1) }),
@@ -1748,7 +1893,7 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
 test('sensitive media remains local to one item and conceals on return and actual backgrounding', async ({
   page,
   context,
-}) => {
+}, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await installApiMocks(
@@ -1771,25 +1916,24 @@ test('sensitive media remains local to one item and conceals on return and actua
         .analyze()
     ).violations,
   ).toEqual([]);
-  const reveal = page.getByRole('button', {
-    name: sensitiveMedia.show,
-    exact: true,
-  });
+  const reveal = privacyControl(page, sensitiveMedia.show);
   const box = await reveal.boundingBox();
   expect(box?.height).toBeGreaterThanOrEqual(44);
   await reveal.focus();
   await page.keyboard.press('Enter');
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
-  ).toBeFocused();
+  await expect(active).toBeFocused();
+  await expect(active).toHaveAccessibleName(openItemLabel(1, 3));
+  const hide = privacyControl(page, sensitiveMedia.hide);
+  await expect(hide).toBeVisible();
+  const hideBox = await hide.boundingBox();
+  expect(hideBox?.width).toBeGreaterThanOrEqual(44);
+  expect(hideBox?.height).toBeGreaterThanOrEqual(44);
   await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
   await page.getByRole('button', { name: photoReactions.fullscreen }).click();
   const dialog = page.getByRole('dialog');
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.hide)).toBeVisible();
   await page.screenshot({
-    path: '../../docs/product/design/references/1485/runtime-lightbox-revealed-390.png',
+    path: info.outputPath('runtime-lightbox-revealed-390.png'),
   });
   await page.keyboard.press('ArrowRight');
   await expect(
@@ -1798,16 +1942,12 @@ test('sensitive media remains local to one item and conceals on return and actua
     ),
   ).toHaveCount(0);
   await page.keyboard.press('ArrowRight');
-  await expect(
-    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(dialog, sensitiveMedia.show)).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   // Ordinary window focus changes must retain the inline reveal.
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(page, sensitiveMedia.hide)).toBeVisible();
   const other = await context.newPage();
   await other.goto('about:blank');
   await other.bringToFront();
@@ -1825,22 +1965,16 @@ test('sensitive media remains local to one item and conceals on return and actua
       value: 'visible',
     });
   });
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole('button', { name: sensitiveMedia.show, exact: true })
-    .click();
+  await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
+  await privacyControl(page, sensitiveMedia.show).click();
   await page.reload();
-  await expect(
-    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-  ).toBeVisible();
+  await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
 });
 
 for (const theme of ['light', 'dark'] as const) {
   test(`sensitive media reflows in ${theme} and retains readable controls`, async ({
     page,
-  }) => {
+  }, info) => {
     await page.addInitScript(
       (theme) => localStorage.setItem('eimir.theme', theme),
       theme,
@@ -1856,10 +1990,7 @@ for (const theme of ['light', 'dark'] as const) {
     for (const width of [320, 360, 390, 430, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       await expectCarouselSettled(page, 0);
-      const reveal = page.getByRole('button', {
-        name: sensitiveMedia.show,
-        exact: true,
-      });
+      const reveal = privacyControl(page, sensitiveMedia.show);
       await expect(reveal).toBeVisible();
       const box = await reveal.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -1877,7 +2008,7 @@ for (const theme of ['light', 'dark'] as const) {
       await reveal.scrollIntoViewIfNeeded();
       await nextFrame(page);
       await page.screenshot({
-        path: `../../docs/product/design/references/1485/runtime-${theme}-${width}.png`,
+        path: info.outputPath(`runtime-${theme}-${width}.png`),
         fullPage: width < 840,
       });
     }
@@ -1885,16 +2016,14 @@ for (const theme of ['light', 'dark'] as const) {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
-    await expect(
-      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
-    ).toBeVisible();
+    await expect(privacyControl(page, sensitiveMedia.show)).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
     await page.screenshot({
-      path: `../../docs/product/design/references/1485/runtime-${theme}-320-large-text.png`,
+      path: info.outputPath(`runtime-${theme}-320-large-text.png`),
       fullPage: true,
     });
   });
@@ -1902,7 +2031,7 @@ for (const theme of ['light', 'dark'] as const) {
 
 test('sensitive photo editing retains a failed classification draft and saves on deliberate retry', async ({
   page,
-}) => {
+}, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installApiMocks(
     page,
@@ -1911,17 +2040,17 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await page.goto('/');
   await signIn(page);
   await page.goto(`/story/memories/${MEMORY_ID}/edit`);
-  await openDraftActions(page);
+  await selectDraftMedia(page);
   const mark = page
-    .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
-    .first();
+    .locator('.photo-draft-stage')
+    .getByRole('checkbox', { name: new RegExp(`^${sensitiveMedia.mark}:`) });
   await expect(mark).toBeChecked();
   await mark.uncheck();
   await page.screenshot({
-    path: '../../docs/product/design/references/1477/runtime-edit-390.png',
+    path: info.outputPath('runtime-edit-390.png'),
     fullPage: true,
   });
-  await closeDraftActions(page);
+  await expectInlineDraftActions(page);
   let rejectNext = true;
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`,
@@ -1947,9 +2076,9 @@ test('sensitive photo editing retains a failed classification draft and saves on
     })
     .click();
   await expect(page).toHaveURL(/edit$/);
-  await openDraftActions(page);
+  await selectDraftMedia(page);
   await expect(mark).not.toBeChecked();
-  await closeDraftActions(page);
+  await expectInlineDraftActions(page);
   await page
     .getByRole('button', {
       name: memoryProduct.save,
@@ -1968,4 +2097,33 @@ test('sensitive photo editing retains a failed classification draft and saves on
       '.media-gallery-carousel-slide.is-active .media-gallery-carousel-content',
     ),
   ).toBeVisible();
+});
+
+test('Memory carousel controls step aside while swiping and return after a rest', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installApiMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await openMemory(page);
+  await positionGalleryForReading(page);
+
+  const viewport = page.locator('.media-gallery-carousel-viewport');
+  const counter = page.locator('.media-gallery-carousel-counter');
+  await expect(counter).toHaveCSS('opacity', '1');
+  const box = await viewport.boundingBox();
+  if (!box) throw new Error('The carousel must be measurable');
+  // A horizontal gesture on the photos, then the track scrolls. The scroll is
+  // dispatched directly so the check does not depend on real layout widths.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(160, 0);
+  await page
+    .locator('.media-gallery-carousel-track')
+    .evaluate((track) => track.dispatchEvent(new Event('scroll')));
+  await expect(viewport).toHaveClass(/is-browsing/);
+  await expect(counter).toHaveCSS('opacity', '0');
+  await expect(viewport).not.toHaveClass(/is-browsing/, { timeout: 5_000 });
+  await expect(counter).toHaveCSS('opacity', '1');
 });

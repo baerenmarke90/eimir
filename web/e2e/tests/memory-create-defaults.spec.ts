@@ -1,8 +1,7 @@
-import { openDraftActions, closeDraftActions } from '../support/mediaDraft';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
@@ -12,8 +11,28 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { expectLabeledComposerTool } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { showMemoryDetails } from '../support/memoryDiary';
+import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
+import {
+  expectInlineDraftActions,
+  expectQuietComposerMedia,
+  selectDraftMedia,
+} from '../support/mediaDraft';
+import {
+  expectMediaIntakeAction,
+  openComposerMediaSources,
+} from '../support/mediaIntake';
+import {
+  closeContextTags,
+  expectComposerDate,
+  openComposerPlace,
+  setComposerDate,
+  showContextSuggestions,
+  showContextTags,
+  showHeartAudience,
+  showMemoryDetails,
+} from '../support/memoryDiary';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -26,6 +45,12 @@ const AUTHORED_TITLE = 'Authored memory title';
 const AUTHORED_BODY = 'A remembered detail';
 
 interface MemoryCreateRequestBody {
+  attachments?: {
+    attachmentId: string;
+    position: number;
+    isSensitive?: boolean;
+  }[];
+  selectedCoverAttachmentId?: string | null;
   body?: string;
   happenedOn?: string | null;
   tags?: string[];
@@ -119,17 +144,17 @@ for (const [width, colorScheme] of [
         document.documentElement.style.fontSize = '32px';
       });
     const sourcePicker = page.getByRole('button', {
-      name: photoSources.addMedia,
+      name: composer.addPhotos,
       exact: true,
     });
+    await expectMediaIntakeAction(sourcePicker, 'foto');
     const sourceBox = await sourcePicker.boundingBox();
     if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
+    // #1790 D1: the intake is the one diary photo entry.
     await expect(
-      page.locator(
-        '.immersive-create-media .media-device-choice .photo-source-trigger',
-      ),
-    ).toHaveCount(1);
+      page.locator('.composer-content .photo-source-trigger'),
+    ).toHaveCount(0);
     await expect(
       page.getByText(de.memory.sharedTitle, { exact: true }),
     ).toHaveCount(0);
@@ -202,9 +227,7 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: new RegExp(photoSources.more) })
-      .click();
+    await openComposerMediaSources(page);
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await expect(sheet.getByRole('radio')).toHaveCount(0);
     await expect(
@@ -293,7 +316,7 @@ test('Google browser authorization returns selected copies to the unsaved diary'
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await sheet
     .getByRole('button', { name: photoSources.google, exact: true })
@@ -351,7 +374,7 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
@@ -390,7 +413,7 @@ for (const failed of [1, 2]) {
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
-    await page.getByRole('button', { name: photoSources.more }).click();
+    await openComposerMediaSources(page);
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await sheet
       .getByRole('button', { name: photoSources.immich, exact: true })
@@ -418,7 +441,7 @@ for (const failed of [1, 2]) {
     await expect(sheet.getByRole('alert')).toHaveText(
       failed === 2
         ? photoSources.importFailed
-        : photoSources.partial.replace('{{count}}', '1'),
+        : photoSources.partial_one.replace('{{count}}', '1'),
     );
     await expect(sheet.getByRole('checkbox', { checked: true })).toHaveCount(
       failed,
@@ -455,7 +478,7 @@ test('Pro expiry retains the personal link and permits disconnect without import
 }) => {
   const source = sourceScenario(true, false);
   await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), source);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByRole('button', { name: photoSources.immich, exact: true }),
@@ -487,7 +510,7 @@ test('offline source import at narrow large text preserves the diary draft', asy
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
+  await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
@@ -525,8 +548,23 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const viewport = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
+    outside: [...document.querySelectorAll('body *')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName,
+          class: element.className.toString(),
+          x: rect.x,
+          right: rect.right,
+          width: rect.width,
+        };
+      })
+      .filter((rect) => rect.width > 0 && rect.right > innerWidth + 1)
+      .slice(0, 16),
   }));
-  expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth);
+  expect(viewport.scrollWidth, JSON.stringify(viewport)).toBeLessThanOrEqual(
+    viewport.clientWidth,
+  );
 }
 
 async function browserLocalToday(page: Page): Promise<string> {
@@ -902,9 +940,19 @@ async function installApiMocks(
       }
       const body = request.postDataJSON() as MemoryCreateRequestBody;
       savedCreateKey = identity;
-      if (photos) photos.creates++;
+      if (photos) {
+        photos.creates++;
+        photos.bound = (body.attachments ?? []).map(
+          (entry) => entry.attachmentId,
+        );
+      }
       savedMemory = {
-        attachments: [],
+        selectedCoverAttachmentId: body.selectedCoverAttachmentId ?? null,
+        attachments: (body.attachments ?? []).map((entry) => ({
+          ...attachment(entry.attachmentId),
+          position: entry.position,
+          isSensitive: entry.isSensitive ?? false,
+        })),
         author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
         authorId: ACCOUNT_ID,
         body: body.body ?? '',
@@ -1030,9 +1078,6 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.png', 'two.png', 'three.png'].map((name) => ({
         name,
@@ -1111,14 +1156,17 @@ for (const [width, colorScheme] of [
 }
 
 async function expectDateField(page: Page): Promise<void> {
-  await expect(
-    page.getByLabel(de.memory.dateLabel, { exact: true }),
-  ).toBeVisible();
+  await expect(page.locator('.composer-date-trigger')).toBeVisible();
+  await expect(page.locator('.composer-date-trigger')).toHaveAttribute(
+    'aria-haspopup',
+    'dialog',
+  );
 }
 
 async function submitAndReadCreateRequest(
   page: Page,
 ): Promise<MemoryCreateRequestBody> {
+  await closeContextTags(page);
   const requestPromise = page.waitForRequest((request) => {
     const pathname = new URL(request.url()).pathname;
     return (
@@ -1138,9 +1186,7 @@ test('Memory Create opens with browser-local today and an optional title', async
   await signInAndOpenMemoryCreate(page);
   await expectDateField(page);
 
-  await expect(page.getByLabel(de.memory.dateLabel)).toHaveValue(
-    await browserLocalToday(page),
-  );
+  await expectComposerDate(page, await browserLocalToday(page));
   await expect(
     page.getByLabel(de.memory.titleLabelOptional),
   ).not.toHaveAttribute('required', '');
@@ -1156,15 +1202,15 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await showMemoryDetails(page);
+  await showContextTags(page);
   const input = page.getByLabel(contextTags.newLabel);
   await input.fill('  Ostsee   2026  ');
   await input.press('Enter');
   await expect(
-    page.getByRole('button', {
-      name: contextTags.remove.replace('{{tag}}', 'Ostsee 2026'),
+    page.getByRole('checkbox', {
+      name: /^(?:✓\s*)?Ostsee 2026$/,
     }),
-  ).toBeVisible();
+  ).toBeChecked();
   await expect(page).toHaveURL(/\/memories\/new$/);
   await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   for (const [name, width, dark, large] of [
@@ -1211,17 +1257,22 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
   await page
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
+  await showContextTags(page);
   await page
-    .getByRole('button', {
-      name: contextTags.remove.replace('{{tag}}', 'Ostsee 2026'),
+    .getByRole('checkbox', {
+      name: /^(?:✓\s*)?Ostsee 2026$/,
     })
     .click();
+  await expect(
+    page.locator('input[type="hidden"][name="tags"][value="Ostsee 2026"]'),
+  ).toHaveCount(0);
   await page.getByLabel(contextTags.newLabel).fill('Our tradition');
   const update = page.waitForRequest(
     (request) =>
       request.method() === 'PATCH' &&
       request.url().endsWith(`/memories/${MEMORY_ID}`),
   );
+  await closeContextTags(page);
   await page
     .getByRole('button', { name: memoryProduct.save, exact: true })
     .click();
@@ -1247,9 +1298,10 @@ test('text-only with the default date saves a non-empty localized fallback title
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
-  await showMemoryDetails(page);
-  await page.getByText(contextTags.suggestions, { exact: true }).click();
+  await showContextTags(page);
+  await showContextSuggestions(page);
   await page.getByText(de.memory.tagLabels.home, { exact: true }).click();
+  await closeContextTags(page);
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
@@ -1266,13 +1318,17 @@ test('text-only with the default date saves a non-empty localized fallback title
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: new Intl.DateTimeFormat('de-DE', {
-        dateStyle: 'long',
-        timeZone: 'UTC',
-      }).format(new Date(`${expectedDate}T00:00:00Z`)),
+      name: composer.diaryEntry,
       exact: true,
     }),
   ).toBeVisible();
+  await expect(page.locator('.moment-metadata time')).toHaveCount(1);
+  await expect(page.locator('.moment-metadata time')).toHaveText(
+    new Intl.DateTimeFormat('de-DE', {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(new Date(`${expectedDate}T00:00:00Z`)),
+  );
   await expect(
     page.getByText(de.memory.tagLabels.home, { exact: true }),
   ).toBeVisible();
@@ -1286,7 +1342,7 @@ test('a selected date wins and is also used by a text-only fallback title', asyn
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
   await expectDateField(page);
-  await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
+  await setComposerDate(page, '2025-12-24');
 
   const requestBody = await submitAndReadCreateRequest(page);
 
@@ -1305,7 +1361,7 @@ test('text-only with a cleared date and whitespace title falls back using local 
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill('   ');
   await expectDateField(page);
-  await page.getByLabel(de.memory.dateLabel).fill('');
+  await setComposerDate(page, '');
   const expectedDate = await browserLocalToday(page);
 
   const requestBody = await submitAndReadCreateRequest(page);
@@ -1323,7 +1379,7 @@ test('an authored title is kept while the selected happenedOn date is submitted'
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
   await expectDateField(page);
-  await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
+  await setComposerDate(page, '2025-12-24');
 
   const requestBody = await submitAndReadCreateRequest(page);
 
@@ -1338,14 +1394,20 @@ test('Memory Create defaults render without overflow and capture product visual 
   await page.setViewportSize({ width: 390, height: 844 });
   await signInAndOpenMemoryCreate(page);
   await expectDateField(page);
-  await expect(page.getByLabel(de.memory.dateLabel)).toHaveValue(
-    await browserLocalToday(page),
-  );
+  await expectComposerDate(page, await browserLocalToday(page));
   // Leave the date field before capturing visual
   // evidence, so the screenshots reflect what the page actually renders
   // by default rather than the transient date-editing state.
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).click();
+  const writing = page.locator('.composer-writing-surface');
+  await expect(writing.getByRole('textbox')).toHaveCount(2);
+  const divider = writing.locator('.field-group + .field-group');
+  await expect(divider).toHaveCSS('border-top-width', '0px');
+  await expect(page.getByLabel(de.memory.titleLabelOptional)).toBeEditable();
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toBeEditable();
   await expectNoHorizontalOverflow(page);
   await page.screenshot({
     path: testInfo.outputPath('shell-memory-create-defaults-compact.png'),
@@ -1404,21 +1466,23 @@ for (const [width, colorScheme] of [
     ).toBeVisible();
     const title = page.getByLabel(de.memory.titleLabelOptional);
     await expect(title).toBeVisible();
-    expect(
-      await title.evaluate(
-        (node) => node.closest('fieldset')?.querySelector('input') === node,
-      ),
-    ).toBe(true);
+    await expect(page.locator('input:focus, textarea:focus')).toHaveCount(0);
+    const [titleBox, bodyBox, mediaBox] = await Promise.all([
+      title.boundingBox(),
+      page.getByLabel(de.memory.bodyLabel, { exact: true }).boundingBox(),
+      page.locator('.immersive-create-media').boundingBox(),
+    ]);
+    if (!titleBox || !bodyBox || !mediaBox)
+      throw new Error('The authored capture composition did not render.');
+    expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(titleBox.y);
+    expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(bodyBox.y);
     const text =
       'A quiet afternoon together.\n\nWe want to remember the little details.';
     await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(text);
     await expectDateField(page);
-    await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
+    await setComposerDate(page, '2025-12-24');
     await showMemoryDetails(page);
     await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.png', 'two.png'].map((name) => ({
         name,
@@ -1431,13 +1495,15 @@ for (const [width, colorScheme] of [
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
-    await openDraftActions(page);
-    await page
-      .getByRole('button', {
-        name: de.memory.photoMoveLater.replace('{{name}}', 'one.png'),
-      })
-      .click();
-    await closeDraftActions(page);
+    await selectDraftMedia(page);
+    // Latest PO correction removes composer arrangement without a replacement.
+    await expectQuietComposerMedia(page);
+    await expect(page.locator('.photo-draft-tile').first()).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expectInlineDraftActions(page);
+    await showContextTags(page);
     await page.getByLabel(contextTags.newLabel).fill('An unfinished label');
     await expect(page.locator('.memory-draft-status')).toHaveText(
       de.memory.diary.draft.saved,
@@ -1462,9 +1528,11 @@ for (const [width, colorScheme] of [
     await expect(page.getByLabel(de.memory.titleLabelOptional)).toHaveValue(
       AUTHORED_TITLE,
     );
+    await showContextTags(page);
     await expect(page.getByLabel(contextTags.newLabel)).toHaveValue(
       'An unfinished label',
     );
+    await closeContextTags(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
@@ -1481,7 +1549,7 @@ for (const [width, colorScheme] of [
     );
     expect(photos.creates).toBe(1);
     expect(photos.bound).toEqual(
-      ['two.png', 'one.png'].map((name) => photos.idsByName[name]),
+      ['one.png', 'two.png'].map((name) => photos.idsByName[name]),
     );
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
@@ -1653,9 +1721,6 @@ test('diary recovery retries only attachment binding for an already created entr
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'photo.png',
     mimeType: 'image/png',
@@ -1672,7 +1737,8 @@ test('diary recovery retries only attachment binding for an already created entr
     if (bindings === 1) await route.abort('failed');
     else await route.fallback();
   });
-  await page.getByRole('button', { name: de.memory.save }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page.getByRole('button', { name: taskBoundary.verify }).click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -1750,9 +1816,6 @@ test('diary restores a file whose unbound server upload has expired', async ({
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'photo.png',
     mimeType: 'image/png',
@@ -1798,9 +1861,6 @@ async function stageRecoveryPhotos(page: Page, photos: PhotoBatchScenario) {
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
   await page.locator('#memory-create-images').setInputFiles(
     ['first.jpg', 'second.jpg'].map((name) => ({
       name,
@@ -1842,7 +1902,7 @@ for (const [width, colorScheme] of [
 ] as const) {
   test(`memory-only recovery keeps missing photo positions and can retry (${width})`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
@@ -1880,11 +1940,9 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: new RegExp(de.memory.diary.photoMissing) })
       .click();
     await expect(
-      page
-        .getByRole('group', { name: de.memory.photoSelected, exact: true })
-        .getByRole('status'),
+      page.locator('.photo-draft-inspector').getByRole('status'),
     ).toHaveText(de.memory.diary.photoMissing);
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await expect(
       page.getByLabel(de.memory.bodyLabel, { exact: true }),
     ).toHaveValue(AUTHORED_BODY);
@@ -1905,23 +1963,17 @@ for (const [width, colorScheme] of [
       ),
     ).toEqual([]);
     await page.screenshot({
-      path: fileURLToPath(
-        new URL(
-          `../../../docs/product/design/references/1467/recovery-${width}-${colorScheme}.png`,
-          import.meta.url,
-        ),
-      ),
+      path: testInfo.outputPath(`recovery-${width}-${colorScheme}.png`),
       fullPage: true,
     });
     await page.unroute(missingPath, unavailable);
-    await openDraftActions(page, 1);
+    await selectDraftMedia(page, 1);
     await page
       .getByRole('button', { name: de.memory.diary.photoRetry, exact: true })
       .click();
-    await expect(page.getByRole('dialog').getByRole('status')).toHaveText(
-      de.memory.photoReady,
-    );
-    await closeDraftActions(page);
+    await expect(page.locator('.photo-draft-inspector')).toHaveCount(0);
+
+    await expectInlineDraftActions(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
@@ -1959,7 +2011,19 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
     )
       identities.push(request.headers()['idempotency-key']);
   });
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  const submitted = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname.endsWith('/memories'),
+  );
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
+  await submitted;
+  await expect(
+    page.getByRole('button', { name: taskBoundary.verify, exact: true }),
+  ).toBeEnabled();
   await expect(
     page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
   ).toBeVisible();
@@ -2027,7 +2091,7 @@ test('known-created recovery can bind original photos after transient read failu
     .getByRole('group', { name: de.memory.photoSelected, exact: true })
     .getByRole('checkbox')
     .check();
-  await closeDraftActions(page);
+  await expectInlineDraftActions(page);
   let bindings = 0;
   const bindingBodies: unknown[] = [];
   await page.route(`**/memories/${MEMORY_ID}/attachments`, async (route) => {
@@ -2036,7 +2100,10 @@ test('known-created recovery can bind original photos after transient read failu
     if (bindings < 3) await route.abort('failed');
     else await route.fallback();
   });
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await resumeLegacyMemoryAttempt(page);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
@@ -2116,7 +2183,7 @@ test('known-created recovery can bind original photos after transient read failu
   );
 });
 
-test('a failed local checkpoint cannot start a volatile-photo Save or invent an uncertain result', async ({
+test('an atomic photo save succeeds when the local journal cannot checkpoint', async ({
   page,
 }) => {
   test.setTimeout(60_000);
@@ -2140,20 +2207,10 @@ test('a failed local checkpoint cannot start a volatile-photo Save or invent an 
     };
   });
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
-  await expect(
-    page.getByText(de.memory.diary.recoveryRequired, { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByLabel(de.memory.bodyLabel, { exact: true }),
-  ).toHaveValue(AUTHORED_BODY);
-  expect(photos.creates).toBe(0);
-  await restore.evaluate((restore) => restore());
-  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
   expect(photos.creates).toBe(1);
+  expect(photos.bound).toHaveLength(2);
+  await restore.evaluate((restore) => restore());
 });
 
 for (const [width, colorScheme] of [
@@ -2196,15 +2253,17 @@ for (const [width, colorScheme] of [
     );
     const placeCopy = (await import('../../src/i18n/locales/photoPlaces'))
       .default;
-    await page
-      .getByRole('button', { name: placeCopy.add, exact: true })
-      .click();
+    await openComposerPlace(page);
     const picker = page.getByRole('dialog', { name: placeCopy.add });
     await picker.getByRole('button', { name: /Kölner Dom/ }).click();
+    await picker
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
     await expect(picker).toHaveCount(0);
-    const selected = page
-      .getByRole('group', { name: experiences.places, exact: true })
-      .getByText(destination.name, { exact: true });
+    const selected = page.getByRole('button', {
+      name: composer.editPlace.replace('{{name}}', destination.name),
+      exact: true,
+    });
     await expect(selected).toBeVisible();
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
@@ -2290,7 +2349,7 @@ test('new capture Place is deliberately shared before the entry is saved', async
   await page.route(`**/spaces/${SPACE_ID}/places/lookup`, (route) =>
     route.fulfill({ json: { items: [destination] } }),
   );
-  await page.getByRole('button', { name: copy.add, exact: true }).click();
+  await openComposerPlace(page);
   await page
     .getByRole('dialog', { name: copy.add })
     .getByRole('button', { name: planning.map.open, exact: true })
@@ -2316,10 +2375,15 @@ test('new capture Place is deliberately shared before the entry is saved', async
   await map
     .getByRole('button', { name: copy.saveSharedPlace, exact: true })
     .click();
+  await page
+    .getByRole('dialog', { name: copy.add, exact: true })
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   await expect(
-    page
-      .getByRole('group', { name: experiences.places, exact: true })
-      .getByText(destination.name, { exact: true }),
+    page.getByRole('button', {
+      name: composer.editPlace.replace('{{name}}', destination.name),
+      exact: true,
+    }),
   ).toBeVisible();
   expect(creations).toHaveLength(1);
   await page
@@ -2340,7 +2404,7 @@ for (const [width, colorScheme] of [
   [430, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`compact photo ordering retains and saves a dense selection (${width})`, async ({
+  test(`compact photo selection retains and saves canonical input order (${width})`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
@@ -2351,9 +2415,6 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       Array.from({ length: 10 }, (_, index) => ({
         name: `travel-${index}.jpg`,
@@ -2375,19 +2436,30 @@ for (const [width, colorScheme] of [
       })
       .click();
     await expect(tiles).toHaveCount(10);
+    const inputKeys = await tiles.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute('data-media-key')),
+    );
+    expect(inputKeys.every(Boolean)).toBe(true);
     await tiles.nth(2).click();
-    const earlier = () =>
-      page.getByRole('button', {
-        name: de.memory.photoMoveEarlier.replace('{{name}}', 'travel-2.jpg'),
-      });
-    await earlier().click();
-    await earlier().click();
-    await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
-    expect(await tiles.first().getAttribute('aria-label')).toContain(
+    // Selection does not reorder imports or replace the automatic first cover.
+    await expectQuietComposerMedia(page);
+    await expect(tiles.nth(2)).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      tiles.first().locator('.photo-draft-cover-star'),
+    ).toBeVisible();
+    await expect(tiles.nth(2).locator('.photo-draft-cover-star')).toHaveCount(
+      0,
+    );
+    expect(await tiles.nth(2).getAttribute('aria-label')).toContain(
       'travel-2.jpg',
     );
+    expect(
+      await tiles.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('data-media-key')),
+      ),
+    ).toEqual(inputKeys);
     expect(photos.uploaded).toHaveLength(10);
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await page.getByRole('button', { name: de.memory.photoShowLess }).click();
     await expect(tiles).toHaveCount(6);
     await expectNoHorizontalOverflow(page);
@@ -2425,12 +2497,10 @@ for (const [width, colorScheme] of [
     ).toEqual([]);
     await page.getByRole('button', { name: de.memory.save }).click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
-    const firstOrder = [
-      'travel-2.jpg',
-      'travel-0.jpg',
-      'travel-1.jpg',
-      ...Array.from({ length: 7 }, (_, index) => `travel-${index + 3}.jpg`),
-    ];
+    const firstOrder = Array.from(
+      { length: 10 },
+      (_, index) => `travel-${index}.jpg`,
+    );
     expect(photos.bound).toEqual(
       firstOrder.map((name) => photos.idsByName[name]),
     );
@@ -2445,7 +2515,7 @@ for (const [width, colorScheme] of [
   [390, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`Memory editing interleaves saved and newly selected photos (${width})`, async ({
+  test(`Memory editing retains saved order and appends newly selected photos (${width})`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
@@ -2456,9 +2526,6 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.jpg', 'two.jpg', 'three.jpg'].map((name) => ({
         name,
@@ -2472,26 +2539,30 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page.locator('#memory-edit-images').setInputFiles({
+    await openComposerMediaSources(page);
+    await page.locator('#memory-edit-images-source').setInputFiles({
       name: 'later.jpg',
       mimeType: 'image/jpeg',
       buffer: photos.photoBytes!,
     });
     await expect.poll(() => photos.ready.size).toBe(4);
-    await page.locator('.photo-draft-tile').last().click();
-    const earlier = page.getByRole('button', {
-      name: de.memory.photoMoveEarlier.replace('{{name}}', 'later.jpg'),
-    });
-    await earlier.click();
-    await earlier.click();
-    await expect(page.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    const editTiles = page.locator('.photo-draft-tile');
+    const inputKeys = await editTiles.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute('data-media-key')),
     );
-    await closeDraftActions(page);
+    await editTiles.last().click();
+    // Latest PO correction removes composer arrangement: new files stay appended.
+    await expectQuietComposerMedia(page);
+    await expect(editTiles.last()).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      editTiles.first().locator('.photo-draft-cover-star'),
+    ).toBeVisible();
+    expect(
+      await editTiles.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('data-media-key')),
+      ),
+    ).toEqual(inputKeys);
+    await expectInlineDraftActions(page);
     await page
       .getByRole('heading', {
         name: memoryProduct.editHeading,
@@ -2509,7 +2580,7 @@ for (const [width, colorScheme] of [
       .click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
     expect(photos.bound).toEqual(
-      ['one.jpg', 'later.jpg', 'two.jpg', 'three.jpg'].map(
+      ['one.jpg', 'two.jpg', 'three.jpg', 'later.jpg'].map(
         (name) => photos.idsByName[name],
       ),
     );
@@ -2613,19 +2684,50 @@ for (const kind of ['plan', 'heart'] as const) {
     await page.goto(
       kind === 'heart' ? '/story/heart-moments/new' : '/plan/plans/new',
     );
+    await expectLabeledComposerTool(
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.photo, exact: true }),
+      'foto',
+    );
+    await expect(
+      page.locator('.composer-content .photo-source-trigger'),
+    ).toHaveCount(0);
+    if (kind === 'plan') {
+      await expectLabeledComposerTool(
+        page
+          .locator('.composer-tool-row')
+          .getByRole('button', { name: composer.list, exact: true }),
+        'listen',
+      );
+      await expectLabeledComposerTool(
+        page
+          .locator('.composer-tool-row')
+          .getByRole('button', { name: composer.tag, exact: true }),
+        'tag',
+      );
+    }
+    await captureScreenshot(page, info, `shell-add-icons-${kind}.png`, {
+      fullPage: true,
+    });
     const text =
       kind === 'heart'
         ? storyProducts.heartMomentProduct.textLabel
         : m5s3.plan.intentionLabel;
     await page.getByLabel(text, { exact: true }).fill(AUTHORED_BODY);
-    if (kind === 'heart')
+    if (kind === 'heart') {
+      await showHeartAudience(page);
       await page
         .getByLabel(storyProducts.heartMomentProduct.visibilityPrivate, {
           exact: true,
         })
-        .check();
-    else await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
-    await page.getByRole('button', { name: photoSources.more }).click();
+        .click();
+      await expect(page.locator('dialog.composer-audience-sheet')).toHaveCount(
+        0,
+      );
+    } else
+      await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
+    await openComposerMediaSources(page);
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await expect(
       sheet.getByLabel(photoSources.accept, { exact: true }),
@@ -2671,10 +2773,13 @@ for (const kind of ['plan', 'heart'] as const) {
     expect(source.originals).toBe(count);
     if (kind === 'plan') {
       const media = await page.locator('.plan-photo-gallery').boundingBox();
-      const title = await page.locator('h1').boundingBox();
+      const title = await page
+        .getByRole('heading', { name: AUTHORED_BODY, exact: true })
+        .boundingBox();
       if (!media || !title)
         throw new Error('Saved Plan media or title is missing.');
-      expect(media.y + media.height).toBeLessThanOrEqual(title.y);
+      // Detail reading order: the headline leads, then facts and media.
+      expect(title.y + title.height).toBeLessThanOrEqual(media.y);
     }
     await expect(page.getByText(AUTHORED_BODY, { exact: true })).toBeVisible();
     await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {

@@ -1,3 +1,7 @@
+import composer from '../../src/i18n/locales/composer';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import { expectFloatingAddAction } from '../support/addAction';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
@@ -5,24 +9,15 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import navigation from '../../src/i18n/locales/navigation';
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
-
-const EVIDENCE_DIR = path.resolve(
-  __dirname,
-  '../../../docs/product/design/references/today-clarity/navigation',
-);
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const dimensions = await page.evaluate(() => ({
@@ -282,13 +277,7 @@ async function waitForGamesHub(page: Page): Promise<void> {
 }
 
 test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
-  test.beforeAll(() => {
-    if (!fs.existsSync(EVIDENCE_DIR)) {
-      fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
-    }
-  });
-
-  test('shell composition: four destinations + centered Quick Create before Planen in one docked shell', async ({
+  test('four equal docked destinations and a separate contextual plus', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -313,33 +302,10 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       navigation.more,
     ]);
 
-    const trigger = floatingShell.locator(
-      '.mobile-quick-create button.quick-create-trigger',
-    );
-    await expect(trigger).toBeVisible();
-    await expect(trigger).toHaveAttribute('aria-label', navigation.newContent);
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    await expectFloatingAddAction(trigger, floatingShell);
+    await expect(floatingShell.getByRole('button')).toHaveCount(0);
     await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
-    await expect(trigger).toHaveAttribute('type', 'button');
-
-    const oldFab = page.locator('body > .mobile-quick-create');
-    await expect(oldFab).toHaveCount(0);
-
-    // Keep the accepted product order: Wir · Momente · + · Planen · Mehr.
-    const momenteBox = await links.nth(1).boundingBox();
-    const triggerBox = await trigger.boundingBox();
-    const planenBox = await links.nth(2).boundingBox();
-    expect(momenteBox).not.toBeNull();
-    expect(triggerBox).not.toBeNull();
-    expect(planenBox).not.toBeNull();
-
-    if (momenteBox && triggerBox && planenBox) {
-      expect(momenteBox.x + momenteBox.width).toBeLessThanOrEqual(
-        triggerBox.x + 5,
-      );
-      expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(
-        planenBox.x + 5,
-      );
-    }
 
     const shellBox = await floatingShell.boundingBox();
     expect(shellBox).not.toBeNull();
@@ -354,29 +320,28 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       const links = Array.from(
         element.querySelectorAll('.mobile-bottom-nav .shell-nav-link'),
       );
-      const trigger = element.querySelector(
-        '.mobile-quick-create .quick-create-trigger',
-      );
-      if (links.length !== 4 || !trigger)
-        throw new Error('Missing bottom navigation controls');
+      if (links.length !== 4)
+        throw new Error('Missing bottom navigation destinations');
       return {
         height: element.getBoundingClientRect().height,
         linkHeights: links.map((link) => link.getBoundingClientRect().height),
         fontSizes: links.map((link) =>
           Number.parseFloat(getComputedStyle(link).fontSize),
         ),
-        triggerHeight: trigger.getBoundingClientRect().height,
+        linkWidths: links.map((link) => link.getBoundingClientRect().width),
       };
     });
     expect(dockSize.height).toBeGreaterThanOrEqual(70);
     expect(Math.min(...dockSize.linkHeights)).toBeGreaterThanOrEqual(56);
     expect(Math.min(...dockSize.fontSizes)).toBeGreaterThanOrEqual(12);
-    expect(dockSize.triggerHeight).toBeGreaterThanOrEqual(52);
+    expect(
+      Math.max(...dockSize.linkWidths) - Math.min(...dockSize.linkWidths),
+    ).toBeLessThan(1);
 
     await expectNoHorizontalOverflow(page);
   });
 
-  test('Quick Create mobile floating panel opens with fully rounded corners, clear nav separation and accessibility', async ({
+  test('the Moment choice takes the native modal layer and keeps focus, dismissal and accessibility', async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -385,11 +350,11 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    const trigger = page.locator('.mobile-bottom-shell .quick-create-trigger');
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
     await trigger.click();
 
     const dialog = page.getByRole('dialog', {
-      name: navigation.quickCreateTitle,
+      name: de.story.addMoment,
     });
     const settleDialogMotion = async () => {
       await dialog.evaluate(async (element) => {
@@ -434,8 +399,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
     expect(radii.topLeft).toBeGreaterThanOrEqual(16);
     expect(radii.topRight).toBeGreaterThanOrEqual(16);
-    expect(radii.bottomLeft).toBeGreaterThanOrEqual(16);
-    expect(radii.bottomRight).toBeGreaterThanOrEqual(16);
+    expect(radii.bottomLeft).toBe(0);
+    expect(radii.bottomRight).toBe(0);
 
     const sheetBox = await dialog.boundingBox();
     const navBox = await page.locator('.mobile-bottom-shell').boundingBox();
@@ -443,30 +408,26 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(navBox).not.toBeNull();
     if (!sheetBox || !navBox) throw new Error('Missing bounding boxes');
 
-    expect(sheetBox.x).toBeGreaterThan(0);
-    expect(sheetBox.x + sheetBox.width).toBeLessThan(390);
-    expect(navBox.y - (sheetBox.y + sheetBox.height)).toBeGreaterThanOrEqual(8);
+    expect(sheetBox.x).toBeCloseTo(0);
+    expect(sheetBox.x + sheetBox.width).toBeCloseTo(390);
+    expect(sheetBox.y).toBeLessThan(navBox.y);
+    expect(sheetBox.y + sheetBox.height).toBeCloseTo(844);
+    await expect(trigger).toBeHidden();
 
-    for (const item of [
-      navigation.quickCreateMemory,
-      navigation.quickCreateHeartMoment,
-      navigation.quickCreateMilestone,
-      navigation.quickCreateWish,
-      navigation.quickCreatePlan,
-      navigation.quickCreateForMe,
-      navigation.quickCreatePrivateNote,
-      navigation.quickCreateGiftIdea,
-    ]) {
-      await expect(dialog.getByText(item, { exact: true })).toBeVisible();
-    }
+    const momentChoices = dialog.getByRole('link');
+    await expect(momentChoices).toHaveText([
+      composer.diaryEntry,
+      de.story.kind.heartMoment,
+      de.story.kind.milestone,
+    ]);
 
     const axeResultsLight = await new AxeBuilder({ page })
-      .include('.quick-create-mobile-sheet')
+      .include('.contextual-create-sheet')
       .analyze();
     expect(axeResultsLight.violations).toEqual([]);
 
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390.png'),
+      path: testInfo.outputPath('00-quick-create-sheet-open-390.png'),
     });
     await page.screenshot({
       path: testInfo.outputPath('shell-quick-create-sheet-390-light.png'),
@@ -478,12 +439,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
     await page.waitForTimeout(250);
     const axeResultsDark = await new AxeBuilder({ page })
-      .include('.quick-create-mobile-sheet')
+      .include('.contextual-create-sheet')
       .analyze();
     expect(axeResultsDark.violations).toEqual([]);
 
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390-dark.png'),
+      path: testInfo.outputPath('00-quick-create-sheet-open-390-dark.png'),
     });
     await page.screenshot({
       path: testInfo.outputPath('shell-quick-create-sheet-390-dark.png'),
@@ -495,10 +456,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
 
     const closeButton = dialog.getByRole('button', {
-      name: navigation.closeMenu,
+      name: taskSheets.close,
     });
+    await expect(momentChoices.first()).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expect(closeButton).toBeFocused();
-    await expect(closeButton).toHaveAttribute('title', navigation.closeMenu);
+    await expect(closeButton).toHaveAttribute('title', taskSheets.close);
     await expect(closeButton).toHaveText('');
 
     const closeBox = await closeButton.boundingBox();
@@ -524,7 +487,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     expect(headerBox.height).toBeLessThan(44);
 
     await page.keyboard.press('Shift+Tab');
-    const lastItem = dialog.locator('a[href="/more/private/gift-ideas/new"]');
+    const lastItem = momentChoices.last();
     // Native dialog traversal may visit browser chrome at the boundary. It
     // must never focus the inactive page; returning enters the modal again.
     const backwardFocus = await dialog.evaluate((element) => ({
@@ -595,6 +558,29 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await settleDialogMotion();
     expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
 
+    // A pull may also start on a choice row. A settled pull must not follow
+    // the link it started on.
+    const choiceBox = await momentChoices.first().boundingBox();
+    expect(choiceBox).not.toBeNull();
+    if (!choiceBox) throw new Error('Missing moment choice bounds');
+    const choiceCenterX = choiceBox.x + choiceBox.width / 2;
+    const choiceCenterY = choiceBox.y + choiceBox.height / 2;
+    await page.mouse.move(choiceCenterX, choiceCenterY);
+    await page.mouse.down();
+    await page.mouse.move(choiceCenterX, choiceCenterY + 60, { steps: 4 });
+    expect(
+      await dialog.evaluate((element) => element.hasAttribute('data-dragging')),
+    ).toBe(true);
+    await page.screenshot({
+      path: testInfo.outputPath('shell-quick-create-sheet-row-pull-390.png'),
+    });
+    await page.mouse.move(choiceCenterX, choiceCenterY + 4, { steps: 4 });
+    await page.mouse.up();
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/today$/);
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
+
     // Surface-wide direct manipulation is not limited to the visible handle.
     // A fresh downward pull that starts on plain sheet content dismisses too.
     const surface = dialog.locator('.short-task-sheet-title');
@@ -612,7 +598,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(trigger).toBeFocused();
   });
 
-  test('Quick Create sheet stays bounded at 360px and 430px Compact widths', async ({
+  test('Moment choice stays bounded at 360px and 430px Compact widths', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 780 });
@@ -623,13 +609,11 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
 
     for (const width of [360, 430]) {
       await page.setViewportSize({ width, height: 844 });
-      const trigger = page.locator(
-        '.mobile-bottom-shell .quick-create-trigger',
-      );
+      const trigger = page.getByRole('button', { name: de.story.addMoment });
       await trigger.click();
 
       const dialog = page.getByRole('dialog', {
-        name: navigation.quickCreateTitle,
+        name: de.story.addMoment,
       });
       await expect(dialog).toBeVisible();
 
@@ -640,15 +624,16 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(width);
       await expectNoHorizontalOverflow(page);
 
-      await dialog.getByRole('button', { name: navigation.closeMenu }).click();
+      await dialog.getByRole('button', { name: taskSheets.close }).click();
       await expect(dialog).toHaveCount(0);
       await expect(trigger).toBeFocused();
     }
   });
 
-  test('Quick Create floating panel in constrained height and 320px reflow maintains reachability and separation', async ({
+  test('Moment choice remains reachable at constrained height and 320px reflow', async ({
     page,
   }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await installApiMocks(page);
 
     await page.setViewportSize({ width: 390, height: 500 });
@@ -656,14 +641,13 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    const trigger = page.locator('.mobile-bottom-shell .quick-create-trigger');
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
     await trigger.click();
 
     const dialog = page.getByRole('dialog', {
-      name: navigation.quickCreateTitle,
+      name: de.story.addMoment,
     });
     await expect(dialog).toBeVisible();
-    await page.waitForTimeout(250);
 
     const smallSheetBox = await dialog.boundingBox();
     const smallNavBox = await page
@@ -676,18 +660,17 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     }
 
     expect(smallSheetBox.y).toBeGreaterThanOrEqual(0);
-    expect(
-      smallNavBox.y - (smallSheetBox.y + smallSheetBox.height),
-    ).toBeGreaterThanOrEqual(8);
+    expect(smallSheetBox.y).toBeLessThan(smallNavBox.y);
+    expect(smallSheetBox.y + smallSheetBox.height).toBeCloseTo(500);
 
-    const giftIdeaItem = dialog.getByText(navigation.quickCreateGiftIdea, {
-      exact: true,
+    const lastChoice = dialog.getByRole('link', {
+      name: de.story.kind.milestone,
     });
-    await giftIdeaItem.scrollIntoViewIfNeeded();
-    await expect(giftIdeaItem).toBeVisible();
+    await lastChoice.scrollIntoViewIfNeeded();
+    await expect(lastChoice).toBeInViewport();
 
     const closeButton = dialog.getByRole('button', {
-      name: navigation.closeMenu,
+      name: taskSheets.close,
     });
     await closeButton.click();
     await expect(dialog).toHaveCount(0);
@@ -695,13 +678,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.setViewportSize({ width: 320, height: 600 });
     await trigger.click();
     await expect(dialog).toBeVisible();
-    await page.waitForTimeout(250);
 
     await expectNoHorizontalOverflow(page);
     const reflowSheetBox = await dialog.boundingBox();
     expect(reflowSheetBox).not.toBeNull();
     if (!reflowSheetBox) throw new Error('Missing bounding boxes');
-    expect(reflowSheetBox.x).toBeGreaterThan(0);
+    expect(reflowSheetBox.x).toBeGreaterThanOrEqual(0);
     expect(reflowSheetBox.x + reflowSheetBox.width).toBeLessThanOrEqual(320);
 
     // The browser owns ::backdrop; click the actual area outside the dialog.
@@ -848,7 +830,10 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(floatingShell).toHaveCount(0);
 
     const saveButton = page.getByRole('button', { name: de.memory.save });
-    const cancelButton = page.getByRole('button', { name: de.common.cancel });
+    const cancelButton = page.getByRole('button', {
+      name: taskBoundary.close,
+      exact: true,
+    });
     await expect(saveButton).toBeVisible();
     await expect(cancelButton).toBeVisible();
 
@@ -974,25 +959,8 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       navigation.more,
     ]);
 
-    const trigger = floatingShell.locator(
-      '.mobile-quick-create button.quick-create-trigger',
-    );
-    await expect(trigger).toBeVisible();
-
-    const momenteBox = await links.nth(1).boundingBox();
-    const triggerBox = await trigger.boundingBox();
-    const planenBox = await links.nth(2).boundingBox();
-    expect(momenteBox).not.toBeNull();
-    expect(triggerBox).not.toBeNull();
-    expect(planenBox).not.toBeNull();
-    if (momenteBox && triggerBox && planenBox) {
-      expect(momenteBox.x + momenteBox.width).toBeLessThanOrEqual(
-        triggerBox.x + 1,
-      );
-      expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(
-        planenBox.x + 1,
-      );
-    }
+    const trigger = page.getByRole('button', { name: de.story.addMoment });
+    await expectFloatingAddAction(trigger, floatingShell);
 
     await page.goto('/story/memories/new');
     await page.locator('html').evaluate((element) => {
@@ -1004,7 +972,10 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    const cancelButton = page.getByRole('button', { name: de.common.cancel });
+    const cancelButton = page.getByRole('button', {
+      name: taskBoundary.close,
+      exact: true,
+    });
     const zoomShell = page.locator('.mobile-bottom-shell');
     await expect(cancelButton).toBeVisible();
     await expect(zoomShell).toHaveCount(0);
@@ -1020,17 +991,37 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.locator('html').evaluate((element) => {
       element.style.zoom = '2';
     });
-    const zoomTrigger = page.locator(
-      '.mobile-bottom-shell .quick-create-trigger',
-    );
+    const zoomTrigger = page.getByRole('button', { name: de.story.addMoment });
     await zoomTrigger.click();
     const zoomDialog = page.getByRole('dialog', {
-      name: navigation.quickCreateTitle,
+      name: de.story.addMoment,
     });
     await expect(zoomDialog).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.keyboard.press('Escape');
     await expect(zoomDialog).toHaveCount(0);
+  });
+
+  test('the expanded browser shortcut is absent in the Capacitor runtime', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await installNativeAppLifecycle(page);
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.waitForURL('**/today');
+    await expect(
+      page.getByRole('button', { name: navigation.newContent }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: de.story.addMoment }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectFloatingAddAction(
+      page.getByRole('button', { name: de.story.addMoment }),
+      page.locator('.mobile-bottom-shell'),
+    );
   });
 
   test('captures required visual evidence matrix', async ({
@@ -1045,7 +1036,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '01-today-390-light.png'),
+      path: testInfo.outputPath('01-today-390-light.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'dark' });
@@ -1057,7 +1048,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.reload();
     await page.waitForURL('**/today');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '02-today-390-dark.png'),
+      path: testInfo.outputPath('02-today-390-dark.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'light' });
@@ -1069,7 +1060,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.goto('/story/memories/new');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '03-memory-create-390-light.png'),
+      path: testInfo.outputPath('03-memory-create-390-light.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'dark' });
@@ -1081,7 +1072,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await page.reload();
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '04-memory-create-390-dark.png'),
+      path: testInfo.outputPath('04-memory-create-390-dark.png'),
     });
 
     await page.emulateMedia({ colorScheme: 'light' });
@@ -1092,25 +1083,25 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
     await page.goto('/plan');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '05-plan-390-light.png'),
+      path: testInfo.outputPath('05-plan-390-light.png'),
     });
 
     await page.goto('/story');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '06-momente-390-light.png'),
+      path: testInfo.outputPath('06-momente-390-light.png'),
     });
 
     await page.setViewportSize({ width: 320, height: 600 });
     await page.goto('/today');
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '07-reflow-320px.png'),
+      path: testInfo.outputPath('07-reflow-320px.png'),
     });
 
     await page.setViewportSize({ width: 390, height: 640 });
     await page.goto('/today');
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '08-small-height-390x640.png'),
+      path: testInfo.outputPath('08-small-height-390x640.png'),
     });
 
     await page.setViewportSize({ width: 390, height: 500 });
@@ -1119,7 +1110,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     const titleInput = page.getByLabel(de.memory.titleLabelOptional);
     await titleInput.focus();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '09-constrained-height-form-focus.png'),
+      path: testInfo.outputPath('09-constrained-height-form-focus.png'),
     });
 
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -1127,7 +1118,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
     await expect(page.locator('.shell-nav')).toBeVisible();
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '10-expanded-desktop-1280x800.png'),
+      path: testInfo.outputPath('10-expanded-desktop-1280x800.png'),
     });
 
     await page.setViewportSize({ width: 780, height: 844 });
@@ -1142,7 +1133,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
         ),
     );
     await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '11-zoom-200-percent.png'),
+      path: testInfo.outputPath('11-zoom-200-percent.png'),
     });
 
     // #902 Product Reference evidence: Compact Light/Dark, 320 reflow and Expanded.

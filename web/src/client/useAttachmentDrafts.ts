@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { i18n } from '../i18n';
+import { cancelVideoTransfer } from './backgroundVideoUploads';
 import {
   type AttachmentDraft,
   type AttachmentDraftAction,
@@ -45,6 +46,9 @@ export interface AttachmentDraftOptions {
   resourceKey?: string;
   fetchApi?: typeof fetch;
   uploadAttachmentFn?: typeof uploadMemoryDraftAttachment;
+  /** Avatars do not participate in selected-photo place enrichment. */
+  preserveMetadata?: boolean;
+  createPreviews?: boolean;
   /**
    * Caller-computed remaining capacity (`MAX_MEMORY_ATTACHMENTS -
    * alreadyBoundAttachmentCount`). Files beyond this never start a server
@@ -146,6 +150,8 @@ export function useAttachmentDrafts({
   resourceKey,
   fetchApi = fetch,
   uploadAttachmentFn = uploadMemoryDraftAttachment,
+  preserveMetadata = true,
+  createPreviews = true,
   maxAttachments = Number.POSITIVE_INFINITY,
 }: AttachmentDraftOptions) {
   const accountSpace = formatAttachmentDraftContextKey(accountId, spaceId);
@@ -215,6 +221,8 @@ export function useAttachmentDrafts({
     store.generation === currentGeneration.current &&
     committedContextKey.current === contextKey;
   const items = isCurrentContext ? store.items : [];
+  const currentItems = useRef(items);
+  currentItems.current = items;
 
   // `pump` and `runUpload` are mutually recursive (pump starts queued
   // uploads; each upload's completion calls pump again to start the next
@@ -285,7 +293,8 @@ export function useAttachmentDrafts({
         {
           signal: controller.signal,
           onProgress: updateProgress,
-          preserveMetadata: true,
+          preserveMetadata,
+          accountId,
         },
       )
         .then(({ attachmentId, hasThumbnail, durationSeconds, processing }) => {
@@ -342,6 +351,8 @@ export function useAttachmentDrafts({
       pump,
       spaceId,
       uploadAttachmentFn,
+      preserveMetadata,
+      accountId,
     ],
   );
   useLayoutEffect(() => {
@@ -381,9 +392,10 @@ export function useAttachmentDrafts({
         const unavailable =
           selectedPhotoUnavailable(file) &&
           !(file.type.startsWith('video/') && attachmentId);
-        const previewResource = unavailable
-          ? undefined
-          : createOwnedObjectUrl(file);
+        const previewResource =
+          unavailable || !createPreviews
+            ? undefined
+            : createOwnedObjectUrl(file);
         const previewUrl = previewResource?.url ?? '';
         if (previewResource) previewUrls.current.set(id, previewResource);
         draftCount.current += 1;
@@ -416,7 +428,7 @@ export function useAttachmentDrafts({
       }
       return restoredIds;
     },
-    [enqueue, maxAttachments],
+    [createPreviews, enqueue, maxAttachments],
   );
 
   const addFiles = useCallback(
@@ -478,6 +490,10 @@ export function useAttachmentDrafts({
 
   const remove = useCallback(
     (id: string) => {
+      const attachmentId = currentItems.current.find(
+        (item) => item.id === id,
+      )?.attachmentId;
+      if (attachmentId) cancelVideoTransfer(attachmentId);
       cancel(id);
       draftCount.current = Math.max(0, draftCount.current - 1);
       previewUrls.current.get(id)?.dispose();

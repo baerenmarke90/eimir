@@ -1,7 +1,71 @@
 .photo-draft-gallery {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   min-inline-size: 0;
+}
+.photo-draft-stage {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.photo-draft-stage,
+.photo-draft-stage .media-gallery-carousel {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.photo-draft-gallery .media-gallery-carousel-viewport {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-large);
+}
+.photo-draft-stage-sensitive {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: max-content;
+  min-block-size: var(--touch-target-web);
+  max-inline-size: calc(100% - var(--space-12) - var(--space-6));
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+  cursor: pointer;
+}
+.photo-draft-stage-sensitive > .eimir-icon {
+  flex: none;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+.photo-draft-stage-sensitive > span {
+  min-inline-size: 0;
+  overflow-wrap: break-word;
+}
+.photo-draft-stage-sensitive input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0;
+  margin: 0;
+  cursor: inherit;
+}
+.photo-draft-stage-sensitive:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.photo-draft-stage-sensitive:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+}
+.photo-draft-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.photo-draft-toolbar:empty {
+  display: none;
 }
 .photo-draft-grid {
   display: grid;
@@ -11,43 +75,23 @@
   padding: 0;
   margin: 0;
 }
-.photo-draft-grid > li {
+.photo-draft-grid > li,
+.photo-draft-frame {
   min-inline-size: 0;
   position: relative;
 }
-.photo-draft-drag-handle {
-  position: absolute;
-  inset: auto var(--space-1) var(--space-1) auto;
-  min-inline-size: var(--touch-target-web);
-  min-block-size: var(--touch-target-web);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  touch-action: none;
-  cursor: grab;
+.photo-draft-frame {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.photo-draft-sensitive:has(input:focus-visible) {
+  outline: auto;
+  outline-color: var(--color-focus);
+  outline-offset: var(--space-1);
 }
 .photo-draft-item.is-dragging {
   z-index: 3;
-}
-.photo-draft-large-preview {
-  display: grid;
-  place-items: center;
-  min-inline-size: 0;
-  max-block-size: 60svh;
-  overflow: hidden;
-}
-.photo-draft-large-preview img,
-.photo-draft-large-preview > * {
-  max-inline-size: 100%;
-  max-block-size: 60svh;
-  object-fit: contain;
-}
-.photo-draft-preview-sheet .short-task-sheet-close-icon {
-  display: none;
-}
-.photo-draft-preview-sheet .photo-draft-inspector {
-  background: transparent;
-  padding-inline: 0;
 }
 .photo-draft-tile {
   display: block;
@@ -77,8 +121,7 @@
   min-block-size: 0;
   object-fit: cover;
 }
-.photo-draft-number,
-.photo-draft-selected {
+.photo-draft-number {
   position: absolute;
   inset-block-start: var(--space-2);
   padding-inline: var(--space-2);
@@ -90,14 +133,85 @@
 .photo-draft-number {
   inset-inline-start: var(--space-2);
 }
-.photo-draft-selected {
-  inset-inline-end: var(--space-2);
-  background: var(--color-brand-strong);
+/* Corner controls are siblings of the image button, never nested activators. */
+/* Small visible glyphs keep their full transparent touch targets. */
+.photo-draft-action {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  margin: 0;
+  cursor: pointer;
+  inline-size: var(--touch-target-web);
+  block-size: var(--touch-target-web);
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  padding: var(--media-action-inset);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+.photo-draft-action::before {
+  content: "";
+  position: absolute;
+  inset: var(--media-action-inset);
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--color-surface);
+}
+.photo-draft-action .eimir-icon {
+  inline-size: var(--media-action-icon);
+  block-size: var(--media-action-icon);
+}
+/* The native checkbox occupies the full hit area; the glyph cannot intercept it. */
+.photo-draft-sensitive input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.photo-draft-sensitive .eimir-icon {
+  pointer-events: none;
+}
+.photo-draft-sensitive:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+.photo-draft-remove {
+  inset: var(--space-1) var(--space-1) auto auto;
+}
+.photo-draft-sensitive {
+  inset: auto auto var(--space-1) var(--space-1);
+}
+.photo-draft-cover-toggle {
+  inset: auto var(--space-1) var(--space-1) auto;
+}
+.photo-draft-cover-toggle[aria-pressed="true"] {
   color: var(--color-on-accent);
+}
+.photo-draft-cover-toggle[aria-pressed="true"]::before {
+  background: var(--color-brand-strong);
+}
+.photo-draft-cover-toggle[aria-pressed="false"] .eimir-icon {
+  opacity: var(--opacity-subtle);
+}
+.photo-draft-tile {
+  -webkit-touch-callout: none;
+  user-select: none;
+  cursor: grab;
+}
+.photo-draft-tile-preview {
+  pointer-events: none;
+}
+.photo-draft-item.is-dragging .photo-draft-tile {
+  cursor: grabbing;
 }
 .photo-draft-tile-status {
   position: absolute;
-  inset: auto var(--space-1) var(--space-1);
+  inset: auto var(--space-1) calc(var(--touch-target-web) + var(--space-2));
   background: var(--color-surface);
   color: var(--color-text-secondary);
   border-radius: 0 0 var(--radius-small) var(--radius-small);
@@ -113,9 +227,7 @@
   margin: 0;
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
+  padding: 0;
   min-inline-size: 0;
 }
 .photo-draft-inspector-heading {
@@ -159,8 +271,6 @@
   }
 }
 
-@media (min-width: 840px) {
-  .photo-draft-preview-sheet .short-task-sheet-header {
-    display: none;
-  }
+.photo-draft-item.is-drop-target .photo-draft-tile-preview {
+  opacity: var(--opacity-subtle);
 }

@@ -18,6 +18,9 @@ from eimir.identity.models import Account
 from eimir.memories.models import Memory
 from eimir.outbox.models import OutboxEvent
 
+# These kinds deliberately never enter native content presentation.
+NEUTRAL_ONLY_KINDS = frozenset({NotificationKind.ONCE_MESSAGE_RECEIVED.value})
+
 
 def _label(value: str, limit: int) -> str:
     # Plain text only, with bounded display and without directional controls.
@@ -64,10 +67,18 @@ def _content(session: Session, notification: Notification, context: Authorizatio
 
 
 def for_notification(
-    session: Session, notification: Notification, *, digest: bool, version: int = 1
+    session: Session,
+    notification: Notification,
+    *,
+    digest: bool,
+    version: int = 1,
+    neutral_reference: bool = False,
 ) -> str | None:
     from eimir.engagement import service
 
+    neutral = notification.kind in NEUTRAL_ONLY_KINDS
+    if neutral and not neutral_reference:
+        return None
     context = AuthorizationContext(
         account_id=notification.recipient_account_id, space_id=notification.space_id
     )
@@ -76,15 +87,29 @@ def for_notification(
     ):
         return None
     actor = (
-        session.get(Account, notification.actor_id) if notification.actor_id is not None else None
+        session.get(Account, notification.actor_id)
+        if not neutral and notification.actor_id is not None
+        else None
     )
     name = _label(actor.display_name, 80) if actor is not None and actor.is_active else ""
     title = ""
-    if notification.target_type is not None and notification.target_id is not None:
+    concealed = False
+    if not neutral and notification.target_type is not None and notification.target_id is not None:
         target_type = EngagementTarget(notification.target_type)
+        target = (target_type, notification.target_id)
+        # A discreet Plan keeps device previews generic: no title and no
+        # comment text, not even the list title (M4-D41, #1790 F3).
+        concealed = bool(presentation.concealed_targets(session, {target}))
         # A heart moment's text is authored body content, not a title preview.
-        if target_type is not EngagementTarget.HEART_MOMENT:
-            target = (target_type, notification.target_id)
+        if (
+            target_type is not EngagementTarget.HEART_MOMENT
+            and not concealed
+            and notification.kind != NotificationKind.WISH_REMINDER_DUE.value
+            and not (
+                notification.kind == NotificationKind.REMINDER_DUE.value
+                and target_type is EngagementTarget.PLAN
+            )
+        ):
             title = _label(
                 presentation.target_titles(session, context, {target}).get(target, ""), 140
             )
@@ -101,12 +126,16 @@ def for_notification(
             "kind": notification.kind,
             "name": name,
             "title": title,
-            "targetType": notification.target_type or "",
+            "targetType": "" if neutral else notification.target_type or "",
             "digest": digest,
             "issuedAt": int(now.timestamp()),
             "expiresAt": int(expires.timestamp()),
             **(
-                {"body": _content(session, notification, context) if not digest else ""}
+                {
+                    "body": _content(session, notification, context)
+                    if not (digest or neutral or concealed)
+                    else ""
+                }
                 if version == 2
                 else {}
             ),

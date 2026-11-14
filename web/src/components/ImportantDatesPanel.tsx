@@ -10,8 +10,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
@@ -19,8 +19,6 @@ import { ImportantDateType } from '../api/generated/models/ImportantDateType';
 import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { nextOccasionHolidays } from '../client/occasionHolidays';
-import { useOccasionHolidayPreference } from '../client/occasionHolidayPreferences';
 import {
   dateInputValueToApiDate,
   localDateInputValue,
@@ -35,6 +33,8 @@ import {
   type ImportantDateDraft,
   importantDateFieldsFromDraft,
 } from '../client/importantDateDraft';
+import { useOccasionHolidayPreference } from '../client/occasionHolidayPreferences';
+import { nextOccasionHolidays } from '../client/occasionHolidays';
 import { normalizeClientError } from '../client/problemDetails';
 import { calculateNextAnniversary } from '../client/relationshipPreview';
 import { PLAN_CREATE_ROUTE, settingsCategoryPath } from '../client/routes';
@@ -647,6 +647,8 @@ export function ImportantDatesPanel({
   )?.birthdayPersonId;
   const [editing, setEditing] = useState<ImportantDateView | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  // Prototype: the month shown on the calendar sheet, as `YYYY-MM`.
+  const [calendarMonth, setCalendarMonth] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [pendingDeleteFocus, setPendingDeleteFocus] =
     useState<DeleteFocusTarget | null>(null);
@@ -1071,6 +1073,185 @@ export function ImportantDatesPanel({
       );
     });
   }
+  // Prototype: occasions are points in the year, so the view is a calendar in
+  // three steps from coarse to fine: the next occasion, a band of the coming
+  // twelve months, and the chosen month as a quiet sheet with its occasions.
+  function renderCalendar() {
+    const monthKey = (date: Date) => dateInputValue(date).slice(0, 7);
+    const isPersonal = (entry: OccasionOccurrence) =>
+      Boolean(entry.custom) || entry.type !== ImportantDateType.CUSTOM;
+    const byMonth = new Map<string, OccasionOccurrence[]>();
+    for (const entry of upcoming) {
+      const key = monthKey(entry.date);
+      byMonth.set(key, [...(byMonth.get(key) ?? []), entry]);
+    }
+    const months = Array.from({ length: 12 }, (_, index) => {
+      const first = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + index, 1),
+      );
+      return { key: monthKey(first), first };
+    });
+    const next = upcoming[0];
+    const activeKey =
+      calendarMonth && months.some((month) => month.key === calendarMonth)
+        ? calendarMonth
+        : monthKey(next.date);
+    const active = months.find((month) => month.key === activeKey) ?? months[0];
+    const activeEntries = byMonth.get(active.key) ?? [];
+    const year = active.first.getUTCFullYear();
+    const monthIndex = active.first.getUTCMonth();
+    const daysInMonth = new Date(
+      Date.UTC(year, monthIndex + 1, 0),
+    ).getUTCDate();
+    // Monday-first week: Sunday (0) moves to the end.
+    const leading = (active.first.getUTCDay() + 6) % 7;
+    const weekdayFormat = new Intl.DateTimeFormat(i18n.language, {
+      weekday: 'narrow',
+      timeZone: 'UTC',
+    });
+    const shortMonth = new Intl.DateTimeFormat(i18n.language, {
+      month: 'short',
+      timeZone: 'UTC',
+    });
+    const relative = new Intl.RelativeTimeFormat(i18n.language, {
+      numeric: 'auto',
+    });
+    const daysUntilNext = Math.round(
+      (next.date.getTime() - today.getTime()) / 86_400_000,
+    );
+    const todayKey = dateInputValue(today);
+    const weekdays = Array.from({ length: 7 }, (_, index) => ({
+      id: `weekday-${index + 1}`,
+      // 1 January 2024 was a Monday.
+      label: weekdayFormat.format(new Date(Date.UTC(2024, 0, index + 1))),
+    }));
+    const leadingCells = Array.from(
+      { length: leading },
+      (_, index) => `lead-${index + 1}`,
+    );
+
+    return (
+      <div className="occasions-calendar">
+        <button
+          type="button"
+          className="occasions-next"
+          aria-haspopup="dialog"
+          onClick={(event) => {
+            readerReturnRef.current = event.currentTarget;
+            openReader(next.key);
+          }}
+        >
+          <span className="occasions-next-when">
+            {relative.format(daysUntilNext, 'day')}
+          </span>
+          <strong className="occasions-next-title">{next.label}</strong>
+          <time
+            className="occasions-next-date"
+            dateTime={dateInputValue(next.date)}
+          >
+            {dateFormats.detail.format(next.date)}
+          </time>
+        </button>
+
+        <div className="occasions-band">
+          {months.map((month) => {
+            const entries = byMonth.get(month.key) ?? [];
+            const isActive = month.key === active.key;
+            return (
+              <button
+                key={month.key}
+                type="button"
+                className={`occasions-band-month${isActive ? ' is-active' : ''}`}
+                aria-pressed={isActive}
+                aria-label={`${dateFormats.monthAndYear.format(month.first)}, ${entries.length}`}
+                onClick={() => setCalendarMonth(month.key)}
+              >
+                <span>{shortMonth.format(month.first)}</span>
+                <span className="occasions-band-dots" aria-hidden="true">
+                  {entries.slice(0, 3).map((entry) => (
+                    <i
+                      key={entry.key}
+                      className={isPersonal(entry) ? 'is-personal' : undefined}
+                    />
+                  ))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="occasions-sheet" key={active.key}>
+          <h2 className="occasions-sheet-title">
+            {dateFormats.monthAndYear.format(active.first)}
+          </h2>
+          <div className="occasions-grid">
+            {weekdays.map((weekday) => (
+              <span
+                key={weekday.id}
+                className="occasions-grid-weekday"
+                aria-hidden="true"
+              >
+                {weekday.label}
+              </span>
+            ))}
+            {leadingCells.map((id) => (
+              <span key={id} />
+            ))}
+            {Array.from({ length: daysInMonth }, (_, index) => {
+              const day = index + 1;
+              const key = `${active.key}-${String(day).padStart(2, '0')}`;
+              const onDay = activeEntries.filter(
+                (entry) => dateInputValue(entry.date) === key,
+              );
+              const className = [
+                'occasions-grid-day',
+                key === todayKey ? 'is-today' : '',
+                onDay.length ? 'has-occasion' : '',
+                onDay.some(isPersonal) ? 'is-personal' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
+              // A day with an occasion opens it; several on one day open the
+              // first, and the list below shows them all.
+              return onDay.length ? (
+                <button
+                  key={key}
+                  type="button"
+                  className={className}
+                  aria-haspopup="dialog"
+                  aria-label={`${dateFormats.detail.format(onDay[0].date)}: ${onDay
+                    .map((entry) => entry.label)
+                    .join(', ')}`}
+                  onClick={(event) => {
+                    readerReturnRef.current = event.currentTarget;
+                    openReader(onDay[0].key);
+                  }}
+                >
+                  {day}
+                </button>
+              ) : (
+                <span key={key} className={className} aria-hidden="true">
+                  {day}
+                </span>
+              );
+            })}
+          </div>
+          {activeEntries.length ? (
+            <ul className="occasions-list">
+              {activeEntries.map(renderDateRow)}
+            </ul>
+          ) : (
+            <p className="occasions-sheet-empty">
+              {t('importantDates.monthEmpty', {
+                defaultValue: 'In diesem Monat steht nichts an.',
+              })}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const openEditor = () => {
     if (!selected?.custom) return;
     const date = selected.custom;
@@ -1126,7 +1307,7 @@ export function ImportantDatesPanel({
       !sourcesUnavailable ? (
         <UiState kind="empty" title={t('importantDates.emptyTitle')} />
       ) : null}
-      {upcoming.length ? <div>{renderMonths(upcoming)}</div> : null}
+      {upcoming.length ? renderCalendar() : null}
       {past.length ? (
         <div className="occasions-past">
           <h2>{t('importantDates.past')}</h2>

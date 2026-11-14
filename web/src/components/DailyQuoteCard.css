@@ -3,30 +3,42 @@
   display: grid;
   min-width: 0;
   gap: var(--space-2);
-  margin-block: var(--space-3) var(--space-5);
+  margin-block: var(--space-5);
   padding: 0;
   border: 0;
   color: var(--color-text);
 }
 
+/*
+ * The quote is a quiet reading line, not a card: bare text on the page,
+ * centred on the same axis as the couple hero so it continues that column
+ * instead of reading as an inserted block. It never outweighs the hero or
+ * the couple's own moments, wherever the module is ordered on Wir and in
+ * every Wir design.
+ */
 .daily-quote-content {
-  padding: var(--space-4);
-  overflow: hidden;
+  display: grid;
+  justify-items: center;
+  padding: 0 var(--space-3);
   border: 0;
-  border-radius: var(--radius-card);
-  background:
-    radial-gradient(
-      circle at 88% 12%,
-      color-mix(in srgb, var(--color-brand) 13%, transparent),
-      transparent 38%
-    ),
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--color-brand) 9%, var(--color-surface)),
-      color-mix(in srgb, var(--color-surface-subtle) 72%, var(--color-surface))
-    );
-  box-shadow: 0 8px 24px var(--color-shadow-soft);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   color: var(--color-text);
+  text-align: center;
+}
+
+/* The quotation mark opens the block: it separates the quote from the
+   content above and says what this is, without a rule or extra space. */
+.daily-quote-mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: color-mix(in srgb, var(--color-brand-text) 55%, transparent);
+}
+
+.daily-quote-block,
+.daily-quote-state {
+  justify-items: center;
 }
 
 .daily-quote-card > :not(.sr-only) {
@@ -72,13 +84,13 @@
 }
 
 .daily-quote-block p {
-  max-width: 48ch;
+  max-width: 34ch;
   margin: 0;
   overflow-wrap: break-word;
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 4.4vw, 1.25rem);
-  font-weight: 520;
-  line-height: 1.42;
+  font-size: clamp(1rem, 4.1vw, 1.12rem);
+  font-weight: 480;
+  line-height: 1.45;
   letter-spacing: -0.01em;
   hyphens: manual;
 }
@@ -93,7 +105,6 @@
 
 .daily-quote-state {
   display: grid;
-  min-height: 5rem;
   align-content: center;
   gap: var(--space-2);
   padding-block: var(--space-2);
@@ -107,9 +118,10 @@
 
 .daily-quote-state-title {
   max-width: 28ch;
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
-  font-size: clamp(1.08rem, 5vw, 1.35rem);
-  line-height: 1.4;
+  font-size: clamp(1rem, 4.1vw, 1.12rem);
+  line-height: 1.45;
 }
 
 .daily-quote-state-detail {
@@ -121,14 +133,6 @@
 
 .daily-quote-state.is-loading {
   opacity: 0.7;
-}
-
-.daily-quote-state.is-discovery {
-  min-height: 6rem;
-}
-
-.daily-quote-state.is-error {
-  min-height: 6rem;
 }
 
 .daily-quote-retry {
@@ -277,10 +281,6 @@
 @media (min-width: 840px) {
   .daily-quote-card {
     width: 100%;
-  }
-
-  .daily-quote-block p {
-    font-size: 1.25rem;
   }
 
   .daily-quote-preference-actions {

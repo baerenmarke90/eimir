@@ -62,9 +62,6 @@
 .today-page[data-wir-design="warm"] .today-section-title {
   font-family: var(--font-display);
 }
-.today-page[data-wir-design="warm"] .daily-quote-card {
-  margin-block: var(--space-2) var(--space-6);
-}
 .today-page[data-wir-design="warm"] .today-moment-figure {
   border-radius: var(--radius-large);
   box-shadow: var(--shadow-soft);
@@ -350,10 +347,6 @@
   .today-moment-media
   .story-media-placeholder {
   aspect-ratio: 16 / 9;
-}
-.today-page[data-wir-design="modern"] .daily-quote-card {
-  padding-inline: var(--space-4);
-  text-align: start;
 }
 .today-page[data-wir-design="modern"] .today-stream-recent {
   gap: var(--space-2);

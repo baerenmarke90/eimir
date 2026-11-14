@@ -161,8 +161,10 @@ in a background job under resource limits — never in the request path.
 optional Google Photos Picker (#1444, 2026-10-27). It supplies PKCE/state and
 OAuth protocol handling instead of a custom token-flow implementation. Its
 Apache-2.0 license is recorded below using the package metadata spelling so the
-inventory gate can verify it exactly. The locked transitive Google auth,
-requests-oauthlib and oauthlib dependencies remain in `backend/uv.lock`; no
+inventory gate can verify it exactly. `oauthlib` is declared directly with a
+`>=4.0.1,<5` floor so the corrected upstream security advisory fix cannot be
+resolved away. The locked transitive Google auth and requests-oauthlib
+dependencies remain in `backend/uv.lock`; no
 upstream server code or Immich SDK is bundled. The application requests online
 Picker-only access and bounds transport without persisting refresh tokens.
 
@@ -181,6 +183,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
 | google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
+| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |

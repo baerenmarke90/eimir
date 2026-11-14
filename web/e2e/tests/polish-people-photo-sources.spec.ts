@@ -219,6 +219,11 @@ for (const view of [
     await expect(
       sheet.getByText(sources.googleConsent, { exact: true }),
     ).toBeVisible();
+    await captureScreenshot(
+      page,
+      info,
+      `google-task-chooser-${view.width}-${view.theme}.png`,
+    );
     await sheet
       .getByRole('button', { name: sources.google, exact: true })
       .click();
@@ -254,7 +259,7 @@ for (const view of [
     );
     released = true;
     const retry = sheet.getByRole('button', {
-      name: sources.retryImport_one.replace('{{count}}', '1'),
+      name: sources.retryImport,
       exact: true,
     });
     await expect(retry).toBeVisible();

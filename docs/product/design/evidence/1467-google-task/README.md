@@ -6,6 +6,9 @@ shared `PhotoSourcePicker` sheet.
 
 | File | State |
 | --- | --- |
+| `google-task-chooser-360-light.png` | Compact 360 px, Light: source chooser with the short Google contract |
+| `google-task-chooser-390-dark.png` | Compact 390 px, Dark: same state |
+| `google-task-chooser-1440-light.png` | Expanded 1440 px, Light: same state |
 | `google-task-waiting-360-light.png` | Compact 360 px, Light: waiting for Google with the reopen action |
 | `google-task-waiting-390-dark.png` | Compact 390 px, Dark: same state |
 | `google-task-waiting-1440-light.png` | Expanded 1440 px, Light: same state |

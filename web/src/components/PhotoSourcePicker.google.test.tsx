@@ -194,7 +194,7 @@ describe('Google Photos selection task', () => {
     );
     await openGoogle();
     const retry = await screen.findByRole('button', {
-      name: '1 Foto erneut laden',
+      name: photoSources.retryImport,
     });
     expect(first.commit).toHaveBeenCalledTimes(1);
     expect(first.commit.mock.calls[0][0]).toHaveLength(1);
@@ -229,7 +229,7 @@ describe('Google Photos selection task', () => {
     const selection = renderPicker();
     await openGoogle();
     const retry = await screen.findByRole('button', {
-      name: '1 Foto erneut laden',
+      name: photoSources.retryImport,
     });
     expect(selection.commit).not.toHaveBeenCalled();
     fireEvent.click(retry);

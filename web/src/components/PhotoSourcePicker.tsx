@@ -469,7 +469,7 @@ export function PhotoSourcePicker({
                     void importItems(task.current, retry.ready, retry.ids);
                 }}
               >
-                {t('photoSources.retryImport', { count: retry.ids.length })}
+                {t('photoSources.retryImport')}
               </button>
             ) : null}
             {view ? (
@@ -494,7 +494,7 @@ export function PhotoSourcePicker({
         {waitingUrl && !view ? (
           <button
             type="button"
-            className="secondary photo-source-reopen"
+            className="tertiary photo-source-reopen"
             onClick={() => void reopenGoogle()}
           >
             {t('photoSources.reopenGoogle')}
@@ -579,7 +579,7 @@ export function PhotoSourcePicker({
               />
             ) : null}
             {canImport && availability?.googleAvailable ? (
-              <p>{t('photoSources.googleConsent')}</p>
+              <p className="field-help">{t('photoSources.googleConsent')}</p>
             ) : null}
             {availability?.enabled || availability?.immichConnected ? (
               <MediaIntakeButton

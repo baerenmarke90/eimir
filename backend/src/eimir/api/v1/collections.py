@@ -568,7 +568,15 @@ def reorder_collection_items(
     "/spaces/{spaceId}/collections/{collectionId}/finish",
     response_model=CollectionFinishResult,
     operation_id="finishCollectionShopping",
-    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "headers": {
+                **ETAG_HEADERS,
+                SHARED_ACHIEVEMENT_HEADER: SHARED_ACHIEVEMENT_RESPONSE_HEADER,
+            }
+        },
+        **problem_responses(401, 404, 422),
+    },
 )
 def finish_collection_shopping(
     authorization: Authorization,
@@ -577,6 +585,12 @@ def finish_collection_shopping(
     body: CollectionFinish,
     collection_id: Annotated[str, Path(alias="collectionId")],
 ) -> CollectionFinishResult:
+    shared_achievement_enabled = relationship_configuration.is_module_enabled(
+        session,
+        authorization.space_id,
+        relationship_configuration.SpaceModule.SHARED_ACHIEVEMENTS,
+        lock_space=True,
+    )
     result = service.finish_shopping(
         session,
         authorization,
@@ -584,10 +598,13 @@ def finish_collection_shopping(
         item_ids=body.item_ids,
     )
     response.headers["ETag"] = etag_for(result.collection.version)
-    return CollectionFinishResult(
-        collection=collection_detail(session, result.collection),
-        finished_count=result.finished_count,
-    )
+    detail = collection_detail(session, result.collection)
+    # The couple's shared moment: this finish took the last entries out of the
+    # cart and nothing is left to buy. A finish that leaves entries open, or
+    # one that found nothing to finish, is not an achievement.
+    if shared_achievement_enabled and result.finished_count > 0 and not detail.items:
+        response.headers[SHARED_ACHIEVEMENT_HEADER] = COLLECTION_COMPLETED_ACHIEVEMENT
+    return CollectionFinishResult(collection=detail, finished_count=result.finished_count)
 
 
 @router.get(

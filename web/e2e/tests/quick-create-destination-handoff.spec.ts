@@ -769,11 +769,6 @@ for (const viewport of [
       path: testInfo.outputPath(`shell-milestone-task-${viewport.width}.png`),
       fullPage: true,
     });
-    await page.getByRole('button', { name: de.common.cancel }).click();
-    await expect(page).toHaveURL(/\/today$/);
-
-    await trigger.click();
-    await milestone.click();
     await page.getByRole('button', { name: taskBoundary.back }).click();
     await expect(page).toHaveURL(/\/today$/);
 

@@ -63,6 +63,8 @@ import {
   MEMORY_MAP_ROUTE,
   memoryDetailPath,
   milestoneDetailPath,
+  STORY_CHAPTERS_ROUTE,
+  STORY_PHOTOS_ROUTE,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
@@ -113,6 +115,7 @@ import { DiaryList } from './DiaryList';
 import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
+import './HomeRoomChapters.css';
 import {
   formatStoryDate,
   resolveStoryKindLabel,
@@ -285,8 +288,11 @@ export function StoryProductPage({
   const rootIntro = useRootTabIntro('story');
   const { t } = useTranslation();
   const design = useWirDesign()?.current;
+  const homeRooms = design === WirDesignId.home_rooms;
   const inlineCreate =
-    design === WirDesignId.quiet_together || design === WirDesignId.handwriting;
+    homeRooms ||
+    design === WirDesignId.quiet_together ||
+    design === WirDesignId.handwriting;
   const recapEntry = (
     <RecapEntry
       api={recapsApi}
@@ -899,7 +905,26 @@ export function StoryProductPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('story.timelineTitle')}
+        title={t(
+          homeRooms ? 'wirDesign.homeRooms.remember' : 'story.timelineTitle',
+        )}
+        titleContext={
+          homeRooms ? (
+            <nav
+              className="home-archive-links"
+              aria-label={t('wirDesign.homeRooms.archiveNavigation')}
+            >
+              <Link to={STORY_PHOTOS_ROUTE}>
+                {t('wirDesign.homeRooms.photoArchive')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+              <Link to={STORY_CHAPTERS_ROUTE}>
+                {t('wirDesign.homeRooms.chapters')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+            </nav>
+          ) : undefined
+        }
         action={inlineCreate ? undefined : <MomentCreateMenu floating />}
       />
       <StoryViewTabs activeView={activeView} onSelect={setView} />

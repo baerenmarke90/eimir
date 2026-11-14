@@ -2,7 +2,8 @@
   .product-shell[data-top-surface="today"]::before,
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .wir-minimal-hero::before {
   content: none;
@@ -24,7 +25,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-content {
   inline-size: min(100%, 38rem);
@@ -33,7 +35,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .wir-minimal-hero {
   margin: 0 0 var(--space-6);
@@ -193,7 +196,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-section-header {
   padding-inline: 0;
@@ -202,7 +206,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-section-title {
   font: 680 1.02rem / 1.25 var(--font-ui);
@@ -211,7 +216,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-section-moment
   .today-section-header {
@@ -220,7 +226,8 @@
 }
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-section-moment
   .add-action {
@@ -229,14 +236,16 @@
 }
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-section-moment {
   margin-block-end: var(--space-10);
 }
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-moment-figure {
   display: grid;
@@ -251,7 +260,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-moment-media
   :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
@@ -261,7 +271,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-moment-caption {
   position: static;
@@ -271,7 +282,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-moment-title {
   color: var(--color-text);
@@ -281,7 +293,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-moment-date {
   color: var(--color-text-secondary);
@@ -289,7 +302,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-moment-text {
   border: 0;
@@ -301,7 +315,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-moment-text-content {
   font-size: 1rem;
@@ -309,7 +324,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .daily-quote-content {
   justify-items: start;
@@ -318,14 +334,16 @@
 }
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .daily-quote-mark {
   display: none;
 }
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .daily-quote-block
   p {
@@ -335,7 +353,8 @@
 
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-agenda-list {
   display: grid;
@@ -344,7 +363,8 @@
 }
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-agenda-list
   > .today-agenda-row {
@@ -356,7 +376,8 @@
 }
 .today-page:is(
     [data-wir-design="quiet_together"],
-    [data-wir-design="handwriting"]
+    [data-wir-design="handwriting"],
+    [data-wir-design="home_rooms"]
   )
   .today-agenda-icon {
   background: transparent;

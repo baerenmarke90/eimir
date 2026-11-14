@@ -297,11 +297,16 @@ describe('AppShell', () => {
       await waitFor(() => expect(root.dataset.appDesign).toBeUndefined());
       await act(async () =>
         client.setQueryData(key, {
-          preference: { designId: 'handwriting', version: 4 },
+          preference: { designId: 'home_rooms', version: 4 },
           etag: '"appearance:4"',
         }),
       );
-      await waitFor(() => expect(root.dataset.appDesign).toBe('handwriting'));
+      await waitFor(() => expect(root.dataset.appDesign).toBe('home_rooms'));
+      expect(view.container.querySelector('.home-dock')).not.toBeNull();
+      expect(view.container.querySelector('.mobile-bottom-nav')).toBeNull();
+      expect(view.container.querySelector('main h1')?.textContent).toBe(
+        'Memory fixture',
+      );
     } finally {
       view.unmount();
       client.clear();

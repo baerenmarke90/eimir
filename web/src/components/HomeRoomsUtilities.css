@@ -1,0 +1,665 @@
+:root[data-app-design="home_rooms"] {
+  --room-surface: var(--home-tint, var(--color-surface-subtle));
+  --room-paper: var(--home-paper, var(--color-background));
+  --room-ink: var(--home-ink, var(--color-text));
+  --room-quiet: var(--home-muted, var(--color-text-secondary));
+  --room-accent: var(--home-accent, var(--color-brand-text));
+  --room-rule: var(--home-rule, var(--color-border-subtle));
+  --room-contrast: var(--home-on-accent, var(--color-on-action-primary));
+  --room-warm: #985a46;
+  --room-warm-ink: #2b211f;
+
+  &[data-theme="dark"] {
+    --room-warm: #e6ab94;
+  }
+
+  &
+    .product-shell[data-home-rooms]:has(
+      .games-product-page,
+      .our-moments-page,
+      .wish-detective-page
+    ) {
+    background: var(--room-paper);
+  }
+
+  &
+    :is(
+      .more-page,
+      .daily-insights,
+      .games-product-page,
+      .our-moments-page,
+      .wish-detective-page
+    ) {
+    inline-size: min(100%, 44rem);
+    min-inline-size: 0;
+    margin-inline: auto;
+  }
+
+  &
+    :is(
+      .more-page .page-heading h1,
+      .daily-insights .insight-header h1,
+      .games-product-page .games-heading h1,
+      .settings-page > .page-heading h1,
+      .profile-page > .page-heading h1,
+      .our-moments-heading h1,
+      .wish-detective-heading h1,
+      .who-of-us-heading h1
+    ) {
+    margin: 0;
+    color: var(--room-ink);
+    font: 680 clamp(1.65rem, 6.8vw, 2.25rem) / 1.1 var(--font-ui);
+    letter-spacing: -0.04em;
+    overflow-wrap: anywhere;
+  }
+
+  /* Account and library follow the original source order. */
+  & .more-page > .page-heading-root.content-overview-heading {
+    margin-block: 0 0.8rem;
+  }
+
+  &
+    .more-page
+    > .page-heading-root.content-overview-heading
+    .page-heading-title-container {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  & .more-page .more-search-entry {
+    margin-block-end: 1.35rem;
+    padding: 0.5rem 0.85rem;
+    min-block-size: 48px;
+    border: 1px solid var(--room-rule);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--room-accent);
+    font-weight: 630;
+  }
+
+  & .more-page .more-groups {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.3rem;
+  }
+
+  & .more-page .more-group-title {
+    padding: 0 0.25rem;
+    color: var(--room-quiet);
+    font: 650 0.86rem / 1.25 var(--font-ui);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  & .more-page .more-destinations {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--room-rule);
+    border-radius: 0.75rem;
+    background: transparent;
+  }
+
+  & .more-page .more-destinations > li,
+  & .more-page .more-destinations > li + li {
+    min-inline-size: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  & .more-page .more-destination {
+    grid-template-columns: 1.45rem minmax(0, 1fr) auto;
+    gap: 0.52rem;
+    min-block-size: 49px;
+    min-inline-size: 0;
+    padding: 0.44rem 0.58rem;
+    border-radius: 0.35rem;
+  }
+
+  & .more-page .more-destination:focus-visible {
+    outline-offset: -2px;
+  }
+
+  & .more-page .more-destination-copy strong {
+    font: 670 0.96rem / 1.19 var(--font-ui);
+    letter-spacing: -0.013em;
+  }
+
+  & .more-page .more-destination-subtitle {
+    margin-block: 0.16rem 0;
+    color: var(--room-quiet);
+    font-size: 0.8rem;
+    line-height: 1.32;
+  }
+
+  & .more-page .more-destination-icon {
+    inline-size: 1.45rem;
+    block-size: 1.45rem;
+    background: transparent;
+    color: var(--room-accent);
+  }
+
+  & .more-page .more-destination-icon .eimir-icon {
+    --identity-icon-accent: currentColor;
+    --identity-icon-cool: currentColor;
+    inline-size: 1.05rem;
+    block-size: 1.05rem;
+    stroke-width: 1.9;
+  }
+
+  & .more-page a[href="/more/insights"] .more-destination-icon::before {
+    content: "";
+    grid-area: 1 / 1;
+    inline-size: 1.05rem;
+    block-size: 0.9rem;
+    background:
+      linear-gradient(currentColor, currentColor) left bottom / 23% 46%
+      no-repeat,
+      linear-gradient(currentColor, currentColor) center bottom / 23% 75%
+      no-repeat,
+      linear-gradient(currentColor, currentColor) right bottom / 23% 100%
+      no-repeat;
+  }
+
+  & .more-page a[href="/more/insights"] .more-destination-icon .eimir-icon {
+    display: none;
+  }
+
+  & .more-page .more-profile-destination {
+    grid-template-columns: 2.6rem minmax(0, 1fr) auto;
+    margin-block-end: 0;
+    padding: 0.63rem;
+    gap: 0.75rem;
+    border-radius: 0.65rem 0.65rem 0 0;
+    background: var(--room-surface);
+  }
+
+  & .more-page .more-profile-destination strong {
+    font-size: 1.06rem;
+  }
+
+  & .more-page .more-destinations:has(a[href="/story/our-story"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  & .more-page .more-destinations > li:has(a[href="/story/our-story"]) {
+    grid-column: 1 / -1;
+    border-block-end: 1px solid var(--room-rule);
+  }
+
+  &
+    .more-page
+    .more-destinations:has(a[href="/story/our-story"])
+    > li:not(:has(a[href="/story/our-story"]))
+    .more-destination {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 1.45rem auto;
+    align-content: start;
+    align-items: start;
+    min-block-size: 5.45rem;
+  }
+
+  &
+    .more-page
+    .more-destinations:has(a[href="/story/our-story"])
+    > li:not(:has(a[href="/story/our-story"]))
+    .more-destination-copy {
+    grid-column: 1 / -1;
+  }
+
+  &
+    .more-page
+    .more-destinations:has(a[href="/story/our-story"])
+    > li:not(:has(a[href="/story/our-story"]))
+    .more-destination-trailing {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  & .more-page .more-footer {
+    justify-items: start;
+    margin-block-start: 1.4rem;
+  }
+
+  & .more-page .more-logout {
+    inline-size: auto;
+    background: transparent;
+  }
+
+  & .settings-page > .page-heading > div > p:last-child,
+  & .profile-page > .page-heading > div > p:last-child {
+    color: var(--room-quiet);
+  }
+
+  & .profile-page > .profile-identity-hero-card {
+    padding: clamp(0.8rem, 4vw, 1.35rem);
+    border: 0;
+    border-radius: 0.85rem;
+    background: var(--room-surface);
+    box-shadow: none;
+  }
+
+  & .profile-page .profile-identity-hero:not(:has(input)) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: clamp(0.7rem, 4.5vw, 1.35rem);
+    text-align: start;
+  }
+
+  &
+    .profile-page
+    .profile-identity-hero:not(:has(input))
+    .person-identity-avatar-large {
+    inline-size: clamp(3.5rem, 18vw, 5.5rem);
+    block-size: clamp(3.5rem, 18vw, 5.5rem);
+  }
+
+  & .profile-page .profile-identity-hero .profile-identity-details {
+    min-inline-size: 0;
+  }
+
+  & .settings-page .settings-category-list {
+    border: 1px solid var(--room-rule);
+    border-radius: 0.75rem;
+  }
+
+  & .settings-page .settings-category-link {
+    grid-template-columns: 2.15rem minmax(0, 1fr);
+    gap: 0.58rem;
+    padding: 0.6rem;
+    border-bottom: 1px solid var(--room-rule);
+  }
+
+  &
+    .settings-page
+    .settings-category-list
+    > li:last-child
+    .settings-category-link {
+    border-bottom: 0;
+  }
+
+  & .settings-page .settings-category-link .more-destination-icon {
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 0.5rem;
+    background: var(--room-surface);
+    color: var(--room-accent);
+  }
+
+  &
+    .settings-page
+    .settings-category-content
+    > :is(.settings-section, .form-card) {
+    padding-inline: 0;
+    border: 0;
+    border-block-start: 1px solid var(--room-rule);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* One scope block, then readable sections paired with the real person key. */
+  & .daily-insights {
+    --insight-own: var(--room-accent);
+    --insight-partner: var(--room-warm);
+    --insight-ink: var(--room-warm-ink);
+    --insight-card-line: var(--room-rule);
+    gap: 0.78rem;
+  }
+
+  & .daily-insights [data-vibe="VERY_GOOD"] {
+    --insight-vibe-color: #f6e5a1;
+  }
+
+  & .daily-insights .insight-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.25rem 0.5rem;
+  }
+
+  & .daily-insights .insight-header-top {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  & .daily-insights .insight-header h1 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  & .daily-insights .insight-header :is(.insight-subtitle, .insight-picker) {
+    grid-column: 1 / -1;
+  }
+
+  & .daily-insights .insight-subtitle {
+    color: var(--room-quiet);
+    font-size: 0.89rem;
+  }
+
+  & .daily-insights .insight-picker {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 0.15rem;
+    margin-block-start: 0.5rem;
+    padding: 0;
+    border-radius: 0.65rem;
+    background: var(--room-surface);
+    color: var(--room-accent);
+  }
+
+  & .daily-insights .insight-picker :is(button, button:not(:disabled)) {
+    border-radius: 0.65rem;
+    background: transparent;
+    color: inherit;
+  }
+
+  & .daily-insights .insight-picker-text {
+    font-size: 0.89rem;
+    line-height: 1.28;
+  }
+
+  & .daily-insights .insight-picker button:focus-visible {
+    outline-offset: -3px;
+  }
+
+  & .daily-insights .insight-nav {
+    gap: 0;
+    padding: 0;
+    border: 1px solid var(--room-rule);
+    border-radius: 0.6rem;
+    background: transparent;
+  }
+
+  & .daily-insights .insight-nav a {
+    border: 0;
+    border-radius: 0.5rem;
+    color: var(--room-quiet);
+  }
+
+  & .daily-insights .insight-nav > a[aria-current="page"]:any-link {
+    border: 0;
+    background: var(--room-accent);
+    color: var(--room-contrast);
+    font-weight: 720;
+    box-shadow: none;
+  }
+
+  & .daily-insights .insight-body {
+    gap: 1rem;
+  }
+
+  &
+    .daily-insights
+    .insight-body
+    > :is(.insight-card, .insight-closing, .insight-hero) {
+    margin: 0;
+    padding: 0.85rem 0 0;
+    border: 0;
+    background: transparent;
+  }
+
+  &
+    .daily-insights
+    .insight-body
+    > :is(.insight-card, .insight-closing, .insight-hero)
+    ~ :is(.insight-card, .insight-closing) {
+    border-block-start: 1px solid var(--room-rule);
+  }
+
+  & .daily-insights .insight-card-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.52rem;
+  }
+
+  & .daily-insights .insight-card-header h2 {
+    font: 670 clamp(1.16rem, 4.8vw, 1.48rem) / 1.16 var(--font-ui);
+    letter-spacing: -0.026em;
+  }
+
+  & .daily-insights .insight-legend {
+    gap: 0.3rem 0.55rem;
+  }
+
+  & .daily-insights .insight-legend li {
+    min-block-size: 34px;
+    max-inline-size: 100%;
+    padding: 0.1rem 0.45rem 0.1rem 0.12rem;
+    border: 1px solid var(--room-rule);
+    border-radius: var(--radius-pill);
+  }
+
+  & .daily-insights .insight-chart {
+    grid-template-columns: minmax(4.1rem, 23%) minmax(0, 1fr);
+  }
+
+  & .daily-insights .insight-title-icon {
+    color: var(--room-accent);
+  }
+
+  & .daily-insights .insight-vibe-dot {
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+
+  & .daily-insights .insight-chart-detail {
+    padding: 0.48rem 0.65rem;
+    border-radius: 0.45rem;
+    background: var(--room-surface);
+    color: var(--room-quiet);
+  }
+
+  & .daily-insights[data-view="patterns"] .insight-matrix {
+    padding-block: 0.45rem;
+  }
+
+  & .daily-insights[data-view="recap"] .insight-body > .insight-hero {
+    padding: 0.95rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--room-surface);
+  }
+
+  /* The programme puts a real starting action on the featured entry. */
+  & .games-product-page .games-heading {
+    margin-block-end: 0.95rem;
+  }
+
+  & .games-product-page .games-heading > div > p {
+    max-inline-size: 43ch;
+    color: var(--room-quiet);
+    font-size: 0.92rem;
+  }
+
+  & .games-product-page .games-shelf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  & .games-product-page .games-entry {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.3rem;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0.7rem;
+    border: 1px solid var(--room-rule);
+    border-radius: 0.65rem;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  & .games-product-page .games-entry + .games-entry {
+    border-block-end-color: var(--room-rule);
+  }
+
+  & .games-product-page .games-entry:first-child {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+    margin: 0;
+    padding: 0.95rem;
+    border-radius: 0.85rem;
+    background: var(--room-surface);
+  }
+
+  & .games-product-page .games-entry .games-entry-index {
+    grid-column: 1;
+    grid-row: 1;
+    inline-size: 2rem;
+    block-size: 2rem;
+    background: transparent;
+    color: var(--room-accent);
+  }
+
+  & .games-product-page .games-entry:first-child .games-entry-index {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    inline-size: clamp(2.9rem, 12vw, 4.75rem);
+    block-size: clamp(2.9rem, 12vw, 4.75rem);
+    border-radius: 1.1rem;
+    background: var(--room-paper);
+  }
+
+  &
+    .games-product-page
+    .games-entry:first-child
+    .games-entry-index
+    .eimir-icon {
+    inline-size: 61%;
+    block-size: 61%;
+  }
+
+  & .games-product-page .games-entry-index .eimir-icon {
+    --identity-icon-accent: currentColor;
+    --identity-icon-cool: currentColor;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    stroke-width: 1.9;
+  }
+
+  &
+    .games-product-page
+    .games-entry-index
+    :is(
+      .eimir-icon-foto rect,
+      .eimir-icon-gemeinsam circle,
+      .eimir-icon-gemeinsam path:first-of-type
+    ) {
+    fill: currentColor;
+  }
+
+  & .games-product-page .games-entry-index .eimir-icon-foto :is(circle, path) {
+    stroke: var(--room-paper);
+  }
+
+  & .games-product-page .games-entry .games-entry-copy {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  & .games-product-page .games-entry:first-child .games-entry-copy {
+    grid-row: 1;
+  }
+
+  & .games-product-page .games-entry h2 {
+    font: 700 clamp(1.02rem, 4.4vw, 1.4rem) / 1.12 var(--font-ui);
+    letter-spacing: -0.026em;
+    overflow-wrap: anywhere;
+  }
+
+  & .games-product-page .games-entry:first-child h2 {
+    font-size: clamp(1.22rem, 5.4vw, 1.72rem);
+  }
+
+  & .games-product-page .games-entry .games-entry-role {
+    margin-block-end: 0.22rem;
+    color: var(--room-quiet);
+    font-size: 0.73rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  & .games-product-page .games-entry-copy > p:last-child {
+    color: var(--room-quiet);
+    font-size: 0.84rem;
+    line-height: 1.33;
+    overflow-wrap: anywhere;
+  }
+
+  & .games-product-page .games-entry .games-entry-status {
+    grid-column: 1;
+    grid-row: 3;
+    min-block-size: 1.45rem;
+    padding: 0;
+    background: transparent;
+    color: var(--room-quiet);
+    white-space: normal;
+  }
+
+  & .games-product-page .games-entry-link .games-entry-status {
+    color: var(--room-accent);
+  }
+
+  & .games-product-page .games-entry:first-child .games-entry-status {
+    grid-row: 2;
+  }
+
+  & .games-product-page .games-entry-link:first-child .games-entry-status {
+    margin-block-start: 0.25rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: var(--radius-pill);
+    background: var(--room-accent);
+    color: var(--room-contrast);
+    text-decoration: none;
+  }
+
+  &
+    :is(
+      .who-of-us-card,
+      .our-moments-sparse,
+      .our-moments-finish,
+      .wish-detective-card,
+      .wish-detective-sparse,
+      .wish-detective-finish
+    ) {
+    padding: clamp(0.85rem, 4vw, 1.35rem);
+    border-radius: 0.85rem;
+    box-shadow: none;
+  }
+
+  & :is(.our-moments-card-hidden, .who-of-us-choice, .wish-detective-clue) {
+    background: var(--room-surface);
+    border-color: var(--room-rule);
+    box-shadow: none;
+  }
+
+  &
+    :is(
+      .who-of-us-card,
+      .our-moments-finish,
+      .wish-detective-card,
+      .wish-detective-finish
+    )
+    h2 {
+    font-family: var(--font-ui);
+    letter-spacing: -0.032em;
+  }
+}
+
+@media (min-width: 48rem) {
+  :root[data-app-design="home_rooms"] .more-page .more-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 21rem) {
+  :root[data-app-design="home_rooms"] .games-product-page .games-shelf {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

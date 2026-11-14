@@ -12,6 +12,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
+import { WirDesignId } from '../api/generated/models/WirDesignId';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { planListTitle } from '../client/discreetPlans';
 import { formatCalendarDate } from '../client/formatRecency';
@@ -33,6 +34,7 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
+import { useWirDesign } from '../client/wirDesign';
 import {
   sortPlannedWishes,
   wishJourneyHint,
@@ -356,6 +358,7 @@ export function SharedPlanningOverviewPage({
 }) {
   const rootIntro = useRootTabIntro('plan');
   const { t } = useTranslation();
+  const homeRooms = useWirDesign()?.current === WirDesignId.home_rooms;
   const location = useLocation();
   const navigate = useNavigate();
   const { captureOrigin, registerOriginMetadata, resolveOrigin } =
@@ -926,7 +929,9 @@ export function SharedPlanningOverviewPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('m5s3.overview.title')}
+        title={t(
+          homeRooms ? 'wirDesign.homeRooms.plans' : 'm5s3.overview.title',
+        )}
         action={
           activeSegment === 'dates' ? (
             <span ref={setOccasionActionHost} />

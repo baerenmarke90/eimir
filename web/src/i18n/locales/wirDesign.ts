@@ -1,10 +1,29 @@
 export default {
   title: 'Wir-Design',
   intro:
-    'Hier wählst du dein persönliches Design. „Zu zweit“ und „Handschrift“ bringen ihre Farbwelt in die ganze App.',
+    'Hier wählst du dein persönliches Design. Manche Varianten gestalten auch den Rest deiner App.',
   choices: 'Dein Wir-Design',
   change: 'Design auswählen',
   minimal: { own: 'Dein Vibe', partner: '{{name}} heute' },
+  homeRooms: {
+    rooms: 'Räume',
+    remember: 'Erinnern',
+    rememberSummary: 'Fotos, Tagebuch und Orte',
+    plans: 'Vorhaben',
+    plansSummary: 'Pläne, Wünsche und Anlässe',
+    insights: 'Einblicke',
+    insightsSummary: 'Vibe und Energie',
+    games: 'Spielen',
+    gamesSummary: 'Spiele für euch zwei',
+    moreSummary: 'Profil, Privates und Einstellungen',
+    profileShort: 'Ich',
+    create: 'Erstellen',
+    partner: 'Partner',
+    openWir: 'Wir öffnen',
+    archiveNavigation: 'Eure Erinnerungen',
+    photoArchive: 'Fotoarchiv',
+    chapters: 'Kapitel',
+  },
   handwriting: { openNote: 'Herzmoment öffnen' },
   welcome: 'Unser Platz zu zweit',
   nameJoiner: '&',
@@ -13,6 +32,7 @@ export default {
     shared_album: 'Seite an Seite',
     quiet_together: 'Zu zweit',
     handwriting: 'Handschrift',
+    home_rooms: 'Zuhause',
     warm: 'Geborgen',
     modern: 'Klar & modern',
     classic: 'Klassisch',
@@ -26,6 +46,8 @@ export default {
       'Eure Namen auf Wir, ruhige Farben und weniger Linien in der ganzen App.',
     handwriting:
       'Eure Worte im Mittelpunkt. Warme Papierfarben und weinrote Akzente in der ganzen App.',
+    home_rooms:
+      'Ein persönlicher Startpunkt für euch. Über „Räume“ öffnest du Erinnerungen, Vorhaben und mehr.',
     warm: 'Euer Rückzugsort. Sanftes Rosé, nahe Porträts und Gedanken wie eine persönliche Notiz.',
     modern:
       'Klar und luftig. Eure Namen neben den Porträts, mit ruhigen blauen Akzenten.',

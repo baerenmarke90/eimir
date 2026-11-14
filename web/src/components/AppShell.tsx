@@ -29,6 +29,7 @@ import {
   COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  MILESTONE_CREATE_ROUTE,
   PARTNER_LOCATION_MAP_ROUTE,
   PRIMARY_APP_ROUTES,
 } from '../client/routes';
@@ -52,6 +53,7 @@ import { syncDocumentThemeColor } from '../theme';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
+import { HomeRoomsDock, HomeRoomsHeader } from './HomeRoomsNavigation';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
@@ -247,7 +249,16 @@ function AuthenticatedAppShell({
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
+  const currentDesign = useWirDesign()?.current;
+  const homeRooms = currentDesign === WirDesignId.home_rooms;
   const isFocusedTask =
+    (homeRooms &&
+      (protectedDraft ||
+        pathname === COLLECTION_CREATE_ROUTE ||
+        pathname === MILESTONE_CREATE_ROUTE ||
+        /^\/story\/(?:memories|heart-moments|milestones)\/[^/]+\/edit$/.test(
+          pathname,
+        ))) ||
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
     /^\/story\/recaps\/[^/]+$/.test(location.pathname) ||
     location.pathname.startsWith('/today/only-you') ||
@@ -260,8 +271,8 @@ function AuthenticatedAppShell({
     location.pathname === '/plan/chapters/new' ||
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
-  const currentDesign = useWirDesign()?.current;
   const appDesign =
+    homeRooms ||
     currentDesign === WirDesignId.quiet_together ||
     currentDesign === WirDesignId.handwriting
       ? currentDesign
@@ -277,9 +288,12 @@ function AuthenticatedAppShell({
     };
   }, [appDesign]);
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
+  const homeNavigationRef = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     if (isFocusedTask) return;
-    const navigation = bottomNavigationRef.current;
+    const navigation = homeRooms
+      ? homeNavigationRef.current
+      : bottomNavigationRef.current;
     if (!navigation || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
     const measure = (entry?: ResizeObserverEntry) => {
@@ -300,7 +314,7 @@ function AuthenticatedAppShell({
       observer.disconnect();
       root.style.removeProperty('--shell-bottom-nav-measured-height');
     };
-  }, [isFocusedTask]);
+  }, [homeRooms, isFocusedTask]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -339,8 +353,11 @@ function AuthenticatedAppShell({
       <div
         className="product-shell"
         data-focused-task={isFocusedTask}
+        data-home-rooms={homeRooms ? true : undefined}
         data-top-surface={
-          location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+          !homeRooms && location.pathname === DEFAULT_APP_ROUTE
+            ? 'today'
+            : undefined
         }
       >
         <ThemeControl />
@@ -350,7 +367,9 @@ function AuthenticatedAppShell({
           {t('navigation.skipToContent')}
         </a>
 
-        {!isFocusedTask ? (
+        {!isFocusedTask && homeRooms ? (
+          <HomeRoomsHeader privateArea={isPrivateArea} />
+        ) : !isFocusedTask ? (
           <header className="app-header product-topbar">
             <nav className="shell-nav" aria-label={t('navigation.primary')}>
               <PrimaryNavigationLinks />
@@ -420,7 +439,12 @@ function AuthenticatedAppShell({
           </main>
         </div>
 
-        {!isFocusedTask ? (
+        {!isFocusedTask && homeRooms ? (
+          <HomeRoomsDock
+            canCreate={!isPrivateArea}
+            navigationRef={homeNavigationRef}
+          />
+        ) : !isFocusedTask ? (
           <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
             <nav
               className="mobile-bottom-nav"

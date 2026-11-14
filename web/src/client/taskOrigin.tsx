@@ -11,14 +11,28 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
+  appRoutePath,
+  DEFAULT_APP_ROUTE,
+  GAMES_MOMENTS_ROUTE,
+  GAMES_WISH_DETECTIVE_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
+  MORE_INSIGHTS_PATTERNS_ROUTE,
+  MORE_INSIGHTS_RECAP_ROUTE,
+  MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
+  MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PRIVATE_ROUTE,
+  MORE_PROFILE_ROUTE,
+  MORE_SETTINGS_ROUTE,
   PRIMARY_APP_ROUTES,
+  SETTINGS_CATEGORY_IDS,
+  STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_RECAPS_ROUTE,
+  settingsCategoryPath,
   WISH_SELECTION_ROUTE,
 } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
@@ -89,6 +103,11 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
+  if (
+    pathname === DEFAULT_APP_ROUTE &&
+    new URLSearchParams(search).get('view') === 'wir'
+  )
+    return `${DEFAULT_APP_ROUTE}?view=wir`;
   // The private overview contains only destinations. Private lists, records
   // and query data stay outside the task origin.
   if (pathname === MORE_PRIVATE_ROUTE || pathname === `${MORE_PRIVATE_ROUTE}/`)
@@ -107,8 +126,19 @@ export function taskOriginPath(
     pathname,
   );
   const recapReader = /^\/story\/recaps\/[^/]+$/.test(pathname);
+  const referenceDetail =
+    /^\/story\/(milestones|happiness|time-travel)\/(?!new$)[^/]+$/.test(
+      pathname,
+    );
+  const peopleDetail = /^\/more\/people\/(?!new$)[^/]+$/.test(pathname);
+  const settings = SETTINGS_CATEGORY_IDS.some(
+    (id) => settingsCategoryPath(id) === pathname,
+  );
   const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
+    !referenceDetail &&
+    !peopleDetail &&
+    !settings &&
     !recapReader &&
     !storyYear &&
     !memoryEditor &&
@@ -129,6 +159,17 @@ export function taskOriginPath(
       '/plan',
       WISH_SELECTION_ROUTE,
       '/more',
+      appRoutePath('games'),
+      GAMES_MOMENTS_ROUTE,
+      GAMES_WISH_DETECTIVE_ROUTE,
+      MORE_INSIGHTS_ROUTE,
+      MORE_INSIGHTS_PATTERNS_ROUTE,
+      MORE_INSIGHTS_RECAP_ROUTE,
+      MORE_PEOPLE_ROUTE,
+      MORE_PROFILE_ROUTE,
+      MORE_SETTINGS_ROUTE,
+      MORE_PASSPORT_ROUTE,
+      STORY_OURS_ROUTE,
       STORY_RECAPS_ROUTE,
       '/search',
       ACTIVITY_ROUTE,

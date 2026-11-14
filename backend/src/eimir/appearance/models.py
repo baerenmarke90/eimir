@@ -31,6 +31,7 @@ class WirDesignId(StrEnum):
     SHARED_ALBUM = "shared_album"
     QUIET_TOGETHER = "quiet_together"
     HANDWRITING = "handwriting"
+    HOME_ROOMS = "home_rooms"
     MODERN = "modern"
     CLASSIC = "classic"
 

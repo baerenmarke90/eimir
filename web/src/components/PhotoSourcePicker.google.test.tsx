@@ -146,21 +146,20 @@ describe('Google Photos selection task', () => {
     expect(api.startPhotoSelection).not.toHaveBeenCalled();
   });
 
-  it('lets a closed authorization window be reopened with the same bound URL', async () => {
+  it('shows one plain instruction while Google is open and no extra step', async () => {
     api.pollPhotoSelection.mockReturnValue(new Promise(() => {}));
     renderPicker();
     await openGoogle();
-    const reopen = await screen.findByRole('button', {
-      name: photoSources.reopenGoogle,
-    });
+    expect(await screen.findByText(photoSources.waiting)).toBeTruthy();
     expect(browser.open).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      fireEvent.click(reopen);
-    });
-    expect(browser.close).toHaveBeenCalled();
-    expect(browser.prepare).toHaveBeenCalledTimes(2);
-    expect(browser.open).toHaveBeenCalledTimes(2);
-    expect(browser.open.mock.calls[1][0]).toBe(AUTHORIZATION);
+    expect(browser.open.mock.calls[0][0]).toBe(AUTHORIZATION);
+    // Only the sheet's own close action remains; the chooser steps aside.
+    expect(
+      screen.queryByRole('button', { name: new RegExp(photoSources.google) }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: photoSources.retryImport }),
+    ).toBeNull();
   });
 
   it('keeps the task open after a partial import and retries only the failed photo', async () => {
@@ -174,7 +173,7 @@ describe('Google Photos selection task', () => {
     let secondAttempts = 0;
     api.readSelectedPhoto.mockImplementation(
       async ({ itemId }: { itemId: string }) => {
-        if (itemId === 'second' && secondAttempts++ === 0)
+        if (itemId === 'second' && secondAttempts++ < 2)
           throw new Error('transient');
         return new Blob(['synthetic'], { type: 'image/jpeg' });
       },
@@ -206,9 +205,10 @@ describe('Google Photos selection task', () => {
     fireEvent.click(retry);
     await waitFor(() => expect(second.commit).toHaveBeenCalledTimes(1));
     expect(second.commit.mock.calls[0][0]).toHaveLength(1);
+    // One silent attempt, one failure shown, then the manual retry that succeeds.
     expect(
       api.readSelectedPhoto.mock.calls.filter(([r]) => r.itemId === 'second'),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(
       api.readSelectedPhoto.mock.calls.filter(([r]) => r.itemId === 'first'),
     ).toHaveLength(1);
@@ -222,6 +222,7 @@ describe('Google Photos selection task', () => {
       items: [{ id: 'only' }],
       hasMore: false,
     });
+    api.readSelectedPhoto.mockRejectedValueOnce(new Error('transient'));
     api.readSelectedPhoto.mockRejectedValueOnce(new Error('transient'));
     api.readSelectedPhoto.mockResolvedValue(
       new Blob(['synthetic'], { type: 'image/jpeg' }),

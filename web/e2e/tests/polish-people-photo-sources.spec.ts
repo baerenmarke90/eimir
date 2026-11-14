@@ -148,7 +148,7 @@ for (const view of [
   { width: 390, theme: 'dark' },
   { width: 1440, theme: 'light' },
 ] as const) {
-  test(`google task offers reopening the window and retrying a failed photo at ${view.width} ${view.theme}`, async ({
+  test(`google task waits for the choice and retries a failed photo at ${view.width} ${view.theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: view.width, height: 900 });
@@ -176,7 +176,7 @@ for (const view of [
     });
     const state = await installAvatarSources(page);
     let released = false;
-    let failedOnce = false;
+    let failedReads = 0;
     // Registered after the shared fixture, so these handlers win.
     await page.route(
       `**${base}/photo-selections/avatar-selection/poll`,
@@ -195,8 +195,9 @@ for (const view of [
     await page.route(
       `**${base}/photo-selections/avatar-selection/items/**`,
       (route) => {
-        if (!failedOnce) {
-          failedOnce = true;
+        // The app quietly tries twice before it shows the retry action.
+        if (failedReads < 2) {
+          failedReads += 1;
           return route.fulfill({ status: 503, json: { code: 'UNAVAILABLE' } });
         }
         return route.fulfill({ contentType: 'image/png', body: TINY_PNG });
@@ -227,14 +228,12 @@ for (const view of [
     await sheet
       .getByRole('button', { name: sources.google, exact: true })
       .click();
-    const reopen = sheet.getByRole('button', {
-      name: sources.reopenGoogle,
-      exact: true,
-    });
-    await expect(reopen).toBeVisible();
     await expect(
       sheet.getByText(sources.waiting, { exact: true }),
     ).toBeVisible();
+    await expect(
+      sheet.getByRole('button', { name: sources.google, exact: true }),
+    ).toHaveCount(0);
     expect(
       await page.evaluate(
         () => (window as never as { __opens: number }).__opens,
@@ -245,18 +244,12 @@ for (const view of [
       info,
       `google-task-waiting-${view.width}-${view.theme}.png`,
     );
-    await reopen.click();
-    await expect
-      .poll(() =>
-        page.evaluate(() => (window as never as { __opens: number }).__opens),
-      )
-      .toBe(2);
-    const replaced = await page.evaluate(
-      () => (window as never as { __replaced: string[] }).__replaced,
-    );
-    expect(new Set(replaced)).toEqual(
-      new Set(['https://accounts.google.com/authorize']),
-    );
+    // Google was opened exactly once, with the bound authorization address.
+    expect(
+      await page.evaluate(
+        () => (window as never as { __replaced: string[] }).__replaced,
+      ),
+    ).toEqual(['https://accounts.google.com/authorize']);
     released = true;
     const retry = sheet.getByRole('button', {
       name: sources.retryImport,

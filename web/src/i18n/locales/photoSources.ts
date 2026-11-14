@@ -27,9 +27,6 @@ const photoSources = {
   waiting:
     'Wähle jetzt deine Fotos bei Google. Danach geht es hier automatisch weiter.',
   progress: 'Fotos werden übernommen …',
-  reopenGoogle: 'Google erneut öffnen',
-  reopenFailed:
-    'Das Fenster konnte nicht geöffnet werden. Erlaube Pop-ups für diese Seite und versuche es erneut.',
   retryImport: 'Erneut versuchen',
   selected: '{{count}} ausgewählt',
   import: 'Fotos übernehmen',

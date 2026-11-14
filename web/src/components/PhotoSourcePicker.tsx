@@ -170,8 +170,8 @@ export function PhotoSourcePicker({
   const [message, setMessage] = useState('');
   const [view, setView] = useState<PhotoSelectionView | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
-  // Google only: the open authorization (to reopen a closed window) and photos still to retry.
-  const [waitingUrl, setWaitingUrl] = useState<string | null>(null);
+  // Google only: true while the person chooses in Google, and the photos still to retry.
+  const [awaitingGoogle, setAwaitingGoogle] = useState(false);
   const [retry, setRetry] = useState<{
     ready: PhotoSelectionView;
     ids: string[];
@@ -203,7 +203,7 @@ export function PhotoSourcePicker({
     setOpen(false);
     setView(null);
     setSelected([]);
-    setWaitingUrl(null);
+    setAwaitingGoogle(false);
     setRetry(null);
     setMessage('');
     setBusy(false);
@@ -219,7 +219,7 @@ export function PhotoSourcePicker({
     setBusy(false);
     setView(null);
     setSelected([]);
-    setWaitingUrl(null);
+    setAwaitingGoogle(false);
     setRetry(null);
   }
 
@@ -242,10 +242,16 @@ export function PhotoSourcePicker({
       for (const id of ids.slice(0, remaining)) {
         current.ticket.signal.throwIfAborted();
         try {
-          const blob = await current.api.readSelectedPhoto(
-            { spaceId, selectionId: ready.id, itemId: id },
-            { signal: current.request.signal, cache: 'no-store' },
-          );
+          // One quiet second attempt, so a brief hiccup never reaches the person.
+          const read = () =>
+            current.api.readSelectedPhoto(
+              { spaceId, selectionId: ready.id, itemId: id },
+              { signal: current.request.signal, cache: 'no-store' },
+            );
+          const blob = await read().catch((error) => {
+            if (current.request.signal.aborted) throw error;
+            return read();
+          });
           current.ticket.signal.throwIfAborted();
           files.push(photoFile(blob, files.length, ready.source === 'google'));
         } catch (error) {
@@ -332,7 +338,7 @@ export function PhotoSourcePicker({
       if (!ready.authorizationUrl)
         throw new Error('Photo authorization is unavailable.');
       await openPhotoBrowser(ready.authorizationUrl, current.popup);
-      setWaitingUrl(ready.authorizationUrl);
+      setAwaitingGoogle(true);
       setMessage(t('photoSources.waiting'));
       while (!selectionReady(ready)) {
         await waitForPhotoPoll(
@@ -346,7 +352,7 @@ export function PhotoSourcePicker({
         if (task.current !== current) return;
       }
       await closePhotoBrowser(current.popup);
-      setWaitingUrl(null);
+      setAwaitingGoogle(false);
       if (ready.items.length)
         await importItems(
           current,
@@ -362,19 +368,6 @@ export function PhotoSourcePicker({
     } finally {
       if (!owner.signal.aborted && (!task.current || task.current === current))
         setBusy(false);
-    }
-  }
-
-  async function reopenGoogle() {
-    const current = task.current;
-    if (!current || !waitingUrl) return;
-    // A user gesture opens the window again; the same bound authorization continues.
-    void closePhotoBrowser(current.popup);
-    current.popup = preparePhotoBrowser();
-    try {
-      await openPhotoBrowser(waitingUrl, current.popup);
-    } catch {
-      setMessage(t('photoSources.reopenFailed'));
     }
   }
 
@@ -487,19 +480,10 @@ export function PhotoSourcePicker({
           </div>
         }
       >
-        {!view && !waitingUrl && !retry ? (
+        {!view && !awaitingGoogle && !retry ? (
           <p className="field-help">{t('photoSources.consent')}</p>
         ) : null}
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
-        {waitingUrl && !view ? (
-          <button
-            type="button"
-            className="tertiary photo-source-reopen"
-            onClick={() => void reopenGoogle()}
-          >
-            {t('photoSources.reopenGoogle')}
-          </button>
-        ) : null}
         {view && activeTask ? (
           <>
             <p role="status">
@@ -554,7 +538,7 @@ export function PhotoSourcePicker({
               </AutoLoadTrigger>
             ) : null}
           </>
-        ) : waitingUrl || retry ? null : (
+        ) : awaitingGoogle || retry ? null : (
           <>
             {unified && !externalOnly ? (
               <div className="photo-source-device-slot" ref={setDeviceTarget} />

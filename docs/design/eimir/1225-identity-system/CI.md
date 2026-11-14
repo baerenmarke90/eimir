@@ -59,6 +59,15 @@ The existing routes and content also need nine symbols absent from the board: Sp
 
 The control owns its accessible name and interaction state; decorative SVGs are hidden from assistive technology. Use the existing localized label, `aria-current` for active destinations, native `disabled` semantics where applicable, and the semantic focus role. Do not place an unlabeled icon alone in a button.
 
+### Compact legibility follow-up
+
+[Compact reference in Light and Dark](../../../product/design/references/icon-palette/compact-more-reference.webp). The 390 px reference was generated on `main` at `3d3ff5e462a599c3c4260a6375f4b3ea0fc28069` with local fixture data and temporary SVG changes. It retains the full More overview, including profile, privacy, utilities and the bottom navigation. Product Reference v1 R4 and R5 and the existing Today and Settings/Privacy templates govern the check-in and destination list.
+
+- Use the existing 24 px grid, rounded strokes, semantic size roles and color worlds. Keep the approved filled and duotone motifs, gradient stops and heart interaction states. Use a 24 px box for primary navigation and an emphasis size where an existing row or picker has room. Use the approved `DailyVibeIcon` artwork from [#1790](https://github.com/baerenmarke90/eimir/issues/1790) and [#1793](https://github.com/baerenmarke90/eimir/pull/1793) on Wir and in insights/history. Dense charts pair person markers with labeled mood lanes or a labeled legend and day details.
+- More keeps its named links. Games uses a die. People uses two people. Insights uses a rounded speech bubble with a waveform to represent reflection on Vibe and Energy. Activity uses a clock. Lists use bullets and text lines. These shapes work in one color and retain localized labels. The Insights bubble uses the existing warm/cool gradient behind a readable outline and waveform.
+- Compact and Expanded reuse the existing destination rows, navigation, check-in controls and chart interactions. The avatar badges, choices, Energy battery, loading, hidden, empty, error, offline and success states stay in their current contexts. Motion, focus, Back, visible labels and privacy/reveal follow the existing flows. Verify Compact Light/Dark, large text, reduced motion and the Expanded layout in the real product. Exercise check-in selection and clearing and the More-to-Games and More-to-Insights paths.
+- Reuse `EimirIcon`, `DestinationIcon`, `DailyVibeIcon` and semantic theme tokens. A separate icon library or raster sprite catalog would duplicate the approved artwork and state model. **No business/freemium impact.** The change applies to the existing daily check-in, Pro Insights and Games surfaces in Cloud and Self-Hosted. It changes glyph presentation without affecting access, storage, usage or retention.
+
 | Control state | Visual treatment | Non-color signal |
 | --- | --- | --- |
 | Default | Outline, normal text/icon color | Recognizable contour and visible label |

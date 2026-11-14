@@ -92,6 +92,7 @@ export function mediaCacheScopeForClient(client: object): MediaCacheScope {
 }
 
 const cached = new Map<string, CachedBlob>();
+const stored = new Map<string, Promise<Blob | undefined>>();
 const pending = new Map<string, PendingBlob>();
 let cachedBytes = 0;
 let generation = 0;
@@ -160,6 +161,23 @@ function prune(): void {
   }
 }
 
+function findCachedBlob(key: string): Blob | undefined {
+  prune();
+  const hit = cached.get(key);
+  if (hit) {
+    cached.delete(key);
+    cached.set(key, hit);
+  }
+  return hit?.blob;
+}
+
+function rememberCachedBlob(key: string, blob: Blob): void {
+  if (blob.size > MEDIA_CACHE_MAX_BYTES || cached.has(key)) return;
+  cached.set(key, { blob, receivedAt: performance.now() });
+  cachedBytes += blob.size;
+  prune();
+}
+
 /** Clear synchronously before any asynchronous persistent-cache cleanup. */
 export function clearAuthorizedMediaCache(): void {
   generation += 1;
@@ -168,6 +186,7 @@ export function clearAuthorizedMediaCache(): void {
   evictMediaObjectUrls();
   clearDurableMediaStore();
   cached.clear();
+  stored.clear();
   cachedBytes = 0;
   revocations.clear();
   for (const entry of pending.values()) entry.controller.abort();
@@ -194,6 +213,9 @@ export function evictAuthorizedMedia(
     key === `${prefix}]` || key.startsWith(`${prefix},`);
   for (const key of cached.keys()) {
     if (matches(key)) removeCached(key);
+  }
+  for (const key of stored.keys()) {
+    if (matches(key)) stored.delete(key);
   }
   for (const [key, entry] of pending) {
     if (!matches(key)) continue;
@@ -265,27 +287,57 @@ export function consumeAuthorizedMediaPreview(
 }
 
 /**
+ * Start the local read while the caller verifies parent access. The caller
+ * must still authorize delivery before exposing the bytes to a view.
+ */
+export async function readStoredMediaBlob(
+  lease: CacheLease,
+  identity: readonly string[],
+): Promise<Blob | undefined> {
+  assertMediaCacheLease(lease);
+  const key = keyPrefix(lease, identity);
+  const hit = findCachedBlob(key);
+  if (hit) return hit;
+  const diskKey = durableKey(lease, identity);
+  const epoch = lease.durableEpoch;
+  if (!diskKey || !epoch) return undefined;
+  let read = stored.get(key);
+  if (!read) {
+    const created = readDurableMedia(diskKey, epoch)
+      .then((blob) => {
+        assertMediaCacheLease(lease);
+        return blob;
+      })
+      .finally(() => {
+        if (stored.get(key) === created) stored.delete(key);
+      });
+    stored.set(key, created);
+    read = created;
+  }
+  const blob = await read;
+  assertMediaCacheLease(lease);
+  return blob;
+}
+
+/**
  * Reuse immutable bytes after the caller's authorization check. Identity must
  * include parent binding, attachment identity and original/thumbnail variant.
  * Cancellation belongs to each consumer; only the last departing consumer
  * cancels the shared transport. Failed/aborted results never enter the cache.
+ * A prestarted local read must use the same lease and attachment identity.
  */
 export async function loadCachedMediaBlob(
   lease: CacheLease,
   identity: readonly string[],
   load: (signal: AbortSignal) => Promise<Blob>,
   signal?: AbortSignal,
+  storedRead?: Promise<Blob | undefined>,
 ): Promise<Blob> {
   signal?.throwIfAborted();
   assertMediaCacheLease(lease);
-  prune();
   const key = keyPrefix(lease, identity);
-  const hit = cached.get(key);
-  if (hit) {
-    cached.delete(key);
-    cached.set(key, hit);
-    return hit.blob;
-  }
+  const hit = findCachedBlob(key);
+  if (hit) return hit;
 
   let entry = pending.get(key);
   if (!entry) {
@@ -297,10 +349,10 @@ export async function loadCachedMediaBlob(
         .then(async () => {
           controller.signal.throwIfAborted();
           const diskKey = durableKey(lease, identity);
-          const diskBlob =
-            diskKey && lease.durableEpoch
-              ? await readDurableMedia(diskKey, lease.durableEpoch)
-              : undefined;
+          const diskRead =
+            storedRead ??
+            (diskKey ? readStoredMediaBlob(lease, identity) : undefined);
+          const diskBlob = diskRead ? await diskRead : undefined;
           controller.signal.throwIfAborted();
           assertMediaCacheLease(lease);
           const blob = diskBlob ?? (await load(controller.signal));
@@ -316,11 +368,7 @@ export async function loadCachedMediaBlob(
               }
             });
           }
-          if (blob.size <= MEDIA_CACHE_MAX_BYTES) {
-            cached.set(key, { blob, receivedAt: performance.now() });
-            cachedBytes += blob.size;
-            prune();
-          }
+          rememberCachedBlob(key, blob);
           return blob;
         })
         .finally(() => {

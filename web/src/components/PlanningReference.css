@@ -233,6 +233,17 @@
   gap: var(--space-2);
 }
 
+.planen-detail.planning-page {
+  gap: var(--space-5);
+}
+
+.planen-detail > .page-heading h1 {
+  font: var(--font-personal-heading);
+  letter-spacing: var(--tracking-personal-heading);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
 .planen-detail-pills {
   display: flex;
   flex-wrap: wrap;
@@ -256,18 +267,21 @@
   margin: 0;
 }
 
-/* Detail: authored Plan prose, without a redundant section heading. */
+/* Authored prose shared by the Plan and Wish detail pages. */
 .planen-section {
   display: grid;
   gap: var(--space-3);
 }
 
 .planen-section-content {
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  padding: clamp(var(--space-4), 3vw, var(--space-5));
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
   background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
+}
+
+.planen-section-content .authored-text {
+  font: var(--font-composer-prose);
+  color: var(--color-text);
 }
 
 .planen-section p {
@@ -368,8 +382,7 @@
 .planen-detail-schedule {
   margin: 0;
   color: var(--color-brand-text);
-  font-size: clamp(1.15rem, 4vw, 1.45rem);
-  font-weight: 700;
+  font: var(--font-action-label);
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
 }
@@ -425,29 +438,6 @@
 }
 
 /* R3 — anticipation-first Planning composition. */
-.planen-local-add {
-  display: inline-flex;
-  width: fit-content;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  min-height: 44px;
-  align-items: center;
-  gap: var(--space-2);
-  border-radius: var(--radius-large);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-brand-strong);
-  color: var(--color-on-accent);
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: var(--shadow-soft);
-}
-
-.planen-local-add > span {
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.planen-local-add:focus-visible,
 .planen-next-link:focus-visible,
 .planen-agenda-link:focus-visible,
 .planen-undated-link:focus-visible,
@@ -850,6 +840,11 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.wish-detail .wish-description-heading {
+  margin-block-end: 0;
+  padding-block-end: 0;
+}
+
 .wish-detail > * {
   min-width: 0;
 }
@@ -864,6 +859,7 @@
   margin: 0;
   min-inline-size: 0;
   padding: 0;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .planen-complete-form input {

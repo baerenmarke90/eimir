@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from eimir.api.deps import ensure_capability
+from eimir.config import Environment
 from eimir.core.clock import now
 from eimir.core.errors import PremiumEntitlementRequiredError
+from eimir.demo import create_demo_space, reset_demo_space
+from eimir.demo.service import create_demo_space as create_demo_dataset
 from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import (
     Capability,
@@ -19,6 +24,7 @@ from eimir.entitlements.models import (
     EntitlementTier,
 )
 from eimir.entitlements.service import ALL_PREMIUM_CAPABILITIES
+from eimir.identity.models import Account
 from eimir.relationship.models import Membership, MembershipStatus
 from tests.conftest import (
     auth,
@@ -129,6 +135,75 @@ def test_couple_level_entitlement_shared_between_partners_without_cross_space_le
     assert solo_response.status_code == 200
     assert solo_response.json()["tier"] == "FREE"
     assert solo_response.json()["status"] == "EXPIRED"
+
+
+def test_existing_demo_space_gets_full_pro_for_both_personas_on_ensure_and_reset(
+    client: TestClient, session: Session
+) -> None:
+    reference_date = date(2026, 8, 24)
+    password = "canonical-demo-pro-test-password"
+    other_space = make_space(session, make_account(session, "Unrelated account"))
+    legacy = create_demo_dataset(
+        session,
+        environment=Environment.TEST,
+        lea_password=password,
+        alex_password=password,
+        reference_date=reference_date,
+    )
+    entitlement_service.record_grant(
+        session,
+        space_id=legacy.space_id,
+        account_id=legacy.lea_id,
+        source_type=EntitlementSourceType.TEST_FIXTURE,
+        status=EntitlementStatus.ACTIVE,
+        effective_from=now(),
+        external_reference="canonical-demo-today-pro",
+        capabilities=[
+            Capability.DAILY_INSIGHTS.value,
+            Capability.DAILY_QUOTE.value,
+            Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
+        ],
+    )
+
+    for _ in range(2):
+        ensured = create_demo_space(
+            session,
+            environment=Environment.TEST,
+            lea_password=password,
+            alex_password=password,
+            reference_date=reference_date,
+        )
+        assert not ensured.created
+        assert ensured.space_id == legacy.space_id
+
+    grants = session.scalars(
+        select(EntitlementGrant).where(EntitlementGrant.space_id == legacy.space_id)
+    ).all()
+    full_grants = [grant for grant in grants if grant.capabilities is None]
+    assert len(full_grants) == 1
+    assert full_grants[0].source_type == EntitlementSourceType.TEST_FIXTURE.value
+
+    expected = set(ALL_PREMIUM_CAPABILITIES) - {Capability.STORAGE_CLOUD_QUOTA_50GB.value}
+    for account_id in (legacy.lea_id, legacy.alex_id):
+        token = sign_in(session, session.get_one(Account, account_id))
+        response = client.get(f"/api/v1/spaces/{legacy.space_id}/entitlements", headers=auth(token))
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["tier"] == EntitlementTier.PREMIUM.value
+        assert data["status"] == EntitlementStatus.ACTIVE.value
+        assert set(data["capabilities"]) == expected
+
+    unrelated = entitlement_service.get_effective_space_entitlement(session, other_space.id)
+    assert unrelated.tier is EntitlementTier.FREE
+    assert unrelated.capabilities == []
+
+    replacement = reset_demo_space(
+        session, environment=Environment.TEST, reference_date=reference_date
+    )
+    assert replacement.space_id != legacy.space_id
+    effective = entitlement_service.get_effective_space_entitlement(session, replacement.space_id)
+    assert effective.status is EntitlementStatus.ACTIVE
+    assert set(effective.capabilities) == expected
 
 
 def test_source_reference_restore_rebinds_one_grant_between_spaces(session) -> None:  # type: ignore[no-untyped-def]

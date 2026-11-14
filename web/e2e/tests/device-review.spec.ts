@@ -1,14 +1,22 @@
-import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import memory from '../../src/i18n/locales/memoryProduct';
+import { expect, test } from '@playwright/test';
 import tags from '../../src/i18n/locales/contextTags';
+import memory from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  closeComposerDate,
+  closeContextTags,
+  showComposerDate,
+  showContextSuggestions,
+  showContextTags,
+} from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
-  installMocks,
-  signIn,
   captureScreenshot,
+  installMocks,
+  SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 for (const [width, theme] of [
@@ -124,10 +132,11 @@ for (const [width, theme] of [
         .click();
       await expect(dialog).toHaveCount(0);
       await expect(
-        linked.getByRole('link', {
-          name: kind === 'plans' ? plan.title : wish.title,
+        linked.getByText(kind === 'plans' ? plan.title : wish.title, {
+          exact: true,
         }),
-      ).toHaveAttribute('href', new RegExp(`/${kind}/linked-`));
+      ).toBeVisible();
+      await expect(linked.getByRole('link')).toHaveCount(0);
     }
     await linked.scrollIntoViewIfNeeded();
     await captureScreenshot(page, info, `device-links-${width}-${theme}.png`);
@@ -138,13 +147,31 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
+    await page
+      .getByRole('link', { name: taskBoundary.back, exact: true })
+      .click();
+    for (const kind of ['plans', 'wishes'] as const) {
+      await expect(
+        linked.getByRole('link', {
+          name: kind === 'plans' ? plan.title : wish.title,
+        }),
+      ).toHaveAttribute('href', new RegExp(`/${kind}/linked-`));
+    }
+    await page.getByRole('link', { name: memory.edit, exact: true }).click();
     await linked
       .getByRole('button', {
         name: memory.planning.remove.replace('{{title}}', plan.title),
       })
       .click();
+    await expect(linked.getByText(plan.title, { exact: true })).toHaveCount(0);
+    await expect(linked.getByText(wish.title, { exact: true })).toBeVisible();
+    await page
+      .getByRole('link', { name: taskBoundary.back, exact: true })
+      .click();
     await expect(linked.getByRole('link', { name: plan.title })).toHaveCount(0);
-    await expect(linked.getByRole('link', { name: wish.title })).toBeVisible();
+    await expect(
+      linked.getByRole('link', { name: wish.title }),
+    ).toHaveAttribute('href', /\/wishes\/linked-/);
     expect(writes).toEqual(['PUT:plans', 'PUT:wishes', 'DELETE:plans']);
     expect(unexpected).toEqual([]);
   });
@@ -164,31 +191,34 @@ test('device review: shared learned labels and AI proposals remain explicit in t
   );
   await signIn(page);
   await page.goto('/story/heart-moments/new');
+  await showContextTags(page);
   const editor = page.getByRole('group', { name: tags.label });
-  await editor.locator('summary').click();
+  await showContextSuggestions(page);
   await expect(
     editor.getByRole('checkbox', { name: 'Unser Konzert', exact: true }),
   ).toBeVisible();
   await expect(
     editor.getByRole('checkbox', { name: 'Belgien', exact: true }),
   ).toBeVisible();
-  await expect(editor.locator('input[type="hidden"]')).toHaveCount(0);
+  const serializedTags = page.locator(
+    '.page-composer input[type="hidden"][name="tags"]',
+  );
+  await expect(serializedTags).toHaveCount(0);
   await editor
     .getByRole('checkbox', { name: 'Unser Konzert', exact: true })
     .click();
   await editor.getByRole('checkbox', { name: 'Belgien', exact: true }).click();
   expect(
-    await editor
-      .locator('input[type="hidden"]')
-      .evaluateAll((inputs) =>
-        inputs.map((input) => (input as HTMLInputElement).value),
-      ),
+    await serializedTags.evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).value),
+    ),
   ).toEqual(['Unser Konzert', 'Belgien']);
+  await closeContextTags(page);
   const order = await page.evaluate(() => {
     const feeling = document.querySelector(
       '.heart-moment-create-emotion-picker',
     );
-    const tags = document.querySelector('.memory-tag-choices');
+    const tags = document.querySelector('.composer-tool-row');
     return Boolean(
       feeling &&
         tags &&
@@ -197,21 +227,21 @@ test('device review: shared learned labels and AI proposals remain explicit in t
     );
   });
   expect(order).toBe(true);
-  await expect(
-    page.getByLabel(storyProducts.heartMomentProduct.happenedOnLabel, {
-      exact: true,
-    }),
-  ).toHaveAttribute('type', 'date');
-  const dateLabelWeight = await page
-    .getByLabel(storyProducts.heartMomentProduct.happenedOnLabel, {
-      exact: true,
-    })
-    .evaluate((input) => {
-      const label = (input as HTMLInputElement).labels?.[0];
-      if (!label) throw new Error('Date label missing');
-      return getComputedStyle(label).fontWeight;
-    });
+  const date = await showComposerDate(
+    page,
+    storyProducts.heartMomentProduct.happenedOnLabel,
+  );
+  await expect(date).toHaveAttribute('type', 'date');
+  const dateLabelWeight = await date.evaluate((input) => {
+    const label = (input as HTMLInputElement).labels?.[0];
+    if (!label) throw new Error('Date label missing');
+    return getComputedStyle(label).fontWeight;
+  });
   expect(dateLabelWeight).toBe('400');
+  await closeComposerDate(
+    page,
+    storyProducts.heartMomentProduct.happenedOnLabel,
+  );
   await captureScreenshot(page, info, 'device-tags-heart-390.png', {
     fullPage: true,
   });

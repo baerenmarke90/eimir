@@ -248,3 +248,105 @@ body.theme-vault
     width: 100%;
   }
 }
+
+.private-gift-composer {
+  --color-action-emphasis: var(--private-action-color);
+  --color-on-action-emphasis: var(--color-on-accent);
+  --color-focus: var(--private-action-color);
+
+  inline-size: 100%;
+  max-inline-size: var(--composer-max);
+  min-inline-size: 0;
+  margin-inline: auto;
+}
+
+.private-gift-composer > .composer-header.page-heading {
+  position: sticky;
+  inset-block-start: var(--shell-header-safe-top, 0px);
+  z-index: 55;
+  isolation: isolate;
+  padding-block: var(--space-2);
+}
+
+.private-gift-composer > .composer-header::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--shell-header-safe-top, 0px)) 0 0;
+  background: color-mix(
+    in srgb,
+    var(--color-background) 55%,
+    var(--color-surface-subtle)
+  );
+  pointer-events: none;
+}
+
+@media (max-width: 839px) {
+  .private-gift-composer > .composer-header::before {
+    inset-inline: calc(-1 * var(--page-gutter));
+  }
+}
+
+.private-gift-audience {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-5);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.private-gift-audience .eimir-icon {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  color: var(--private-action-color);
+}
+
+.private-gift-form,
+.private-gift-form .page-composer-writing {
+  display: grid;
+  gap: var(--space-4);
+  min-inline-size: 0;
+}
+
+.page.private-area-page
+  :is(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+    textarea,
+    select
+  ) {
+  --color-focus: var(--private-action-color);
+
+  min-inline-size: 0;
+  border: var(--border-authored-width) solid var(--color-text-muted);
+  background-color: var(--color-surface);
+}
+
+.page.private-area-page :is(input, textarea)::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.private-gift-form input[name="title"] {
+  font: var(--font-composer-title);
+}
+
+.form-grid.private-gift-form > .private-area-check {
+  display: inline-flex;
+  margin: 0;
+}
+
+.private-gift-composer + .private-area-nav {
+  inline-size: 100%;
+  max-inline-size: var(--composer-max);
+  margin-inline: auto;
+}
+
+.private-gift-form .private-area-field-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container product-content (min-width: 21rem) {
+  .private-gift-form .private-area-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

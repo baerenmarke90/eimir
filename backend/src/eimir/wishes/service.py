@@ -49,6 +49,7 @@ from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
+from eimir.wishes import reminders as wish_reminders
 from eimir.wishes.models import Wish, WishPayload, WishStatus, shared_privacy
 
 _RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.WISH.value
@@ -61,6 +62,7 @@ WISH_HAS_COMPLETED_PLAN = "WISH_HAS_COMPLETED_PLAN"
 WISH_ALREADY_COMPLETED = "WISH_ALREADY_COMPLETED"
 WISH_PLAN_STATE_CONFLICT = "WISH_PLAN_STATE_CONFLICT"
 WISH_STATUS_TRANSITION_INVALID = "WISH_STATUS_TRANSITION_INVALID"
+WISH_REPEAT_REQUIRES_COMPLETED = "WISH_REPEAT_REQUIRES_COMPLETED"
 
 
 @dataclass(frozen=True)
@@ -85,6 +87,10 @@ def _normalize_title(value: str) -> str:
     return cleaned
 
 
+def _normalize_description(value: str | None) -> str | None:
+    return (value or "").strip() or None
+
+
 def _flush(session: Session) -> None:
     try:
         session.flush()
@@ -104,7 +110,7 @@ def _ensure_expected_version(wish: Wish, expected_version: int) -> None:
 
 
 def record_event(session: Session, wish: Wish, actor_id: UUID, event_type: EventType) -> None:
-    """Record an event without the wish title.
+    """Record an event without authored Wish content.
 
     M3-D13: titles do not belong in the outbox, logs, or analytics. Only IDs,
     actor, version, and event type leave this boundary.
@@ -128,20 +134,33 @@ def create_wish(
     context: AuthorizationContext,
     *,
     title: str,
+    description: str | None = None,
     tags: list[str] | None = None,
+    repeat_of: Wish | None = None,
 ) -> Wish:
     """Create a wish in the ``OPEN`` state.
 
     Status never comes from the request. A client that includes it is rejected
     at the API boundary; this service has no parameter through which it could
     enter.
+
+    ``repeat_of`` is only passed by ``repeat_wish_once``, which has already
+    verified that the source is a completed Wish of this Space. The follow-up
+    link and series fields are therefore never client-settable.
     """
     wish = Wish(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
         status=WishStatus.OPEN.value,
-        payload=WishPayload(title=_normalize_title(title), tags=tags or []),
+        followed_from_wish_id=repeat_of.id if repeat_of is not None else None,
+        series_id=repeat_of.series_id if repeat_of is not None else None,
+        series_position=repeat_of.series_position + 1 if repeat_of is not None else 1,
+        payload=WishPayload(
+            title=_normalize_title(title),
+            description=_normalize_description(description),
+            tags=tags or [],
+        ),
     )
     session.add(wish)
     _flush(session)
@@ -156,6 +175,7 @@ def create_wish_once(
     *,
     idempotency_key: UUID | None,
     title: str,
+    description: str | None = None,
     tags: list[str] | None = None,
 ) -> WishCreateResult:
     """Create a Wish, or return the one an earlier request with this identity created.
@@ -166,12 +186,18 @@ def create_wish_once(
     retry from adding the same wish to the shared list twice.
     """
     if idempotency_key is None:
-        wish = create_wish(session, context, title=title, tags=tags)
+        wish = create_wish(session, context, title=title, description=description, tags=tags)
         return WishCreateResult(wish, created=True)
 
     normalized_title = _normalize_title(title)
+    normalized_description = _normalize_description(description)
     request_fingerprint = create_receipts.fingerprint(
-        _RECEIPT_RESOURCE_TYPE, {"title": normalized_title, **({"tags": tags} if tags else {})}
+        _RECEIPT_RESOURCE_TYPE,
+        {
+            "title": normalized_title,
+            **({"description": normalized_description} if normalized_description else {}),
+            **({"tags": tags} if tags else {}),
+        },
     )
     receipt_id = create_receipts.claim(
         session,
@@ -195,7 +221,99 @@ def create_wish_once(
         )
         return WishCreateResult(wish, created=False)
 
-    wish = create_wish(session, context, title=normalized_title, tags=tags)
+    wish = create_wish(
+        session, context, title=normalized_title, description=normalized_description, tags=tags
+    )
+    create_receipts.attach(session, receipt_id, wish.id)
+    return WishCreateResult(wish, created=True)
+
+
+def repeat_wish_once(
+    session: Session,
+    context: AuthorizationContext,
+    source_wish_id: UUID | str,
+    *,
+    idempotency_key: UUID | None,
+    title: str | None = None,
+    description: str | None = None,
+    tags: list[str] | None = None,
+) -> WishCreateResult:
+    """Start a new ``OPEN`` Wish that repeats a ``COMPLETED`` one (#1816).
+
+    "Nochmal erleben" never reopens the source: ``COMPLETED`` stays terminal
+    and ``Plan.sourceWishId`` stays unique (M3-D02). The new Wish only
+    remembers where it came from. Title, description, and tags are an editable
+    proposal copied from the source unless the request supplies them.
+
+    Without a key this is a plain create. With a key, the receipt and the new
+    Wish share this transaction, so a double tap or a lost-response retry
+    returns the Wish the first request created instead of adding a second one.
+    """
+    source = require_writable(session, Wish, context, source_wish_id)
+    if source.status != WishStatus.COMPLETED.value:
+        raise ConflictError(
+            "Only a completed wish can be repeated.",
+            WISH_REPEAT_REQUIRES_COMPLETED,
+        )
+
+    proposal_title = _normalize_title(title if title is not None else source.payload.title)
+    proposal_description = (
+        _normalize_description(description)
+        if description is not None
+        else source.payload.description
+    )
+    proposal_tags = list(tags) if tags is not None else list(source.payload.tags)
+
+    if idempotency_key is None:
+        wish = create_wish(
+            session,
+            context,
+            title=proposal_title,
+            description=proposal_description,
+            tags=proposal_tags,
+            repeat_of=source,
+        )
+        return WishCreateResult(wish, created=True)
+
+    request_fingerprint = create_receipts.fingerprint(
+        _RECEIPT_RESOURCE_TYPE,
+        {
+            "repeatOf": str(source.id),
+            "title": proposal_title,
+            **({"description": proposal_description} if proposal_description else {}),
+            **({"tags": proposal_tags} if proposal_tags else {}),
+        },
+    )
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        wish = create_receipts.replay(
+            session,
+            context,
+            Wish,
+            resource_type=_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            deleted_error=NotFoundError(
+                "The wish created by this request no longer exists.",
+                ErrorCode.WISH_CREATE_RESULT_DELETED,
+            ),
+        )
+        return WishCreateResult(wish, created=False)
+
+    wish = create_wish(
+        session,
+        context,
+        title=proposal_title,
+        description=proposal_description,
+        tags=proposal_tags,
+        repeat_of=source,
+    )
     create_receipts.attach(session, receipt_id, wish.id)
     return WishCreateResult(wish, created=True)
 
@@ -214,10 +332,12 @@ def update_wish(
     wish_id: UUID | str,
     *,
     expected_version: int,
+    changed_fields: frozenset[str],
     title: str | None = None,
+    description: str | None = None,
     tags: list[str] | None = None,
 ) -> Wish:
-    """Correct the title and nothing else.
+    """Correct authored Wish content.
 
     This is a versioned content update and does not change status (M3-D02).
     ``createdBy``, ``spaceId``, and ``status`` are not function parameters, so
@@ -229,6 +349,9 @@ def update_wish(
     wish.payload = wish.payload.model_copy(
         update={
             "title": _normalize_title(title) if title is not None else wish.payload.title,
+            "description": _normalize_description(description)
+            if "description" in changed_fields
+            else wish.payload.description,
             "tags": tags if tags is not None else wish.payload.tags,
         }
     )
@@ -296,6 +419,7 @@ def complete_direct_wish(
         )
 
     wish.status = WishStatus.COMPLETED.value
+    wish_reminders.cancel_for_wish(session, wish.id)
     _flush(session)
     record_event(session, wish, context.account_id, EventType.WISH_COMPLETED)
     _flush(session)
@@ -310,6 +434,7 @@ def plan_created(session: Session, wish: Wish, actor_id: UUID) -> None:
             WISH_STATUS_TRANSITION_INVALID,
         )
     wish.status = WishStatus.PLANNED.value
+    wish_reminders.cancel_for_wish(session, wish.id)
     _flush(session)
     record_event(session, wish, actor_id, EventType.WISH_PLANNED)
     _flush(session)

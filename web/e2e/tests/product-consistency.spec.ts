@@ -1,20 +1,24 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import composer from '../../src/i18n/locales/composer';
+import de from '../../src/i18n/locales/de';
+import experiences from '../../src/i18n/locales/experiences';
 import planningCopy from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { mockMapTiles } from '../support/mapTiles';
+import { openComposerPlace } from '../support/memoryDiary';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
-  installMocks,
   getTimelineItems,
+  installMocks,
   ME,
   SPACE_ID,
   signIn,
@@ -153,9 +157,13 @@ for (const scenario of [
     await expect(page.locator('.momente-tapestry-item')).toHaveCount(
       getTimelineItems().length - 1,
     );
+    // The HeartMoment note shows its emotion badge instead of a corner glyph (#1784).
     expect(
       await page.locator('.momente-tapestry-kind').allTextContents(),
-    ).toEqual(['', '', '']);
+    ).toEqual(['', '']);
+    await expect(
+      page.locator('.momente-tapestry-note .heart-emotion-badge'),
+    ).toHaveCount(1);
     const overflowDetails = await page.evaluate(() =>
       Array.from(document.querySelectorAll('main *'))
         .filter((node) => {
@@ -235,28 +243,43 @@ for (const scenario of [
     await expect(
       page.getByRole('heading', {
         name: 'Breakfast by the canal',
-        level: 1,
+        level: 2,
         exact: true,
       }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: copy.add, exact: true }),
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
     ).toHaveCount(0);
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
-    await page.getByRole('button', { name: copy.add, exact: true }).click();
+    await openComposerPlace(page);
     const picker = page.getByRole('dialog', { name: copy.add });
     await expect(picker).toBeVisible();
     await expect(picker.locator('select')).toHaveCount(0);
-    await picker.getByRole('button', { name: /Our park by the water/ }).click();
+    await picker
+      .locator('.moment-place-choices')
+      .getByRole('button', { name: /Our park by the water/ })
+      .click();
+    await expect(
+      picker
+        .locator('.ordered-moment-places > ol')
+        .getByText(place.name, { exact: true }),
+    ).toBeVisible();
+    await picker
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
     await expect(picker).toBeHidden();
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
     expect(links).toBe(0);
     expect(updates).toEqual([]);
     await expect(
-      page.getByRole('button', { name: copy.add, exact: true }),
+      page
+        .locator('.composer-tool-row')
+        .getByRole('button', { name: composer.place, exact: true }),
     ).toHaveCount(1);
     await page
       .getByRole('button', { name: memoryProduct.save, exact: true })
@@ -355,7 +378,7 @@ for (const [width, theme] of [
           json: {
             items: DASHBOARD_MODULE_KEYS.map((moduleKey) => ({
               moduleKey,
-              visible: moduleKey !== 'relationship_presence',
+              visible: moduleKey !== 'keepsake',
             })),
           },
         });
@@ -406,7 +429,7 @@ for (const [width, theme] of [
         page.getByText('Saved afternoon together', { exact: true }),
       ).toBeVisible();
       await expect(page.locator('.overview-cache-notice')).toBeVisible();
-      await expect(page.locator('.today-hero')).toHaveCount(0);
+      await expect(page.locator('.today-hero')).toBeVisible();
       await expect(page.locator('.branded-startup')).toHaveCount(0);
       await expect(page.locator('.today-page .ui-state')).toHaveCount(0);
       await captureScreenshot(
@@ -422,7 +445,9 @@ for (const [width, theme] of [
       page.getByText('Fresh afternoon together', { exact: true }),
     ).toBeVisible();
     await expect(page.locator('.overview-cache-notice')).toHaveCount(0);
-    await expect(page.locator('.today-hero')).toHaveCount(0);
+    // The fixed couple hero stays; the hidden personal section stays hidden.
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(page.locator('.today-section-moment')).toHaveCount(0);
 
     // Even with a saved overview, a current denial cannot authorize a cold start.
     await page.route('**/api/v1/auth/memberships', (route) =>
@@ -519,14 +544,14 @@ test('a created map Place survives a failed Memory save and retries only its sta
     }
     return route.fallback();
   });
-  await page.route('**/*.tile.openstreetmap.org/**', (route) => route.abort());
+  await mockMapTiles(page, { fail: true });
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
   await page
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
-  await page.getByRole('button', { name: copy.add, exact: true }).click();
+  await openComposerPlace(page);
   const picker = page.getByRole('dialog', { name: copy.add });
   await picker
     .getByRole('button', { name: planningCopy.map.open, exact: true })
@@ -549,6 +574,14 @@ test('a created map Place survives a failed Memory save and retries only its sta
     .getByRole('button', { name: copy.saveSharedPlace, exact: true })
     .click();
   await expect(map).toBeHidden();
+  await expect(
+    picker
+      .locator('.ordered-moment-places > ol')
+      .getByText(place.name, { exact: true }),
+  ).toBeVisible();
+  await picker
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   await expect(picker).toBeHidden();
   await expect(page.getByText(place.name, { exact: true })).toBeVisible();
   expect(creates).toEqual([

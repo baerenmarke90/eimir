@@ -17,7 +17,7 @@ The following contract applies to every reference, together with its specific co
 | --- | --- |
 | Compact is normative | Design one human task and one dominant action first. At 360/390/430 px preserve the same hierarchy and body size, with wrapping labels and content-driven heights |
 | D7 gutters | Approximately 16 px below approximately 390 px; 20 px at/above approximately 390 px through Compact, except a deliberate edge-to-edge composition |
-| Navigation | Stable labeled destinations: Wir, Momente, Planen, Mehr. The central plus is an action, not a fifth destination. Games remains under Mehr; Story/Chapter details belong to Momente even where a legacy URL uses another path |
+| Navigation | Stable labeled destinations: Wir, Momente, Planen, Mehr. The contextual Compact plus floats above the bar on eligible views. Games remains under Mehr; Story/Chapter details belong to Momente even where a legacy URL uses another path |
 | Thumb reach / keyboard | Important actions remain reachable with one hand; Web targets at least 44 × 44 CSS px, Android at least 48 × 48 dp. Reserve measured navigation height and safe-area clearance. A completion footer never obscures focused input or content |
 | Task boundary | Browsing/reading, capture/edit and confirmation are distinct. Focused capture replaces competing root chrome. Visible Back/Close and platform Back agree on task ownership |
 | Reading before editing | Personal content opens its canonical read detail; editing and destructive operations are deliberate contextual actions. Full-surface navigation has proper semantics and no nested interactive targets |
@@ -309,7 +309,31 @@ Light/Dark use neutral rows, clear grouping and restrained privacy indication; a
 
 **Acceptance journey:** find profile and appearance settings through More without the avatar shortcut; edit and save a real supported value; return category → index → More; identify which note is private; verify delayed/failing edits preserve work, legacy entry links resolve, and dangerous-operation safeguards remain intact.
 
+### People profiles and occasions (#1683)
+
+PO refinement (2026-11-06): People is a portrait-led overview under More. A name
+opens a profile; the photograph opens the whole authorized image. Editing is a
+deliberate focused task. People are collaborative content for the existing Space
+members, with no audience selector, grouping, badge or explanatory hint.
+Birthdays remain optional profile data. Planning has an occasions mode beside
+Plans and Wishes: projected person/partner birthdays plus independent dates,
+read before edit. Independent dates retain their existing privacy contracts.
+See the [preflight and implementation evidence](references/people-profiles/README.md).
+
 ## Review and propagation boundary
+
+### Contextual creation (#1679)
+
+The Moments view tabs have one labeled local capture entry in every peer view,
+including the map. Its bounded choice opens the existing Memory, HeartMoment or
+Milestone task with the current return context. The global plus retains its
+cross-product scope. Partner-avatar actions also open the existing one-time
+message composer, preserving Pro sending eligibility and explicit reception
+consent. Action rows use defined shared radius tokens. The
+[preflight and acceptance record](references/contextual-create/README.md) binds
+the generated references, responsive composition and complete return journeys.
+
+### Shared acceptance
 
 Each reference's composition must remain complete with sparse content and understandable without a tutorial. Reviewers must reject metadata-led, permanent-edit, card-wall or desktop-first interpretations even if functionally correct. Equally, they must not remove useful depth or replace personal richness with empty space.
 

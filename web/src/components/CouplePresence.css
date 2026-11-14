@@ -186,18 +186,6 @@
   text-align: center;
 }
 
-.today-hero.couple-presence-card
-  .couple-presence-avatar-adornment
-  .daily-energy-avatar-control {
-  left: clamp(3rem, 11vw, 4.25rem);
-}
-
-.today-hero.couple-presence-card
-  .couple-presence-avatar-adornment
-  .daily-energy-partner-battery {
-  right: -8px;
-}
-
 @media (max-width: 359px) {
   .today-hero.couple-presence-card {
     padding-inline: var(--space-4);

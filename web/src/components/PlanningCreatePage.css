@@ -1,7 +1,25 @@
-.planning-create-task {
+.planning-create-task,
+.wish-composer {
   display: grid;
   max-width: var(--reading-max);
   gap: var(--space-6);
+}
+
+.wish-composer {
+  gap: var(--space-3);
+}
+
+.wish-composer .page-composer-title {
+  min-block-size: var(--touch-target-comfortable);
+}
+
+.wish-composer .page-composer-prose {
+  resize: none;
+}
+
+.wish-composer .composer-tool-row .composer-tool {
+  flex: 0 1 auto;
+  padding-inline: var(--space-4);
 }
 
 .planning-task-focus {

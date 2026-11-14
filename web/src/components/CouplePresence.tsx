@@ -1,6 +1,7 @@
 import { useId, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  type PartnerAvatarAction,
   PartnerAvatarPair,
   type PartnerAvatarPerson,
   type PartnerAvatarSize,
@@ -35,7 +36,13 @@ export interface CouplePresenceProps {
   avatarOverlay?: ReactNode;
   avatarSize?: PartnerAvatarSize;
   avatarAction?: CouplePresenceAvatarAction;
+  /** Own-avatar task; splits the pair into two tap targets (#1790 A). */
+  primaryAvatarAction?: PartnerAvatarAction;
+  primaryAvatarAdornment?: ReactNode;
+  secondaryAvatarAdornment?: ReactNode;
   actions?: ReactNode;
+  /** A quiet relationship signal directly under the duration line (#1792). */
+  signal?: ReactNode;
   context?: ReactNode;
   headingLevel?: 'h1' | 'h2';
   eyebrow?: string;
@@ -58,7 +65,11 @@ export function CouplePresence({
   avatarOverlay,
   avatarSize = 'large',
   avatarAction,
+  primaryAvatarAction,
+  primaryAvatarAdornment,
+  secondaryAvatarAdornment,
   actions,
+  signal,
   context,
   headingLevel = 'h2',
   eyebrow,
@@ -134,6 +145,9 @@ export function CouplePresence({
             actionExpanded={avatarAction?.expanded}
             actionControls={avatarAction?.controls}
             actionHasPopup={avatarAction?.hasPopup}
+            primaryAction={primaryAvatarAction}
+            primaryAdornment={primaryAvatarAdornment}
+            secondaryAdornment={secondaryAvatarAdornment}
           />
           {avatarAdornment ? (
             <div className="couple-presence-avatar-adornment">
@@ -209,6 +223,8 @@ export function CouplePresence({
               </>
             )}
           </div>
+
+          {signal}
 
           {context ? (
             <div className="couple-presence-context">{context}</div>

@@ -295,12 +295,20 @@ it('recovers a conflict from a fresh read without replaying the stale version', 
   );
 
   await waitFor(() => expect(h.getPlan.mock.calls.length).toBe(reads + 1));
-  // Another member completed it: the confirmed result, no celebration.
-  expect(await screen.findByText(m5s3.plan.completedBody)).toBeDefined();
+  // Another member completed it: show the authoritative read result without a new capture handoff.
+  expect(await screen.findByText(m5s3.plan.completedTitle)).toBeDefined();
   expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
-  expect(
-    screen.getByRole('button', { name: m5s3.planStory.memoryAction }),
-  ).toBeDefined();
+  for (const action of [
+    m5s3.planStory.memoryAction,
+    m5s3.planStory.heartMomentAction,
+    m5s3.planStory.milestoneAction,
+  ])
+    expect(screen.queryByRole('button', { name: action })).toBeNull();
+  expect(screen.queryByText(pendingCopy())).toBeNull();
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)).toMatchObject({
+    status: 'COMPLETED',
+    version: 4,
+  });
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
 });
 
@@ -362,9 +370,13 @@ it('admits one editor save and locks inputs and completion until it finishes', a
   fireEvent.click(
     screen.getByRole('button', { name: de.common.edit, hidden: true }),
   );
+  fireEvent.click(
+    screen.getByRole('button', { name: new RegExp(m5s3.plan.schedule) }),
+  );
   fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
     target: { value: DAY },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Fertig' }));
   const form = document.getElementById('plan-edit-form') as HTMLFormElement;
   act(() => {
     fireEvent.submit(form);
@@ -375,13 +387,18 @@ it('admits one editor save and locks inputs and completion until it finishes', a
   expect(screen.queryByRole('button', { name: m5s3.plan.complete })).toBeNull();
   expect(
     (
-      screen
-        .getByLabelText(m5s3.plan.plannedDate)
-        .closest('fieldset') as HTMLFieldSetElement
+      screen.getByRole('button', {
+        name: new RegExp(m5s3.plan.schedule),
+      }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
   expect(
-    (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).disabled,
+    (form.elements.namedItem('plannedDate') as HTMLInputElement).disabled,
+  ).toBe(true);
+  expect(
+    (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).matches(
+      ':disabled',
+    ),
   ).toBe(true);
 });
 
@@ -435,10 +452,10 @@ it('does not celebrate a late completion after the initiating cache is replaced 
     h.queryClient.setQueryData(h.key, completedPlan());
   });
   h.view.rerender(h.tree());
-  expect(await screen.findByText(m5s3.plan.completedBody)).toBeDefined();
+  expect(await screen.findByText(m5s3.plan.completedTitle)).toBeDefined();
   await act(async () => h.writes[0].resolve(confirmed(true)));
   expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
-  expect(screen.getByText(m5s3.plan.completedBody)).toBeDefined();
+  expect(screen.getByText(m5s3.plan.completedTitle)).toBeDefined();
 });
 
 it('keeps pending state and the duplicate guard across a remount', async () => {
@@ -498,7 +515,7 @@ it('reconciles a late response for an unmounted page without showing a celebrati
     'COMPLETED',
   );
   render(h.tree());
-  expect(await screen.findByText(m5s3.plan.completedBody)).toBeDefined();
+  expect(await screen.findByText(m5s3.plan.completedTitle)).toBeDefined();
   expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
 });
 

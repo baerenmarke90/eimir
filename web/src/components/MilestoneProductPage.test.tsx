@@ -198,7 +198,7 @@ describe('Quick Create Milestone continuity (#509)', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/today']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
-            <QuickCreateMenu variant="desktop" />
+            <QuickCreateMenu />
             <Routes>
               <Route path="/today" element={<p>Today origin</p>} />
               <Route
@@ -279,19 +279,40 @@ describe('MilestoneProductPage Back restores origin (#966)', () => {
   });
 });
 
-describe('Milestone detail edit action (#1014)', () => {
-  it('replaces the oversized text button with a compact icon-only edit link', async () => {
-    renderDetail();
+describe('Milestone detail header', () => {
+  it('uses the shared composer header with a written-out edit action', async () => {
+    const { container } = renderDetail();
     const editLink = await screen.findByRole('link', {
       name: storyProducts.milestoneProduct.edit,
     });
     expect(editLink.getAttribute('href')).toBe(
       '/story/milestones/milestone-1/edit',
     );
-    // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe('');
+    expect(editLink.textContent?.trim()).toBe(
+      storyProducts.milestoneProduct.edit,
+    );
     expect(editLink.className).not.toContain('button-link');
     expect(editLink.className).not.toContain('secondary-link');
+    expect(container.querySelector('.page-composer-detail')).toBeTruthy();
+    expect(
+      container.querySelector('.composer-header .story-detail-edit-link'),
+    ).toBe(editLink);
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: storyProducts.milestoneProduct.detailEyebrow,
+      }),
+    ).toBeTruthy();
+  });
+
+  it('shows the milestone title and date as the hero below the header', async () => {
+    const { container } = renderDetail();
+    const title = await screen.findByRole('heading', {
+      level: 2,
+      name: 'First apartment together',
+    });
+    expect(title.className).toContain('milestone-hero-title');
+    expect(container.querySelector('.milestone-hero-date')).toBeTruthy();
   });
 });
 

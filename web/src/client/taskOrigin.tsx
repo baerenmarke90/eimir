@@ -8,15 +8,17 @@ import {
   useRef,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
-  MORE_PLACES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
-  MORE_PASSPORT_ROUTE,
+  MORE_PLACES_ROUTE,
+  MORE_PRIVATE_ROUTE,
   PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
+  STORY_RECAPS_ROUTE,
   WISH_SELECTION_ROUTE,
 } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
@@ -32,12 +34,21 @@ export interface TaskOriginMetadata {
   /** Restores a Search origin's submitted query/type without ever putting it in the URL. */
   searchQuery?: string;
   searchKind?: string;
-  /** Restores the Plans/Wishes peer mode without publishing it in the URL. */
-  planningSegment?: 'plans' | 'wishes';
-  planningWishStatus?: 'OPEN' | 'COMPLETED';
+  /** Restores the Planning peer mode without publishing it in the URL. */
+  planningSegment?: 'plans' | 'wishes' | 'dates';
+  planningWishStatus?: 'OPEN' | 'PLANNED' | 'COMPLETED';
   planningPlanStatus?: 'OPEN' | 'COMPLETED';
   planningPlanSearch?: string;
   planningWishSearch?: string;
+  /** Date-only default for a new Plan started from a shared occasion. */
+  planningCreateDate?: string;
+  /** Bounded, account/Space-scoped map return context; never persisted or logged. */
+  memoryMap?: {
+    placeId: string | null;
+    memoryId?: string;
+    viewport?: { latitude: number; longitude: number; zoom: number };
+    fullscreen: boolean;
+  };
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -49,6 +60,7 @@ export interface TaskOrigin extends TaskOriginMetadata {
 interface StoredOrigin extends TaskOrigin {
   capturedAt: number;
   historyIndex: number | null;
+  taskOriginKey?: string;
 }
 
 interface OriginStore {
@@ -56,12 +68,10 @@ interface OriginStore {
   scope: string;
   entries: Map<string, StoredOrigin>;
   metadata: { path: string; value: TaskOriginMetadata } | null;
-  primaryRoots: Map<string, string>;
 }
 
 export interface PrimaryDestination {
   to: string;
-  returnKey?: string;
 }
 
 interface TaskOriginContract {
@@ -79,6 +89,11 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
+  // The private overview contains only destinations. Private lists, records
+  // and query data stay outside the task origin.
+  if (pathname === MORE_PRIVATE_ROUTE || pathname === `${MORE_PRIVATE_ROUTE}/`)
+    return MORE_PRIVATE_ROUTE;
+
   const planningDetail = /^\/plan\/(plans|wishes)\/(?!new$)[^/]+$/.test(
     pathname,
   );
@@ -91,7 +106,7 @@ export function taskOriginPath(
   const memoryEditor = /^\/story\/memories\/(?!new\/)[^/]+\/edit$/.test(
     pathname,
   );
-  const recapReader = /^\/more\/passport\/[^/]+$/.test(pathname);
+  const recapReader = /^\/story\/recaps\/[^/]+$/.test(pathname);
   const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
     !recapReader &&
@@ -114,20 +129,19 @@ export function taskOriginPath(
       '/plan',
       WISH_SELECTION_ROUTE,
       '/more',
-      MORE_PASSPORT_ROUTE,
+      STORY_RECAPS_ROUTE,
       '/search',
       ACTIVITY_ROUTE,
       MORE_NOTIFICATIONS_ROUTE,
-      MORE_PASSPORT_ROUTE,
     ].includes(pathname)
   )
     return null;
-  if (recapReader || pathname === MORE_PASSPORT_ROUTE) {
+  if (recapReader || pathname === STORY_RECAPS_ROUTE) {
     const input = new URLSearchParams(search);
     const safe = new URLSearchParams();
     if (input.get('tab') === 'years') safe.set('tab', 'years');
     if (
-      pathname === MORE_PASSPORT_ROUTE &&
+      pathname === STORY_RECAPS_ROUTE &&
       input.get('details') === 'relationship'
     )
       safe.set('details', 'relationship');
@@ -142,21 +156,27 @@ export function taskOriginPath(
       ? `${pathname}?scope=${scope}`
       : pathname;
   }
+  if (pathname === MORE_COLLECTIONS_ROUTE) {
+    const scope = new URLSearchParams(search).get('scope');
+    return scope === 'COMPLETED' || scope === 'ALL'
+      ? `${pathname}?scope=${scope}`
+      : pathname;
+  }
   if (pathname === ACTIVITY_ROUTE) {
     return new URLSearchParams(search).get('scope') === 'own'
       ? `${pathname}?scope=own`
+      : pathname;
+  }
+  if (pathname === STORY_PHOTOS_ROUTE) {
+    return new URLSearchParams(search).get('visibility') === 'private'
+      ? `${pathname}?visibility=private`
       : pathname;
   }
   if (pathname === MEMORY_MAP_ROUTE) {
     const input = new URLSearchParams(search);
     const safe = storyFiltersToSearch(parseStoryFilters(input));
     const place = input.get('place') ?? '';
-    const coordinates = place.split(':').map(Number);
-    const valid =
-      /^-?\d{1,3}(?:\.\d{1,16})?:-?\d{1,3}(?:\.\d{1,16})?$/.test(place) &&
-      Math.abs(coordinates[0]) <= 90 &&
-      Math.abs(coordinates[1]) <= 180;
-    if (valid) safe.set('place', place);
+    if (parseMapPlace(place)) safe.set('place', place);
     return safe.size ? `${pathname}?${safe}` : pathname;
   }
   if (pathname !== '/story') return pathname;
@@ -185,19 +205,16 @@ export function TaskOriginProvider({
     scope,
     entries: new Map(),
     metadata: null,
-    primaryRoots: new Map(),
   });
   // Invalidate synchronously, including callbacks retained by a late task result.
   if (storeRef.current.scope !== scope) {
     storeRef.current.active = false;
     storeRef.current.entries.clear();
-    storeRef.current.primaryRoots.clear();
     storeRef.current = {
       active: true,
       scope,
       entries: new Map(),
       metadata: null,
-      primaryRoots: new Map(),
     };
   }
   const generation = storeRef.current;
@@ -229,6 +246,7 @@ export function TaskOriginProvider({
       };
       const key = `task-${crypto.randomUUID()}`;
       const currentState = window.history.state;
+      const parentKey = currentState?.usr?.taskOriginKey;
       const origin: StoredOrigin = {
         to: path,
         scrollY: Math.max(0, window.scrollY),
@@ -247,19 +265,15 @@ export function TaskOriginProvider({
         planningPlanStatus: snapshot.planningPlanStatus,
         planningPlanSearch: snapshot.planningPlanSearch,
         planningWishSearch: snapshot.planningWishSearch,
+        planningCreateDate: snapshot.planningCreateDate,
+        memoryMap: snapshot.memoryMap,
+        taskOriginKey: resolveStored(parentKey) ? parentKey : undefined,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,
         capturedAt: Date.now(),
       };
       store.entries.set(key, origin);
-      // Root references share the existing origin lifetime and privacy boundary.
-      // Details, editors, private content and global search are never resumed.
-      if (
-        PRIMARY_APP_ROUTES.some((route) => route.path === location.pathname)
-      ) {
-        store.primaryRoots.set(location.pathname, key);
-      }
       while (store.entries.size > MAX_ORIGINS) {
         const oldest = store.entries.keys().next().value;
         if (oldest) store.entries.delete(oldest);
@@ -276,7 +290,7 @@ export function TaskOriginProvider({
       );
       return key;
     },
-    [path, generation, location.pathname],
+    [path, generation, resolveStored],
   );
 
   const resolveOrigin = useCallback(
@@ -286,6 +300,7 @@ export function TaskOriginProvider({
       const {
         capturedAt: _capturedAt,
         historyIndex: _historyIndex,
+        taskOriginKey: _taskOriginKey,
         ...rest
       } = origin;
       return rest;
@@ -310,23 +325,22 @@ export function TaskOriginProvider({
       }
       void navigate(origin.to, {
         replace: true,
-        state: { taskReturnKey: key },
+        state: {
+          taskReturnKey: key,
+          ...(resolveStored(origin.taskOriginKey)
+            ? { taskOriginKey: origin.taskOriginKey }
+            : {}),
+        },
       });
     },
     [navigate, resolveStored, generation],
   );
 
-  const primaryDestination = useCallback(
-    (root: string): PrimaryDestination => {
-      if (!PRIMARY_APP_ROUTES.some((route) => route.path === root))
-        return { to: '/today' };
-      const key = generation.primaryRoots.get(root);
-      const origin = resolveStored(key);
-      if (!origin || origin.to.split('?')[0] !== root) return { to: root };
-      return { to: origin.to, returnKey: key };
-    },
-    [generation, resolveStored],
-  );
+  const primaryDestination = useCallback((root: string): PrimaryDestination => {
+    if (!PRIMARY_APP_ROUTES.some((route) => route.path === root))
+      return { to: '/today' };
+    return { to: root };
+  }, []);
 
   const registerOriginMetadata = useCallback(
     (metadata: TaskOriginMetadata) => {
@@ -347,7 +361,6 @@ export function TaskOriginProvider({
       storeRef.current.active = false;
       storeRef.current.entries.clear();
       storeRef.current.metadata = null;
-      storeRef.current.primaryRoots.clear();
     };
   }, []);
 
@@ -366,6 +379,36 @@ export function TaskOriginProvider({
       registerOriginMetadata,
       primaryDestination,
     ],
+  );
+  return (
+    <TaskOriginContext.Provider value={value}>
+      {children}
+    </TaskOriginContext.Provider>
+  );
+}
+
+/**
+ * A kept, hidden primary tab must not publish return metadata or capture an
+ * origin for the destination that is currently visible.
+ */
+export function PrimaryTabTaskOriginScope({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
+  const context = useContext(TaskOriginContext);
+  const value = useMemo<TaskOriginContract | null>(
+    () =>
+      context && !active
+        ? {
+            ...context,
+            captureOrigin: () => null,
+            registerOriginMetadata: () => () => {},
+          }
+        : context,
+    [active, context],
   );
   return (
     <TaskOriginContext.Provider value={value}>

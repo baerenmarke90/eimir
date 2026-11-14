@@ -1,7 +1,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import contextTags from '../../src/i18n/locales/contextTags';
+import experiences from '../../src/i18n/locales/experiences';
 import copy from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { showContextTags } from '../support/memoryDiary';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -12,6 +18,108 @@ import {
   SPACE_ID,
 } from '../support/storyTimelineFixture';
 
+const EMOTIONS = [
+  'LOVED',
+  'SEEN',
+  'APPRECIATED',
+  'SUPPORTED',
+  'GRATEFUL',
+  'HAPPY',
+] as const;
+type Emotion = (typeof EMOTIONS)[number];
+
+function rgb(hex: string): string {
+  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
+  if (!match) throw new Error(`Unsupported semantic color: ${hex}`);
+  return `rgb(${match
+    .slice(1)
+    .map((part) => Number.parseInt(part, 16))
+    .join(', ')})`;
+}
+
+function luminance(color: string): number {
+  const values = color
+    .match(/[\d.]+/g)
+    ?.slice(0, 3)
+    .map(Number);
+  if (values?.length !== 3)
+    throw new Error(`Unsupported rendered color: ${color}`);
+  const linear = values.map((value) => {
+    const channel = value / 255;
+    return channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+}
+
+async function expectFeelingSurface(
+  page: Page,
+  emotion: Emotion,
+  reading = false,
+) {
+  const surface = page.locator('.heart-emotion-page');
+  const semanticColor = await surface.evaluate(
+    (element, token) =>
+      getComputedStyle(element).getPropertyValue(token).trim(),
+    `--emotion-${emotion.toLowerCase()}-surface`,
+  );
+  const expectedBackground = rgb(semanticColor);
+  await expect(surface).toHaveCSS('background-color', expectedBackground);
+  await expect(surface).toHaveCSS('background-image', 'none');
+  await expect(page.locator('.composer-header')).toHaveCSS(
+    'background-color',
+    expectedBackground,
+  );
+  const text = surface.locator(
+    reading ? '.heart-moment-detail-text' : 'textarea.composer-lead',
+  );
+  const colors = await text.evaluate((element) => ({
+    text: getComputedStyle(element).color,
+    placeholder: getComputedStyle(element, '::placeholder').color,
+  }));
+  for (const foreground of reading
+    ? [colors.text]
+    : [colors.text, colors.placeholder]) {
+    const pair = [luminance(foreground), luminance(expectedBackground)];
+    expect(
+      (Math.max(...pair) + 0.05) / (Math.min(...pair) + 0.05),
+    ).toBeGreaterThanOrEqual(4.5);
+  }
+  if (!reading)
+    await expect(text).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  return expectedBackground;
+}
+
+async function chooseFeeling(page: Page, emotion: Emotion) {
+  const picker = page.locator('.heart-emotion-picker');
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole('radio')).toHaveCount(EMOTIONS.length);
+  const radio = picker.getByRole('radio', {
+    name: copy.heartEmotion[emotion],
+    exact: true,
+  });
+  await picker.locator(`label[data-emotion="${emotion}"]`).click();
+  await expect(radio).toBeChecked();
+  await expect(
+    picker.locator(`label[data-emotion="${emotion}"]`),
+  ).toBeVisible();
+  return expectFeelingSurface(page, emotion);
+}
+
+async function installComposerDefaults(page: Page) {
+  await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
+    await route.fallback();
+  });
+}
+
 const TEXT =
   'We walked by the water until the evening light softened.\nYou made an ordinary day feel special, and I want to remember that quiet moment together. ❤️';
 const PHOTO = readFileSync(
@@ -20,12 +128,97 @@ const PHOTO = readFileSync(
     import.meta.url,
   ),
 );
+const PROCESSING_VIDEO = {
+  id: 'heart-reading-video',
+  status: 'PROCESSING',
+  mediaType: 'VIDEO',
+  mimeType: 'video/mp4',
+  size: 270000,
+  hasThumbnail: false,
+  isSensitive: false,
+};
+
+async function expectFeelingControls(page: Page) {
+  const media = page.locator('.media-processing-state');
+  await expect(media).toBeVisible();
+  const tint = await media.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
+  const defaultTint = rgb(
+    await page
+      .locator('html')
+      .evaluate((element) =>
+        getComputedStyle(element)
+          .getPropertyValue('--color-surface-subtle')
+          .trim(),
+      ),
+  );
+  expect(tint).not.toBe(defaultTint);
+  for (const selector of [
+    '.media-gallery-carousel-viewport',
+    '.memory-tag-summary li',
+    '.comment-form-compact textarea',
+    '.comment-compose-actions > button[type="submit"]',
+    '.mobile-bottom-nav [aria-current="page"]',
+  ]) {
+    await expect(page.locator(selector)).toHaveCSS('background-color', tint);
+  }
+  const action = await page
+    .locator('.heart-emotion-badge--detail')
+    .evaluate((element) => getComputedStyle(element).color);
+  await expect(media.getByRole('progressbar')).toHaveCSS(
+    'accent-color',
+    action,
+  );
+  return defaultTint;
+}
+
+async function expectOriginalPhoto(page: Page) {
+  // Compare the photo at rest, outside the existing native button hover feedback.
+  await page.mouse.move(0, 0);
+  const image = page
+    .locator('.heart-moment-detail-container .media-gallery-carousel-content')
+    .first();
+  await expect(image).toBeVisible();
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (element) =>
+          (element as HTMLImageElement).complete &&
+          (element as HTMLImageElement).naturalWidth > 0,
+      ),
+    )
+    .toBe(true);
+  const original = await image.evaluate(async (element) => {
+    const response = await fetch((element as HTMLImageElement).currentSrc);
+    return [...new Uint8Array(await response.arrayBuffer())];
+  });
+  expect(Buffer.from(original)).toEqual(PHOTO);
+  const treatment = await image.evaluate((element) => {
+    const values = [];
+    let current: Element | null = element;
+    while (current) {
+      const style = getComputedStyle(current);
+      values.push({
+        filter: style.filter,
+        opacity: style.opacity,
+        blend: style.mixBlendMode,
+      });
+      if (current.classList.contains('product-detail-card')) break;
+      current = current.parentElement;
+    }
+    return values;
+  });
+  for (const value of treatment)
+    expect(value).toEqual({ filter: 'none', opacity: '1', blend: 'normal' });
+}
 
 async function openHeart(
   page: Page,
   options: { photo?: boolean; private?: boolean; text?: string } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
+  await installComposerDefaults(page);
   let writes = 0;
   let heart = {
     id: 'hm-love',
@@ -97,7 +290,13 @@ async function openHeart(
   return { unknown, writes: () => writes };
 }
 
-const scenarios = [
+const scenarios: readonly {
+  width: number;
+  theme: 'light' | 'dark';
+  photo?: boolean;
+  private?: boolean;
+  large?: boolean;
+}[] = [
   { width: 360, theme: 'light', photo: true },
   { width: 390, theme: 'dark', photo: true },
   { width: 430, theme: 'light', private: true },
@@ -115,6 +314,7 @@ for (const scenario of scenarios) {
       reducedMotion: 'reduce',
     });
     const state = await openHeart(page, scenario);
+    if ('photo' in scenario) await expectOriginalPhoto(page);
     if ('large' in scenario)
       await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     const title = page.getByRole('heading', {
@@ -156,7 +356,7 @@ for (const scenario of scenarios) {
     if ('private' in scenario) {
       await expect(page.locator('.comments-panel')).toHaveCount(0);
       await expect(
-        page.getByText(copy.heartMomentProduct.commentsPrivate),
+        page.locator('.moment-metadata .visibility-private'),
       ).toBeVisible();
     }
     await page
@@ -180,18 +380,171 @@ for (const scenario of scenarios) {
       }),
     ).toBeVisible();
     expect(state.writes()).toBe(1);
+    if ('photo' in scenario) await expectOriginalPhoto(page);
     await page.locator('.heart-moment-detail-text').scrollIntoViewIfNeeded();
     await captureScreenshot(
       page,
       info,
       `heart-reading-saved-${scenario.width}-${scenario.theme}.png`,
     );
-    await page.locator('.shell-detail-back').click();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+      .click();
     await expect(page).toHaveURL(/\/story(?:\?.*)?$/);
     await expect(page.locator('#momente-diary')).toBeVisible();
     expect(state.unknown).toEqual([]);
   });
 }
+
+test('all six native feelings color the complete HeartMoment page through create, edit and reload in both themes', async ({
+  browser,
+}, info) => {
+  for (const theme of ['light', 'dark'] as const) {
+    const context = await browser.newContext({
+      baseURL: info.project.use.baseURL,
+      locale: 'de-DE',
+      viewport: { width: 390, height: 900 },
+      colorScheme: theme,
+      reducedMotion: 'reduce',
+      serviceWorkers: 'block',
+    });
+    const page = await context.newPage();
+    const unknown = await installMocks(page, { strict: true });
+    await installComposerDefaults(page);
+    const id = 'heart-feeling-color';
+    const path = `/api/v1/spaces/${SPACE_ID}/heart-moments/${id}`;
+    let creates = 0;
+    let updates = 0;
+    let saved: Record<string, unknown> | null = null;
+    let withProcessingVideo = false;
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/heart-moments`,
+      async (route) => {
+        if (route.request().method() !== 'POST') return route.fallback();
+        creates += 1;
+        saved = {
+          ...route.request().postDataJSON(),
+          id,
+          spaceId: SPACE_ID,
+          authorId: ACCOUNT_ID,
+          author: ME,
+          capabilities: CAPABILITIES,
+          attachment: null,
+          attachments: [],
+          version: 1,
+          createdAt: '2026-11-09T12:00:00Z',
+          updatedAt: '2026-11-09T12:00:00Z',
+        };
+        return route.fulfill({ json: saved });
+      },
+    );
+    await page.route(`**${path}`, async (route) => {
+      if (route.request().method() === 'PATCH') {
+        expect(route.request().headers()['if-match']).toBe('1');
+        updates += 1;
+        saved = { ...saved, ...route.request().postDataJSON(), version: 2 };
+      }
+      expect(saved).not.toBeNull();
+      return route.fulfill({
+        json: {
+          ...saved,
+          attachment: withProcessingVideo ? PROCESSING_VIDEO : null,
+        },
+      });
+    });
+    await page.route(`**${path}/comments*`, (route) =>
+      route.fulfill({ json: { hasMore: false, items: [], nextCursor: null } }),
+    );
+    await signIn(page);
+    await page.goto('/story/heart-moments/new');
+    await expect(page.locator('.heart-emotion-picker')).toBeVisible();
+    await expect(
+      page.getByRole('radio', { name: copy.heartEmotion.LOVED, exact: true }),
+    ).toBeChecked();
+    await expectFeelingSurface(page, 'LOVED');
+    await page
+      .getByRole('textbox', {
+        name: copy.heartMomentProduct.textLabel,
+        exact: true,
+      })
+      .fill(TEXT);
+    const createColors = new Set<string>();
+    for (const emotion of EMOTIONS)
+      createColors.add(await chooseFeeling(page, emotion));
+    expect(createColors.size).toBe(6);
+    await chooseFeeling(page, 'GRATEFUL');
+    await showContextTags(page);
+    await page
+      .getByLabel(contextTags.newLabel, { exact: true })
+      .fill('Evening');
+    await page
+      .getByRole('button', { name: experiences.finish, exact: true })
+      .click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.screenshot({
+      path: info.outputPath(`heart-feeling-create-390-${theme}.png`),
+      fullPage: true,
+    });
+    await page
+      .getByRole('button', { name: copy.heartMomentProduct.save, exact: true })
+      .click();
+    await expect(page.locator('.heart-moment-detail-text')).toHaveText(TEXT);
+    await expectFeelingSurface(page, 'GRATEFUL', true);
+    expect(creates).toBe(1);
+    await page
+      .getByRole('link', { name: copy.heartMomentProduct.edit, exact: true })
+      .click();
+    const editColors = new Set<string>();
+    await expectFeelingSurface(page, 'GRATEFUL');
+    for (const emotion of EMOTIONS)
+      editColors.add(await chooseFeeling(page, emotion));
+    expect(editColors.size).toBe(6);
+    await chooseFeeling(page, 'APPRECIATED');
+    await expect(
+      page.getByRole('textbox', {
+        name: copy.heartMomentProduct.textLabel,
+        exact: true,
+      }),
+    ).toHaveValue(TEXT);
+    await page.screenshot({
+      path: info.outputPath(`heart-feeling-edit-390-${theme}.png`),
+      fullPage: true,
+    });
+    await page
+      .getByRole('button', { name: copy.heartMomentProduct.save, exact: true })
+      .click();
+    await expectFeelingSurface(page, 'APPRECIATED', true);
+    expect(updates).toBe(1);
+    withProcessingVideo = true;
+    await page.reload();
+    await expectFeelingSurface(page, 'APPRECIATED', true);
+    await expect(page.locator('.heart-moment-detail-emotion')).toContainText(
+      copy.heartEmotion.APPRECIATED,
+    );
+    const defaultTint = await expectFeelingControls(page);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.screenshot({
+      path: info.outputPath(`heart-feeling-reading-1440-${theme}.png`),
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    const momentsTab = page.locator('.mobile-bottom-nav [aria-current="page"]');
+    await momentsTab.click();
+    await expect(page).toHaveURL(/\/story(?:\?.*)?$/);
+    await expect(page.locator('.heart-emotion-page')).toHaveCount(0);
+    await expect(momentsTab).toHaveCSS('background-color', defaultTint);
+    expect(unknown).toEqual([]);
+    await context.close();
+  }
+});
 
 test('tag-only HeartMoments keep one compact title and no fabricated body', async ({
   page,

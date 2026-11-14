@@ -4,6 +4,8 @@ const photoSources = {
   connected: 'Immich ist verbunden.',
   configureInSettings: 'Verbinde Immich unter Einstellungen › Medienquellen.',
   addMedia: 'Medien hinzufügen',
+  mediaLabel: 'Medien',
+  deviceMediaHint: 'Fotos und Videos',
   device: 'Vom Gerät auswählen',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',
   previewFailed: 'Vorschau fehlt',
@@ -19,12 +21,13 @@ const photoSources = {
   consent:
     'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
   googleConsent:
-    'Nur ausgewählte Fotos werden in deinen geöffneten Entwurf und in den geschützten Server-Zwischenspeicher kopiert. Auf diesem Gerät werden keine dauerhaften Google-Fotokopien angelegt. Nach einem Neustart müssen nicht mehr verfügbare Fotos erneut ausgewählt werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
+    'Wähle bei Google Fotos aus, was du hinzufügen möchtest. eimir. übernimmt nur deine Auswahl. Gespeichert wird erst mit deinem Eintrag.',
   accept: 'Ausgewählte Fotos in meinen Entwurf übernehmen',
   continue: 'Weiter zur Auswahl',
   waiting:
-    'Wähle deine Fotos im geöffneten Fenster. Kehre anschließend hierher zurück.',
+    'Wähle jetzt deine Fotos bei Google. Danach geht es hier automatisch weiter.',
   progress: 'Fotos werden übernommen …',
+  retryImport: 'Erneut versuchen',
   selected: '{{count}} ausgewählt',
   import: 'Fotos übernehmen',
   importFailed:
@@ -38,9 +41,9 @@ const photoSources = {
   unavailable:
     'Die Fotoquelle ist gerade nicht erreichbar. Dein Eintrag bleibt erhalten. Versuche es erneut oder wähle Fotos auf deinem Gerät.',
   partial_one:
-    '{{count}} Foto wurde in deinen Entwurf übernommen. Weitere Fotos konnten nicht geladen werden. Dein bisheriger Eintrag bleibt erhalten.',
+    '{{count}} Foto übernommen. Einige Fotos konnten nicht geladen werden.',
   partial_other:
-    '{{count}} Fotos wurden in deinen Entwurf übernommen. Weitere Fotos konnten nicht geladen werden. Dein bisheriger Eintrag bleibt erhalten.',
+    '{{count}} Fotos übernommen. Einige Fotos konnten nicht geladen werden.',
   offline:
     'Für diese Fotoquelle brauchst du eine Internetverbindung. Dein Entwurf bleibt erhalten.',
   link: 'Eigenen Immich-Dienst verknüpfen',

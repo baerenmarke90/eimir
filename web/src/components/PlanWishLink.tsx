@@ -3,8 +3,15 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
+  useQuery,
 } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
@@ -24,6 +31,7 @@ import {
 import { postSnackbar } from '../client/snackbar';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
 import { sortByProductLabel } from '../client/productLabelOrder';
 import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
@@ -38,31 +46,59 @@ export function PlanWishLink({
   disabled,
   editing = false,
   onLinked,
+  draftChoice,
+  renderTrigger,
+  presentation,
+  sourceLinkRef,
 }: {
+  /**
+   * The page already presents the source wish (#1790 F2 origin line above the
+   * Plan title). This component then renders no second link and returns focus
+   * to that one after linking.
+   */
+  sourceLinkRef?: RefObject<HTMLAnchorElement | null>;
+  draftChoice?: {
+    value: WishDetail | null;
+    onChoose: (wish: WishDetail | null) => void;
+  };
+  renderTrigger?: (open: () => void) => ReactNode;
+  presentation?: 'composer';
   apis: SharedPlanningApis;
   spaceId: string;
-  plan: PlanDetail;
+  plan?: PlanDetail;
   disabled: boolean;
   editing?: boolean;
-  onLinked: (plan: PlanDetail) => Promise<void>;
+  onLinked?: (plan: PlanDetail) => Promise<void>;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<WishDetail | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
-  const sourceLink = useRef<HTMLAnchorElement>(null);
+  const ownSourceLink = useRef<HTMLAnchorElement>(null);
+  const sourceLink = sourceLinkRef ?? ownSourceLink;
   const inFlight = useRef(false);
   const focusLinkedSource = useRef(false);
   const eligible =
-    editing &&
-    plan.capabilities.canEdit &&
-    !plan.sourceWishId &&
-    plan.status !== 'COMPLETED';
-  const capture = useTaskActivation(open && plan.capabilities.canEdit);
-  const planKey = authorSummaryQueryKeys.planDetail(spaceId, plan.id);
-  const mutationKey = ['plan-write', spaceId, plan.id] as const;
-  const wishKey = ['m5-s3', 'wishes', spaceId, 'plan-link', plan.id] as const;
+    Boolean(draftChoice) ||
+    Boolean(
+      editing &&
+        plan?.capabilities.canEdit &&
+        !plan.sourceWishId &&
+        plan.status !== 'COMPLETED',
+    );
+  const capture = useTaskActivation(
+    open && Boolean(draftChoice || plan?.capabilities.canEdit),
+  );
+  const planKey = authorSummaryQueryKeys.planDetail(spaceId, plan?.id);
+  const mutationKey = ['plan-write', spaceId, plan?.id] as const;
+  const wishKey = [
+    'm5-s3',
+    'wishes',
+    spaceId,
+    'plan-link',
+    plan?.id ?? 'draft',
+  ] as const;
   const wishes = useInfiniteQuery({
     queryKey: wishKey,
     initialPageParam: undefined as string | undefined,
@@ -141,7 +177,7 @@ export function PlanWishLink({
       if (!intent.owns()) return;
       focusLinkedSource.current = true;
       await Promise.all([
-        onLinked(data.plan),
+        onLinked?.(data.plan),
         client.invalidateQueries({ queryKey: ['m5-s3', 'wishes', spaceId] }),
         client.invalidateQueries({
           queryKey: authorSummaryQueryKeys.wishDetail(spaceId, data.wish.id),
@@ -168,6 +204,12 @@ export function PlanWishLink({
       client.isMutating({ mutationKey, exact: true })
     )
       return;
+    if (draftChoice) {
+      draftChoice.onChoose(choice);
+      setOpen(false);
+      return;
+    }
+    if (!plan) return;
     const ownsTask = capture();
     const ownsPlan = captureAuthorizedQuery(client, planKey);
     const ownsWishes = captureAuthorizedQuery(client, wishKey);
@@ -178,40 +220,73 @@ export function PlanWishLink({
       owns: () => ownsTask() && ownsPlan() && ownsWishes(),
     });
   }
-  if (!eligible && !plan.sourceWishId) return null;
+  const sourceWish = useQuery({
+    queryKey: ['m5-s3', 'wishes', spaceId, plan?.sourceWishId],
+    enabled: Boolean(plan?.sourceWishId) && !sourceLinkRef,
+    retry: false,
+    queryFn: ({ signal }) => {
+      if (!plan?.sourceWishId) throw new Error('Missing source Wish');
+      return apis.wishes.getWish(
+        { spaceId, wishId: plan.sourceWishId },
+        { signal },
+      );
+    },
+  });
+  function beginChoice() {
+    mutation.reset();
+    setSelected(draftChoice?.value ?? null);
+    setOpen(true);
+  }
+  if (!eligible && !plan?.sourceWishId) return null;
   return (
     <section className="plan-wish-link">
-      {plan.sourceWishId ? (
-        <Link
-          ref={sourceLink}
-          className="button-link secondary-link plan-wish-source"
-          to={wishDetailPath(plan.sourceWishId)}
-        >
-          <EimirIcon name="wuensche" />
-          <span>{t('m5s3.plan.openWish')}</span>
-        </Link>
-      ) : (
+      {plan?.sourceWishId ? (
+        sourceLinkRef ? null : (
+          <Link
+            ref={sourceLink}
+            className="button-link secondary-link plan-wish-source"
+            to={wishDetailPath(plan.sourceWishId)}
+          >
+            <EimirIcon name="wuensche" />
+            <span>
+              <span>{t('m5s3.plan.openWish')}</span>
+              {sourceWish.data ? <small>{sourceWish.data.title}</small> : null}
+            </span>
+          </Link>
+        )
+      ) : renderTrigger ? (
+        renderTrigger(() => {
+          trigger.current =
+            document.activeElement instanceof HTMLButtonElement
+              ? document.activeElement
+              : null;
+          beginChoice();
+        })
+      ) : presentation === 'composer' ? (
         <button
           ref={trigger}
           type="button"
-          className="secondary plan-wish-source"
+          className="composer-link-entry tertiary"
+          disabled={disabled}
+          onClick={beginChoice}
+        >
+          <EimirIcon name="hinzufuegen" />
+          {t('m5s3.plan.linkWish')}
+        </button>
+      ) : (
+        <AddActionButton
+          ref={trigger}
+          label={t('m5s3.plan.linkWish')}
           disabled={disabled}
           aria-haspopup="dialog"
           aria-expanded={open}
-          onClick={() => {
-            mutation.reset();
-            setSelected(null);
-            setOpen(true);
-          }}
-        >
-          <EimirIcon name="wuensche" />
-          <span>{t('m5s3.plan.linkWish')}</span>
-        </button>
+          onClick={beginChoice}
+        />
       )}
       <ShortTaskSheet
         open={open && eligible}
         title={t('m5s3.plan.linkWish')}
-        restoreFocusRef={plan.sourceWishId ? sourceLink : trigger}
+        restoreFocusRef={plan?.sourceWishId ? sourceLink : trigger}
         onPresenceChange={(present) => {
           if (!present && focusLinkedSource.current && sourceLink.current) {
             focusLinkedSource.current = false;
@@ -243,6 +318,20 @@ export function PlanWishLink({
         }
       >
         <p>{t('m5s3.plan.linkWishHelp')}</p>
+        {draftChoice?.value ? (
+          <button
+            type="button"
+            className="tertiary"
+            onClick={() => {
+              draftChoice.onChoose(null);
+              setOpen(false);
+            }}
+          >
+            {t('memoryProduct.planning.remove', {
+              title: draftChoice.value.title,
+            })}
+          </button>
+        ) : null}
         {wishes.isPending || assembling ? (
           <p role="status">{t('m5s3.common.loading')}</p>
         ) : null}
@@ -262,7 +351,7 @@ export function PlanWishLink({
               <label key={wish.id}>
                 <input
                   type="radio"
-                  name={`plan-wish-${plan.id}`}
+                  name={`plan-wish-${plan?.id ?? 'draft'}`}
                   value={wish.id}
                   checked={choice?.id === wish.id}
                   disabled={mutation.isPending}

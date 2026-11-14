@@ -1,0 +1,397 @@
+/* Partner distance (#1792): settings page, start sheet, background disclosure. */
+
+.partner-location-page {
+  max-width: 48rem;
+}
+
+.partner-location-section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.partner-location-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* Sharing level: tinted choice surfaces, no outlines. */
+.partner-location-levels {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.partner-location-level {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+
+.partner-location-level input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.1rem 0 0;
+  accent-color: var(--color-action-primary);
+}
+
+.partner-location-level.is-selected {
+  background: color-mix(
+    in srgb,
+    var(--color-action-primary) 14%,
+    var(--color-surface)
+  );
+}
+
+.partner-location-level:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.partner-location-level-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.partner-location-level-copy strong {
+  overflow-wrap: anywhere;
+}
+
+.partner-location-level-copy span {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.partner-location-levels:disabled .partner-location-level {
+  cursor: wait;
+  opacity: var(--opacity-disabled);
+}
+
+/* Active state with end time, duration change and Stop. */
+.partner-location-status {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.partner-location-status.is-active {
+  background: var(--color-success-surface);
+}
+
+.partner-location-status p {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.partner-location-status-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-success);
+  animation: partner-location-dot-in var(--duration-transition)
+    var(--easing-enter);
+}
+
+.partner-location-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.partner-location-status-actions > button {
+  flex: 1 1 8rem;
+  border-color: transparent;
+}
+
+.partner-location-status-actions > button.partner-location-stop {
+  color: var(--color-error);
+}
+
+.partner-location-sheet-message {
+  margin: 0;
+  color: var(--color-error);
+}
+
+.partner-location-problem {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.partner-location-problem p {
+  margin: 0;
+}
+
+/* Calm Pro explanation; never mentions the partner's sharing. */
+.partner-location-pro {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.partner-location-pro p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.partner-location-pro .partner-location-pro-title {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.partner-location-pro .button-link {
+  border-color: transparent;
+  background: var(--color-surface-subtle);
+}
+
+/* On this phone / in this browser. */
+.partner-location-device {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.partner-location-device-row {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.partner-location-device-row .preference-switch-row {
+  padding: 0;
+  border: 0;
+}
+
+.partner-location-permission {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.partner-location-permission-copy {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.partner-location-permission-copy > span {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.partner-location-permission-copy .partner-location-inline-action {
+  min-height: 44px;
+  padding-inline: 0;
+  color: var(--color-brand-text);
+  font-weight: 600;
+  text-align: start;
+}
+
+.partner-location-permission-mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-success);
+}
+
+/* Segmented choices in sheets: tinted, borderless. */
+.partner-location-segmented {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.partner-location-segmented-legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.partner-location-segmented-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.partner-location-segment {
+  position: relative;
+  display: flex;
+  flex: 1 1 6.5rem;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-small);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
+}
+
+.partner-location-segment input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.partner-location-segment.is-selected {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px var(--color-shadow-soft);
+}
+
+.partner-location-segment:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.partner-location-segmented:disabled .partner-location-segment {
+  cursor: wait;
+  opacity: var(--opacity-disabled);
+}
+
+.partner-location-duration {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Sheets. */
+.partner-location-sheet-lead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.partner-location-points {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.partner-location-points li {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.partner-location-points svg {
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--color-success);
+}
+
+.partner-location-sheet .short-task-sheet-body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.partner-location-sheet-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.partner-location-sheet-actions > .partner-location-primary {
+  width: 100%;
+  min-height: 48px;
+}
+
+.partner-location-sheet-actions > .partner-location-quiet {
+  width: 100%;
+  color: var(--color-brand-text);
+}
+
+.partner-location-entry {
+  width: 100%;
+}
+
+.partner-location-entry .settings-category-link {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.partner-location-entry .settings-category-copy strong {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@keyframes partner-location-dot-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-location-level,
+  .partner-location-segment {
+    transition: none;
+  }
+
+  .partner-location-status-dot {
+    animation: none;
+  }
+}
+
+/* Settings › Wir: viewer-side distance display preference. */
+.partner-distance-wir-option {
+  margin-top: var(--space-3);
+}
+
+.partner-distance-wir-label {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.partner-distance-wir-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.partner-location-map-link {
+  justify-self: start;
+  align-self: flex-start;
+}

@@ -293,15 +293,14 @@ class TestDeletePolicyValidation:
         response = delete_person(client, couple, person, "everything")
         assert response.status_code == 422
 
-    def test_partner_still_cannot_delete_shared_person(
+    def test_partner_can_remove_shared_person_with_explicit_policy(
         self,
         client,
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         person = create_person(client, couple)
         response = delete_person(client, couple, person, "preserve", token_key="token_b")
-        assert response.status_code == 403
-        assert response.json()["code"] == "NOT_RESOURCE_OWNER"
+        assert response.status_code == 204
 
     def test_foreign_space_remains_404(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         person = create_person(client, couple)

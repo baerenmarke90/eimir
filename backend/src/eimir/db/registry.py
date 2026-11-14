@@ -38,6 +38,7 @@ MODEL_MODULES = (
     "eimir.photo_sources.models",
     "eimir.places.models",
     "eimir.plans.models",
+    "eimir.presence.models",
     "eimir.private_collections.models",
     "eimir.private_notes.models",
     "eimir.profiles.models",

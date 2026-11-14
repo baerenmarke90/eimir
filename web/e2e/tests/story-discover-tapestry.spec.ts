@@ -7,6 +7,7 @@ import de from '../../src/i18n/locales/de';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import navigation from '../../src/i18n/locales/navigation';
 import productTour from '../../src/i18n/locales/productTour';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
 
@@ -468,9 +469,14 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 
-  await page.screenshot({
+  await retrospective.evaluate((card) =>
+    card.scrollIntoView({ block: 'center', behavior: 'instant' }),
+  );
+  await expect(
+    retrospective.locator('.momente-retrospective-chevron'),
+  ).toBeVisible();
+  await retrospective.screenshot({
     path: testInfo.outputPath('story-601-retrospective-390-light.png'),
-    fullPage: true,
   });
 });
 
@@ -810,7 +816,7 @@ test('Diary uses its filter and keeps annual history reachable under More', asyn
     .getByRole('button', { name: productTour.later, exact: true })
     .click();
   const years = page.getByRole('link', {
-    name: de.more.yearsTitle,
+    name: de.more.destinations.yearsAndRecaps,
     exact: true,
   });
   await expect(years).toHaveAttribute('href', '/story/years');
@@ -1013,6 +1019,114 @@ for (const [width, theme] of [
     await page.screenshot({
       path: info.outputPath(`diary-${width}-${theme}.png`),
       fullPage: false,
+    });
+    expect(unexpected).toEqual([]);
+  });
+}
+
+for (const [width, theme, textScale] of [
+  [360, 'light', 100],
+  [390, 'dark', 100],
+  [390, 'light', 100],
+  [430, 'dark', 100],
+  [1280, 'dark', 100],
+  [320, 'dark', 200],
+] as const) {
+  test(`Discover HeartMoment notes follow their emotion at ${width} ${theme} ${textScale}% text (#1784)`, async ({
+    page,
+  }, info) => {
+    const unexpected = await installDiscoverApiMocks(page);
+    const emotions = [
+      'LOVED',
+      'SEEN',
+      'APPRECIATED',
+      'SUPPORTED',
+      'GRATEFUL',
+      'HAPPY',
+    ] as const;
+    const notes = emotions.map((emotion, index) => {
+      const item = heartMomentItem(
+        `discover-emotion-${index}`,
+        localizedFixture.diaryCategoryNotes[index],
+        '2026-10-26',
+      );
+      return { ...item, heartMoment: { ...item.heartMoment, emotion } };
+    });
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/discover`, (route) =>
+      route.fulfill({
+        json: {
+          selectionDate: '2026-09-17',
+          lead: DISCOVER_ITEMS[2],
+          items: notes,
+          leadContext: null,
+        },
+      }),
+    );
+    await page.setViewportSize({ width, height: 1500 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.goto('/story?tab=discover');
+    await signIn(page);
+    await page.goto('/story?tab=discover');
+    if (textScale !== 100)
+      await page.addStyleTag({
+        content: `html { font-size: ${textScale}%; }`,
+      });
+
+    const links = page.locator('.momente-tapestry-note');
+    await expect(links).toHaveCount(emotions.length);
+    // The emotion badge replaces the corner glyph, the surface follows the feeling.
+    await expect(
+      page.locator('.momente-tapestry-note .momente-tapestry-kind'),
+    ).toHaveCount(0);
+    const surfaces = await links.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const probe = document.createElement('span');
+        probe.style.backgroundColor = 'var(--heart-emotion-surface)';
+        node.append(probe);
+        const expected = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return { background: getComputedStyle(node).backgroundColor, expected };
+      }),
+    );
+    expect(new Set(surfaces.map((s) => s.background)).size).toBe(
+      emotions.length,
+    );
+    for (const surface of surfaces)
+      expect(surface.background).toBe(surface.expected);
+    for (const [index, emotion] of emotions.entries()) {
+      const label = storyProducts.heartEmotion[emotion];
+      const link = links.nth(index);
+      await expect(link.locator('.heart-emotion-label')).toHaveText(label);
+      await expect(link).toHaveAttribute(
+        'aria-label',
+        new RegExp(
+          `${storyProducts.heartMomentProduct.emotionLabel}: ${label}$`,
+        ),
+      );
+    }
+    await links.first().scrollIntoViewIfNeeded();
+    // Badge and label stay inside their note, also with enlarged text.
+    const overflow = await links.evaluateAll(
+      (nodes) =>
+        nodes.filter((node) => {
+          const note = node.getBoundingClientRect();
+          const badge = node
+            .querySelector('.heart-emotion-badge')
+            ?.getBoundingClientRect();
+          return (
+            !badge ||
+            badge.left < note.left - 1 ||
+            badge.right > note.right + 1 ||
+            node.scrollWidth > node.clientWidth + 1
+          );
+        }).length,
+    );
+    expect(overflow).toBe(0);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(
+        `discover-emotion-notes-${width}-${theme}-${textScale}.png`,
+      ),
     });
     expect(unexpected).toEqual([]);
   });

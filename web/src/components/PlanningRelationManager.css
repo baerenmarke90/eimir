@@ -1,12 +1,6 @@
 .relation-moment-add {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: var(--space-12);
   margin-top: var(--space-4);
 }
-.relation-moment-add svg,
 .relation-moment-search > svg {
   flex: 0 0 var(--space-5);
   width: var(--space-5);
@@ -181,11 +175,6 @@
 }
 .planning-relation-target.relation-moment-link {
   display: flex;
-}
-@media (max-width: 599px) {
-  .relation-moment-add {
-    width: 100%;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .relation-moment-choice {

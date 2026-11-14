@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`concealed` | boolean
 `createdAt` | Date
 `id` | string
 `occurredOn` | Date
@@ -24,6 +25,7 @@ import type { DashboardItem } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "concealed": null,
   "createdAt": null,
   "id": null,
   "occurredOn": null,

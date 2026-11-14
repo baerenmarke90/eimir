@@ -1,5 +1,3 @@
-import { TaskBackButton } from './TaskBackButton';
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useMutation,
@@ -31,6 +29,7 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { planDetailPath } from '../client/routes';
 import {
   planScheduleFromInputs,
@@ -44,13 +43,16 @@ import {
   wishSelectionQueryKey,
   wishSelectionSourceToken,
 } from '../client/wishSelection';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { PlanningDiscardConfirmation } from './PlanningEditorLifecycle';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './WishSelection.css';
 
@@ -227,19 +229,38 @@ function WishSelectionTask({
     enabled: activeMode === 'setup',
     retry: false,
   });
-  const wishItems = [
-    ...new Map<string, { id: string; title: string }>(
-      [
-        ...(wishes.data?.pages.flatMap((page) => page.items) ?? []),
-        ...(view?.candidates
-          .filter((candidate) => candidate.status === 'OPEN')
-          .map((candidate) => ({
-            id: candidate.wishId,
-            title: candidate.title,
-          })) ?? []),
-      ].map((wish) => [wish.id, wish]),
-    ).values(),
-  ];
+  useEffect(() => {
+    if (
+      activeMode === 'setup' &&
+      wishes.hasNextPage &&
+      !wishes.isFetching &&
+      !wishes.error
+    )
+      void wishes.fetchNextPage();
+  }, [
+    activeMode,
+    wishes.hasNextPage,
+    wishes.isFetching,
+    wishes.error,
+    wishes.fetchNextPage,
+  ]);
+  const wishItems = sortByProductLabel(
+    [
+      ...new Map<string, { id: string; title: string }>(
+        [
+          ...(wishes.data?.pages.flatMap((page) => page.items) ?? []),
+          ...(view?.candidates
+            .filter((candidate) => candidate.status === 'OPEN')
+            .map((candidate) => ({
+              id: candidate.wishId,
+              title: candidate.title,
+            })) ?? []),
+        ].map((wish) => [wish.id, wish]),
+      ).values(),
+    ],
+    (wish) => wish.title,
+    resolvedLocale(),
+  );
 
   function begin() {
     if (submissionLock.current) return null;
@@ -752,9 +773,8 @@ function WishSelectionTask({
                 }}
               />
             </label>
-            <button
-              type="button"
-              className="secondary"
+            <AddActionButton
+              label={t('wishSelection.addIdea')}
               disabled={!newIdea.trim()}
               onClick={() => {
                 clearProblems();
@@ -762,9 +782,7 @@ function WishSelectionTask({
                 if (current)
                   createWish.mutate({ current, title: newIdea.trim() });
               }}
-            >
-              {t('wishSelection.addIdea')}
-            </button>
+            />
             <div className="wish-selection-actions">
               <button
                 type="submit"

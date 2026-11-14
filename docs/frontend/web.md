@@ -54,7 +54,7 @@ compressed byte size; downloaded bytes remain cached after a decoded URL is
 released. Thumbnail URLs retain the existing bounded preview lifecycle.
 
 The saved-memory map uses server-declared thumbnail availability, mounts one
-Leaflet map at a time, and fits its authorized locations after measurable layout
+MapLibre map at a time, and fits its authorized locations after measurable layout
 and subsequent resizes until the user pans/zooms. Its initial overview is capped
 at zoom 12; deliberate zoom remains available. Short returns reuse its scoped
 query for one minute, with thirty-minute garbage collection and existing

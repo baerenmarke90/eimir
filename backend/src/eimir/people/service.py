@@ -23,7 +23,7 @@ from datetime import date
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -56,6 +56,7 @@ from eimir.reminders import runtime as reminder_runtime
 
 
 class PeopleErrorCode:
+    SHARED_PERSON_REQUIRED = "RELATED_PERSON_SHARED_REQUIRED"
     DISPLAY_NAME_REQUIRED = "RELATED_PERSON_DISPLAY_NAME_REQUIRED"
     BIRTHDAY_REQUIRED = "RELATED_PERSON_BIRTHDAY_REQUIRED"
     DASHBOARD_VISIBILITY_NEEDS_A_BIRTHDAY = "RELATED_PERSON_DASHBOARD_VISIBILITY_NEEDS_A_BIRTHDAY"
@@ -178,6 +179,14 @@ def _rebind_avatar(
             attachment_service.mark_for_deletion(session, detached)
 
 
+def _require_shared_person(visibility: ContentVisibility) -> None:
+    if visibility is not ContentVisibility.SHARED:
+        raise ValidationError(
+            "People are always shared within their Space.",
+            PeopleErrorCode.SHARED_PERSON_REQUIRED,
+        )
+
+
 def create_person(
     session: Session,
     context: AuthorizationContext,
@@ -189,7 +198,9 @@ def create_person(
     visibility: ContentVisibility,
     show_birthday_on_dashboard: bool = False,
     avatar_attachment_id: UUID | None = None,
+    note: str | None = None,
 ) -> RelatedPerson:
+    _require_shared_person(visibility)
     normalized_birthday = normalize_birthday(birthday, year_known=birthday_year_known)
     _validate_dashboard_visibility(
         normalized_birthday, show_birthday_on_dashboard=show_birthday_on_dashboard
@@ -197,13 +208,14 @@ def create_person(
     person = RelatedPerson(
         space_id=context.space_id,
         owner_id=context.account_id,
-        privacy_class=privacy_for(visibility).value,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
         relationship=relationship.value,
         birthday=normalized_birthday,
         birthday_year_known=birthday_year_known,
         show_birthday_on_dashboard=show_birthday_on_dashboard,
         payload=RelatedPersonPayload(
-            display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED)
+            display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED),
+            note=(note or "").strip(),
         ),
     )
     if avatar_attachment_id is not None:
@@ -212,26 +224,6 @@ def create_person(
     session.flush()
     reminder_runtime.reconcile_space(session, context.space_id)
     return person
-
-
-def _shared_dates_of(session: Session, person: RelatedPerson) -> int:
-    """Return the number of shared important dates attached to this person.
-
-    The query deliberately runs without a guard: the whole space can already
-    see `SPACE_SHARED` rows. A partner's private dates remain uncounted - they
-    are still valid after tightening visibility, and rejecting because of
-    them would disclose that they exist.
-    """
-    return int(
-        session.execute(
-            select(func.count())
-            .select_from(ImportantDate)
-            .where(
-                ImportantDate.related_person_id == person.id,
-                ImportantDate.privacy_class == PrivacyClass.SPACE_SHARED.value,
-            )
-        ).scalar_one()
-    )
 
 
 def update_person(
@@ -247,23 +239,12 @@ def update_person(
     visibility: ContentVisibility,
     show_birthday_on_dashboard: bool = False,
     avatar_attachment_id: UUID | None = None,
+    note: str | None = None,
 ) -> RelatedPerson:
     person = require_writable_locked(session, RelatedPerson, context, person_id)
     _ensure_expected_version(person.version, expected_version, "related person")
 
-    privacy = privacy_for(visibility)
-    if (
-        privacy is PrivacyClass.OWNER_ONLY
-        and person.privacy_class != privacy.value
-        and _shared_dates_of(session, person)
-    ):
-        # Do not silently reclassify rows owned by somebody else: shared dates
-        # attached to this person must first be tightened or removed by their
-        # respective owners.
-        raise ConflictError(
-            "Shared important dates still refer to this person.",
-            PeopleErrorCode.HAS_SHARED_DATES,
-        )
+    _require_shared_person(visibility)
 
     normalized_birthday = normalize_birthday(birthday, year_known=birthday_year_known)
     _validate_dashboard_visibility(
@@ -271,13 +252,14 @@ def update_person(
     )
 
     _rebind_avatar(session, context, person, avatar_attachment_id)
-    person.privacy_class = privacy.value
+    person.privacy_class = PrivacyClass.SPACE_SHARED.value
     person.relationship = relationship.value
     person.birthday = normalized_birthday
     person.birthday_year_known = birthday_year_known
     person.show_birthday_on_dashboard = show_birthday_on_dashboard
     person.payload = RelatedPersonPayload(
-        display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED)
+        display_name=_clean_text(display_name, PeopleErrorCode.DISPLAY_NAME_REQUIRED),
+        note=person.payload.note if note is None else note.strip(),
     )
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)

@@ -175,7 +175,6 @@ button,
   button:hover:not(:disabled),
   .button-link:hover {
     filter: brightness(0.96);
-    transform: translateY(-1px);
   }
 }
 
@@ -223,6 +222,14 @@ summary:focus-visible,
 .file-picker:focus-within {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+:is(
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  textarea
+):focus-visible {
+  outline-width: 2px;
+  outline-offset: var(--border-divider-width);
 }
 
 /*
@@ -1174,6 +1181,18 @@ code {
     var(--easing-standard) forwards;
 }
 
+@keyframes eimir-create-entry-fade {
+  from {
+    opacity: 0.72;
+  }
+}
+
+@keyframes eimir-create-entry-rise {
+  from {
+    translate: 0 var(--space-2);
+  }
+}
+
 /* Immersive Creation Canvas (Direction B Sanctuary) */
 .immersive-create-card {
   max-width: 680px;
@@ -1296,6 +1315,32 @@ code {
   }
 }
 /* A saved read remains understandable while authoritative data refreshes. */
+/* The notice eases closed when live data replaces the saved read. */
+.overview-cache-notice-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--duration-context) var(--easing-standard),
+    opacity var(--duration-context) var(--easing-standard);
+}
+
+.overview-cache-notice-slot[data-open="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.overview-cache-notice-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-cache-notice-slot {
+    transition: none;
+  }
+}
+
 .overview-cache-notice {
   margin-block: var(--space-3);
   padding: var(--space-3) var(--space-4);

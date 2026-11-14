@@ -1,3 +1,8 @@
+import { revokeBrowserPushBeforeSignOut } from './browserPush';
+import {
+  revokeDevicePushBeforeSignOut,
+  stopNativePushForSignedOutAccount,
+} from './devicePush';
 import { createM4ProductApis } from './m4Product';
 import { createReferenceApis } from './referenceFlow';
 import {
@@ -5,10 +10,6 @@ import {
   currentSessionTokens,
   loadStoredSession,
 } from './sessionPersistence';
-import {
-  revokeDevicePushBeforeSignOut,
-  stopNativePushForSignedOutAccount,
-} from './devicePush';
 
 /** Bound best-effort remote cleanup so an outage cannot prevent local sign-out. */
 export const SIGN_OUT_CLEANUP_TIMEOUT_MS = 5_000;
@@ -35,12 +36,23 @@ export async function signOutSession(
   });
   const cleanup = async () => {
     const apis = createReferenceApis(apiBaseUrl, accessToken);
-    await revokeDevicePushBeforeSignOut(
+    const notifications = createM4ProductApis(
       apiBaseUrl,
-      owner.accountId,
-      createM4ProductApis(apiBaseUrl, accessToken).notifications,
-      abort.signal,
-    );
+      accessToken,
+    ).notifications;
+    await Promise.allSettled([
+      revokeDevicePushBeforeSignOut(
+        apiBaseUrl,
+        owner.accountId,
+        notifications,
+        abort.signal,
+      ),
+      revokeBrowserPushBeforeSignOut(
+        { accountId: owner.accountId, apiBaseUrl },
+        notifications,
+        abort.signal,
+      ),
+    ]);
     abort.signal.throwIfAborted();
     if (currentSessionTokens(owner)) {
       await apis.auth.signOutApiV1AuthSignOutPost({ signal: abort.signal });

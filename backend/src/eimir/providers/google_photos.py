@@ -6,38 +6,96 @@ import json
 import logging
 import re
 import time
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import quote, urlencode, urlsplit
 
 from pydantic import SecretStr
 
 from eimir.attachments.limits import IMAGE_MAX_SIZE, supported_mime_types
-from eimir.config import get_settings
+from eimir.providers.google_photos_config import (
+    AUTH_URI,
+    SCOPE,
+    TOKEN_URI,
+)
+from eimir.providers.google_photos_config import CALLBACK_PATH as CALLBACK_PATH
+from eimir.providers.google_photos_config import GooglePhotosClient as GooglePhotosClient
+from eimir.providers.google_photos_config import client_configuration as client_configuration
 from eimir.providers.photo_transport import PhotoSourceError, PhotoSourceHttp, SelectedPhoto
 
-SCOPE = "https://www.googleapis.com/auth/photospicker.mediaitems.readonly"
-CALLBACK_PATH = "/api/v1/photo-sources/google/callback"
 _JSON_LIMIT = 128 * 1024
+
+
+@dataclass(frozen=True)
+class PickerTiming:
+    interval: timedelta
+    poll_deadline: datetime
+    expires_at: datetime
+
+
+def session_timing(
+    value: dict[str, Any],
+    *,
+    at: datetime,
+    expires_at: datetime,
+    poll_deadline: datetime | None = None,
+) -> PickerTiming:
+    """Intersect provider advice with the existing task, never extend either."""
+    config = value.get("pollingConfig")
+    if not isinstance(config, dict):
+        raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+
+    def duration(name: str, *, positive: bool = False) -> timedelta:
+        raw = config.get(name)
+        if (
+            not isinstance(raw, str)
+            or re.fullmatch(r"(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,9})?s", raw) is None
+        ):
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+        parsed = timedelta(seconds=float(raw[:-1]))
+        if positive and parsed <= timedelta():
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
+        return parsed
+
+    interval = duration("pollInterval", positive=True)
+    timeout = at + duration("timeoutIn")
+    raw_expiry = value.get("expireTime")
+    if raw_expiry is not None:
+        try:
+            if not isinstance(raw_expiry, str) or "T" not in raw_expiry:
+                raise ValueError
+            provider_expiry = datetime.fromisoformat(raw_expiry)
+            if provider_expiry.tzinfo is None:
+                raise ValueError
+            expires_at = min(expires_at, provider_expiry.astimezone(UTC))
+        except (ValueError, OverflowError):
+            raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID") from None
+    deadline = min(timeout, poll_deadline or expires_at, expires_at)
+    return PickerTiming(interval, deadline, expires_at)
+
 
 # This SDK otherwise emits raw token responses at DEBUG. Provider material is
 # never diagnostic content, including when the operator enables debug logging.
 logging.getLogger("requests_oauthlib.oauth2_session").setLevel(logging.CRITICAL + 1)
 
 
-def _flow(*, state: str | None = None, verifier: str | None = None) -> Any:
+def _flow(
+    *,
+    state: str | None = None,
+    verifier: str | None = None,
+    client: GooglePhotosClient | None = None,
+) -> Any:
     from google_auth_oauthlib.flow import Flow  # type: ignore[import-untyped]
 
-    settings = get_settings()
-    secret = settings.google_photos_client_secret
-    if not settings.google_photos_client_id or not secret:
-        raise PhotoSourceError("PHOTO_SOURCE_UNAVAILABLE")
+    client = client or client_configuration()
     flow = Flow.from_client_config(
         {
             "web": {
-                "client_id": settings.google_photos_client_id,
-                "client_secret": secret.get_secret_value(),
-                "auth_uri": "https://accounts.google.com/o/oauth2/v2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
+                "client_id": client.client_id,
+                "client_secret": client.client_secret.get_secret_value(),
+                "auth_uri": AUTH_URI,
+                "token_uri": TOKEN_URI,
             }
         },
         scopes=[SCOPE],
@@ -45,19 +103,24 @@ def _flow(*, state: str | None = None, verifier: str | None = None) -> Any:
         code_verifier=verifier,
         autogenerate_code_verifier=verifier is None,
     )
-    flow.redirect_uri = settings.public_base_url.rstrip("/") + CALLBACK_PATH
+    flow.redirect_uri = client.redirect_uri
     flow.oauth2session.trust_env = False
     return flow
 
 
-def authorization() -> tuple[str, str, str]:
-    flow = _flow()
-    url, state = flow.authorization_url(access_type="online", prompt="select_account")
-    return str(url), str(state), str(flow.code_verifier)
+def authorization(*, client: GooglePhotosClient | None = None) -> tuple[str, str, str]:
+    flow = _flow(client=client)
+    try:
+        url, state = flow.authorization_url(access_type="online", prompt="select_account")
+        return str(url), str(state), str(flow.code_verifier)
+    finally:
+        flow.oauth2session.close()
 
 
-def exchange(code: str, state: str, verifier: str) -> str:
-    flow = _flow(state=state, verifier=verifier)
+def exchange(
+    code: str, state: str, verifier: str, *, client: GooglePhotosClient | None = None
+) -> str:
+    flow = _flow(state=state, verifier=verifier, client=client)
     deadline = time.monotonic() + 25
 
     def bounded(response: Any, **_: Any) -> Any:

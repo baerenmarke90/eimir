@@ -5,7 +5,7 @@ import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
 import type { ReferenceApis } from '../client/referenceFlow';
-import taskBoundary from '../i18n/locales/taskBoundary';
+import composer from '../i18n/locales/composer';
 import { MemoryProductPage } from './MemoryProductPage';
 
 const memory: MemoryDetail = {
@@ -69,7 +69,7 @@ describe('confirmed Memory result', () => {
   it('keeps a confirmed result visible when a later detail refresh fails', () => {
     const html = renderResult(new ClientProblemError('server', 503));
     expect(html).toContain(memory.title);
-    expect(html).toContain(taskBoundary.saved);
+    expect(html).toContain(composer.saved);
     expect(html).not.toContain('/edit');
   });
   it.each(['unauthorized', 'permission', 'notFound'] as const)(

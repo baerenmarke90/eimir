@@ -11,19 +11,22 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInTodayView } from '../api/generated/models/DailyCheckInTodayView';
+import type { DailyVibe } from '../api/generated/models/DailyVibe';
 import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
-import dailyEnergy from '../i18n/locales/dailyEnergy';
 import dailyVibe from '../i18n/locales/dailyVibe';
-import de from '../i18n/locales/de';
-import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
-import { DailyVibeCheckIn } from './DailyVibeCheckIn';
+import wirCheckIn from '../i18n/locales/wirCheckIn';
+import { useWirDailyCheckIn } from './WirDailyCheckIn';
+
+/**
+ * Concurrency and privacy contract of the shared DailyCheckIn write hook,
+ * exercised through the Wir check-in (#1790 slice A). Both dimensions share
+ * one mutation key, so at most one write is in flight at a time.
+ */
 
 const clients: QueryClient[] = [];
 beforeAll(() => {
@@ -34,10 +37,12 @@ beforeAll(() => {
     this.removeAttribute('open');
   };
 });
+
 afterEach(() => {
   cleanup();
   for (const client of clients.splice(0)) client.clear();
   onlineManager.setOnline(true);
+  window.localStorage.clear();
   vi.restoreAllMocks();
 });
 
@@ -46,6 +51,43 @@ function response(projection: DailyCheckInTodayView, etag = '"today:1"') {
     raw: new Response(null, { status: 200, headers: { ETag: etag } }),
     value: async () => projection,
   };
+}
+
+function Harness({
+  api,
+  accountId,
+  spaceId,
+}: {
+  api: DailyCheckInsApi;
+  accountId: string;
+  spaceId: string;
+}) {
+  const checkIn = useWirDailyCheckIn({
+    api,
+    accountId,
+    spaceId,
+    partnerName: 'Ben',
+    vibeEnabled: true,
+    energyEnabled: true,
+  });
+  if (!checkIn) return null;
+  return (
+    <div>
+      <button
+        type="button"
+        data-testid="own-trigger"
+        aria-label={checkIn.ownAction.label}
+        aria-expanded={checkIn.ownAction.expanded}
+        ref={checkIn.ownAction.ref}
+        onClick={checkIn.ownAction.onActivate}
+      />
+      {checkIn.ownBadge}
+      {checkIn.partnerBadge}
+      {checkIn.panel}
+      {checkIn.partnerBlock}
+      {checkIn.announcement}
+    </div>
+  );
 }
 
 function setup() {
@@ -81,21 +123,7 @@ function setup() {
   clients.push(client);
   const tree = (accountId = 'account-1', spaceId = 'space-1') => (
     <QueryClientProvider client={client}>
-      <MemoryRouter>
-        <DailyEnergyCheckIn
-          api={api}
-          accountId={accountId}
-          spaceId={spaceId}
-          partnerName="Ben"
-        />
-        <DailyVibeCheckIn
-          api={api}
-          accountId={accountId}
-          spaceId={spaceId}
-          partnerName="Ben"
-          configuredEnabled
-        />
-      </MemoryRouter>
+      <Harness api={api} accountId={accountId} spaceId={spaceId} />
     </QueryClientProvider>
   );
   return {
@@ -110,10 +138,36 @@ function setup() {
   };
 }
 
-async function energy(value = 60) {
-  const name = dailyEnergy.badgeAriaValue.replace('{{value}}', String(value));
-  fireEvent.click(await screen.findByRole('button', { name }));
-  return screen.getByRole('slider', { name: dailyEnergy.changeLegend });
+function ownLabel(parts: string[]) {
+  return wirCheckIn.ownAria.replace(
+    '{{summary}}',
+    parts.join(wirCheckIn.summarySeparator),
+  );
+}
+
+function energyPart(value: number) {
+  return wirCheckIn.summaryEnergy.replace('{{value}}', String(value));
+}
+
+async function ownTrigger(label?: string) {
+  await screen.findByTestId('wir-checkin-own-badge');
+  const trigger = screen.getByTestId('own-trigger');
+  if (label)
+    await waitFor(() => expect(trigger.getAttribute('aria-label')).toBe(label));
+  return trigger;
+}
+
+async function openPanel() {
+  const trigger = await ownTrigger();
+  if (trigger.getAttribute('aria-expanded') !== 'true')
+    fireEvent.click(trigger);
+}
+
+async function energy() {
+  await openPanel();
+  return screen.getByRole('slider', {
+    name: wirCheckIn.energySliderLabel,
+  }) as HTMLInputElement;
 }
 
 async function saveEnergy(value = 80) {
@@ -122,19 +176,27 @@ async function saveEnergy(value = 80) {
   fireEvent.blur(slider);
 }
 
-async function saveVibe() {
-  fireEvent.click(
-    await screen.findByRole('button', { name: dailyVibe.chooseAria }),
+function vibeButton(value: DailyVibe) {
+  return screen.getByRole('button', { name: dailyVibe.values[value] });
+}
+
+async function saveVibe(value: DailyVibe = 'GOOD') {
+  await openPanel();
+  fireEvent.click(vibeButton(value));
+}
+
+function partnerState() {
+  return (
+    screen
+      .queryByTestId('wir-checkin-partner-badge')
+      ?.getAttribute('data-state') ?? null
   );
-  const sheet = screen.getByRole('dialog', { name: dailyVibe.sheetTitle });
-  fireEvent.click(
-    within(sheet).getByRole('button', { name: dailyVibe.values.GOOD }),
-  );
-  fireEvent.change(
-    within(sheet).getByPlaceholderText(dailyVibe.notePlaceholder),
-    { target: { value: 'An own pending note' } },
-  );
-  fireEvent.click(within(sheet).getByRole('button', { name: dailyVibe.share }));
+}
+
+function ownPending() {
+  return screen
+    .getByTestId('wir-checkin-own-badge')
+    .getAttribute('data-pending');
 }
 
 for (const dimension of ['energy', 'vibe'] as const) {
@@ -153,29 +215,31 @@ for (const dimension of ['energy', 'vibe'] as const) {
       ).toBeUndefined(),
     );
     h.mount();
-    await screen.findByRole('button', {
-      name: dailyEnergy.badgeAriaValue.replace(
-        '{{value}}',
-        dimension === 'energy' ? '80' : '60',
-      ),
-    });
-    if (dimension === 'vibe') {
-      expect(
-        within(screen.getByTestId('daily-vibe-own')).getByRole('status')
-          .textContent,
-      ).toBe(dailyVibe.saving);
-      fireEvent.click(screen.getByTestId('daily-vibe-own'));
-      expect(screen.queryByRole('dialog')).toBeNull();
-    } else {
-      const slider = await energy(80);
-      expect(slider).toHaveProperty('value', '80');
-      expect((slider as HTMLInputElement).disabled).toBe(true);
+    await ownTrigger(
+      dimension === 'energy'
+        ? ownLabel([energyPart(80)])
+        : ownLabel([dailyVibe.values.GOOD, energyPart(60)]),
+    );
+    expect(ownPending()).toBe('true');
+    await openPanel();
+    expect(screen.getByText(wirCheckIn.saving)).not.toBeNull();
+    // A further choice waits for the pending write instead of racing it.
+    if (dimension === 'energy') {
+      const slider = await energy();
+      expect(slider.value).toBe('80');
       fireEvent.change(slider, { target: { value: '90' } });
       fireEvent.blur(slider);
+    } else {
+      expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true');
+      fireEvent.click(vibeButton('SAD'));
     }
-    expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+    expect(partnerState()).toBe('hidden');
     expect(h.update).toHaveBeenCalledTimes(1);
     await act(async () => h.resolve(response(h.current)));
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
+    expect(h.update.mock.calls[1][0].dailyCheckInUpdate).toEqual(
+      dimension === 'energy' ? { energyLevel: 90 } : { vibe: 'SAD' },
+    );
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
   });
 }
@@ -185,65 +249,57 @@ it('excludes a competing dimension while the same DailyCheckIn root has a pendin
   h.mount();
   await saveEnergy();
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
-  const choose = await screen.findByRole('button', {
-    name: dailyVibe.chooseAria,
-  });
-  fireEvent.click(choose);
-  const sheet = screen.queryByRole('dialog', { name: dailyVibe.sheetTitle });
-  if (sheet) {
-    fireEvent.click(
-      within(sheet).getByRole('button', { name: dailyVibe.values.GOOD }),
-    );
-    fireEvent.click(
-      within(sheet).getByRole('button', { name: dailyVibe.share }),
-    );
-  }
+  fireEvent.click(vibeButton('GOOD'));
   await waitFor(() => expect(h.client.isMutating()).toBe(1));
   expect(h.update).toHaveBeenCalledTimes(1);
   await act(async () => h.resolve(response(h.current)));
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
+  expect(h.update.mock.calls[1][0].dailyCheckInUpdate).toEqual({
+    vibe: 'GOOD',
+  });
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
 });
 
-it('admits only the first write when release and blur submit different values in one task', async () => {
+it('admits only the first write when release and blur submit different values before observers rerender', async () => {
   const h = setup();
   h.mount();
   const slider = await energy();
-  act(() => {
-    fireEvent.change(slider, { target: { value: '80' } });
-    fireEvent.pointerUp(slider);
-    fireEvent.change(slider, { target: { value: '90' } });
-    fireEvent.blur(slider);
-  });
+  fireEvent.change(slider, { target: { value: '80' } });
+  fireEvent.pointerUp(slider);
+  fireEvent.change(slider, { target: { value: '90' } });
+  fireEvent.blur(slider);
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
   expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
     energyLevel: 80,
   });
+  expect(h.client.isMutating()).toBe(1);
   await act(async () => h.resolve(response(h.current)));
+  // The later value is serialized after the first, never sent concurrently.
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
+  expect(h.update.mock.calls[1][0].dailyCheckInUpdate).toEqual({
+    energyLevel: 90,
+  });
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
 });
 
-it('excludes a different dimension submitted in the same task before either observer rerenders', async () => {
+it('excludes a different dimension submitted before either observer rerenders', async () => {
   const h = setup();
   h.mount();
-  fireEvent.click(
-    await screen.findByRole('button', { name: dailyVibe.chooseAria }),
-  );
-  const sheet = screen.getByRole('dialog', { name: dailyVibe.sheetTitle });
-  fireEvent.click(
-    within(sheet).getByRole('button', { name: dailyVibe.values.GOOD }),
-  );
   const slider = await energy();
-  act(() => {
-    fireEvent.change(slider, { target: { value: '80' } });
-    fireEvent.blur(slider);
-    fireEvent.click(
-      within(sheet).getByRole('button', { name: dailyVibe.share }),
-    );
-  });
+  fireEvent.change(slider, { target: { value: '80' } });
+  fireEvent.blur(slider);
+  fireEvent.click(vibeButton('GOOD'));
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
   expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
     energyLevel: 80,
   });
+  expect(h.client.isMutating()).toBe(1);
   await act(async () => h.resolve(response(h.current)));
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
+  expect(h.update.mock.calls[1][0].dailyCheckInUpdate).toEqual({
+    vibe: 'GOOD',
+  });
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
 });
 
 it('refetches a newer validator on the same query instead of overwriting its confirmed state', async () => {
@@ -304,7 +360,7 @@ it('ignores the old timezone context even when the server date remains the same'
   });
 });
 
-it('reopens a failed own Energy value after return and retries with the new authorized validator', async () => {
+it('reopens the panel for a failed own Energy value after return and retries with the new authorized validator', async () => {
   const h = setup();
   const first = h.mount();
   await saveEnergy();
@@ -314,17 +370,24 @@ it('reopens a failed own Energy value after return and retries with the new auth
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
   h.get.mockResolvedValue(response(h.current, '"today:4"'));
   h.mount();
-  const slider = await screen.findByRole('slider', {
-    name: dailyEnergy.changeLegend,
-  });
-  expect(slider).toHaveProperty('value', '80');
+  const retry = await screen.findByRole('button', { name: wirCheckIn.retry });
+  expect(screen.getByText(wirCheckIn.saveError)).not.toBeNull();
+  // The failed value is not shown as saved; the confirmed value stays.
+  expect(
+    (
+      screen.getByRole('slider', {
+        name: wirCheckIn.energySliderLabel,
+      }) as HTMLInputElement
+    ).value,
+  ).toBe('60');
+  expect(h.update).toHaveBeenCalledTimes(1);
   h.update.mockResolvedValueOnce(
     response(
       { ...h.current, own: { ...h.current.own, energyLevel: 80 } },
       '"today:5"',
     ),
   );
-  fireEvent.click(screen.getByRole('button', { name: de.common.retry }));
+  fireEvent.click(retry);
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
   expect(h.update.mock.calls[1][0]).toMatchObject({
     ifMatch: '"today:4"',
@@ -335,25 +398,26 @@ it('reopens a failed own Energy value after return and retries with the new auth
 
 it('preserves only the failed own Vibe and note across return until deliberate retry', async () => {
   const h = setup();
+  h.current.own.vibe = 'OKAY';
   const first = h.mount();
-  await saveVibe();
+  await openPanel();
+  fireEvent.change(
+    screen.getByRole('textbox', { name: wirCheckIn.noteLabel }),
+    { target: { value: 'An own pending note' } },
+  );
+  fireEvent.click(vibeButton('GOOD'));
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
+    vibe: 'GOOD',
+    vibeNote: 'An own pending note',
+  });
   first.unmount();
   await act(async () => h.reject(new ClientProblemError('server', 503)));
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
   h.mount();
-  const sheet = await screen.findByRole('dialog', {
-    name: dailyVibe.sheetTitle,
-  });
-  expect(
-    within(sheet).getByPlaceholderText(dailyVibe.notePlaceholder),
-  ).toHaveProperty('value', 'An own pending note');
-  expect(
-    within(sheet)
-      .getByRole('button', { name: dailyVibe.values.GOOD })
-      .getAttribute('aria-pressed'),
-  ).toBe('true');
-  expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+  const retry = await screen.findByRole('button', { name: wirCheckIn.retry });
+  expect(vibeButton('OKAY').getAttribute('aria-pressed')).toBe('true');
+  expect(partnerState()).toBe('hidden');
   expect(h.update).toHaveBeenCalledTimes(1);
   h.update.mockResolvedValueOnce(
     response(
@@ -368,7 +432,7 @@ it('preserves only the failed own Vibe and note across return until deliberate r
       '"today:2"',
     ),
   );
-  fireEvent.click(within(sheet).getByRole('button', { name: dailyVibe.retry }));
+  fireEvent.click(retry);
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
   expect(h.update.mock.calls[1][0].dailyCheckInUpdate).toEqual({
     vibe: 'GOOD',
@@ -382,23 +446,22 @@ it('retries a failed Vibe removal as a clear rather than resaving the visible ch
   h.current.own.vibe = 'GOOD';
   h.current.own.vibeNote = 'Own confirmed note';
   const first = h.mount();
-  fireEvent.click(await screen.findByTestId('daily-vibe-own'));
-  fireEvent.click(screen.getByRole('button', { name: dailyVibe.remove }));
+  await saveVibe('GOOD');
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({ vibe: null });
   first.unmount();
   await act(async () => h.reject(new ClientProblemError('server', 503)));
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
   h.mount();
-  const sheet = await screen.findByRole('dialog', {
-    name: dailyVibe.sheetTitle,
-  });
+  const retry = await screen.findByRole('button', { name: wirCheckIn.retry });
+  expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true');
   h.update.mockResolvedValueOnce(
     response(
       { ...h.current, own: { ...h.current.own, vibe: null, vibeNote: null } },
       '"today:2"',
     ),
   );
-  fireEvent.click(within(sheet).getByRole('button', { name: dailyVibe.retry }));
+  fireEvent.click(retry);
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
   expect(h.update.mock.calls[1][0].dailyCheckInUpdate).toEqual({ vibe: null });
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
@@ -447,25 +510,16 @@ async function submitWithInterruptedRead(
 ) {
   if (dimension === 'energy') {
     const slider = await energy();
+    fireEvent.change(slider, { target: { value: '80' } });
     act(() => {
-      fireEvent.change(slider, { target: { value: '80' } });
       fireEvent.blur(slider);
       interrupt();
     });
     return;
   }
-
-  fireEvent.click(
-    await screen.findByRole('button', { name: dailyVibe.chooseAria }),
-  );
-  const sheet = screen.getByRole('dialog', { name: dailyVibe.sheetTitle });
-  fireEvent.click(
-    within(sheet).getByRole('button', { name: dailyVibe.values.GOOD }),
-  );
+  await openPanel();
   act(() => {
-    fireEvent.click(
-      within(sheet).getByRole('button', { name: dailyVibe.share }),
-    );
+    fireEvent.click(vibeButton('GOOD'));
     interrupt();
   });
 }
@@ -485,6 +539,7 @@ for (const dimension of ['energy', 'vibe'] as const) {
         });
     });
 
+    expect(h.client.getMutationCache().getAll()).toHaveLength(1);
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
     expect(h.update).not.toHaveBeenCalled();
     expect(h.client.getQueryState(key)?.status).toBe('error');
@@ -510,6 +565,7 @@ for (const dimension of ['energy', 'vibe'] as const) {
       h.client.setQueryData(key, { projection: newer, etag: '"today:2"' });
     });
 
+    expect(h.client.getMutationCache().getAll()).toHaveLength(1);
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
     expect(h.update).not.toHaveBeenCalled();
     expect(h.client.getQueryData(key)).toMatchObject({
@@ -526,7 +582,7 @@ it('fails a connectivity race without a paused write or automatic reconnect PATC
   onlineManager.setOnline(false);
   fireEvent.change(slider, { target: { value: '80' } });
   fireEvent.blur(slider);
-  await screen.findByText(dailyEnergy.saveError);
+  await screen.findByText(wirCheckIn.saveError);
   expect(h.update).not.toHaveBeenCalled();
   expect(
     h.client
@@ -536,8 +592,11 @@ it('fails a connectivity race without a paused write or automatic reconnect PATC
   ).toBe(true);
   await act(async () => onlineManager.setOnline(true));
   expect(h.update).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: de.common.retry }));
+  fireEvent.click(screen.getByRole('button', { name: wirCheckIn.retry }));
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
+    energyLevel: 80,
+  });
   await act(async () => h.resolve(response(h.current)));
 });
 
@@ -568,8 +627,10 @@ it('does not retain a confirmed partner projection in mutation state or recreate
     expect(JSON.stringify(entry.state)).not.toContain('projection');
   }
   h.mount();
-  await screen.findByRole('button', { name: dailyVibe.chooseAria });
-  expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+  await ownTrigger();
+  expect(partnerState()).toBe('hidden');
+  expect(document.querySelector('[data-vibe-icon="STRESSED"]')).toBeNull();
+  expect(screen.queryByText('Private partner context')).toBeNull();
 });
 
 it('uses the replacement consumer read instead of injecting the initiating response after return', async () => {
@@ -581,9 +642,7 @@ it('uses the replacement consumer read instead of injecting the initiating respo
   const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
   await waitFor(() => expect(h.client.getQueryState(key)).toBeUndefined());
   h.mount();
-  await screen.findByRole('button', {
-    name: dailyEnergy.badgeAriaValue.replace('{{value}}', '80'),
-  });
+  await ownTrigger(ownLabel([energyPart(80)]));
   const authorized = {
     ...h.current,
     own: { ...h.current.own, energyLevel: 90 },
@@ -615,9 +674,11 @@ for (const scope of ['account', 'space'] as const) {
     const accountId = scope === 'account' ? 'account-2' : 'account-1';
     const spaceId = scope === 'space' ? 'space-2' : 'space-1';
     view.rerender(h.tree(accountId, spaceId));
-    await screen.findByRole('button', {
-      name: dailyEnergy.badgeAriaValue.replace('{{value}}', '60'),
-    });
+    await ownTrigger(ownLabel([energyPart(60)]));
+    expect(ownPending()).toBeNull();
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+    ).toBe('false');
     await act(async () =>
       h.resolve(
         response(
@@ -633,7 +694,10 @@ for (const scope of ['account', 'space'] as const) {
       etag: '"today:1"',
       projection: { own: { energyLevel: 60 } },
     });
-    expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+    expect(partnerState()).toBe('hidden');
+    expect(screen.getByTestId('own-trigger').getAttribute('aria-label')).toBe(
+      ownLabel([energyPart(60)]),
+    );
   });
 }
 
@@ -645,9 +709,7 @@ it('retires late responses after session cache clearing even if the same scope r
   first.unmount();
   h.client.clear();
   h.mount();
-  await screen.findByRole('button', {
-    name: dailyEnergy.badgeAriaValue.replace('{{value}}', '60'),
-  });
+  await ownTrigger(ownLabel([energyPart(60)]));
   const reads = h.get.mock.calls.length;
   await act(async () =>
     h.resolve(
@@ -682,6 +744,13 @@ it('allows an independent server-day attempt and ignores the previous day respon
       etag: '"tomorrow:1"',
     }),
   );
+  // A new day starts from the server again: the panel closes, nothing pends.
+  await waitFor(() =>
+    expect(
+      screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
+    ).toBe('false'),
+  );
+  expect(ownPending()).toBeNull();
   h.update.mockResolvedValueOnce(
     response(
       { ...tomorrow, own: { ...tomorrow.own, energyLevel: 90 } },
@@ -713,22 +782,23 @@ for (const outcome of ['success', 'lost-ack'] as const) {
     const h = setup();
     h.current.own.vibe = 'GOOD';
     const first = h.mount();
-    fireEvent.click(await screen.findByTestId('daily-vibe-own'));
-    fireEvent.click(screen.getByRole('button', { name: dailyVibe.remove }));
+    await saveVibe('GOOD');
     await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+    expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
+      vibe: null,
+    });
     first.unmount();
     const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
     await waitFor(() => expect(h.client.getQueryState(key)).toBeUndefined());
     h.mount();
-    const own = await screen.findByTestId('daily-vibe-own');
-    expect(within(own).getByText(dailyVibe.values.GOOD)).not.toBeNull();
-    expect(within(own).getByRole('status').textContent).toBe(dailyVibe.saving);
-    fireEvent.click(own);
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(h.update).toHaveBeenCalledTimes(1);
-    expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
-      vibe: null,
-    });
+    // The own pending removal shows as removed, never as the old value.
+    await ownTrigger(ownLabel([energyPart(60)]));
+    expect(ownPending()).toBe('true');
+    expect(
+      screen
+        .getByTestId('wir-checkin-own-badge')
+        .querySelector('[data-vibe-icon]'),
+    ).toBeNull();
     const cleared = {
       ...h.current,
       own: { ...h.current.own, vibe: null, vibeNote: null },
@@ -737,10 +807,9 @@ for (const outcome of ['success', 'lost-ack'] as const) {
     await act(async () =>
       h.client.setQueryData(key, { projection: cleared, etag: '"today:2"' }),
     );
-    expect(await screen.findByText(dailyVibe.saving)).not.toBeNull();
-    const choose = screen.getByRole('button', { name: dailyVibe.chooseAria });
-    expect(choose.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(choose);
+    await openPanel();
+    expect(screen.getByText(wirCheckIn.saving)).not.toBeNull();
+    expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('false');
     expect(h.update).toHaveBeenCalledTimes(1);
     if (outcome === 'success') {
       await act(async () => h.resolve(response(cleared, '"today:2"')));
@@ -748,10 +817,11 @@ for (const outcome of ['success', 'lost-ack'] as const) {
       await act(async () => h.reject(new ClientProblemError('server', 503)));
     }
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
-    await waitFor(() =>
-      expect(choose.getAttribute('aria-disabled')).toBe('false'),
-    );
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(ownPending()).toBeNull());
+    expect(screen.queryByText(wirCheckIn.saving)).toBeNull();
+    // The removal is already confirmed by the authorized read: no error.
+    expect(screen.queryByText(wirCheckIn.saveError)).toBeNull();
+    expect(screen.queryByRole('button', { name: wirCheckIn.retry })).toBeNull();
     expect(h.update).toHaveBeenCalledTimes(1);
   });
 }
@@ -765,6 +835,8 @@ it('preserves a newer authorized module/privacy projection even when the owner v
     partnerNote: 'Private old partner context',
   };
   h.mount();
+  await ownTrigger();
+  expect(screen.getByText('Private old partner context')).not.toBeNull();
   await saveEnergy();
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
   const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
@@ -790,7 +862,7 @@ it('preserves a newer authorized module/privacy projection even when the owner v
     etag: '"today:2"',
     projection: { vibe: null, own: { energyLevel: 80 } },
   });
-  expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+  expect(document.querySelector('[data-vibe-icon="STRESSED"]')).toBeNull();
   expect(screen.queryByText('Private old partner context')).toBeNull();
 });
 
@@ -850,5 +922,12 @@ it('does not turn a newer denied read into a successful private projection when 
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
   expect(h.get).toHaveBeenCalledTimes(deniedReads);
   expect(h.client.getQueryState(key)?.status).toBe('error');
-  expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+  // A denied read must not keep presenting the earlier private projection.
+  expect(partnerState()).not.toBe('visible');
+  expect(
+    document.querySelector(
+      '[data-testid="wir-checkin-partner-badge"], [data-testid="wir-checkin-partner-block"]',
+    ),
+  ).toBeNull();
+  expect(screen.queryByText('Private old partner context')).toBeNull();
 });

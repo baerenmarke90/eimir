@@ -1,7 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { audioPeaks, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import './VoiceNotes.css';
+
+export function VoiceNotePreview({ duration }: { duration?: number | null }) {
+  const { t } = useTranslation();
+  return (
+    <span className="voice-note-preview" aria-hidden="true">
+      <EimirIcon name="microphone" />
+      <span>{t('voiceNotes.title')}</span>
+      {duration != null ? (
+        <span className="voice-time">{voiceTime(duration)}</span>
+      ) : null}
+    </span>
+  );
+}
 
 export function VoiceWaveform({ peaks }: { peaks: readonly number[] }) {
   return (
@@ -34,11 +48,13 @@ export function VoiceWaveform({ peaks }: { peaks: readonly number[] }) {
 export function VoiceNotePlayer({
   src,
   title,
+  defaultTitle = false,
   speaker,
   duration: knownDuration,
 }: {
   src: string;
   title?: string;
+  defaultTitle?: boolean;
   speaker?: string;
   duration?: number | null;
 }) {
@@ -106,7 +122,14 @@ export function VoiceNotePlayer({
       className="voice-player"
       aria-label={title || t('voiceNotes.title')}
     >
-      {title ? <h3 className="voice-player-title">{title}</h3> : null}
+      {title ? (
+        <h3
+          className="voice-player-title"
+          data-default-title={defaultTitle || undefined}
+        >
+          {title}
+        </h3>
+      ) : null}
       {speaker ? (
         <p className="voice-speaker">
           {t('voiceNotes.speakerLabel', { name: speaker })}

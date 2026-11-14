@@ -219,7 +219,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('keeps the quotation and accessible heading without a decorative symbol', async () => {
+  it('shows the saying and its visible section heading without a decorative symbol', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -260,6 +260,29 @@ describe('DailyQuoteCard', () => {
 
     expect(await screen.findByText(dailyQuote.discovery)).toBeTruthy();
     expect(screen.queryByText(dailyQuote.empty)).toBeNull();
+  });
+
+  it('shows an anonymous proverb without an attribution footer', async () => {
+    const text = 'Good things take time.';
+    renderCard({
+      quoteResult: {
+        ...quote,
+        quote: {
+          attributionRequired: false,
+          authorDisplay: '',
+          categoryIds: ['motivation'],
+          id: 'saying-de-simrock-001',
+          locale: 'de',
+          rightsClassification: 'PUBLIC_DOMAIN',
+          sourceDisplay: null,
+          sourceId: 'poetic_wisdom',
+          text,
+        },
+      },
+    });
+
+    const saying = await screen.findByText(`„${text}“`);
+    expect(saying.closest('blockquote')?.querySelector('footer')).toBeNull();
   });
 
   it('renders the neutral no-quote state without error styling or retry', async () => {
@@ -350,7 +373,6 @@ describe('DailyQuoteCard', () => {
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
         },
       }),
       undefined,
@@ -413,10 +435,9 @@ describe('DailyQuoteCard', () => {
       expect.objectContaining({
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
-        dailyQuotePreferencePatch: expect.objectContaining({
+        dailyQuotePreferencePatch: {
           selectedCategoryIds: ['love', 'mindfulness'],
-          selectedSourceIds: ['classic_literature'],
-        }),
+        },
       }),
       undefined,
     );

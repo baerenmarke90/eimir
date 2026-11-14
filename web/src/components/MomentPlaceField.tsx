@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import { Configuration } from '../client/apiConfiguration';
 import { useTranslation } from '../i18n';
+import { AddActionContent } from './AddAction';
 import { EimirIcon } from './EimirIcon';
 import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -24,7 +25,13 @@ export function MomentPlaceField({
   onChange,
   disabled = false,
   onPendingChange,
+  renderTrigger,
+  showSelection = true,
+  embedded = false,
 }: {
+  renderTrigger?: (open: () => void) => ReactNode;
+  showSelection?: boolean;
+  embedded?: boolean;
   apiBaseUrl: string;
   accessToken: string;
   accountId: string;
@@ -48,26 +55,65 @@ export function MomentPlaceField({
       ),
     [apiBaseUrl, accessToken],
   );
+  const picker = (
+    <PlaceChoicePicker
+      key={JSON.stringify([apiBaseUrl, accountId, spaceId])}
+      api={api}
+      confirmSharedCreate
+      spaceId={spaceId}
+      queryKey={['moment-place-choice', apiBaseUrl, accountId, spaceId]}
+      offline={!navigator.onLine}
+      onPendingChange={(next) => {
+        setPending(next);
+        onPendingChange(next);
+      }}
+      onChoose={(place) => {
+        onChange({
+          id: place.id,
+          name: place.name,
+          address: place.address,
+          latitude: place.latitude,
+          longitude: place.longitude,
+        });
+        setPending(false);
+        onPendingChange(false);
+        setOpen(false);
+      }}
+    />
+  );
+  if (embedded) return picker;
   return (
     <div className="moment-place-field">
-      <button
-        ref={trigger}
-        type="button"
-        className="secondary moment-place-add"
-        disabled={disabled}
-        onClick={() => setOpen(true)}
-      >
-        <EimirIcon name="orte" />
-        <span>{value ? value.name : t('photoPlaces.add')}</span>
-      </button>
-      {value ? (
+      {renderTrigger ? (
+        renderTrigger(() => setOpen(true))
+      ) : (
+        <button
+          ref={trigger}
+          type="button"
+          className={value ? 'secondary moment-place-add' : 'add-action'}
+          disabled={disabled}
+          onClick={() => setOpen(true)}
+        >
+          {value ? (
+            <>
+              <EimirIcon name="orte" />
+              <span>{value.name}</span>
+            </>
+          ) : (
+            <AddActionContent label={t('photoPlaces.add')} icon="orte" />
+          )}
+        </button>
+      )}
+      {value && showSelection ? (
         <button
           type="button"
-          className="tertiary"
+          className="tertiary moment-place-remove"
           disabled={disabled}
+          aria-label={t('experiences.removePlace', { name: value.name })}
+          title={t('experiences.removePlace', { name: value.name })}
           onClick={() => onChange(undefined)}
         >
-          {t('photoPlaces.removeSelection')}
+          <EimirIcon name="trash" />
         </button>
       ) : null}
       <ShortTaskSheet
@@ -77,32 +123,20 @@ export function MomentPlaceField({
         isCloseBlocked={pending}
         onClose={() => setOpen(false)}
       >
-        {open && !disabled ? (
-          <PlaceChoicePicker
-            key={JSON.stringify([apiBaseUrl, accountId, spaceId])}
-            api={api}
-            confirmSharedCreate
-            spaceId={spaceId}
-            queryKey={['moment-place-choice', apiBaseUrl, accountId, spaceId]}
-            offline={!navigator.onLine}
-            onPendingChange={(next) => {
-              setPending(next);
-              onPendingChange(next);
-            }}
-            onChoose={(place) => {
-              onChange({
-                id: place.id,
-                name: place.name,
-                address: place.address,
-                latitude: place.latitude,
-                longitude: place.longitude,
-              });
-              setPending(false);
-              onPendingChange(false);
-              setOpen(false);
-            }}
-          />
+        {open && !disabled && value && !showSelection ? (
+          <div className="composer-place-context">
+            <span>{value.name}</span>
+            <button
+              type="button"
+              className="tertiary"
+              aria-label={t('experiences.removePlace', { name: value.name })}
+              onClick={() => onChange(undefined)}
+            >
+              <EimirIcon name="trash" />
+            </button>
+          </div>
         ) : null}
+        {open && !disabled ? picker : null}
       </ShortTaskSheet>
     </div>
   );

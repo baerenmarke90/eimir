@@ -1,0 +1,359 @@
+.people-overview,
+.people-profile,
+.person-editor-page {
+  max-width: var(--reading-max);
+  margin-inline: auto;
+}
+.people-portrait-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.people-portrait-list > li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  padding-block: var(--space-2);
+}
+.people-portrait {
+  width: 4.5rem;
+  height: 4.5rem;
+  min-width: 0;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-surface-subtle);
+  font: 500 1.5rem var(--font-display);
+  color: var(--color-text);
+}
+.people-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.people-portrait-large {
+  width: 6.5rem;
+  height: 6.5rem;
+  font-size: 2rem;
+}
+.people-profile-link {
+  min-height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-small);
+}
+.people-profile-link > span {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.people-profile-link strong {
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.people-profile-link > span > span,
+.people-profile-link small {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+.people-profile-link small {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.people-profile-link > svg,
+.people-birthday-link > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+.people-profile-link small svg {
+  width: 1rem;
+  height: 1rem;
+}
+.people-profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-block: calc(-1 * var(--space-3)) var(--space-5);
+}
+.people-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-block: var(--space-6);
+}
+.people-profile-hero > div:last-child {
+  min-width: 0;
+}
+.people-profile-hero h1 {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.people-profile-hero p {
+  color: var(--color-text-secondary);
+  margin: var(--space-2) 0 0;
+}
+.people-profile-birthday,
+.people-profile-note {
+  margin-top: var(--space-8);
+}
+.people-profile-birthday h2,
+.people-profile-note h2 {
+  font-size: 1.2rem;
+}
+.people-profile-note p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.people-birthday-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  margin-top: var(--space-3);
+}
+.people-saved {
+  color: var(--color-success);
+  font-size: 0.9rem;
+}
+.people-editor-form {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+.people-editor-form .field-group {
+  display: grid;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+.people-editor-form input:not([type="file"]),
+.people-editor-form select,
+.people-editor-form textarea {
+  min-width: 0;
+  width: 100%;
+  font-weight: 400;
+}
+.people-editor-photo {
+  display: flex;
+  gap: var(--space-4);
+  align-items: start;
+}
+.people-photo-options {
+  flex: 1;
+  min-width: 0;
+}
+.people-photo-options > summary,
+.people-birthday-options > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.people-photo-options > summary {
+  color: var(--color-brand-text);
+}
+.people-photo-options > div {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.people-birthday-parts {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  margin-block: var(--space-3);
+}
+.people-birthday-parts label {
+  font-size: 0.9rem;
+}
+.people-birthday-options .choice-row input {
+  width: 1.25rem;
+  flex-shrink: 0;
+}
+.people-editor-footer {
+  padding-block: var(--space-3);
+  background: var(--color-background);
+}
+.people-editor-footer button {
+  width: 100%;
+  min-height: 48px;
+}
+@media (max-width: 389px) {
+  .people-birthday-parts {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  }
+  .people-birthday-parts > label:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.people-chevron {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+.planen-segmented-occasions {
+  grid-template-columns: 1fr 1fr 1.6fr;
+}
+.planen-segmented-occasions .planen-segment {
+  min-width: 0;
+  white-space: normal;
+}
+.important-dates-section.occasions-panel {
+  padding-top: 0;
+  gap: var(--space-4);
+}
+.occasions-add {
+  justify-self: start;
+}
+.occasions-list {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.occasions-month > :is(h2, h3),
+.occasions-past > h2 {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
+}
+.occasions-month + .occasions-month {
+  margin-top: var(--space-8);
+}
+.occasions-past > h2 {
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+.occasions-month > h3 {
+  font-size: 0.9rem;
+}
+.occasions-list .important-date-card {
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 68px;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  box-shadow: none;
+}
+.occasions-list .important-date-card:hover {
+  background: var(--color-surface-subtle);
+  transform: none;
+}
+.occasions-list .important-date-card:active {
+  background: var(--color-surface-subtle);
+  transform: scale(0.995);
+}
+.occasions-list .important-date-marker {
+  width: 3rem;
+  min-height: 3rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(
+    in srgb,
+    var(--color-brand-surface) 70%,
+    var(--color-background)
+  );
+  box-shadow: none;
+}
+.occasions-list .important-date-timeline-body {
+  gap: var(--space-1);
+}
+.occasion-reader-sheet .short-task-sheet-title {
+  margin-bottom: var(--space-2);
+}
+.occasion-reader {
+  display: grid;
+  gap: var(--space-2);
+}
+.occasion-reader .occasion-reader-date,
+.occasion-reader-source {
+  margin: 0;
+  font: var(--font-reading-body);
+  color: var(--color-text-secondary);
+}
+.occasion-reader button {
+  min-height: 48px;
+}
+.occasion-reader button.tertiary {
+  justify-self: start;
+  padding-inline: 0;
+  text-align: start;
+  color: var(--color-brand-text);
+}
+
+.people-birthday-options:not([open]) > :not(summary) {
+  display: none;
+}
+.person-editor-page .media-drop-zone:not(.is-dragging) > .media-drop-hint {
+  display: none;
+}
+
+.people-editor-form .people-editor-photo input[type="file"] {
+  width: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
+
+.occasion-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.occasion-title > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.occasion-type-symbol {
+  display: inline-flex;
+  flex: none;
+  width: var(--icon-size-standard);
+  height: var(--icon-size-standard);
+  color: var(--identity-icon-cool);
+}
+.occasion-type-symbol > svg {
+  width: 100%;
+  height: 100%;
+}
+.occasion-visibility {
+  display: inline-flex;
+  flex: none;
+}
+.occasion-visibility > svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+.people-birthday-options > summary::after {
+  content: "+";
+  margin-inline-start: auto;
+  color: var(--color-brand-text);
+  font-size: 1.25rem;
+}
+.people-birthday-options[open] > summary::after {
+  content: "−";
+}

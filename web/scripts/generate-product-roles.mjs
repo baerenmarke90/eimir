@@ -58,6 +58,45 @@ function typography(name, source, familyName = 'ui', weight) {
   declare(`tracking-${name}`, type.letterSpacing);
 }
 
+typography('media-caption', 'mediaCaption');
+typography('story-summary', 'storySummary', 'display');
+typography('story-total', 'storyTotal', 'display');
+typography('story-category', 'storyCategory');
+for (const [name, role] of [
+  ['media-mosaic-gap', 'mediaMosaicGap'],
+  ['story-summary-inset', 'storySummaryInset'],
+  ['story-category-gap', 'storyCategoryGap'],
+  ['story-bar-gap', 'storyBarGap'],
+  ['story-lifeline-dot', 'storyLifelineDot'],
+  ['story-lifeline-step', 'storyLifelineStep'],
+  ['story-lifeline-band', 'storyLifelineBand'],
+])
+  declare(`space-${name}`, rem(`spacing.${role}`));
+declare('opacity-story-chip-fill', `${value('storyChip.fillOpacity') * 100}%`);
+declare(
+  'opacity-story-chip-fill-active',
+  `${value('storyChip.activeFillOpacity') * 100}%`,
+);
+const storyColors = [
+  ['memory', 'storyMemory'],
+  ['heart-moment', 'storyHeartMoment'],
+  ['milestone', 'storyMilestone'],
+  ['surface', 'storySurface'],
+];
+function storyColorDeclarations(scheme, indent = '  ') {
+  return storyColors
+    .map(
+      ([name, role]) =>
+        `${indent}--color-story-${name}: ${value(`color.scheme.${scheme}.${role}`).toLowerCase()};`,
+    )
+    .join('\n');
+}
+for (const [name, role] of storyColors) {
+  declare(
+    `color-story-${name}`,
+    value(`color.scheme.light.${role}`).toLowerCase(),
+  );
+}
 typography('page-heading', 'heading1', 'display');
 typography(
   'personal-heading',
@@ -70,9 +109,27 @@ typography('utility-heading', 'heading2', 'ui', value('font.weight.semibold'));
 typography('memory-detail-heading', 'memoryDetailHeading');
 typography('section-heading', 'heading3');
 typography('reading-body', 'body');
+typography('composer-title', 'composerTitle', 'display');
+typography('composer-lead', 'composerLead', 'display');
+typography('composer-prose', 'composerProse');
+typography('composer-context', 'composerContext');
+for (const [name, source] of Object.entries({
+  'composer-detail-media-height': 'detailMediaHeight',
+  'composer-media-height': 'mediaHeight',
+  'composer-media-compact-height': 'mediaCompactHeight',
+  'composer-thumbnail-size': 'thumbnailSize',
+  'composer-intake-height': 'intakeHeight',
+}))
+  declare(name, rem(`composer.${source}`));
 typography('supporting-copy', 'bodySmall');
 typography('navigation-label', 'meta', 'ui', value('font.weight.semibold'));
 typography('action-label', 'body', 'ui', value('font.weight.semibold'));
+typography(
+  'add-action-label',
+  'bodySmall',
+  'ui',
+  value('font.weight.semibold'),
+);
 
 for (const role of [
   'surface',
@@ -104,9 +161,21 @@ declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
+declare('radius-floating-create', value('radius.large'));
 declare('border-surface-width', value('border.surfaceFrame'));
 declare('border-control-width', value('border.controlFrame'));
+declare('border-authored-width', value('border.authoredFrame'));
+declare('border-divider-width', value('border.hairline'));
+declare('composer-max', value('layout.composerMax'));
 declare('touch-target-web', value('size.touchTarget.webMinimum'));
+declare('touch-target-comfortable', value('size.control.comfortable'));
+declare(
+  'touch-target-floating-create',
+  value('size.touchTarget.floatingCreate'),
+);
+declare('icon-size-standard', value('size.icon.standard'));
+declare('icon-size-large', value('size.icon.large'));
+declare('add-action-icon', value('size.icon.medium'));
 declare('media-action-icon', value('size.icon.medium'));
 declare('media-action-inset', value('spacing.2'));
 declare('space-content-group', rem('spacing.3'));
@@ -126,6 +195,9 @@ declare(
 );
 declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
+declare('duration-map-camera', value('motion.duration.mapCamera'));
+declare('duration-map-stack', value('motion.duration.mapStack'));
+declare('duration-controls-return', value('motion.duration.controlsReturn'));
 for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
@@ -152,6 +224,14 @@ declare(
   value('color.scheme.light.onAccent').toLowerCase(),
 );
 declare(
+  'color-action-emphasis',
+  value('color.scheme.light.actionEmphasis').toLowerCase(),
+);
+declare(
+  'color-on-action-emphasis',
+  value('color.scheme.light.onActionEmphasis').toLowerCase(),
+);
+declare(
   'memory-detail-background',
   value('color.scheme.light.memoryDetailBackground').toLowerCase(),
 );
@@ -165,17 +245,23 @@ ${declarations.join('\n')}
 }
 
 :root[data-theme="dark"] {
+${storyColorDeclarations('dark')}
   --color-link-text: ${darkLink};
   --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
   --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
+  --color-action-emphasis: ${value('color.scheme.dark.actionEmphasis').toLowerCase()};
+  --color-on-action-emphasis: ${value('color.scheme.dark.onActionEmphasis').toLowerCase()};
   --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+${storyColorDeclarations('dark', '    ')}
     --color-link-text: ${darkLink};
     --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
     --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
+    --color-action-emphasis: ${value('color.scheme.dark.actionEmphasis').toLowerCase()};
+    --color-on-action-emphasis: ${value('color.scheme.dark.onActionEmphasis').toLowerCase()};
     --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
   }
 }
@@ -206,6 +292,9 @@ ${declarations.join('\n')}
     --duration-feedback: ${value('motion.duration.instant')};
     --duration-transition: ${value('motion.duration.instant')};
     --duration-context: ${value('motion.duration.instant')};
+    --duration-map-camera: ${value('motion.duration.instant')};
+    --duration-map-stack: ${value('motion.duration.instant')};
+    --duration-controls-return: ${value('motion.duration.instant')};
   }
 }
 

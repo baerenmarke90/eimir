@@ -7,6 +7,7 @@ import {
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import { clientProblemKind } from './problemDetails';
+import { dateAwareStructuralSharing } from './structuralSharing';
 import {
   loadProductWithReadCache,
   readWarmOverviewCache,
@@ -148,6 +149,7 @@ export function useWarmOverviewQuery<T>({
     staleTime: () => (cacheMeta.source === 'cache' ? 0 : OVERVIEW_STALE_TIME),
     gcTime: OVERVIEW_GC_TIME,
     retry: false,
+    structuralSharing: dateAwareStructuralSharing,
   });
   const denied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(query.error),

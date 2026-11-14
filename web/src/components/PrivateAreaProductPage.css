@@ -1,6 +1,19 @@
 .private-area-page {
+  --private-action-color: color-mix(
+    in srgb,
+    var(--color-brand-strong) 68%,
+    var(--color-text-muted)
+  );
+
   display: grid;
   gap: var(--space-5);
+}
+
+@media (max-width: 839px) {
+  .private-area-page .add-action[data-floating-create] {
+    --color-action-primary: var(--private-action-color);
+    --color-focus: var(--private-action-color);
+  }
 }
 
 .private-area-context,
@@ -410,7 +423,7 @@ body.theme-vault .private-area-card,
 body.theme-vault .private-area-item,
 body.theme-vault .private-area-section,
 body.theme-vault .private-area-detail-card,
-body.theme-vault .private-area-editor,
+body.theme-vault .private-area-editor:not(.free-composer),
 body.theme-vault .private-area-danger {
   background: var(--color-surface);
   border-color: var(--color-border-subtle);
@@ -481,27 +494,11 @@ body.theme-vault .back-link:hover {
 .private-checklist-title-input {
   flex: 1;
   min-width: 0;
-  border: var(--border-surface-width) solid transparent;
-  background: transparent;
   font-family: inherit;
   font-size: 1rem;
   color: var(--color-text);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-small);
-  transition:
-    border-color var(--duration-feedback) var(--easing-standard),
-    background var(--duration-feedback) var(--easing-standard);
-}
-
-.private-checklist-title-input:hover {
-  border-color: var(--color-border-subtle);
-}
-
-.private-checklist-title-input:focus-visible {
-  outline: none;
-  background: var(--color-surface);
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 2px var(--color-brand-glow);
 }
 
 .private-checklist-title-input.is-completed {

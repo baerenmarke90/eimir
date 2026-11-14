@@ -1,21 +1,22 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import copy from '../../src/i18n/locales/wirDesign';
-import quoteCopy from '../../src/i18n/locales/dailyQuote';
-import profileCopy from '../../src/i18n/locales/profileIdentity';
-import energyCopy from '../../src/i18n/locales/dailyEnergy';
-import reflections from '../../src/i18n/locales/relationshipReflections';
-import notificationCopy from '../../src/i18n/locales/notificationSettings';
-import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import fs from 'node:fs';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import quoteCopy from '../../src/i18n/locales/dailyQuote';
+import notificationCopy from '../../src/i18n/locales/notificationSettings';
+import profileCopy from '../../src/i18n/locales/profileIdentity';
+import reflections from '../../src/i18n/locales/relationshipReflections';
+import wirCheckInCopy from '../../src/i18n/locales/wirCheckIn';
+import copy from '../../src/i18n/locales/wirDesign';
+import { expectFloatingAddAction } from '../support/addAction';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
+  captureScreenshot,
+  installMocks,
+  PARTNER,
   PARTNER_ID,
   SPACE_ID,
-  PARTNER,
-  installMocks,
   signIn,
-  captureScreenshot,
 } from '../support/storyTimelineFixture';
 
 async function fixture(
@@ -33,6 +34,25 @@ async function fixture(
     if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // Settings › Wir reads the owner's partner-distance view (#1792) to
+    // decide on the display toggle; a Space without it shares nothing.
+    if (path === `${base}/partner-location/settings`)
+      return route.fulfill({
+        json: {
+          available: false,
+          level: 'OFF',
+          state: 'OFF',
+          indefinite: false,
+          expiresAt: null,
+          generation: 0,
+          lastPublishedAt: null,
+        },
+      });
+    // The opted-in story lifeline (#1770) with no shared history yet.
+    if (path === `${base}/story-lifeline`)
+      return route.fulfill({
+        json: { startsOn: null, today: '2026-11-12', weeks: [] },
+      });
     if (path.includes('/attachments/') && path.endsWith('/content')) {
       return route.fulfill({
         contentType: 'image/jpeg',
@@ -247,7 +267,9 @@ async function alignedVisibilityControls(page: Page) {
         return bounds.x + bounds.width / 2;
       }),
     );
-  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length);
+  // Not listed: the fixed couple hero, and partner distance (#1792), which
+  // this fixture's Space cannot use.
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length - 2);
   expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
   const targets = await page
     .locator('.dashboard-module-option')
@@ -269,7 +291,8 @@ async function alignedVisibilityControls(page: Page) {
         };
       }),
     );
-  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length);
+  // The shared couple hero is fixed and has no visibility switch.
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length - 2);
   for (const target of targets) {
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);
@@ -423,20 +446,31 @@ for (const [width, theme, reduced] of [
       await expect(page.locator('.today-content')).toBeVisible();
       const overlay = page.getByRole(width < 840 ? 'dialog' : 'menu');
       const control = page.locator(
-        '.product-shell .quick-create-trigger:visible',
+        width < 840
+          ? '[data-floating-create]'
+          : '.shell-primary-action .quick-create-trigger',
       );
-      const state = await control.evaluate((node) => {
-        const css = getComputedStyle(node);
-        return {
-          highlight: css.webkitTapHighlightColor,
-          radius: css.borderRadius,
-          transform: css.transform,
-        };
-      });
-      expect(state.highlight).toBe('rgba(0, 0, 0, 0)');
-      if (width < 840) expect(state.radius).toBe('50%');
+      await expect(control).toHaveCSS(
+        '-webkit-tap-highlight-color',
+        'rgba(0, 0, 0, 0)',
+      );
+      if (width < 840) {
+        await expectFloatingAddAction(
+          control,
+          page.locator('.mobile-bottom-shell'),
+        );
+      }
       const bounds = await control.boundingBox();
       if (!bounds) throw new Error('Create control is not laid out');
+      if (width < 840) {
+        const reveal = page.locator(
+          '.today-moment-media .sensitive-media-preview-control',
+        );
+        await expect(reveal).toBeVisible();
+        const revealBounds = await reveal.boundingBox();
+        if (!revealBounds) throw new Error('Photo reveal is not laid out');
+        expect(revealBounds.x + revealBounds.width).toBeLessThan(bounds.x);
+      }
       const session = await context.newCDPSession(page);
       const contact = {
         x: bounds.x + bounds.width / 2,
@@ -566,22 +600,22 @@ for (const [width, theme, large] of [
           'background-color',
           'rgba(0, 0, 0, 0)',
         );
-        await expect(page.locator('.daily-vibe-person').first()).toHaveCSS(
-          'background-color',
-          'rgba(0, 0, 0, 0)',
-        );
       }
-      await expect(page.locator('.daily-vibe-checkin')).toBeVisible();
+      await expect(page.getByTestId('wir-checkin-own-badge')).toBeVisible();
       await expect(page.locator('.daily-quote-card')).toBeVisible();
       await expect(page.locator('.anticipation-card')).toBeVisible();
       await reflow(page);
-      const battery = page
+      const ownAvatar = page
         .locator('.today-hero')
-        .getByRole('button', { name: energyCopy.badgeAriaEmpty });
-      await battery.click();
-      await expect(page.getByTestId('daily-energy-popover')).toBeVisible();
+        .getByRole('button', { name: /^Dein Tag:/ });
+      await ownAvatar.click();
+      const dayPanel = page.getByRole('region', {
+        name: wirCheckInCopy.panelTitle,
+      });
+      await expect(dayPanel).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.getByTestId('daily-energy-popover')).toHaveCount(0);
+      await expect(dayPanel).toBeHidden();
+      await expect(ownAvatar).toBeFocused();
       await captureScreenshot(
         page,
         info,
@@ -710,7 +744,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
     { steps: 12 },
   );
   await expect(quote).toHaveCSS('box-shadow', 'none');
-  await expect(quote).toHaveCSS('outline-style', 'none');
+  // The lifted row is marked by a quiet outline while it is dragged.
+  await expect(quote).toHaveCSS('outline-style', 'solid');
   const held = await quote.boundingBox();
   expect(Math.abs((held?.y ?? 0) - rowBefore.y - dragDistance)).toBeLessThan(4);
   await page.mouse.up();
@@ -739,7 +774,13 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-  ).toEqual(order);
+    // The fixed couple hero keeps its stored slot but is not sortable; partner
+    // distance (#1792) keeps its slot but is not listed for this Space.
+  ).toEqual(
+    order.filter(
+      (key) => key !== 'relationship_presence' && key !== 'partner_distance',
+    ),
+  );
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });
@@ -764,6 +805,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await page.locator('.product-shell a[href="/today"]:visible').click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.shared-story-summary')).toBeVisible();
+  await expect(page.locator('.daily-quote-card')).toBeVisible();
   expect(
     await page
       .locator('.today-section-moment')
@@ -813,7 +855,17 @@ test('quote preference recovery keeps aligned controls and accessible feedback',
   const errorBounds = await failure.boundingBox();
   const rowBounds = await failedQuote.boundingBox();
   if (!errorBounds || !rowBounds) throw new Error('Missing quote recovery');
-  expect(Math.abs(errorBounds.width - rowBounds.width)).toBeLessThan(1);
+  // #1564: recovery spans the row's full available (content) width.
+  const rowPadding = await failedQuote.evaluate((row) => {
+    const style = getComputedStyle(row);
+    return (
+      Number.parseFloat(style.paddingLeft) +
+      Number.parseFloat(style.paddingRight)
+    );
+  });
+  expect(
+    Math.abs(errorBounds.width - (rowBounds.width - rowPadding)),
+  ).toBeLessThan(1);
   await captureScreenshot(
     failedQuote,
     info,
@@ -874,7 +926,15 @@ for (const [width, theme] of [
     };
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultProductContext(route)) return;
-      const path = new URL(route.request().url()).pathname;
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      if (
+        request.method() === 'GET' &&
+        path === '/api/v1/push-endpoints/configuration'
+      )
+        return route.fulfill({
+          json: { fcm: null, unifiedPush: null, webPush: null, apns: null },
+        });
       if (path === '/api/v1/notification-preferences')
         return route.fulfill({ json: notifications });
       if (path.startsWith('/api/v1/notification-preferences/')) {

@@ -62,7 +62,11 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
     return saved;
   });
   const apis = {
-    plans: { getPlan: vi.fn(async () => saved), updatePlan: update },
+    plans: {
+      getPlan: vi.fn(async () => saved),
+      listPlanCollections: vi.fn(async () => []),
+      updatePlan: update,
+    },
     places: {
       listPlaces: vi.fn(async () => ({ items: [], nextCursor: null })),
     },
@@ -424,6 +428,30 @@ describe('Pro relationship passport', () => {
       screen.getByRole('link', {
         name: i18n.t('relationshipReflections.passport.start'),
       }),
+    ).toBeTruthy();
+  });
+});
+
+describe('Discreet Plan countdown (#1790 F3)', () => {
+  it('shows the neutral list title and the lock only', () => {
+    render(
+      <MemoryRouter>
+        <AnticipationCard
+          value={{
+            planId: 'plan-1',
+            title: '',
+            daysRemaining: 8,
+            eventOn: new Date('2099-11-21'),
+            concealed: true,
+          }}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(i18n.t('discreetPlans.fallbackTitle')),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('img', { name: i18n.t('discreetPlans.lockLabel') }),
     ).toBeTruthy();
   });
 });

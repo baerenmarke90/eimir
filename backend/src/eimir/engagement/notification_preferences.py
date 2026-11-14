@@ -17,6 +17,7 @@ from eimir.identity import effects as account_effects
 INHERITED_KINDS = {
     NotificationKind.ONCE_MESSAGE_RECEIVED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.REMINDER_CREATED: NotificationKind.REMINDER_DUE,
+    NotificationKind.WISH_REMINDER_DUE: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_READY: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_COMPLETED: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_FAILED: NotificationKind.REMINDER_DUE,
@@ -72,7 +73,7 @@ def in_app_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 
 def email_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Require an explicit recipient opt-in and an immediate reviewed kind."""
-    if kind == NotificationKind.ONCE_MESSAGE_RECEIVED.value:
+    if not notification_policy.email_choice_allowed(kind):
         return False
     policy = notification_policy.for_kind(kind)
     if policy is None or policy.delivery_class is not notification_policy.DeliveryClass.IMMEDIATE:

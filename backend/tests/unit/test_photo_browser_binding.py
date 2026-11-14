@@ -1,5 +1,6 @@
 """Synthetic browser-cookie separation without enabling application import."""
 
+from dataclasses import replace
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -8,6 +9,7 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from eimir.api import deps
 from eimir.api.v1 import photo_sources as api
@@ -18,6 +20,7 @@ from eimir.core.errors import ServiceUnavailableError
 from eimir.db.session import get_session
 from eimir.photo_sources import browser_binding, service
 from eimir.photo_sources.models import PhotoSelection, PhotoSelectionPayload
+from eimir.providers.google_photos_config import GooglePhotosClient
 from eimir.providers.photo_transport import PhotoSourceError
 
 
@@ -42,6 +45,12 @@ def flow(monkeypatch):
     )
     authorization = AuthorizationContext(account_id=account.id, space_id=uuid4())
     state = generate_token()
+    client = GooglePhotosClient(
+        "synthetic.apps.googleusercontent.com",
+        SecretStr("synthetic-client-secret"),
+        "https://eimir.example/api/v1/photo-sources/google/callback",
+    )
+    monkeypatch.setattr(service.google_photos, "client_configuration", lambda: client)
     monkeypatch.setattr(
         service.google_photos,
         "authorization",
@@ -52,6 +61,7 @@ def flow(monkeypatch):
     picker.create.return_value = {
         "id": "synthetic-picker",
         "pickerUri": "https://photos.google.com/synthetic",
+        "pollingConfig": {"pollInterval": "5s", "timeoutIn": "600s"},
     }
     monkeypatch.setattr(service.google_photos, "exchange", exchange)
     monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", Mock(return_value=picker))
@@ -68,6 +78,7 @@ def flow(monkeypatch):
         session=session,
         exchange=exchange,
         picker=picker,
+        client=client,
     )
 
 
@@ -144,7 +155,7 @@ def test_correct_browser_exchanges_and_erases_one_use_proofs(flow):
     assert service.callback(flow.session, flow.state, "code", browser_binding=proof) == (
         "https://photos.google.com/synthetic"
     )
-    flow.exchange.assert_called_once_with("code", flow.state, "verifier")
+    flow.exchange.assert_called_once_with("code", flow.state, "verifier", client=flow.client)
     assert row.status == "PICKING"
     assert row.state_hash is None
     assert row.payload.browser_binding_hash is None
@@ -271,3 +282,105 @@ def test_legacy_recovery_task_cannot_callback_or_transfer_but_can_be_cancelled(f
         service.read_item(flow.session, row, "item", thumbnail=False)
     service.remove(flow.session, row)
     flow.session.delete.assert_called_once_with(row)
+
+
+@pytest.mark.parametrize("changed", ["client_id", "client_secret", "redirect_uri", "legacy"])
+def test_project_rotation_rejects_old_callback_before_exchange_and_erases_authorization(
+    flow, monkeypatch, changed
+):
+    proof, row, _ = start(flow)
+    if changed == "legacy":
+        row.payload = row.payload.model_copy(update={"google_client_binding": None})
+    else:
+        value = (
+            SecretStr("synthetic-rotated-secret") if changed == "client_secret" else "replacement"
+        )
+        rotated = replace(flow.client, **{changed: value})
+        monkeypatch.setattr(service.google_photos, "client_configuration", lambda: rotated)
+    assert service.callback(flow.session, flow.state, "code", browser_binding=proof) is None
+    flow.exchange.assert_not_called()
+    flow.picker.create.assert_not_called()
+    assert row.status == "FAILED" and row.state_hash is None
+    assert row.payload.code_verifier is None and row.payload.oauth_state is None
+
+
+@pytest.mark.parametrize("operation", ["poll", "read", "owned"])
+def test_project_rotation_blocks_old_media_but_preserves_cancellation(flow, monkeypatch, operation):
+    _, row, _ = start(flow)
+    row.status = "READY"
+    rotated = replace(flow.client, client_id="replacement.apps.googleusercontent.com")
+    monkeypatch.setattr(service.google_photos, "client_configuration", lambda: rotated)
+    with pytest.raises(ServiceUnavailableError, match="configuration changed"):
+        if operation == "poll":
+            service.advance(flow.session, row)
+        elif operation == "read":
+            service.read_item(flow.session, row, "picked-item", thumbnail=False)
+        else:
+            service.owned(flow.session, flow.authorization, flow.device, str(row.id))
+    flow.picker.poll.assert_not_called()
+    flow.picker.read.assert_not_called()
+    assert (
+        service.owned(flow.session, flow.authorization, flow.device, str(row.id), commercial=False)
+        is row
+    )
+    service.remove(flow.session, row)
+    flow.session.delete.assert_called_once_with(row)
+
+
+def test_provider_long_interval_is_not_shortened_and_timeout_never_extends(flow, monkeypatch):
+    proof, row, _ = start(flow)
+    instant = now()
+    monkeypatch.setattr(service, "now", lambda: instant)
+    flow.picker.create.return_value["pollingConfig"] = {"pollInterval": "90s", "timeoutIn": "120s"}
+    assert service.callback(flow.session, flow.state, "code", browser_binding=proof)
+    assert row.next_poll_at == instant + timedelta(seconds=90)
+    assert row.payload.google_poll_deadline == instant + timedelta(seconds=120)
+    service.advance(flow.session, row)
+    flow.picker.poll.assert_not_called()
+    instant += timedelta(seconds=90)
+    flow.picker.poll.return_value = {
+        "mediaItemsSet": False,
+        "pollingConfig": {"pollInterval": "90s", "timeoutIn": "120s"},
+    }
+    service.advance(flow.session, row)
+    flow.picker.poll.assert_called_once()
+    assert row.payload.google_poll_deadline == instant + timedelta(seconds=30)
+    instant += timedelta(seconds=30)
+    service.advance(flow.session, row)
+    flow.picker.poll.assert_called_once()
+    assert row.status == "EXPIRED"
+    assert row.payload.access_token is None and row.payload.picker_uri is None
+    flow.picker.delete.assert_called_once_with("synthetic-picker")
+
+
+def test_zero_provider_timeout_never_redirects_or_polls_and_erases_credentials(flow):
+    proof, row, _ = start(flow)
+    flow.picker.create.return_value["pollingConfig"] = {"pollInterval": "5s", "timeoutIn": "0s"}
+    assert service.callback(flow.session, flow.state, "code", browser_binding=proof) is None
+    assert row.status == "EXPIRED" and row.payload.access_token is None
+    flow.picker.delete.assert_called_once_with("synthetic-picker")
+    flow.picker.poll.assert_not_called()
+
+
+def test_poll_timeout_job_preserves_ready_media_until_the_original_binding_window(
+    flow, monkeypatch
+):
+    _, row, _ = start(flow)
+    row.status = "READY"
+    row.payload = row.payload.model_copy(
+        update={"google_poll_deadline": now() - timedelta(seconds=1)}
+    )
+    remove = Mock()
+    monkeypatch.setattr(service, "remove", remove)
+    service.expire(flow.session, {"selection_id": str(row.id), "polling_timeout": True})
+    remove.assert_not_called()
+    service.expire(flow.session, {"selection_id": str(row.id)})
+    remove.assert_called_once_with(flow.session, row)
+
+
+def test_malformed_provider_session_cleans_up_the_session_created_before_failure(flow):
+    proof, row, _ = start(flow)
+    flow.picker.create.return_value["pollingConfig"] = {"pollInterval": "NaNs", "timeoutIn": "5s"}
+    assert service.callback(flow.session, flow.state, "code", browser_binding=proof) is None
+    flow.picker.delete.assert_called_once_with("synthetic-picker")
+    assert row.status == "FAILED" and row.payload.access_token is None

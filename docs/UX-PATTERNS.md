@@ -73,10 +73,20 @@ The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RES
 - On touch input, a horizontal swipe on a primary root can select its adjacent
   destination in the visible navigation order, without wrapping (#1521). It is
   an additional shortcut: labeled navigation links remain available and both
-  inputs share the same history and bounded account/Space-scoped return context.
+  inputs share the same history and default-root navigation contract. Explicit
+  primary selection opens the canonical default at the top (#1682). Detail/task
+  Back retains its bounded account/Space-scoped originating context.
   Vertical scrolling, galleries, horizontal content scrollers, controls, editing,
   text selection, modal/menu layers and system edge gestures retain ownership.
   Details, editors and secondary destinations do not swipe between primary tabs.
+  The swipe behaves like a pager (as in the RWN Messenger's tab host): the
+  current page follows the finger one to one while the adjacent destination
+  travels in beside it at the reading position it was left in. Release past the
+  distance/velocity threshold settles both pages and then selects the
+  destination; a shorter release settles back. The first and last destination
+  give only a small resisted offset and never reveal a neighbour. A touch during
+  the settle catches it. With reduced motion the pages do not move and a
+  qualifying swipe selects the destination immediately.
 - Badge counts are used only for current, actionable information.
 - On Web, every primary function is keyboard-accessible and focus remains
   visible.

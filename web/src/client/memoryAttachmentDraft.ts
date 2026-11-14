@@ -2,6 +2,14 @@ import { MediaType } from '../api/generated/models/MediaType';
 import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { i18n } from '../i18n';
+import {
+  bindVideoTransferTargets,
+  cancelVideoTransfer,
+  type NativePreparedVideo,
+  prepareNativeVideoForUpload,
+  releasePreparedVideo,
+  startBackgroundVideoTransfer,
+} from './backgroundVideoUploads';
 import { ClientProblemError } from './problemDetails';
 import {
   type ReferenceApis,
@@ -10,6 +18,7 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import { compressVideoForUpload } from './videoCompression';
 
 export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
 
@@ -37,6 +46,7 @@ export async function uploadMemoryDraftAttachment(
     signal?: AbortSignal;
     onProgress?: (progress: number) => void;
     preserveMetadata?: boolean;
+    accountId?: string;
   } = {},
 ): Promise<ReadyDraftAttachment> {
   if (selectedPhotoUnavailable(file))
@@ -61,21 +71,49 @@ export async function uploadMemoryDraftAttachment(
     );
 
   let createdAttachment: { id: string; version: number } | null = null;
+  let prepared: NativePreparedVideo | undefined;
+  const owner = {
+    instance: apiBaseUrl,
+    accountId: options.accountId ?? '',
+    spaceId,
+  };
   try {
     throwIfAborted(options.signal);
-    const uploadFile = file;
+    let uploadFile = file;
+    if (video) {
+      onPhase?.('preparing');
+      try {
+        if (options.accountId)
+          prepared = await prepareNativeVideoForUpload(
+            owner,
+            file,
+            options.signal,
+          );
+        if (!prepared)
+          uploadFile = await compressVideoForUpload(
+            file,
+            options.signal,
+            options.onProgress,
+          );
+      } catch {
+        throwIfAborted(options.signal);
+        throw new ReferenceFlowError(i18n.t('video.preparationFailed'));
+      }
+      throwIfAborted(options.signal);
+    }
+    const selected = prepared ?? uploadFile;
     onPhase?.('uploading');
     const upload = await apis.attachments.createAttachmentUpload({
       spaceId,
       attachmentUploadCreate: {
-        expectedMimeType: uploadFile.type,
-        expectedSize: uploadFile.size,
+        expectedMimeType: selected.type,
+        expectedSize: selected.size,
         mediaType: audio
           ? MediaType.AUDIO
           : video
             ? MediaType.VIDEO
             : MediaType.IMAGE,
-        originalName: uploadFile.name,
+        originalName: selected.name,
         preserveMetadata:
           video || audio ? false : (options.preserveMetadata ?? false),
       },
@@ -84,6 +122,29 @@ export async function uploadMemoryDraftAttachment(
       id: upload.attachment.id,
       version: upload.attachment.version,
     };
+
+    if (video && options.accountId) {
+      await startBackgroundVideoTransfer({
+        apis,
+        apiBaseUrl,
+        accessToken,
+        accountId: options.accountId,
+        spaceId,
+        file: uploadFile,
+        ...(prepared ? { prepared } : {}),
+        descriptor: upload,
+        fetchApi,
+      });
+      if (options.signal?.aborted) {
+        cancelVideoTransfer(upload.attachment.id);
+        throwIfAborted(options.signal);
+      }
+      return {
+        attachmentId: upload.attachment.id,
+        processing: true,
+        hasThumbnail: false,
+      };
+    }
 
     await uploadAttachmentBytesWithProgress(
       apiBaseUrl,
@@ -134,7 +195,11 @@ export async function uploadMemoryDraftAttachment(
       throw error;
     }
     if (error instanceof ReferenceFlowError) throw error;
-    throw new ReferenceFlowError(i18n.t('flow.uploadFailed'));
+    throw new ReferenceFlowError(
+      i18n.t(video ? 'video.startFailed' : 'flow.uploadFailed'),
+    );
+  } finally {
+    if (prepared) await releasePreparedVideo(owner, prepared);
   }
 }
 
@@ -184,6 +249,11 @@ export async function completeMemoryAttachmentBinding(
                 attachment.isSensitive === attachmentSensitivity[index],
             ))
       ) {
+        await bindVideoTransferTargets(
+          spaceId,
+          { targetType: 'MEMORY', targetId: memory.id },
+          attachmentIds,
+        );
         return memory;
       }
       // Do not overwrite another edit while reconciling a lost bind response.
@@ -191,7 +261,7 @@ export async function completeMemoryAttachmentBinding(
         throw new ClientProblemError('conflict', 409);
       }
     }
-    return await apis.memories.replaceMemoryAttachments({
+    const saved = await apis.memories.replaceMemoryAttachments({
       spaceId,
       memoryId: memory.id,
       ifMatch: String(memory.version),
@@ -213,6 +283,12 @@ export async function completeMemoryAttachmentBinding(
         })),
       },
     });
+    await bindVideoTransferTargets(
+      spaceId,
+      { targetType: 'MEMORY', targetId: saved.id },
+      attachmentIds,
+    );
+    return saved;
   } catch (error) {
     throw new MemoryAttachmentBindingError(
       created,
@@ -247,6 +323,14 @@ export async function createMemoryWithReadyAttachments(
     memoryCreate,
     idempotencyKey: options.idempotencyKey,
   });
+  if (memoryCreate.attachments !== undefined) {
+    await bindVideoTransferTargets(
+      spaceId,
+      { targetType: 'MEMORY', targetId: memory.id },
+      (memoryCreate.attachments ?? []).map((item) => item.attachmentId),
+    );
+    return { memory };
+  }
   const savedMemory = attachmentIds.length
     ? await completeMemoryAttachmentBinding(
         apis,

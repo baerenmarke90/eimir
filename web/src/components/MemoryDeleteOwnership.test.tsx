@@ -30,6 +30,7 @@ import * as snackbar from '../client/snackbar';
 import { TaskOriginProvider } from '../client/taskOrigin';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { MemoryProductPage } from './MemoryProductPage';
 
 const key = authorSummaryQueryKeys.memory('space-1', 'memory-1');
@@ -475,7 +476,7 @@ describe('Memory delete response and task ownership', () => {
       ' — later draft',
     );
     await s.start();
-    await user.click(screen.getByRole('link', { name: de.common.cancel }));
+    await user.click(screen.getByRole('link', { name: taskBoundary.back }));
     await screen.findByRole('heading', { name: 'Memory detail' });
     expect(s.path()).toBe('/story/memories/memory-1');
     await userEvent
@@ -513,7 +514,7 @@ describe('Memory delete response and task ownership', () => {
       name: memoryProduct.save,
     });
     expect(save.hasAttribute('disabled')).toBe(true);
-    const form = save.closest('form');
+    const form = (save as HTMLButtonElement).form;
     if (!form) throw new Error('The Memory save action has no form');
     fireEvent.submit(form);
     expect(s.update).not.toHaveBeenCalled();

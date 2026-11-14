@@ -6,50 +6,83 @@ not depend on a live processor or a current Pro grant.
 
 ## Runtime contract
 
-Accept MP4/MOV with one H.264 or HEVC video stream, 8/10-bit 4:2:0,
-4:2:2 or 4:4:4, SDR or HLG/PQ HDR, and optional AAC, MP3 or common MOV PCM
-audio. The input bounds remain 180 seconds, 250 MiB and 3840×2160 (either
-orientation). Non-media metadata tracks and attached cover images are excluded
-from the selected media; multiple primary videos/audio tracks remain unsupported.
+The app owns video preparation before upload admission (#1713). Selected MP4/MOV
+inputs remain bounded to 180 seconds, 250 MiB and 3840×2160 in either orientation.
+Android uses AndroidX Media3 and platform codecs to prepare H.264/AAC SDR MP4,
+without upscaling, cropping or losing orientation/sound. The 1080p target is
+10 Mbit/s VBR (proportional at lower resolution, floor 1.5 Mbit/s), at most
+30 fps when encoding. Compatible lower-bitrate videos remain untouched locally.
+HDR is explicitly tone-mapped with Media3's OpenGL HDR-to-SDR path, supported
+from API 29. Platform media-editing diagnostics are disabled.
 
-The single shared Memory/HeartMoment processor keeps compatible SDR 8-bit
-4:2:0 H.264 and AAC streams without lossy re-encoding. Other accepted video
-streams are normalized with the pinned OpenH264 encoder to even-dimension,
-aspect/orientation-preserving H.264, at most 1920×1080 (either orientation),
-30 fps and a 4 Mbit/s target. MP3/PCM audio is converted to AAC; existing AAC
-is preserved. HLG/PQ is linearized, gamut-converted and tone-mapped using zimg
-and FFmpeg, then encoded as SDR BT.709. Merely changing HDR color tags is not
-conversion. The HDR base layer is supported; this is not a promise to retain
-proprietary dynamic-HDR enhancement metadata.
+The Web worker reuses Mediabunny/WebCodecs for supported SDR conversion and
+verifies its output's duration, codecs, dimensions and audio presence. HDR is
+rejected visibly in the browser rather than using device-dependent canvas
+relabeling. Unavailable codecs, unsupported HDR devices, conversion errors,
+timeouts and cancellation never upload an incompatible original. Selection stays
+available for retry/reselection. No software codec, remote converter or new
+user configuration is introduced.
 
-Both paths remove container/stream metadata, chapters and H.264 SEI, produce
-fast-start MP4, revalidate the strict H.264/AAC SDR output contract and duration,
-and decode the entire sanitized output. Conversion drops frame side data. A
-rewritten JPEG poster is generated when possible; a missing poster does not
-invalidate an independently validated video. Originals are never retained as an
-unvalidated playback fallback. DRM, additional containers/codecs, adaptive
-streaming and external media URLs remain unsupported. Plans, avatars and
-related-person photos retain image-only intake.
+Only after preparation does the client reserve the **actual** prepared MIME and
+byte count. Android hands its opaque private prepared file to the existing
+background transfer without serializing video bytes through JavaScript/Base64.
+The shared server worker accepts prepared 8-bit 4:2:0 H.264 SDR and optional AAC,
+at most 1920×1080 in either orientation. It **never encodes video or audio**.
+It rejects unprepared HEVC, HDR, high-bit-depth, non-AAC or oversized-resolution
+input instead of silently starting server compression.
 
-The format boundary from #1649 remains authoritative. Browser codec support
-is not required. No extra provider, permission or couple-facing setting is introduced.
+Server work is limited to lossless selected-stream remux, metadata/chapter/SEI
+removal, fast-start MP4, strict output validation and complete decoding. Decoded
+video pixels and AAC packets must remain unchanged. A rewritten JPEG poster is
+generated when possible; poster failure does not invalidate a verified video.
+Existing isolation, memory/deadline/byte/gallery fences, authorization and cleanup
+remain. Clients are untrusted; no raw upload ever becomes a playback fallback.
+Plans, avatars and related-person photos remain image-only.
 
-### Upload and background completion (#1655)
+Deploy updated clients with the backend/media worker. Old clients can still send
+already compatible videos, but incompatible originals now fail validation rather
+than being compressed on the server. No schema/migration/configuration change is
+introduced. Historical lossy outputs cannot regain detail without original
+reupload. The dated [#1710 server-quality measurements](video-quality-1710.md)
+remain historical evidence for that superseded server encoding policy.
+See [device preparation and validation](on-device-video-preparation.md).
 
-Capture transfers selected originals directly; it no longer invokes #1647's
-optional local compression before upload. Images still wait for READY. After
-video finalize, the editor may save a Memory or HeartMoment with a PROCESSING
-placeholder. Only server-validated READY output can receive read/playback access.
-Canonical parent reads refresh while processing; closing/restarting the client
-cannot cancel a video already saved with its parent.
+### Upload and background completion (#1655, #1701)
 
-Only uploaded, finalized VIDEO rows in VALIDATING/FAILED may use this narrow
-binding exception, within sixty minutes of the observed upload when unbound.
-Ownership, Space authorization, exclusive binding and the 20-media / 500 MiB
-aggregate boundary remain enforced. Pending videos reserve their declared bytes.
-The worker locks the current parent before publication and checks output bytes
-against the complete gallery, including other pending reservations. Upload identity
-and deletion fences survive annotation edits; the latest sensitivity is retained.
+Capture prepares videos locally before admission; compatible originals may stay
+lossless. The editor shows its existing preparing state during that bounded work.
+Once admission is complete, the existing early-save/background contract applies. Images still wait for READY. An admitted VIDEO reservation is
+bindable while PENDING/UPLOADING, so Memory and HeartMoment can save and show
+an ordered placeholder before any video byte arrives. Only server-validated
+READY output receives read/playback access. Canonical parent reads refresh
+through PENDING and PROCESSING without moving the gallery slot or cover choice.
+
+Memory creation optionally binds its gallery and cover atomically, including
+sensitivity, in the same request/transaction as the text and idempotency receipt.
+The exact gallery snapshot belongs to the create identity; replay never creates
+another parent or repeats binding. Legacy recovered two-step attempts retain
+their existing receipt format and reconciliation. A failed local draft checkpoint
+does not block this verifiable online atomic save; it still blocks unsafe legacy
+partial-save recovery. Offline or uncertain responses never claim success.
+
+The shared binding exception is video-only. Unbound PENDING/UPLOADING videos
+must be younger than the existing 24-hour upload retention; uploaded finalized
+VALIDATING/FAILED videos retain the sixty-minute binding window. Ownership,
+Space authorization, exclusive binding, parent-type rules, and 20-media / 500 MiB
+aggregate limits remain enforced. Pending videos reserve declared bytes. The
+worker locks the current parent before publication and checks output bytes
+against the gallery, including other reservations. Upload identity/deletion
+fences survive edits, and the latest sensitivity is retained. An expired bound
+upload becomes an editable FAILED placeholder (`VIDEO_UPLOAD_TIMEOUT`) rather
+than disappearing with its parent content.
+
+The shared Web coordinator owns admitted transfers outside editor lifecycles,
+with two concurrent requests and a 20-file / 500 MiB device staging budget. A
+route change or successful save does not abort the bytes. An explicit retry
+reconciles server status before reusing the same Attachment; it never re-creates
+the parent. This browser transport lives only as long as the document: keep its
+tab open. No service-worker background upload or browser-restart guarantee is
+implied. Original videos stay out of IndexedDB and browser persistent caches.
 
 A failed bound video records one uploader-only reference event. If validation
 fails before binding, the first authorized binding records that outcome instead.
@@ -62,8 +95,9 @@ API, general worker and optional media worker must deploy the same revision,
 including migration 0111. The existing bounded processor remains optional for
 Self-Hosted and uses the same resource limits in Cloud.
 
-The old local compression utility remains exercised by its diagnostic fixture;
-normal capture does not invoke it or rely on browser encoding support.
+The shared Memory/HeartMoment draft uploader now invokes local preparation.
+A verified compatible browser original does not require an encoder; conversion
+does. No failed optimization silently falls back to unprepared original bytes.
 
 The production CSP permits compiled same-origin workers; remote/blob workers,
 inline scripts and eval remain disallowed. This does not enable a new service
@@ -84,7 +118,7 @@ Picker contracts, in single or multiple mode. AndroidX falls back to the
 Storage Access Framework only when the system picker is unavailable. Android
 owns the localized, accessible gallery; original-photo consent stays separate.
 No library-wide video access, directory-tree access or persistable grant is
-requested, and selected video bytes are never copied into native cache.
+requested. Selection alone retains only a process-local descriptor lease.
 
 The raw Photo Picker proxy previously produced a real WebView
 `NotReadableError`, consistent with [Chromium 40123366](https://issues.chromium.org/issues/40123366).
@@ -96,10 +130,44 @@ Activity/renderer disposal closes every lease, fences in-flight adoption and
 invalidates opaque provider URIs. No selected source URI or descriptor is
 persisted or logged; process death naturally removes all leases.
 
-Native acceptance selects the actual foreign-owned gallery item, checks
-repeated Chromium File reads, independent readers, read-only/disposed ownership
-and deliberate decoding/playback. The former forced DocumentsUI workaround
-is superseded by this repair; it is not a second normal picker path.
+Before video upload admission, Android stages the selected descriptor into private
+no-backup app storage before the editor releases its selection. It uses the same
+encrypted record and opaque file lifecycle for preparation, atomically adopts
+that file into the confirmed Attachment transfer, and reserves one output-file
+budget while encoding. An extra prepared file is never copied through the bridge. Files are capped
+at 250 MiB, twenty active files and 500 MiB total; encrypted job records contain
+only opaque ownership/Attachment identity, instance and progress, not parent
+content, filenames or credentials. Completion, explicit removal and logout purge
+staging. Failed transfers remain retryable while their bytes survive. Expired
+staging and orphan files are removed at the next native staging/status operation
+after 24 hours, rather than promising a wall-clock deletion while the app is dead.
+
+Android 14+ uses user-initiated JobScheduler transfers; Android 8–13 uses a
+foreground data-sync service. Both outlive the WebView/Activity and display
+localized, generic progress with secret lock-screen visibility. Android 13+
+requests notification permission at the first explicit upload; when denied the
+OS may limit visibility to its active-task UI. Intermediate upload percentages
+are persisted/notified at most once per second; the first positive percentage,
+final percentage and phase changes bypass coalescing. This avoids repeated
+Keystore/file/notification work throttling the byte stream on slower devices.
+Job admission/progress share JobService's ordered notification queue, so a late
+admission notification cannot overwrite newer progress. Interrupted running-job
+notifications are removed; confirmed terminal status can remain detached.
+Jobs start only from a visible
+user action. They stream the existing authenticated, same-instance API route,
+including with object storage, without persisting a signed URL or refresh token.
+Redirects are disabled. Every request resolves current Keystore-protected
+account/Space credentials; logout/replacement cancels jobs, files and sockets.
+Expired authentication or a failed request retains a retryable placeholder;
+foreground session refresh followed by retry resumes the same reservation.
+This is not a promise to survive force-stop, reboot or an operator-disabled
+processor. No native refresh-token rotation or extra sync protocol is introduced.
+
+Native acceptance retains the actual foreign-owned gallery/Chromium selection
+journeys and adds selected-file staging/revocation plus a real blocked HTTP PUT:
+move the Activity to the background, observe notification progress, release the
+transfer, verify byte digest and one finalize, and confirm private staging was
+removed. CI runs this on the existing minimum/current Android emulator matrix.
 
 ## Optional worker
 

@@ -21,7 +21,11 @@ const loadMemoryImage = async () => 'blob:test-image';
 function renderStoryPage(
   route: string,
   cachedData: unknown,
-  options?: { dashboard?: unknown; selectionDate?: Date },
+  options?: {
+    dashboard?: unknown;
+    selectionDate?: Date;
+    leadRediscovery?: unknown;
+  },
 ): string {
   const query = route.includes('?') ? route.slice(route.indexOf('?') + 1) : '';
   const filters = parseStoryFilters(new URLSearchParams(query));
@@ -46,6 +50,7 @@ function renderStoryPage(
         items: (cachedData as { items?: unknown[] }).items ?? [],
         lead: (cachedData as { items?: unknown[] }).items?.[0] ?? null,
         leadContext: null,
+        leadRediscovery: options?.leadRediscovery ?? null,
         selectionDate: options?.selectionDate,
       },
       source: 'network',
@@ -69,6 +74,68 @@ function renderStoryPage(
     </QueryClientProvider>,
   );
 }
+
+describe('Momente #1790 C2 featured rediscovery wording', () => {
+  const selectionDate = new Date('2026-08-24T00:00:00Z');
+  const untitled = {
+    kind: 'MEMORY',
+    effectiveDate: new Date('2025-08-24T00:00:00Z'),
+    memory: {
+      id: 'untitled-lead',
+      title: '',
+      happenedOn: new Date('2025-08-24T00:00:00Z'),
+      createdAt: selectionDate,
+      attachments: [],
+      author: { id: 'author-1', displayName: 'Lea' },
+      capabilities: { canEdit: true, canDelete: true, canComment: true },
+    },
+  };
+  const leadRediscovery = {
+    placeName: 'Lake Phoenix',
+    photoCount: 0,
+    videoCount: 0,
+  };
+
+  function headline(html: string): string {
+    return (
+      html.match(/<h3 class="momente-hero-title">([^<]*)<\/h3>/u)?.[1] ?? ''
+    );
+  }
+
+  it('gives an untitled entry a variant headline and moves the date to the meta line', () => {
+    const html = renderStoryPage(
+      '/story?tab=discover',
+      { items: [untitled], hasMore: false, nextCursor: null },
+      { selectionDate, leadRediscovery },
+    );
+    const title = headline(html);
+    expect(title).toBeTruthy();
+    // Never the bare date that the meta line now carries.
+    expect(html).not.toContain(
+      `<h3 class="momente-hero-title">${html.match(/dateTime="2025-08-24">([^<]*)</u)?.[1]}</h3>`,
+    );
+    expect(title).not.toMatch(/^\d/u);
+    expect(html).toContain(
+      '<time class="rediscovery-date" dateTime="2025-08-24">',
+    );
+    // The accessible name follows the visible headline.
+    expect(html).toContain(
+      `aria-label="${de.story.featuredHighlight}: ${title}"`,
+    );
+  });
+
+  it('is stable when the same selection is rendered again', () => {
+    const render = () =>
+      headline(
+        renderStoryPage(
+          '/story?tab=discover',
+          { items: [untitled], hasMore: false, nextCursor: null },
+          { selectionDate, leadRediscovery },
+        ),
+      );
+    expect(render()).toBe(render());
+  });
+});
 
 describe('Momente retrospective integration (#601)', () => {
   const selectionDate = new Date('2026-08-24T00:00:00Z');
@@ -307,6 +374,76 @@ describe('StoryProductPage', () => {
     expect(html).toContain('First apartment together');
   });
 
+  describe('issue #1784: Discover HeartMoment note follows its emotion', () => {
+    const lead = {
+      kind: 'MEMORY',
+      effectiveDate: new Date('2026-08-26T00:00:00Z'),
+      memory: {
+        id: 'mem-1',
+        title: 'Summer Lake Vacation',
+        notes: 'Wonderful sunset together',
+        occurredOn: new Date('2026-08-26T00:00:00Z'),
+        createdAt: new Date('2026-08-26T00:00:00Z'),
+        attachments: [
+          { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+        ],
+        author: { id: 'author-1', displayName: 'Alex' },
+        creator: { id: 'author-1', displayName: 'Alex' },
+        capabilities: { canComment: true, canDelete: true, canEdit: true },
+      },
+    };
+    const heartMoment = (emotion?: string) => ({
+      kind: 'HEART_MOMENT',
+      effectiveDate: new Date('2026-08-25T00:00:00Z'),
+      heartMoment: {
+        id: 'heart-1',
+        text: 'I love you more each day',
+        emotion,
+        createdAt: new Date('2026-08-25T00:00:00Z'),
+        author: { id: 'author-2', displayName: 'Taylor' },
+        creator: { id: 'author-2', displayName: 'Taylor' },
+      },
+    });
+    const renderNoteLink = (emotion?: string): string => {
+      const html = renderStoryPage('/story', {
+        items: [lead, heartMoment(emotion)],
+        hasMore: false,
+        nextCursor: null,
+      });
+      const link = /<a [^>]*momente-tapestry-note[^>]*>[\s\S]*?<\/a>/.exec(
+        html,
+      );
+      if (!link) throw new Error('The Discover note link did not render.');
+      return link[0];
+    };
+
+    it('shows the shared emotion badge and the emotion surface instead of the corner glyph', () => {
+      const link = renderNoteLink('LOVED');
+
+      expect(link).toContain('data-heart-emotion="LOVED"');
+      expect(link).toContain('heart-emotion-badge');
+      expect(link).toContain(storyProducts.heartEmotion.LOVED);
+      expect(link).not.toContain('momente-tapestry-kind');
+    });
+
+    it('names the emotion in the accessible name of the note', () => {
+      expect(renderNoteLink('SEEN')).toContain(
+        `aria-label="${storyProducts.storyItem.note}: I love you more each day. ${storyProducts.heartMomentProduct.emotionLabel}: ${storyProducts.heartEmotion.SEEN}"`,
+      );
+    });
+
+    it('keeps the previous corner glyph for a note without an emotion', () => {
+      const link = renderNoteLink();
+
+      expect(link).not.toContain('data-heart-emotion');
+      expect(link).not.toContain('heart-emotion-badge');
+      expect(link).toContain('momente-tapestry-kind');
+      expect(link).toContain(
+        `aria-label="${storyProducts.storyItem.note}: I love you more each day"`,
+      );
+    });
+  });
+
   describe('issue #977: curated reveal and viewport-aware media loading', () => {
     it('gives tapestry entries a reveal key/class and defers their media until near the viewport, while the Discover page wrapper no longer replays a generic mount animation', () => {
       const html = renderStoryPage('/story', {
@@ -509,7 +646,9 @@ describe('StoryProductPage', () => {
     });
 
     expect(html).toContain('new-space-experience');
-    expect(html).toContain('/story/memories/new');
+    expect(html).toContain(de.story.addMoment);
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).not.toContain('new-space-cta');
   });
 
   it('keeps milestone story content distinct from the compact structural navigation', () => {

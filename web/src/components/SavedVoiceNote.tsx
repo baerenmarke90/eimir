@@ -50,6 +50,7 @@ export function SavedVoiceNote({
     return (
       <div className="voice-player">
         <SensitiveMediaControl
+          mediaType="AUDIO"
           revealed={false}
           onToggle={() => reveals.toggle(attachment.id)}
         />
@@ -75,6 +76,7 @@ export function SavedVoiceNote({
     <div className="voice-editor">
       {attachment.isSensitive && (
         <SensitiveMediaControl
+          mediaType="AUDIO"
           revealed
           onToggle={() => reveals.toggle(attachment.id)}
         />
@@ -82,6 +84,7 @@ export function SavedVoiceNote({
       <VoiceNotePlayer
         src={resource.url}
         title={title || t('voiceNotes.title')}
+        defaultTitle={!title}
         speaker={speaker}
         duration={attachment.durationSeconds}
       />

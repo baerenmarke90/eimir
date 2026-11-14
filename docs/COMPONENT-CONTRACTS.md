@@ -71,6 +71,68 @@ ActionState     = idle | submitting | success | error
 - `disabled` does not replace validation or permission explanations.
 - Minimum target size: 48 dp in the app, 44 CSS px on Web.
 - The accessible name matches the visible label or meaningfully extends it.
+- Standalone create/add actions that start a task use a visibly filled primary
+  or secondary button in both empty and populated views. An icon plus bare text
+  or a transparent tertiary action is insufficient. Reuse the shared button
+  surface, contrast, focus, pressed and target-size rules; do not emulate the
+  button with local styling. This includes the important-date creation action
+  (Product Owner correction, 2026-11-07, #1688). Contextual tertiary actions and
+  inline insertion controls retain their distinct roles. Keep at most one
+  visually dominant primary action in the current view/state.
+- All create/add entry points, including authored tags, media and inline list
+  insertion, use `AddActionLink` or `AddActionButton`: the same filled
+  canonical-blue pill, shared icon and **visible localized action label**,
+  with a comfortable 48 px target. The optional typed `icon` prop selects an
+  `EimirIcon` motif; the plus remains the default for generic creation.
+  Product Owner correction #1724 uses photo for device media, photo-library for
+  other photo sources, pin for Places, list for Lists, tag for authored tags and
+  video for the dedicated video action. Icons are decorative, share the same
+  size and inherit the action foreground, including their accent strokes.
+  Existing task-origin links, native file labels and add/edit chips can reuse
+  `AddActionContent` with the same `add-action` surface without replacing their
+  lifecycle. Selected values keep their existing edit/selection meaning.
+  Preserve native semantics, refs, focus, pending/disabled behavior and link
+  state. Labels wrap; inline rows wrap before compressing input or text. Local
+  CSS may arrange the action but cannot redefine its shared presentation.
+  Product Owner correction #1697 supersedes #1693's icon-only circular
+  interpretation for heading and inline actions. The #1740 follow-up adds a
+  shared Compact floating variant with a filled 60 px rounded square,
+  16 px corners, a 32 px plus icon box, localized accessible name and room
+  above the docked navigation. Lists, Places, People, Chapters and the
+  Private Area use it for their overview creation action. The Private Area
+  uses it for its local Personal Notes, Gift Ideas, Private Lists and Partner
+  Notes creation actions as well. Expanded renders the localized label and
+  the contextual icon in the existing page heading.
+  Selection choices, Back, Close and overflow retain their distinct roles.
+- Product Owner correction #1726 defines a narrow media-intake exception:
+  its approved chat refinement uses one soft composer entry which opens the
+  existing source sheet. Device/external choices live in that sheet, with Pro
+  only on external choices; gallery content sits directly in the composer.
+  The media section heading, nested media surface and idle format hints are
+  omitted. The original grouped-row direction below is superseded for composers.
+  grouped device and external photo-source choices use the shared media intake
+  button with a full-width, borderless filled surface, contextual icon, visible
+  localized label, optional format hint and external-source Pro mark. They live
+  inside the writing composer; this selection presentation does not change
+  file/source ownership or the other AddAction entry points. Idle writing fields
+  are borderless; keyboard focus, errors and forced-colors remain distinguishable.
+- Product Owner correction #1730 supersedes conflicting #1717/#1726
+  composition for non-experience Memory, HeartMoment and Plan create/edit.
+  The page itself is the writing surface. Labeled tools replace filled
+  Place/Tag/List/Voice insertion pills, and selected values use quiet edit
+  chips. Diary has one on-page media entry; HeartMoment and Plan use the Photo
+  tool and shared source sheet. Other AddAction consumers retain their contract.
+- Product Owner decision #1790 D1 makes the diary entry the only one: diary
+  create and edit have no Photo tool and no separate external-source link. The
+  on-page intake opens the shared source sheet when an external source is
+  connected, and the device picker otherwise; a populated gallery adds through
+  its add tile. HeartMoment and Plan keep the Photo tool, where media stay
+  optional.
+- Hover feedback must keep the control's hit target stationary. Translating a
+  button away from a pointer at its edge can alternate hover state indefinitely
+  and prevent both a real click and native actionability checks. Reuse color
+  feedback for hover; the existing deliberate press/reduced-motion contract
+  remains separate (#1693).
 
 ### 3.2 Icon Button
 
@@ -167,9 +229,15 @@ See [the composition and evidence](product/design/subpage-navigation-context/REA
 ### 5.5 Moment date and Place context
 
 Memory and shared HeartMoment readers group the calendar date and all authorized
-Places above media in one wrapping row. Each Place opens its address/map and
-attribution in the existing short sheet; no external request occurs until an
-explicit link. Private HeartMoments do not request shared Places. A Memory's
+Places above media in one wrapping row. For the #1730 non-experience Memory,
+HeartMoment and Plan readers, coordinates link directly through `MomentMapLink`
+to the existing internal Memory map; a Place without coordinates stays text.
+Map Back restores the same detail and reading position. Composer context opens
+its existing Place editor instead. Out-of-scope experience readers retain their
+short-sheet context. No external request occurs without an explicit action.
+Private HeartMoment readers display their protected parent location snapshot and
+do not request shared Place relations. Private capture may deliberately copy a
+saved Place or map choice into that snapshot without creating a shared Place. A Memory's
 date-only fallback heading displays its calendar date once, with Places beside
 it where space permits. `MomentDate` provides the same calendar treatment to
 timeline and relation previews; formatting and date-only semantics stay with
@@ -230,6 +298,10 @@ the concrete APIs, usage, existing consumers and validation scope.
   radius and sheets the sheet radius. Caption text remains readable below the
   image. A full image view exposes the complete image; absent media differs
   from loading or failed media.
+  The PO-approved Wir monthly mosaic (#1736) is a bounded exception: captions
+  overlay a legibility scrim, calendar dates remain in each link's accessible
+  name, and sensitive photos retain concealment plus a visible localized label.
+  Its one/two/three-photo layouts use the sheet radius without a swipe track.
 - Compact page gutters resolve to the tokenized narrow or comfortable value
   from available width. Resizing does not reset content/selection. Insets and
   keyboard protection remain platform responsibilities.
@@ -295,6 +367,11 @@ visible until resolved or deliberately discarded.
 - Has a clear heading and a visible close option.
 - Drag-to-dismiss is supplementary only; keyboard and screen reader support
   remains complete.
+- On Compact, a deliberate downward pull may start anywhere on the sheet
+  surface, including buttons, links and list rows; releasing a claimed pull
+  never activates the control it started on. Text entry, selects, sliders,
+  maps and media keep their own gestures, and a scrolled inner region first
+  scrolls back to its top boundary.
 - Long or complex flows move to a dedicated page.
 
 ### 8.3 Side Pane
@@ -332,6 +409,43 @@ declare all existing editors migrated.
   Web/native proof exercises production consumers; broader R1/R2 composition
   and other lifecycle migrations retain their own acceptance owners.
 
+### 8.5 Page composer
+
+`ComposerToolRow`, `ComposerTool` and `ComposerChip` provide presentation for
+#1730; existing domain owners retain authoring, permissions and persistence.
+The anatomy is native header submit, wrapping date/Place context, unwrapped
+writing/media, selected chips, status and a labeled tool group. HeartMoment
+retains visible feeling radios and its separate visibility task.
+
+- Tools are native buttons with localized visible labels and at least 48 px
+  targets; selected edit chips have at least 44 px targets. Caller-supplied
+  active, disabled, pending and error states remain truthful.
+- The tool row follows the visual viewport and safe area. Content reserves its
+  measured height; focused fields can scroll above it. Opening a reader or
+  composer does not automatically activate the keyboard.
+- The existing short sheet owns initial focus, trapping, Escape/Back and trigger
+  restoration. Domain owners retain dirty/pending exit guards and native form
+  values after a sheet closes. Header Save remains associated with that form.
+- The later [PO review of #1735](https://github.com/baerenmarke90/eimir/pull/1735#issuecomment-6776422807)
+  supersedes the Heart lead-first reference frames and the former media-management
+  disclosure. Context precedes photos, then Heart voice, existing title/lead and
+  prose, feeling, and chips/links. Empty media has no visible gap.
+- The inline stage uses the same filling crop in all three products; fullscreen
+  retains the full image. Cover choice, removal, sensitivity and count remain
+  at the four stage corners. The 56 px strip never enlarges or exposes per-item
+  controls: a thumbnail selects the stage only. The subsequent PO correction
+  removes the composer-only Arrange, automatic-cover reset and inline Reveal
+  rows. Stage activation opens the existing fullscreen, whose reveal/hide
+  controls remain. No replacement arrangement entry is introduced; default
+  galleries keep their existing `PhotoArrangeTask` and reset controls. Retry
+  belongs on the failed stage. Native touch/focus and pending/permission guards
+  remain authoritative.
+- The compact Plan schedule sheet explicitly offers the existing unscheduled
+  state through the native date-change path, including the owning dirty guard.
+- Light/Dark, semantic typography, reduced motion and reflow use shared roles.
+  No domain request, analytics payload or private content storage belongs in
+  these primitives. Existing source consent, Pro and native media owners remain.
+
 ## 9. Feedback components
 
 ### 9.1 Inline Message
@@ -362,6 +476,23 @@ declare all existing editors migrated.
 - Failure and retry are per file.
 - Crop and editing never modify the original without making that clear.
 - Videos have a poster frame, duration, and subtitle status.
+
+### 10.1a Avatar photo crop (#1854)
+
+- An avatar-shaped upload passes through the shared `PhotoCropTask` before it
+  is sent: the photo moves and zooms inside the round frame avatars use, and
+  the frame is always fully covered.
+- The step is a short sheet with one filled completion action and Cancel.
+  Cancel, Escape, Back and the sheet dismissal upload nothing and keep the
+  current photo.
+- Touch (drag, pinch), mouse (drag, wheel), the labeled zoom control and the
+  keyboard (arrows, plus, minus, zero) reach the same result. The stage has an
+  accessible name and describes its keys.
+- The crop is rendered on the device; the upload is the chosen square without
+  metadata. The photo on the device is never modified. A photo the device
+  cannot decode is uploaded unchanged instead of blocking the user.
+- Memory, HeartMoment and Plan photos do not use this step: their full image is
+  kept and previews use cover selection.
 
 ### 10.2 Avatar Pair
 
@@ -504,3 +635,34 @@ Both partners may classify shared Memory photos under #1674, while private
 HeartMoment and authored experience-answer permissions stay unchanged. Disabled
 operations cannot mutate or silently omit failed media. Preserve wrapping,
 Light/Dark contrast, reduced-motion feedback, upload identity and task safety.
+
+### Product Owner correction #1740
+
+Expanded overview creation on Moments, Planning, Places, Lists and People uses
+the trailing edge of its page heading, with trailing-aligned wrapping when
+needed. Eligible Compact overviews use the floating variant in the Button
+contract. The Moments map keeps its labeled heading action. Planning follows the
+active segment. Reuse AddAction controls and their existing task and focus
+ownership.
+
+Gallery photo sensitivity and reactions use accessible icon-only controls over
+photography. A persistent sensitivity toggle keeps its target through
+reveal/conceal. Where the covered photo itself reveals, hiding returns focus to
+that photo. The comment shortcut shares the media action area for photos and
+videos and can focus the existing inline reply. Comment textareas start at two
+lines and allow vertical resizing. The gallery position marker follows the
+native scroll offset. It crossfades across wrapped rows and at the ends of the
+circular gallery. With reduced motion, the selected dot updates immediately.
+
+The diary's dedicated external-source entry offers configured photo providers.
+The Photo tool in the composer bar and the gallery Add action offer the device
+and those same providers. Use one picker lifecycle and preserve native file
+admission, consent, cancellation and focus return.
+
+Use a thin rounded focus ring for shared title and text fields while preserving
+the existing focus color and forced-colors affordance. Composer thumbnail
+sorting supports pointer, held touch and keyboard interaction through the
+existing sortable controls. Keep attachment and selected-cover identities stable.
+Reading galleries use a taller, viewport-bounded frame and fit the complete
+authorized photograph. Thumbnail and editor cover treatments follow their own
+contracts.

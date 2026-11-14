@@ -21,17 +21,23 @@ export function waitForPhotoPoll(seconds: number, signal: AbortSignal) {
       reject(signal.reason);
       return;
     }
+    const milliseconds = Math.ceil(seconds * 1000);
+    if (
+      !Number.isFinite(milliseconds) ||
+      milliseconds <= 0 ||
+      milliseconds > 2_147_483_647
+    ) {
+      reject(new Error('Photo polling interval is invalid.'));
+      return;
+    }
     const abort = () => {
       clearTimeout(timer);
       reject(signal.reason);
     };
-    const timer = setTimeout(
-      () => {
-        signal.removeEventListener('abort', abort);
-        resolve();
-      },
-      Math.min(60, Math.max(3, seconds)) * 1000,
-    );
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', abort);
+      resolve();
+    }, milliseconds);
     signal.addEventListener('abort', abort, { once: true });
   });
 }
@@ -91,7 +97,8 @@ export function photoFile(blob: Blob, index: number, memoryOnly = false): File {
 }
 
 export function selectionReady(view: PhotoSelectionView): boolean {
-  if (view.status === 'FAILED') throw new Error('Photo authorization failed.');
+  if (['FAILED', 'EXPIRED', 'CANCELLED'].includes(view.status))
+    throw new Error('Photo authorization ended.');
   return view.status === 'READY';
 }
 

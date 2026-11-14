@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 export function PageHeader({
   eyebrow,
   title,
+  titleId,
   titleAction,
   titleEditor,
   titleContext,
@@ -15,6 +16,7 @@ export function PageHeader({
 }: {
   eyebrow?: string;
   title: ReactNode;
+  titleId?: string;
   titleAction?: ReactNode;
   titleEditor?: ReactNode;
   titleContext?: ReactNode;
@@ -23,23 +25,29 @@ export function PageHeader({
   action?: ReactNode;
   before?: ReactNode;
   className?: string;
-  variant?: 'default' | 'root';
+  variant?: 'default' | 'root' | 'composer';
 }) {
-  const variantClassName = variant === 'root' ? 'page-heading-root' : '';
+  const variantClassName =
+    variant === 'root'
+      ? 'page-heading-root'
+      : variant === 'composer'
+        ? 'composer-header'
+        : '';
 
   return (
     <>
-      {before}
+      {variant !== 'composer' ? before : null}
       <header
         className={`page-heading ${titleAction ? 'page-heading-has-title-action' : ''} ${variantClassName} ${className}`.trim()}
       >
+        {variant === 'composer' ? before : null}
         <div>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
           {titleEditor ? (
             titleEditor
           ) : (
             <div className="page-heading-title-container">
-              <h1>{title}</h1>
+              <h1 id={titleId}>{title}</h1>
               {titleContext}
               {titleAction}
             </div>

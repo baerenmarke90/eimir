@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { M4ProductApis } from '../client/m4Product';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
@@ -47,6 +48,7 @@ function renderToday(options: {
           apis={{} as M4ProductApis}
           spaceId="space-1"
           account={{ id: 'account-1', displayName: 'Alex' }}
+          dailyCheckInsApi={{} as DailyCheckInsApi}
         />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -62,7 +64,7 @@ describe('Today weekly insights placement', () => {
     });
 
     expect(html).not.toContain('/more/insights');
-    expect(html).toContain('daily-energy-checkin');
+    expect(html).toContain('aria-label="Dein Tag. Öffnen"');
   });
 
   it('does not reintroduce the More destination for partial or partnerless daily states', () => {

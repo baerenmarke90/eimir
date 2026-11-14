@@ -788,19 +788,17 @@
 }
 
 .momente-retrospective-copy {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
-  flex-direction: column;
-  justify-content: center;
+  align-content: center;
   gap: var(--space-2);
   padding: var(--space-4);
   overflow-wrap: anywhere;
 }
 
-.momente-retrospective-kicker {
-  color: var(--color-brand-text);
-  font-size: 0.75rem;
-  font-weight: 750;
+.momente-retrospective-copy > :not(.momente-retrospective-chevron) {
+  grid-column: 1;
 }
 
 .momente-retrospective-title {
@@ -820,10 +818,13 @@
   font-size: 0.85rem;
 }
 
-.momente-retrospective-action {
+.momente-retrospective-chevron {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
   color: var(--color-brand-text);
-  font-size: 0.85rem;
-  font-weight: 700;
 }
 
 @media (prefers-reduced-motion: reduce) {

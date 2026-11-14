@@ -1,8 +1,12 @@
+import './FreeComposer.css';
 import { type ButtonHTMLAttributes, useEffect, useRef, useState } from 'react';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { useTranslation } from '../i18n';
+import { isLocalItemId } from '../client/collectionOutbox';
+import type { PartnerTone } from '../client/sharedListSummary';
 import { ChecklistToggle } from './ChecklistToggle';
 import { ListEntryIconButton } from './ListEntryActions';
+import { PartnerMarker } from './PartnerMarker';
 import { ProblemState } from './ProblemState';
 import { SharedContentSheet } from './SharedContentSheet';
 
@@ -13,6 +17,7 @@ export function SharedCollectionItemRow({
   activeItemId,
   handleProps,
   onUpdateTitle,
+  onUpdateQuantity,
   onToggleComplete,
   onRetry,
   onDelete,
@@ -20,6 +25,8 @@ export function SharedCollectionItemRow({
   isTogglePending,
   isDeleting,
   error,
+  waiting = false,
+  marker,
 }: {
   item: CollectionItemDetail;
   canSort: boolean;
@@ -30,6 +37,11 @@ export function SharedCollectionItemRow({
     item: CollectionItemDetail,
     title: string,
   ) => Promise<boolean>;
+  /** Present on a list that takes a quantity (a shopping list). */
+  onUpdateQuantity?: (
+    item: CollectionItemDetail,
+    quantity: string | null,
+  ) => Promise<boolean>;
   onToggleComplete: (item: CollectionItemDetail) => void;
   onRetry: () => void;
   onDelete: (item: CollectionItemDetail) => Promise<boolean>;
@@ -37,23 +49,52 @@ export function SharedCollectionItemRow({
   isTogglePending: boolean;
   isDeleting: boolean;
   error: unknown;
+  /** A change to this item has not been sent yet (#1808). */
+  waiting?: boolean;
+  /** Who added the entry, or who finished it once it is done (#1808). */
+  marker?: { name: string; tone: PartnerTone; caption: string };
 }) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<'actions' | 'edit' | 'delete' | null>(null);
+  const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
   const [draft, setDraft] = useState(item.title);
+  const [quantityDraft, setQuantityDraft] = useState(item.quantity ?? '');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pending = isUpdating || isDeleting;
 
   useEffect(() => {
     if (mode === 'edit') inputRef.current?.focus();
-    else setDraft(item.title);
-  }, [item.title, mode]);
+    else {
+      setDraft(item.title);
+      setQuantityDraft(item.quantity ?? '');
+    }
+  }, [item.title, item.quantity, mode]);
 
   function close() {
     setMode(null);
     setDraft(item.title);
+    setQuantityDraft(item.quantity ?? '');
   }
+
+  const canOpen =
+    !isSorting &&
+    !isLocalItemId(item.id) &&
+    (item.capabilities.canEdit || item.capabilities.canDelete);
+  const titleText = (
+    <>
+      {item.title}
+      {item.quantity ? (
+        <span className="shared-list-item-quantity">
+          {' '}
+          {/^\d+$/u.test(item.quantity) ? `${item.quantity}×` : item.quantity}
+        </span>
+      ) : null}
+    </>
+  );
+  const quantityChanged =
+    Boolean(onUpdateQuantity) &&
+    (quantityDraft.trim() || null) !== (item.quantity ?? null);
+  const isDirty = mode === 'edit' && (draft !== item.title || quantityChanged);
 
   return (
     <li
@@ -75,11 +116,50 @@ export function SharedCollectionItemRow({
         disabled={!item.capabilities.canEdit || isUpdating}
       />
       <div className="shared-list-item-copy">
-        <p>{item.title}</p>
+        <p>
+          {canOpen ? (
+            <button
+              ref={triggerRef}
+              type="button"
+              className="shared-list-item-open"
+              aria-label={t('m5s3.collection.openItem', { title: item.title })}
+              aria-haspopup="dialog"
+              aria-expanded={Boolean(mode)}
+              disabled={pending}
+              onClick={() => setMode('edit')}
+            >
+              {titleText}
+            </button>
+          ) : (
+            titleText
+          )}
+        </p>
         {isTogglePending ? (
           <small role="status">{t('m5s3.common.saving')}</small>
         ) : null}
+        {waiting ? (
+          <small className="shared-list-item-waiting">
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+              className="shared-list-item-waiting-icon"
+            >
+              <circle cx="12" cy="12" r="8" />
+              <path d="M12 8v4l3 2" />
+            </svg>
+            <span className="sr-only">
+              {t('m5s3.collection.outbox.itemWaiting')}
+            </span>
+          </small>
+        ) : null}
       </div>
+      {marker ? (
+        <>
+          <PartnerMarker name={marker.name} tone={marker.tone} />
+          <span className="sr-only">{marker.caption}</span>
+        </>
+      ) : null}
       {isSorting && canSort ? (
         <ListEntryIconButton
           icon="reorder"
@@ -88,23 +168,10 @@ export function SharedCollectionItemRow({
           {...handleProps(item.id)}
         />
       ) : null}
-      {!isSorting &&
-      (item.capabilities.canEdit || item.capabilities.canDelete) ? (
-        <ListEntryIconButton
-          ref={triggerRef}
-          icon="more"
-          className="tertiary"
-          label={t('m5s3.collection.itemActions', { title: item.title })}
-          aria-haspopup="dialog"
-          aria-expanded={Boolean(mode)}
-          disabled={pending}
-          onClick={() => setMode('actions')}
-        />
-      ) : null}
       <SharedContentSheet
         open={Boolean(mode)}
-        title={mode === 'edit' ? t('m5s3.collection.editItem') : item.title}
-        isDirty={mode === 'edit' && draft !== item.title}
+        title={mode === 'delete' ? item.title : t('m5s3.collection.editItem')}
+        isDirty={isDirty}
         isPending={pending}
         restoreFocusRef={triggerRef}
         initialFocusRef={inputRef}
@@ -112,17 +179,21 @@ export function SharedCollectionItemRow({
       >
         {(requestClose) => (
           <>
-            {mode === 'edit' ? (
+            {mode === 'edit' && item.capabilities.canEdit ? (
               <form
-                className="form-grid"
+                className="form-grid free-composer"
                 onSubmit={async (event) => {
                   event.preventDefault();
                   if (!draft.trim() || pending) return;
-                  if (
-                    draft.trim() === item.title ||
-                    (await onUpdateTitle(item, draft.trim()))
-                  )
-                    close();
+                  let saved = true;
+                  if (draft.trim() !== item.title)
+                    saved = await onUpdateTitle(item, draft.trim());
+                  if (saved && onUpdateQuantity && quantityChanged)
+                    saved = await onUpdateQuantity(
+                      item,
+                      quantityDraft.trim() || null,
+                    );
+                  if (saved) close();
                 }}
               >
                 <label htmlFor={`collection-item-${item.id}`}>
@@ -137,8 +208,26 @@ export function SharedCollectionItemRow({
                   maxLength={200}
                   disabled={pending}
                 />
+                {onUpdateQuantity ? (
+                  <>
+                    <label htmlFor={`collection-item-quantity-${item.id}`}>
+                      {t('m5s3.collection.quantityLabel')}
+                    </label>
+                    <input
+                      id={`collection-item-quantity-${item.id}`}
+                      value={quantityDraft}
+                      onChange={(event) => setQuantityDraft(event.target.value)}
+                      maxLength={40}
+                      autoComplete="off"
+                      disabled={pending}
+                    />
+                  </>
+                ) : null}
                 <div className="shared-content-sheet-actions">
-                  <button type="submit" disabled={pending || !draft.trim()}>
+                  <button
+                    type="submit"
+                    disabled={pending || !draft.trim() || !isDirty}
+                  >
                     {t(
                       pending
                         ? 'm5s3.common.saving'
@@ -154,7 +243,27 @@ export function SharedCollectionItemRow({
                     {t('common.cancel')}
                   </button>
                 </div>
+                {item.capabilities.canDelete ? (
+                  <button
+                    type="button"
+                    className="tertiary danger-link"
+                    disabled={pending}
+                    onClick={() => setMode('delete')}
+                  >
+                    {t('m5s3.common.delete')}
+                  </button>
+                ) : null}
               </form>
+            ) : mode === 'edit' ? (
+              <div className="shared-content-actions">
+                <button
+                  type="button"
+                  className="tertiary danger-link"
+                  onClick={() => setMode('delete')}
+                >
+                  {t('m5s3.common.delete')}
+                </button>
+              </div>
             ) : mode === 'delete' ? (
               <>
                 <p>
@@ -187,32 +296,8 @@ export function SharedCollectionItemRow({
                   </button>
                 </div>
               </>
-            ) : (
-              <div className="shared-content-actions">
-                {item.capabilities.canEdit ? (
-                  <button
-                    type="button"
-                    className="tertiary"
-                    onClick={() => {
-                      setDraft(item.title);
-                      setMode('edit');
-                    }}
-                  >
-                    {t('m5s3.common.edit')}
-                  </button>
-                ) : null}
-                {item.capabilities.canDelete ? (
-                  <button
-                    type="button"
-                    className="tertiary danger-link"
-                    onClick={() => setMode('delete')}
-                  >
-                    {t('m5s3.common.delete')}
-                  </button>
-                ) : null}
-              </div>
-            )}
-            {error && mode !== 'actions' ? (
+            ) : null}
+            {error && mode ? (
               <ProblemState error={error} onRetry={onRetry} />
             ) : null}
           </>

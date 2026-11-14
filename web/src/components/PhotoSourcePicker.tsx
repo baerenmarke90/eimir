@@ -17,11 +17,11 @@ import {
 import { usePhotoSources } from '../client/usePhotoSources';
 import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
 import { useTranslation } from '../i18n';
-import { ProMark } from './ProMark';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { AutoLoadTrigger } from './AutoLoadMore';
 import './PhotoSourcePicker.css';
+import { MediaIntakeButton } from './MediaIntakeButton';
 
 interface SelectionTask {
   api: PhotoSourcesApi;
@@ -130,6 +130,9 @@ export function PhotoSourcePicker({
   beginSelection,
   disabled = false,
   devicePicker,
+  unified = false,
+  renderTrigger,
+  onExternalAvailability,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -138,20 +141,42 @@ export function PhotoSourcePicker({
   remaining: number;
   beginSelection: () => AttachmentDraftSelection;
   disabled?: boolean;
-  devicePicker?: (close: () => void) => ReactNode;
+  devicePicker?: (
+    close: () => void,
+    actionContainer?: HTMLElement | null,
+    blocked?: boolean,
+  ) => ReactNode;
+  unified?: boolean;
+  renderTrigger?: (open: () => void, openExternal: () => void) => ReactNode;
+  /** Reports whether an external source (Immich, Google Photos) is offered. */
+  onExternalAvailability?: (available: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const { apiRef, availability } = usePhotoSources({
+  const { apiRef, availability, loading } = usePhotoSources({
     apiBaseUrl,
     accessToken,
     accountId,
     spaceId,
   });
+  const externalAvailable = Boolean(
+    availability?.enabled || availability?.immichConnected,
+  );
+  useEffect(() => {
+    onExternalAvailability?.(externalAvailable);
+  }, [externalAvailable, onExternalAvailability]);
   const [open, setOpen] = useState(false);
+  const [externalOnly, setExternalOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [view, setView] = useState<PhotoSelectionView | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  // Google only: true while the person chooses in Google, and the photos still to retry.
+  const [awaitingGoogle, setAwaitingGoogle] = useState(false);
+  const [retry, setRetry] = useState<{
+    ready: PhotoSelectionView;
+    ids: string[];
+  } | null>(null);
+  const [deviceTarget, setDeviceTarget] = useState<HTMLDivElement | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const task = useRef<SelectionTask | null>(null);
   const lifetime = useRef(new AbortController());
@@ -178,6 +203,8 @@ export function PhotoSourcePicker({
     setOpen(false);
     setView(null);
     setSelected([]);
+    setAwaitingGoogle(false);
+    setRetry(null);
     setMessage('');
     setBusy(false);
     return () => {
@@ -192,6 +219,8 @@ export function PhotoSourcePicker({
     setBusy(false);
     setView(null);
     setSelected([]);
+    setAwaitingGoogle(false);
+    setRetry(null);
   }
 
   async function importItems(
@@ -206,16 +235,25 @@ export function PhotoSourcePicker({
     }
     const files: File[] = [];
     const failedIds = ids.slice(remaining);
+    setRetry(null);
     setBusy(true);
     setMessage(t('photoSources.progress'));
     try {
       for (const id of ids.slice(0, remaining)) {
         current.ticket.signal.throwIfAborted();
         try {
-          const blob = await current.api.readSelectedPhoto(
-            { spaceId, selectionId: ready.id, itemId: id },
-            { signal: current.request.signal, cache: 'no-store' },
-          );
+          // One quiet second attempt, so a brief hiccup never reaches the person.
+          const read = () =>
+            current.api.readSelectedPhoto(
+              { spaceId, selectionId: ready.id, itemId: id },
+              { signal: current.request.signal, cache: 'no-store' },
+            );
+          const blob = await read().catch((error) => {
+            // Only the Google task retries quietly; other sources keep their contract.
+            if (ready.source !== 'google' || current.request.signal.aborted)
+              throw error;
+            return read();
+          });
           current.ticket.signal.throwIfAborted();
           files.push(photoFile(blob, files.length, ready.source === 'google'));
         } catch (error) {
@@ -226,6 +264,7 @@ export function PhotoSourcePicker({
       }
       if (task.current !== current || current.ticket.signal.aborted) return;
       if (!files.length) {
+        if (ready.source === 'google') setRetry({ ready, ids: [...failedIds] });
         setMessage(t('photoSources.importFailed'));
         return;
       }
@@ -238,6 +277,7 @@ export function PhotoSourcePicker({
           { once: true },
         );
         setSelected(failedIds);
+        if (ready.source === 'google') setRetry({ ready, ids: failedIds });
         setMessage(t('photoSources.partial', { count: files.length }));
       } else close();
     } catch {
@@ -300,6 +340,7 @@ export function PhotoSourcePicker({
       if (!ready.authorizationUrl)
         throw new Error('Photo authorization is unavailable.');
       await openPhotoBrowser(ready.authorizationUrl, current.popup);
+      setAwaitingGoogle(true);
       setMessage(t('photoSources.waiting'));
       while (!selectionReady(ready)) {
         await waitForPhotoPoll(
@@ -313,6 +354,7 @@ export function PhotoSourcePicker({
         if (task.current !== current) return;
       }
       await closePhotoBrowser(current.popup);
+      setAwaitingGoogle(false);
       if (ready.items.length)
         await importItems(
           current,
@@ -363,24 +405,42 @@ export function PhotoSourcePicker({
     return null;
   const canImport = Boolean(availability?.enabled && availability.canImport);
   const activeTask = task.current;
+  const openChooser = (external = false) => {
+    if (disabled || remaining <= 0) return;
+    if (document.activeElement instanceof HTMLButtonElement)
+      trigger.current = document.activeElement;
+    setMessage('');
+    setExternalOnly(external);
+    setOpen(true);
+  };
   return (
     <>
       <div className="photo-source-actions">
-        {devicePicker?.(() => {})}
-        {availability &&
-        (availability.enabled || availability.immichConnected) ? (
-          <button
+        {unified
+          ? devicePicker?.(close, deviceTarget, busy || remaining <= 0)
+          : devicePicker?.(() => {})}
+        {renderTrigger ? (
+          renderTrigger(
+            () => openChooser(),
+            () => openChooser(true),
+          )
+        ) : unified ||
+          (availability &&
+            (availability.enabled || availability.immichConnected)) ? (
+          <MediaIntakeButton
             ref={trigger}
-            type="button"
-            className="secondary photo-source-trigger"
+            label={t(unified ? 'photoSources.addMedia' : 'photoSources.more')}
+            icon={unified ? 'foto' : 'photo-library'}
+            variant={unified ? 'entry' : 'source'}
+            proLabel={unified ? undefined : t('photoSources.pro')}
+            className={
+              unified ? 'photo-source-composer-trigger' : 'photo-source-trigger'
+            }
+            aria-haspopup="dialog"
+            aria-expanded={open}
             disabled={disabled || remaining <= 0}
-            onClick={() => {
-              setMessage('');
-              setOpen(true);
-            }}
-          >
-            {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
-          </button>
+            onClick={() => openChooser()}
+          />
         ) : null}
       </div>
       <ShortTaskSheet
@@ -395,6 +455,18 @@ export function PhotoSourcePicker({
             <button type="button" className="secondary" onClick={close}>
               {t('taskSheets.close')}
             </button>
+            {retry && !view ? (
+              <button
+                type="button"
+                disabled={busy || remaining <= 0}
+                onClick={() => {
+                  if (task.current)
+                    void importItems(task.current, retry.ready, retry.ids);
+                }}
+              >
+                {t('photoSources.retryImport')}
+              </button>
+            ) : null}
             {view ? (
               <button
                 type="button"
@@ -410,6 +482,9 @@ export function PhotoSourcePicker({
           </div>
         }
       >
+        {!view && !awaitingGoogle && !retry ? (
+          <p className="field-help">{t('photoSources.consent')}</p>
+        ) : null}
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
         {view && activeTask ? (
           <>
@@ -465,25 +540,39 @@ export function PhotoSourcePicker({
               </AutoLoadTrigger>
             ) : null}
           </>
-        ) : (
+        ) : awaitingGoogle || retry ? null : (
           <>
+            {unified && !externalOnly ? (
+              <div className="photo-source-device-slot" ref={setDeviceTarget} />
+            ) : null}
+            {externalOnly &&
+            !availability?.enabled &&
+            !availability?.immichConnected ? (
+              <p role="status">
+                {t(
+                  loading ? 'states.loading.title' : 'photoSources.unavailable',
+                )}
+              </p>
+            ) : null}
             {canImport && availability?.googleAvailable ? (
-              <button
-                type="button"
-                className="secondary photo-source-trigger"
+              <MediaIntakeButton
+                label={t('photoSources.google')}
+                icon="photo-library"
+                proLabel={t('photoSources.pro')}
+                className="photo-source-trigger"
                 disabled={busy || disabled}
                 onClick={() => void start('google')}
-              >
-                <EimirIcon name="foto" /> {t('photoSources.google')}
-              </button>
+              />
             ) : null}
             {canImport && availability?.googleAvailable ? (
-              <p>{t('photoSources.googleConsent')}</p>
+              <p className="field-help">{t('photoSources.googleConsent')}</p>
             ) : null}
             {availability?.enabled || availability?.immichConnected ? (
-              <button
-                type="button"
-                className="secondary photo-source-trigger"
+              <MediaIntakeButton
+                label={t('photoSources.immich')}
+                icon="photo-library"
+                proLabel={t('photoSources.pro')}
+                className="photo-source-trigger"
                 disabled={
                   busy ||
                   disabled ||
@@ -496,9 +585,7 @@ export function PhotoSourcePicker({
                     : t('photoSources.configureInSettings')
                 }
                 onClick={() => void start('immich')}
-              >
-                <EimirIcon name="foto" /> {t('photoSources.immich')}
-              </button>
+              />
             ) : null}
           </>
         )}

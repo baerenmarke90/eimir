@@ -49,6 +49,11 @@ import {
     CollectionPageToJSON,
 } from '../models/CollectionPage';
 import {
+    type CollectionScope,
+    CollectionScopeFromJSON,
+    CollectionScopeToJSON,
+} from '../models/CollectionScope';
+import {
     type CollectionUpdate,
     CollectionUpdateFromJSON,
     CollectionUpdateToJSON,
@@ -68,6 +73,7 @@ export interface CreateCollectionItemRequest {
     collectionId: string;
     spaceId: string;
     collectionItemCreate: CollectionItemCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteCollectionRequest {
@@ -92,6 +98,8 @@ export interface ListCollectionsRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+    scope?: CollectionScope;
+    ids?: Array<string> | null;
 }
 
 export interface ReorderCollectionItemsRequest {
@@ -206,6 +214,10 @@ export class CollectionsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/collections/{collectionId}/items`;
@@ -445,6 +457,14 @@ export class CollectionsApi extends runtime.BaseAPI {
 
         if (requestParameters['limit'] != null) {
             queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['scope'] != null) {
+            queryParameters['scope'] = requestParameters['scope'];
+        }
+
+        if (requestParameters['ids'] != null) {
+            queryParameters['ids'] = requestParameters['ids'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

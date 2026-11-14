@@ -31,6 +31,10 @@
   margin-block-end: var(--space-4);
 }
 
+.subpage-back-slot:empty {
+  display: none;
+}
+
 [dir="rtl"] .task-back-control svg {
   transform: scaleX(-1);
 }

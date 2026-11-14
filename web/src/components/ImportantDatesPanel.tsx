@@ -1,4 +1,4 @@
-import { NativeDateInput } from './NativeDateField';
+import './FreeComposer.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ChangeEvent,
@@ -10,6 +10,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
@@ -17,9 +19,15 @@ import { ImportantDateType } from '../api/generated/models/ImportantDateType';
 import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { nextOccasionHolidays } from '../client/occasionHolidays';
+import { useOccasionHolidayPreference } from '../client/occasionHolidayPreferences';
 import {
-  deleteFocusTarget,
+  dateInputValueToApiDate,
+  localDateInputValue,
+} from '../client/dateInput';
+import {
   type DeleteFocusTarget,
+  deleteFocusTarget,
 } from '../client/deleteFocusTarget';
 import {
   EMPTY_IMPORTANT_DATE_DRAFT,
@@ -28,20 +36,102 @@ import {
   importantDateFieldsFromDraft,
 } from '../client/importantDateDraft';
 import { normalizeClientError } from '../client/problemDetails';
+import { calculateNextAnniversary } from '../client/relationshipPreview';
+import { PLAN_CREATE_ROUTE, settingsCategoryPath } from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { AddActionButton } from './AddAction';
+import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
-import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 const DATE_TYPES = Object.values(ImportantDateType);
 const DATE_REPEATS = Object.values(DateRepeat);
 const VISIBILITIES = Object.values(ContentVisibility);
+const RELATIONSHIP_ANNIVERSARY_KEY = 'relationship-anniversary';
+const OCCASION_ICONS: Record<ImportantDateType, EimirIconName> = {
+  BIRTHDAY: 'geburtstag',
+  ANNIVERSARY: 'wir',
+  CUSTOM: 'highlights',
+};
+
+function OccasionTitle({
+  type,
+  label,
+}: {
+  type: ImportantDateType;
+  label: string;
+}) {
+  const { t } = useTranslation();
+  const typeLabel = t(`importantDates.type.${type}`);
+  const icon = OCCASION_ICONS[type];
+  return (
+    <span className="occasion-title">
+      <span
+        className="occasion-type-symbol"
+        role="img"
+        aria-label={typeLabel}
+        title={typeLabel}
+      >
+        <EimirIcon
+          name={icon}
+          variant={icon === 'wir' ? 'outline' : 'duotone'}
+        />
+      </span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function OccasionVisibility({ visibility }: { visibility: ContentVisibility }) {
+  const { t } = useTranslation();
+  const label = t(`importantDates.visibility.${visibility}`);
+  return (
+    <span
+      className="occasion-visibility"
+      role="img"
+      aria-label={label}
+      title={label}
+    >
+      <DestinationIcon
+        icon={visibility === ContentVisibility.PRIVATE ? 'private' : 'people'}
+      />
+    </span>
+  );
+}
 
 function dateInputValue(value: Date | null | undefined): string {
   if (!value) return '';
   return value.toISOString().slice(0, 10);
+}
+
+function useLocalCalendarDay(): Date {
+  const [value, setValue] = useState(localDateInputValue);
+  useEffect(() => {
+    let timer = 0;
+    function refresh() {
+      window.clearTimeout(timer);
+      const now = new Date();
+      setValue(localDateInputValue(now));
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      timer = window.setTimeout(refresh, midnight.getTime() - now.getTime());
+    }
+    refresh();
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
+  return dateInputValueToApiDate(value);
 }
 
 function ImportantDateEditorSheet({
@@ -178,11 +268,12 @@ function ImportantDateEditorSheet({
     <div
       ref={backdropRef}
       className="focused-editor-backdrop"
+      data-create-entry={date ? undefined : true}
       role="presentation"
     >
       <section
         ref={dialogRef}
-        className="focused-editor-sheet important-date-editor"
+        className="focused-editor-sheet important-date-editor free-composer"
         role="dialog"
         aria-modal="true"
         aria-labelledby="important-date-editor-title"
@@ -190,9 +281,6 @@ function ImportantDateEditorSheet({
       >
         <header className="focused-editor-header">
           <div className="focused-editor-heading">
-            <span className="focused-editor-kicker">
-              {t('importantDates.heading')}
-            </span>
             <h2 id="important-date-editor-title">
               {date
                 ? t('importantDates.editTitle')
@@ -278,7 +366,6 @@ function ImportantDateEditorSheet({
                   <h3 id="important-date-meaning-title">
                     {t('importantDates.meaningSectionTitle')}
                   </h3>
-                  <p>{t('importantDates.meaningSectionHelp')}</p>
                 </div>
 
                 <div className="important-date-primary-grid">
@@ -324,7 +411,6 @@ function ImportantDateEditorSheet({
                   <h3 id="important-date-person-title">
                     {t('importantDates.relationshipSectionTitle')}
                   </h3>
-                  <p>{t('importantDates.relationshipSectionHelp')}</p>
                 </div>
                 <div className="field-group">
                   <label htmlFor="important-date-person">
@@ -457,7 +543,6 @@ function ImportantDateEditorSheet({
                     <h3 id="important-date-lifecycle-title">
                       {t('importantDates.lifecycleTitle')}
                     </h3>
-                    <p>{t('importantDates.lifecycleHelp')}</p>
                   </div>
                   <button
                     type="button"
@@ -501,19 +586,65 @@ export interface PartnerBirthdayProjection {
   displayName: string;
 }
 
+interface OccasionEntry {
+  key: string;
+  date: Date;
+  type: ImportantDateType;
+  label: string;
+  custom?: ImportantDateView;
+  person?: RelatedPersonView;
+  profileName?: string;
+}
+
+type OccasionOccurrence = OccasionEntry & { repeats: DateRepeat };
+
 export function ImportantDatesPanel({
+  createActionContainer,
   peopleApi,
   spaceId,
   people,
+  accountId = '',
+  instance = '',
   partnerBirthday = null,
+  ownBirthday = null,
+  relationshipStartedOn = null,
+  sourcesPending = false,
+  sourcesUnavailable = false,
 }: {
+  createActionContainer?: HTMLElement | null;
   peopleApi: PeopleApi;
   spaceId: string;
   people: RelatedPersonView[];
+  accountId?: string;
+  instance?: string;
   partnerBirthday?: PartnerBirthdayProjection | null;
+  ownBirthday?: PartnerBirthdayProjection | null;
+  relationshipStartedOn?: Date | null;
+  sourcesPending?: boolean;
+  sourcesUnavailable?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+  const today = useLocalCalendarDay();
+  const holidayPreference = useOccasionHolidayPreference({
+    instance,
+    accountId,
+    spaceId,
+  });
+  const readerRef = useRef<ShortTaskSheetHandle>(null);
+  const readerReturnRef = useRef<HTMLButtonElement>(null);
+  const [readingKey, setReadingKey] = useState<string | null>(null);
+  const [readerOpen, setReaderOpen] = useState(false);
+  const openReader = useCallback((key: string) => {
+    setReadingKey(key);
+    setReaderOpen(true);
+  }, []);
+  const requestedBirthday = (
+    location.state as { birthdayPersonId?: string } | null
+  )?.birthdayPersonId;
   const [editing, setEditing] = useState<ImportantDateView | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -522,26 +653,30 @@ export function ImportantDatesPanel({
   const createActionRef = useRef<HTMLButtonElement>(null);
   const dateCardRefs = useRef(new Map<string, HTMLButtonElement>());
 
-  const dateFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(i18n.language, {
-        dateStyle: 'long',
+  const dateFormats = useMemo(
+    () => ({
+      day: new Intl.DateTimeFormat(i18n.language, {
+        day: 'numeric',
         timeZone: 'UTC',
       }),
-    [i18n.language],
-  );
-  const dateMarkerFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(i18n.language, {
-        day: '2-digit',
-        month: 'short',
+      month: new Intl.DateTimeFormat(i18n.language, {
+        month: 'long',
         timeZone: 'UTC',
       }),
+      monthAndYear: new Intl.DateTimeFormat(i18n.language, {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }),
+      detail: new Intl.DateTimeFormat(i18n.language, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }),
+    }),
     [i18n.language],
-  );
-  const personNames = useMemo(
-    () => new Map(people.map((person) => [person.id, person.displayName])),
-    [people],
   );
 
   const datesQuery = useQuery({
@@ -558,6 +693,84 @@ export function ImportantDatesPanel({
     retry: false,
   });
 
+  const isPersonBirthday = useCallback(
+    (date: ImportantDateView, personId: string) => {
+      const birthday = people.find(
+        (person) => person.id === personId,
+      )?.birthday;
+      return Boolean(
+        birthday &&
+          date.relatedPersonId === personId &&
+          date.visibility === ContentVisibility.SHARED &&
+          date.type === ImportantDateType.BIRTHDAY &&
+          date.repeats === DateRepeat.ANNUALLY &&
+          date.date.getUTCMonth() === birthday.getUTCMonth() &&
+          date.date.getUTCDate() === birthday.getUTCDate(),
+      );
+    },
+    [people],
+  );
+  useEffect(() => {
+    if (!requestedBirthday || !people.some((p) => p.id === requestedBirthday))
+      return;
+    // Existing explicit birthday records remain authoritative for their date.
+    const existing = datesQuery.data?.find((date) =>
+      isPersonBirthday(date, requestedBirthday),
+    );
+    if (!datesQuery.data) return;
+    openReader(existing?.id ?? `person:${requestedBirthday}`);
+    navigate(
+      {
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash,
+      },
+      { replace: true, state: null },
+    );
+  }, [
+    requestedBirthday,
+    openReader,
+    isPersonBirthday,
+    datesQuery.data,
+    people,
+    navigate,
+    location.pathname,
+    location.search,
+    location.hash,
+  ]);
+  const returnOrigin = (
+    location.state as {
+      peopleOrigin?: { to?: string; scrollY?: number; selectedId?: string };
+    } | null
+  )?.peopleOrigin;
+  useEffect(() => {
+    if (returnOrigin?.to !== '/plan#dates' || !datesQuery.data) return;
+    const frame = requestAnimationFrame(() => {
+      if (
+        typeof returnOrigin.scrollY === 'number' &&
+        Number.isFinite(returnOrigin.scrollY)
+      )
+        window.scrollTo({
+          top: Math.max(0, returnOrigin.scrollY),
+          behavior: 'instant',
+        });
+      if (returnOrigin.selectedId)
+        dateCardRefs.current
+          .get(returnOrigin.selectedId)
+          ?.focus({ preventScroll: true });
+      navigate(
+        { pathname: location.pathname, hash: location.hash },
+        { replace: true, state: null },
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    returnOrigin,
+    datesQuery.data,
+    navigate,
+    location.pathname,
+    location.hash,
+  ]);
   const saveMutation = useMutation({
     mutationFn: async (draft: ImportantDateDraft) => {
       const importantDateFields = importantDateFieldsFromDraft(draft);
@@ -582,7 +795,8 @@ export function ImportantDatesPanel({
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (saved) => {
+      openReader(saved.id);
       setSavedMessage(
         editing ? t('importantDates.updated') : t('importantDates.created'),
       );
@@ -639,39 +853,395 @@ export function ImportantDatesPanel({
     setPendingDeleteFocus(null);
   }, [editorOpen, pendingDeleteFocus]);
 
-  return (
-    <section
-      className="important-dates-section"
-      aria-labelledby="important-dates-title"
-    >
-      <div className="important-dates-intro-block">
-        <div>
-          <h2 id="important-dates-title">{t('importantDates.heading')}</h2>
-          <p className="important-dates-intro">{t('importantDates.intro')}</p>
-        </div>
+  const holidayEntries: OccasionEntry[] = holidayPreference.enabled
+    ? nextOccasionHolidays(today)
+        .filter(({ id, date }) => {
+          const label = t(`importantDates.holidays.${id}`)
+            .trim()
+            .toLocaleLowerCase(i18n.language);
+          return !(datesQuery.data ?? []).some(
+            (saved) =>
+              (saved.repeats === DateRepeat.ANNUALLY ||
+                saved.date.getUTCFullYear() === date.getUTCFullYear()) &&
+              saved.date.getUTCMonth() === date.getUTCMonth() &&
+              saved.date.getUTCDate() === date.getUTCDate() &&
+              saved.label.trim().toLocaleLowerCase(i18n.language) === label,
+          );
+        })
+        .map(({ key, id, date }) => ({
+          key,
+          date,
+          label: t(`importantDates.holidays.${id}`),
+          type: ImportantDateType.CUSTOM,
+        }))
+    : [];
+  const entries: OccasionEntry[] = [
+    ...(datesQuery.data ?? []).map((date) => ({
+      key: date.id,
+      date: date.date,
+      label: date.label,
+      type: date.type,
+      custom: date,
+    })),
+    ...people.flatMap((person) =>
+      person.birthday &&
+      !(datesQuery.data ?? []).some((date) => isPersonBirthday(date, person.id))
+        ? [
+            {
+              key: `person:${person.id}`,
+              date: person.birthday,
+              type: ImportantDateType.BIRTHDAY,
+              label: t('importantDates.partnerBirthdayLabel', {
+                name: person.displayName,
+              }),
+              person,
+            },
+          ]
+        : [],
+    ),
+    ...[ownBirthday, partnerBirthday].flatMap((birthday) =>
+      birthday &&
+      !(datesQuery.data ?? []).some(
+        (date) =>
+          date.type === ImportantDateType.BIRTHDAY &&
+          date.repeats === DateRepeat.ANNUALLY &&
+          date.visibility === ContentVisibility.SHARED &&
+          !date.relatedPersonId &&
+          date.date.getUTCMonth() === birthday.birthday.getUTCMonth() &&
+          date.date.getUTCDate() === birthday.birthday.getUTCDate() &&
+          date.label.trim().toLocaleLowerCase(i18n.language) ===
+            t('importantDates.partnerBirthdayLabel', {
+              name: birthday.displayName,
+            })
+              .trim()
+              .toLocaleLowerCase(i18n.language),
+      )
+        ? [
+            {
+              key: `partner:${birthday.accountId}`,
+              date: birthday.birthday,
+              type: ImportantDateType.BIRTHDAY,
+              label: t('importantDates.partnerBirthdayLabel', {
+                name: birthday.displayName,
+              }),
+              profileName: birthday.displayName,
+            },
+          ]
+        : [],
+    ),
+    ...(relationshipStartedOn &&
+    Number.isFinite(relationshipStartedOn.getTime()) &&
+    !(datesQuery.data ?? []).some(
+      (date) =>
+        date.type === ImportantDateType.ANNIVERSARY &&
+        date.repeats === DateRepeat.ANNUALLY &&
+        date.visibility === ContentVisibility.SHARED &&
+        !date.relatedPersonId &&
+        date.date.getUTCMonth() === relationshipStartedOn.getUTCMonth() &&
+        date.date.getUTCDate() === relationshipStartedOn.getUTCDate() &&
+        date.label.trim().toLocaleLowerCase(i18n.language) ===
+          t('importantDates.relationshipAnniversary')
+            .trim()
+            .toLocaleLowerCase(i18n.language),
+    )
+      ? [
+          {
+            key: RELATIONSHIP_ANNIVERSARY_KEY,
+            date: relationshipStartedOn,
+            type: ImportantDateType.ANNIVERSARY,
+            label: t('importantDates.relationshipAnniversary'),
+          },
+        ]
+      : []),
+    ...holidayEntries,
+  ];
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(today.getUTCDate() + 1);
+  const occurrences: OccasionOccurrence[] = entries.map((entry) => {
+    const repeats = entry.custom?.repeats ?? DateRepeat.ANNUALLY;
+    const date =
+      repeats === DateRepeat.ANNUALLY
+        ? (calculateNextAnniversary(entry.date, today)?.nextDate ?? entry.date)
+        : entry.date;
+    return { ...entry, date, repeats };
+  });
+  const compareDates = (a: OccasionOccurrence, b: OccasionOccurrence) =>
+    a.date.getTime() - b.date.getTime();
+  const compareTitles = (a: OccasionOccurrence, b: OccasionOccurrence) =>
+    a.label.localeCompare(b.label, i18n.language);
+  const upcoming = occurrences
+    .filter((entry) => entry.date >= today)
+    .sort((a, b) => compareDates(a, b) || compareTitles(a, b));
+  const past = occurrences
+    .filter((entry) => entry.date < today)
+    .sort((a, b) => compareDates(b, a) || compareTitles(a, b));
+  const selected = occurrences.find((entry) => entry.key === readingKey);
+  const canCreatePlan =
+    selected &&
+    (!selected.custom ||
+      selected.custom.visibility === ContentVisibility.SHARED);
+
+  function navigateFromReader(to: string, createDate?: string) {
+    if (!selected) return;
+    readerRef.current?.closeForNavigation(() => {
+      const taskOriginKey = captureOrigin({
+        planningSegment: 'dates',
+        selectedKey: selected.key,
+        planningCreateDate: createDate,
+      });
+      void navigate(to, { state: { taskOriginKey } });
+    });
+  }
+
+  function renderDateRow(entry: OccasionOccurrence) {
+    const relativeLabel =
+      entry.date.getTime() === today.getTime()
+        ? t('m5s5.common.today')
+        : entry.date.getTime() === tomorrow.getTime()
+          ? t('m5s5.common.tomorrow')
+          : null;
+    return (
+      <li key={entry.key}>
         <button
-          ref={createActionRef}
+          ref={(element) => {
+            if (element) dateCardRefs.current.set(entry.key, element);
+            else dateCardRefs.current.delete(entry.key);
+          }}
           type="button"
-          className="secondary compact-action important-dates-create-action"
-          onClick={() => {
-            setEditing(null);
-            setIsCreating(true);
-            saveMutation.reset();
-            deleteMutation.reset();
-            setSavedMessage(null);
+          className="important-date-card"
+          data-planning-key={entry.key}
+          aria-haspopup="dialog"
+          onClick={(event) => {
+            readerReturnRef.current = event.currentTarget;
+            openReader(entry.key);
           }}
         >
-          <AddIcon />
-          <span>{t('importantDates.create')}</span>
+          <time
+            className="important-date-marker"
+            dateTime={dateInputValue(entry.date)}
+          >
+            <span className="important-date-marker-day" aria-hidden="true">
+              {dateFormats.day.format(entry.date)}
+            </span>
+            <span className="sr-only">
+              {dateFormats.detail.format(entry.date)}
+            </span>
+          </time>
+          <span className="important-date-timeline-body">
+            <strong>
+              <OccasionTitle type={entry.type} label={entry.label} />
+            </strong>
+            {relativeLabel || entry.custom ? (
+              <span className="important-date-meta">
+                {relativeLabel ?? t(`importantDates.repeats.${entry.repeats}`)}
+                {entry.custom ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <OccasionVisibility visibility={entry.custom.visibility} />
+                  </>
+                ) : null}
+              </span>
+            ) : null}
+          </span>
         </button>
-      </div>
+      </li>
+    );
+  }
 
+  function renderMonths(rows: OccasionOccurrence[], isPast = false) {
+    const months = new Map<string, OccasionOccurrence[]>();
+    for (const entry of rows) {
+      const key = dateInputValue(entry.date).slice(0, 7);
+      const month = months.get(key);
+      if (month) month.push(entry);
+      else months.set(key, [entry]);
+    }
+    const Heading = isPast ? 'h3' : 'h2';
+    return Array.from(months, ([key, month]) => {
+      const date = month[0].date;
+      const format =
+        isPast || date.getUTCFullYear() !== today.getUTCFullYear()
+          ? dateFormats.monthAndYear
+          : dateFormats.month;
+      return (
+        <div className="occasions-month" key={key}>
+          <Heading>{format.format(date)}</Heading>
+          <ul className="occasions-list">{month.map(renderDateRow)}</ul>
+        </div>
+      );
+    });
+  }
+  const openEditor = () => {
+    if (!selected?.custom) return;
+    const date = selected.custom;
+    readerRef.current?.closeForNavigation(() => {
+      setReadingKey(null);
+      setEditing(date);
+      saveMutation.reset();
+      deleteMutation.reset();
+    });
+  };
+  const createAction = (
+    <AddActionButton
+      ref={createActionRef}
+      label={t('importantDates.create')}
+      floating={Boolean(createActionContainer)}
+      aria-haspopup="dialog"
+      className="occasions-add"
+      onClick={() => {
+        readerReturnRef.current = createActionRef.current;
+        setEditing(null);
+        setIsCreating(true);
+        saveMutation.reset();
+        deleteMutation.reset();
+        setSavedMessage(null);
+      }}
+    />
+  );
+  return (
+    <section
+      className="important-dates-section occasions-panel"
+      aria-label={t('importantDates.heading')}
+    >
+      {createActionContainer
+        ? createPortal(createAction, createActionContainer)
+        : createAction}
       {savedMessage ? (
-        <div className="inline-message inline-message-success" role="status">
-          <span>{savedMessage}</span>
+        <p className="people-saved" role="status">
+          {savedMessage}
+        </p>
+      ) : null}
+      {datesQuery.isLoading ? (
+        <UiState kind="loading" title={t('importantDates.loading')} />
+      ) : null}
+      {datesQuery.error ? (
+        <ProblemState
+          error={datesQuery.error}
+          onRetry={() => void datesQuery.refetch()}
+        />
+      ) : null}
+      {datesQuery.data &&
+      !entries.length &&
+      !sourcesPending &&
+      !sourcesUnavailable ? (
+        <UiState kind="empty" title={t('importantDates.emptyTitle')} />
+      ) : null}
+      {upcoming.length ? <div>{renderMonths(upcoming)}</div> : null}
+      {past.length ? (
+        <div className="occasions-past">
+          <h2>{t('importantDates.past')}</h2>
+          {renderMonths(past, true)}
         </div>
       ) : null}
-
+      <ShortTaskSheet
+        ref={readerRef}
+        restoreFocusRef={readerReturnRef}
+        open={readerOpen && Boolean(selected)}
+        className="occasion-reader-sheet"
+        title={
+          selected ? (
+            <OccasionTitle type={selected.type} label={selected.label} />
+          ) : (
+            t('importantDates.heading')
+          )
+        }
+        onClose={() => setReaderOpen(false)}
+      >
+        {selected ? (
+          <div className="occasion-reader">
+            <p className="important-date-meta occasion-reader-date">
+              <time dateTime={dateInputValue(selected.date)}>
+                {dateFormats.detail.format(selected.date)}
+              </time>
+              <span aria-hidden="true">·</span>
+              <span>{t(`importantDates.repeats.${selected.repeats}`)}</span>
+              {selected.custom ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <OccasionVisibility visibility={selected.custom.visibility} />
+                </>
+              ) : null}
+            </p>
+            {selected.profileName ? (
+              <p className="occasion-reader-source">
+                {t('importantDates.partnerBirthdayProfileSource', {
+                  name: selected.profileName,
+                })}
+              </p>
+            ) : null}
+            {selected.key.startsWith('holiday:') ? (
+              <button
+                type="button"
+                className="tertiary"
+                onClick={() =>
+                  navigateFromReader(settingsCategoryPath('relationship'))
+                }
+              >
+                {t('importantDates.holidaySettings.manage')}
+              </button>
+            ) : null}
+            {selected.key === RELATIONSHIP_ANNIVERSARY_KEY ? (
+              <button
+                type="button"
+                className="tertiary"
+                onClick={() =>
+                  navigateFromReader(settingsCategoryPath('relationship'))
+                }
+              >
+                {t('importantDates.editRelationshipStart')}
+              </button>
+            ) : null}
+            {selected.custom ? (
+              <button
+                type="button"
+                className={canCreatePlan ? 'tertiary' : undefined}
+                onClick={openEditor}
+              >
+                {t('importantDates.edit')}
+              </button>
+            ) : null}
+            {selected.person ? (
+              <button
+                type="button"
+                className="tertiary"
+                onClick={() =>
+                  readerRef.current?.closeForNavigation(() =>
+                    navigate(
+                      `/more/people/${encodeURIComponent(selected.person?.id ?? '')}`,
+                      {
+                        state: {
+                          peopleOrigin: {
+                            to: '/plan#dates',
+                            scrollY: window.scrollY,
+                            selectedId: selected.key,
+                          },
+                        },
+                      },
+                    ),
+                  )
+                }
+              >
+                {t('importantDates.openBirthdayProfile', {
+                  name: selected.person.displayName,
+                })}
+              </button>
+            ) : null}
+            {canCreatePlan ? (
+              <button
+                type="button"
+                onClick={() =>
+                  navigateFromReader(
+                    PLAN_CREATE_ROUTE,
+                    dateInputValue(selected.date),
+                  )
+                }
+              >
+                {t('importantDates.createPlan')}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </ShortTaskSheet>
       {editorOpen ? (
         <ImportantDateEditorSheet
           date={editing}
@@ -696,195 +1266,6 @@ export function ImportantDatesPanel({
           }}
         />
       ) : null}
-
-      <section aria-labelledby="important-dates-list-title">
-        <div className="layout-section-head">
-          <h3 id="important-dates-list-title">
-            {t('importantDates.listTitle')}
-          </h3>
-        </div>
-
-        {datesQuery.isLoading ? (
-          <UiState kind="loading" title={t('importantDates.loading')} />
-        ) : null}
-        {datesQuery.error ? (
-          <ProblemState
-            error={datesQuery.error}
-            onRetry={() => void datesQuery.refetch()}
-          />
-        ) : null}
-        {datesQuery.data?.length === 0 && !partnerBirthday ? (
-          <UiState
-            kind="empty"
-            title={t('importantDates.emptyTitle')}
-            body={t('importantDates.emptyBody')}
-          />
-        ) : null}
-        {datesQuery.data?.length || partnerBirthday ? (
-          <ul className="important-dates-list">
-            {partnerBirthday
-              ? (() => {
-                  const markerParts = dateMarkerFormatter.formatToParts(
-                    partnerBirthday.birthday,
-                  );
-                  const markerDay =
-                    markerParts.find((part) => part.type === 'day')?.value ??
-                    '';
-                  const markerMonth =
-                    markerParts.find((part) => part.type === 'month')?.value ??
-                    '';
-                  const label = t('importantDates.partnerBirthdayLabel', {
-                    name: partnerBirthday.displayName,
-                  });
-                  return (
-                    <li
-                      key={`partner-birthday-${partnerBirthday.accountId}`}
-                      className="important-date-item"
-                    >
-                      <article
-                        className="important-date-card important-date-card-derived"
-                        aria-label={[
-                          label,
-                          t('importantDates.repeats.ANNUALLY'),
-                          t('importantDates.visibility.SHARED'),
-                        ].join(' – ')}
-                      >
-                        <time
-                          className="important-date-marker"
-                          dateTime={dateInputValue(partnerBirthday.birthday)}
-                        >
-                          <span className="important-date-marker-day">
-                            {markerDay}
-                          </span>
-                          <span className="important-date-marker-month">
-                            {markerMonth}
-                          </span>
-                        </time>
-                        <span className="important-date-timeline-body">
-                          <span className="important-date-title">{label}</span>
-                          <span className="important-date-person">
-                            {t('importantDates.partnerBirthdayProfileSource', {
-                              name: partnerBirthday.displayName,
-                            })}
-                          </span>
-                          <span className="important-date-meta">
-                            <span>{t('importantDates.type.BIRTHDAY')}</span>
-                            <span aria-hidden="true">·</span>
-                            <span>{t('importantDates.repeats.ANNUALLY')}</span>
-                            <span aria-hidden="true">·</span>
-                            <span className="important-date-visibility important-date-visibility-shared">
-                              <span
-                                className="important-date-visibility-icon"
-                                aria-hidden="true"
-                              >
-                                <DestinationIcon icon="people" />
-                              </span>
-                              {t('importantDates.visibility.SHARED')}
-                            </span>
-                          </span>
-                        </span>
-                      </article>
-                    </li>
-                  );
-                })()
-              : null}
-            {datesQuery.data?.map((date) => {
-              const linkedPersonName = date.relatedPersonId
-                ? personNames.get(date.relatedPersonId)
-                : undefined;
-              const markerParts = dateMarkerFormatter.formatToParts(date.date);
-              const markerDay =
-                markerParts.find((part) => part.type === 'day')?.value ?? '';
-              const markerMonth =
-                markerParts.find((part) => part.type === 'month')?.value ?? '';
-
-              return (
-                <li key={date.id} className="important-date-item">
-                  <button
-                    ref={(element) => {
-                      if (element) dateCardRefs.current.set(date.id, element);
-                      else dateCardRefs.current.delete(date.id);
-                    }}
-                    type="button"
-                    className="important-date-card"
-                    onClick={() => {
-                      setEditing(date);
-                      setIsCreating(false);
-                      saveMutation.reset();
-                      deleteMutation.reset();
-                      setSavedMessage(null);
-                    }}
-                    aria-label={[
-                      dateFormatter.format(date.date),
-                      date.label,
-                      linkedPersonName
-                        ? t('importantDates.linkedPerson', {
-                            name: linkedPersonName,
-                          })
-                        : null,
-                      t(`importantDates.visibility.${date.visibility}`),
-                      t('importantDates.edit'),
-                    ]
-                      .filter(Boolean)
-                      .join(' – ')}
-                  >
-                    <time
-                      className="important-date-marker"
-                      dateTime={dateInputValue(date.date)}
-                    >
-                      <span className="important-date-marker-day">
-                        {markerDay}
-                      </span>
-                      <span className="important-date-marker-month">
-                        {markerMonth}
-                      </span>
-                    </time>
-                    <span className="important-date-timeline-body">
-                      <span className="important-date-title">{date.label}</span>
-                      {linkedPersonName ? (
-                        <span className="important-date-person">
-                          {t('importantDates.linkedPerson', {
-                            name: linkedPersonName,
-                          })}
-                        </span>
-                      ) : null}
-                      <span className="important-date-meta">
-                        <span>{t(`importantDates.type.${date.type}`)}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>
-                          {t(`importantDates.repeats.${date.repeats}`)}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <span
-                          className={`important-date-visibility ${
-                            date.visibility === ContentVisibility.PRIVATE
-                              ? 'important-date-visibility-private'
-                              : 'important-date-visibility-shared'
-                          }`}
-                        >
-                          <span
-                            className="important-date-visibility-icon"
-                            aria-hidden="true"
-                          >
-                            <DestinationIcon
-                              icon={
-                                date.visibility === ContentVisibility.PRIVATE
-                                  ? 'private'
-                                  : 'people'
-                              }
-                            />
-                          </span>
-                          {t(`importantDates.visibility.${date.visibility}`)}
-                        </span>
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
-      </section>
     </section>
   );
 }

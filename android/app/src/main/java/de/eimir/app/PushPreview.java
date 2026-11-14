@@ -94,6 +94,7 @@ public final class PushPreview {
             case "COMMENT_CREATED": return title.isEmpty() ? R.string.push_comment : R.string.push_comment_title;
             case "REMINDER_CREATED": return title.isEmpty() ? R.string.push_reminder_created : R.string.push_reminder_created_title;
             case "REMINDER_DUE": return title.isEmpty() ? R.string.push_reminder_due : R.string.push_reminder_due_title;
+            case "WISH_REMINDER_DUE": return R.string.push_wish_reminder_due;
             case "PARTNER_KISS": return R.string.push_kiss;
             case "THINKING_OF_YOU": return R.string.push_thinking;
             case "PARTNER_CHECK_IN": return R.string.push_check_in;
@@ -111,6 +112,11 @@ public final class PushPreview {
             case "VIDEO_PROCESSING_FAILED": return R.string.push_video_processing_failed;
             default: return 0;
         }
+    }
+
+    boolean isNeutralReference() {
+        return "ONCE_MESSAGE_RECEIVED".equals(kind) && !digest && name.isEmpty()
+            && title.isEmpty() && text.isEmpty() && targetType.isEmpty();
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
@@ -131,6 +137,7 @@ public final class PushPreview {
             "PLAN".equals(targetType) ? R.string.push_view_plan :
             "MEMORY".equals(targetType) || "HEART_MOMENT".equals(targetType) ? R.string.push_view_moment :
             "WISH_SELECTION".equals(targetType) ? R.string.push_view_wish_selection :
+            "WISH".equals(targetType) ? R.string.push_view_wish :
             "TRANSFER_EXPORT".equals(targetType) || "TRANSFER_IMPORT".equals(targetType) ? R.string.push_view_transfer :
             R.string.push_view);
     }

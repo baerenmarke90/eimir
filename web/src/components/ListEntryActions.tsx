@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { AddIcon } from './DestinationIcon';
 import './ListEntryActions.css';
 
 export function moveSortableItem(
@@ -377,28 +376,19 @@ type IconButtonProps = Omit<
   'aria-label' | 'title' | 'children'
 > & {
   label: string;
-  icon: 'save' | 'delete' | 'reorder' | 'add' | 'edit' | 'more';
-  variant?: 'tertiary' | 'add';
+  icon: 'save' | 'delete' | 'reorder' | 'edit' | 'more' | 'unlink';
 };
 
 export const ListEntryIconButton = forwardRef<
   HTMLButtonElement,
   IconButtonProps
 >(function ListEntryIconButton(
-  {
-    label,
-    icon,
-    variant = icon === 'add' ? 'add' : 'tertiary',
-    className,
-    type = 'button',
-    ...props
-  },
+  { label, icon, className, type = 'button', ...props },
   ref,
 ) {
   const classes = [
     'list-entry-icon-button',
     icon === 'edit' ? 'content-edit-action' : null,
-    variant === 'add' ? 'list-entry-add-button' : null,
     icon === 'reorder' ? 'list-entry-drag-handle' : null,
     className,
   ]
@@ -433,12 +423,20 @@ export function EditPencilIcon({ className }: { className?: string }) {
 }
 
 function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
-  if (kind === 'add') {
-    return <AddIcon className="list-entry-icon" />;
-  }
-
   if (kind === 'edit') {
     return <EditPencilIcon className="list-entry-icon" />;
+  }
+  if (kind === 'unlink') {
+    return (
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 24 24"
+        className="list-entry-icon"
+      >
+        <path d="m6 6 12 12M18 6 6 18" />
+      </svg>
+    );
   }
 
   return (

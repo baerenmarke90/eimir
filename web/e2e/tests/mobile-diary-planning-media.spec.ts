@@ -1,24 +1,33 @@
-import fixtures from '../fixtures/locales/de';
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import tagCopy from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
-import tagCopy from '../../src/i18n/locales/contextTags';
-import photoCopy from '../../src/i18n/locales/photoSources';
 import placeCopy from '../../src/i18n/locales/photoPlaces';
+import photoCopy from '../../src/i18n/locales/photoSources';
 import storyCopy from '../../src/i18n/locales/storyProducts';
+import fixtures from '../fixtures/locales/de';
+import { openComposerMediaSources } from '../support/mediaIntake';
+import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import {
+  closeContextTags,
+  openComposerPlace,
+  showContextSuggestions,
+  showContextTags,
+} from '../support/memoryDiary';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
-  ME,
   CAPABILITIES,
+  captureScreenshot,
   getTimelineItems,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
-  captureScreenshot,
 } from '../support/storyTimelineFixture';
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
@@ -67,7 +76,7 @@ const chapter = {
   endOn: '2026-10-31',
 };
 
-async function fixture(page: Page) {
+async function fixture(page: Page, photoCount = 2) {
   await page.addInitScript(
     ({ accountId, spaceId }) =>
       localStorage.setItem(
@@ -102,6 +111,14 @@ async function fixture(page: Page) {
         proposed: [],
       });
     if (await fulfillDefaultProductContext(route)) return;
+    if (
+      request.method() === 'GET' &&
+      wishes.some((wish) => path === `${base}/wishes/${wish.id}/reminder`)
+    )
+      return route.fulfill({
+        json: { dueAt: null },
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
     if (path === `${base}/places`) {
       if (request.method() === 'POST') placeCreates++;
       return json({ items: [place], nextCursor: null, hasMore: false });
@@ -182,7 +199,7 @@ async function fixture(page: Page) {
         attachments: [
           attachment(),
           { ...attachment('photo-two'), position: 1 },
-        ],
+        ].slice(0, photoCount),
       });
     if (path === `${base}/attachments` && request.method() === 'POST')
       return json(
@@ -234,7 +251,12 @@ for (const view of [
     await page
       .getByLabel(copy.wish.intentionLabel)
       .fill(fixtures.planningFollowup.wishNew);
-    await page.getByLabel(tagCopy.newLabel).fill(fixtures.planningFollowup.tag);
+    await showContextTags(page);
+    const tagInput = page.getByLabel(tagCopy.newLabel);
+    await tagInput.fill(fixtures.planningFollowup.tag);
+    await tagInput.press('Enter');
+    await expect(tagInput).toHaveValue('');
+    await closeContextTags(page);
     await page
       .getByRole('button', { name: copy.common.save, exact: true })
       .click();
@@ -247,16 +269,16 @@ for (const view of [
     await page
       .getByLabel(copy.plan.intentionLabel)
       .fill(fixtures.planningFollowup.planNew);
-    await page.getByText(tagCopy.suggestions, { exact: true }).click();
+    await showContextTags(page);
+    await showContextSuggestions(page);
     await page
       .getByRole('checkbox', {
         name: fixtures.planningFollowup.tag,
         exact: true,
       })
       .check();
-    await page
-      .getByRole('button', { name: copy.common.place, exact: true })
-      .click();
+    await closeContextTags(page);
+    await openComposerPlace(page);
     const picker = page.getByRole('dialog');
     await picker.getByLabel(placeCopy.savedSearch).fill('Garten');
     await picker
@@ -265,12 +287,12 @@ for (const view of [
       })
       .click();
     await expect(picker).not.toBeVisible();
+    const sourceSheet = await openComposerMediaSources(page);
     const chooserPromise = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: photoCopy.addMedia, exact: true })
+    await sourceSheet
+      .getByRole('button', { name: photoCopy.device, exact: true })
       .click();
     const chooser = await chooserPromise;
-    await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
     await chooser.setFiles({
       name: 'lake.jpg',
       mimeType: 'image/jpeg',
@@ -377,10 +399,9 @@ for (const view of [
         .locator('.more-destination-title-row strong')
         .allTextContents(),
     ).toEqual([
-      de.more.destinations.photos,
+      de.more.destinations.media,
       de.more.destinations.chapters,
-      de.more.destinations.years,
-      de.more.destinations.recaps,
+      de.more.destinations.yearsAndRecaps,
       de.more.destinations.insights,
     ]);
     await captureScreenshot(
@@ -397,9 +418,15 @@ for (const view of [
     const gallery = page.getByRole('dialog', {
       name: storyCopy.gallery.dialogAria,
     });
-    await expect(
-      gallery.getByRole('button', { name: storyCopy.gallery.close }),
-    ).toHaveText(storyCopy.gallery.done);
+    const closePhoto = gallery.getByRole('button', {
+      name: storyCopy.gallery.close,
+    });
+    await expect(closePhoto).toHaveText('');
+    await expect(closePhoto.locator('svg')).toBeVisible();
+    await expect(closePhoto).toHaveAttribute('title', storyCopy.gallery.close);
+    const closeBounds = await closePhoto.boundingBox();
+    expect(closeBounds?.width).toBeGreaterThanOrEqual(44);
+    expect(closeBounds?.height).toBeGreaterThanOrEqual(44);
     expect(
       await gallery
         .locator('.media-lightbox-nav')
@@ -426,6 +453,250 @@ for (const view of [
     expect(state.unknown).toEqual([]);
   });
 }
+
+test.describe('photo-local touch gestures', () => {
+  test.use({ hasTouch: true });
+  for (const view of [
+    { width: 360, theme: 'light' },
+    { width: 390, theme: 'dark' },
+    { width: 430, theme: 'light' },
+    { width: 1280, theme: 'dark' },
+    { width: 320, theme: 'light' },
+    { width: 390, theme: 'light', native: true },
+    { width: 430, theme: 'dark', native: true },
+  ] as const) {
+    const native = 'native' in view && view.native;
+    test(`pinch, pan, double tap, fit and browse at ${view.width} ${view.theme}${native ? ' native app' : ''}`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.theme,
+        reducedMotion: 'reduce',
+      });
+      if (native) await installNativeAppLifecycle(page);
+      const state = await fixture(page);
+      await signIn(page);
+      await page.goto('/story/memories/mem-canal');
+      const opener = page
+        .locator('.media-gallery-carousel-slide:not(.is-clone)')
+        .first();
+      await opener.click();
+      const dialog = page.getByRole('dialog', {
+        name: storyCopy.gallery.dialogAria,
+      });
+      const photo = dialog.locator('.media-lightbox-photo img');
+      const frame = dialog.locator('.media-lightbox-photo');
+      await expect(photo).toBeVisible();
+      await expect(dialog.locator('.media-photo-zoom-controls')).toHaveCount(
+        native ? 0 : 1,
+      );
+      const close = dialog.getByRole('button', {
+        name: storyCopy.gallery.close,
+        exact: true,
+      });
+      await expect(close.locator('.eimir-icon')).toHaveCSS('width', '24px');
+      await expect(close.locator('.eimir-icon')).toHaveCSS('height', '24px');
+      const closeBox = await close.boundingBox();
+      expect(closeBox?.width).toBeGreaterThanOrEqual(44);
+      expect(closeBox?.height).toBeGreaterThanOrEqual(44);
+      await captureScreenshot(
+        page,
+        info,
+        `story-photo-viewer-${view.width}-${view.theme}${native ? '-native-app' : ''}.png`,
+      );
+      const geometry = await frame.boundingBox();
+      if (!geometry) throw new Error('The photo viewport is unavailable.');
+      const x = geometry.x + geometry.width / 2;
+      const y = geometry.y + geometry.height / 2;
+      const distance = Math.min(100, geometry.width * 0.3);
+      const track = dialog.locator('.media-lightbox-track');
+      const scroll = await track.evaluate((node) => node.scrollLeft);
+      const route = page.url();
+      const documentState = () =>
+        page.evaluate(() => ({ scale: visualViewport?.scale, y: scrollY }));
+      const originalDocument = await documentState();
+      const scale = () =>
+        photo.evaluate(
+          (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).a,
+        );
+      const client = await page.context().newCDPSession(page);
+      try {
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [
+            { id: 1, x: x - 25, y },
+            { id: 2, x: x + 25, y },
+          ],
+        });
+        for (const spread of [40, 60, distance]) {
+          await client.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [
+              { id: 1, x: x - spread, y },
+              { id: 2, x: x + spread, y },
+            ],
+          });
+          await nextFrame(page);
+        }
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+        await expect.poll(scale).toBeGreaterThan(1.2);
+        const beforePan = await photo.evaluate(
+          (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+        );
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ id: 1, x, y }],
+        });
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ id: 1, x: x + 55, y: y + 45 }],
+        });
+        await nextFrame(page);
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+        await expect
+          .poll(() =>
+            photo.evaluate(
+              (node) =>
+                new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+            ),
+          )
+          .not.toBe(beforePan);
+      } finally {
+        await client.detach();
+      }
+      expect(await documentState()).toEqual(originalDocument);
+      expect(page.url()).toBe(route);
+      expect(await track.evaluate((node) => node.scrollLeft)).toBe(scroll);
+      await captureScreenshot(
+        page,
+        info,
+        `story-photo-zoom-${view.width}-${view.theme}${native ? '-native-app' : ''}.png`,
+      );
+      if (native) {
+        await page.touchscreen.tap(x, y);
+        await page.touchscreen.tap(x, y);
+      } else {
+        await dialog
+          .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
+          .click();
+      }
+      await expect.poll(scale).toBe(1);
+      await page.touchscreen.tap(x, y);
+      await page.touchscreen.tap(x, y);
+      await expect.poll(scale).toBeGreaterThan(2);
+      // Zoomed Panzoom admission suppresses native compatibility clicks. The
+      // reverse double tap must still fit the photo, without a control click.
+      await page.touchscreen.tap(x, y);
+      await page.touchscreen.tap(x, y);
+      await expect.poll(scale).toBe(1);
+      if (!native) {
+        await dialog
+          .getByRole('button', { name: storyCopy.gallery.fit, exact: true })
+          .click();
+      }
+      await expect.poll(scale).toBe(1);
+      await swipeCarousel(page, 'next', 'lightbox');
+      await expect(dialog.locator('.media-lightbox-counter')).toContainText(
+        fixtures.planningFollowup.twoOfTwo,
+      );
+      await expect.poll(scale).toBe(1);
+      if (native) {
+        await page.touchscreen.tap(x, y);
+        await page.touchscreen.tap(x, y);
+      } else {
+        await dialog
+          .getByRole('button', { name: storyCopy.gallery.zoomIn, exact: true })
+          .click();
+      }
+      await expect.poll(scale).toBeGreaterThan(1);
+      await frame.focus();
+      const index = await dialog
+        .locator('.media-lightbox-counter')
+        .textContent();
+      await page.keyboard.press('ArrowLeft');
+      expect(
+        await dialog.locator('.media-lightbox-counter').textContent(),
+      ).toBe(index);
+      await page.keyboard.press('0');
+      await expect.poll(scale).toBe(1);
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(opener).toBeFocused();
+      expect(page.url()).toBe(route);
+      expect(state.unknown).toEqual([]);
+    });
+  }
+});
+
+test('single photo keeps mouse zoom, drag, keyboard controls and Back local to the viewer', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const state = await fixture(page, 1);
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal');
+  const opener = page
+    .locator('.media-gallery-carousel-slide:not(.is-clone)')
+    .first();
+  await opener.click();
+  const dialog = page.getByRole('dialog', {
+    name: storyCopy.gallery.dialogAria,
+  });
+  const image = dialog.locator('.media-lightbox-photo img');
+  await expect(image).toBeVisible();
+  await expect(dialog.locator('.media-lightbox-track')).toHaveCount(0);
+  const scale = () =>
+    image.evaluate(
+      (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).a,
+    );
+  const frame = dialog.locator('.media-lightbox-photo');
+  const box = await frame.boundingBox();
+  if (!box) throw new Error('The single photo viewport is unavailable.');
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.wheel(0, -120);
+  await expect.poll(scale).toBeGreaterThan(1);
+  const before = await image.evaluate(
+    (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+  );
+  await page.mouse.down();
+  await page.mouse.move(x + 35, y + 30, { steps: 4 });
+  await page.mouse.up();
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).e,
+      ),
+    )
+    .not.toBe(before);
+  const enlarged = await scale();
+  await dialog
+    .getByRole('button', { name: storyCopy.gallery.zoomOut, exact: true })
+    .click();
+  await expect.poll(scale).toBeLessThan(enlarged);
+  await frame.focus();
+  await page.keyboard.press('+');
+  await expect.poll(scale).toBeGreaterThan(1);
+  await page.keyboard.press('0');
+  await expect.poll(scale).toBe(1);
+  await page.goBack();
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await expect.poll(scale).toBe(1);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  expect(state.unknown).toEqual([]);
+});
 
 test('late account metadata preserves the selected Space and a recoverable Memory draft', async ({
   page,

@@ -59,26 +59,8 @@
 .today-page[data-wir-design="warm"] .today-hero .couple-presence-title {
   font-size: clamp(1.9rem, 7vw, 2.75rem);
 }
-.today-page[data-wir-design="warm"] .daily-vibe-checkin {
-  gap: var(--space-3);
-  padding: var(--space-3) 0;
-  background: transparent;
-  border-radius: 0;
-}
-.today-page[data-wir-design="warm"] .daily-vibe-heading h2,
 .today-page[data-wir-design="warm"] .today-section-title {
   font-family: var(--font-display);
-}
-.today-page[data-wir-design="warm"] .daily-vibe-people {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
-  gap: var(--space-3);
-}
-.today-page[data-wir-design="warm"] .daily-vibe-person {
-  padding: var(--space-2) var(--space-1);
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  min-height: 64px;
 }
 .today-page[data-wir-design="warm"] .daily-quote-card {
   margin-block: var(--space-2) var(--space-6);
@@ -86,17 +68,6 @@
 .today-page[data-wir-design="warm"] .today-moment-figure {
   border-radius: var(--radius-large);
   box-shadow: var(--shadow-soft);
-}
-/* Energy/gesture hit targets keep their existing dimensions and own popovers. */
-.today-page[data-wir-design="warm"]
-  .today-hero.couple-presence-card
-  .couple-presence-avatar-adornment
-  .daily-energy-avatar-control,
-.today-page[data-wir-design="modern"]
-  .today-hero.couple-presence-card
-  .couple-presence-avatar-adornment
-  .daily-energy-avatar-control {
-  left: var(--space-5);
 }
 .wir-design-settings {
   display: grid;
@@ -369,11 +340,6 @@
 }
 .today-page[data-wir-design="modern"] .today-hero-action-container {
   justify-content: flex-start;
-}
-.today-page[data-wir-design="modern"] .daily-vibe-checkin {
-  padding: var(--space-3);
-  background: var(--color-shared-surface);
-  border-radius: var(--radius-large);
 }
 .today-page[data-wir-design="modern"] .today-section-title {
   font-family: var(--font-ui);

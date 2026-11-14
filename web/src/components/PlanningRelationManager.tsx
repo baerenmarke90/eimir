@@ -1,41 +1,42 @@
-import { AutoLoadMore } from './AutoLoadMore';
-import { type MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import type { ChapterContentItem } from '../api/generated/models/ChapterContentItem';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { useApiRuntime } from '../client/apiRuntimeContext';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { galleryCover } from '../client/galleryCover';
+import { normalizeClientError } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { createReferenceApis } from '../client/referenceFlow';
-import { postSnackbar } from '../client/snackbar';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { normalizeClientError } from '../client/problemDetails';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
   milestoneDetailPath,
 } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
-  storyRelationTarget,
   type PlanningRelationKind,
   type PlanningRelationTarget,
   type SharedPlanningApis,
+  storyRelationTarget,
 } from '../client/sharedPlanning';
+import { postSnackbar } from '../client/snackbar';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { i18n, useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import { AutoLoadMore } from './AutoLoadMore';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { RelationMomentActions } from './RelationMomentActions';
-import { UiState } from './UiState';
-import { EimirIcon } from './EimirIcon';
-import { ShortTaskSheet } from './ShortTaskSheet';
 import { RelationMomentPreview } from './RelationMomentPreview';
+import { ShortTaskSheet } from './ShortTaskSheet';
+import { UiState } from './UiState';
 import './PlanningRelationManager.css';
 
 const STORY_PAGE_SIZE = 50;
@@ -642,20 +643,17 @@ function ScopedPlanningRelationManager({
 
   const addButton =
     canManage && relationsQuery.isSuccess ? (
-      <button
+      <AddActionButton
+        label={t('m5s3.relations.addLabel')}
+        className="relation-moment-add"
         ref={trigger}
-        type="button"
-        className="secondary relation-moment-add"
         aria-haspopup="dialog"
         aria-expanded={pickerOpen}
         onClick={() => {
           linkMutation.reset();
           setPickerOpen(true);
         }}
-      >
-        <EimirIcon name="hinzufuegen" />
-        {t('m5s3.relations.addLabel')}
-      </button>
+      />
     ) : null;
 
   return (

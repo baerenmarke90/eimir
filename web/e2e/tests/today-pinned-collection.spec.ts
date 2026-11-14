@@ -1231,9 +1231,7 @@ test('pins a shared Collection personally and shows it as a tile that opens the 
     'Milch',
   );
   await expect(pinnedSection.getByRole('checkbox')).toHaveCount(0);
-  await expect(
-    pinnedSection.getByRole('button', { name: /als erledigt|done/i }),
-  ).toHaveCount(0);
+  await expect(pinnedSection.locator('.checklist-toggle')).toHaveCount(0);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

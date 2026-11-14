@@ -7,10 +7,11 @@ import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
 import placeCopy from '../../src/i18n/locales/photoPlaces';
 import photoCopy from '../../src/i18n/locales/photoSources';
+import relationshipReflections from '../../src/i18n/locales/relationshipReflections';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import fixtures from '../fixtures/locales/de';
-import { openComposerMediaSources } from '../support/mediaIntake';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import { openComposerMediaSources } from '../support/mediaIntake';
 import {
   closeContextTags,
   openComposerPlace,
@@ -399,6 +400,7 @@ for (const view of [
         .locator('.more-destination-title-row strong')
         .allTextContents(),
     ).toEqual([
+      relationshipReflections.passport.title,
       de.more.destinations.media,
       de.more.destinations.chapters,
       de.more.destinations.yearsAndRecaps,

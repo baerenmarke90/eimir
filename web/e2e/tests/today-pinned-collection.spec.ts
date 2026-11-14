@@ -888,8 +888,12 @@ for (const view of [
           .locator('[data-sortable-item-id] .shared-list-item-copy > p')
           .evaluateAll((inputs) => inputs.map((input) => input.textContent));
       await page
+        .getByRole('button', { name: m5s3.collection.menu.open })
+        .click();
+      await page
         .getByRole('button', { name: m5s3.collection.sort, exact: true })
         .click();
+      await expect(page.getByRole('dialog')).toHaveCount(0);
       const handle = page.getByRole('button', {
         name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
       });
@@ -1048,9 +1052,11 @@ for (const outcome of ['success', 'failure'] as const) {
       },
     );
     await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await page.getByRole('button', { name: m5s3.collection.menu.open }).click();
     await page
       .getByRole('button', { name: m5s3.collection.sort, exact: true })
       .click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await page
       .getByRole('button', {
         name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
@@ -1138,9 +1144,11 @@ test('keeps a shared Collection reorder in place until confirmed or rolled back'
     rows
       .locator('.shared-list-item-copy > p')
       .evaluateAll((inputs) => inputs.map((input) => input.textContent));
+  await page.getByRole('button', { name: m5s3.collection.menu.open }).click();
   await page
     .getByRole('button', { name: m5s3.collection.sort, exact: true })
     .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   const moveApples = page.getByRole('button', {
     name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
   });
@@ -1699,10 +1707,15 @@ for (const view of [
           .locator('[data-sortable-item-id] .shared-list-item-copy > p')
           .evaluateAll((inputs) => inputs.map((input) => input.textContent));
       await expect(row).toBeVisible();
-      if (action === 'reorder')
+      if (action === 'reorder') {
+        await page
+          .getByRole('button', { name: m5s3.collection.menu.open })
+          .click();
         await page
           .getByRole('button', { name: m5s3.collection.sort, exact: true })
           .click();
+        await expect(page.getByRole('dialog')).toHaveCount(0);
+      }
       await page.context().setOffline(true);
       if (action === 'checkbox')
         await row

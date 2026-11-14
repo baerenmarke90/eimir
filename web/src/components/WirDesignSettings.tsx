@@ -19,6 +19,25 @@ import './WirDesign.css';
 
 /** Decorative code-native previews contain no personal data or invented content. */
 function DesignPreview({ design }: { design: WirDesignId }) {
+  if (design === WirDesignId.together_index) {
+    return (
+      <span
+        className="wir-design-preview wir-design-preview-together_index"
+        aria-hidden="true"
+      >
+        <span className="wir-design-preview-thread-heading" />
+        <span className="wir-design-preview-thread-people">
+          <i />
+          <i />
+        </span>
+        <span className="wir-design-preview-thread-memory" />
+        <span className="wir-design-preview-thread-dock">
+          <i />
+        </span>
+      </span>
+    );
+  }
+
   if (design === WirDesignId.shared_rhythm) {
     return (
       <span

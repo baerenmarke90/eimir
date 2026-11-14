@@ -750,6 +750,60 @@ test('Unser Takt persists and keeps the active chapter on a detail route', async
   expect(f.unexpected).toEqual([]);
 });
 
+test('Faden saves the layout and returns from its overview to the same memory', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 420 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.together_index) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(f.writes).toEqual(['together_index']);
+
+  const detail = '/story/memories/mem-canal';
+  await page.goto(detail);
+  await page.reload();
+  const dock = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  const overview = dock.getByRole('link', { name: copy.thread.index });
+  await expect(overview).toBeVisible();
+  await expect(dock.getByRole('link', { name: 'Planen' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Breakfast by the canal' }),
+  ).toBeVisible();
+  const previousScroll = await page.evaluate(() => {
+    window.scrollTo(0, 100);
+    return window.scrollY;
+  });
+  expect(previousScroll).toBeGreaterThan(0);
+
+  await overview.click();
+  await expect(page).toHaveURL(/\/faden$/);
+  const title = page.getByRole('heading', { name: copy.thread.title });
+  await expect(title).toBeFocused();
+  await expect(
+    page.locator('.thread-index-entry[aria-current="location"]'),
+  ).toContainText('Momente');
+  await captureScreenshot(page, info, 'faden-overview-390-light.png');
+
+  await page.getByRole('button', { name: 'Zurück zu Momente' }).click();
+  await expect(page).toHaveURL(new RegExp(`${detail}$`));
+  await expect(overview).toBeFocused();
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBe(previousScroll);
+
+  await page.goto('/faden');
+  await expect(title).toBeVisible();
+  await page.locator('.thread-return').click();
+  await expect(page).toHaveURL(/\/today$/);
+  expect(f.unexpected).toEqual([]);
+});
+
 test('Free can preview, cancel, retain a saved Pro design and reset to Geborgen', async ({
   page,
 }) => {

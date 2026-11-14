@@ -121,6 +121,7 @@ def test_only_the_optional_wir_designs_require_pro() -> None:
         WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
+        WirDesignId.TOGETHER_INDEX,
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
     }
@@ -134,6 +135,7 @@ def test_only_the_optional_wir_designs_require_pro() -> None:
         WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
+        WirDesignId.TOGETHER_INDEX,
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
     ],
@@ -161,6 +163,7 @@ def test_every_alternative_is_pro_for_both_partners(client, session, couple, des
         WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
+        WirDesignId.TOGETHER_INDEX,
     ],
 )
 def test_downgrade_retains_choice_but_new_paid_selection_is_blocked_and_reset_is_free(
@@ -284,6 +287,7 @@ def test_membership_owner_scope_invalid_ids_and_required_concurrency(
         WirDesignId.HANDWRITING,
         WirDesignId.HOME_ROOMS,
         WirDesignId.SHARED_RHYTHM,
+        WirDesignId.TOGETHER_INDEX,
     ],
 )
 def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(

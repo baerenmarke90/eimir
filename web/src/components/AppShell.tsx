@@ -62,6 +62,8 @@ import './SharedRhythm.css';
 import { Snackbar } from './Snackbar';
 import { SubpageNavigation } from './SubpageNavigation';
 import { ThemeControl } from './ThemeControl';
+import { THREAD_ROUTE, ThreadDock, ThreadHeader } from './TogetherIndex';
+import './TogetherIndex.css';
 import { useNavigationMotion } from './useNavigationMotion';
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
@@ -238,6 +240,8 @@ function AuthenticatedAppShell({
   const currentDesign = useWirDesign()?.current;
   const homeRooms = currentDesign === WirDesignId.home_rooms;
   const sharedRhythm = currentDesign === WirDesignId.shared_rhythm;
+  const threadLayout = currentDesign === WirDesignId.together_index;
+  const isThreadIndex = threadLayout && pathname === THREAD_ROUTE;
   useNavigationMotion({
     surfaceRef: mainRef,
     pathname,
@@ -251,12 +255,12 @@ function AuthenticatedAppShell({
         (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
       ),
     onNavigate: navigatePrimary,
-    enablePrimarySwipe: !sharedRhythm,
+    enablePrimarySwipe: !sharedRhythm && !threadLayout,
   });
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
-    ((homeRooms || sharedRhythm) &&
+    ((homeRooms || sharedRhythm || threadLayout) &&
       (protectedDraft ||
         pathname === COLLECTION_CREATE_ROUTE ||
         pathname === MILESTONE_CREATE_ROUTE ||
@@ -264,7 +268,9 @@ function AuthenticatedAppShell({
           pathname,
         ))) ||
     /^\/more\/people\/(?:new|[^/]+\/edit)$/.test(location.pathname) ||
-    (!sharedRhythm && /^\/story\/recaps\/[^/]+$/.test(pathname)) ||
+    (!sharedRhythm &&
+      !threadLayout &&
+      /^\/story\/recaps\/[^/]+$/.test(pathname)) ||
     location.pathname.startsWith('/today/only-you') ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === PARTNER_LOCATION_MAP_ROUTE ||
@@ -276,6 +282,7 @@ function AuthenticatedAppShell({
     (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
   const appDesign =
+    threadLayout ||
     sharedRhythm ||
     homeRooms ||
     currentDesign === WirDesignId.quiet_together ||
@@ -292,13 +299,29 @@ function AuthenticatedAppShell({
       syncDocumentThemeColor();
     };
   }, [appDesign]);
+  const threadTriggerRef = useRef<HTMLAnchorElement>(null);
+  const threadOrigin = useRef<{ key: string; top: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!threadLayout || isThreadIndex || !threadOrigin.current) return;
+    const origin = threadOrigin.current;
+    threadOrigin.current = null;
+    if (navigationType !== 'POP' || location.key !== origin.key) return;
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: origin.top, behavior: 'instant' });
+      threadTriggerRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isThreadIndex, location.key, navigationType, threadLayout]);
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   const homeNavigationRef = useRef<HTMLElement>(null);
+  const threadNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    if (isFocusedTask || sharedRhythm) return;
-    const navigation = homeRooms
-      ? homeNavigationRef.current
-      : bottomNavigationRef.current;
+    if (isFocusedTask || sharedRhythm || isThreadIndex) return;
+    const navigation = threadLayout
+      ? threadNavigationRef.current
+      : homeRooms
+        ? homeNavigationRef.current
+        : bottomNavigationRef.current;
     if (!navigation || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
     const measure = (entry?: ResizeObserverEntry) => {
@@ -319,7 +342,7 @@ function AuthenticatedAppShell({
       observer.disconnect();
       root.style.removeProperty('--shell-bottom-nav-measured-height');
     };
-  }, [homeRooms, isFocusedTask, sharedRhythm]);
+  }, [homeRooms, isFocusedTask, isThreadIndex, sharedRhythm, threadLayout]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -360,8 +383,12 @@ function AuthenticatedAppShell({
         data-focused-task={isFocusedTask}
         data-home-rooms={homeRooms ? true : undefined}
         data-shared-rhythm={sharedRhythm ? true : undefined}
+        data-thread-layout={threadLayout || undefined}
         data-top-surface={
-          !homeRooms && !sharedRhythm && location.pathname === DEFAULT_APP_ROUTE
+          !homeRooms &&
+          !sharedRhythm &&
+          !threadLayout &&
+          location.pathname === DEFAULT_APP_ROUTE
             ? 'today'
             : undefined
         }
@@ -373,7 +400,9 @@ function AuthenticatedAppShell({
           {t('navigation.skipToContent')}
         </a>
 
-        {!isFocusedTask && sharedRhythm ? (
+        {!isFocusedTask && threadLayout ? (
+          <ThreadHeader isPrivate={isPrivateArea} />
+        ) : !isFocusedTask && sharedRhythm ? (
           <SharedRhythmRail privateArea={isPrivateArea} />
         ) : !isFocusedTask && homeRooms ? (
           <HomeRoomsHeader privateArea={isPrivateArea} />
@@ -432,27 +461,43 @@ function AuthenticatedAppShell({
           >
             <AppSurfacePullToRefresh pathname={location.pathname} />
             {primaryTabs}
-            <SubpageNavigation>
-              {isGamesHub ? (
-                <GamesProductArea
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={accessToken}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                />
-              ) : (
-                children
-              )}
-            </SubpageNavigation>
+            {isThreadIndex ? (
+              children
+            ) : (
+              <SubpageNavigation>
+                {isGamesHub ? (
+                  <GamesProductArea
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={accessToken}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                  />
+                ) : (
+                  children
+                )}
+              </SubpageNavigation>
+            )}
           </main>
         </div>
 
-        {!isFocusedTask && homeRooms ? (
+        {!isFocusedTask && threadLayout && !isThreadIndex ? (
+          <div className="thread-dock-slot" ref={threadNavigationRef}>
+            <ThreadDock
+              triggerRef={threadTriggerRef}
+              onOpen={() => {
+                threadOrigin.current = {
+                  key: location.key,
+                  top: window.scrollY,
+                };
+              }}
+            />
+          </div>
+        ) : !isFocusedTask && homeRooms ? (
           <HomeRoomsDock
             canCreate={!isPrivateArea}
             navigationRef={homeNavigationRef}
           />
-        ) : !isFocusedTask && !sharedRhythm ? (
+        ) : !isFocusedTask && !sharedRhythm && !threadLayout ? (
           <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
             <nav
               className="mobile-bottom-nav"

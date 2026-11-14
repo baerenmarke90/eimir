@@ -1,0 +1,491 @@
+:root[data-app-design="together_index"][data-theme] {
+  --thread-paper: #f7f6f2;
+  --thread-surface: #fffefa;
+  --thread-ink: #262831;
+  --thread-muted: #555965;
+  --thread-rule: #d7d8de;
+  --thread-subtle: #ebedf5;
+  --thread-accent: #3055b8;
+  --thread-strand: #677cad;
+  --thread-band: #e9ecf5;
+  --thread-on-band: var(--thread-ink);
+  --thread-index-button: var(--color-action-primary);
+  --thread-on-button: var(--color-on-action-primary);
+  --thread-gutter: clamp(var(--space-4), 5vw, var(--space-8));
+  --thread-content: 48rem;
+  --thread-dock-size: calc(
+    3.9rem +
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+  );
+  --color-background: var(--thread-paper);
+  --color-surface: var(--thread-surface);
+  --color-surface-raised: var(--thread-surface);
+  --color-surface-overlay: var(--thread-surface);
+  --color-surface-subtle: var(--thread-subtle);
+  --color-text: var(--thread-ink);
+  --color-text-secondary: var(--thread-muted);
+  --color-text-muted: var(--thread-muted);
+  --color-link-text: var(--thread-accent);
+  --color-border-subtle: var(--thread-rule);
+  --color-focus: var(--thread-accent);
+}
+
+:root[data-app-design="together_index"][data-theme="dark"] {
+  --thread-paper: #1c1e25;
+  --thread-surface: #272a34;
+  --thread-ink: #f5f4f1;
+  --thread-muted: #bec2cf;
+  --thread-rule: #414653;
+  --thread-subtle: #2c3243;
+  --thread-accent: #b7c8ff;
+  --thread-strand: #8da3d9;
+  --thread-band: #2c3345;
+  --thread-index-button: #b7c8ff;
+  --thread-on-button: #20283f;
+}
+
+:root[data-app-design="together_index"]:has(.thread-dock) {
+  --shell-bottom-nav-min-height: var(--thread-dock-size);
+  scroll-padding-block-end: var(--shell-content-bottom-clearance);
+}
+
+.product-shell[data-thread-layout] .product-main {
+  inline-size: min(
+    calc(100% - 2 * var(--thread-gutter)),
+    var(--thread-content)
+  );
+  min-inline-size: 0;
+  padding-block-start: var(--space-4);
+}
+
+.product-shell[data-thread-layout]:not(:has(.thread-dock)) {
+  --shell-content-bottom-clearance: var(--space-8);
+}
+
+.product-shell[data-thread-layout]:has(.thread-dock) .snackbar {
+  inset-block-end: var(--shell-content-bottom-clearance);
+}
+
+.thread-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-inline: auto;
+  inline-size: min(
+    calc(100% - 2 * var(--thread-gutter)),
+    var(--thread-content)
+  );
+  min-block-size: calc(3.35rem + var(--shell-header-safe-top));
+  padding-block-start: var(--shell-header-safe-top);
+  border-block-end: 1px solid var(--thread-rule);
+}
+
+.thread-mark {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target-web);
+  color: var(--thread-ink);
+  font: 700 1.45rem / 1 var(--font-ui);
+  letter-spacing: -0.08em;
+  text-decoration: none;
+}
+
+.thread-mark span,
+.thread-edition {
+  color: var(--thread-accent);
+}
+
+.thread-edition,
+.thread-area {
+  font: 650 0.81rem / 1.35 var(--font-ui);
+}
+
+.thread-area {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+  color: var(--thread-muted);
+}
+
+.thread-area svg {
+  inline-size: 1em;
+  block-size: 1em;
+}
+
+.thread-dock-slot {
+  position: fixed;
+  z-index: 75;
+  container: thread-dock / inline-size;
+  inset: auto 0 0;
+  padding-block-end: var(
+    --safe-area-inset-bottom,
+    env(safe-area-inset-bottom, 0px)
+  );
+  background: var(--thread-surface);
+  color: var(--thread-ink);
+  box-shadow: 0 -1px 0 var(--thread-rule);
+}
+
+.thread-dock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1);
+  inline-size: min(100%, var(--thread-content));
+  min-block-size: 3.9rem;
+  margin-inline: auto;
+  padding: var(--space-1) var(--thread-gutter);
+}
+
+.thread-dock a {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  min-block-size: var(--touch-target-web);
+  color: var(--thread-ink);
+  font: 650 0.79rem / 1.2 var(--font-ui);
+  text-decoration: none;
+  gap: var(--space-1);
+  border-radius: var(--radius-small);
+}
+
+.thread-dock svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+  flex-shrink: 0;
+}
+
+.thread-dock a:focus-visible {
+  outline: 2px solid var(--thread-accent);
+  outline-offset: 2px;
+}
+
+.thread-neighbor span {
+  overflow-wrap: break-word;
+}
+
+@container thread-dock (max-width: 15em) {
+  .thread-dock {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 0;
+  }
+
+  .thread-dock .thread-index-trigger {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  .thread-dock .thread-neighbor {
+    grid-row: 2;
+  }
+}
+
+.thread-next {
+  justify-content: flex-end;
+  text-align: end;
+}
+
+.thread-previous svg,
+.thread-return svg {
+  rotate: 180deg;
+}
+
+.thread-dock .thread-index-trigger {
+  position: relative;
+  justify-content: center;
+  padding-inline: var(--space-3);
+  background: var(--thread-index-button);
+  color: var(--thread-on-button);
+  font-size: 0.82rem;
+}
+
+.thread-index-trigger .notification-dot {
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-1);
+}
+
+.thread-index {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: var(--thread-content);
+  margin-inline: auto;
+}
+
+.thread-index h1,
+.thread-day h1 {
+  margin: 0;
+  color: var(--thread-ink);
+  font: 575 clamp(2.5rem, 12vw, 4.95rem) / 1.07 var(--font-display);
+  letter-spacing: -0.07em;
+  overflow-wrap: anywhere;
+}
+
+.thread-return {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: var(--touch-target-web);
+  margin-block-end: var(--space-3);
+  padding: 0;
+  border: 0;
+  color: var(--thread-accent);
+  background: transparent;
+  font: 650 0.92rem / 1.3 var(--font-ui);
+  text-align: start;
+  text-decoration: none;
+}
+
+.thread-return svg,
+.thread-entry-arrow {
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.thread-index-list {
+  --thread-node-size: 2.6rem;
+  display: grid;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+  list-style: none;
+}
+
+.thread-index-list li {
+  position: relative;
+  min-inline-size: 0;
+}
+
+.thread-index-list li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto -50% calc(var(--thread-node-size) / 2 - 1px);
+  inline-size: 2px;
+  background: var(--thread-strand);
+  pointer-events: none;
+}
+
+.thread-index-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 4rem;
+  padding-block: var(--space-2);
+  color: var(--thread-ink);
+  text-decoration: none;
+}
+
+.thread-node {
+  display: grid;
+  place-items: center;
+  inline-size: var(--thread-node-size);
+  block-size: var(--thread-node-size);
+  border: 1px solid var(--thread-rule);
+  border-radius: 50%;
+  background: var(--thread-surface);
+  color: var(--thread-accent);
+}
+
+.thread-node svg {
+  inline-size: 1.3rem;
+  block-size: 1.3rem;
+}
+
+.thread-index-entry[aria-current] .thread-node {
+  border-color: var(--thread-strand);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--thread-strand) 24%, transparent);
+}
+
+.thread-entry-text {
+  display: grid;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.thread-entry-text strong {
+  font: 700 1.2rem / 1.05 var(--font-ui);
+  letter-spacing: -0.035em;
+}
+
+.thread-index-entry:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.thread-entry-text small {
+  color: var(--thread-muted);
+  font: 500 0.86rem / 1.28 var(--font-ui);
+}
+
+.thread-entry-arrow {
+  color: var(--thread-accent);
+}
+
+.thread-today {
+  display: grid;
+  justify-items: stretch;
+  align-items: center;
+  min-inline-size: 0;
+}
+
+.thread-day p {
+  margin: 0 0 var(--space-1);
+  color: var(--thread-muted);
+  font: 660 0.88rem / 1.4 var(--font-ui);
+}
+
+.thread-people {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: var(--space-2);
+  padding-block: var(--space-5) var(--space-2);
+}
+
+.thread-people[data-paired="true"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+}
+
+.thread-people[data-paired="true"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 25%;
+  inset-block-start: calc(var(--space-5) + clamp(1.45rem, 10vw, 3.5rem) / 1.75);
+  block-size: 2px;
+  background: var(--thread-strand);
+}
+
+.thread-person {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.thread-portrait {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  min-block-size: var(--touch-target-web);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--thread-ink);
+  padding: var(--space-1);
+  font: inherit;
+  text-align: center;
+}
+
+button.thread-portrait:hover {
+  background: color-mix(in srgb, var(--thread-subtle) 72%, transparent);
+}
+
+.thread-avatar {
+  inline-size: clamp(3.1rem, 20vw, 6rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--thread-subtle);
+  border: 2px solid var(--thread-paper);
+  outline: 1px solid var(--thread-strand);
+  border-radius: 50%;
+  font: 700 clamp(1.15rem, 5vw, 1.6rem) / 1 var(--font-ui);
+}
+
+.thread-avatar img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.thread-person-name {
+  font: 690 1.15rem / 1.15 var(--font-ui);
+  overflow-wrap: anywhere;
+}
+
+.thread-person-action {
+  color: var(--thread-accent);
+  font: 680 0.83rem / 1.2 var(--font-ui);
+}
+
+.thread-person .wir-checkin-badge {
+  position: static;
+  translate: none;
+  box-shadow: none;
+  max-inline-size: 100%;
+  padding-inline: var(--space-1);
+}
+
+.thread-duration {
+  display: inline-flex;
+  justify-self: center;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: var(--touch-target-web);
+  color: var(--thread-muted);
+  font: 620 0.86rem / 1.3 var(--font-ui);
+  text-align: center;
+  text-decoration: none;
+}
+
+.thread-duration svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+  flex-shrink: 0;
+}
+
+:root[data-app-design="together_index"] .today-page .today-content {
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  gap: var(--space-4);
+  margin-block-start: 0;
+}
+
+.thread-create {
+  align-self: flex-start;
+}
+
+@media (min-width: 840px) {
+  .product-shell[data-thread-layout] .product-main {
+    padding-block-start: var(--space-8);
+  }
+
+  .thread-index {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: var(--space-8);
+  }
+
+  .thread-index-list {
+    margin-block-start: var(--space-2);
+  }
+
+  .thread-today {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-3) var(--space-8);
+    padding-block: var(--space-4);
+  }
+
+  .thread-duration {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 320px) {
+  .thread-dock {
+    padding-inline: var(--space-3);
+  }
+}

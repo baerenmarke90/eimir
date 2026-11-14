@@ -131,6 +131,7 @@ import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedRhythmToday } from './SharedRhythm';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
+import { ThreadToday } from './TogetherIndex';
 import { UiState } from './UiState';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirLists } from './WirLists';
@@ -892,6 +893,7 @@ export function TodayPage({
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const handwriting = wirDesignId === WirDesignId.handwriting;
   const sharedRhythm = wirDesignId === WirDesignId.shared_rhythm;
+  const threadLayout = wirDesignId === WirDesignId.together_index;
   const homeRooms = wirDesignId === WirDesignId.home_rooms;
   const [searchParams] = useSearchParams();
   const homeLanding = homeRooms && searchParams.get('view') !== 'wir';
@@ -1834,7 +1836,37 @@ export function TodayPage({
     avatarAction?: CouplePresenceAvatarAction,
     avatarOverlay?: ReactNode,
   ) =>
-    sharedRhythm ? (
+    threadLayout ? (
+      <ThreadToday
+        own={{
+          name: heroOwnName,
+          image: userAvatar.avatarUrl,
+          action: dailyCheckIn?.ownAction,
+          badge: dailyCheckIn?.ownBadge,
+          label: t('wirDesign.thread.ownVibe'),
+        }}
+        partner={
+          partner
+            ? {
+                name: partnerName,
+                image: partnerAvatar.avatarUrl,
+                action:
+                  avatarAction && dailyCheckIn?.partnerAriaLabel
+                    ? {
+                        ...avatarAction,
+                        label: `${avatarAction.label}. ${dailyCheckIn.partnerAriaLabel}`,
+                      }
+                    : avatarAction,
+                badge: dailyCheckIn?.partnerBadge,
+                label: t('wirDesign.thread.partner'),
+              }
+            : undefined
+        }
+        duration={heroDurationText}
+        day={dashboardQuery.data?.viewerLocalDate}
+        overlay={avatarOverlay}
+      />
+    ) : sharedRhythm ? (
       <SharedRhythmToday
         own={{
           name: heroOwnName,
@@ -1907,7 +1939,7 @@ export function TodayPage({
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     partner_distance:
       partnerDistanceVisible &&
-      (sharedRhythm || !partnerDistanceInHero) &&
+      (sharedRhythm || threadLayout || !partnerDistanceInHero) &&
       partnerDistance ? (
         <div className="today-partner-distance">{partnerDistance}</div>
       ) : null,
@@ -1962,6 +1994,8 @@ export function TodayPage({
           )
         ) : homeLanding ? (
           <HomeRoomsLanding />
+        ) : threadLayout ? (
+          <h1>{t('navigation.today')}</h1>
         ) : sharedRhythm ? (
           <h1>{t('wirDesign.rhythm.today')}</h1>
         ) : null}
@@ -2308,10 +2342,14 @@ export function TodayPage({
         )
       ) : contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          {sharedRhythm ? (
+          {sharedRhythm || threadLayout ? (
             <>
               {moduleContent.relationship_presence}
-              <div className="rhythm-today-create">
+              <div
+                className={
+                  threadLayout ? 'thread-create' : 'rhythm-today-create'
+                }
+              >
                 <MomentCreateMenu />
               </div>
             </>
@@ -2332,7 +2370,8 @@ export function TodayPage({
           )}
 
           {visibleOrder.map((key) =>
-            sharedRhythm && key === 'relationship_presence' ? null : (
+            (sharedRhythm || threadLayout) &&
+            key === 'relationship_presence' ? null : (
               <Fragment key={key}>
                 {moduleContent[key]}
                 {handwriting && key === 'relationship_presence' ? (

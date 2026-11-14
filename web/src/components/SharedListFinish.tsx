@@ -81,16 +81,18 @@ export function SharedListTripEnd({
       )
       .join(', ');
     return (
-      <SharedAchievementCelebration
-        title={t('m5s3.collection.endState.title')}
-        body={
-          shares
-            ? t('m5s3.collection.endState.bodyShares', { shares })
-            : t('m5s3.collection.endState.body')
-        }
-        headingLevel={3}
-        action={dismiss}
-      />
+      <div className="shared-list-trip-moment">
+        <SharedAchievementCelebration
+          title={t('m5s3.collection.endState.title')}
+          body={
+            shares
+              ? t('m5s3.collection.endState.bodyShares', { shares })
+              : t('m5s3.collection.endState.body')
+          }
+          headingLevel={3}
+          action={dismiss}
+        />
+      </div>
     );
   }
   return (

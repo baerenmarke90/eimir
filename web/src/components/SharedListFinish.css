@@ -23,3 +23,9 @@
   background: var(--color-surface-subtle);
   color: var(--color-text);
 }
+
+/* The celebration's action sits under both columns, aligned to the end. */
+.shared-list-trip-moment .shared-achievement-action {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}

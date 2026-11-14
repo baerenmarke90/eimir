@@ -197,6 +197,9 @@ test('start sheet, settings share, duration change and Stop (browser)', async ({
     page.getByRole('heading', { name: copy.settingsTitle, level: 1 }),
   ).toBeVisible();
   await expect(
+    page.getByRole('link', { name: copy.distanceOpenMap }),
+  ).toHaveAttribute('href', '/today/where-we-are');
+  await expect(
     page.getByRole('radio', { name: startsWith(copy.levelOff) }),
   ).toBeChecked();
 

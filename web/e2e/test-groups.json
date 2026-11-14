@@ -517,8 +517,8 @@
     },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 6,
-      "reason": "Feature-owned avatar source cancellation, single-image Pro import, explicit person persistence, accessibility and Compact/Expanded composition."
+      "baselineTests": 9,
+      "reason": "Feature-owned avatar source cancellation, single-image Pro import, explicit person persistence, accessibility and Compact/Expanded composition. Includes the Google selection task (#1467): the save/visibility contract before authorization, reopening the authorization window, retrying a failed photo, accessibility and reflow in Light/Dark."
     },
     "polish-root-refresh.spec.ts": {
       "disposition": "FULL_REGRESSION",

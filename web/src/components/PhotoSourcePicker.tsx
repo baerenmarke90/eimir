@@ -170,6 +170,12 @@ export function PhotoSourcePicker({
   const [message, setMessage] = useState('');
   const [view, setView] = useState<PhotoSelectionView | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  // Google only: the open authorization (to reopen a closed window) and photos still to retry.
+  const [waitingUrl, setWaitingUrl] = useState<string | null>(null);
+  const [retry, setRetry] = useState<{
+    ready: PhotoSelectionView;
+    ids: string[];
+  } | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<HTMLDivElement | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const task = useRef<SelectionTask | null>(null);
@@ -197,6 +203,8 @@ export function PhotoSourcePicker({
     setOpen(false);
     setView(null);
     setSelected([]);
+    setWaitingUrl(null);
+    setRetry(null);
     setMessage('');
     setBusy(false);
     return () => {
@@ -211,6 +219,8 @@ export function PhotoSourcePicker({
     setBusy(false);
     setView(null);
     setSelected([]);
+    setWaitingUrl(null);
+    setRetry(null);
   }
 
   async function importItems(
@@ -225,6 +235,7 @@ export function PhotoSourcePicker({
     }
     const files: File[] = [];
     const failedIds = ids.slice(remaining);
+    setRetry(null);
     setBusy(true);
     setMessage(t('photoSources.progress'));
     try {
@@ -245,6 +256,7 @@ export function PhotoSourcePicker({
       }
       if (task.current !== current || current.ticket.signal.aborted) return;
       if (!files.length) {
+        if (ready.source === 'google') setRetry({ ready, ids: [...failedIds] });
         setMessage(t('photoSources.importFailed'));
         return;
       }
@@ -257,6 +269,7 @@ export function PhotoSourcePicker({
           { once: true },
         );
         setSelected(failedIds);
+        if (ready.source === 'google') setRetry({ ready, ids: failedIds });
         setMessage(t('photoSources.partial', { count: files.length }));
       } else close();
     } catch {
@@ -319,6 +332,7 @@ export function PhotoSourcePicker({
       if (!ready.authorizationUrl)
         throw new Error('Photo authorization is unavailable.');
       await openPhotoBrowser(ready.authorizationUrl, current.popup);
+      setWaitingUrl(ready.authorizationUrl);
       setMessage(t('photoSources.waiting'));
       while (!selectionReady(ready)) {
         await waitForPhotoPoll(
@@ -332,6 +346,7 @@ export function PhotoSourcePicker({
         if (task.current !== current) return;
       }
       await closePhotoBrowser(current.popup);
+      setWaitingUrl(null);
       if (ready.items.length)
         await importItems(
           current,
@@ -347,6 +362,19 @@ export function PhotoSourcePicker({
     } finally {
       if (!owner.signal.aborted && (!task.current || task.current === current))
         setBusy(false);
+    }
+  }
+
+  async function reopenGoogle() {
+    const current = task.current;
+    if (!current || !waitingUrl) return;
+    // A user gesture opens the window again; the same bound authorization continues.
+    void closePhotoBrowser(current.popup);
+    current.popup = preparePhotoBrowser();
+    try {
+      await openPhotoBrowser(waitingUrl, current.popup);
+    } catch {
+      setMessage(t('photoSources.reopenFailed'));
     }
   }
 
@@ -432,6 +460,18 @@ export function PhotoSourcePicker({
             <button type="button" className="secondary" onClick={close}>
               {t('taskSheets.close')}
             </button>
+            {retry && !view ? (
+              <button
+                type="button"
+                disabled={busy || remaining <= 0}
+                onClick={() => {
+                  if (task.current)
+                    void importItems(task.current, retry.ready, retry.ids);
+                }}
+              >
+                {t('photoSources.retryImport', { count: retry.ids.length })}
+              </button>
+            ) : null}
             {view ? (
               <button
                 type="button"
@@ -447,10 +487,19 @@ export function PhotoSourcePicker({
           </div>
         }
       >
-        {!view ? (
+        {!view && !waitingUrl && !retry ? (
           <p className="field-help">{t('photoSources.consent')}</p>
         ) : null}
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
+        {waitingUrl && !view ? (
+          <button
+            type="button"
+            className="secondary photo-source-reopen"
+            onClick={() => void reopenGoogle()}
+          >
+            {t('photoSources.reopenGoogle')}
+          </button>
+        ) : null}
         {view && activeTask ? (
           <>
             <p role="status">
@@ -505,7 +554,7 @@ export function PhotoSourcePicker({
               </AutoLoadTrigger>
             ) : null}
           </>
-        ) : (
+        ) : waitingUrl || retry ? null : (
           <>
             {unified && !externalOnly ? (
               <div className="photo-source-device-slot" ref={setDeviceTarget} />

@@ -21,12 +21,17 @@ const photoSources = {
   consent:
     'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
   googleConsent:
-    'Nur ausgewählte Fotos werden in deinen geöffneten Entwurf und in den geschützten Server-Zwischenspeicher kopiert. Auf diesem Gerät werden keine dauerhaften Google-Fotokopien angelegt. Nach einem Neustart müssen nicht mehr verfügbare Fotos erneut ausgewählt werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
+    'Nur ausgewählte Fotos werden in deinen geöffneten Entwurf und in den geschützten Server-Zwischenspeicher kopiert. Auf diesem Gerät werden keine dauerhaften Google-Fotokopien angelegt. Nach einem Neustart müssen nicht mehr verfügbare Fotos erneut ausgewählt werden. Gespeichert wird erst, wenn du deinen Eintrag speicherst; die Sichtbarkeit richtet sich nach deinem Eintrag.',
   accept: 'Ausgewählte Fotos in meinen Entwurf übernehmen',
   continue: 'Weiter zur Auswahl',
   waiting:
     'Wähle deine Fotos im geöffneten Fenster. Kehre anschließend hierher zurück.',
   progress: 'Fotos werden übernommen …',
+  reopenGoogle: 'Google-Fenster erneut öffnen',
+  reopenFailed:
+    'Das Fenster konnte nicht geöffnet werden. Erlaube Pop-ups für diese Seite und versuche es erneut.',
+  retryImport_one: '{{count}} Foto erneut laden',
+  retryImport_other: '{{count}} Fotos erneut laden',
   selected: '{{count}} ausgewählt',
   import: 'Fotos übernehmen',
   importFailed:

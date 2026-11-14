@@ -148,6 +148,145 @@ for (const view of [
   { width: 390, theme: 'dark' },
   { width: 1440, theme: 'light' },
 ] as const) {
+  test(`google task offers reopening the window and retrying a failed photo at ${view.width} ${view.theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() => {
+      const w = window as unknown as { __opens: number; __replaced: string[] };
+      w.__opens = 0;
+      w.__replaced = [];
+      window.open = () => {
+        w.__opens += 1;
+        return {
+          closed: false,
+          opener: null,
+          close() {},
+          location: {
+            replace(url: string) {
+              w.__replaced.push(url);
+            },
+          },
+        } as unknown as Window;
+      };
+    });
+    const state = await installAvatarSources(page);
+    let released = false;
+    let failedOnce = false;
+    // Registered after the shared fixture, so these handlers win.
+    await page.route(
+      `**${base}/photo-selections/avatar-selection/poll`,
+      (route) =>
+        route.fulfill({
+          json: {
+            id: 'avatar-selection',
+            source: 'google',
+            status: released ? 'READY' : 'PICKING',
+            pollAfterSeconds: 1,
+            items: released ? [{ id: 'one' }] : [],
+            hasMore: false,
+          },
+        }),
+    );
+    await page.route(
+      `**${base}/photo-selections/avatar-selection/items/**`,
+      (route) => {
+        if (!failedOnce) {
+          failedOnce = true;
+          return route.fulfill({ status: 503, json: { code: 'UNAVAILABLE' } });
+        }
+        return route.fulfill({ contentType: 'image/png', body: TINY_PNG });
+      },
+    );
+    await signIn(page);
+    await page.goto('/more/people');
+    await page
+      .getByRole('link', { name: people.addPersonAction, exact: true })
+      .click();
+    const editor = page.locator('.person-editor-page');
+    await editor
+      .getByLabel(people.nameLabel, { exact: true })
+      .fill(ME.displayName);
+    await editor.locator('.people-photo-options summary').click();
+    await editor.getByRole('button', { name: sources.more }).click();
+    const sheet = page.locator('.photo-source-sheet');
+    await expect(sheet).toBeVisible();
+    // The save and visibility contract is stated before anything is authorized.
+    await expect(
+      sheet.getByText(sources.googleConsent, { exact: true }),
+    ).toBeVisible();
+    await sheet
+      .getByRole('button', { name: sources.google, exact: true })
+      .click();
+    const reopen = sheet.getByRole('button', {
+      name: sources.reopenGoogle,
+      exact: true,
+    });
+    await expect(reopen).toBeVisible();
+    await expect(
+      sheet.getByText(sources.waiting, { exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => (window as never as { __opens: number }).__opens,
+      ),
+    ).toBe(1);
+    await captureScreenshot(
+      page,
+      info,
+      `google-task-waiting-${view.width}-${view.theme}.png`,
+    );
+    await reopen.click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as never as { __opens: number }).__opens),
+      )
+      .toBe(2);
+    const replaced = await page.evaluate(
+      () => (window as never as { __replaced: string[] }).__replaced,
+    );
+    expect(new Set(replaced)).toEqual(
+      new Set(['https://accounts.google.com/authorize']),
+    );
+    released = true;
+    const retry = sheet.getByRole('button', {
+      name: sources.retryImport_one.replace('{{count}}', '1'),
+      exact: true,
+    });
+    await expect(retry).toBeVisible();
+    await expect(
+      sheet.getByText(sources.importFailed, { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await new AxeBuilder({ page }).include('.photo-source-sheet').analyze())
+        .violations,
+    ).toEqual([]);
+    const reflow = await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    );
+    expect(reflow).toBe(true);
+    await captureScreenshot(
+      page,
+      info,
+      `google-task-retry-${view.width}-${view.theme}.png`,
+    );
+    await retry.click();
+    await expect(sheet).toBeHidden();
+    await expect(editor.locator('.people-portrait img')).toBeVisible();
+    expect(state.saved).toHaveLength(0);
+    expect(state.uploads).toHaveLength(1);
+  });
+}
+
+for (const view of [
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 1440, theme: 'light' },
+] as const) {
   for (const source of ['immich', 'google'] as const) {
     test(`person avatar uses ${source}, retains the draft on cancel and saves explicitly at ${view.width} ${view.theme}`, async ({
       page,

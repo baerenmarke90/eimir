@@ -477,6 +477,23 @@ retains visible feeling radios and its separate visibility task.
 - Crop and editing never modify the original without making that clear.
 - Videos have a poster frame, duration, and subtitle status.
 
+### 10.1a Avatar photo crop (#1854)
+
+- An avatar-shaped upload passes through the shared `PhotoCropTask` before it
+  is sent: the photo moves and zooms inside the round frame avatars use, and
+  the frame is always fully covered.
+- The step is a short sheet with one filled completion action and Cancel.
+  Cancel, Escape, Back and the sheet dismissal upload nothing and keep the
+  current photo.
+- Touch (drag, pinch), mouse (drag, wheel), the labeled zoom control and the
+  keyboard (arrows, plus, minus, zero) reach the same result. The stage has an
+  accessible name and describes its keys.
+- The crop is rendered on the device; the upload is the chosen square without
+  metadata. The photo on the device is never modified. A photo the device
+  cannot decode is uploaded unchanged instead of blocking the user.
+- Memory, HeartMoment and Plan photos do not use this step: their full image is
+  kept and previews use cover selection.
+
 ### 10.2 Avatar Pair
 
 - Two people are represented equally; neither is visually dominant by default.

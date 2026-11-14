@@ -12,6 +12,7 @@ import {
   type DraftUploadPhase,
   uploadMemoryDraftAttachment,
 } from '../client/memoryAttachmentDraft';
+import { loadPhotoCropSource, type PhotoCropSource } from '../client/photoCrop';
 import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
@@ -19,6 +20,7 @@ import { useTranslation } from '../i18n';
 import { AvatarPhoto } from './AvatarPhoto';
 import { ListEntryIconButton } from './ListEntryActions';
 import { NativeDateField } from './NativeDateField';
+import { PhotoCropTask } from './PhotoCropTask';
 import './PeopleProfiles.css';
 import { MediaDropZone } from './MediaDropZone';
 import { ProblemState } from './ProblemState';
@@ -54,6 +56,8 @@ export function ProfileIdentityPanel({
   const closeIdentityButtonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const changeAvatarButtonRef = useRef<HTMLButtonElement>(null);
+  const avatarSelectionRef = useRef(0);
   const displayNameInputRef = useRef<HTMLInputElement>(null);
   const birthdayInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
@@ -61,6 +65,8 @@ export function ProfileIdentityPanel({
   const [editingName, setEditingName] = useState(false);
   const [editingBirthday, setEditingBirthday] = useState(false);
   const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
+  const [cropSource, setCropSource] = useState<PhotoCropSource | null>(null);
+  const [preparingAvatar, setPreparingAvatar] = useState(false);
 
   const configuration = useMemo(
     () =>
@@ -213,6 +219,23 @@ export function ProfileIdentityPanel({
     removeAvatarMutation.reset();
   }
 
+  // The user chooses the visible section first; a photo this device cannot
+  // decode is uploaded unchanged, as before the crop step existed (#1854).
+  async function selectAvatar(file: File) {
+    if (pending) return;
+    resetActionState();
+    const selection = ++avatarSelectionRef.current;
+    setPreparingAvatar(true);
+    const source = await loadPhotoCropSource(file);
+    if (selection !== avatarSelectionRef.current) {
+      source?.release();
+      return;
+    }
+    setPreparingAvatar(false);
+    if (source) setCropSource(source);
+    else avatarMutation.mutate(file);
+  }
+
   function submitDisplayName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (displayNameMutation.isPending) return;
@@ -236,7 +259,9 @@ export function ProfileIdentityPanel({
     displayNameMutation.isPending ||
     birthdayMutation.isPending ||
     avatarMutation.isPending ||
-    removeAvatarMutation.isPending;
+    removeAvatarMutation.isPending ||
+    preparingAvatar ||
+    cropSource !== null;
   const phaseKey = uploadStatusKey(uploadPhase);
 
   return (
@@ -339,8 +364,7 @@ export function ProfileIdentityPanel({
                 disabled={pending}
                 onFiles={(files) => {
                   if (pending || !files[0]) return;
-                  resetActionState();
-                  avatarMutation.mutate(files[0]);
+                  void selectAvatar(files[0]);
                 }}
               >
                 <div className="profile-identity-actions-row eimir-motion-disclosure">
@@ -375,12 +399,13 @@ export function ProfileIdentityPanel({
                   </button>
 
                   <button
+                    ref={changeAvatarButtonRef}
                     type="button"
                     className="secondary compact-action"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={pending}
                   >
-                    {avatarMutation.isPending
+                    {avatarMutation.isPending || preparingAvatar
                       ? t('profileIdentity.replacingAvatar')
                       : t('profileIdentity.changeAvatar')}
                   </button>
@@ -414,8 +439,7 @@ export function ProfileIdentityPanel({
                       const file = event.currentTarget.files?.[0];
                       event.currentTarget.value = '';
                       if (!file) return;
-                      resetActionState();
-                      avatarMutation.mutate(file);
+                      void selectAvatar(file);
                     }}
                   />
                 </div>
@@ -528,6 +552,15 @@ export function ProfileIdentityPanel({
       {removeAvatarMutation.error ? (
         <ProblemState error={removeAvatarMutation.error} />
       ) : null}
+      <PhotoCropTask
+        source={cropSource}
+        restoreFocusRef={changeAvatarButtonRef}
+        onCancel={() => setCropSource(null)}
+        onConfirm={(file) => {
+          setCropSource(null);
+          avatarMutation.mutate(file);
+        }}
+      />
     </section>
   );
 }

@@ -1008,6 +1008,14 @@
         "web/src/components/MemoryCreatePage.tsx"
       ]
     },
+    "profile-photo-crop.spec.ts": {
+      "roots": [
+        "web/src/components/ProfilePage.tsx",
+        "web/src/components/ProfileIdentityPanel.tsx",
+        "web/src/components/PhotoCropTask.tsx",
+        "web/src/client/photoCrop.ts"
+      ]
+    },
     "polish-people-photo-sources.spec.ts": {
       "roots": [
         "web/src/components/RelatedPeoplePage.tsx",

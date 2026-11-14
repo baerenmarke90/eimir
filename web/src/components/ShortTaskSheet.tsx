@@ -1,6 +1,6 @@
 import {
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   type Ref,
   type RefObject,
   useEffect,
@@ -45,6 +45,7 @@ const GESTURE_OWNER_DRAG_EXCLUSION_SELECTOR = [
   'video',
   'audio',
   '.place-map-viewport',
+  '.photo-crop-stage',
   '[draggable="true"]',
   '[contenteditable]:not([contenteditable="false"])',
   '[role="slider"]',

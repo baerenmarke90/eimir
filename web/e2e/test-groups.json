@@ -515,6 +515,11 @@
       "baselineTests": 11,
       "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, image-local pinch/pan/double-tap/fit with native photo swipes and no shell-navigation takeover, and session-owned draft restoration."
     },
+    "profile-photo-crop.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 8,
+      "reason": "Feature-owned profile photo crop step (#1854): chosen section is what gets uploaded, keyboard and touch operation, cancellation, undecodable-photo fallback, accessibility and Compact/Expanded composition."
+    },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6,

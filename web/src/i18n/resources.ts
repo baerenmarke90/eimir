@@ -32,6 +32,7 @@ import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
 import partnerLocation from './locales/partnerLocation';
 import people from './locales/people';
+import photoCrop from './locales/photoCrop';
 import photoPlaces from './locales/photoPlaces';
 import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
@@ -116,6 +117,7 @@ export const germanResources = {
   contextTags,
   composer,
   mediaOverview,
+  photoCrop,
   photoSources,
   photoPlaces,
   photoReactions,

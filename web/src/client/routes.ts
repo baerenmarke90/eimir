@@ -397,6 +397,3 @@ export function collectionDetailPath(collectionId: string): string {
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
 export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
 export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;
-
-/** Router state a Wir list tile hands to the list page when asked to add (#1808). */
-export const FOCUS_ADD_ITEM_STATE_KEY = 'focusAddItem';

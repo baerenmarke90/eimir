@@ -1548,7 +1548,8 @@ export function TodayPage({
             }
           >
             <WirLists
-              api={collectionsApi}
+              apis={{ collections: collectionsApi }}
+              accountId={account?.id ?? ''}
               spaceId={spaceId}
               collectionIds={pinnedCollectionIds}
               enabled={Boolean(account?.id)}

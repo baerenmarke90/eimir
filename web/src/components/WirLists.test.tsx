@@ -1,15 +1,27 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
-import { FOCUS_ADD_ITEM_STATE_KEY } from '../client/routes';
+import {
+  __resetProductReadCacheStateForTests,
+  __setProductReadCacheStorageForTests,
+  __waitForProductReadCacheMutationsForTests,
+  type ProductReadCacheStorage,
+} from '../client/productReadCache';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
 import m5s3 from '../i18n/locales/m5s3';
 import m5s5 from '../i18n/locales/m5s5';
+import taskSheets from '../i18n/locales/taskSheets';
 import { WirLists } from './WirLists';
 
 const AT = new Date('2026-11-14T10:00:00Z');
@@ -85,25 +97,29 @@ const LISTS: Record<string, CollectionDetail> = {
   reise: list('reise', 'Reise', 'GENERIC', [item('p', 'Pass')]),
 };
 
-function LocationProbe() {
-  const location = useLocation();
-  return (
-    <output data-testid="where">
-      {location.pathname}
-      {(location.state as Record<string, unknown> | null)?.[
-        FOCUS_ADD_ITEM_STATE_KEY
-      ]
-        ? ' (add)'
-        : ''}
-    </output>
-  );
+class MemoryStorage implements ProductReadCacheStorage {
+  readonly records = new Map<string, unknown>();
+  async read(key: string): Promise<unknown> {
+    return this.records.get(key) ?? null;
+  }
+  async write(record: unknown): Promise<void> {
+    this.records.set((record as { key: string }).key, record);
+  }
+  async remove(key: string): Promise<void> {
+    this.records.delete(key);
+  }
+  async clear(): Promise<void> {
+    this.records.clear();
+  }
 }
 
 function renderLists(ids: string[]) {
   const getCollection = vi.fn(
     async ({ collectionId }: { collectionId: string }) => LISTS[collectionId],
   );
-  const api = { getCollection } as unknown as CollectionsApi;
+  const apis = {
+    collections: { getCollection },
+  } as unknown as SharedPlanningApis;
   render(
     <QueryClientProvider
       client={
@@ -116,14 +132,14 @@ function renderLists(ids: string[]) {
             path="/today"
             element={
               <WirLists
-                api={api}
+                apis={apis}
+                accountId="anna"
                 spaceId="space-1"
                 collectionIds={ids}
                 enabled
               />
             }
           />
-          <Route path="*" element={<LocationProbe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -131,7 +147,22 @@ function renderLists(ids: string[]) {
   return getCollection;
 }
 
-afterEach(() => cleanup());
+beforeEach(() => {
+  __resetProductReadCacheStateForTests();
+  __setProductReadCacheStorageForTests(new MemoryStorage());
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+afterEach(async () => {
+  cleanup();
+  await __waitForProductReadCacheMutationsForTests();
+  __resetProductReadCacheStateForTests();
+});
 
 describe('WirLists (#1808)', () => {
   it('shows one list as a wide tile with its count, what is open and the last action', async () => {
@@ -175,7 +206,7 @@ describe('WirLists (#1808)', () => {
     );
   });
 
-  it('opens the list from the tile without asking for the entry field', async () => {
+  it('opens the list as a sheet with the handle, without raising the keyboard', async () => {
     renderLists(['einkauf']);
     const user = userEvent.setup();
     await user.click(
@@ -183,20 +214,54 @@ describe('WirLists (#1808)', () => {
         name: fill(m5s5.today.wirLists.openAria, { title: 'Einkauf' }),
       }),
     );
-    expect((await screen.findByTestId('where')).textContent).toBe(
-      '/plan/collections/einkauf',
+
+    const sheet = await screen.findByRole('dialog');
+    expect(
+      within(sheet).getByRole('heading', { name: 'Einkauf' }),
+    ).toBeTruthy();
+    // The list is in the sheet: count, entries and the entry field.
+    expect(
+      await within(sheet).findByLabelText(m5s3.collection.newItem),
+    ).toBeTruthy();
+    expect(document.activeElement).not.toBe(
+      within(sheet).getByLabelText(m5s3.collection.newItem),
     );
+    // The page's own heading and back control are not repeated in the sheet.
+    expect(within(sheet).queryAllByRole('heading', { level: 1 })).toHaveLength(
+      0,
+    );
+    expect(
+      within(sheet).getByRole('button', { name: taskSheets.close }),
+    ).toBeTruthy();
   });
 
-  it('opens the list with the entry field requested from the add link', async () => {
+  it('opens the same sheet with the entry field focused from the add link', async () => {
     renderLists(['einkauf']);
     const user = userEvent.setup();
     await user.click(
       await screen.findByRole('link', { name: m5s5.today.wirLists.add }),
     );
-    expect((await screen.findByTestId('where')).textContent).toBe(
-      '/plan/collections/einkauf (add)',
+
+    const sheet = await screen.findByRole('dialog');
+    const field = await within(sheet).findByLabelText(m5s3.collection.newItem);
+    await waitFor(() => expect(document.activeElement).toBe(field));
+  });
+
+  it('closes with the handle and gives the focus back to the tile', async () => {
+    renderLists(['einkauf']);
+    const user = userEvent.setup();
+    const tile = await screen.findByRole('link', {
+      name: fill(m5s5.today.wirLists.openAria, { title: 'Einkauf' }),
+    });
+    await user.click(tile);
+    const sheet = await screen.findByRole('dialog');
+
+    await user.click(
+      within(sheet).getByRole('button', { name: taskSheets.close }),
     );
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(tile));
   });
 
   it('has no checkboxes: a tile is for opening, not for checking', async () => {

@@ -1,19 +1,16 @@
 import { useQueries } from '@tanstack/react-query';
-import type { MouseEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
+import { type MouseEvent, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { normalizeClientError } from '../client/problemDetails';
-import {
-  collectionDetailPath,
-  FOCUS_ADD_ITEM_STATE_KEY,
-} from '../client/routes';
+import { collectionDetailPath } from '../client/routes';
 import { summarizeSharedList } from '../client/sharedListSummary';
-import { useTaskOrigin } from '../client/taskOrigin';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
 import { SharedListBar } from './SharedListSummary';
+import { WirListSheet } from './WirListSheet';
 import './WirLists.css';
 
 const PEEK_LIMIT = 3;
@@ -67,30 +64,38 @@ function lastActionOf(collection: CollectionDetail): LastAction | null {
 
 /**
  * The tiles of "Unsere Listen" on Wir (#1808): every shared list the person
- * chose to show is a tile. One list is one wide tile; several are tiles side
- * by side in a row that can be swiped. The section around it (title and the
+ * chose to show is a tile. One list is one wide tile; several are tiles next
+ * to each other in a row that can be swiped. The section around it (title and the
  * link to all lists, the path that needs no swipe) belongs to the Wir page. A
- * tile opens its list; it carries no checkboxes.
+ * tile opens its list as a tall sheet over Wir; it carries no checkboxes.
  */
 export function WirLists({
-  api,
+  apis,
+  accountId,
   spaceId,
   collectionIds,
   enabled,
 }: {
-  api: CollectionsApi;
+  apis: Pick<SharedPlanningApis, 'collections'>;
+  accountId: string;
   spaceId: string;
   collectionIds: string[];
   enabled: boolean;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
+  const [sheet, setSheet] = useState<{
+    id: string;
+    focusAdd: boolean;
+  } | null>(null);
+  // The element that opened the sheet gets the focus back when it closes.
+  const restoreRef = useRef<HTMLElement | null>(null);
   const results = useQueries({
     queries: collectionIds.map((collectionId) => ({
       queryKey: authorSummaryQueryKeys.collectionDetail(spaceId, collectionId),
       queryFn: () =>
-        apiCall(() => api.getCollection({ spaceId, collectionId })),
+        apiCall(() =>
+          apis.collections.getCollection({ spaceId, collectionId }),
+        ),
       enabled,
       retry: false,
     })),
@@ -126,12 +131,8 @@ export function WirLists({
     )
       return;
     event.preventDefault();
-    void navigate(collectionDetailPath(collectionId), {
-      state: {
-        taskOriginKey: captureOrigin({ selectedKey: collectionId }),
-        ...(focusAdd ? { [FOCUS_ADD_ITEM_STATE_KEY]: true } : {}),
-      },
-    });
+    restoreRef.current = event.currentTarget;
+    setSheet({ id: collectionId, focusAdd });
   }
 
   const wide = collectionIds.length === 1;
@@ -218,6 +219,17 @@ export function WirLists({
           );
         })}
       </ul>
+      {sheet ? (
+        <WirListSheet
+          apis={apis}
+          accountId={accountId}
+          spaceId={spaceId}
+          collectionId={sheet.id}
+          focusAdd={sheet.focusAdd}
+          restoreFocusRef={restoreRef}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
     </>
   );
 }

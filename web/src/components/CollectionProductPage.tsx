@@ -49,10 +49,7 @@ import {
   loadProductWithReadCache,
 } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
-import {
-  FOCUS_ADD_ITEM_STATE_KEY,
-  MORE_COLLECTIONS_ROUTE,
-} from '../client/routes';
+import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
 import {
   planningIfMatch,
   type SharedPlanningApis,
@@ -77,12 +74,19 @@ import './SharedPlanningPages.css';
 import './SharedContentPages.css';
 
 type Props = {
-  apis: SharedPlanningApis;
+  apis: Pick<SharedPlanningApis, 'collections'>;
   spaceId: string;
   dashboardApi?: DashboardApi;
   accountId?: string;
   collectionId?: string;
   embedded?: boolean;
+  /**
+   * The list shown inside a Wir sheet (#1808): the sheet owns the title and
+   * the way out, so the page has no heading or back control of its own.
+   */
+  inSheet?: boolean;
+  /** Ask for the entry field once, without going through router state. */
+  focusAddOnOpen?: boolean;
   onPendingChange?: (pending: boolean) => void;
   onDirtyChange?: (dirty: boolean) => void;
 };
@@ -122,6 +126,8 @@ function CollectionProductDetail({
   accountId,
   collectionId,
   embedded = false,
+  inSheet = false,
+  focusAddOnOpen = false,
   onPendingChange,
   onDirtyChange,
 }: Props) {
@@ -134,11 +140,7 @@ function CollectionProductDetail({
   const origin = resolveOrigin(originKey);
   // A Wir tile's add link asks for the entry field; opening the tile itself
   // must not raise the keyboard (#1808).
-  const focusAddRequested = Boolean(
-    (location.state as Record<string, unknown> | null)?.[
-      FOCUS_ADD_ITEM_STATE_KEY
-    ],
-  );
+  const focusAddRequested = focusAddOnOpen;
   const focusAddDoneRef = useRef(false);
   const rawScope = origin
     ? new URL(origin.to, 'https://eimir.invalid').searchParams.get('scope')
@@ -854,9 +856,15 @@ function CollectionProductDetail({
 
   return (
     <div
-      className={embedded ? 'shared-list-composer' : 'page shared-content-page'}
+      className={
+        embedded
+          ? 'shared-list-composer'
+          : inSheet
+            ? 'shared-content-page shared-list-in-sheet'
+            : 'page shared-content-page'
+      }
     >
-      {!embedded ? (
+      {!embedded && !inSheet ? (
         <PageHeader
           className="shared-authored-heading"
           title={

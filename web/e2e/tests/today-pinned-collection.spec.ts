@@ -5,6 +5,7 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
 
@@ -1250,9 +1251,23 @@ test('pins a shared Collection personally and shows it as a tile that opens the 
     'Einkauf',
   );
   await pinnedSection.getByRole('link', { name: openListName }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`/plan/collections/${COLLECTION_ID}$`),
-  );
+  // The list rises over Wir as a sheet with the handle; the keyboard stays
+  // down until the person chooses the entry field.
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+  await expect(sheet.getByLabel(m5s3.collection.newItem)).not.toBeFocused();
+  await expect(page).toHaveURL(/\/today$/);
+  await page.screenshot({
+    path: testInfo.outputPath('wir-list-sheet-390-light.png'),
+    animations: 'disabled',
+  });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await sheet.getByRole('button', { name: taskSheets.close }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(
+    pinnedSection.getByRole('link', { name: openListName }),
+  ).toBeFocused();
 });
 
 test('keeps the list tile compact on Expanded Web and its add link opens the list with the input focused', async ({
@@ -1285,10 +1300,13 @@ test('keeps the list tile compact on Expanded Web and its add link opens the lis
   await pinnedSection
     .getByRole('link', { name: m5s5.today.wirLists.add })
     .click();
-  await expect(page).toHaveURL(
-    new RegExp(`/plan/collections/${COLLECTION_ID}$`),
-  );
-  await expect(page.getByLabel(m5s3.collection.newItem)).toBeFocused();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByLabel(m5s3.collection.newItem)).toBeFocused();
+  await expect(page).toHaveURL(/\/today$/);
+  await page.screenshot({
+    path: testInfo.outputPath('wir-list-sheet-1280-light.png'),
+    animations: 'disabled',
+  });
 });
 
 async function holdPersonalPin(
@@ -1469,9 +1487,9 @@ for (const view of [
         name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
       })
       .click();
-    await expect(page).toHaveURL(
-      new RegExp(`/plan/collections/${COLLECTION_ID}$`),
-    );
+    // The tile opens the sheet; the pin button lives on the list page.
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
     await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(button).toBeEnabled();
     await button.click();
@@ -1550,9 +1568,9 @@ for (const view of [
         name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
       })
       .click();
-    await expect(page).toHaveURL(
-      new RegExp(`/plan/collections/${COLLECTION_ID}$`),
-    );
+    // The tile opens the sheet; the pin button lives on the list page.
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
     await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(button).toBeEnabled();
 

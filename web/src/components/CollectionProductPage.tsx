@@ -24,11 +24,14 @@ import {
   authorSummaryQueryKeys,
   invalidateCollectionConsumers,
 } from '../client/authorSummaryConsumers';
+import { sharedAchievementKind } from '../client/sharedAchievements';
 import {
   knownPersonName,
   partnerTone,
   summarizeSharedList,
 } from '../client/sharedListSummary';
+import { visibleSuggestions } from '../client/shoppingSuggestions';
+import type { CollectionSuggestion } from '../api/generated/models/CollectionSuggestion';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
@@ -65,6 +68,13 @@ import {
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
 import { SharedListCartBar } from './SharedListCartBar';
+import {
+  type FinishBlock,
+  FinishTripButton,
+  SharedListTripEnd,
+  type TripEnd,
+} from './SharedListFinish';
+import { SharedListSuggestions } from './SharedListSuggestions';
 import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
 import { useCollectionOutbox } from './useCollectionOutbox';
@@ -335,6 +345,94 @@ function CollectionProductDetail({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key });
       await invalidateCollectionConsumers(queryClient, spaceId);
+    },
+  });
+
+  // Suggestions from earlier trips and finishing the trip (#1808).
+  const isShopping = collectionQuery.data?.kind === 'SHOPPING';
+  const suggestionsKey = [
+    'm5-s3',
+    'collection-suggestions',
+    spaceId,
+    collectionId,
+  ] as const;
+  const suggestionsQuery = useQuery({
+    queryKey: suggestionsKey,
+    queryFn: async () =>
+      (
+        await apiCall(() =>
+          apis.collections.listCollectionSuggestions({
+            spaceId,
+            collectionId: collectionId ?? '',
+          }),
+        )
+      ).items,
+    enabled: Boolean(collectionId) && isShopping && !embedded,
+    retry: false,
+    staleTime: 30_000,
+  });
+  const removeSuggestion = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (suggestion: CollectionSuggestion) => {
+      assertOnlineWrite();
+      return apiCall(() =>
+        apis.collections.deleteCollectionSuggestion({
+          spaceId,
+          collectionId: collectionId ?? '',
+          suggestionId: suggestion.id,
+        }),
+      );
+    },
+    onMutate: async (suggestion) => {
+      await queryClient.cancelQueries({ queryKey: suggestionsKey });
+      const previous =
+        queryClient.getQueryData<CollectionSuggestion[]>(suggestionsKey);
+      queryClient.setQueryData<CollectionSuggestion[]>(suggestionsKey, (all) =>
+        (all ?? []).filter((entry) => entry.id !== suggestion.id),
+      );
+      return { previous };
+    },
+    onError: (_error, _suggestion, context) => {
+      if (context?.previous)
+        queryClient.setQueryData(suggestionsKey, context.previous);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: suggestionsKey }),
+  });
+  const [tripEnd, setTripEnd] = useState<TripEnd | null>(null);
+  const finishTrip = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async ({
+      itemIds,
+    }: {
+      itemIds: string[];
+      shares: TripEnd['shares'];
+    }) => {
+      assertOnlineWrite();
+      const response = await apiCall(() =>
+        apis.collections.finishCollectionShoppingRaw({
+          spaceId,
+          collectionId: collectionId ?? '',
+          collectionFinish: { itemIds },
+        }),
+      );
+      return {
+        result: await response.value(),
+        celebrate:
+          sharedAchievementKind(response.raw) === 'collection-completed',
+      };
+    },
+    onSuccess: async ({ result, celebrate }, variables) => {
+      await commitCollection(result.collection);
+      await queryClient.invalidateQueries({ queryKey: suggestionsKey });
+      if (result.finishedCount > 0)
+        setTripEnd({
+          finishedCount: result.finishedCount,
+          shares: variables.shares,
+          celebrate,
+        });
     },
   });
 
@@ -717,7 +815,8 @@ function CollectionProductDetail({
     updateItem.isPending ||
     deleteItem.isPending ||
     reorderItems.isPending ||
-    updateCollection.isPending;
+    updateCollection.isPending ||
+    finishTrip.isPending;
 
   if (
     collectionQuery.error &&
@@ -765,6 +864,45 @@ function CollectionProductDetail({
   };
   const openItems = items.filter((item) => !item.completed);
   const doneItems = items.filter((item) => item.completed);
+  const canFinish = shopping && !embedded && collection.capabilities.canEdit;
+  const finishBlock: FinishBlock = !online
+    ? 'offline'
+    : outbox.pendingCount > 0
+      ? 'waiting'
+      : null;
+  const finishControl = canFinish ? (
+    <FinishTripButton
+      pending={finishTrip.isPending}
+      blocked={finishBlock}
+      failed={finishTrip.isError}
+      onFinish={() => {
+        setTripEnd(null);
+        finishTrip.mutate({
+          itemIds: doneItems.map((entry) => entry.id),
+          shares: summarizeSharedList(collection, doneItems).shares,
+        });
+      }}
+    />
+  ) : null;
+  const suggestionsShown =
+    shopping && !embedded && !isSorting && collection.capabilities.canEdit
+      ? visibleSuggestions(suggestionsQuery.data ?? [], items)
+      : [];
+  const addSuggestion = (suggestion: CollectionSuggestion) => {
+    const title = suggestion.title;
+    const quantity = suggestion.quantity ?? null;
+    if (outbox.active) {
+      void outbox.addItem({ title, quantity });
+      return;
+    }
+    if (createItemInFlightRef.current || hasCurrentReorder()) return;
+    createItemInFlightRef.current = true;
+    createItem.mutate({
+      collection,
+      title,
+      quantity: quantity ?? undefined,
+    });
+  };
   const groups = isSorting
     ? [{ key: 'all', title: null, list: items }]
     : [
@@ -1024,6 +1162,9 @@ function CollectionProductDetail({
           {t('m5s3.collection.itemsHeading')}
         </h2>
 
+        {tripEnd ? (
+          <SharedListTripEnd end={tripEnd} onDismiss={() => setTripEnd(null)} />
+        ) : null}
         {!embedded ? (
           <SharedListSummary summary={summary} shopping={shopping} />
         ) : null}
@@ -1167,6 +1308,17 @@ function CollectionProductDetail({
             />
           </form>
         ) : null}
+        {suggestionsShown.length > 0 ? (
+          <SharedListSuggestions
+            suggestions={suggestionsShown}
+            disabled={createItem.isPending || isReordering}
+            onAdd={addSuggestion}
+            onRemove={(suggestion) => removeSuggestion.mutate(suggestion)}
+          />
+        ) : null}
+        {removeSuggestion.error ? (
+          <ProblemState error={removeSuggestion.error} />
+        ) : null}
 
         {items.length > 0 ? (
           <div ref={itemsRef} className="shared-list-groups">
@@ -1256,6 +1408,7 @@ function CollectionProductDetail({
                     />
                   ))}
                 </ol>
+                {shopping && group.key === 'done' ? finishControl : null}
               </section>
             ))}
           </div>
@@ -1285,6 +1438,7 @@ function CollectionProductDetail({
           }))}
           disabled={updateItem.isPending || isReordering}
           onPutBack={toggleItem}
+          finish={finishControl}
         />
       ) : null}
 

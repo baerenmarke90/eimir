@@ -183,6 +183,33 @@ class CollectionPage(ApiModel):
     has_more: bool
 
 
+class CollectionFinish(ApiModel):
+    """The entries of the cart the person sees; only these are finished."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_ids: list[UUID]
+
+
+class CollectionFinishResult(ApiModel):
+    collection: CollectionDetail
+    # How many entries this request took out of the cart; 0 when another
+    # request already did, or when none of the named entries is still checked.
+    finished_count: int
+
+
+class CollectionSuggestion(ApiModel):
+    id: UUID
+    title: str
+    quantity: str | None = None
+    last_bought_at: datetime
+    times_bought: int
+
+
+class CollectionSuggestionList(ApiModel):
+    items: list[CollectionSuggestion]
+
+
 def _creator(session: DbSession, account_id: UUID, *, resource: str) -> AuthorSummary:
     return resolve_author_summary(session, account_id, resource=f"{resource} creator")
 
@@ -535,3 +562,89 @@ def reorder_collection_items(
     )
     response.headers["ETag"] = etag_for(collection.version)
     return collection_detail(session, collection)
+
+
+@router.post(
+    "/spaces/{spaceId}/collections/{collectionId}/finish",
+    response_model=CollectionFinishResult,
+    operation_id="finishCollectionShopping",
+    responses={
+        200: {
+            "headers": {
+                **ETAG_HEADERS,
+                SHARED_ACHIEVEMENT_HEADER: SHARED_ACHIEVEMENT_RESPONSE_HEADER,
+            }
+        },
+        **problem_responses(401, 404, 422),
+    },
+)
+def finish_collection_shopping(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: CollectionFinish,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+) -> CollectionFinishResult:
+    shared_achievement_enabled = relationship_configuration.is_module_enabled(
+        session,
+        authorization.space_id,
+        relationship_configuration.SpaceModule.SHARED_ACHIEVEMENTS,
+        lock_space=True,
+    )
+    result = service.finish_shopping(
+        session,
+        authorization,
+        collection_id,
+        item_ids=body.item_ids,
+    )
+    response.headers["ETag"] = etag_for(result.collection.version)
+    detail = collection_detail(session, result.collection)
+    # The couple's shared moment: this finish took the last entries out of the
+    # cart and nothing is left to buy. A finish that leaves entries open, or
+    # one that found nothing to finish, is not an achievement.
+    if shared_achievement_enabled and result.finished_count > 0 and not detail.items:
+        response.headers[SHARED_ACHIEVEMENT_HEADER] = COLLECTION_COMPLETED_ACHIEVEMENT
+    return CollectionFinishResult(collection=detail, finished_count=result.finished_count)
+
+
+@router.get(
+    "/spaces/{spaceId}/collections/{collectionId}/suggestions",
+    response_model=CollectionSuggestionList,
+    operation_id="listCollectionSuggestions",
+    responses=problem_responses(401, 404, 422),
+)
+def list_collection_suggestions(
+    authorization: Authorization,
+    session: DbSession,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+) -> CollectionSuggestionList:
+    suggestions = service.list_suggestions(session, authorization, collection_id)
+    return CollectionSuggestionList(
+        items=[
+            CollectionSuggestion(
+                id=suggestion.id,
+                title=suggestion.payload.title,
+                quantity=suggestion.payload.quantity,
+                last_bought_at=suggestion.last_bought_at,
+                times_bought=suggestion.times_bought,
+            )
+            for suggestion in suggestions
+        ]
+    )
+
+
+@router.delete(
+    "/spaces/{spaceId}/collections/{collectionId}/suggestions/{suggestionId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    operation_id="deleteCollectionSuggestion",
+    responses=problem_responses(401, 404, 422),
+)
+def delete_collection_suggestion(
+    authorization: Authorization,
+    session: DbSession,
+    collection_id: Annotated[str, Path(alias="collectionId")],
+    suggestion_id: Annotated[str, Path(alias="suggestionId")],
+) -> Response:
+    service.delete_suggestion(session, authorization, collection_id, suggestion_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

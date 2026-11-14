@@ -1382,6 +1382,42 @@
         "title": "CollectionDetail",
         "type": "object"
       },
+      "CollectionFinish": {
+        "additionalProperties": false,
+        "description": "The entries of the cart the person sees; only these are finished.",
+        "properties": {
+          "itemIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Itemids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "itemIds"
+        ],
+        "title": "CollectionFinish",
+        "type": "object"
+      },
+      "CollectionFinishResult": {
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionDetail"
+          },
+          "finishedCount": {
+            "title": "Finishedcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "collection",
+          "finishedCount"
+        ],
+        "title": "CollectionFinishResult",
+        "type": "object"
+      },
       "CollectionItemCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1617,6 +1653,63 @@
         ],
         "title": "CollectionScope",
         "type": "string"
+      },
+      "CollectionSuggestion": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lastBoughtAt": {
+            "format": "date-time",
+            "title": "Lastboughtat",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "timesBought": {
+            "title": "Timesbought",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "lastBoughtAt",
+          "timesBought"
+        ],
+        "title": "CollectionSuggestion",
+        "type": "object"
+      },
+      "CollectionSuggestionList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CollectionSuggestion"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "CollectionSuggestionList",
+        "type": "object"
       },
       "CollectionUpdate": {
         "additionalProperties": false,
@@ -23325,6 +23418,105 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/collections/{collectionId}/finish": {
+      "post": {
+        "operationId": "finishCollectionShopping",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "schema": {
+              "title": "Collectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionFinish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionFinishResult"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Eimir-Shared-Achievement": {
+                "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
+                "schema": {
+                  "enum": [
+                    "plan-completed",
+                    "collection-completed"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Finish Collection Shopping",
+        "tags": [
+          "collections"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/collections/{collectionId}/items": {
       "post": {
         "operationId": "createCollectionItem",
@@ -23792,6 +23984,150 @@
           }
         },
         "summary": "Reorder Collection Items",
+        "tags": [
+          "collections"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions": {
+      "get": {
+        "operationId": "listCollectionSuggestions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "schema": {
+              "title": "Collectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionSuggestionList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Collection Suggestions",
+        "tags": [
+          "collections"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions/{suggestionId}": {
+      "delete": {
+        "operationId": "deleteCollectionSuggestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "schema": {
+              "title": "Collectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "suggestionId",
+            "required": true,
+            "schema": {
+              "title": "Suggestionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Delete Collection Suggestion",
         "tags": [
           "collections"
         ]

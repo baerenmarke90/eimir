@@ -608,7 +608,8 @@ export function useWirDailyCheckIn({
           </>
         ) : (
           <span className="wir-checkin-prompt">
-            <span aria-hidden="true">+</span> {t('wirCheckIn.ownPrompt')}
+            <EimirIcon name="hinzufuegen" className="inline-icon" />{' '}
+            {t('wirCheckIn.ownPrompt')}
           </span>
         )}
       </span>

@@ -32,8 +32,8 @@ describe('EIMIR-M5-Web-S2-SCOPE media gallery accessibility smoke', () => {
     expect(html).not.toContain('media-gallery-carousel-footer');
     expect(html).toContain('media-gallery-position');
     expect(html).toContain('aria-current="true"');
-    expect(html).toContain('aria-hidden="true">‹</span>');
-    expect(html).toContain('aria-hidden="true">›</span>');
+    expect(html).toContain('eimir-icon-chevron-left');
+    expect(html).toContain('eimir-icon-chevron-right');
     expect(html.match(/type="button"/g)).toHaveLength(6);
   });
 

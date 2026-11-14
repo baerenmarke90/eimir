@@ -2,16 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { DailyCheckInVisibilityMode } from '../api/generated/models/DailyCheckInVisibilityMode';
 import type { SpaceConfigurationUpdate } from '../api/generated/models/SpaceConfigurationUpdate';
+import { ClientProblemError } from '../client/problemDetails';
 import {
   dailyModuleToggleUpdate,
+  type SpaceConfigurationSnapshot,
   spaceConfigurationQueryKey,
   spaceConfigurationQueryOptions,
   suggestedDailyContextTimezone,
   updateSpaceConfiguration,
-  type SpaceConfigurationSnapshot,
 } from '../client/spaceConfiguration';
-import { ClientProblemError } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 
 const VISIBILITY_MODES = [
@@ -270,7 +271,7 @@ export function SpaceConfigurationPanel({
                           <span className="space-visibility-label">
                             {t(mode.labelKey)}
                             {module.visibility?.mode === mode.value ? (
-                              <span aria-hidden="true"> ✓</span>
+                              <EimirIcon name="check" className="inline-icon" />
                             ) : null}
                           </span>
                           <span className="space-visibility-hint">

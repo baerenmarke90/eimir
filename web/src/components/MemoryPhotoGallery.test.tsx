@@ -199,7 +199,10 @@ it('shows a chip only after confirmed persistence and permits removal', async ()
   const chip = await screen.findByRole('button', {
     name: /Liebe: 1 Reaktion.*entfernen/,
   });
-  expect(chip.textContent).toBe('❤️');
+  expect(
+    chip.querySelector('.eimir-icon-heart.eimir-icon-filled'),
+  ).not.toBeNull();
+  expect(chip.textContent).toBe('');
   fireEvent.click(chip);
   await waitFor(() =>
     expect(view.container.querySelector('.memory-photo-reactions')).toBeNull(),
@@ -231,7 +234,10 @@ it('shows the total for matching reactions', async () => {
   const repeated = await screen.findByRole('button', {
     name: /Liebe: 2 Reaktionen/,
   });
-  expect(repeated.textContent).toBe('❤️2');
+  expect(
+    repeated.querySelector('.eimir-icon-heart.eimir-icon-filled'),
+  ).not.toBeNull();
+  expect(repeated.textContent).toBe('2');
 });
 
 it('retains the previous server state on failure and ignores completion after a context change', async () => {

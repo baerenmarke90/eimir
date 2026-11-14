@@ -80,6 +80,8 @@ The [390 px list reference](../../../product/design/references/icon-palette/comp
 - Keep visible labels, Back, focus return, RTL direction, loading and error messages, playback and check states in their present controls. Preserve the established single-ink on-action treatment and the existing filled, gradient and two-tone artwork. Retain the dedicated visuals for changing data, including the Energy battery, waveform and graph.
 - Compact provides the primary layouts. Expanded reuses the same actions and icon roles. Exercise returning from Media and toggling or editing a list item, including failure recovery. Check actual icon dimensions and contrast on light and dark surfaces, with large text and reduced motion. No business/freemium impact.
 
+The [Compact browser captures](../../../product/design/references/icon-palette/shared-controls-compact.webp) show list actions, voice playback and the games catalog at 390 px. The [Expanded capture](../../../product/design/references/icon-palette/shared-controls-expanded.webp) shows the same voice player at 1280 px.
+
 | Control state | Visual treatment | Non-color signal |
 | --- | --- | --- |
 | Default | Outline, normal text/icon color | Recognizable contour and visible label |

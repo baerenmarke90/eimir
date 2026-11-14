@@ -34,6 +34,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import experienceCopy from '../i18n/locales/coupleExperiences';
 import { AddActionContent } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
+import { EimirIcon } from './EimirIcon';
 import { ExperienceAnswers } from './ExperienceAnswers';
 import { MemoryCreatePage } from './MemoryCreatePage';
 import { PageHeader } from './PageHeader';
@@ -436,7 +437,10 @@ export function CoupleExperiencePage({
                                 </span>
                               ) : null}
                             </span>
-                            <span aria-hidden="true">›</span>
+                            <EimirIcon
+                              name="chevron-right"
+                              className="inline-icon"
+                            />
                           </TaskOriginLink>
                         </li>
                       );

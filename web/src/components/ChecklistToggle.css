@@ -30,8 +30,8 @@
 }
 
 .checklist-toggle-indicator svg {
-  width: 0.9rem;
-  height: 0.9rem;
+  width: max(var(--icon-size-small), 0.9rem);
+  height: max(var(--icon-size-small), 0.9rem);
 }
 
 .checklist-toggle:hover:not(:disabled) .checklist-toggle-indicator {

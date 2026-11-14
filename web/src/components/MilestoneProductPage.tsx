@@ -1,4 +1,3 @@
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import {
   useIsMutating,
   useMutation,
@@ -13,6 +12,7 @@ import {
   MilestoneDetailToJSON,
 } from '../api/generated/models/MilestoneDetail';
 import type { MilestoneUpdate } from '../api/generated/models/MilestoneUpdate';
+import { useApiRuntime } from '../client/apiRuntimeContext';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -27,25 +27,24 @@ import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { loadProductWithReadCache } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { formatRelativeElapsed } from '../client/relativeElapsed';
 import {
   appRoutePath,
   milestoneDetailPath,
   milestoneEditPath,
 } from '../client/routes';
-import { formatRelativeElapsed } from '../client/relativeElapsed';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
-import { useApiRuntime } from '../client/apiRuntimeContext';
-import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
-import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
-import { ExpandableDescription } from './ExpandableDescription';
 import {
   ComposerDateContext,
   type ComposerDateContextHandle,
 } from './ComposerDateContext';
+import { EimirIcon } from './EimirIcon';
+import { ExpandableDescription } from './ExpandableDescription';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -56,7 +55,9 @@ import {
   StoryCreatePageShell,
   StoryEditorPageShell,
 } from './StoryFormPageShell';
+import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import './MilestoneProductPage.css';
 
@@ -632,15 +633,11 @@ export function MilestoneProductPage({
           <h2 className="milestone-hero-title">{milestone.title}</h2>
           <div className="milestone-hero">
             <span className="milestone-hero-icon" aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                width="20"
-                height="20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-              </svg>
+              <EimirIcon
+                name="star"
+                variant="filled"
+                className="milestone-hero-glyph"
+              />
             </span>
             {dateLine ? (
               <p className="milestone-hero-date">{dateLine}</p>

@@ -8,6 +8,7 @@ import {
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import './SubpageNavigation.css';
 
 /** The shell owns placement; each task retains its safe exit handler. */
@@ -19,9 +20,7 @@ export const TaskBackSlotContext = createContext<{
 function BackGlyph({ children }: { children: ReactNode }) {
   return (
     <>
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-        <path d="m14 5-7 7 7 7" />
-      </svg>
+      <EimirIcon name="chevron-left" />
       <span className="sr-only">{children}</span>
     </>
   );

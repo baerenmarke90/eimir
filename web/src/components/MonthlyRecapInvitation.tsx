@@ -10,6 +10,7 @@ import {
 } from '../client/recaps';
 import { recapDetailPath, STORY_RECAPS_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './MonthlyRecapInvitation.css';
@@ -106,7 +107,8 @@ export function MonthlyRecapInvitation({
               className="button-link monthly-recap-watch"
               onFollow={receipt.consume}
             >
-              <span aria-hidden="true">▶</span> {t('recaps.watchNow')}
+              <EimirIcon name="play" className="inline-icon" />{' '}
+              {t('recaps.watchNow')}
             </TodayDestinationLink>
           </div>
         </article>
@@ -116,7 +118,8 @@ export function MonthlyRecapInvitation({
           to={STORY_RECAPS_ROUTE}
           className="monthly-recap-library-link"
         >
-          {t('recaps.profileLink')} <span aria-hidden="true">→</span>
+          {t('recaps.profileLink')}{' '}
+          <EimirIcon name="arrow-right" className="inline-icon" />
         </TodayDestinationLink>
       ) : null}
     </div>

@@ -315,9 +315,7 @@ export function PartnerQuickActions({
           onClick={() => void submit('THINKING')}
         >
           <span className="partner-quick-action-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
-            </svg>
+            <EimirIcon name="denken" />
           </span>
           <span className="partner-quick-action-copy">
             <strong>{t('partnerQuickActions.thinking')}</strong>
@@ -354,10 +352,7 @@ export function PartnerQuickActions({
               }
             >
               <span className="partner-quick-action-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
-                  <path d="m18.2 3 .5 1.3L20 4.8l-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5Z" />
-                </svg>
+                <EimirIcon name="heart-sparkle" />
               </span>
               <span className="partner-quick-action-copy">
                 <strong>{t('partnerQuickActions.kiss')}</strong>

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import './VisibilityBadge.css';
 
 export type VisibilityType =
@@ -37,72 +38,26 @@ function normalizeVisibility(
   return 'temporary';
 }
 
-/**
- * The bare visibility symbol (eimir. rings, lock or clock) without the pill.
- * Compact metadata rows reuse it where a full badge would compete with the
- * content; it is decorative, so the caller owns the accessible name.
- */
+const VISIBILITY_ICONS: Record<
+  ReturnType<typeof normalizeVisibility>,
+  EimirIconName
+> = {
+  shared: 'gemeinsam',
+  private: 'lock',
+  temporary: 'aktivitaet',
+};
+
+/** The metadata, pill or control supplies the visibility label. */
 export function VisibilityGlyph({
   visibility,
 }: {
   visibility: VisibilityType;
 }) {
-  const normalized = normalizeVisibility(visibility);
   return (
-    <>
-      {normalized === 'shared' ? (
-        // Two people (shared with partner) - an established "shared" glyph,
-        // not a link/share-action icon, so it reads as status, not a control.
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M15 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ) : normalized === 'private' ? (
-        // Subtle lock icon
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="5" y="11" width="14" height="10" rx="2" />
-          <path d="M8 11V7a4 4 0 018 0v4" />
-        </svg>
-      ) : (
-        // Hourglass / clock icon
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-      )}
-    </>
+    <EimirIcon
+      name={VISIBILITY_ICONS[normalizeVisibility(visibility)]}
+      className="visibility-glyph"
+    />
   );
 }
 

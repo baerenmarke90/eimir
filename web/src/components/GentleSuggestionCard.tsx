@@ -10,6 +10,7 @@ import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MEMORY_CREATE_ROUTE, memoryDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './GentleSuggestionCard.css';
@@ -143,7 +144,7 @@ export function GentleSuggestionCard({
             onClick={() => setMenuOpen(true)}
             disabled={action.isPending}
           >
-            <span aria-hidden="true">⋯</span>
+            <EimirIcon name="overflow" className="inline-icon" />
           </button>
         ) : null}
       </div>

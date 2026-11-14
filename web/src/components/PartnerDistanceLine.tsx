@@ -25,6 +25,7 @@ import {
   useSpaceCapability,
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import './PartnerDistanceLine.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -71,30 +72,20 @@ export function useDistanceText() {
   };
 }
 
-function Glyph({ kind }: { kind: 'heart' | 'clock' | 'pin' | 'chevron' }) {
+const DISTANCE_ICONS = {
+  heart: 'heart',
+  clock: 'aktivitaet',
+  pin: 'orte',
+  chevron: 'chevron-right',
+} as const;
+
+function Glyph({ kind }: { kind: keyof typeof DISTANCE_ICONS }) {
   return (
-    <svg
+    <EimirIcon
+      name={DISTANCE_ICONS[kind]}
+      variant={kind === 'heart' ? 'filled' : 'outline'}
       className={`partner-distance-glyph is-${kind}`}
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-    >
-      {kind === 'heart' ? (
-        <path d="M12 20.3 4.7 13a4.6 4.6 0 0 1 6.5-6.5l.8.8.8-.8a4.6 4.6 0 0 1 6.5 6.5Z" />
-      ) : kind === 'clock' ? (
-        <>
-          <circle cx="12" cy="12" r="8" />
-          <path d="M12 7.5V12l3 2" />
-        </>
-      ) : kind === 'pin' ? (
-        <>
-          <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
-          <circle cx="12" cy="10" r="2.3" />
-        </>
-      ) : (
-        <path d="m10 6 6 6-6 6" />
-      )}
-    </svg>
+    />
   );
 }
 

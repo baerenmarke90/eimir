@@ -28,10 +28,11 @@ import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useRelatedPersonAvatarUrl } from '../client/useRelatedPersonAvatarUrl';
 import { useTranslation } from '../i18n';
+import { AddActionButton } from './AddAction';
+import { EimirIcon } from './EimirIcon';
+import { MediaActionGroup } from './MediaActionGroup';
 import { MediaDropZone } from './MediaDropZone';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
-import { MediaActionGroup } from './MediaActionGroup';
-import { AddActionButton } from './AddAction';
 import { ProblemState } from './ProblemState';
 
 const RELATIONSHIPS: PersonRelationship[] = [
@@ -528,7 +529,11 @@ export function RelatedPersonEditorSheet({
           className="people-birthday-options"
           open={person?.birthday ? true : undefined}
         >
-          <summary>{t('people.birthdayLabel')}</summary>
+          <summary>
+            {t('people.birthdayLabel')}
+            <EimirIcon name="hinzufuegen" className="inline-icon" />
+            <EimirIcon name="minus" className="inline-icon" />
+          </summary>
           <div className="people-birthday-parts">
             <label className="field-group">
               {t('people.birthdayDayLabel')}

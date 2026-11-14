@@ -1,4 +1,3 @@
-import { MomentDate } from './MomentDate';
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
@@ -29,10 +28,11 @@ import {
   milestoneDetailPath,
 } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { HeartEmotionBadge } from './HeartEmotionVisual';
-import { ExperienceAnswers } from './ExperienceAnswers';
 import { EimirIcon } from './EimirIcon';
+import { ExperienceAnswers } from './ExperienceAnswers';
+import { HeartEmotionBadge } from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
+import { MomentDate } from './MomentDate';
 import {
   formatTimelineDate,
   storyItemKey,
@@ -147,19 +147,7 @@ function StoryCommentPresence({
           aria-label={t('comments.timelinePresence')}
           title={t('comments.timelinePresence')}
         >
-          <svg
-            viewBox="0 0 24 24"
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-          </svg>
+          <EimirIcon name="comment" className="inline-icon" />
         </span>
       ) : null}
     </>
@@ -192,15 +180,7 @@ function StoryTimelineMarker({ item }: { item: StoryItem }) {
         className="story-timeline-marker story-timeline-marker-heart-moment"
         aria-hidden="true"
       >
-        <svg
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
+        <EimirIcon name="heart" variant="filled" />
       </span>
     );
   }
@@ -210,15 +190,7 @@ function StoryTimelineMarker({ item }: { item: StoryItem }) {
         className="story-timeline-marker story-timeline-marker-milestone"
         aria-hidden="true"
       >
-        <svg
-          viewBox="0 0 24 24"
-          width="12"
-          height="12"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-        </svg>
+        <EimirIcon name="star" variant="filled" />
       </span>
     );
   }
@@ -430,21 +402,7 @@ export function StoryList({
                           aria-label={presentation.mediaLabel}
                           title={presentation.mediaLabel}
                         >
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="14"
-                            height="14"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <path d="m21 15-5-5L5 21" />
-                          </svg>
+                          <EimirIcon name="foto" className="inline-icon" />
                           {presentation.mediaCount}
                         </span>
                       ) : null}

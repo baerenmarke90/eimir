@@ -158,13 +158,7 @@ export function VoiceNotePlayer({
           onClick={() => void toggle()}
           aria-label={t(playing ? 'voiceNotes.pause' : 'voiceNotes.play')}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            {playing ? (
-              <path d="M7 5h4v14H7zM14 5h4v14h-4z" />
-            ) : (
-              <path d="m8 4 13 8-13 8z" />
-            )}
-          </svg>
+          <EimirIcon name={playing ? 'pause' : 'play'} />
         </button>
         <div className="voice-seek">
           <VoiceWaveform peaks={peaks} />

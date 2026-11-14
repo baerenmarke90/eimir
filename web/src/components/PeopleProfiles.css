@@ -348,12 +348,12 @@
   width: var(--space-5);
   height: var(--space-5);
 }
-.people-birthday-options > summary::after {
-  content: "+";
+.people-birthday-options > summary > .eimir-icon {
   margin-inline-start: auto;
   color: var(--color-brand-text);
-  font-size: 1.25rem;
 }
-.people-birthday-options[open] > summary::after {
-  content: "−";
+
+.people-birthday-options:not([open]) > summary > .eimir-icon-minus,
+.people-birthday-options[open] > summary > .eimir-icon-hinzufuegen {
+  display: none;
 }

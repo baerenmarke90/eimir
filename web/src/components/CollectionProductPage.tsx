@@ -1,3 +1,4 @@
+import { EimirIcon } from './EimirIcon';
 import './FreeComposer.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
@@ -9,7 +10,6 @@ import {
   authorSummaryQueryKeys,
   invalidateCollectionConsumers,
 } from '../client/authorSummaryConsumers';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
@@ -29,6 +29,7 @@ import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
@@ -642,7 +643,8 @@ function CollectionProductDetail({
                   role="status"
                   aria-live="polite"
                 >
-                  ✓
+                  <EimirIcon name="check" className="inline-icon" />
+                  <span className="sr-only">{t('m5s3.common.saved')}</span>
                 </span>
               ) : null}
             </span>
@@ -754,7 +756,7 @@ function CollectionProductDetail({
                   }
                 >
                   {pinnedCollectionId === collection.id ? (
-                    <span aria-hidden="true">✓ </span>
+                    <EimirIcon name="check" className="inline-icon" />
                   ) : null}
                   {t('m5s3.collection.pinLabel')}
                 </button>

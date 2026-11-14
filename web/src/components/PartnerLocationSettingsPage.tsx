@@ -34,6 +34,7 @@ import { clientProblemKind } from '../client/problemDetails';
 import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import {
   BackgroundLocationDisclosure,
@@ -527,20 +528,10 @@ export function PartnerLocationSettingsPage({
                 ) : null}
               </span>
               {permission === 'granted' ? (
-                <svg
+                <EimirIcon
+                  name="check-circle"
                   className="partner-location-permission-mark"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="m8 12.5 2.7 2.7L16 9.8" />
-                </svg>
+                />
               ) : permission === 'prompt' && active ? (
                 <button
                   type="button"

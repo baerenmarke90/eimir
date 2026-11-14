@@ -45,6 +45,18 @@
 .brand-dot {
   color: var(--identity-icon-accent);
 }
+
+.inline-icon {
+  width: max(var(--icon-size-small), 1em);
+  height: max(var(--icon-size-small), 1em);
+  flex: 0 0 auto;
+  vertical-align: -0.16em;
+}
+
+[dir="rtl"]
+  .inline-icon:is(.eimir-icon-chevron-left, .eimir-icon-chevron-right) {
+  transform: scaleX(-1);
+}
 .shell-nav-link-active::before {
   background: var(--color-brand);
 }
@@ -55,11 +67,11 @@
   stroke: var(--identity-icon-cool);
 }
 
-.eimir-icon-compact .accent {
+.eimir-icon-compact:not(.button-icon) .accent {
   stroke: color-mix(in srgb, var(--identity-icon-accent) 70%, currentColor);
 }
 
-.eimir-icon-compact .cool {
+.eimir-icon-compact:not(.button-icon) .cool {
   stroke: color-mix(in srgb, var(--identity-icon-cool) 70%, currentColor);
 }
 

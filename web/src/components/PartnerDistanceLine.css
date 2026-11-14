@@ -56,19 +56,14 @@
 }
 
 .partner-distance-glyph {
+  --identity-icon-accent: currentColor;
+
   flex: none;
-  width: 1.1rem;
-  height: 1.1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  width: max(var(--icon-size-medium), 1.1rem);
+  height: max(var(--icon-size-medium), 1.1rem);
 }
 
 .partner-distance-glyph.is-heart {
-  fill: var(--partner-distance-current-accent);
-  stroke: none;
   color: var(--partner-distance-current-accent);
 }
 

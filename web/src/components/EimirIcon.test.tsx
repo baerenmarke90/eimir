@@ -31,6 +31,17 @@ describe('owner identity icons', () => {
     expect(markup).toContain('var(--identity-icon-cool-fill)');
   });
 
+  it('uses the small icon treatment by default and keeps the detailed Pro artwork', () => {
+    const badge = renderToStaticMarkup(<EimirIcon name="pro" />);
+    const detailed = renderToStaticMarkup(
+      <EimirIcon name="pro" variant="duotone" compact={false} />,
+    );
+    expect(badge).toContain('eimir-icon-compact');
+    expect(badge).not.toContain('<circle');
+    expect(detailed).not.toContain('eimir-icon-compact');
+    expect(detailed).toContain('var(--identity-icon-cool-fill)');
+  });
+
   it('renders the Insights bubble with a gradient and a visible waveform', () => {
     const markup = renderToStaticMarkup(
       <DestinationIcon icon="insights" variant="duotone" />,

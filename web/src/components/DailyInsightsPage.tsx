@@ -51,6 +51,7 @@ import {
   ProMark,
 } from './DailyInsightsParts';
 import { PatternsView, RecapView, WeekView } from './DailyInsightsViews';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import {
@@ -113,7 +114,7 @@ function PeriodPicker({
     <fieldset className="insight-picker">
       <legend className="sr-only">{label}</legend>
       <button type="button" onClick={onPrevious} aria-label={previousLabel}>
-        <span aria-hidden="true">‹</span>
+        <EimirIcon name="chevron-left" className="inline-icon" />
       </button>
       <span className="insight-picker-text" aria-live="polite">
         {text}
@@ -124,7 +125,7 @@ function PeriodPicker({
         aria-label={nextLabel}
         disabled={!canGoNext}
       >
-        <span aria-hidden="true">›</span>
+        <EimirIcon name="chevron-right" className="inline-icon" />
       </button>
     </fieldset>
   );

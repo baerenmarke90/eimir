@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import type { PersonKey } from '../client/dailyInsightsModel';
-import { isoToDate, type IsoDate } from '../client/dailyInsightsModel';
+import { type IsoDate, isoToDate } from '../client/dailyInsightsModel';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PersonIdentity } from './PersonIdentity';
 import { ProMark as SharedProMark } from './ProMark';
 
@@ -18,45 +19,18 @@ export type InsightIconName =
   | 'heart'
   | 'sparkle';
 
-const ICON_PATHS: Record<InsightIconName, ReactNode> = {
-  calendar: (
-    <>
-      <rect x="4" y="5" width="16" height="15" rx="3.5" />
-      <path d="M4 10h16M8.5 3v4M15.5 3v4" />
-    </>
-  ),
-  bars: <path d="M6 20v-7M12 20V6M18 20v-10" />,
-  hearts: (
-    <>
-      <path d="M9 17.5s-5-3.1-5-7a3 3 0 0 1 5-2.1 3 3 0 0 1 5 2.1c0 3.9-5 7-5 7z" />
-      <path d="M15.5 19.5s-4.5-2.7-4.5-6.2M15 8.2A3 3 0 0 1 20 10.3c0 3.9-4.5 7.2-4.5 7.2" />
-    </>
-  ),
-  sprout: (
-    <path d="M12 20v-8M12 12c0-4 3-6 7-6 0 4-3 6-7 6ZM12 15c0-3-2-5-6-5 0 3 2 5 6 5Z" />
-  ),
-  moon: <path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10Z" />,
-  trend: <path d="m4 17 5-5 4 3 7-8M15 7h5v5" />,
-  sun: (
-    <>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" />
-    </>
-  ),
-  people: (
-    <>
-      <circle cx="9" cy="9" r="3" />
-      <circle cx="17" cy="10" r="2.4" />
-      <path d="M3.5 19c.5-3 2.7-5 5.5-5s5 2 5.5 5M15.5 14.5c2.6 0 4.4 1.7 5 4.5" />
-    </>
-  ),
-  bolt: <path d="M13 3 5.5 13H11l-1 8 7.5-10H12z" />,
-  heart: (
-    <path d="M12 20s-7.5-4.6-7.5-10.3A4.2 4.2 0 0 1 12 7.4a4.2 4.2 0 0 1 7.5 2.3C19.5 15.4 12 20 12 20Z" />
-  ),
-  sparkle: (
-    <path d="M12 3.5 13.8 10 20.5 12l-6.7 2L12 20.5 10.2 14 3.5 12l6.7-2z" />
-  ),
+const INSIGHT_ICONS: Record<InsightIconName, EimirIconName> = {
+  calendar: 'kalender',
+  bars: 'statistiken',
+  hearts: 'hearts',
+  sprout: 'sprout',
+  moon: 'moon',
+  trend: 'trend',
+  sun: 'sun',
+  people: 'gemeinsam',
+  bolt: 'bolt',
+  heart: 'heart',
+  sparkle: 'sparkle',
 };
 
 export function InsightIcon({
@@ -66,21 +40,7 @@ export function InsightIcon({
   name: InsightIconName;
   className?: string;
 }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      {ICON_PATHS[name]}
-    </svg>
-  );
+  return <EimirIcon name={INSIGHT_ICONS[name]} className={className} />;
 }
 
 /** A quiet quality mark, never an upgrade prompt. */

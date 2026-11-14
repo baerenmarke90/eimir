@@ -24,6 +24,7 @@ import {
 } from '../client/spaceEntitlement';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
+import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
@@ -114,7 +115,9 @@ function PreferencesContent({
                   }
                 />
                 <span aria-hidden="true" className="daily-quote-category-check">
-                  {selected ? '✓' : ''}
+                  {selected ? (
+                    <EimirIcon name="check" className="inline-icon" />
+                  ) : null}
                 </span>
                 <span>
                   {t(`dailyQuote.catalog.categories.${category.id}`, {

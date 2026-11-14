@@ -179,7 +179,6 @@ function MoreDestinationRow({
             <DestinationIcon
               icon={destination.icon}
               variant={destination.iconVariant}
-              compact
             />
           )}
         </span>
@@ -275,7 +274,7 @@ export function MoreOverviewPage({
 
       <Link className="more-search-entry" to={SEARCH_ROUTE}>
         <span className="shell-nav-icon" aria-hidden="true">
-          <DestinationIcon icon="search" compact />
+          <DestinationIcon icon="search" />
         </span>
         <span>{t('navigation.searchAll')}</span>
       </Link>

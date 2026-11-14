@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from 'react';
+import { EimirIcon } from './EimirIcon';
 import { usePresentationPresence } from './useOverlayPresence';
 import './SharedAchievementCelebration.css';
 
@@ -44,17 +45,7 @@ export function SharedAchievementCelebration({
       }}
     >
       <span className="shared-achievement-mark" aria-hidden="true">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m5 12 4 4L19 6" />
-        </svg>
+        <EimirIcon name="check" />
       </span>
       <div className="shared-achievement-copy">
         <Heading id={headingId} ref={headingRef} tabIndex={headingTabIndex}>

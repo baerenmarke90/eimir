@@ -1,5 +1,8 @@
-import { useId, type ReactNode, type Ref } from 'react';
+import { type ReactNode, type Ref, useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { firstNameFromDisplayName } from '../client/personalName';
+import { EimirIcon } from './EimirIcon';
 import {
   type PartnerAvatarAction,
   PartnerAvatarPair,
@@ -7,8 +10,6 @@ import {
   type PartnerAvatarSize,
   type PartnerPresenceStatus,
 } from './PartnerAvatarPair';
-import { firstNameFromDisplayName } from '../client/personalName';
-import { useTranslation } from 'react-i18next';
 import './CouplePresence.css';
 
 export interface CouplePresenceAvatarAction {
@@ -194,15 +195,11 @@ export function CouplePresence({
                     title={durationTitle || t('couplePresenceDurationAction')}
                   >
                     <span className="today-hero-pill-icon" aria-hidden="true">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="12"
-                        height="12"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                      </svg>
+                      <EimirIcon
+                        name="star"
+                        variant="filled"
+                        className="inline-icon"
+                      />
                     </span>
                     <span>{relationshipDuration}</span>
                   </Link>

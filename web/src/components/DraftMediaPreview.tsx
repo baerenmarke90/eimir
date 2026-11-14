@@ -1,13 +1,13 @@
 import type { AttachmentDraft } from '../client/attachmentDraftState';
+import { useVideoTransfer } from '../client/backgroundVideoUploads';
 import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { MediaProcessingState } from './MediaProcessingState';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import type { VideoCaptureContext } from './VideoUploadAction';
-import { MediaProcessingState } from './MediaProcessingState';
-import { useVideoTransfer } from '../client/backgroundVideoUploads';
 
 export function DraftMediaPreview({
   draft,
@@ -89,7 +89,7 @@ export function DraftMediaPreview({
     <span className="video-poster" role="img" aria-label={t('video.preview')}>
       {poster.url ? <img src={poster.url} alt="" /> : null}
       <span className="video-play-mark" aria-hidden="true">
-        ▶
+        <EimirIcon name="play" className="inline-icon" />
       </span>
     </span>
   );

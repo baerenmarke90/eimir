@@ -1,4 +1,3 @@
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   type QueryClient,
   type QueryKey,
@@ -14,6 +13,7 @@ import type {
   CommentsApi,
   DeleteCommentRequest,
 } from '../api/generated/apis/CommentsApi';
+import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import { authorFirstName } from '../client/authorPresentation';
 import {
@@ -38,9 +38,10 @@ import {
 } from '../client/queryIdentity';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { CommentEditor } from './CommentEditor';
 import { AuthoredText } from './AuthoredText';
-import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
+import { AutoLoadMore } from './AutoLoadMore';
+import { CommentEditor } from './CommentEditor';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -383,17 +384,7 @@ function CommentsPanelContent({
           else setComposerOpen(true);
         }}
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-        </svg>
+        <EimirIcon name="comment" />
         {labelledComposer ? <span>{t('comments.write')}</span> : null}
       </button>
     ) : null;
@@ -478,21 +469,10 @@ function CommentsPanelContent({
                         aria-label={t('comments.moreActions')}
                         title={t('comments.moreActions')}
                       >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <circle cx="12" cy="12" r="1.5" />
-                          <circle cx="19" cy="12" r="1.5" />
-                          <circle cx="5" cy="12" r="1.5" />
-                        </svg>
+                        <EimirIcon
+                          name="overflow"
+                          className="comment-menu-icon"
+                        />
                       </summary>
                       <div className="comment-menu-dropdown">
                         <button

@@ -1,14 +1,15 @@
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AppIconId } from '../api/generated/models/AppIconId';
 import { APP_ICON_IDS, appIconImage } from '../client/appIcon';
 import { useAppIcon } from '../client/appIconContext';
 import {
-  clientProblemKind,
   ClientProblemError,
+  clientProblemKind,
 } from '../client/problemDetails';
+import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './AppIconSettingsPanel.css';
@@ -299,7 +300,9 @@ function AppIconSettings({
                 <ProMark label={t('appIcon.pro')} />
               )}
               <span className="app-icon-check" aria-hidden="true">
-                {preview === iconId ? '✓' : ''}
+                {preview === iconId ? (
+                  <EimirIcon name="check" className="inline-icon" />
+                ) : null}
               </span>
             </label>
           ))}

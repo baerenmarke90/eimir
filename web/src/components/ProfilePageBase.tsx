@@ -39,6 +39,7 @@ import { settingsCategoryPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { NativeDateInput } from './NativeDateField';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
@@ -212,8 +213,7 @@ export function RelationshipSettingsSection({
   }, [startedOn]);
 
   const currentDurationText = useMemo(() => {
-    const text = formatRelationshipDuration(calculatedDuration, t);
-    return calculatedDuration ? `❤️ ${text}` : text;
+    return formatRelationshipDuration(calculatedDuration, t);
   }, [calculatedDuration, t]);
 
   const nextAnniversaryText = useMemo(() => {
@@ -347,6 +347,13 @@ export function RelationshipSettingsSection({
                   {t('profiles.relationshipCurrentLabel')}
                 </span>
                 <span className="relationship-preview-value">
+                  {calculatedDuration ? (
+                    <EimirIcon
+                      name="heart"
+                      variant="filled"
+                      className="inline-icon"
+                    />
+                  ) : null}{' '}
                   {currentDurationText}
                 </span>
               </div>
@@ -520,7 +527,7 @@ export function PreferenceDialog({
             onClick={onCancel}
             aria-label={t('common.cancel')}
           >
-            ✕
+            <EimirIcon name="close" className="inline-icon" />
           </button>
         </div>
 
@@ -811,14 +818,14 @@ export function PreferenceManager({
                 {catItems.map((pref) => {
                   const sentimentIcon =
                     pref.sentiment === PreferenceSentiment.LOVE
-                      ? '♥'
+                      ? 'heart'
                       : pref.sentiment === PreferenceSentiment.LIKE
-                        ? '👍'
+                        ? 'thumbs-up'
                         : pref.sentiment === PreferenceSentiment.DISLIKE
-                          ? '👎'
+                          ? 'thumbs-down'
                           : pref.sentiment === PreferenceSentiment.AVOID
-                            ? '✕'
-                            : '•';
+                            ? 'close'
+                            : 'dot';
                   return (
                     <button
                       key={pref.id}
@@ -837,7 +844,13 @@ export function PreferenceManager({
                         data-sentiment={pref.sentiment}
                         aria-hidden="true"
                       >
-                        {sentimentIcon}
+                        <EimirIcon
+                          name={sentimentIcon}
+                          variant={
+                            sentimentIcon === 'heart' ? 'filled' : 'outline'
+                          }
+                          className="inline-icon"
+                        />
                       </span>
                       <span className="profile-preference-chip-topic">
                         {pref.topic}

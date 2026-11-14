@@ -54,13 +54,53 @@ export const EIMIR_ICON_NAMES = [
   'quote',
   'close',
   'check',
+  'minus',
   'lock-open',
   'lock',
   'eye',
   'square',
   'trash',
   'filter',
+  'chevron-left',
   'chevron-right',
+  'arrow-left',
+  'arrow-right',
+  'edit',
+  'save',
+  'reorder',
+  'overflow',
+  'overflow-vertical',
+  'comment',
+  'play',
+  'pause',
+  'stop',
+  'refresh',
+  'shield',
+  'check-circle',
+  'circle',
+  'minus-circle',
+  'warning',
+  'cloud-off',
+  'heart',
+  'heart-sparkle',
+  'star',
+  'bolt',
+  'moon',
+  'sun',
+  'theme',
+  'sprout',
+  'trend',
+  'hearts',
+  'heart-in-hands',
+  'smile-sun',
+  'face-laugh',
+  'face-surprised',
+  'face-sad',
+  'thumbs-up',
+  'thumbs-down',
+  'dot',
+  'game-wishes',
+  'game-perspective',
   'sparkle',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
@@ -78,6 +118,38 @@ const INSIGHTS_BUBBLE_PATH =
 const INSIGHTS_WAVE = <path d="M6.5 11.8h2.8l1.9-3.4 2.2 5.9 1.7-2.5h2.4" />;
 const MORE_DOT_POSITIONS = [5, 12, 19];
 const LIST_ROW_POSITIONS = [6, 12, 18];
+const HEART_PATH =
+  'M12 20.5S3.5 15.3 3.5 9.5a4.6 4.6 0 0 1 8.5-2.4 4.6 4.6 0 0 1 8.5 2.4c0 5.8-8.5 11-8.5 11Z';
+const STAR_PATH =
+  'M12 2.5l2.8 5.8 6.4 1-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4-4.6-4.5 6.4-1Z';
+const HIGHLIGHT_PATH =
+  'm12 2.2 2.1 7.7 7.7 2.1-7.7 2.1-2.1 7.7-2.1-7.7-7.7-2.1 7.7-2.1 2.1-7.7Z';
+const CHECK_PATH = 'm5 12 4.5 4.5L19 7';
+const LOCK_OUTLINE = (
+  <>
+    <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />
+    <path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3" />
+  </>
+);
+
+function overflowDots(vertical: boolean) {
+  return (
+    <g fill="currentColor" stroke="none">
+      {[5, 12, 19].map((position) => (
+        <circle
+          cx={vertical ? 12 : position}
+          cy={vertical ? position : 12}
+          key={position}
+          r="1.8"
+        />
+      ))}
+    </g>
+  );
+}
+
+const THUMB = (
+  <path d="M8 10 12 4a2 2 0 0 1 3 2l-1 4h5a2 2 0 0 1 2 2l-1.5 6a2 2 0 0 1-2 1.5H8zm0 0H4v9.5h4" />
+);
 
 function moreDots(radius: number) {
   return (
@@ -108,13 +180,157 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
       <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />{' '}
     </>
   ),
-  trash: (
+  trash: <path d="M3.5 6.5h17M9 6.5V3.5h6v3m-10 0 1 14h12l1-14M12 10.5v6" />,
+  filter: <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" />,
+  'chevron-left': <path d="m15 5-7 7 7 7" />,
+  'chevron-right': <path d="m9 5 7 7-7 7" />,
+  'arrow-left': <path d="M20 12H4m7-7-7 7 7 7" />,
+  'arrow-right': <path d="M4 12h16m-7-7 7 7-7 7" />,
+  edit: (
+    <path d="m4 16.4-1 4.6 4.6-1 12-12a2.55 2.55 0 0 0-3.6-3.6ZM14.5 6l3.5 3.5" />
+  ),
+  save: <path d="M5 3.5h11l3 3v14H5zM8.5 3.5V9H15M8.5 20v-6h7v6" />,
+  reorder: <path d="M5 6h14M5 12h14M5 18h14" />,
+  overflow: overflowDots(false),
+  'overflow-vertical': overflowDots(true),
+  comment: (
+    <path d="M7 4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-7l-6 3V8a4 4 0 0 1 3-4Z" />
+  ),
+  play: <path d="M8 4.5v15l12-7.5Z" fill="currentColor" stroke="none" />,
+  pause: (
+    <path d="M6 5h4v14H6Zm8 0h4v14h-4Z" fill="currentColor" stroke="none" />
+  ),
+  stop: (
+    <rect
+      x="5"
+      y="5"
+      width="14"
+      height="14"
+      rx="2"
+      fill="currentColor"
+      stroke="none"
+    />
+  ),
+  refresh: <path d="M19 10a7.5 7.5 0 1 0-1.5 7m2.5-13v6h-6" />,
+  shield: <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6Z" />,
+  'check-circle': (
     <>
-      <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12 2.3 2.5 4.7-5" />
     </>
   ),
-  filter: <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" />,
-  'chevron-right': <path d="m9 5 7 7-7 7" />,
+  circle: <circle cx="12" cy="12" r="9" />,
+  'minus-circle': (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 12h7" />
+    </>
+  ),
+  warning: (
+    <path d="M10.2 4.5a2 2 0 0 1 3.6 0l7.1 13a2 2 0 0 1-1.7 3H4.8a2 2 0 0 1-1.7-3ZM12 9v4.5m0 3.5h.01" />
+  ),
+  'cloud-off': (
+    <path d="M3 3l18 18M7 7.6a6 6 0 0 1 10.6 2.6H19a4 4 0 0 1 1.6 7.7M5.5 9.5A4.4 4.4 0 0 0 7 18h9" />
+  ),
+  heart: <path d={HEART_PATH} />,
+  'heart-sparkle': (
+    <>
+      <path d="M12 21s-8-5.2-8-10.3a4.1 4.1 0 0 1 7.9-1.6 4.1 4.1 0 0 1 7.6.5c1.4 4.6-5.9 10.2-7.5 11.4Z" />
+      <path className="accent" d="M18.5 2v4.5m-2.25-2.25h4.5" />
+    </>
+  ),
+  star: <path d={STAR_PATH} />,
+  bolt: <path d="m13 2.5-8 11h6l-1 8 9-11h-6Z" />,
+  moon: <path d="M20.5 15A8.8 8.8 0 0 1 9 3.5 9 9 0 1 0 20.5 15Z" />,
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4.1" />
+      <path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4m0-12.8L17 7M7 17l-1.4 1.4" />
+    </>
+  ),
+  sprout: (
+    <path d="M12 21v-8m0 .5c0-5 3-7.5 8-7.5 0 4.5-3 7.5-8 7.5Zm0 3c0-4.2-3-6.5-7.5-6.5 0 4 2.8 6.5 7.5 6.5Z" />
+  ),
+  trend: <path d="m4 17 5-5 4 3 7-8m-5 0h5v5" />,
+  hearts: (
+    <>
+      <path d="M8.5 19S2.5 15 2.5 11.5a3.3 3.3 0 0 1 6-1.8 3.3 3.3 0 0 1 6 1.8c0 3.5-6 7.5-6 7.5Z" />
+      <path
+        className="accent"
+        d="M12 5a3.3 3.3 0 0 1 5.2 1 3.35 3.35 0 0 1 6 2c0 3.3-4.1 6.3-6 7.6"
+      />
+    </>
+  ),
+  'heart-in-hands': (
+    <>
+      <path d="M3.5 13c3.3 0 5 2 7.1 4.2a2 2 0 0 0 2.8 0c2.1-2.2 3.8-4.2 7.1-4.2m-16 5c2.3 0 4.2 1 5.4 2m9.6-2c-2.3 0-4.2 1-5.4 2" />
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M12 13 8.4 9.5a2.65 2.65 0 0 1 3.6-3.8 2.65 2.65 0 0 1 3.6 3.8Z"
+      />
+    </>
+  ),
+  'smile-sun': (
+    <>
+      <circle cx="12" cy="12" r="7.2" />
+      <path d="M9.2 10.1h.01m5.6 0h.01M9.3 14.1q2.7 2.5 5.4 0M12 1v.6m0 20.8v.6M1 12h.6m20.8 0h.6" />
+    </>
+  ),
+  'face-laugh': (
+    <>
+      <circle cx="12" cy="12" r="9.2" />
+      <path d="M7.4 9.5q1.2-1.6 2.4 0m4.4 0q1.2-1.6 2.4 0" />
+      <path
+        d="M7.5 12.7h9a4.5 4.5 0 0 1-9 0Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </>
+  ),
+  'face-surprised': (
+    <>
+      <circle cx="12" cy="12" r="9.2" />
+      <path d="M8.4 9.4h.01m7.2 0h.01" />
+      <circle cx="12" cy="14.7" r="2" />
+    </>
+  ),
+  'face-sad': (
+    <>
+      <circle cx="12" cy="12" r="9.2" />
+      <path d="M8.4 9.4h.01m7.2 0h.01M8.5 16.2q3.5-3.4 7 0" />
+    </>
+  ),
+  theme: (
+    <>
+      <circle cx="12" cy="12" r="8.6" />
+      <path
+        d="M12 3.4a8.6 8.6 0 0 0 0 17.2Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </>
+  ),
+  'thumbs-up': THUMB,
+  'thumbs-down': <g transform="rotate(180 12 12)">{THUMB}</g>,
+  dot: <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />,
+  'game-wishes': (
+    <>
+      <circle cx="10" cy="10" r="7.2" />
+      <path d="m15.4 15.4 5.1 5.1" />
+      <path
+        className="icon-fill-accent"
+        d="M10 14S6 11.5 6 9.4a2.1 2.1 0 0 1 4-1 2.1 2.1 0 0 1 4 1C14 11.5 10 14 10 14Z"
+      />
+    </>
+  ),
+  'game-perspective': (
+    <>
+      <path className="accent" d="M10 17h6l4.5 3v-9A3.5 3.5 0 0 0 17 7.5h-1" />
+      <path d="M6.5 4h6A3.5 3.5 0 0 1 16 7.5v1a3.5 3.5 0 0 1-3.5 3.5H8l-5 3V7.5A3.5 3.5 0 0 1 6.5 4Z" />
+      <path d="M8 8h3.5" />
+    </>
+  ),
   // #1790 F2: the quiet mark of a wish on its way; filled so it stays legible
   // at caption size.
   sparkle: (
@@ -125,13 +341,9 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   ),
   square: <rect x="5" y="5" width="14" height="14" rx="3" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
-  check: <path d="m5 12 4.5 4.5L19 7" />,
-  lock: (
-    <>
-      <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />
-      <path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3" />
-    </>
-  ),
+  check: <path d={CHECK_PATH} />,
+  minus: <path d="M5 12h14" />,
+  lock: LOCK_OUTLINE,
   eye: (
     <>
       <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" />
@@ -325,12 +537,7 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
       <circle cx="12" cy="12" r="2.8" />
     </>
   ),
-  privatsphaere: (
-    <>
-      <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />
-      <path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3" />
-    </>
-  ),
+  privatsphaere: LOCK_OUTLINE,
   statistiken: (
     <>
       <rect x="3" y="13" width="4" height="8" rx="1" />
@@ -436,12 +643,8 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   ),
 };
 
-const HEART_PATH =
-  'M12 20.5S3.5 15.3 3.5 9.5a4.6 4.6 0 0 1 8.5-2.4 4.6 4.6 0 0 1 8.5 2.4c0 5.8-8.5 11-8.5 11Z';
 const PLANE_PATH =
   'm3 18 8-5-6-3 1.5-2 8 2.1 4.7-6.4a2 2 0 0 1 2.5-.5 2 2 0 0 1 .3 2.7l-5 6.2 2.1 8-2 1.5-3.2-6L8 22Z';
-const STAR_PATH =
-  'm12 2.2 2.1 7.7 7.7 2.1-7.7 2.1-2.1 7.7-2.1-7.7-7.7-2.1 7.7-2.1 2.1-7.7Z';
 
 function filledCalendar(id: string) {
   return (
@@ -463,6 +666,8 @@ function filledCalendar(id: string) {
 type IconDrawing = ReactNode | ((id: string) => ReactNode);
 
 const FILLED: Partial<Record<EimirIconName, IconDrawing>> = {
+  heart: <path d={HEART_PATH} fill="currentColor" stroke="none" />,
+  star: <path d={STAR_PATH} fill="currentColor" stroke="none" />,
   wir: (id) => (
     <>
       <circle cx="9" cy="12" r="6.5" fill={`url(#${id}-cool)`} />
@@ -503,7 +708,7 @@ const FILLED: Partial<Record<EimirIconName, IconDrawing>> = {
     <path d={PLANE_PATH} fill={`url(#${id}-cool)`} stroke="none" />
   ),
   highlights: (id) => (
-    <path d={STAR_PATH} fill={`url(#${id}-warm)`} stroke="none" />
+    <path d={HIGHLIGHT_PATH} fill={`url(#${id}-warm)`} stroke="none" />
   ),
   privatsphaere: (id) => (
     <>
@@ -599,7 +804,7 @@ const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
     </>
   ),
   highlights: (id) => (
-    <path d={STAR_PATH} fill={`url(#${id}-cool-warm)`} stroke="none" />
+    <path d={HIGHLIGHT_PATH} fill={`url(#${id}-cool-warm)`} stroke="none" />
   ),
   privatsphaere: (id) => (
     <>
@@ -639,6 +844,36 @@ const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
   ),
 };
 
+const COMPACT_OUTLINE: Partial<Record<EimirIconName, ReactNode>> = {
+  pro: <path d="m3.5 7.5 4.6 3.4L12 4l3.9 6.9 4.6-3.4-1.6 11.5H5.1Z" />,
+  'photo-library': (
+    <>
+      <path
+        className="accent"
+        d="M6.5 4a1.5 1.5 0 0 1 1.5-1.5h12A1.5 1.5 0 0 1 21.5 4v11"
+      />
+      <rect x="2.5" y="6.5" width="15" height="15" rx="2" />
+      <path d="m3 18 4.5-4.5 3.3 3.1 2.1-1.9 4.1 3.5M7.5 10.2h.01" />
+    </>
+  ),
+  'eye-off': (
+    <path d="m3.5 3.5 17 17m-9.9-15a12 12 0 0 1 1.4-.1c5.9 0 9.8 6.6 9.8 6.6a17 17 0 0 1-3 3.4m-2.9 2.1a9.5 9.5 0 0 1-3.9 1.1C6.1 18.6 2.2 12 2.2 12a17 17 0 0 1 4-4.2" />
+  ),
+  benachrichtigungen: (
+    <path d="M4 17.5h16l-2.5-3.7V9a5.5 5.5 0 0 0-11 0v4.8Zm6 3h4" />
+  ),
+  geschenk: (
+    <>
+      <rect x="3" y="7.5" width="18" height="13.5" rx="2.5" />
+      <path d="M3 11.5h18m-9-4v13.5" />
+      <path
+        className="accent"
+        d="M12 7.5c-4.5 0-6.2-1-6.2-2.6a1.9 1.9 0 0 1 3.4-1.1L12 7.5Zm0 0c4.5 0 6.2-1 6.2-2.6a1.9 1.9 0 0 0-3.4-1.1Z"
+      />
+    </>
+  ),
+};
+
 type Props = {
   name: EimirIconName;
   variant?: EimirIconVariant;
@@ -649,7 +884,7 @@ type Props = {
 export function EimirIcon({
   name,
   variant = 'outline',
-  compact = false,
+  compact = true,
   className,
 }: Props) {
   const id = useId().replace(/:/g, '');
@@ -660,7 +895,10 @@ export function EimirIcon({
         ? DUOTONE[name]
         : undefined;
   const usesGradient = typeof drawing === 'function';
-  const content = usesGradient ? drawing(id) : (drawing ?? OUTLINE[name]);
+  const outline =
+    (compact && variant === 'outline' ? COMPACT_OUTLINE[name] : undefined) ??
+    OUTLINE[name];
+  const content = usesGradient ? drawing(id) : (drawing ?? outline);
   return (
     <svg
       viewBox="0 0 24 24"

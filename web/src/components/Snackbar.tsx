@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 
 const AUTO_DISMISS_MS = 6000;
 
@@ -73,7 +74,7 @@ export function Snackbar() {
           onClick={() => setCurrent(null)}
           aria-label={t('snackbar.dismiss')}
         >
-          ×
+          <EimirIcon name="close" className="inline-icon" />
         </button>
       )}
     </div>

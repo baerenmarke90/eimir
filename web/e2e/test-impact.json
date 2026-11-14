@@ -463,6 +463,8 @@
         "web/src/components/PlaceProductPage.tsx",
         "web/src/components/CollectionsOverviewPage.tsx",
         "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/ChecklistToggle.tsx",
+        "web/src/components/ListEntryActions.tsx",
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx"
       ]

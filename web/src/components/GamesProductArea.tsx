@@ -26,9 +26,9 @@ const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
 const GAME_ICONS: Record<GameEntry, EimirIconName> = {
-  moments: 'foto',
-  wishes: 'wuensche',
-  perspective: 'gemeinsam',
+  moments: 'photo-library',
+  wishes: 'game-wishes',
+  perspective: 'game-perspective',
 };
 
 function gameRoute(entry: GameEntry): string | null {

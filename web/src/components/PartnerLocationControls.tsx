@@ -15,6 +15,7 @@ import {
 } from '../client/partnerLocation';
 import { postSnackbar } from '../client/snackbar';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './PartnerLocation.css';
 
@@ -353,30 +354,12 @@ export function DisclosurePoint({
   icon: 'bolt' | 'shield' | 'off';
   children: string;
 }) {
-  const paths = {
-    bolt: <path d="M13 3 5 13h6l-1 8 8-10h-6l1-8Z" />,
-    shield: <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Z" />,
-    off: (
-      <>
-        <circle cx="12" cy="12" r="8.5" />
-        <path d="M8 12h8" />
-      </>
-    ),
-  } as const;
   return (
     <li>
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        focusable="false"
-      >
-        {paths[icon]}
-      </svg>
+      <EimirIcon
+        name={icon === 'off' ? 'minus-circle' : icon}
+        className="inline-icon"
+      />
       <span>{children}</span>
     </li>
   );

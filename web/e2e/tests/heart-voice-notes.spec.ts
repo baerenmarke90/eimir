@@ -5,6 +5,7 @@ import composer from '../../src/i18n/locales/composer';
 import copy from '../../src/i18n/locales/storyProducts';
 import voice from '../../src/i18n/locales/voiceNotes';
 import { closeHeartAudience, showHeartAudience } from '../support/memoryDiary';
+import { renderedContrast } from '../support/renderedContrast';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -201,7 +202,13 @@ async function saveAndPlay(page: Page) {
   expect(
     await audio.evaluate((element: HTMLAudioElement) => element.paused),
   ).toBe(true);
-  await page.getByRole('button', { name: voice.play, exact: true }).click();
+  const play = page.getByRole('button', { name: voice.play, exact: true });
+  const glyph = play.locator('.eimir-icon-play path');
+  await expect(glyph).toBeVisible();
+  expect((await renderedContrast(glyph, 'fill')).ratio).toBeGreaterThanOrEqual(
+    3,
+  );
+  await play.click();
   await expect
     .poll(() =>
       audio.evaluate((element: HTMLAudioElement) => element.currentTime),

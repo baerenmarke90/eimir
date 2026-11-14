@@ -13,7 +13,7 @@ export function ProInformationPanel() {
       <h2 id="settings-pro-title">{t('profiles.premium.title')}</h2>
       <div className="settings-pro-surface">
         <div className="settings-pro-lead">
-          <EimirIcon name="pro" variant="duotone" />
+          <EimirIcon name="pro" variant="duotone" compact={false} />
           <div>
             <h3>{t('profiles.premium.detailsTitle')}</h3>
             <p>{t('profiles.premium.gamesTitle')}</p>

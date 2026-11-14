@@ -8,6 +8,7 @@ import {
   voiceTime,
 } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { SavedVoiceNote } from './SavedVoiceNote';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { VoiceNotePlayer, VoiceWaveform } from './VoiceNotePlayer';
@@ -267,9 +268,7 @@ export function VoiceNoteEditor({
             onClick={capture.stop}
             aria-label={t('voiceNotes.stop')}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="5" y="5" width="14" height="14" rx="2" />
-            </svg>
+            <EimirIcon name="stop" />
           </button>
           <span>{t('voiceNotes.stop')}</span>
           <button type="button" className="tertiary" onClick={close}>

@@ -10,8 +10,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { DateRepeat } from '../api/generated/models/DateRepeat';
@@ -19,8 +19,6 @@ import { ImportantDateType } from '../api/generated/models/ImportantDateType';
 import type { ImportantDateView } from '../api/generated/models/ImportantDateView';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { nextOccasionHolidays } from '../client/occasionHolidays';
-import { useOccasionHolidayPreference } from '../client/occasionHolidayPreferences';
 import {
   dateInputValueToApiDate,
   localDateInputValue,
@@ -35,6 +33,8 @@ import {
   type ImportantDateDraft,
   importantDateFieldsFromDraft,
 } from '../client/importantDateDraft';
+import { useOccasionHolidayPreference } from '../client/occasionHolidayPreferences';
+import { nextOccasionHolidays } from '../client/occasionHolidays';
 import { normalizeClientError } from '../client/problemDetails';
 import { calculateNextAnniversary } from '../client/relationshipPreview';
 import { PLAN_CREATE_ROUTE, settingsCategoryPath } from '../client/routes';
@@ -294,7 +294,7 @@ function ImportantDateEditorSheet({
             aria-label={t('importantDates.closeDialogAria')}
             disabled={pending || deletePending}
           >
-            <span aria-hidden="true">✕</span>
+            <EimirIcon name="close" className="inline-icon" />
           </button>
         </header>
 

@@ -12,7 +12,7 @@ import wirCheckIn from '../../src/i18n/locales/wirCheckIn';
 
 /**
  * Daily check-in on the couple avatars on Wir (#1790 slice A): badges on
- * the avatars, the inline "Dein Tag" panel, per-value deletion, and the
+ * the avatars, the "Dein Tag" bottom sheet, per-value deletion, and the
  * partner block on top of the unchanged partner quick-action sheet.
  */
 
@@ -382,7 +382,7 @@ test('Dein Tag saves vibe, energy and note independently and deletes each one', 
   await expect(ownAvatar(page)).toHaveAccessibleName(wirCheckIn.ownAriaEmpty);
 
   await ownAvatar(page).click();
-  const panel = page.getByRole('region', { name: wirCheckIn.panelTitle });
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('textbox')).toBeDisabled();
 
@@ -456,7 +456,7 @@ test('Dein Tag saves vibe, energy and note independently and deletes each one', 
   expect(state.unexpectedRequests).toEqual([]);
 });
 
-test('a press outside Dein Tag closes it, saves the open note and leaves focus alone', async ({
+test('a press on the backdrop closes Dein Tag, saves the open note and returns focus to the avatar', async ({
   page,
 }) => {
   const state = await installMocks(page, {
@@ -469,32 +469,32 @@ test('a press outside Dein Tag closes it, saves the open note and leaves focus a
   await signIn(page);
 
   await ownAvatar(page).click();
-  const panel = page.getByRole('region', { name: wirCheckIn.panelTitle });
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await expect(panel).toBeVisible();
   const note = panel.getByRole('textbox', { name: wirCheckIn.noteLabel });
   await note.fill(fixtureCopy.wirCheckIn.ownShortNote);
   await page.waitForTimeout(400);
   await saveEvidence(page, '1836-390-light-1-panel-open');
 
-  // A press inside the panel keeps it open.
+  // A press inside the sheet keeps it open.
   await panel.getByRole('heading', { name: wirCheckIn.panelTitle }).click();
   await expect(panel).toBeVisible();
 
-  // A press on the quiet page background closes it and saves the note.
-  await page.mouse.click(4, 600);
+  // A press on the scrim above the sheet closes it and saves the note.
+  await page.mouse.click(195, 40);
   await expect(panel).toBeHidden();
   await expect
     .poll(() => state.patches.at(-1))
     .toEqual({ vibeNote: fixtureCopy.wirCheckIn.ownShortNote });
-  await expect(ownAvatar(page)).not.toBeFocused();
+  await expect(ownAvatar(page)).toBeFocused();
   await expect(ownAvatar(page)).toHaveAttribute('aria-expanded', 'false');
   await page.waitForTimeout(400);
-  await saveEvidence(page, '1836-390-light-2-closed-by-outside-press');
+  await saveEvidence(page, '1836-390-light-2-closed-by-backdrop-press');
 
-  // The own avatar still toggles itself exactly once.
+  // Escape closes it too, and the avatar reopens it.
   await ownAvatar(page).click();
   await expect(panel).toBeVisible();
-  await ownAvatar(page).click();
+  await page.keyboard.press('Escape');
   await expect(panel).toBeHidden();
   expect(state.unexpectedRequests).toEqual([]);
 });
@@ -520,7 +520,7 @@ test('Dein Tag is accessible and wraps its vibes at 200 % text on 360 px', async
     .toBeLessThanOrEqual(360);
 
   await ownAvatar(page).click();
-  const panel = page.getByRole('region', { name: wirCheckIn.panelTitle });
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await expect(panel).toBeVisible();
   const boxes = await panel
     .locator('.wir-checkin-vibe')
@@ -559,7 +559,7 @@ test('a failed save stays honest and retries; offline blocks writes', async ({
   await signIn(page);
 
   await ownAvatar(page).click();
-  const panel = page.getByRole('region', { name: wirCheckIn.panelTitle });
+  const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await panel.getByRole('button', { name: 'Fröhlich', exact: true }).click();
   await expect(panel.getByText(wirCheckIn.saveError)).toBeVisible();
   // No fake success: the badge falls back to the server state.
@@ -627,7 +627,7 @@ for (const { width, theme, large, reduced } of [
     await saveEvidence(page, `1790a-${label}-1-resting`);
 
     await ownAvatar(page).click();
-    const panel = page.getByRole('region', { name: wirCheckIn.panelTitle });
+    const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
     await expect(panel).toBeVisible();
     await page.waitForTimeout(400);
     await page.evaluate(() => {

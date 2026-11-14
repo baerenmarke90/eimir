@@ -12,7 +12,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInTodayView } from '../api/generated/models/DailyCheckInTodayView';
 import type { DailyVibe } from '../api/generated/models/DailyVibe';
@@ -29,6 +29,15 @@ import { useWirDailyCheckIn } from './WirDailyCheckIn';
  */
 
 const clients: QueryClient[] = [];
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
 afterEach(() => {
   cleanup();
   for (const client of clients.splice(0)) client.clear();

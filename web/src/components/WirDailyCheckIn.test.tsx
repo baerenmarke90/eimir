@@ -14,7 +14,15 @@ import {
   within,
 } from '@testing-library/react';
 import { useState } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInTodayView } from '../api/generated/models/DailyCheckInTodayView';
 import type { DailyVibe } from '../api/generated/models/DailyVibe';
@@ -41,6 +49,15 @@ let snackbars: SnackbarEventDetail[] = [];
 function recordSnackbar(event: Event) {
   snackbars.push((event as CustomEvent<SnackbarEventDetail>).detail);
 }
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 
 beforeEach(() => {
   snackbars = [];
@@ -169,6 +186,7 @@ function Harness({
         aria-label={checkIn.ownAction.label}
         aria-expanded={checkIn.ownAction.expanded}
         aria-controls={checkIn.ownAction.controls}
+        aria-haspopup={checkIn.ownAction.hasPopup}
         ref={checkIn.ownAction.ref}
         onClick={checkIn.ownAction.onActivate}
       />
@@ -370,54 +388,52 @@ describe('WirDailyCheckIn badges and accessible names', () => {
 });
 
 describe('WirDailyCheckIn panel', () => {
-  it('opens inline, closes with Done or Escape and returns focus to the own avatar', async () => {
+  it('rises as a bottom sheet, closes with Done or Escape and returns focus to the own avatar', async () => {
     const { api } = apiFor(projection({ ownEnergy: 60 }));
     renderCheckIn({ api });
     const panel = await openPanel();
+    const sheet = panel.closest('dialog') as HTMLDialogElement;
     const trigger = screen.getByTestId('own-trigger');
+    expect(sheet.classList.contains('short-task-sheet')).toBe(true);
+    expect(sheet.getAttribute('aria-modal')).toBe('true');
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
-    expect(trigger.getAttribute('aria-controls')).toBe(panel.id);
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(trigger.getAttribute('aria-controls')).toBe(sheet.id);
     expect(
-      within(panel).getByRole('heading', { name: wirCheckIn.panelTitle }),
+      within(sheet).getByRole('heading', { name: wirCheckIn.panelTitle }),
     ).not.toBeNull();
 
-    fireEvent.keyDown(slider(), { key: 'Escape' });
-    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    fireEvent(sheet, new Event('cancel', { cancelable: true }));
+    await waitFor(() =>
+      expect(trigger.getAttribute('aria-expanded')).toBe('false'),
+    );
     expect(document.activeElement).toBe(trigger);
 
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
-    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    await waitFor(() =>
+      expect(trigger.getAttribute('aria-expanded')).toBe('false'),
+    );
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('closes on a press outside the panel but not on the panel or the own avatar', async () => {
+  it('closes on a press on the backdrop but not inside the sheet', async () => {
     const { api } = apiFor(projection({ ownEnergy: 60 }));
     renderCheckIn({ api });
     const panel = await openPanel();
+    const sheet = panel.closest('dialog') as HTMLDialogElement;
     const trigger = screen.getByTestId('own-trigger');
 
-    fireEvent.pointerDown(panel);
-    fireEvent.pointerDown(slider());
-    fireEvent.pointerDown(trigger);
+    fireEvent.click(panel);
+    fireEvent.click(slider());
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
 
-    // A snackbar action (Undo) is part of the open edit, not an outside press.
-    const snackbar = document.createElement('div');
-    snackbar.className = 'snackbar';
-    const undo = document.createElement('button');
-    snackbar.append(undo);
-    document.body.append(snackbar);
-    fireEvent.pointerDown(undo);
-    expect(trigger.getAttribute('aria-expanded')).toBe('true');
-    snackbar.remove();
+    fireEvent.click(sheet, { clientX: 12, clientY: 12 });
+    await waitFor(() =>
+      expect(trigger.getAttribute('aria-expanded')).toBe('false'),
+    );
 
-    fireEvent.pointerDown(document.body);
-    expect(trigger.getAttribute('aria-expanded')).toBe('false');
-    expect(document.activeElement).not.toBe(trigger);
-
-    // Closed panels ignore later presses; the avatar still reopens it.
-    fireEvent.pointerDown(document.body);
+    // The avatar reopens it afterwards.
     fireEvent.click(trigger);
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
   });
@@ -621,15 +637,15 @@ describe('WirDailyCheckIn panel', () => {
     );
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     expect(payloads(update)).toEqual([{ vibeNote: null }]);
-    expect(snackbars).toHaveLength(1);
-    expect(snackbars[0].messageKey).toBe('wirCheckIn.noteDeleted');
-    expect(snackbars[0].action?.labelKey).toBe('wirCheckIn.undo');
+    // The shared snackbar sits below a modal sheet, so the undo is inline.
+    expect(snackbars).toHaveLength(0);
+    expect(screen.getByText(wirCheckIn.noteDeleted)).not.toBeNull();
     await waitFor(() => expect(noteField().value).toBe(''));
     expect(
       screen.queryByRole('button', { name: wirCheckIn.noteDelete }),
     ).toBeNull();
 
-    act(() => snackbars[0].action?.run());
+    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.undo }));
     await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
     expect(update.mock.calls[1][0]).toEqual({
       spaceId: 'space-1',

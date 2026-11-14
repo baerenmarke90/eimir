@@ -24,7 +24,7 @@ import { useTranslation } from '../i18n';
 import { BatteryIcon } from './DailyEnergyBattery';
 import { DailyVibeIcon } from './DailyVibeIcon';
 import { EimirIcon } from './EimirIcon';
-import { usePresentationPresence } from './useOverlayPresence';
+import { ShortTaskSheet } from './ShortTaskSheet';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
 import { useViewportClamp } from './useViewportClamp';
 import './WirDailyCheckIn.css';
@@ -207,7 +207,8 @@ export function useWirDailyCheckIn({
   });
 
   const [panelOpen, setPanelOpen] = useState(false);
-  const panelPresence = usePresentationPresence(panelOpen);
+  // Offered inside the open sheet: the shared snackbar sits below a modal.
+  const [undoNote, setUndoNote] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [energyDraft, setEnergyDraft] = useState<number | null>(null);
   const [queued, setQueued] = useState<
@@ -216,7 +217,6 @@ export function useWirDailyCheckIn({
   const [announcementText, setAnnouncementText] = useState('');
   const [revealKey, setRevealKey] = useState(0);
   const panelId = useId();
-  const panelTitleId = useId();
   const ownTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Privacy: present the private partner projection (and own values) only
@@ -425,9 +425,11 @@ export function useWirDailyCheckIn({
     const error = vibeWrite.error;
     if (!error) return;
     if (error.code === 'SPACE_MODULE_DISABLED') {
+      setPanelOpen(false);
       postSnackbar('snackbar.dailyVibeModuleDisabled');
     } else if (error.kind === 'conflict') {
       setQueued((current) => ({ ...current, vibe: undefined }));
+      setPanelOpen(false);
       postSnackbar('snackbar.dailyVibeConflict');
     } else if (
       alreadyApplied(vibeWrite.request?.update, serverOwnRef.current)
@@ -448,9 +450,11 @@ export function useWirDailyCheckIn({
     const error = energyWrite.error;
     if (!error) return;
     if (error.code === 'SPACE_MODULE_DISABLED') {
+      setPanelOpen(false);
       postSnackbar('snackbar.dailyEnergyModuleDisabled');
     } else if (error.kind === 'conflict') {
       setQueued((current) => ({ ...current, energy: undefined }));
+      setPanelOpen(false);
       postSnackbar('snackbar.dailyEnergyConflict');
     } else if (
       alreadyApplied(energyWrite.request?.update, serverOwnRef.current)
@@ -466,55 +470,6 @@ export function useWirDailyCheckIn({
     energyWrite.request,
     energyWrite.reset,
   ]);
-
-  // Escape closes the inline panel from the panel or the own avatar; an open
-  // modal sheet owns Escape first.
-  const closePanelRef = useRef<(restoreFocus?: boolean) => void>(
-    () => undefined,
-  );
-  useEffect(() => {
-    if (!panelOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      if (document.querySelector('dialog[open]')) return;
-      const target = event.target as Node | null;
-      const panel = document.getElementById(panelId);
-      if (
-        target !== document.body &&
-        !panel?.contains(target) &&
-        target !== ownTriggerRef.current
-      )
-        return;
-      event.preventDefault();
-      closePanelRef.current();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [panelId, panelOpen]);
-
-  // A press anywhere outside the panel and its own avatar closes it, saving
-  // the open note and energy like Done does. The press still reaches its
-  // target and focus stays where the person put it. The own avatar toggles
-  // itself, and an open modal sheet or a snackbar action owns the press.
-  useEffect(() => {
-    if (!panelOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (document.getElementById(panelId)?.contains(target)) return;
-      if (ownTriggerRef.current?.contains(target)) return;
-      // A snackbar action such as Undo belongs to the open panel's edit.
-      if (
-        target instanceof Element &&
-        target.closest('dialog[open], [role="dialog"], .snackbar')
-      )
-        return;
-      if (document.querySelector('dialog[open]')) return;
-      closePanelRef.current(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [panelId, panelOpen]);
 
   if (!active || !accountId || !api) return null;
 
@@ -555,6 +510,7 @@ export function useWirDailyCheckIn({
   }
 
   function chooseVibe(value: DailyVibeValue): void {
+    setUndoNote(null);
     commitEnergy();
     if (value === ownVibe) {
       setNoteDraft(null);
@@ -576,10 +532,13 @@ export function useWirDailyCheckIn({
     setNoteDraft(null);
     if (!previous) return;
     write('vibe', { vibeNote: null });
-    postSnackbar('wirCheckIn.noteDeleted', undefined, {
-      labelKey: 'wirCheckIn.undo',
-      run: () => writeRef.current('vibe', { vibeNote: previous }),
-    });
+    setUndoNote(previous);
+  }
+
+  function undoNoteDelete(): void {
+    const previous = undoNote;
+    setUndoNote(null);
+    if (previous) write('vibe', { vibeNote: previous });
   }
 
   function retryFailed(): void {
@@ -589,24 +548,22 @@ export function useWirDailyCheckIn({
     write(writer === vibeWrite ? 'vibe' : 'energy', update);
   }
 
-  function closePanel(restoreFocus = true): void {
+  // The sheet owns Escape, outside press, drag-down and focus restoration;
+  // every dismissal saves the open note and energy like Done does.
+  function closePanel(): void {
     commitNote();
     commitEnergy();
+    setUndoNote(null);
     setPanelOpen(false);
-    if (restoreFocus) ownTriggerRef.current?.focus({ preventScroll: true });
   }
 
-  closePanelRef.current = closePanel;
-
   const ownAction: PartnerAvatarAction = {
-    onActivate: () => {
-      if (panelOpen) closePanel();
-      else setPanelOpen(true);
-    },
+    onActivate: () => setPanelOpen(true),
     label: ownAriaLabel,
     ref: ownTriggerRef,
     expanded: panelOpen,
-    controls: panelOpen ? panelId : undefined,
+    controls: panelId,
+    hasPopup: 'dialog',
   };
 
   const ownHasValue = Boolean(ownVibe) || ownEnergy !== null;
@@ -695,248 +652,242 @@ export function useWirDailyCheckIn({
   const savingText = vibePending || energyPending ? t('wirCheckIn.saving') : '';
 
   const panel = (
-    <section
+    <ShortTaskSheet
       id={panelId}
-      className="wir-checkin-panel"
-      aria-labelledby={panelPresence.present ? panelTitleId : undefined}
-      hidden={!panelPresence.present}
-      data-presence={panelPresence.presenceState}
-      data-testid="wir-checkin-panel"
-      onAnimationEnd={(event) => {
-        if (
-          event.target === event.currentTarget &&
-          panelPresence.presenceState === 'exiting'
-        )
-          panelPresence.completeExit();
-      }}
+      open={panelOpen}
+      title={t('wirCheckIn.panelTitle')}
+      onClose={closePanel}
+      restoreFocusRef={ownTriggerRef}
+      className="wir-checkin-own-sheet"
     >
-      {panelPresence.present ? (
-        <div className="wir-checkin-panel-clip">
-          <div className="wir-checkin-panel-inner" inert={!panelOpen}>
-            <h2 id={panelTitleId} className="wir-checkin-panel-title">
-              {t('wirCheckIn.panelTitle')}
-            </h2>
+      <div className="wir-checkin-panel-inner" data-testid="wir-checkin-panel">
+        {!loaded && online ? (
+          <p className="wir-checkin-status" role="status">
+            {dailyQuery.isError
+              ? t('wirCheckIn.unavailable')
+              : t('dailyVibe.loading')}
+          </p>
+        ) : null}
 
-            {!loaded && online ? (
-              <p className="wir-checkin-status" role="status">
-                {dailyQuery.isError
-                  ? t('wirCheckIn.unavailable')
-                  : t('dailyVibe.loading')}
+        {offline ? (
+          <p className="wir-checkin-status" role="status">
+            {t('wirCheckIn.offline')}
+          </p>
+        ) : null}
+
+        {vibeOn ? (
+          <fieldset className="wir-checkin-vibes" disabled={disabled}>
+            <legend className="sr-only">{t('wirCheckIn.vibeLegend')}</legend>
+            <div className="wir-checkin-vibe-options">
+              {feelings.map((value) => {
+                const selected = ownVibe === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`wir-checkin-vibe${selected ? ' is-selected' : ''}`}
+                    aria-pressed={selected}
+                    data-vibe={value}
+                    onClick={() => chooseVibe(value)}
+                  >
+                    <span className="wir-checkin-vibe-circle">
+                      <DailyVibeIcon value={value} />
+                      {selected ? (
+                        <span
+                          className="wir-checkin-vibe-clear"
+                          aria-hidden="true"
+                        >
+                          <EimirIcon name="close" />
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="wir-checkin-vibe-label">
+                      {vibeLabel(value)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {ownVibe ? (
+              <p className="wir-checkin-hint">
+                {ownNote
+                  ? t('wirCheckIn.vibeSelectedHintWithNote')
+                  : t('wirCheckIn.vibeSelectedHint')}
               </p>
             ) : null}
+          </fieldset>
+        ) : serverVibe ? (
+          <div className="wir-checkin-disabled">
+            <p>{t('wirCheckIn.vibeDisabled')}</p>
+            <button
+              type="button"
+              className="tertiary"
+              disabled={disabled}
+              onClick={() => write('vibe', { vibe: null })}
+            >
+              {t('wirCheckIn.vibeDisabledRemove')}
+            </button>
+          </div>
+        ) : null}
 
-            {offline ? (
-              <p className="wir-checkin-status" role="status">
-                {t('wirCheckIn.offline')}
-              </p>
-            ) : null}
-
-            {vibeOn ? (
-              <fieldset className="wir-checkin-vibes" disabled={disabled}>
-                <legend className="sr-only">
-                  {t('wirCheckIn.vibeLegend')}
-                </legend>
-                <div className="wir-checkin-vibe-options">
-                  {feelings.map((value) => {
-                    const selected = ownVibe === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`wir-checkin-vibe${selected ? ' is-selected' : ''}`}
-                        aria-pressed={selected}
-                        data-vibe={value}
-                        onClick={() => chooseVibe(value)}
-                      >
-                        <span className="wir-checkin-vibe-circle">
-                          <DailyVibeIcon value={value} />
-                          {selected ? (
-                            <span
-                              className="wir-checkin-vibe-clear"
-                              aria-hidden="true"
-                            >
-                              <EimirIcon name="close" />
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="wir-checkin-vibe-label">
-                          {vibeLabel(value)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {ownVibe ? (
-                  <p className="wir-checkin-hint">
-                    {ownNote
-                      ? t('wirCheckIn.vibeSelectedHintWithNote')
-                      : t('wirCheckIn.vibeSelectedHint')}
-                  </p>
+        {energyOn || serverEnergy !== null ? (
+          <div className="wir-checkin-energy">
+            <div className="wir-checkin-energy-heading">
+              <span className="wir-checkin-energy-label">
+                <BatteryIcon
+                  value={energyDraft ?? ownEnergy}
+                  showQuestion={energyDraft === null && ownEnergy === null}
+                />
+                <span>{t('wirCheckIn.energyLabel')}</span>
+                {ownEnergy === null && energyDraft === null ? (
+                  <span className="wir-checkin-muted">
+                    {' · '}
+                    {t('wirCheckIn.energyNotSet')}
+                  </span>
                 ) : null}
-              </fieldset>
-            ) : serverVibe ? (
-              <div className="wir-checkin-disabled">
-                <p>{t('wirCheckIn.vibeDisabled')}</p>
+              </span>
+              {ownEnergy !== null ? (
                 <button
                   type="button"
-                  className="tertiary"
+                  className="tertiary wir-checkin-energy-remove"
+                  aria-label={t('wirCheckIn.energyRemoveAria')}
                   disabled={disabled}
-                  onClick={() => write('vibe', { vibe: null })}
+                  onClick={() => {
+                    setEnergyDraft(null);
+                    write('energy', { energyLevel: null });
+                  }}
                 >
-                  {t('wirCheckIn.vibeDisabledRemove')}
+                  {t('wirCheckIn.energyRemove')}
                 </button>
-              </div>
-            ) : null}
-
-            {energyOn || serverEnergy !== null ? (
-              <div className="wir-checkin-energy">
-                <div className="wir-checkin-energy-heading">
-                  <span className="wir-checkin-energy-label">
-                    <BatteryIcon
-                      value={energyDraft ?? ownEnergy}
-                      showQuestion={energyDraft === null && ownEnergy === null}
-                    />
-                    <span>{t('wirCheckIn.energyLabel')}</span>
-                    {ownEnergy === null && energyDraft === null ? (
-                      <span className="wir-checkin-muted">
-                        {' · '}
-                        {t('wirCheckIn.energyNotSet')}
-                      </span>
-                    ) : null}
-                  </span>
-                  {ownEnergy !== null ? (
-                    <button
-                      type="button"
-                      className="tertiary wir-checkin-energy-remove"
-                      aria-label={t('wirCheckIn.energyRemoveAria')}
-                      disabled={disabled}
-                      onClick={() => {
-                        setEnergyDraft(null);
-                        write('energy', { energyLevel: null });
-                      }}
-                    >
-                      {t('wirCheckIn.energyRemove')}
-                    </button>
-                  ) : null}
+              ) : null}
+            </div>
+            {energyOn ? (
+              <>
+                <input
+                  className="wir-checkin-energy-slider"
+                  type="range"
+                  min={10}
+                  max={100}
+                  step={10}
+                  value={energyValue}
+                  disabled={disabled}
+                  style={sliderStyle}
+                  data-unset={
+                    ownEnergy === null && energyDraft === null
+                      ? 'true'
+                      : undefined
+                  }
+                  aria-label={t('wirCheckIn.energySliderLabel')}
+                  aria-valuetext={
+                    ownEnergy === null && energyDraft === null
+                      ? t('wirCheckIn.energyNotSet')
+                      : t('dailyEnergy.optionAria', { value: energyValue })
+                  }
+                  onChange={(event) =>
+                    setEnergyDraft(Number(event.currentTarget.value))
+                  }
+                  onPointerUp={commitEnergy}
+                  onKeyUp={commitEnergy}
+                  onBlur={commitEnergy}
+                />
+                <div className="wir-checkin-energy-scale" aria-hidden="true">
+                  <span>{t('wirCheckIn.energyScaleLow')}</span>
+                  <span>{t('wirCheckIn.energyScaleHigh')}</span>
                 </div>
-                {energyOn ? (
-                  <>
-                    <input
-                      className="wir-checkin-energy-slider"
-                      type="range"
-                      min={10}
-                      max={100}
-                      step={10}
-                      value={energyValue}
-                      disabled={disabled}
-                      style={sliderStyle}
-                      data-unset={
-                        ownEnergy === null && energyDraft === null
-                          ? 'true'
-                          : undefined
-                      }
-                      aria-label={t('wirCheckIn.energySliderLabel')}
-                      aria-valuetext={
-                        ownEnergy === null && energyDraft === null
-                          ? t('wirCheckIn.energyNotSet')
-                          : t('dailyEnergy.optionAria', { value: energyValue })
-                      }
-                      onChange={(event) =>
-                        setEnergyDraft(Number(event.currentTarget.value))
-                      }
-                      onPointerUp={commitEnergy}
-                      onKeyUp={commitEnergy}
-                      onBlur={commitEnergy}
-                    />
-                    <div
-                      className="wir-checkin-energy-scale"
-                      aria-hidden="true"
-                    >
-                      <span>{t('wirCheckIn.energyScaleLow')}</span>
-                      <span>{t('wirCheckIn.energyScaleHigh')}</span>
-                    </div>
-                  </>
-                ) : null}
-              </div>
+              </>
             ) : null}
+          </div>
+        ) : null}
 
-            {vibeOn ? (
-              <div className="wir-checkin-note">
-                <label className="sr-only" htmlFor={`${panelId}-note`}>
-                  {t('wirCheckIn.noteLabel')}
-                </label>
-                <div className="wir-checkin-note-field">
-                  <textarea
-                    id={`${panelId}-note`}
-                    value={noteValue}
-                    maxLength={DAILY_NOTE_MAX_LENGTH}
-                    rows={2}
-                    disabled={disabled || !ownVibe}
-                    placeholder={t('wirCheckIn.notePlaceholder')}
-                    aria-describedby={`${panelId}-note-hint`}
-                    onChange={(event) =>
-                      setNoteDraft(event.currentTarget.value)
-                    }
-                    onBlur={commitNote}
-                  />
-                  {ownNote ? (
-                    <button
-                      type="button"
-                      className="wir-checkin-note-delete"
-                      aria-label={t('wirCheckIn.noteDelete')}
-                      disabled={disabled}
-                      onPointerDown={(event) => event.preventDefault()}
-                      onClick={deleteNote}
-                    >
-                      <EimirIcon name="trash" />
-                    </button>
-                  ) : null}
-                </div>
-                <p id={`${panelId}-note-hint`} className="wir-checkin-hint">
-                  {ownVibe
-                    ? t('wirCheckIn.noteCount', { count: noteValue.length })
-                    : t('wirCheckIn.noteRequiresVibe')}
-                </p>
-              </div>
-            ) : null}
+        {vibeOn ? (
+          <div className="wir-checkin-note">
+            <label className="sr-only" htmlFor={`${panelId}-note`}>
+              {t('wirCheckIn.noteLabel')}
+            </label>
+            <div className="wir-checkin-note-field">
+              <textarea
+                id={`${panelId}-note`}
+                value={noteValue}
+                maxLength={DAILY_NOTE_MAX_LENGTH}
+                rows={2}
+                disabled={disabled || !ownVibe}
+                placeholder={t('wirCheckIn.notePlaceholder')}
+                aria-describedby={`${panelId}-note-hint`}
+                onChange={(event) => {
+                  setUndoNote(null);
+                  setNoteDraft(event.currentTarget.value);
+                }}
+                onBlur={commitNote}
+              />
+              {ownNote ? (
+                <button
+                  type="button"
+                  className="wir-checkin-note-delete"
+                  aria-label={t('wirCheckIn.noteDelete')}
+                  disabled={disabled}
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={deleteNote}
+                >
+                  <EimirIcon name="trash" />
+                </button>
+              ) : null}
+            </div>
+            <p id={`${panelId}-note-hint`} className="wir-checkin-hint">
+              {ownVibe
+                ? t('wirCheckIn.noteCount', { count: noteValue.length })
+                : t('wirCheckIn.noteRequiresVibe')}
+            </p>
+          </div>
+        ) : null}
 
-            {failedWriter ? (
-              <div className="wir-checkin-error" role="status">
-                <span>
-                  {failedProblem?.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE'
-                    ? t('dailyVibe.contextUnavailable')
-                    : t('wirCheckIn.saveError')}
-                </span>
-                {failedProblem?.code !==
-                'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE' ? (
-                  <button
-                    type="button"
-                    className="tertiary"
-                    disabled={disabled || failedWriter.isPending}
-                    onClick={retryFailed}
-                  >
-                    {t('wirCheckIn.retry')}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
+        {undoNote ? (
+          <div className="wir-checkin-undo" role="status">
+            <span>{t('wirCheckIn.noteDeleted')}</span>
+            <button
+              type="button"
+              className="tertiary"
+              disabled={disabled}
+              onClick={undoNoteDelete}
+            >
+              {t('wirCheckIn.undo')}
+            </button>
+          </div>
+        ) : null}
 
-            <div className="wir-checkin-footer">
-              <span className="wir-checkin-saving" role="status">
-                {savingText}
-              </span>
+        {failedWriter ? (
+          <div className="wir-checkin-error" role="status">
+            <span>
+              {failedProblem?.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE'
+                ? t('dailyVibe.contextUnavailable')
+                : t('wirCheckIn.saveError')}
+            </span>
+            {failedProblem?.code !== 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE' ? (
               <button
                 type="button"
-                className="primary wir-checkin-done"
-                onClick={() => closePanel()}
+                className="tertiary"
+                disabled={disabled || failedWriter.isPending}
+                onClick={retryFailed}
               >
-                {t('wirCheckIn.done')}
+                {t('wirCheckIn.retry')}
               </button>
-            </div>
+            ) : null}
           </div>
+        ) : null}
+
+        <div className="wir-checkin-footer">
+          <span className="wir-checkin-saving" role="status">
+            {savingText}
+          </span>
+          <button
+            type="button"
+            className="primary wir-checkin-done"
+            onClick={() => closePanel()}
+          >
+            {t('wirCheckIn.done')}
+          </button>
         </div>
-      ) : null}
-    </section>
+      </div>
+    </ShortTaskSheet>
   );
 
   const partnerBlock =

@@ -3,7 +3,7 @@
 #   docker build -f site/Dockerfile -t eimir-site .
 # The build uses --production, so it fails while the imprint still has [[PLACEHOLDER]] markers.
 
-FROM python:3.14.8-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS build
+FROM python:3.15.0-slim@sha256:f5b92f2a669a4c347044f29367f31983280b648250ca94dea66f98c53bc87e58 AS build
 
 WORKDIR /src
 COPY site site

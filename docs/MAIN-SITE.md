@@ -29,7 +29,7 @@ Colors use the same variable names and values as the Web design-system adapter
 Dark follow `prefers-color-scheme`. The page has no animation beyond a color transition on the
 primary button, which is disabled with reduced motion.
 
-The primary action is one filled pill ("Zur App" / "Open the app"). Privacy and terms are the
+The primary action is one filled pill that opens the application (localized per page). Privacy and terms are the
 application's public pages (`/legal/privacy`, `/legal/terms`) and are linked, not copied, so
 there is a single source of truth. Product screenshots are intentionally not used yet; the
 repository's older store images are outdated mockups.

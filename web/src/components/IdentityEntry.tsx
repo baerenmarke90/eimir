@@ -29,12 +29,13 @@ import { ClientProblemError } from '../client/problemDetails';
 import type { StoredSession } from '../client/sessionPersistence';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTranslation } from '../i18n';
+import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
 import { Brand } from './Brand';
+import { LegalFooterLinks } from './LegalDocumentLink';
 import { ProblemState } from './ProblemState';
 import {
   BUNDLED_TERMS_VERSION,
   TermsAcceptanceField,
-  TermsLink,
 } from './TermsAcceptanceField';
 import { UiState } from './UiState';
 
@@ -952,10 +953,8 @@ export function IdentityEntry({
             )
           ) : null}
           <p className="login-assurance">{t('login.assurance')}</p>
-          {termsOfUseVersion !== null ? (
-            <p className="login-legal">
-              <TermsLink />
-            </p>
+          {cloudLegalDocumentsApply(termsOfUseVersion) ? (
+            <LegalFooterLinks className="login-legal" inPlace />
           ) : null}
         </section>
       </div>

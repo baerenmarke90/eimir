@@ -1,3 +1,16 @@
+/* Informational only: quieter than the acceptance row it follows. */
+.privacy-notice {
+  margin: 0;
+  color: var(--color-text-muted);
+  font: var(--font-supporting-copy);
+  text-align: start;
+}
+
+.privacy-notice a {
+  color: var(--color-link-text);
+  font-weight: 600;
+}
+
 /* The label combines text and an inline link; keep it one readable line flow. */
 .choice-row.terms-acceptance {
   align-items: flex-start;

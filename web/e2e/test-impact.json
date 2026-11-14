@@ -111,8 +111,10 @@
         "web/src/components/NativeSessionGate.tsx",
         "web/src/components/FirstSpaceGate.tsx",
         "web/src/components/TermsAcceptanceField.tsx",
-        "web/src/components/LegalTermsPage.tsx",
-        "web/src/components/LegalDocumentView.tsx"
+        "web/src/components/LegalDocumentPage.tsx",
+        "web/src/components/LegalDocumentView.tsx",
+        "web/src/components/LegalDocumentLink.tsx",
+        "web/src/components/MoreOverviewPage.tsx"
       ]
     },
     "comments-create-ownership.spec.ts": {

@@ -163,6 +163,7 @@ it.each([
   'handwriting',
   'home_rooms',
   'shared_rhythm',
+  'together_index',
 ] as const)(
   'previews %s without writing, cancels, and saves once only after confirmation',
   async (designId) => {
@@ -224,6 +225,7 @@ it.each([
   'handwriting',
   'home_rooms',
   'shared_rhythm',
+  'together_index',
 ] as const)(
   'keeps saved %s after downgrade and permits the Free reset',
   async (designId) => {
@@ -254,6 +256,7 @@ it.each([
   'handwriting',
   'home_rooms',
   'shared_rhythm',
+  'together_index',
 ] as const)(
   'offers a Pro path instead of writing when Free selects %s',
   async (designId) => {

@@ -202,6 +202,7 @@ import {
 } from './components/StoryYearsPage';
 import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
+import { THREAD_ROUTE, ThreadIndexRoute } from './components/TogetherIndex';
 import { UiState } from './components/UiState';
 import { VoiceShareIngress } from './components/VoiceShareIngress';
 import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
@@ -616,6 +617,7 @@ function AuthenticatedApp({
           fallback={routeErrorFallback}
         >
           <Routes>
+            <Route path={THREAD_ROUTE} element={<ThreadIndexRoute />} />
             <Route
               path={ONCE_ROUTE}
               element={<OnceMessagesPage mode="inbox" />}

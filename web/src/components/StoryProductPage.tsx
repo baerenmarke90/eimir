@@ -117,6 +117,7 @@ import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import './HomeRoomChapters.css';
 import './SharedRhythmAreas.css';
+import './TogetherIndexAreas.css';
 import {
   formatStoryDate,
   resolveStoryKindLabel,

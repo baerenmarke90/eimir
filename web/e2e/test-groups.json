@@ -403,8 +403,8 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 23,
-      "reason": "Wir design selection and retention, Zuhause and Unser Takt detail navigation and task return, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
+      "baselineTests": 24,
+      "reason": "Wir design selection and retention, Zuhause, Unser Takt and Faden detail navigation and task return, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
       "disposition": "PR_CRITICAL",

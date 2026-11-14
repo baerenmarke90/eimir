@@ -902,6 +902,10 @@
     },
     "wir-design-selection.spec.ts": {
       "roots": [
+        "web/src/App.tsx",
+        "web/src/components/TogetherIndex.tsx",
+        "web/src/components/TogetherIndex.css",
+        "web/src/components/TogetherIndexAreas.css",
         "web/src/components/SharedRhythm.tsx",
         "web/src/components/SharedRhythm.css",
         "web/src/components/SharedRhythmAreas.css",

@@ -1568,6 +1568,22 @@
       "insights": "Insights",
       "games": "Play"
     },
+    "thread": {
+      "name": "Thread",
+      "index": "Overview",
+      "title": "Your thread",
+      "today": "Your day together",
+      "return": "Back to {{area}}",
+      "ownVibe": "My vibe",
+      "partner": "Today",
+      "wirSummary": "How are you both today?",
+      "storySummary": "Memories, journal and photos",
+      "planSummary": "Plans, wishes and occasions",
+      "insights": "Insights",
+      "insightsSummary": "Vibe and energy over time",
+      "gamesSummary": "Play together",
+      "moreSummary": "Profile, private area and settings"
+    },
     "nameJoiner": "&",
     "names": {
       "connected": "Connected",
@@ -1576,6 +1592,7 @@
       "handwriting": "Handwritten",
       "home_rooms": "Home",
       "shared_rhythm": "Our Rhythm",
+      "together_index": "Thread",
       "warm": "Cosy",
       "modern": "Clear & modern",
       "classic": "Classic"
@@ -1587,6 +1604,7 @@
       "handwriting": "Your words take the lead, with warm paper tones and wine-red accents throughout the app.",
       "home_rooms": "A shared starting point for the two of you. Open Rooms to find memories, plans and more.",
       "shared_rhythm": "Today, your story and your plans at your own pace, with navigation at the top and shades of plum, pink and apricot.",
+      "together_index": "Your Vibes side by side, an index for every area, and a quiet palette of ivory, graphite and cobalt blue.",
       "warm": "Your retreat. Soft rose, close portraits and thoughts like a personal note.",
       "modern": "Clear and airy. Your names beside your portraits, with calm blue accents.",
       "classic": "Familiar and spacious. Large portraits above your names and the original arrangement."

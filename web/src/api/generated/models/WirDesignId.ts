@@ -25,6 +25,7 @@ export const WirDesignId = {
     handwriting: 'handwriting',
     home_rooms: 'home_rooms',
     shared_rhythm: 'shared_rhythm',
+    together_index: 'together_index',
     modern: 'modern',
     classic: 'classic'
 } as const;

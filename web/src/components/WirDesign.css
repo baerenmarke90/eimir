@@ -683,3 +683,58 @@
     var(--rhythm-preview-paper)
   );
 }
+
+.wir-design-preview-together_index {
+  --thread-preview-paper: #f7f6f2;
+  --thread-preview-ink: #262831;
+  --thread-preview-subtle: #ebedf5;
+  --thread-preview-accent: #3055b8;
+  --thread-preview-strand: #677cad;
+  grid-template-rows: 7px 23px 1fr 10px;
+  background: var(--thread-preview-paper);
+}
+:root[data-theme="dark"] .wir-design-preview-together_index {
+  --thread-preview-paper: #1c1e25;
+  --thread-preview-ink: #f5f4f1;
+  --thread-preview-subtle: #2c3243;
+  --thread-preview-accent: #b7c8ff;
+  --thread-preview-strand: #8da3d9;
+}
+.wir-design-preview-thread-heading {
+  align-self: end;
+  inline-size: 46%;
+  block-size: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--thread-preview-ink);
+}
+.wir-design-preview-thread-people {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+  align-items: center;
+  background:
+    linear-gradient(var(--thread-preview-strand), var(--thread-preview-strand))
+    center / 50% 1px no-repeat;
+}
+.wir-design-preview-thread-people i {
+  inline-size: 12px;
+  block-size: 12px;
+  border: 1px solid var(--thread-preview-strand);
+  border-radius: 50%;
+  background: var(--thread-preview-subtle);
+}
+.wir-design-preview-thread-memory {
+  border-radius: var(--radius-small);
+  background: var(--thread-preview-subtle);
+}
+.wir-design-preview-thread-dock {
+  display: grid;
+  place-items: center;
+  border-block-start: 1px solid var(--thread-preview-strand);
+}
+.wir-design-preview-thread-dock i {
+  inline-size: 10px;
+  block-size: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--thread-preview-accent);
+}

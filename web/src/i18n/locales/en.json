@@ -2307,6 +2307,15 @@
     "on": "On",
     "off": "Off"
   },
+  "photoCrop": {
+    "title": "Choose the visible section",
+    "help": "Move and zoom your photo until the circle shows what you want.",
+    "stageLabel": "Move the photo inside the circle",
+    "keyboardHelp": "The arrow keys move the photo. Plus and minus zoom in or out, zero resets the section.",
+    "zoom": "Size",
+    "confirm": "Use photo",
+    "confirming": "Preparing…"
+  },
   "photoSources": {
     "settingsTitle": "Media sources",
     "settingsIntro": "Connect your photo service for new moments.",

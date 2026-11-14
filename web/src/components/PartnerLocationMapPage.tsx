@@ -170,7 +170,13 @@ export function PartnerLocationMapPage({
   const distanceText = useDistanceText();
   const [showUs, setShowUs] = useState(0);
 
-  const area = map.data?.available ? map.data : null;
+  const shared = map.data?.available ? map.data : null;
+  // The partner's area only counts when it has a position and a radius; the
+  // map itself works without it (own position, or the default view).
+  const area =
+    shared && shared.latitude != null && shared.radiusMeters != null
+      ? shared
+      : null;
   const areas = useMemo<MapArea[]>(() => {
     const result: MapArea[] = [];
     if (
@@ -248,7 +254,7 @@ export function PartnerLocationMapPage({
       </div>
     );
   }
-  if (!area || area.latitude == null || area.radiusMeters == null) {
+  if (!entitled) {
     return (
       <div className="page partner-map-page">
         {header}
@@ -264,14 +270,14 @@ export function PartnerLocationMapPage({
 
   const locale = resolvedLocale();
   const unit = distanceUnitFor(locale, deviceLanguages());
-  const radiusKm = area.radiusMeters / 1000;
+  const radiusKm = (area?.radiusMeters ?? 0) / 1000;
   const radius = new Intl.NumberFormat(locale, {
     style: 'unit',
     unit,
     unitDisplay: 'short',
     maximumFractionDigits: 1,
   }).format(unit === 'mile' ? radiusKm / 1.609344 : radiusKm);
-  const capturedAt = area.capturedAt ?? null;
+  const capturedAt = area?.capturedAt ?? null;
   const asOf = capturedAt ? asOfLabel(capturedAt) : null;
   const fresh = capturedAt ? isDistanceFresh(capturedAt) : false;
   const between =
@@ -305,19 +311,25 @@ export function PartnerLocationMapPage({
             ariaLabel={t('partnerLocation.mapPeopleLabel')}
           />
         </Suspense>
-        <button
-          type="button"
-          className="secondary partner-map-show-us"
-          onClick={() => setShowUs((count) => count + 1)}
-        >
-          {t('partnerLocation.mapShowUs')}
-        </button>
+        {areas.length > 0 ? (
+          <button
+            type="button"
+            className="secondary partner-map-show-us"
+            onClick={() => setShowUs((count) => count + 1)}
+          >
+            {t('partnerLocation.mapShowUs')}
+          </button>
+        ) : null}
         <p className="sr-only">
-          {t('partnerLocation.mapAreaDescription', {
-            partner: partnerFirstName,
-            radius,
-            time: asOf ?? '',
-          })}{' '}
+          {area
+            ? t('partnerLocation.mapAreaDescription', {
+                partner: partnerFirstName,
+                radius,
+                time: asOf ?? '',
+              })
+            : t('partnerLocation.mapPartnerNotSharing', {
+                partner: partnerFirstName,
+              })}{' '}
           {ownPosition ? t('partnerLocation.mapOwnDescription') : null}
         </p>
       </section>
@@ -331,7 +343,9 @@ export function PartnerLocationMapPage({
         </h2>
         {between ? <p className="partner-map-between">{between}</p> : null}
         <ul className="partner-map-people">
-          <li className={`partner-map-person${fresh ? '' : ' is-earlier'}`}>
+          <li
+            className={`partner-map-person${fresh || !area ? '' : ' is-earlier'}`}
+          >
             <span aria-hidden="true">
               <SingleAvatar
                 person={{ displayName: partnerName, imageUrl: partnerAvatar }}
@@ -340,15 +354,23 @@ export function PartnerLocationMapPage({
             </span>
             <span className="partner-map-person-copy">
               <strong>
-                {t('partnerLocation.mapPartnerArea', {
-                  partner: partnerFirstName,
-                })}
+                {area
+                  ? t('partnerLocation.mapPartnerArea', {
+                      partner: partnerFirstName,
+                    })
+                  : t('partnerLocation.mapPartnerNotSharing', {
+                      partner: partnerFirstName,
+                    })}
               </strong>
-              {asOf ? (
-                <span>
-                  {t('partnerLocation.mapPartnerAsOf', { time: asOf })}
-                </span>
-              ) : null}
+              {area ? (
+                asOf ? (
+                  <span>
+                    {t('partnerLocation.mapPartnerAsOf', { time: asOf })}
+                  </span>
+                ) : null
+              ) : (
+                <span>{t('partnerLocation.mapUnavailableBody')}</span>
+              )}
             </span>
           </li>
           <li className="partner-map-person">

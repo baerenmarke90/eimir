@@ -1,0 +1,243 @@
+{
+  "$defs": {
+    "AmountRange": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "AmountRange",
+      "type": "object"
+    },
+    "CatalogCategory": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{1,31}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "labels": {
+          "additionalProperties": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Labels",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "labels"
+      ],
+      "title": "CatalogCategory",
+      "type": "object"
+    },
+    "CatalogIdea": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9](?:[a-z0-9-]{1,62}[a-z0-9])$",
+          "title": "Id",
+          "type": "string"
+        },
+        "active": {
+          "default": true,
+          "title": "Active",
+          "type": "boolean"
+        },
+        "sortKey": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Sortkey",
+          "type": "integer"
+        },
+        "category": {
+          "pattern": "^[a-z][a-z0-9_]{1,31}$",
+          "title": "Category",
+          "type": "string"
+        },
+        "durationMinutes": {
+          "$ref": "#/$defs/MinutesRange"
+        },
+        "budgetForTwo": {
+          "$ref": "#/$defs/AmountRange"
+        },
+        "setting": {
+          "$ref": "#/$defs/DateSetting"
+        },
+        "content": {
+          "additionalProperties": {
+            "$ref": "#/$defs/IdeaContent"
+          },
+          "title": "Content",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "sortKey",
+        "category",
+        "durationMinutes",
+        "budgetForTwo",
+        "setting",
+        "content"
+      ],
+      "title": "CatalogIdea",
+      "type": "object"
+    },
+    "DateSetting": {
+      "description": "Where an idea takes place.",
+      "enum": [
+        "HOME",
+        "OUT",
+        "EITHER"
+      ],
+      "title": "DateSetting",
+      "type": "string"
+    },
+    "IdeaContent": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 320,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "requirements": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 5,
+          "title": "Requirements",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "description"
+      ],
+      "title": "IdeaContent",
+      "type": "object"
+    },
+    "MinutesRange": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "maximum": 2880,
+          "minimum": 5,
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "maximum": 2880,
+          "minimum": 5,
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "MinutesRange",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Root of a catalog file.",
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "title": "Schemaversion",
+      "type": "integer"
+    },
+    "catalogVersion": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Catalogversion",
+      "type": "string"
+    },
+    "edition": {
+      "enum": [
+        "development",
+        "editorial"
+      ],
+      "title": "Edition",
+      "type": "string"
+    },
+    "defaultLocale": {
+      "pattern": "^[a-z]{2,3}(?:-[A-Z]{2})?$",
+      "title": "Defaultlocale",
+      "type": "string"
+    },
+    "locales": {
+      "items": {
+        "pattern": "^[a-z]{2,3}(?:-[A-Z]{2})?$",
+        "type": "string"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Locales",
+      "type": "array"
+    },
+    "currency": {
+      "pattern": "^[A-Z]{3}$",
+      "title": "Currency",
+      "type": "string"
+    },
+    "categories": {
+      "items": {
+        "$ref": "#/$defs/CatalogCategory"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Categories",
+      "type": "array"
+    },
+    "ideas": {
+      "items": {
+        "$ref": "#/$defs/CatalogIdea"
+      },
+      "maxItems": 2000,
+      "title": "Ideas",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "catalogVersion",
+    "edition",
+    "defaultLocale",
+    "locales",
+    "currency",
+    "categories",
+    "ideas"
+  ],
+  "title": "CatalogFile",
+  "type": "object"
+}

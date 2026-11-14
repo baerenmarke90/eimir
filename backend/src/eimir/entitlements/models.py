@@ -72,6 +72,7 @@ class Capability(StrEnum):
     RELATIONSHIP_PASSPORT = "relationship.passport"
     MEMORIES_MAP = "memories.map"
     PRESENCE_LOCATION = "presence.location"
+    PLANNING_DATE_INSPIRATION = "planning.date_inspiration"
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):

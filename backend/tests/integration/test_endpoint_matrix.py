@@ -361,6 +361,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"enabled": True},
         if_match=True,
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/date-ideas/{ideaId}/wish",
+        body={},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint(
@@ -1582,6 +1588,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "targetId": memory["id"],
             "kind": "memories",
             "experienceKind": "HAPPINESS",
+            # A catalog ID, not a database row; tenant checks precede the lookup.
+            "ideaId": "living-room-picnic",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

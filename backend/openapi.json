@@ -873,6 +873,17 @@
         "title": "AuthorSummary",
         "type": "object"
       },
+      "BudgetBand": {
+        "description": "Filterable budget groups for two people, in the catalog currency.",
+        "enum": [
+          "FREE",
+          "LOW",
+          "MEDIUM",
+          "HIGH"
+        ],
+        "title": "BudgetBand",
+        "type": "string"
+      },
       "CapabilitiesView": {
         "properties": {
           "expiresInSeconds": {
@@ -3063,6 +3074,175 @@
         "title": "DashboardView",
         "type": "object"
       },
+      "DateIdea": {
+        "description": "One curated idea, localized to the response locale where available.",
+        "properties": {
+          "budgetBand": {
+            "$ref": "#/components/schemas/BudgetBand"
+          },
+          "budgetMax": {
+            "title": "Budgetmax",
+            "type": "integer"
+          },
+          "budgetMin": {
+            "description": "Approximate total for two people, `currency` units.",
+            "title": "Budgetmin",
+            "type": "integer"
+          },
+          "categoryId": {
+            "title": "Categoryid",
+            "type": "string"
+          },
+          "contentLocale": {
+            "description": "Locale of the texts; differs from `locale` when a translation falls back.",
+            "title": "Contentlocale",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "durationBand": {
+            "$ref": "#/components/schemas/DurationBand"
+          },
+          "durationMaxMinutes": {
+            "title": "Durationmaxminutes",
+            "type": "integer"
+          },
+          "durationMinMinutes": {
+            "title": "Durationminminutes",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Stable, permanent catalog ID.",
+            "title": "Id",
+            "type": "string"
+          },
+          "requirements": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requirements",
+            "type": "array"
+          },
+          "savedWishId": {
+            "description": "Open or planned shared Wish of this Space saved from this idea. Absent when the idea is not currently saved.",
+            "format": "uuid",
+            "title": "Savedwishid",
+            "type": "string"
+          },
+          "setting": {
+            "$ref": "#/components/schemas/DateSetting"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "requirements",
+          "categoryId",
+          "contentLocale",
+          "durationMinMinutes",
+          "durationMaxMinutes",
+          "durationBand",
+          "budgetMin",
+          "budgetMax",
+          "budgetBand",
+          "setting"
+        ],
+        "title": "DateIdea",
+        "type": "object"
+      },
+      "DateIdeaCatalog": {
+        "properties": {
+          "catalogVersion": {
+            "title": "Catalogversion",
+            "type": "string"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/DateIdeaCategory"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "currency": {
+            "description": "ISO 4217 currency of all budget amounts.",
+            "title": "Currency",
+            "type": "string"
+          },
+          "edition": {
+            "description": "`development` marks a demonstration dataset, `editorial` the curated one.",
+            "title": "Edition",
+            "type": "string"
+          },
+          "ideas": {
+            "items": {
+              "$ref": "#/components/schemas/DateIdea"
+            },
+            "title": "Ideas",
+            "type": "array"
+          },
+          "locale": {
+            "description": "Resolved catalog locale for this response.",
+            "title": "Locale",
+            "type": "string"
+          },
+          "totalCount": {
+            "description": "Active ideas before filtering.",
+            "title": "Totalcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "catalogVersion",
+          "edition",
+          "locale",
+          "currency",
+          "totalCount",
+          "categories",
+          "ideas"
+        ],
+        "title": "DateIdeaCatalog",
+        "type": "object"
+      },
+      "DateIdeaCategory": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "description": "Category label in the response `locale`.",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "DateIdeaCategory",
+        "type": "object"
+      },
+      "DateIdeaWishCreate": {
+        "additionalProperties": false,
+        "description": "Save an idea as a Wish. Title and description are taken from the catalog.",
+        "properties": {
+          "locale": {
+            "description": "Preferred text locale; unsupported values fall back to the catalog default.",
+            "maxLength": 16,
+            "title": "Locale",
+            "type": "string"
+          }
+        },
+        "title": "DateIdeaWishCreate",
+        "type": "object"
+      },
       "DateRepeat": {
         "description": "How often an important date recurs.\n\nDeliberately limited to two values. A full recurrence rule belongs to\nlater reminder logic; birthdays and anniversaries do not need it.",
         "enum": [
@@ -3070,6 +3250,16 @@
           "ANNUALLY"
         ],
         "title": "DateRepeat",
+        "type": "string"
+      },
+      "DateSetting": {
+        "description": "Where an idea takes place.",
+        "enum": [
+          "HOME",
+          "OUT",
+          "EITHER"
+        ],
+        "title": "DateSetting",
         "type": "string"
       },
       "DeliveryClass": {
@@ -3301,6 +3491,16 @@
         ],
         "title": "DistanceBandView",
         "type": "object"
+      },
+      "DurationBand": {
+        "description": "Filterable duration groups derived from an idea's upper duration bound.",
+        "enum": [
+          "SHORT",
+          "EVENING",
+          "LONG"
+        ],
+        "title": "DurationBand",
+        "type": "string"
       },
       "DurationDisplayMode": {
         "description": "How shared relationship time is displayed.",
@@ -13373,6 +13573,15 @@
         ],
         "title": "SessionView",
         "type": "object"
+      },
+      "SettingFilter": {
+        "description": "Setting filter. ``EITHER`` ideas match both filters.",
+        "enum": [
+          "HOME",
+          "OUT"
+        ],
+        "title": "SettingFilter",
+        "type": "string"
       },
       "SharedHeartMomentSummary": {
         "description": "A heart moment as it appears in the caller's own Story.\n\nDespite the name, this is not shared-only (#1021 superseded M2-D22): a\nHeartMoment the caller marked ``PRIVATE`` is projected here too, at its\nordinary Timeline position, with ``visibility`` reporting its actual\ndomain visibility rather than an assumed ``SHARED``. The type keeps its\nestablished name — renaming it would force every generated client\n(including hand-written Android test fixtures out of #1021's scope) to\nfollow along for no behavioral gain; the real contract fix is the\n``visibility`` field, not the type name.",
@@ -25908,6 +26117,308 @@
         "summary": "Update Dashboard Module Preference",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/date-ideas": {
+      "get": {
+        "description": "Curated ideas in deterministic editorial order; all filters combine with AND.\n\nA `HOME` or `OUT` setting filter also returns ideas that work in both\nsettings. An unknown category yields an empty result rather than an error,\nso a client holding an older catalog degrades gracefully.",
+        "operationId": "listDateIdeas",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Locale"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_]{1,31}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "duration",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DurationBand"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Duration"
+            }
+          },
+          {
+            "in": "query",
+            "name": "budget",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/BudgetBand"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Budget"
+            }
+          },
+          {
+            "in": "query",
+            "name": "setting",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SettingFilter"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Setting"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateIdeaCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `planning.date_inspiration`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Date Ideas",
+        "tags": [
+          "date-ideas"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/date-ideas/{ideaId}/wish": {
+      "post": {
+        "description": "Create a regular shared Wish from a curated idea, at most once while it is open.",
+        "operationId": "saveDateIdeaAsWish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ideaId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Ideaid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateIdeaWishCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetail"
+                }
+              }
+            },
+            "description": "The idea is already saved as an open or planned Wish of this Space, or this replays an earlier request with the same `Idempotency-Key`.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `planning.date_inspiration`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DATE_IDEA_NOT_FOUND`, `SPACE_NOT_FOUND` or `WISH_CREATE_RESULT_DELETED`."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Save Date Idea As Wish",
+        "tags": [
+          "date-ideas"
         ]
       }
     },

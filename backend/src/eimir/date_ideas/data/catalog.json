@@ -1,0 +1,477 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "2026.11-development.1",
+  "edition": "development",
+  "defaultLocale": "de",
+  "locales": [
+    "de",
+    "en"
+  ],
+  "currency": "EUR",
+  "categories": [
+    {
+      "id": "romantic",
+      "labels": {
+        "de": "Romantisch",
+        "en": "Romantic"
+      }
+    },
+    {
+      "id": "creative",
+      "labels": {
+        "de": "Kreativ",
+        "en": "Creative"
+      }
+    },
+    {
+      "id": "outdoors",
+      "labels": {
+        "de": "Draußen",
+        "en": "Outdoors"
+      }
+    },
+    {
+      "id": "food",
+      "labels": {
+        "de": "Genuss",
+        "en": "Food & drink"
+      }
+    },
+    {
+      "id": "culture",
+      "labels": {
+        "de": "Kultur",
+        "en": "Culture"
+      }
+    },
+    {
+      "id": "cozy",
+      "labels": {
+        "de": "Gemütlich",
+        "en": "Cozy"
+      }
+    }
+  ],
+  "ideas": [
+    {
+      "id": "living-room-picnic",
+      "active": true,
+      "sortKey": 10,
+      "category": "romantic",
+      "durationMinutes": {
+        "min": 90,
+        "max": 150
+      },
+      "budgetForTwo": {
+        "min": 10,
+        "max": 30
+      },
+      "setting": "HOME",
+      "content": {
+        "de": {
+          "title": "Picknick im Wohnzimmer",
+          "description": "Decke auf den Boden, Kerzen an, Lieblingssnacks dazu – ein Abend, der sich nach Sommer anfühlt, egal wie es draußen aussieht.",
+          "requirements": [
+            "Eine große Decke"
+          ]
+        },
+        "en": {
+          "title": "Living room picnic",
+          "description": "A blanket on the floor, candles on and your favourite snacks – an evening that feels like summer, whatever the weather.",
+          "requirements": [
+            "A large blanket"
+          ]
+        }
+      }
+    },
+    {
+      "id": "sunrise-walk",
+      "active": true,
+      "sortKey": 20,
+      "category": "outdoors",
+      "durationMinutes": {
+        "min": 60,
+        "max": 90
+      },
+      "budgetForTwo": {
+        "min": 0,
+        "max": 0
+      },
+      "setting": "OUT",
+      "content": {
+        "de": {
+          "title": "Sonnenaufgang zu zweit",
+          "description": "Früh aufstehen, warmen Tee mitnehmen und gemeinsam zusehen, wie der Tag beginnt. Still, klar und nur für euch.",
+          "requirements": [
+            "Thermoskanne",
+            "Wetter-Check am Vorabend"
+          ]
+        },
+        "en": {
+          "title": "Sunrise for two",
+          "description": "Get up early, bring warm tea and watch the day begin together. Quiet, clear and just for you.",
+          "requirements": [
+            "A flask",
+            "A weather check the night before"
+          ]
+        }
+      }
+    },
+    {
+      "id": "blind-cooking-night",
+      "active": true,
+      "sortKey": 30,
+      "category": "food",
+      "durationMinutes": {
+        "min": 120,
+        "max": 180
+      },
+      "budgetForTwo": {
+        "min": 20,
+        "max": 45
+      },
+      "setting": "HOME",
+      "content": {
+        "de": {
+          "title": "Überraschungsmenü",
+          "description": "Jede und jeder kauft heimlich drei Zutaten ein. Daraus kocht ihr gemeinsam ein Gericht, das es so nur heute gibt.",
+          "requirements": []
+        },
+        "en": {
+          "title": "Surprise menu",
+          "description": "Each of you secretly buys three ingredients. Together you cook a dish that only exists tonight.",
+          "requirements": []
+        }
+      }
+    },
+    {
+      "id": "museum-favourite-piece",
+      "active": true,
+      "sortKey": 40,
+      "category": "culture",
+      "durationMinutes": {
+        "min": 120,
+        "max": 180
+      },
+      "budgetForTwo": {
+        "min": 10,
+        "max": 40
+      },
+      "setting": "OUT",
+      "content": {
+        "de": {
+          "title": "Lieblingsstück im Museum",
+          "description": "Ihr geht getrennt durch die Ausstellung und zeigt euch danach das eine Werk, das euch berührt hat – und erzählt, warum.",
+          "requirements": [
+            "Eintrittskarten"
+          ]
+        },
+        "en": {
+          "title": "Favourite piece at the museum",
+          "description": "Walk through the exhibition separately, then show each other the one piece that moved you – and tell each other why.",
+          "requirements": [
+            "Tickets"
+          ]
+        }
+      }
+    },
+    {
+      "id": "letters-to-future-us",
+      "active": true,
+      "sortKey": 50,
+      "category": "romantic",
+      "durationMinutes": {
+        "min": 45,
+        "max": 90
+      },
+      "budgetForTwo": {
+        "min": 0,
+        "max": 5
+      },
+      "setting": "EITHER",
+      "content": {
+        "de": {
+          "title": "Briefe an euch in einem Jahr",
+          "description": "Jede und jeder schreibt einen Brief an euch beide in einem Jahr. Versiegeln, gut verstecken und an einem besonderen Tag gemeinsam öffnen.",
+          "requirements": [
+            "Papier und Umschläge"
+          ]
+        },
+        "en": {
+          "title": "Letters to yourselves in a year",
+          "description": "Each of you writes a letter to the two of you, one year from now. Seal them, hide them well and open them together on a special day.",
+          "requirements": [
+            "Paper and envelopes"
+          ]
+        }
+      }
+    },
+    {
+      "id": "paint-each-other",
+      "active": true,
+      "sortKey": 60,
+      "category": "creative",
+      "durationMinutes": {
+        "min": 60,
+        "max": 120
+      },
+      "budgetForTwo": {
+        "min": 0,
+        "max": 25
+      },
+      "setting": "HOME",
+      "content": {
+        "de": {
+          "title": "Porträt in 20 Minuten",
+          "description": "Ihr malt euch gegenseitig – ohne Talent, aber mit viel Blickkontakt. Das Ergebnis darf schief sein, das Lachen ist garantiert.",
+          "requirements": [
+            "Papier und Stifte oder Farben"
+          ]
+        },
+        "en": {
+          "title": "Twenty-minute portraits",
+          "description": "Paint each other – no talent required, plenty of eye contact included. The result may be wonky; the laughter is guaranteed.",
+          "requirements": [
+            "Paper and pencils or paints"
+          ]
+        }
+      }
+    },
+    {
+      "id": "local-tourists",
+      "active": true,
+      "sortKey": 70,
+      "category": "outdoors",
+      "durationMinutes": {
+        "min": 240,
+        "max": 480
+      },
+      "budgetForTwo": {
+        "min": 20,
+        "max": 60
+      },
+      "setting": "OUT",
+      "content": {
+        "de": {
+          "title": "Touristen in der eigenen Stadt",
+          "description": "Einen Tag lang seid ihr zu Besuch: Stadtführung, ein Café, das ihr nie probiert habt, und ein Foto an der kitschigsten Stelle.",
+          "requirements": []
+        },
+        "en": {
+          "title": "Tourists in your own town",
+          "description": "For one day you are visitors: a guided walk, a café you have never tried and a photo at the cheesiest spot in town.",
+          "requirements": []
+        }
+      }
+    },
+    {
+      "id": "tasting-at-home",
+      "active": true,
+      "sortKey": 80,
+      "category": "food",
+      "durationMinutes": {
+        "min": 60,
+        "max": 120
+      },
+      "budgetForTwo": {
+        "min": 15,
+        "max": 35
+      },
+      "setting": "HOME",
+      "content": {
+        "de": {
+          "title": "Verkostung zu Hause",
+          "description": "Drei Sorten Schokolade, Käse oder Tee nebeneinander, Augen zu und raten. Wer hat den feineren Gaumen?",
+          "requirements": []
+        },
+        "en": {
+          "title": "Tasting at home",
+          "description": "Three kinds of chocolate, cheese or tea side by side, eyes closed, and guess. Who has the finer palate?",
+          "requirements": []
+        }
+      }
+    },
+    {
+      "id": "open-air-cinema",
+      "active": true,
+      "sortKey": 90,
+      "category": "culture",
+      "durationMinutes": {
+        "min": 150,
+        "max": 210
+      },
+      "budgetForTwo": {
+        "min": 15,
+        "max": 40
+      },
+      "setting": "EITHER",
+      "content": {
+        "de": {
+          "title": "Kino unter freiem Himmel",
+          "description": "Ein Film, den ihr beide noch nicht kennt, eine Decke und ein Abend unter dem Himmel – im Open-Air-Kino oder auf dem eigenen Balkon.",
+          "requirements": [
+            "Beamer oder Tickets"
+          ]
+        },
+        "en": {
+          "title": "Cinema under the sky",
+          "description": "A film neither of you has seen, a blanket and an evening under the sky – at an open-air cinema or on your own balcony.",
+          "requirements": [
+            "A projector or tickets"
+          ]
+        }
+      }
+    },
+    {
+      "id": "slow-sunday-morning",
+      "active": true,
+      "sortKey": 100,
+      "category": "cozy",
+      "durationMinutes": {
+        "min": 120,
+        "max": 180
+      },
+      "budgetForTwo": {
+        "min": 0,
+        "max": 15
+      },
+      "setting": "HOME",
+      "content": {
+        "de": {
+          "title": "Langsamer Sonntagmorgen",
+          "description": "Handys weg, Frühstück im Bett, eine Zeitung oder ein Buch teilen. Nichts müssen, nur da sein.",
+          "requirements": []
+        },
+        "en": {
+          "title": "Slow Sunday morning",
+          "description": "Phones away, breakfast in bed, a newspaper or a book to share. Nothing to do, just be together.",
+          "requirements": []
+        }
+      }
+    },
+    {
+      "id": "pottery-class",
+      "active": true,
+      "sortKey": 110,
+      "category": "creative",
+      "durationMinutes": {
+        "min": 150,
+        "max": 240
+      },
+      "budgetForTwo": {
+        "min": 60,
+        "max": 120
+      },
+      "setting": "OUT",
+      "content": {
+        "de": {
+          "title": "Töpfern zu zweit",
+          "description": "Ton an den Händen, Konzentration im Blick: Am Ende nehmt ihr zwei Tassen mit nach Hause, aus denen ihr noch lange trinkt.",
+          "requirements": [
+            "Kurs vorher buchen"
+          ]
+        },
+        "en": {
+          "title": "Pottery for two",
+          "description": "Clay on your hands, focus in your eyes: you go home with two cups you will drink from for a long time.",
+          "requirements": [
+            "Book a class in advance"
+          ]
+        }
+      }
+    },
+    {
+      "id": "stargazing-night",
+      "active": true,
+      "sortKey": 120,
+      "category": "romantic",
+      "durationMinutes": {
+        "min": 90,
+        "max": 180
+      },
+      "budgetForTwo": {
+        "min": 0,
+        "max": 10
+      },
+      "setting": "OUT",
+      "content": {
+        "de": {
+          "title": "Sterne zählen",
+          "description": "Raus aus der Stadt, rauf auf eine Wiese, Decke ausbreiten. Ihr sucht euch gemeinsam einen Stern aus, der ab heute euch gehört.",
+          "requirements": [
+            "Warme Kleidung",
+            "Klare Nacht"
+          ]
+        },
+        "en": {
+          "title": "Counting stars",
+          "description": "Out of the city, onto a meadow, blanket spread. Together you pick a star that belongs to you from tonight on.",
+          "requirements": [
+            "Warm clothes",
+            "A clear night"
+          ]
+        }
+      }
+    },
+    {
+      "id": "wellness-evening",
+      "active": true,
+      "sortKey": 130,
+      "category": "cozy",
+      "durationMinutes": {
+        "min": 90,
+        "max": 150
+      },
+      "budgetForTwo": {
+        "min": 10,
+        "max": 30
+      },
+      "setting": "HOME",
+      "content": {
+        "de": {
+          "title": "Wellnessabend zu Hause",
+          "description": "Gesichtsmasken, warme Handtücher und ruhige Musik. Ihr wechselt euch mit einer kleinen Massage ab – ohne Uhr.",
+          "requirements": []
+        },
+        "en": {
+          "title": "Spa evening at home",
+          "description": "Face masks, warm towels and calm music. Take turns giving each other a short massage – without watching the clock.",
+          "requirements": []
+        }
+      }
+    },
+    {
+      "id": "weekend-cabin",
+      "active": true,
+      "sortKey": 140,
+      "category": "outdoors",
+      "durationMinutes": {
+        "min": 1440,
+        "max": 2880
+      },
+      "budgetForTwo": {
+        "min": 150,
+        "max": 400
+      },
+      "setting": "OUT",
+      "content": {
+        "de": {
+          "title": "Ein Wochenende in der Hütte",
+          "description": "Kein WLAN, ein Kamin und Wege, die ihr noch nicht kennt. Zwei Tage, in denen nur ihr zählt.",
+          "requirements": [
+            "Unterkunft buchen",
+            "Anreise planen"
+          ]
+        },
+        "en": {
+          "title": "A weekend in a cabin",
+          "description": "No Wi-Fi, a fireplace and trails you do not know yet. Two days in which only the two of you count.",
+          "requirements": [
+            "Book a place to stay",
+            "Plan the journey"
+          ]
+        }
+      }
+    }
+  ]
+}

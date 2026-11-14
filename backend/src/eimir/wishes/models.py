@@ -15,6 +15,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     SmallInteger,
+    String,
     UniqueConstraint,
     Uuid,
     event,
@@ -139,6 +140,15 @@ class Wish(
     )
     """1 for the first Wish of a series, source position + 1 for a repeat.
     Immutable after creation."""
+    date_idea_id: Mapped[str | None] = mapped_column(String(64))
+    """Stable curated date-inspiration idea this Wish was saved from.
+
+    Catalog provenance only, never authored content: title and description are
+    copied into the protected payload at creation and remain the couple's own,
+    editable text. The reference lets "Ideen entdecken" recognize an idea that
+    is already saved instead of creating a duplicate. It is immutable after
+    creation, survives catalog changes and is ignored once Pro expires.
+    """
 
     __table_args__ = (
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
@@ -162,6 +172,12 @@ class Wish(
         Index("ix_wishes_owner_id", "owner_id"),
         Index("ix_wishes_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_wishes_space_id_status", "space_id", "status"),
+        Index(
+            "ix_wishes_space_id_date_idea_id",
+            "space_id",
+            "date_idea_id",
+            postgresql_where=text("date_idea_id IS NOT NULL"),
+        ),
     )
 
 

@@ -6,11 +6,11 @@ import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
 import { useProductTour } from '../client/productTour';
 import { useHideProFeatureMarks } from '../client/proPresentation';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import {
   ACTIVITY_ROUTE,
   type AppRouteIcon,
   appRoutePath,
-  LEGAL_TERMS_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
@@ -21,15 +21,18 @@ import {
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
+  STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useShellUtilities } from '../client/shellUtilities';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
 import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
 import { EimirIcon } from './EimirIcon';
+import { LegalFooterLinks } from './LegalDocumentLink';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
 import { TaskOriginLink } from './TodayDestinationLink';
@@ -55,6 +58,14 @@ const PRIVATE_DESTINATION: MoreDestination = {
  * index, whose quiet entry leads on to the recaps, so no route is lost.
  */
 const STORY_DESTINATIONS: readonly MoreDestination[] = [
+  // The couple's own story overview, first in its own group.
+  {
+    path: STORY_OURS_ROUTE,
+    icon: 'story',
+    titleKey: 'relationshipReflections.passport.title',
+    subtitleKey: 'relationshipReflections.passport.intro',
+    badgeKey: 'relationshipReflections.passport.pro',
+  },
   {
     path: STORY_PHOTOS_ROUTE,
     icon: 'media',
@@ -235,6 +246,7 @@ export function MoreOverviewPage({
   account: AccountView;
   spaceId: string;
 }) {
+  const rootIntro = useRootTabIntro('more');
   const { t } = useTranslation();
   const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
@@ -258,7 +270,10 @@ export function MoreOverviewPage({
   };
 
   return (
-    <div className="page more-page">
+    <div
+      className="page more-page"
+      data-root-intro={rootIntro ? 'true' : undefined}
+    >
       <PageHeader
         variant="root"
         className="content-overview-heading"
@@ -366,10 +381,8 @@ export function MoreOverviewPage({
             <span>{t('header.logout')}</span>
           </button>
         ) : null}
-        {instanceStatus.data?.termsOfUseVersion ? (
-          <nav className="more-legal" aria-label={t('legal.eyebrow')}>
-            <Link to={LEGAL_TERMS_ROUTE}>{t('legal.termsLink')}</Link>
-          </nav>
+        {cloudLegalDocumentsApply(instanceStatus.data?.termsOfUseVersion) ? (
+          <LegalFooterLinks className="more-legal" />
         ) : null}
         <div className="more-brand-signature">
           <Brand />

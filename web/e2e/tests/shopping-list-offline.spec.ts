@@ -2,6 +2,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import m5s5 from '../../src/i18n/locales/m5s5';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expectToday } from '../support/today';
@@ -79,6 +81,9 @@ async function installShoppingMocks(page: Page) {
   let serial = 0;
   let pinnedCollectionId: string | null = null;
   let dashboardGetCount = 0;
+  // The couple has no shopping list until one is created.
+  let hasShoppingList = true;
+  const collectionListQueries: string[] = [];
   const sharedAchievementsEnabled = false;
   const created = new Map<string, Item>();
   const createRequests: {
@@ -89,8 +94,16 @@ async function installShoppingMocks(page: Page) {
   const updates: { itemId: string; completed?: boolean; ifMatch?: string }[] =
     [];
   const createBodies: { title: string; quantity?: string | null }[] = [];
+  const suggestions: {
+    id: string;
+    title: string;
+    quantity: string | null;
+    lastBoughtAt: string;
+    timesBought: number;
+  }[] = [];
+  const finishRequests: string[][] = [];
   const createCollectionBodies: { title: string; kind?: string }[] = [];
-  const state = { failCreates: false, createCount: 0 };
+  const state = { failCreates: false, createCount: 0, achievements: false };
 
   const collection = () => ({
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -330,9 +343,70 @@ async function installShoppingMocks(page: Page) {
     }
     if (
       method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/suggestions`
+    ) {
+      await json({ items: suggestions });
+      return;
+    }
+    if (
+      method === 'DELETE' &&
+      pathname.startsWith(
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/suggestions/`,
+      )
+    ) {
+      const index = suggestions.findIndex(
+        (entry) => entry.id === pathname.split('/').at(-1),
+      );
+      if (index >= 0) suggestions.splice(index, 1);
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    if (
+      method === 'POST' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/finish`
+    ) {
+      const body = request.postDataJSON() as { itemIds: string[] };
+      finishRequests.push(body.itemIds);
+      const taken = items.filter(
+        (entry) => entry.completed && body.itemIds.includes(entry.id),
+      );
+      for (const entry of taken) {
+        items.splice(items.indexOf(entry), 1);
+        suggestions.push({
+          id: `00000000-0000-0000-0000-${String(900 + suggestions.length).padStart(12, '0')}`,
+          title: entry.title,
+          quantity: entry.quantity,
+          lastBoughtAt: AT,
+          timesBought: 1,
+        });
+      }
+      items.forEach((entry, position) => {
+        entry.position = position;
+      });
+      if (taken.length) version += 1;
+      await json(
+        { collection: collection(), finishedCount: taken.length },
+        200,
+        {
+          ETag: `"${version}"`,
+          ...(state.achievements && taken.length && items.length === 0
+            ? { 'X-Eimir-Shared-Achievement': 'collection-completed' }
+            : {}),
+        },
+      );
+      return;
+    }
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/collections`
     ) {
-      await json({ items: [collection()], nextCursor: null });
+      collectionListQueries.push(new URL(request.url()).search);
+      await json({
+        items: hasShoppingList ? [collection()] : [],
+        nextCursor: null,
+      });
       return;
     }
     if (
@@ -341,6 +415,7 @@ async function installShoppingMocks(page: Page) {
     ) {
       const body = request.postDataJSON() as { title: string; kind?: string };
       createCollectionBodies.push(body);
+      hasShoppingList = true;
       await json({ ...collection(), title: body.title }, 201, {
         ETag: `"${version}"`,
       });
@@ -464,7 +539,22 @@ async function installShoppingMocks(page: Page) {
     titles: () => items.map((item) => item.title),
     item: (title: string) => items.find((entry) => entry.title === title),
     createBodies: () => createBodies,
+    finishRequests: () => finishRequests,
+    suggestionTitles: () => suggestions.map((entry) => entry.title),
+    seedSuggestion: (title: string, quantity: string | null = null) => {
+      suggestions.push({
+        id: `00000000-0000-0000-0000-${String(800 + suggestions.length).padStart(12, '0')}`,
+        title,
+        quantity,
+        lastBoughtAt: AT,
+        timesBought: 1,
+      });
+    },
     createCollectionBodies: () => createCollectionBodies,
+    collectionListQueries: () => collectionListQueries,
+    withoutShoppingList: () => {
+      hasShoppingList = false;
+    },
     /** The partner changes the list on their own phone. */
     partnerAdds: (title: string) => {
       items.push({
@@ -493,6 +583,17 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
   await expectToday(page);
+}
+
+/** For lists whose entries are all in the cart: ready when the heading shows. */
+async function openCartList(page: Page): Promise<void> {
+  await page.goto(`/plan/collections/${COLLECTION_ID}`);
+  await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(`^${m5s3.collection.trayShopping} · `),
+    }),
+  ).toBeVisible();
 }
 
 async function openList(page: Page): Promise<void> {
@@ -888,3 +989,643 @@ test('a shopping list is created from the list overview', async ({
     { title: 'Einkauf', kind: 'SHOPPING' },
   ]);
 });
+
+test('a shopping list opens from its Wir tile as a sheet with the cart bar at its bottom edge', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  // The sheet slides in; reduced motion makes its position stable to measure.
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  api.pin(COLLECTION_ID);
+  await signIn(page);
+
+  const tile = page.locator('.today-section-pinned-collection');
+  await expect(
+    tile.getByRole('heading', { name: 'Einkauf', level: 3 }),
+  ).toBeVisible();
+  await tile
+    .getByRole('link', {
+      name: m5s5.today.wirLists.openAria.replace('{{title}}', 'Einkauf'),
+    })
+    .click();
+
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+  await expect(page).toHaveURL(/\/today$/);
+  const bar = sheet.getByRole('button', {
+    name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+  });
+  await expect(bar).toBeVisible();
+  // There is no bottom navigation under the sheet: the bar sits at its edge.
+  const sheetBox = await sheet.boundingBox();
+  const barBox = await bar.boundingBox();
+  expect(sheetBox && barBox).toBeTruthy();
+  if (sheetBox && barBox) {
+    const gap = sheetBox.y + sheetBox.height - (barBox.y + barBox.height);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(40);
+  }
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-wir-sheet-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+
+  // The cart opens above the list sheet and closing it returns to the list.
+  await bar.click();
+  await expect(
+    page.getByRole('dialog').last().getByText('Äpfel'),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sheet.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+
+  await sheet.getByRole('button', { name: taskSheets.close }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/today$/);
+});
+
+test('suggestions from earlier trips are added in one tap, removed on their own and say who sees them', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const api = await installShoppingMocks(page);
+  api.seedSuggestion('Haferdrink', '2 l');
+  api.seedSuggestion('Butter');
+  api.seedSuggestion('Salz');
+  await signIn(page);
+  await openList(page);
+
+  const chips = page.getByRole('region', {
+    name: m5s3.collection.suggestions.heading,
+  });
+  await expect(chips).toBeVisible();
+  await expect(chips.getByText(m5s3.collection.suggestions.note)).toBeVisible();
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-suggestions-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+
+  await chips
+    .getByRole('button', {
+      name: m5s3.collection.suggestions.add.replace(
+        '{{title}}',
+        'Haferdrink · 2 l',
+      ),
+    })
+    .click();
+  await expect(page.getByText('Haferdrink')).toBeVisible();
+  await expect
+    .poll(() => api.createBodies().map((body) => body.quantity))
+    .toEqual(['2 l']);
+  // What is on the list is not suggested again.
+  await expect(chips.getByText('Haferdrink · 2 l')).toHaveCount(0);
+
+  await chips
+    .getByRole('button', {
+      name: m5s3.collection.suggestions.remove.replace('{{title}}', 'Butter'),
+    })
+    .click();
+  await expect(chips.getByText('Butter')).toHaveCount(0);
+  await expect.poll(() => api.suggestionTitles()).not.toContain('Butter');
+  await expect(chips.getByText('Salz')).toBeVisible();
+});
+
+test('Einkauf fertig empties the cart, keeps the titles as suggestions and shows the end state', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  // Everything but the bread is bought, so the cart holds two entries.
+  Object.assign(api.item('Milch') ?? {}, {
+    completed: true,
+    completedBy: ACCOUNT_ID,
+    completer: { id: ACCOUNT_ID, displayName: 'Anna' },
+  });
+  await signIn(page);
+  await openCartList(page);
+
+  await page
+    .getByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_other, { count: 2 })),
+    })
+    .click();
+  const cart = page.getByRole('dialog');
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-finish-cart-390-light.png'),
+    animations: 'disabled',
+  });
+  await cart
+    .getByRole('button', { name: m5s3.collection.finish.action })
+    .click();
+
+  await expect(
+    page.getByText(
+      m5s3.collection.endState.done_other.replace('{{count}}', '2'),
+    ),
+  ).toBeVisible();
+  expect(api.finishRequests()).toHaveLength(1);
+  expect(api.finishRequests()[0]).toHaveLength(2);
+  expect(api.titles()).toEqual(['Brot']);
+  expect(api.suggestionTitles().sort()).toEqual(['Milch', 'Äpfel']);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-finished-390-light.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('finishing when nothing is left to buy is a shared moment when the couple has it on', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+  const api = await installShoppingMocks(page);
+  api.state.achievements = true;
+  for (const title of ['Milch', 'Brot', 'Äpfel']) {
+    Object.assign(api.item(title) ?? {}, {
+      completed: true,
+      completedBy: title === 'Brot' ? ACCOUNT_ID : PARTNER_ID,
+      completer:
+        title === 'Brot'
+          ? { id: ACCOUNT_ID, displayName: 'Anna' }
+          : { id: PARTNER_ID, displayName: 'Ben' },
+    });
+  }
+  await signIn(page);
+  await openCartList(page);
+
+  await page
+    .getByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_other, { count: 3 })),
+    })
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: m5s3.collection.finish.action })
+    .click();
+
+  await expect(page.getByText(m5s3.collection.endState.title)).toBeVisible();
+  const shares = [
+    m5s3.collection.endState.share
+      .replace('{{name}}', 'Anna')
+      .replace('{{count}}', '1'),
+    m5s3.collection.endState.share
+      .replace('{{name}}', 'Ben')
+      .replace('{{count}}', '2'),
+  ].join(', ');
+  await expect(
+    page.getByText(
+      m5s3.collection.endState.bodyShares.replace('{{shares}}', shares),
+    ),
+  ).toBeVisible();
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shopping-list-moment-390-dark.png'),
+    animations: 'disabled',
+  });
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('Einkauf fertig waits for a connection and says so', async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  await signIn(page);
+  await openCartList(page);
+
+  await context.setOffline(true);
+  await page
+    .getByRole('button', {
+      name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+    })
+    .click();
+  const cart = page.getByRole('dialog');
+
+  await expect(
+    cart.getByRole('button', { name: m5s3.collection.finish.action }),
+  ).toBeDisabled();
+  await expect(cart.getByText(m5s3.collection.finish.offline)).toBeVisible();
+  expect(api.finishRequests()).toEqual([]);
+});
+
+const POLISH_VIEWS = [
+  {
+    name: '390 dark',
+    file: '390-dark',
+    width: 390,
+    height: 844,
+    scheme: 'dark',
+  },
+  {
+    name: '360 light',
+    file: '360-light',
+    width: 360,
+    height: 780,
+    scheme: 'light',
+  },
+  {
+    name: '430 light',
+    file: '430-light',
+    width: 430,
+    height: 932,
+    scheme: 'light',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const;
+
+for (const view of POLISH_VIEWS) {
+  test(`suggestions, the cart and the finish action fit and pass axe (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    api.seedSuggestion('Haferdrink', '2 l');
+    api.seedSuggestion('Butter');
+    await signIn(page);
+    await openList(page);
+
+    await expect(
+      page.getByRole('region', { name: m5s3.collection.suggestions.heading }),
+    ).toBeVisible();
+    // Compact keeps the cart in the bar, Expanded shows the finish action inline.
+    if (view.width < 840) {
+      await expect(
+        page.getByRole('button', {
+          name: new RegExp(fill(m5s3.collection.cart.bar_one, { count: 1 })),
+        }),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByRole('button', { name: m5s3.collection.finish.action }),
+      ).toBeVisible();
+    }
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shopping-list-polish-${view.file}.png`),
+      animations: 'disabled',
+    });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test('suggestions and the finish action reflow at 320px with text enlarged to 200%', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+  const api = await installShoppingMocks(page);
+  seedComposition(api);
+  api.seedSuggestion('Haferdrink', '2 l');
+  await signIn(page);
+  await openList(page);
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+
+  await expect(
+    page.getByRole('region', { name: m5s3.collection.suggestions.heading }),
+  ).toBeVisible();
+  await expectNoOverflow(page);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('a checked entry glides into the cart, and with reduced motion it only appears there', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+  // The marker lives for a short time, so the style is read where it is seen.
+  const seenWith = (
+    property: 'animationName' | 'animationDuration',
+    value: string,
+  ) =>
+    page.waitForFunction(
+      ([name, expected]) => {
+        const element = document.querySelector('[data-arriving="true"]');
+        return (
+          element !== null &&
+          getComputedStyle(element)[name as 'animationName'] === expected
+        );
+      },
+      [property, value] as const,
+    );
+
+  await page
+    .getByRole('button', {
+      name: m5s3.collection.markDone.replace('{{title}}', 'Brot'),
+    })
+    .click();
+  await seenWith('animationName', 'shared-list-row-arrive');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page
+    .getByRole('button', {
+      name: m5s3.collection.markDone.replace('{{title}}', 'Äpfel'),
+    })
+    .click();
+  await seenWith('animationDuration', '0s');
+});
+
+for (const view of [
+  {
+    name: '390 light',
+    file: '390-light',
+    width: 390,
+    height: 844,
+    scheme: 'light',
+  },
+  {
+    name: '360 dark',
+    file: '360-dark',
+    width: 360,
+    height: 780,
+    scheme: 'dark',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const) {
+  test(`the short way to a first shopping list fits and passes axe (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    api.withoutShoppingList();
+    await signIn(page);
+    await page.goto('/more/collections');
+
+    await expect(
+      page.getByRole('heading', {
+        name: m5s3.collection.defaultShopping.heading,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', {
+        name: m5s3.collection.defaultShopping.action,
+      }),
+    ).toBeVisible();
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shopping-starter-${view.file}.png`),
+      animations: 'disabled',
+    });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test('one tap creates the default shopping list and opens it; the card is gone afterwards', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await installShoppingMocks(page);
+  api.withoutShoppingList();
+  await signIn(page);
+  await page.goto('/more/collections');
+
+  await page
+    .getByRole('button', { name: m5s3.collection.defaultShopping.action })
+    .click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/plan/collections/${COLLECTION_ID}$`),
+  );
+  await expect(
+    page.getByRole('heading', { name: m5s3.collection.defaultShopping.title }),
+  ).toBeVisible();
+  expect(api.createCollectionBodies()).toEqual([
+    { title: m5s3.collection.defaultShopping.title, kind: 'SHOPPING' },
+  ]);
+  // The server was asked about shopping lists of any state, one row is enough.
+  expect(
+    api
+      .collectionListQueries()
+      .some(
+        (query) =>
+          query.includes('kind=SHOPPING') &&
+          query.includes('scope=ALL') &&
+          query.includes('limit=1'),
+      ),
+  ).toBe(true);
+
+  await page.goto('/more/collections');
+  await expect(
+    page.getByRole('heading', { name: m5s3.collection.overviewHeading }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: m5s3.collection.defaultShopping.action }),
+  ).toHaveCount(0);
+});
+
+test('the short way is not offered while the couple already has a shopping list', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await page.goto('/more/collections');
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.collection.overviewHeading }),
+  ).toBeVisible();
+  await expect(page.getByText('Einkauf').first()).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: m5s3.collection.defaultShopping.action }),
+  ).toHaveCount(0);
+});
+
+const markDoneButton = (page: Page, title: string) =>
+  page.getByRole('button', {
+    name: m5s3.collection.markDone.replace('{{title}}', title),
+  });
+
+/** Stop the flying copy half way so a screenshot can show it. */
+const pauseFlight = (page: Page) =>
+  page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      if (target?.classList.contains('shared-list-flight')) {
+        animation.pause();
+        animation.currentTime = 100;
+      }
+    }
+  });
+
+for (const view of [
+  {
+    name: '390 light',
+    file: '390-light',
+    width: 390,
+    height: 844,
+    scheme: 'light',
+  },
+  {
+    name: '360 dark',
+    file: '360-dark',
+    width: 360,
+    height: 780,
+    scheme: 'dark',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const) {
+  test(`a checked entry flies into the cart (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    await signIn(page);
+    await openList(page);
+
+    await markDoneButton(page, 'Brot').click();
+    const flight = page.locator('.shared-list-flight');
+    await expect(flight).toHaveCount(1);
+    await expect(flight).toHaveText('Brot');
+    await expect(flight).toHaveAttribute('aria-hidden', 'true');
+    await pauseFlight(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`cart-flight-${view.file}.png`),
+      animations: 'allow',
+    });
+    // It never blocks the page and is gone when it has arrived.
+    expect(
+      await flight.evaluate(
+        (element) => getComputedStyle(element).pointerEvents,
+      ),
+    ).toBe('none');
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) animation.finish();
+    });
+    await expect(flight).toHaveCount(0);
+    await expectNoOverflow(page);
+  });
+}
+
+test('the first entry of a trip flies to a cart bar that only appears with it', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+  await expect(page.locator('.shared-list-cartbar')).toHaveCount(0);
+
+  await markDoneButton(page, 'Milch').click();
+
+  await expect(page.locator('.shared-list-cartbar')).toBeVisible();
+  await expect(page.locator('.shared-list-flight')).toHaveCount(1);
+});
+
+test('with reduced motion the checked entry simply appears in the cart: no flying copy', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installShoppingMocks(page);
+  await signIn(page);
+  await openList(page);
+
+  await markDoneButton(page, 'Brot').click();
+
+  await expect(page.locator('.shared-list-cartbar')).toBeVisible();
+  await expect(page.locator('[data-arriving="true"]')).toHaveCount(1);
+  await expect(page.locator('.shared-list-flight')).toHaveCount(0);
+  // The entry is in the cart all the same.
+  await page.locator('.shared-list-cartbar').click();
+  await expect(page.getByRole('dialog').getByText('Brot')).toBeVisible();
+});
+
+for (const view of [
+  {
+    name: '390 light',
+    file: '390-light',
+    width: 390,
+    height: 844,
+    scheme: 'light',
+  },
+  {
+    name: '1280 light (Expanded)',
+    file: '1280-light',
+    width: 1280,
+    height: 800,
+    scheme: 'light',
+  },
+] as const) {
+  test(`the people of the list show next to the count (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await page.emulateMedia({ colorScheme: view.scheme });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const api = await installShoppingMocks(page);
+    seedComposition(api);
+    await signIn(page);
+    await openList(page);
+
+    const discs = page.locator(
+      '.shared-list-summary-head .list-people .partner-marker',
+    );
+    await expect(discs).toHaveText(['AN', 'BE']);
+    await expect(page.locator('.list-people')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    await expectNoOverflow(page);
+    await page.locator('.shared-list-summary').screenshot({
+      path: testInfo.outputPath(`list-people-${view.file}.png`),
+    });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}

@@ -133,3 +133,19 @@ export function selectedDashboardCollectionId(
       ?.selectedCollectionId ?? null
   );
 }
+
+/**
+ * Every list the person chose to show on Wir, in their order. A server that
+ * only reports the single selection still yields a list of one (#1808).
+ */
+export function selectedDashboardCollectionIds(
+  preferences: DashboardModulePreferenceList | undefined,
+  moduleKey: DashboardModuleKey,
+): string[] {
+  const item = preferences?.items.find(
+    (entry) => entry.moduleKey === moduleKey,
+  );
+  if (item?.selectedCollectionIds?.length)
+    return [...item.selectedCollectionIds];
+  return item?.selectedCollectionId ? [item.selectedCollectionId] : [];
+}

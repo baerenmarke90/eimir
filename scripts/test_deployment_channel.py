@@ -452,6 +452,11 @@ def export_compose(
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+        # Private-test eligibility (#1467): the instance supplies the verified addresses; the
+        # published channel never freezes the source default into the generated Compose.
+        "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS": (
+            "${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}"
+        ),
         # The selected private target uses FCM only (PO 2026-11-01).
         "EIMIR_PUSH_VAPID_PRIVATE_KEY": "",
         "EIMIR_PUSH_VAPID_SUBJECT": "",

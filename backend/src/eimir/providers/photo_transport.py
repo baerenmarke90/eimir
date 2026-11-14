@@ -12,7 +12,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import cast
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
+from typing import BinaryIO, cast
 from urllib.parse import urlsplit
 
 from pydantic import SecretStr
@@ -30,6 +32,34 @@ class PhotoSourceError(ValueError):
     """Fixed internal codes only; upstream exceptions and data are never quoted."""
 
 
+RETRY_AFTER_CEILING_SECONDS = 300.0
+
+
+class PhotoSourceRateLimitedError(PhotoSourceError):
+    """The provider asked this client to wait; the advice is bounded, never trusted blindly."""
+
+    def __init__(self, retry_after: float) -> None:
+        super().__init__("PHOTO_SOURCE_RATE_LIMITED")
+        self.retry_after = retry_after
+
+
+def _retry_after(value: str | None) -> float:
+    """Seconds from a delta or HTTP-date Retry-After; unknown or hostile advice is ceilinged."""
+    if value is not None:
+        value = value.strip()
+        try:
+            if value.isascii() and value.isdecimal() and len(value) <= 6:
+                return min(float(int(value)), RETRY_AFTER_CEILING_SECONDS)
+            moment = parsedate_to_datetime(value)
+            if moment.tzinfo is None:
+                moment = moment.replace(tzinfo=UTC)
+            seconds = (moment - datetime.now(UTC)).total_seconds()
+            return min(max(seconds, 0.0), RETRY_AFTER_CEILING_SECONDS)
+        except (TypeError, ValueError, OverflowError):
+            pass
+    return 5.0
+
+
 @dataclass(frozen=True)
 class SelectedPhoto:
     content: bytes = field(repr=False)
@@ -41,6 +71,7 @@ class SelectedPhoto:
 class PhotoResponse:
     content: bytes = field(repr=False)
     mime_type: str
+    size: int = 0
 
 
 def _remaining(deadline: float) -> float:
@@ -155,7 +186,11 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
 class PhotoSourceHttp:
     """Fixed-path adapter transport; callers choose no client-supplied endpoint."""
 
-    def __init__(self, origin: str, headers: dict[str, SecretStr]) -> None:
+    def __init__(
+        self, origin: str, headers: dict[str, SecretStr], *, report_rate_limit: bool = False
+    ) -> None:
+        # Only adapters that implement provider backoff opt in; the rest keep one fixed code.
+        self._report_rate_limit = report_rate_limit
         self._hostname = _hostname(origin)
         for value in headers.values():
             secret = value.get_secret_value()
@@ -187,6 +222,20 @@ class PhotoSourceHttp:
             statuses=statuses,
         ).content
 
+    def download(
+        self,
+        path: str,
+        sink: BinaryIO,
+        *,
+        limit: int,
+        mime_types: set[str],
+        deadline: float,
+    ) -> PhotoResponse:
+        """Stream a bounded body into a caller-owned file; never a whole-body heap buffer."""
+        return self.response(
+            "GET", path, limit=limit, mime_types=mime_types, deadline=deadline, sink=sink
+        )
+
     def response(
         self,
         method: str,
@@ -197,6 +246,7 @@ class PhotoSourceHttp:
         deadline: float,
         body: bytes | None = None,
         statuses: frozenset[int] = frozenset({200}),
+        sink: BinaryIO | None = None,
     ) -> PhotoResponse:
         address = _resolve_public_address(self._hostname, deadline)
         connection = _PinnedHTTPSConnection(self._hostname, address, deadline)
@@ -217,6 +267,10 @@ class PhotoSourceHttp:
             )
             with connection.getresponse() as response:
                 _remaining(deadline)
+                if response.status == 429 and self._report_rate_limit:
+                    raise PhotoSourceRateLimitedError(
+                        _retry_after(response.getheader("Retry-After"))
+                    )
                 if response.status not in statuses:
                     raise PhotoSourceError("PHOTO_SOURCE_REJECTED")
                 if response.status == 204:
@@ -236,18 +290,23 @@ class PhotoSourceHttp:
                 if length is not None and int(length) > limit:
                     raise PhotoSourceError("PHOTO_SOURCE_TOO_LARGE")
                 content = bytearray()
+                total = 0
                 while True:
                     _remaining(deadline)
-                    chunk = response.read1(min(_READ_CHUNK_BYTES, limit + 1 - len(content)))
+                    chunk = response.read1(min(_READ_CHUNK_BYTES, limit + 1 - total))
                     if not chunk:
                         break
-                    content.extend(chunk)
-                    if len(content) > limit:
+                    total += len(chunk)
+                    if total > limit:
                         raise PhotoSourceError("PHOTO_SOURCE_TOO_LARGE")
+                    if sink is not None:
+                        sink.write(chunk)
+                    else:
+                        content.extend(chunk)
                 _remaining(deadline)
-                if not content or (length is not None and len(content) != int(length)):
+                if not total or (length is not None and total != int(length)):
                     raise PhotoSourceError("PHOTO_SOURCE_RESPONSE_INVALID")
-                return PhotoResponse(bytes(content), mime)
+                return PhotoResponse(bytes(content), mime, total)
         except PhotoSourceError:
             raise
         except (OSError, http.client.HTTPException):

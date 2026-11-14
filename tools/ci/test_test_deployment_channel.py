@@ -743,6 +743,10 @@ class OptionalPhotoConfigurationTest(unittest.TestCase):
                 env["EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET"],
                 "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
             )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS"],
+                "${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}",
+            )
         self.assertNotIn("runner-client", json.dumps(exported))
         self.assertNotIn("runner-secret", json.dumps(exported))
         self.assertNotIn(

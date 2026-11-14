@@ -843,3 +843,259 @@ test.describe('integrated soft media choices', () => {
     });
   }
 });
+
+// #1467: Google returns photos and videos together. Every item is listed with its own
+// result, a failed one is retried alone, and the destination decides about videos.
+for (const view of [
+  { width: 390, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 1280, theme: 'light' },
+] as const) {
+  test(`Google photos and videos report one result per item at ${view.width} ${view.theme}`, async ({
+    page,
+  }, info) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: 'reduce',
+    });
+    await setup(page);
+    await page.addInitScript(() => {
+      window.open = () =>
+        ({
+          closed: false,
+          opener: null,
+          close() {},
+          location: { replace() {} },
+        }) as unknown as Window;
+    });
+    const root = `/api/v1/spaces/${SPACE_ID}`;
+    const typed = [
+      { id: 'photo-item', ordinal: 0, kind: 'IMAGE', mimeType: 'image/jpeg' },
+      { id: 'video-item', ordinal: 1, kind: 'VIDEO', mimeType: 'video/mp4' },
+      { id: 'flaky-item', ordinal: 2, kind: 'VIDEO', mimeType: 'video/mp4' },
+      {
+        id: 'format-item',
+        ordinal: 3,
+        kind: 'IMAGE',
+        mimeType: 'image/gif',
+        availability: 'UNAVAILABLE',
+        code: 'UNSUPPORTED_TYPE',
+      },
+    ].map((item) => ({
+      availability: 'AVAILABLE',
+      code: null,
+      attachmentId: null,
+      ...item,
+    }));
+    const starts: Record<string, unknown>[] = [];
+    const imports: string[] = [];
+    let flakyFailures = 1;
+    await page.route(`**${root}/photo-sources`, (route) =>
+      route.fulfill({
+        json: {
+          enabled: true,
+          canImport: true,
+          googleAvailable: true,
+          immichConnected: false,
+          immichConnectionToken: 'account:immich:absent',
+        },
+      }),
+    );
+    await page.route(`**${root}/photo-selections**`, (route) => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname.slice(root.length);
+      const selection = {
+        id: 'typed-selection',
+        source: 'google',
+        hasMore: false,
+      };
+      if (path === '/photo-selections' && request.method() === 'POST') {
+        starts.push(request.postDataJSON());
+        return route.fulfill({
+          status: 201,
+          json: {
+            ...selection,
+            status: 'AUTHORIZING',
+            authorizationUrl: 'https://accounts.google.com/authorize',
+            pollAfterSeconds: 1,
+            items: [],
+          },
+        });
+      }
+      if (path.endsWith('/poll'))
+        return route.fulfill({
+          json: {
+            ...selection,
+            status: 'READY',
+            allowVideo: true,
+            items: typed,
+          },
+        });
+      const imported = path.match(/\/items\/([^/]+)\/import$/);
+      if (imported) {
+        imports.push(imported[1]);
+        if (imported[1] === 'flaky-item' && flakyFailures > 0) {
+          flakyFailures--;
+          return route.fulfill({
+            status: 503,
+            contentType: 'application/problem+json',
+            json: {
+              type: 'about:blank',
+              title: 'Unavailable',
+              status: 503,
+              detail: 'Try again.',
+              code: 'PHOTO_SOURCE_UNAVAILABLE',
+            },
+          });
+        }
+        return route.fulfill({
+          json: {
+            id: `staged-${imported[1]}`,
+            status: 'READY',
+            mediaType: 'VIDEO',
+            mimeType: 'video/mp4',
+            size: 4096,
+            width: 1280,
+            height: 720,
+            durationSeconds: 8,
+            hasThumbnail: false,
+            isSensitive: false,
+            version: 1,
+            createdAt: stamp,
+          },
+        });
+      }
+      if (path.includes('/items/')) {
+        expect(request.method()).toBe('GET');
+        return route.fulfill({ body: jpeg, contentType: 'image/jpeg' });
+      }
+      return route.fulfill({ status: 204 });
+    });
+    await signIn(page);
+    await page.goto('/story/memories/new');
+    const intake = page.locator(
+      '.composer-diary-intake [aria-haspopup="dialog"]',
+    );
+    await intake.first().click();
+    const sheet = page.getByRole('dialog', {
+      name: sources.title,
+      exact: true,
+    });
+    await expect(sheet).toBeVisible();
+    await sheet
+      .getByRole('button', { name: sources.google, exact: true })
+      .click();
+    // The memory destination accepts videos, so the task says so and asks for them.
+    expect(starts).toHaveLength(1);
+    expect(starts[0]).toMatchObject({ source: 'google', allowVideo: true });
+    const results = sheet.getByRole('list', { name: sources.resultsLabel });
+    await expect(results.getByRole('listitem')).toHaveCount(4);
+    const rows = results.getByRole('listitem');
+    await expect(rows.nth(0)).toContainText(sources.itemDone);
+    await expect(rows.nth(1)).toContainText(sources.itemDone);
+    await expect(rows.nth(2)).toContainText(sources.itemFailed);
+    await expect(rows.nth(3)).toContainText(sources.itemUnsupported);
+    // One calm retry covers only what failed; nothing is imported twice.
+    const retry = sheet.getByRole('button', {
+      name: sources.retryImport,
+      exact: true,
+    });
+    await expect(retry).toBeVisible();
+    expect(
+      (await new AxeBuilder({ page }).include('.photo-source-sheet').analyze())
+        .violations,
+    ).toEqual([]);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await captureScreenshot(
+      page,
+      info,
+      `google-typed-results-${view.width}-${view.theme}.png`,
+    );
+    await retry.click();
+    await expect(rows.nth(2)).toContainText(sources.itemDone);
+    await expect(retry).toHaveCount(0);
+    expect(imports).toEqual(['video-item', 'flaky-item', 'flaky-item']);
+    await captureScreenshot(
+      page,
+      info,
+      `google-typed-retried-${view.width}-${view.theme}.png`,
+    );
+    await sheet
+      .locator('.photo-source-footer')
+      .getByRole('button', { name: taskSheets.close, exact: true })
+      .click();
+    await expect(sheet).toBeHidden();
+    // Photo and both videos are in the unsaved draft, in the order Google returned them.
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(3);
+    await captureScreenshot(
+      page,
+      info,
+      `google-typed-draft-${view.width}-${view.theme}.png`,
+    );
+  });
+}
+
+test('an image-only destination never asks Google for videos', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.addInitScript(() => {
+    window.open = () =>
+      ({
+        closed: false,
+        opener: null,
+        close() {},
+        location: { replace() {} },
+      }) as unknown as Window;
+  });
+  const root = `/api/v1/spaces/${SPACE_ID}`;
+  const starts: Record<string, unknown>[] = [];
+  await page.route(`**${root}/photo-sources`, (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        canImport: true,
+        googleAvailable: true,
+        immichConnected: false,
+        immichConnectionToken: 'account:immich:absent',
+      },
+    }),
+  );
+  await page.route(`**${root}/photo-selections**`, (route) => {
+    const request = route.request();
+    if (request.method() === 'POST') starts.push(request.postDataJSON());
+    return route.fulfill({
+      status: request.method() === 'POST' ? 201 : 204,
+      json:
+        request.method() === 'POST'
+          ? {
+              id: 'plan-selection',
+              source: 'google',
+              status: 'AUTHORIZING',
+              authorizationUrl: 'https://accounts.google.com/authorize',
+              pollAfterSeconds: 60,
+              items: [],
+              hasMore: false,
+            }
+          : undefined,
+    });
+  });
+  await signIn(page);
+  await page.goto('/plan/plans/new');
+  await page
+    .locator('.page-composer .composer-tool-row')
+    .getByRole('button', { name: composerCopy.photo, exact: true })
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: sources.google, exact: true })
+    .click();
+  await expect.poll(() => starts.length).toBe(1);
+  expect(starts[0].allowVideo ?? false).toBe(false);
+});

@@ -18,7 +18,6 @@ import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/Atta
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { Configuration } from './client/apiConfiguration';
-import { createPartnerLocationApi } from './client/partnerLocation';
 import { AppIconProvider } from './client/appIconContext';
 import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
@@ -49,6 +48,7 @@ import {
   ONCE_ROUTE,
   OnceMessagesProvider,
 } from './client/onceMessages';
+import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
@@ -73,7 +73,6 @@ import {
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
   LEGACY_ROUTE_REWRITES,
-  LEGAL_TERMS_ROUTE,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -100,12 +99,13 @@ import {
   REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
-  settingsCategoryPath,
   STORY_CHAPTERS_ROUTE,
+  STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_RECAPS_ROUTE,
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
+  settingsCategoryPath,
   TIME_TRAVEL_ROUTE,
   WISH_CREATE_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
@@ -155,7 +155,7 @@ import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
-import { LegalTermsPage } from './components/LegalTermsPage';
+import { LegalDocumentPage } from './components/LegalDocumentPage';
 import {
   ActivityProductPage,
   NotificationsProductPage,
@@ -186,6 +186,7 @@ import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
 import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
+import { RelationshipStoryPage } from './components/RelationshipStoryPage';
 import { ReminderReadPage } from './components/ReminderReadPage';
 import {
   ServerAdminAccessGate,
@@ -206,6 +207,7 @@ import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { WishProductPage } from './components/WishProductPage';
 import { WishSelectionPage } from './components/WishSelectionPage';
 import { useTranslation } from './i18n';
+import { legalDocumentIdForRoute } from './legal/legalDocuments';
 
 function SpaceContextGate({
   loading,
@@ -861,6 +863,17 @@ function AuthenticatedApp({
                 }
               />
             ))}
+            <Route
+              path={STORY_OURS_ROUTE}
+              element={
+                <RelationshipStoryPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
             {[STORY_RECAPS_ROUTE, RECAP_DETAIL_ROUTE_PATTERN].map((path) => (
               <Route
                 key={path}
@@ -1477,11 +1490,15 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       resolveActiveSpaceId(membershipsQuery.data, spaceId),
   );
   // Public legal text needs no session; it must stay readable while signed out.
-  if (location.pathname === LEGAL_TERMS_ROUTE && !entryToken) {
+  const publicLegalDocument = legalDocumentIdForRoute(location.pathname);
+  if (publicLegalDocument && !entryToken) {
     return (
       <>
         <ThemeControl />
-        <LegalTermsPage />
+        <LegalDocumentPage
+          key={publicLegalDocument}
+          documentId={publicLegalDocument}
+        />
       </>
     );
   }

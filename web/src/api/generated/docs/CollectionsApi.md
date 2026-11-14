@@ -8,7 +8,10 @@ All URIs are relative to *http://localhost*
 | [**createCollectionItem**](CollectionsApi.md#createcollectionitem) | **POST** /api/v1/spaces/{spaceId}/collections/{collectionId}/items | Create Collection Item |
 | [**deleteCollection**](CollectionsApi.md#deletecollection) | **DELETE** /api/v1/spaces/{spaceId}/collections/{collectionId} | Delete Collection |
 | [**deleteCollectionItem**](CollectionsApi.md#deletecollectionitem) | **DELETE** /api/v1/spaces/{spaceId}/collections/{collectionId}/items/{itemId} | Delete Collection Item |
+| [**deleteCollectionSuggestion**](CollectionsApi.md#deletecollectionsuggestion) | **DELETE** /api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions/{suggestionId} | Delete Collection Suggestion |
+| [**finishCollectionShopping**](CollectionsApi.md#finishcollectionshopping) | **POST** /api/v1/spaces/{spaceId}/collections/{collectionId}/finish | Finish Collection Shopping |
 | [**getCollection**](CollectionsApi.md#getcollection) | **GET** /api/v1/spaces/{spaceId}/collections/{collectionId} | Get Collection |
+| [**listCollectionSuggestions**](CollectionsApi.md#listcollectionsuggestions) | **GET** /api/v1/spaces/{spaceId}/collections/{collectionId}/suggestions | List Collection Suggestions |
 | [**listCollections**](CollectionsApi.md#listcollections) | **GET** /api/v1/spaces/{spaceId}/collections | List Collections |
 | [**reorderCollectionItems**](CollectionsApi.md#reordercollectionitems) | **PUT** /api/v1/spaces/{spaceId}/collections/{collectionId}/order | Reorder Collection Items |
 | [**updateCollection**](CollectionsApi.md#updatecollection) | **PATCH** /api/v1/spaces/{spaceId}/collections/{collectionId} | Update Collection |
@@ -319,6 +322,154 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## deleteCollectionSuggestion
+
+> deleteCollectionSuggestion(collectionId, suggestionId, spaceId)
+
+Delete Collection Suggestion
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CollectionsApi,
+} from '';
+import type { DeleteCollectionSuggestionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CollectionsApi();
+
+  const body = {
+    // string
+    collectionId: collectionId_example,
+    // string
+    suggestionId: suggestionId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies DeleteCollectionSuggestionRequest;
+
+  try {
+    const data = await api.deleteCollectionSuggestion(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **collectionId** | `string` |  | [Defaults to `undefined`] |
+| **suggestionId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## finishCollectionShopping
+
+> CollectionFinishResult finishCollectionShopping(collectionId, spaceId, collectionFinish)
+
+Finish Collection Shopping
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CollectionsApi,
+} from '';
+import type { FinishCollectionShoppingRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CollectionsApi();
+
+  const body = {
+    // string
+    collectionId: collectionId_example,
+    // string
+    spaceId: spaceId_example,
+    // CollectionFinish
+    collectionFinish: ...,
+  } satisfies FinishCollectionShoppingRequest;
+
+  try {
+    const data = await api.finishCollectionShopping(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **collectionId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **collectionFinish** | [CollectionFinish](CollectionFinish.md) |  | |
+
+### Return type
+
+[**CollectionFinishResult**](CollectionFinishResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  * X-Eimir-Shared-Achievement - Present only when the server confirms an enabled Shared Achievement for the successful domain completion. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getCollection
 
 > CollectionDetail getCollection(collectionId, spaceId)
@@ -389,9 +540,80 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## listCollectionSuggestions
+
+> CollectionSuggestionList listCollectionSuggestions(collectionId, spaceId)
+
+List Collection Suggestions
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CollectionsApi,
+} from '';
+import type { ListCollectionSuggestionsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CollectionsApi();
+
+  const body = {
+    // string
+    collectionId: collectionId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies ListCollectionSuggestionsRequest;
+
+  try {
+    const data = await api.listCollectionSuggestions(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **collectionId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**CollectionSuggestionList**](CollectionSuggestionList.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## listCollections
 
-> CollectionPage listCollections(spaceId, cursor, limit, scope, ids)
+> CollectionPage listCollections(spaceId, cursor, limit, scope, ids, kind)
 
 List Collections
 
@@ -419,6 +641,8 @@ async function example() {
     scope: ...,
     // Array<string> | Return only these Collections, so several known lists need one request. (optional)
     ids: ...,
+    // CollectionKind | Return only Collections of this kind, for example the shopping lists. (optional)
+    kind: ...,
   } satisfies ListCollectionsRequest;
 
   try {
@@ -443,6 +667,7 @@ example().catch(console.error);
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **scope** | `CollectionScope` |  | [Optional] [Defaults to `undefined`] [Enum: OPEN, COMPLETED, ALL] |
 | **ids** | `Array<string>` | Return only these Collections, so several known lists need one request. | [Optional] |
+| **kind** | `CollectionKind` | Return only Collections of this kind, for example the shopping lists. | [Optional] [Defaults to `undefined`] [Enum: GENERIC, SHOPPING] |
 
 ### Return type
 

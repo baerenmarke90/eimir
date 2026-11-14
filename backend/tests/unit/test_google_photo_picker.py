@@ -61,17 +61,71 @@ def test_selected_supported_photos_use_fixed_api_and_hide_credentials(monkeypatc
     constructor = Mock(return_value=transport)
     monkeypatch.setattr(google, "PhotoSourceHttp", constructor)
     picker = google.GooglePhotoPicker("synthetic-private-token")
-    assert picker.items("private/session", 2) == [
-        ("picked", "image/jpeg", "https://lh3.googleusercontent.com/selected")
-    ]
+    [photo] = picker.items("private/session", 2)
+    assert (photo.source_id, photo.kind, photo.mime_type, photo.code) == (
+        "picked",
+        "IMAGE",
+        "image/jpeg",
+        None,
+    )
+    assert photo.url == "https://lh3.googleusercontent.com/selected"
     assert transport.request.call_args.args[:2] == (
         "GET",
         "/v1/mediaItems?sessionId=private%2Fsession&pageSize=100",
     )
     assert "synthetic-private-token" not in repr(constructor.call_args)
-    transport.request.return_value = b'{"mediaItems":[{"id":"video","type":"VIDEO"}]}'
-    with pytest.raises(PhotoSourceError, match="PHOTO_SOURCE_IMAGE_UNAVAILABLE"):
-        picker.items("private/session", 2)
+    assert "picked" not in repr(photo)
+    assert "googleusercontent" not in repr(photo)
+
+
+def test_every_selected_item_is_enumerated_with_a_fixed_code(monkeypatch) -> None:
+    ready = {"videoMetadata": {"processingStatus": "READY"}}
+    transport = Mock()
+    transport.request.return_value = json.dumps(
+        {
+            "mediaItems": [
+                {
+                    "id": "v1",
+                    "type": "VIDEO",
+                    "mediaFile": {
+                        "mimeType": "video/mp4",
+                        "baseUrl": "https://lh3.googleusercontent.com/v1",
+                        "mediaFileMetadata": ready,
+                    },
+                },
+                {
+                    "id": "v2",
+                    "type": "VIDEO",
+                    "mediaFile": {
+                        "mimeType": "video/mp4",
+                        "baseUrl": "https://lh3.googleusercontent.com/v2",
+                        "mediaFileMetadata": {"videoMetadata": {"processingStatus": "PROCESSING"}},
+                    },
+                },
+                {
+                    "id": "p1",
+                    "type": "PHOTO",
+                    "mediaFile": {
+                        "mimeType": "image/gif",
+                        "baseUrl": "https://lh3.googleusercontent.com/p1",
+                    },
+                },
+                {"id": "x", "type": "TYPE_UNSPECIFIED"},
+            ]
+        }
+    ).encode()
+    monkeypatch.setattr(google, "PhotoSourceHttp", Mock(return_value=transport))
+    picker = google.GooglePhotoPicker("synthetic-private-token")
+    listed = picker.items("session", 10)
+    assert [(i.kind, i.provider_state, i.code) for i in listed] == [
+        ("VIDEO", "READY", None),
+        ("VIDEO", "PROCESSING", None),
+        ("IMAGE", None, "UNSUPPORTED_TYPE"),
+        ("OTHER", None, "UNSUPPORTED_TYPE"),
+    ]
+    transport.request.return_value = b'{"mediaItems":["x"]}'
+    with pytest.raises(PhotoSourceError, match="PHOTO_SOURCE_SELECTION_INVALID"):
+        picker.items("session", 10)
 
 
 def test_page_budget_cannot_expand(monkeypatch) -> None:

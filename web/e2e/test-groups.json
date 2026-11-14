@@ -76,7 +76,7 @@
     },
     "cloud-onboarding-entry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 14
+      "baselineTests": 19
     },
     "comments-offline-writes.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -506,8 +506,8 @@
     },
     "media-planning-corrections.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 9,
-      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, both photo-source entries, draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
+      "baselineTests": 13,
+      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, both photo-source entries, Google photos and videos with one result per item and a single retry (#1467), draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
     },
     "planning-search-private-profile.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -519,10 +519,15 @@
       "baselineTests": 11,
       "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, image-local pinch/pan/double-tap/fit with native photo swipes and no shell-navigation takeover, and session-owned draft restoration."
     },
+    "profile-photo-crop.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 8,
+      "reason": "Feature-owned profile photo crop step (#1854): chosen section is what gets uploaded, keyboard and touch operation, cancellation, undecodable-photo fallback, accessibility and Compact/Expanded composition."
+    },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 6,
-      "reason": "Feature-owned avatar source cancellation, single-image Pro import, explicit person persistence, accessibility and Compact/Expanded composition."
+      "baselineTests": 9,
+      "reason": "Feature-owned avatar source cancellation, single-image Pro import, explicit person persistence, accessibility and Compact/Expanded composition. Includes the Google selection task (#1467): the save/visibility contract before authorization, reopening the authorization window, retrying a failed photo, accessibility and reflow in Light/Dark."
     },
     "polish-root-refresh.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -576,8 +581,13 @@
     },
     "shopping-list-offline.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 18,
-      "reason": "Feature-owned acceptance for the shopping list (#1808): changes made offline are kept on the device, shown as waiting, sent once with the same request identity when the connection is back, survive a reload, and the waiting state is readable, accessible and bounded at 360/390/430px (Light, plus Dark at 390), in the Expanded 1280px view and at 320px with text enlarged to 200%. Step C1 adds the list composition (count, two-tone bar, partner markers, tray, optional quantity) at the same widths and themes with axe, quantity entry with a ready input, and the partner's change reaching an open list without a reload. Step C2 adds the cart bar that opens the cart as a sheet with put-back, the entry sheet with quantity, and creating a shopping list from the overview. No always-run expansion."
+      "baselineTests": 41,
+      "reason": "Feature-owned acceptance for the shopping list (#1808): changes made offline are kept on the device, shown as waiting, sent once with the same request identity when the connection is back, survive a reload, and the waiting state is readable, accessible and bounded at 360/390/430px (Light, plus Dark at 390), in the Expanded 1280px view and at 320px with text enlarged to 200%. Step C1 adds the list composition (count, two-tone bar, partner markers, tray, optional quantity) at the same widths and themes with axe, quantity entry with a ready input, and the partner's change reaching an open list without a reload. Step C2 adds the cart bar that opens the cart as a sheet with put-back, the entry sheet with quantity, and creating a shopping list from the overview. Step D2 adds the list opening from its Wir tile as a tall sheet with the cart bar at its bottom edge. Step E2 adds suggestions from earlier trips (one tap to add, removal, the privacy note), Einkauf fertig with its end state and the shared moment, and its wait for a connection. Step F adds the suggestions, cart and finish action at Dark 390, 360, 430, Expanded and 320px with text enlarged, and the glide of a checked entry with its reduced-motion behavior. Step G adds the short way to a first shopping list on the lists overview: the card at 390, 360 dark and Expanded with axe, creating and opening the default list with one tap, and the card staying away once a shopping list exists. Step H adds the people discs next to the count at 390 and Expanded with axe, and the flight of a checked entry into the cart at 390, 360 dark and Expanded, including the first entry of a trip and reduced motion without a flying copy. No always-run expansion."
+    },
+    "settings-google-account.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6,
+      "reason": "Feature-owned acceptance for remembering the Google account in Settings > Medienquellen (#1467): link and disconnect with the exact If-Match token, a rejected address explained, a stale write reloaded instead of overwritten, hidden when the import is unavailable, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
     }
   }
 }

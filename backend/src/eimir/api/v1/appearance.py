@@ -7,7 +7,13 @@ from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.appearance import service
-from eimir.appearance.models import AppIconId, AppIconPreference, WirDesignId
+from eimir.appearance.models import (
+    DEFAULT_WIR_DESIGN,
+    FREE_WIR_DESIGNS,
+    AppIconId,
+    AppIconPreference,
+    WirDesignId,
+)
 from eimir.authorization import AuthorizationContext
 from eimir.entitlements.models import Capability
 
@@ -98,7 +104,7 @@ def _design_view(
     response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
     response.headers["Cache-Control"] = "private, no-store"
     return WirDesignPreferenceView(
-        design_id=WirDesignId(preference.wir_design) if preference else WirDesignId.WARM,
+        design_id=WirDesignId(preference.wir_design) if preference else DEFAULT_WIR_DESIGN,
         version=preference.version if preference else 0,
     )
 
@@ -131,8 +137,8 @@ def update_wir_design_preference(
     body: WirDesignPreferencePatch,
     expected_token: IfMatchToken,
 ) -> WirDesignPreferenceView:
-    """Save a personal cosmetic. Warm is Free; new alternatives require Pro."""
-    if body.design_id != WirDesignId.WARM:
+    """Save a personal cosmetic. Connected and Warm are Free; other designs require Pro."""
+    if body.design_id not in FREE_WIR_DESIGNS:
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
     saved = service.save_wir_design(session, authorization, body.design_id, expected_token)
     return _design_view(saved, authorization, response)

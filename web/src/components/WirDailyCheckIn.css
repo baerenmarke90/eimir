@@ -115,59 +115,17 @@
   bottom: auto;
 }
 
-/* ---------- "Dein Tag" panel ---------- */
+/* ---------- "Dein Tag" sheet ----------
+ * The own check-in rises from the bottom like the partner sheet; the sheet
+ * owns the surface, the enter/exit motion and the reduced-motion fallback. */
 
-.wir-checkin-panel {
-  display: grid;
-  width: min(100%, 30rem);
-  grid-template-rows: 1fr;
-  margin: calc(-1 * var(--space-3)) auto var(--space-section);
-}
-
-.wir-checkin-panel[hidden] {
-  display: none;
-}
-
-.wir-checkin-panel[data-presence="open"] {
-  animation: wir-checkin-panel-rows-in var(--duration-context)
-    var(--easing-enter) both;
-}
-
-.wir-checkin-panel[data-presence="exiting"] {
-  animation: wir-checkin-panel-rows-out var(--duration-context)
-    var(--easing-exit) both;
-}
-
-.wir-checkin-panel-clip {
-  min-height: 0;
-  overflow: hidden;
-  padding: var(--space-1) var(--space-2) var(--space-3);
-  margin-inline: calc(-1 * var(--space-2));
+.wir-checkin-own-sheet .short-task-sheet-body {
+  padding-top: var(--space-1);
 }
 
 .wir-checkin-panel-inner {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-4);
-  border-radius: var(--radius-card);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-soft);
-}
-
-.wir-checkin-panel[data-presence="open"] .wir-checkin-panel-inner {
-  animation: wir-checkin-panel-in var(--duration-context) var(--easing-enter)
-    both;
-}
-
-.wir-checkin-panel[data-presence="exiting"] .wir-checkin-panel-inner {
-  animation: wir-checkin-panel-out var(--duration-context) var(--easing-exit)
-    both;
-}
-
-.wir-checkin-panel-title {
-  margin: 0;
-  font: var(--font-content-heading);
-  font-family: var(--font-display);
 }
 
 .wir-checkin-status,
@@ -463,6 +421,15 @@
   font: var(--font-supporting-copy);
 }
 
+.wir-checkin-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
 .wir-checkin-footer {
   display: flex;
   flex-wrap: wrap;
@@ -572,32 +539,6 @@
   }
 }
 
-@keyframes wir-checkin-panel-rows-in {
-  from {
-    grid-template-rows: 0fr;
-  }
-}
-
-@keyframes wir-checkin-panel-rows-out {
-  to {
-    grid-template-rows: 0fr;
-  }
-}
-
-@keyframes wir-checkin-panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@keyframes wir-checkin-panel-out {
-  to {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
 @keyframes wir-checkin-vibe-pop {
   0% {
     transform: scale(0.9);
@@ -610,8 +551,6 @@
 @media (prefers-reduced-motion: reduce) {
   .wir-checkin-badge .wir-checkin-badge-content,
   .wir-checkin-note-dot,
-  .wir-checkin-panel[data-presence],
-  .wir-checkin-panel[data-presence] .wir-checkin-panel-inner,
   .wir-checkin-vibe.is-selected .wir-checkin-vibe-circle {
     animation: none;
   }
@@ -619,7 +558,6 @@
 
 @media (forced-colors: active) {
   .wir-checkin-badge,
-  .wir-checkin-panel-inner,
   .wir-checkin-partner-block {
     border: 1px solid CanvasText;
   }

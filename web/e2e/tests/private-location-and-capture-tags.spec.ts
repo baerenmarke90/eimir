@@ -380,11 +380,13 @@ for (const premium of [false, true]) {
     await setup(page, premium);
     await page.goto('/more');
     // #1790 E1: the recaps Pro mark moved to the years index entry.
+    // #1861: the story overview entry carries a Pro mark of its own.
     await expect(page.locator('.more-destination-badge')).toHaveCount(
-      premium ? 0 : 2,
+      premium ? 0 : 3,
     );
     await expect(page.locator('a[href="/more/insights"]')).toBeVisible();
-    await page.locator('h1').click();
+    // The root tab has no visible title to click; park the pointer instead.
+    await page.mouse.move(0, 0);
     await page.screenshot({
       path: info.outputPath(
         premium ? 'more-pro-390-light.png' : 'more-free-390-light.png',

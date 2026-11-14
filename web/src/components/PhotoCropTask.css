@@ -1,0 +1,86 @@
+.photo-crop-stage {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 20rem, 46dvh);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: var(--radius-media);
+  background: var(--color-surface-subtle);
+  touch-action: none;
+  user-select: none;
+}
+
+.photo-crop-stage:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The round frame avatars use; the dimmed rim stays visible so the user sees
+   what can still be moved in. */
+.photo-crop-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--media-overlay-foreground);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 100vmax var(--color-scrim);
+  pointer-events: none;
+}
+
+.photo-crop-photo {
+  display: block;
+  max-width: none;
+  max-height: none;
+  -webkit-user-drag: none;
+}
+
+.photo-crop-stage[data-orientation="landscape"] .photo-crop-photo {
+  width: auto;
+  height: 100%;
+}
+
+.photo-crop-stage[data-orientation="portrait"] .photo-crop-photo {
+  width: 100%;
+  height: auto;
+}
+
+.photo-crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.photo-crop-zoom label {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.photo-crop-zoom input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--touch-target-web);
+  margin: 0;
+  padding: 0;
+  accent-color: var(--color-action-emphasis);
+  cursor: pointer;
+}
+
+.photo-crop-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.photo-crop-footer > button {
+  flex: 1 1 auto;
+}
+
+@media (forced-colors: active) {
+  .photo-crop-stage::after {
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+}

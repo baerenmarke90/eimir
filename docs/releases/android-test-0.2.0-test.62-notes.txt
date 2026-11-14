@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.62
+
+- Include current main with merged #1720, #1721, #1722 and #1723.
+- Stabilize video upload progress and media layout, remove the duplicate Play overlay, reduce shared add-action density and preserve safe composer exit.
+- Keep the quiet title/text composition with a subtle divider and readable Heart Moment audience/feeling choices at narrow widths and enlarged text.
+- Retain the requested gallery photo through a resize during keyboard navigation, including normal and reduced motion, native-input handoff and restored inline context.
+- Verify native picker readiness at its enabled action owner while retaining foreign-owned photo bytes, privacy checks and real video playback.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.61; increasing versionCode 62. Install over the existing app. Physical-device installation, session/data continuity, OS App Links and accessibility remain separate acceptance. Existing video/backend/media contracts are unchanged.

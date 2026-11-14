@@ -17,7 +17,7 @@ from eimir.api.deps import ensure_capability
 from eimir.auth import rate_limit
 from eimir.auth.tokens import hash_token, tokens_equal
 from eimir.authorization import AuthorizationContext
-from eimir.config import get_settings
+from eimir.config import Environment, get_settings
 from eimir.core.clock import now
 from eimir.core.errors import (
     ConflictError,
@@ -30,7 +30,7 @@ from eimir.core.errors import (
 from eimir.core.ids import new_id, parse_id
 from eimir.db.locks import lock_subject
 from eimir.entitlements.models import Capability
-from eimir.identity.models import Account, DeviceSession
+from eimir.identity.models import Account, AccountEmail, DeviceSession
 from eimir.jobs import queue
 from eimir.photo_sources.browser_binding import valid_proof
 from eimir.photo_sources.models import (
@@ -69,8 +69,44 @@ def google_import_available() -> bool:
     return False
 
 
-def _guard_google_import(provider: str) -> None:
-    if provider == "google" and not google_import_available():
+def google_test_eligible(session: Session, account_id: UUID) -> bool:
+    """Fail-closed test eligibility for the Google import (#1467).
+
+    This never changes the production gate above. It is true only on an instance whose operator
+    listed a verified address of this Account in ``EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS`` and
+    whose photo-source, encryption, HTTPS and Google OAuth prerequisites hold. The entitlement and
+    every ownership guard stay unchanged at the call sites.
+    """
+    settings = get_settings()
+    listed = settings.google_photos_test_account_emails
+    if (
+        not listed
+        or settings.demo_mode
+        or settings.environment is Environment.DEMO
+        or not enabled()
+        or not (settings.google_photos_client_id or settings.google_photos_web_client_file)
+    ):
+        return False
+    return (
+        session.scalar(
+            select(AccountEmail.id)
+            .where(
+                AccountEmail.account_id == account_id,
+                AccountEmail.verified_at.is_not(None),
+                AccountEmail.email.in_(listed),
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
+def google_import_permitted(session: Session, account_id: UUID) -> bool:
+    return google_import_available() or google_test_eligible(session, account_id)
+
+
+def _guard_google_import(session: Session, account_id: UUID, provider: str) -> None:
+    if provider == "google" and not google_import_permitted(session, account_id):
         raise ServiceUnavailableError(
             "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
         )
@@ -81,6 +117,19 @@ def _guard_recovery_policy(row: PhotoSelection) -> None:
         raise ServiceUnavailableError(
             "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
         )
+
+
+def _google_client(row: PhotoSelection) -> google_photos.GooglePhotosClient:
+    with transfer_slot():
+        client = google_photos.client_configuration()
+    if not row.payload.google_client_binding or not tokens_equal(
+        row.payload.google_client_binding, client.binding
+    ):
+        raise ServiceUnavailableError(
+            "This photo source configuration changed. Start a new selection.",
+            "PHOTO_SOURCE_CONFIGURATION_CHANGED",
+        )
+    return client
 
 
 def _guard(session: Session, auth: AuthorizationContext, *, lock: bool = True) -> None:
@@ -199,7 +248,7 @@ def start(
     media_recovery_policy: str | None = None,
 ) -> tuple[PhotoSelection, str | None]:
     _guard(session, auth)
-    _guard_google_import(provider)
+    _guard_google_import(session, auth.account_id, provider)
     if provider == "google" and (
         not valid_proof(browser_binding) or media_recovery_policy != GOOGLE_RECOVERY_POLICY
     ):
@@ -244,13 +293,15 @@ def start(
     url: str | None = None
     with transfer_slot():
         if provider == "google":
-            url, state, verifier = google_photos.authorization()
+            client = google_photos.client_configuration()
+            url, state, verifier = google_photos.authorization(client=client)
             row.state_hash = hash_token(state)
             row.payload = row.payload.model_copy(
                 update={
                     "oauth_state": state,
                     "code_verifier": verifier,
                     "browser_binding_hash": hash_token(browser_binding or ""),
+                    "google_client_binding": client.binding,
                 }
             )
         else:
@@ -298,8 +349,10 @@ def owned(
     ):
         raise NotFoundError("Photo selection not found.", "PHOTO_SOURCE_NOT_FOUND")
     if commercial:
-        _guard_google_import(row.provider)
+        _guard_google_import(session, auth.account_id, row.provider)
         _guard_recovery_policy(row)
+        if row.provider == "google":
+            _google_client(row)
     return row
 
 
@@ -318,8 +371,10 @@ def _load_immich_page(session: Session, row: PhotoSelection, page: int) -> None:
 
 
 def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> None:
-    _guard_google_import(row.provider)
+    _guard_google_import(session, row.account_id, row.provider)
     _guard_recovery_policy(row)
+    if row.provider == "google":
+        _google_client(row)
     rate_limit.check(
         session,
         "photo-source-poll",
@@ -330,6 +385,13 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
         if row.provider == "immich":
             if more and row.payload.next_page:
                 _load_immich_page(session, row, row.payload.next_page)
+            return
+        if (
+            row.status == "PICKING"
+            and row.payload.google_poll_deadline is not None
+            and row.payload.google_poll_deadline <= now()
+        ):
+            _finish_expired_google(session, row)
             return
         if row.status != "PICKING" or row.next_poll_at > now():
             return
@@ -352,13 +414,40 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
             )
             row.status = "READY"
         else:
-            config = state.get("pollingConfig", {})
-            interval = config.get("pollInterval", "5s") if isinstance(config, dict) else "5s"
-            try:
-                seconds = float(str(interval).removesuffix("s"))
-            except ValueError:
-                seconds = 5
-            row.next_poll_at = now() + timedelta(seconds=min(60, max(3, seconds)))
+            timing = google_photos.session_timing(
+                state,
+                at=now(),
+                expires_at=row.expires_at,
+                poll_deadline=data.google_poll_deadline,
+            )
+            previous_deadline = min(data.google_poll_deadline or row.expires_at, row.expires_at)
+            row.expires_at = timing.expires_at
+            row.payload = data.model_copy(update={"google_poll_deadline": timing.poll_deadline})
+            if timing.poll_deadline <= now():
+                _finish_expired_google(session, row)
+                return
+            row.next_poll_at = min(now() + timing.interval, timing.poll_deadline)
+            if timing.poll_deadline < previous_deadline:
+                queue.enqueue(
+                    session,
+                    EXPIRE_JOB,
+                    {"selection_id": str(row.id), "polling_timeout": True},
+                    delay=timing.poll_deadline - now(),
+                )
+
+
+def _finish_expired_google(session: Session, row: PhotoSelection) -> None:
+    data = row.payload
+    # Called inside the existing bounded transfer slot. Remote cleanup must not
+    # prevent immediate local credential erasure on a timeout.
+    if data.access_token and data.provider_session_id:
+        with suppress(PhotoSourceError):
+            google_photos.GooglePhotoPicker(data.access_token).delete(data.provider_session_id)
+    row.status = "EXPIRED"
+    row.payload = data.model_copy(
+        update={"access_token": None, "provider_session_id": None, "picker_uri": None}
+    )
+    session.flush()
 
 
 def callback(
@@ -368,7 +457,13 @@ def callback(
     *,
     browser_binding: str | None = None,
 ) -> str | None:
-    if not google_import_available() or not state or not valid_proof(browser_binding):
+    # Cheap configuration-only precheck: with the production gate closed and no test list
+    # configured, nothing below may touch the database or the provider.
+    if (
+        not (google_import_available() or get_settings().google_photos_test_account_emails)
+        or not state
+        or not valid_proof(browser_binding)
+    ):
         return None
     # Discover only ownership metadata first. Match the existing lifecycle lock
     # order: Membership -> entitlement -> selection. Locking the selection
@@ -386,7 +481,11 @@ def callback(
             PhotoSelection.status == "AUTHORIZING",
         )
     ).first()
-    if metadata is None or not enabled():
+    if (
+        metadata is None
+        or not enabled()
+        or not google_import_permitted(session, metadata.account_id)
+    ):
         return None
     account = session.get(Account, metadata.account_id)
     device = session.get(DeviceSession, metadata.device_session_id)
@@ -439,9 +538,14 @@ def callback(
             raise PhotoSourceError("PHOTO_SOURCE_AUTHORIZATION_FAILED")
         if not code or not data.code_verifier or not data.oauth_state:
             raise PhotoSourceError("PHOTO_SOURCE_AUTHORIZATION_FAILED")
+        client = _google_client(row)
         with transfer_slot():
-            token = google_photos.exchange(code, data.oauth_state, data.code_verifier)
+            token = google_photos.exchange(
+                code, data.oauth_state, data.code_verifier, client=client
+            )
             created = google_photos.GooglePhotoPicker(token).create(data.max_items)
+            # Persist the new session before validating its deadlines so failure
+            # cleanup can delete it using the token that created it.
             row.payload = data.model_copy(
                 update={
                     "access_token": token,
@@ -453,9 +557,29 @@ def callback(
                 }
             )
             row.status = "PICKING"
+            timing = google_photos.session_timing(created, at=now(), expires_at=row.expires_at)
+            row.expires_at = timing.expires_at
+            row.next_poll_at = min(now() + timing.interval, timing.poll_deadline)
+            row.payload = row.payload.model_copy(
+                update={"google_poll_deadline": timing.poll_deadline}
+            )
+            if timing.poll_deadline <= now():
+                _finish_expired_google(session, row)
+                return None
+            queue.enqueue(
+                session,
+                EXPIRE_JOB,
+                {"selection_id": str(row.id), "polling_timeout": True},
+                delay=max(timedelta(), timing.poll_deadline - now()),
+            )
             session.flush()
             return row.payload.picker_uri
     except (PhotoSourceError, DomainError):
+        if row.payload.access_token and row.payload.provider_session_id:
+            with suppress(PhotoSourceError, DomainError), transfer_slot():
+                google_photos.GooglePhotoPicker(row.payload.access_token).delete(
+                    row.payload.provider_session_id
+                )
         row.status = "FAILED"
         row.payload = data.model_copy(
             update={
@@ -463,6 +587,8 @@ def callback(
                 "code_verifier": None,
                 "browser_binding_hash": None,
                 "access_token": None,
+                "provider_session_id": None,
+                "picker_uri": None,
             }
         )
         session.flush()
@@ -472,8 +598,10 @@ def callback(
 def read_item(
     session: Session, row: PhotoSelection, item_id: str, *, thumbnail: bool
 ) -> SelectedPhoto:
-    _guard_google_import(row.provider)
+    _guard_google_import(session, row.account_id, row.provider)
     _guard_recovery_policy(row)
+    if row.provider == "google":
+        _google_client(row)
     rate_limit.check(
         session,
         "photo-source-read",
@@ -515,4 +643,10 @@ def expire(session: Session, payload: dict[str, object]) -> None:
         select(PhotoSelection).where(PhotoSelection.id == identifier).with_for_update()
     ).scalar_one_or_none()
     if row:
-        remove(session, row)
+        deadline = row.payload.google_poll_deadline
+        if (
+            payload.get("polling_timeout") is not True
+            or row.expires_at <= now()
+            or (row.status == "PICKING" and deadline is not None and deadline <= now())
+        ):
+            remove(session, row)

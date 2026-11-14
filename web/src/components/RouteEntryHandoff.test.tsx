@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import mapCopy from '../i18n/locales/memoryMap';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { StoryViewTabs } from './StoryViewTabs';
-import mapCopy from '../i18n/locales/memoryMap';
 
 afterEach(() => {
   cleanup();
@@ -39,7 +39,7 @@ function Scene() {
         <button
           type="button"
           onClick={() =>
-            navigate('/more/passport/edition', {
+            navigate('/story/recaps/edition', {
               state: { taskOriginKey: captureOrigin() },
             })
           }
@@ -49,7 +49,7 @@ function Scene() {
         <button
           type="button"
           onClick={() =>
-            navigate('/more/passport/edition?page=1', {
+            navigate('/story/recaps/edition?page=1', {
               replace: true,
               state: { ...location.state, inPlaceRouteUpdate: true },
             })
@@ -60,7 +60,7 @@ function Scene() {
         <button
           type="button"
           onClick={() =>
-            navigate('/more/passport/another', {
+            navigate('/story/recaps/another', {
               state: { ...location.state, inPlaceRouteUpdate: true },
             })
           }

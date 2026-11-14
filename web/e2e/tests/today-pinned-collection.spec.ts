@@ -1,3 +1,4 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -128,6 +129,7 @@ async function installMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -584,10 +586,22 @@ for (const view of [
       });
       const input = dialog.getByLabel(m5s3.collection.itemTitle);
       await input.fill('Butter');
-      await dialog
-        .getByRole('button', { name: m5s3.collection.addItem })
-        .click();
+      const submit = dialog.getByRole('button', {
+        name: m5s3.collection.addItem,
+      });
+      const idleBounds = await submit.boundingBox();
+      await submit.click();
       await expect.poll(() => titles.length).toBe(1);
+      const saving = dialog.getByRole('button', { name: m5s3.common.saving });
+      await expect(saving).toBeDisabled();
+      await expect(saving).toHaveAttribute('aria-busy', 'true');
+      const pendingBounds = await saving.boundingBox();
+      if (!idleBounds || !pendingBounds)
+        throw new Error('The add action must remain visible while saving.');
+      expect(Math.abs(pendingBounds.width - idleBounds.width)).toBeLessThan(1);
+      expect(Math.abs(pendingBounds.height - idleBounds.height)).toBeLessThan(
+        1,
+      );
       await input.fill('Reis');
       await input.press('Enter');
       expect(titles).toEqual(['Butter']);
@@ -706,7 +720,7 @@ test('shows an optimistic collection-detail check, rolls back a failed write and
   await installMocks(page);
   await signIn(page);
 
-  let releaseFailure: (() => void) | null = null;
+  let releaseFailure!: () => void;
   let failFirstWrite = true;
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items/*`,
@@ -740,7 +754,7 @@ test('shows an optimistic collection-detail check, rolls back a failed write and
   const markDone = m5s3.collection.markDone.replace('{{title}}', 'Milch');
   const markOpen = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
   await row.getByRole('button', { name: markDone }).click();
-  await expect.poll(() => releaseFailure !== null).toBe(true);
+  await expect.poll(() => typeof releaseFailure === 'function').toBe(true);
   await expect(row.getByRole('button', { name: markOpen })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -914,8 +928,10 @@ for (const outcome of ['failure', 'success'] as const) {
       'aria-pressed',
       'false',
     );
+    // The finished entry (Brot) sits in the tray after the open ones, so the
+    // revised entry is second among Äpfel, Hafermilch and Kaffee.
     await expect(
-      page.locator('[data-sortable-item-id]').nth(2),
+      page.locator('[data-sortable-item-id]').nth(1),
     ).toHaveAttribute('data-sortable-item-id', itemId);
     await expect(
       page.locator(
@@ -1423,7 +1439,7 @@ test('keeps a shared Collection reorder in place until confirmed or rolled back'
   const network = await installMocks(page);
   await signIn(page);
 
-  let releaseFailure: (() => void) | null = null;
+  let releaseFailure!: () => void;
   let failFirstWrite = true;
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
@@ -1470,7 +1486,7 @@ test('keeps a shared Collection reorder in place until confirmed or rolled back'
   await moveApples.focus();
   await page.keyboard.press('ArrowUp');
   await expect.poll(names).toEqual(['Milch', 'Äpfel', 'Brot']);
-  await expect.poll(() => releaseFailure !== null).toBe(true);
+  await expect.poll(() => typeof releaseFailure === 'function').toBe(true);
   await expect(page.getByRole('status')).toHaveText(m5s3.collection.reordering);
   await expect(moveApples).toBeDisabled();
   await expectNoHorizontalOverflow(page);

@@ -129,6 +129,8 @@ const serviceWorkerContext = {
       addAll: async () => undefined,
       match: async () => undefined,
       put: async () => undefined,
+      keys: async () => [],
+      delete: async () => true,
     }),
     keys: async () => [],
     delete: async () => true,
@@ -155,12 +157,17 @@ assert(
 
 function makeRequest(
   path,
-  { method = 'GET', mode = 'cors', auth = false } = {},
+  {
+    method = 'GET',
+    mode = 'cors',
+    auth = false,
+    origin = 'https://eimir.test',
+  } = {},
 ) {
   return {
     method,
     mode,
-    url: `https://eimir.test${path}`,
+    url: `${origin}${path}`,
     headers: {
       has(name) {
         return auth && name.toLowerCase() === 'authorization';
@@ -216,6 +223,36 @@ assert(
   'Service worker must not intercept mutation requests.',
 );
 
+const mapOrigin = 'https://tiles.openfreemap.org';
+const mapTile = await dispatchFetch(
+  makeRequest('/planet/20261101_080013_pt/12/2200/1350.pbf', {
+    origin: mapOrigin,
+  }),
+);
+assert(
+  mapTile.responded,
+  'Basemap tiles must use the bounded persistent map cache.',
+);
+for (const [label, request] of [
+  [
+    'authenticated',
+    makeRequest('/planet/x/1/0/0.pbf', { origin: mapOrigin, auth: true }),
+  ],
+  [
+    'mutating',
+    makeRequest('/planet/x/1/0/0.pbf', { origin: mapOrigin, method: 'POST' }),
+  ],
+  [
+    'other third-party',
+    makeRequest('/tile.png', { origin: 'https://tiles.example.test' }),
+  ],
+]) {
+  assert(
+    !(await dispatchFetch(request)).responded,
+    `Service worker must not intercept ${label} cross-origin requests.`,
+  );
+}
+
 rejectNetwork = false;
 const onlineNavigation = await dispatchFetch(
   makeRequest('/momente/42', { mode: 'navigate' }),
@@ -233,6 +270,212 @@ assert(
   offlineNavigation.responded && offlineNavigation.response === offlineResponse,
   'Failed top-level navigation must return the privacy-safe offline fallback.',
 );
+
+// Basemap cache behavior, with a stateful Cache stand-in.
+{
+  const handlers = new Map();
+  const stored = new Map();
+  let online = true;
+  let fetches = 0;
+  const cache = {
+    addAll: async () => undefined,
+    match: async (request) => stored.get(request.url),
+    put: async (request, response) => {
+      stored.set(request.url, response);
+    },
+    keys: async () => [...stored.keys()].map((url) => ({ url })),
+    delete: async (key) => stored.delete(key.url),
+  };
+  runInNewContext(
+    serviceWorker,
+    {
+      URL,
+      Response: { error: () => ({ kind: 'error' }) },
+      self: {
+        location: { origin: 'https://eimir.test' },
+        addEventListener: (type, handler) => handlers.set(type, handler),
+      },
+      caches: {
+        open: async () => cache,
+        keys: async () => [],
+        delete: async () => true,
+        match: async () => undefined,
+      },
+      fetch: async (request) => {
+        fetches += 1;
+        if (!online) throw new Error('offline');
+        return {
+          ok: true,
+          type: 'cors',
+          url: request.url,
+          clone() {
+            return this;
+          },
+        };
+      },
+    },
+    { filename: 'service-worker.js' },
+  );
+  const request = (path) => makeRequest(path, { origin: mapOrigin });
+  const respond = async (path) => {
+    let response;
+    handlers.get('fetch')({
+      request: request(path),
+      respondWith(value) {
+        response = Promise.resolve(value);
+      },
+    });
+    const result = await response;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return result;
+  };
+  const tile = '/planet/20261101_080013_pt/12/2200/1350.pbf';
+  const style = '/styles/liberty';
+
+  await respond(tile);
+  await respond(style);
+  assert(stored.size === 2, 'Basemap tiles and style must be stored.');
+  const afterWarm = fetches;
+  await respond(tile);
+  assert(fetches === afterWarm, 'A cached versioned tile must not refetch.');
+  await respond(style);
+  assert(
+    fetches === afterWarm + 1,
+    'The mutable style must revalidate online.',
+  );
+
+  online = false;
+  assert(
+    (await respond(tile)).url?.endsWith(tile),
+    'A cached tile must be available offline.',
+  );
+  assert(
+    (await respond(style)).url?.endsWith(style),
+    'The last cached style must be available offline.',
+  );
+  assert(
+    (await respond('/planet/20261101_080013_pt/12/9/9.pbf')).kind === 'error',
+    'An uncached tile must fail offline instead of inventing content.',
+  );
+}
+
+const browserNotificationId = '2f36b77e-e4f8-46a1-9600-6790e1117a05';
+const browserActivationId = 'bf9184d5-5225-4891-bda6-9fcaa51c7f5d';
+const pushReference = {
+  notificationId: browserNotificationId,
+  activationId: browserActivationId,
+};
+const displayed = [];
+const focused = [];
+const opened = [];
+let browserClients = [];
+let browserBinding = { activationId: browserActivationId };
+
+serviceWorkerContext.MessageChannel = MessageChannel;
+serviceWorkerContext.setTimeout = setTimeout;
+serviceWorkerContext.clearTimeout = clearTimeout;
+serviceWorkerContext.self.registration = {
+  async showNotification(title, options) {
+    displayed.push({ title, ...options });
+  },
+};
+serviceWorkerContext.self.clients = {
+  matchAll: async () => browserClients,
+  async openWindow(path) {
+    opened.push(path);
+  },
+};
+serviceWorkerContext.caches.open = async (cache) => ({
+  async match(key) {
+    if (
+      cache === 'eimir-browser-push-v1' &&
+      key === '/_eimir/browser-push-binding' &&
+      browserBinding
+    )
+      return { json: async () => browserBinding };
+  },
+});
+
+function dispatchWorkerEvent(type, input) {
+  let outcome;
+  serviceWorkerHandlers.get(type)({
+    ...input,
+    waitUntil(value) {
+      outcome = value;
+    },
+  });
+  return outcome;
+}
+
+for (const [locale, body] of [
+  ['de', 'Du hast neue Nachrichten.'],
+  ['en', 'You have new messages.'],
+]) {
+  await dispatchWorkerEvent('push', {
+    data: {
+      json: () => ({
+        type: 'wake',
+        ...pushReference,
+        locale,
+        title: 'Private title',
+        body: 'Private content',
+      }),
+    },
+  });
+  const shown = displayed.at(-1);
+  assert(
+    shown.title === 'eimir.' && shown.body === body,
+    'Browser push must render only the neutral copy for the given locale.',
+  );
+  assert(
+    Object.keys(shown.data).length === 2 &&
+      shown.data.notificationId === browserNotificationId &&
+      shown.data.activationId === browserActivationId,
+    'Click data may keep only the delivery reference and its activation.',
+  );
+}
+await dispatchWorkerEvent('push', {
+  data: {
+    json: () => ({ type: 'wake', ...pushReference, activationId: 'invalid' }),
+  },
+});
+assert(displayed.length === 2, 'Malformed push references must stay silent.');
+
+browserClients = [
+  ['stale', 'ignored'],
+  ['current', 'received'],
+].map(([tab, response]) => ({
+  url: 'https://eimir.test/today',
+  postMessage(message, [port]) {
+    assert(
+      message.type === 'eimir-notification-open' &&
+        message.notificationId === browserNotificationId,
+      'The worker must hand only a reference to a candidate tab.',
+    );
+    port.postMessage(response);
+    port.close();
+  },
+  async focus() {
+    focused.push(tab);
+  },
+}));
+const click = { notification: { data: displayed[0].data, close() {} } };
+await dispatchWorkerEvent('notificationclick', click);
+assert(
+  focused.join() === 'current' && opened.length === 0,
+  'Only a tab that accepts the push activation may be focused.',
+);
+
+browserClients = [];
+await dispatchWorkerEvent('notificationclick', click);
+assert(
+  opened[0] ===
+    `/more/notifications#eimir-push=${browserActivationId}.${browserNotificationId}`,
+  'A cold open must go to the inbox with an opaque activation-bound hint.',
+);
+browserBinding = null;
+await dispatchWorkerEvent('notificationclick', click);
+assert(opened.length === 1, 'A click after local revocation must stay silent.');
 
 const registration = read('src/pwa.ts');
 assert(

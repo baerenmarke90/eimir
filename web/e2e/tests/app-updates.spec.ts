@@ -3,11 +3,19 @@ import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/appUpdates';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 
 async function open(page: Page, options = '') {
   await page.route(
     'https://api.eimir-fixture.test/api/v1/**',
     async (route) => {
+      if (
+        await fulfillFreeEntitlements(
+          route,
+          '00000000-0000-4000-8000-000000000010',
+        )
+      )
+        return;
       const pathname = new URL(route.request().url()).pathname;
       if (pathname.endsWith('/notifications/unread-count'))
         return route.fulfill({ json: { unreadCount: 0 } });

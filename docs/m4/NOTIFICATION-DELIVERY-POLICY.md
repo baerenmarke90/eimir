@@ -1,12 +1,16 @@
 # Notification delivery classification: #515 foundation
 
-## Current module workflow (v4, 2026-11-01)
+## Current module workflow (v11)
 
 The Product Owner-approved [module notification workflow](../product/notification-workflow.md)
-now owns cross-domain admission. It extends the historical foundation below:
-scheduled new Plans, reactions and accepted invitations are Center-only;
-imminent Plan changes/cancellation, deliberate shared Wish rounds/revealed results
-and owner-only background transfer outcomes use neutral immediate delivery.
+now owns cross-domain admission. It extends the historical foundation below.
+Accepted invitations notify the inviter. New Plans for today or tomorrow use
+the existing reminder preference and coalesce with nearby standard start
+reminders on each endpoint. Personal Wish reminders notify only their owners
+at the chosen time. Imminent Plan changes and cancellations, shared Wish-round
+invitations and results, and owner-only transfer outcomes use neutral immediate
+delivery. Photo reactions use the recipient's existing comment Push preference
+and Quiet Hours.
 Daily question sets, quotes, presence and Vibe submissions,
 rediscovery, ordinary edits and local games stay silent. Existing comments,
 recipient consent and quiet hours remain effective; no daily summary is added.

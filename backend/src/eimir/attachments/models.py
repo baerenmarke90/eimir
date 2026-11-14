@@ -48,13 +48,15 @@ class AttachmentStatus(StrEnum):
 class MediaType(StrEnum):
     IMAGE = "IMAGE"
     VIDEO = "VIDEO"
+    AUDIO = "AUDIO"
+    DOCUMENT = "DOCUMENT"
 
 
 class AttachmentPayload(ProtectedPayload):
     """File information retained without promoting it to server metadata.
 
-    ``original_name`` exists only for support and is never used for paths,
-    authorization, or content type (Media Pipeline, section 5).
+    ``original_name`` is protected display metadata for documents. It is never
+    used for storage paths, authorization, or content type.
 
     ``captured_at`` and ``orientation`` form the M2-D14 allowlist. Everything
     else is discarded from the attachment projection during ingest. Selected-photo

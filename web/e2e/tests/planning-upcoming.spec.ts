@@ -1,3 +1,4 @@
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { readFileSync } from 'node:fs';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -178,6 +179,7 @@ async function installPlanningMocks(
   let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
@@ -665,7 +667,11 @@ test('Wish conversion opens the authoritative Plan result and preserves return c
 
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${CONVERTED_PLAN_ID}$`));
   await expect(
-    page.getByRole('heading', { name: CONVERTED_PLAN_TITLE, level: 1 }),
+    page.getByRole('heading', {
+      name: CONVERTED_PLAN_TITLE,
+      level: 2,
+      exact: true,
+    }),
   ).toBeVisible();
   expect(calls.conversionIfMatch).toBe('2');
   expect(calls.conversionBody).toMatchObject({
@@ -984,7 +990,11 @@ for (const [width, theme] of [
     );
     await completed.click();
     await expect(
-      page.getByRole('heading', { name: COMPLETED_TITLE, level: 1 }),
+      page.getByRole('heading', {
+        name: COMPLETED_TITLE,
+        level: 2,
+        exact: true,
+      }),
     ).toBeVisible();
     await page
       .getByRole('button', { name: taskBoundary.back, exact: true })

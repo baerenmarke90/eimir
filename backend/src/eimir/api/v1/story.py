@@ -17,7 +17,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Response, status
 from pydantic import Field, RootModel
-from sqlalchemy import select
 
 from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, Tenant
@@ -34,6 +33,7 @@ from eimir.api.v1.memories import (
     MemoryAttachmentSummary,
     project_experience_answers,
 )
+from eimir.api.v1.rediscovery import RediscoveryContext, project_rediscovery
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, readable, visibility_of
@@ -45,6 +45,7 @@ from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.places.models import Place
+from eimir.plans import discreet
 from eimir.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
 from eimir.story import discover_service, photo_service, service, view_service
 from eimir.story.service import StoryKind, StoryOrder, StoryRow
@@ -195,6 +196,8 @@ class DiscoverSelection(ApiModel):
     lead: StoryItem | None
     items: list[StoryItem]
     lead_context: DiscoverLeadContext | None = None
+    # Additive (#1790 C2): wording facts for the featured lead card.
+    lead_rediscovery: RediscoveryContext | None = None
 
 
 class StoryViewReceipt(ApiModel):
@@ -235,7 +238,7 @@ def _authors(session: DbSession, owner_ids: set[UUID]) -> dict[UUID, AuthorSumma
     return resolve_author_summaries(session, owner_ids)
 
 
-def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
+def _attachment_summary(attachment: Attachment, *, conceal: bool = False) -> AttachmentSummary:
     return AttachmentSummary(
         id=attachment.id,
         status="PROCESSING" if attachment.status == "VALIDATING" else attachment.status,
@@ -247,7 +250,7 @@ def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
         height=attachment.height,
         has_thumbnail=attachment.has_thumbnail,
         duration_seconds=attachment.duration_seconds,
-        is_sensitive=attachment.payload.is_sensitive,
+        is_sensitive=attachment.payload.is_sensitive or conceal,
     )
 
 
@@ -286,22 +289,76 @@ def get_shared_photos(
     """
     response.headers["Cache-Control"] = "private, no-store"
     page = photo_service.read_shared_photos(session, authorization, cursor=cursor, limit=limit)
-    attachments = {
-        attachment.id: attachment
-        for attachment in session.scalars(
-            select(Attachment).where(Attachment.id.in_([row.attachment_id for row in page.items]))
-        )
-    }
     return SharedPhotoPage(
         items=[
             SharedPhoto(
+                parent_type=photo_service.PhotoParentType(row.parent_type),
+                parent_id=row.parent_id,
+                effective_date=row.effective_date,
+                attachment=_attachment_summary(row.attachment),
+            )
+            for row in page.items
+        ],
+        total_count=page.total_count,
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )
+
+
+class MediaGalleryItem(ApiModel):
+    parent_type: photo_service.MediaGalleryParentType
+    parent_id: UUID
+    effective_date: date
+    attachment: AttachmentSummary
+
+
+class MediaGalleryPage(ApiModel):
+    items: list[MediaGalleryItem]
+    total_count: int = Field(ge=0)
+    next_cursor: str | None
+    has_more: bool
+
+
+@router.get(
+    "/spaces/{spaceId}/media",
+    response_model=MediaGalleryPage,
+    operation_id="getMediaGallery",
+    responses=problem_responses(400, 401, 404, 422),
+)
+def get_media_gallery(
+    response: Response,
+    tenant: Tenant,
+    authorization: Authorization,
+    session: DbSession,
+    visibility: Annotated[ContentVisibility, Query()] = ContentVisibility.SHARED,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=photo_service.MAX_LIMIT)] = photo_service.DEFAULT_LIMIT,
+) -> MediaGalleryPage:
+    """Browse ready media bound to shared entries or to the caller's private entries."""
+    response.headers["Cache-Control"] = "private, no-store"
+    page = photo_service.read_media_gallery(
+        session, authorization, visibility=visibility, cursor=cursor, limit=limit
+    )
+    # Photos of a discreet Plan inherit its concealment (#1790 F3).
+    discreet_plans = discreet.discreet_plan_ids(
+        session,
+        (
+            row.parent_id
+            for row in page.items
+            if row.parent_type == photo_service.MediaGalleryParentType.PLAN
+        ),
+    )
+    return MediaGalleryPage(
+        items=[
+            MediaGalleryItem(
                 parent_type=row.parent_type,
                 parent_id=row.parent_id,
                 effective_date=row.effective_date,
-                attachment=_attachment_summary(attachments[row.attachment_id]),
+                attachment=_attachment_summary(
+                    row.attachment, conceal=row.parent_id in discreet_plans
+                ),
             )
             for row in page.items
-            if row.attachment_id in attachments
         ],
         total_count=page.total_count,
         next_cursor=page.next_cursor,
@@ -341,6 +398,7 @@ def get_story_discover(
         lead=lead,
         items=items,
         lead_context=lead_context,
+        lead_rediscovery=_lead_rediscovery(session, authorization, lead),
     )
 
 
@@ -368,6 +426,7 @@ def renew_story_discover(
         lead=lead,
         items=projected[1:] if projected else [],
         lead_context=_lead_context(result.selection_date, lead, result.rows),
+        lead_rediscovery=_lead_rediscovery(session, authorization, lead),
     )
 
 
@@ -580,10 +639,16 @@ def project_story_items(
                             MemoryAttachmentSummary(
                                 **_attachment_summary(bound.attachment).model_dump(),
                                 position=bound.position,
-                                can_edit_sensitivity=binding.can_edit_sensitivity(
-                                    bound.attachment,
-                                    account_id=authorization.account_id,
-                                    parent_owner_id=memory.owner_id,
+                                can_edit_sensitivity=(
+                                    (
+                                        memory.experience_kind is None
+                                        and bound.attachment.media_type == "IMAGE"
+                                    )
+                                    or binding.can_edit_sensitivity(
+                                        bound.attachment,
+                                        account_id=authorization.account_id,
+                                        parent_owner_id=memory.owner_id,
+                                    )
                                 ),
                             )
                             for bound in galleries.get(memory.id, [])
@@ -606,7 +671,7 @@ def project_story_items(
                     effective_date=item.effective_date,
                     heart_moment=SharedHeartMomentSummary(
                         id=heart_moment.id,
-                        text=heart_moment.payload.text,
+                        text=heart_moment.payload.text or heart_moment.payload.audio_title,
                         places=places.get(heart_moment.id, []),
                         emotion=heart_moment.payload.emotion,
                         visibility=visibility,
@@ -684,6 +749,17 @@ def _story_item_identity(item: StoryItem) -> tuple[StoryKind, UUID]:
     if item.root.kind is StoryKind.HEART_MOMENT:
         return item.root.kind, item.root.heart_moment.id
     return item.root.kind, item.root.milestone.id
+
+
+def _lead_rediscovery(
+    session: DbSession,
+    authorization: Authorization,
+    lead: StoryItem | None,
+) -> RediscoveryContext | None:
+    if lead is None:
+        return None
+    kind, item_id = _story_item_identity(lead)
+    return project_rediscovery(session, authorization, kind.value, item_id)
 
 
 def _lead_context(

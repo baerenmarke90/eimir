@@ -112,7 +112,7 @@ export function usePullToRefresh({
       const interactiveTarget =
         target instanceof Element
           ? target.closest(
-              'form, input, textarea, select, [contenteditable]:not([contenteditable="false"]), dialog, [role="dialog"], [role="slider"], [role="switch"], [draggable="true"], video, audio, .leaflet-container, .media-gallery, [data-pull-to-refresh-block="true"]',
+              'form, input, textarea, select, [contenteditable]:not([contenteditable="false"]), dialog, [role="dialog"], [role="slider"], [role="switch"], [draggable="true"], video, audio, .place-map-viewport, .media-gallery, [data-pull-to-refresh-block="true"]',
             )
           : null;
       if (

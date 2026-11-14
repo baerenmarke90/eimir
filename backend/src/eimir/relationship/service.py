@@ -155,6 +155,28 @@ def _ensure_partner_profile(session: Session, space_id: UUID, account_id: UUID) 
     ensure_profile(session, space_id, account_id)
 
 
+def _initial_configuration(space_id: UUID, founder: Account) -> SpaceConfiguration:
+    """Start a new Space with both daily check-in dimensions on (#1790).
+
+    The daily check-in dimensions need a shared daily context time zone, so a new Space
+    adopts the founder's validated personal zone; the manager's device keeps it
+    current afterwards. Without a usable zone the check-in dimensions start off.
+    """
+    from eimir.identity.preferences import validate_timezone
+
+    try:
+        timezone: str | None = validate_timezone(founder.timezone)
+    except ValidationError:
+        timezone = None
+    enabled = timezone is not None
+    return SpaceConfiguration(
+        space_id=space_id,
+        daily_context_timezone=timezone,
+        vibe_check_enabled=enabled,
+        energy_check_in_enabled=enabled,
+    )
+
+
 def create_space(session: Session, founder: Account) -> Space:
     """Create a Space and add the founder as a partner."""
     space = Space(configuration_manager_account_id=founder.id)
@@ -162,7 +184,7 @@ def create_space(session: Session, founder: Account) -> Space:
     session.flush()
 
     session.add(SpaceProfile(space_id=space.id))
-    session.add(SpaceConfiguration(space_id=space.id))
+    session.add(_initial_configuration(space.id, founder))
     session.add(
         Membership(
             space_id=space.id,
@@ -365,8 +387,12 @@ def end_membership(
     from eimir.memories import create_receipts
     from eimir.story import view_service
     from eimir.wish_selections.service import purge_space
+    from eimir.wishes import reminders as wish_reminders
 
     gentle.purge_space_member(session, membership.account_id, membership.space_id)
+    wish_reminders.purge_member(
+        session, account_id=membership.account_id, space_id=membership.space_id
+    )
     view_service.purge_viewer_for_space(
         session,
         space_id=membership.space_id,
@@ -382,6 +408,9 @@ def end_membership(
         space_id=membership.space_id,
         account_id=membership.account_id,
     )
+    from eimir.once_messages import service as once_messages
+
+    once_messages.purge_space(session, membership.space_id)
     purge_space(session, membership.space_id)
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value
     membership.ended_at = now()

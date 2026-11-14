@@ -6,6 +6,25 @@ here does not belong in the project.
 
 As of: 2026-10-20
 
+## Client-sealed temporary messages (2026-11-06, #1672)
+
+`jose` **6.2.13**, [panva/jose](https://github.com/panva/jose), MIT license,
+provides standard General JWE RSA-OAEP-256/A256GCM framing through Web Crypto.
+The exact npm package and integrity are pinned in the Web lockfile. It runs
+locally in the canonical Web/Capacitor UI; no provider, account, service fee,
+network request, API key or hoster setting is added. The server only receives
+public keys and opaque, bounded ciphertext. Existing server-side `joserfc`
+Push previews remain a separate operator-keyed boundary. Native MediaRecorder,
+IndexedDB, canvas export and the shared HeartMoment voice primitives own capture,
+non-extractable device-key persistence and display. No cryptographic primitive
+is implemented in application code. No recovery/forward-secrecy or independently
+audited product-wide E2EE claim follows from this bounded transport.
+
+The generated #1672 UI reference in `product/design/references/once-messages/`
+was created with the built-in imagegen tool using fictional people and generated
+woodland imagery. Prompts, corrections and baseline are recorded alongside it.
+It is a product reference, not a runtime asset or third-party photograph.
+
 ## Optional video processor (2026-11-05)
 
 FFmpeg 9.0.2, upstream commit `946fcce07b6dcd0331c8cc609192aeff5e1924f8`,
@@ -35,7 +54,16 @@ imagery, personal data or audio recording. The additional #1649 fixtures use
 FFmpeg-generated test colors and a 440 Hz tone, reproduced by
 `tools/media/generate-video-fixtures.sh`; they cover HEVC SDR/Main10/HLG/PQ,
 rotation, silence, H.264 High10/PCM and H.264/MP3. Their deliberately synthetic metadata
-is only a stripping-test input. See [operations and security review](operations/video-uploads.md)
+is only a stripping-test input. The #1710 quality fixtures are generated from
+explicit linear-light neutral steps and seeded FFmpeg `testsrc2`/noise by
+`tools/media/generate-video-quality-fixtures.py` (also called by the shell
+generator). They contain no third-party footage, private recording or audio.
+They cover PQ highlights, first-frame MaxCLL, HLG, and moving 1080p detail;
+generation uses system FFmpeg 6.1.1 and test-only x264/x265 encoders, neither of
+which is shipped in the media role. Their visual evidence has the same synthetic
+provenance. The media role additionally enables the existing LGPL `setparams`
+filter; source pins, patches and license obligations are unchanged.
+See [operations and security review](operations/video-uploads.md)
 and `tools/media/advisory-review.json`; unresolved evidence is not a blanket waiver.
 
 ## Reproducibility and verification
@@ -180,7 +208,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | pydantic-settings | 2.15.0 | PyPI | MIT |
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
-| httpx | 0.28.1 | PyPI | BSD-3-Clause |
+| httpx[http2] | 0.28.1 | PyPI | BSD-3-Clause |
 | google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
@@ -191,6 +219,9 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+
+The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
+`hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.
 
 ## Backend — Development
 
@@ -213,18 +244,32 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
-| leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
+| maplibre-gl | 6.16.0 | npm / MapLibre | BSD-3-Clause |
 | mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
 
-Mediabunny is used unmodified in a lazy, same-origin Web Worker for optional
-on-device MP4/MOV optimization (#1647). It supplies container handling around
+Mediabunny is used unmodified in a lazy, same-origin Web Worker for active
+on-device SDR MP4/MOV preparation (#1713, replacing #1647's optional optimization). It supplies container handling around
 native WebCodecs; no software codec, WASM runtime, remote converter or provider
 is added. Its two transitive dependencies are Web API type declarations, recorded
 with integrity hashes in the npm lock. The MPL notice and source location ship
 in `web/public/licenses/mediabunny-NOTICE.txt`; the complete license ships beside
 it. Cloud and Self-Hosted use the same bundled code without provider fees or
-additional user setup. Unsupported, failed, oversized or uneconomical local
-conversion retains the original and existing server-side validation.
+additional user setup. Only an explicitly verified compatible original may bypass
+encoding; unsupported, failed or oversized conversion preserves the selection
+and fails visibly, without sending an unprepared original to server compression.
+
+AndroidX Media3 `media3-transformer` and `media3-effect` **1.11.1** (including
+same-version common, container, decoder, datasource, extractor, muxer and
+ExoPlayer internals) come from [Google Maven](https://maven.google.com/web/index.html#androidx.media3)
+and [the official source](https://github.com/androidx/media), Apache-2.0.
+They reuse local Android MediaCodec/OpenGL/MediaMuxer facilities; no separate
+FFmpeg/native codec binary, network source, Google account, Play Services,
+provider fee or hoster configuration is added. The artifact checksums belong in
+Android's existing strict Gradle verification metadata. Native preparation uses
+explicit HDR-to-SDR tone mapping, disables platform editing metrics and retains
+the existing private/no-backup/session-owned staging lifecycle. Cloud/Self-Hosted
+behavior is identical. Unsupported device/browser preparation fails visibly;
+server-side lossy encoding is not a fallback. See [operations](operations/on-device-video-preparation.md).
 
 ## Web — M2-S8 Development
 
@@ -233,7 +278,6 @@ conversion retains the original and existing server-side validation.
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
-| @types/leaflet | 1.9.22 | npm / DefinitelyTyped | MIT |
 | typescript | 7.0.2 | npm | Apache-2.0 |
 | rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.4 | npm | MIT |
@@ -295,19 +339,31 @@ pull M5 functionality such as persistent Offline Caches, complete navigation,
 or Client Parity forward. The generated `typescript-fetch` code remains free
 of additional runtime dependencies and uses the browser Fetch API.
 
-### Explicit place map selection (2026-10-29)
+### Explicit place map selection (2026-10-29, basemap replaced 2026-11-12)
 
-Leaflet is loaded only inside the deliberately opened place-map task. It reuses
-browser map interaction, keyboard panning, zoom and attribution instead of
-implementing a map engine. Raster tiles come from OpenStreetMap under its public
-best-effort tile policy, with visible OSM attribution and ordinary HTTP caching;
-there are no bulk/offline tile downloads. Photon search reuses the existing
-backend provider normalization and an operator-controlled origin. It adds no
-Python dependency, end-user key or paid account. Google Maps and MapLibre were
-reviewed; billing/key setup and a separate vector-style boundary are unnecessary
-for this bounded choice task. Existing places and manual coordinates survive
-provider outages. The preflight, privacy disclosure and provider terms are
-recorded in `docs/product/design/plan-images-and-map-picker.md`.
+MapLibre GL JS is loaded only inside the deliberately opened map task. It reuses
+GPU vector rendering, animated zoom, pinch/keyboard handling and attribution
+instead of implementing a map engine. It replaces Leaflet with 256 px OpenStreetMap
+raster tiles: those jumped between integer zoom levels, showed grey gaps while
+tiles loaded and could not be restyled. The Memory map is a Pro capability and
+needs a smooth, recognizable map; the earlier "bounded choice task" argument
+against a vector stack no longer holds.
+
+Vector tiles, glyphs and sprites come from OpenFreeMap (`tiles.openfreemap.org`):
+OpenStreetMap data, no API key, no account, no billing and no usage cap, with
+visible OpenFreeMap, OpenMapTiles and OpenStreetMap attribution. It is
+self-hostable, so an operator can replace the origin. The OpenFreeMap "liberty"
+style is recolored client-side (`placeMapStyle.ts`) to a calmer palette; unknown
+layers keep their upstream colors. Google Maps (key and billing) and CARTO tiles
+(commercial-use terms unclear) were reviewed and not selected. Tile URLs are
+versioned and served with ten-year caching; the production service worker also
+keeps basemap responses in a bounded cache (1,500 entries, oldest first) so
+revisited areas load without the network. There is no prefetching and no bulk or
+offline download. The native app relies on its WebView HTTP cache. Photon search
+reuses the existing backend provider normalization and operator-controlled
+origin. It adds no Python dependency, end-user key or paid account. Existing
+places and manual coordinates survive provider outages. The original preflight
+is recorded in `docs/product/design/plan-images-and-map-picker.md`.
 
 ## Web — Browser QA Development
 
@@ -385,6 +441,13 @@ contains no server sender private key. The Google Services plugin activates only
 when that configured build input is present. Official distribution and Firebase
 project/package alignment are separate from server credential installation.
 
+## iOS — Capacitor wrapper runtime
+
+The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
+MIT) wrap the same React product. The existing Capacitor App and Browser packages
+provide platform integration. Apple Security and UserNotifications supply Keychain
+storage and remote notifications without another SDK.
+
 ## Android — Wrapper test and build
 
 | Package / tool | Version | Source | License |
@@ -455,6 +518,14 @@ This assessment is not legal advice.
 
 ## Assets
 
+The #1693 preflight at
+`docs/product/design/references/1693-people-polish/generated-reference.png` was
+generated with OpenAI's built-in image tool on 2026-11-07 from the current empty
+People editor screenshot. It contains synthetic initials and text, no private
+photos, third-party imagery or predecessor assets. It is design guidance, not
+runtime evidence, with no separate public license grant. The adjacent README
+records the baseline, scope and intended preserved capabilities.
+
 The #1471 Android photo-location preflight at `docs/product/design/references/android-photo-location-import/compact-permission-reference.png` is an original ImageGen workflow asset generated on 2026-10-27 from the existing #1444 diary composition. It guides permission-layer placement only, with no separate public license grant; illustrative OEM wording is not runtime product copy. The embedded cabin image retains the existing Darkmoon_Art/Pixabay 3374201 CC0 provenance. Exact prompt and scope are recorded beside the image.
 
 The automatic photo places preflight `docs/product/design/references/1459/compact-current.png` is an original image generated through the eimir. project ImageGen workflow on 2026-10-27. It is a project asset with no separate public license grant; its illustrative photo is generated, not a third-party stock image. See the adjacent README and prompt for scope and provenance.
@@ -463,8 +534,10 @@ The actual browser renders `docs/product/design/references/1459/evidence/1459-*.
 
 The repository now contains project-specific image and SVG assets. They were
 created for eimir. or its Roadmap and M2 handoff; assets of unclear
-third-party or predecessor origin continue to be excluded. The store preview images
-are explicitly mockups. Runtime QA screenshots are identified separately below.
+third-party or predecessor origin continue to be excluded. The README preview
+images are real runtime screenshots of the current Web client with synthetic
+demo data; the earlier AI-generated store mockups were removed. Further runtime
+QA screenshots are identified separately below.
 
 No separate public license is currently granted for files marked below as
 **project assets**. This classification does not change the still-open license
@@ -474,16 +547,7 @@ decision for the project's own source code.
 |---|---|---|---|
 | `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
 | `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
-| `docs/assets/playstore/app-icon.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/feature-graphic.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-01-onboarding.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-02-heute.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-03-story.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-04-wuensche.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-05-plan.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-06-discovery.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-07-einkauf.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
-| `docs/assets/playstore/screen-08-privacy.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
+| `docs/assets/readme/01-anmelden.webp` … `07-mehr.webp` (seven named files) | README product preview: actual browser captures of the current Web client at ~390 px width in the Light theme, taken from the canonical demo Space (fictional identities and content) | eimir. project workflow; embedded demo photographs by the creators named in `backend/demo_assets/manifest.json` (Pixabay) | UI screenshots: project asset, no separate public license grant; embedded photographs: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
@@ -540,3 +604,12 @@ Nimbus 10.10 embeds Gson 2.14.0 (Apache-2.0). The unchanged upstream Nimbus
 copyright header, Apache-2.0 license and Gson license are packaged under
 `android/app/src/main/assets/licenses/`. Backend wheel license metadata remains
 in the installed distribution. No additional provider account or terms are introduced.
+
+### HeartMoment audio processing
+
+#1671 extends the existing LGPL FFmpeg media role, not the application's dependency
+stack. Its reviewed build adds Ogg, Matroska/WebM, MP3, WAV and AAC demuxers,
+Opus/Vorbis decoders/parsers, and WAV output for bounded PCM frame-count validation.
+The existing AAC encoder and MP4 muxer provide sanitized playback. No external
+codec/speech SDK or provider is added. See the [voice contract](product/design/heart-voice-notes.md)
+and [operator delivery](operations/video-uploads.md#heartmoment-voice-intake-1671).

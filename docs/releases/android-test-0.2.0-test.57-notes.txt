@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.57
+
+- Plans can link several existing shared lists, show their progress and open them with a return to the Plan.
+- Continuing a completed Plan into a Memory or HeartMoment retains its Place. Private HeartMoments keep a private location snapshot.
+- Shared lists support Open / Completed / All filters, consistently with Planning.
+- General Android video admission correctly reads file sizes across the native bridge. Pending uploads and recovery feedback reflect the actual saved/upload state.
+- Includes main ec309e23 (#1703 and #1706), previous test.56 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.56; increasing versionCode 57. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Deploy the matching API/media runtime with additive migration 0118. Physical-device installation and session/data continuity remain separate acceptance.

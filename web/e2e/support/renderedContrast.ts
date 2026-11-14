@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
 
 export async function renderedContrast(locator: Locator, property = 'color') {
   const pair = await locator.evaluate((element, selectedProperty) => {
@@ -48,4 +48,12 @@ export async function renderedContrast(locator: Locator, property = 'color') {
     ...pair,
     ratio: (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05),
   };
+}
+
+export async function expectVisibleFieldBoundary(field: Locator) {
+  await expect(field).toBeVisible();
+  await expect(field).toHaveCSS('border-top-style', 'solid');
+  await expect(field).not.toHaveCSS('border-top-width', '0px');
+  const { ratio } = await renderedContrast(field, 'border-top-color');
+  expect(ratio).toBeGreaterThanOrEqual(3);
 }

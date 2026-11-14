@@ -201,8 +201,10 @@ class SpaceConfiguration(IdMixin, TimestampMixin, VersionMixin, Base):
         nullable=False,
     )
 
-    vibe_check_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    energy_check_in_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # New Spaces start with both daily check-in dimensions on (#1790). Existing rows keep
+    # their stored values; there is no database default and no backfill.
+    vibe_check_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    energy_check_in_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     love_notes_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     support_gestures_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     shared_achievements_enabled: Mapped[bool] = mapped_column(

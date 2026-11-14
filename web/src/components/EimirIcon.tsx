@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 
 /** Owner-selected icon grammar from issue #1225, drawn on a 24 px grid. */
 export const EIMIR_ICON_NAMES = [
@@ -15,6 +15,12 @@ export const EIMIR_ICON_NAMES = [
   'geteilt',
   'nurfuer',
   'foto',
+  'paperclip',
+  'external-link',
+  'download',
+  'microphone',
+  'photo-library',
+  'tag',
   'video',
   'erinnerungen',
   'highlights',
@@ -45,11 +51,73 @@ export const EIMIR_ICON_NAMES = [
   'smile-plus',
   'expand',
   'quote',
+  'close',
+  'check',
+  'lock-open',
+  'lock',
+  'eye',
+  'square',
+  'trash',
+  'filter',
+  'chevron-right',
+  'sparkle',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  paperclip: (
+    <path d="m20 10-8.6 8.6a5 5 0 0 1-7.1-7.1l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-2.8-2.8l8.1-8.1" />
+  ),
+  'external-link': (
+    <path d="M13 5h6v6m0-6-8 8m6 0v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h5" />
+  ),
+  download: (
+    <path d="M12 4v11m-4-4 4 4 4-4M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" />
+  ),
+  microphone: (
+    <>
+      {' '}
+      <rect x="9" y="2" width="6" height="12" rx="3" />{' '}
+      <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />{' '}
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+    </>
+  ),
+  filter: <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" />,
+  'chevron-right': <path d="m9 5 7 7-7 7" />,
+  // #1790 F2: the quiet mark of a wish on its way; filled so it stays legible
+  // at caption size.
+  sparkle: (
+    <path
+      fill="currentColor"
+      d="M12 3.5c.6 4.6 2.3 6.4 7 7-4.7.6-6.4 2.4-7 7-.6-4.6-2.3-6.4-7-7 4.7-.6 6.4-2.4 7-7Z"
+    />
+  ),
+  square: <rect x="5" y="5" width="14" height="14" rx="3" />,
+  close: <path d="m6 6 12 12M18 6 6 18" />,
+  check: <path d="m5 12 4.5 4.5L19 7" />,
+  lock: (
+    <>
+      <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />
+      <path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+    </>
+  ),
+  'lock-open': (
+    <>
+      <rect x="4.4" y="10" width="15.2" height="11" rx="2.7" />
+      <path d="M7.5 10V7a4.5 4.5 0 0 1 8.5-2" />
+    </>
+  ),
   quote: (
     <>
       <path d="M4 5h6v7c0 3.5-2 6-6 7v-2c2.5-1 4-2.5 4-5H4V5ZM14 5h6v7c0 3.5-2 6-6 7v-2c2.5-1 4-2.5 4-5h-4V5Z" />
@@ -161,6 +229,20 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
       <rect x="2.8" y="5" width="18.4" height="15" rx="2.5" />
       <circle className="accent" cx="8" cy="9.3" r="1.3" />
       <path d="m4 17 5-4.8 3.2 2.7 3.1-3 4.8 5" />
+    </>
+  ),
+  'photo-library': (
+    <>
+      <path d="M5 7V4.5A2.5 2.5 0 0 1 7.5 2H19a2 2 0 0 1 2 2v12" />
+      <rect x="2" y="7" width="15" height="14" rx="2.5" />
+      <circle className="accent" cx="6.5" cy="11" r="1" />
+      <path d="m3.5 18 4-4 2.5 2 2.5-2.5L16 17" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M3 3h8l10 10-8 8L3 11V3Z" />
+      <circle className="accent" cx="7.5" cy="7.5" r="1.5" />
     </>
   ),
   video: (

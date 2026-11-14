@@ -371,6 +371,8 @@ class SignupProof(IdMixin, OneTimeTokenMixin, Base):
 
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     invitation_token_hash: Mapped[str | None] = mapped_column(String(64))
+    accepted_terms_version: Mapped[str | None] = mapped_column(String(64))
+    """Terms version accepted in the signup form; applied only if an Account is created."""
 
     __table_args__ = (
         UniqueConstraint("token_hash", name="uq_signup_proofs_token_hash"),

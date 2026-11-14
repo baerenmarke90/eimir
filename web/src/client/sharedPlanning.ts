@@ -3,10 +3,11 @@ import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
+import { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
-import { PlacesApi } from '../api/generated/apis/PlacesApi';
+import { PlacesApi } from './mediaApis';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';
@@ -22,6 +23,7 @@ import { galleryCover } from './galleryCover';
 
 export interface SharedPlanningApis {
   comments?: CommentsApi;
+  linkPreviews?: LinkPreviewsApi;
   wishes: WishesApi;
   wishSelections?: WishSelectionsApi;
   plans: PlansApi;
@@ -66,6 +68,7 @@ export function createSharedPlanningApis(
     wishSelections: new WishSelectionsApi(configuration),
     plans: new PlansApi(configuration),
     comments: new CommentsApi(configuration),
+    linkPreviews: new LinkPreviewsApi(configuration),
     places: new PlacesApi(configuration),
     placeRelations: new PlaceRelationsApi(configuration),
     chapters: new ChaptersApi(configuration),

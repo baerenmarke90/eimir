@@ -45,6 +45,9 @@ jobs:
       - name: Test cloud Google Photos Picker OAuth callback
         run: python3 tools/ci/test_google_photos_picker_web_probe.py
 
+      - name: Test static eimir.de main site
+        run: python3 tools/ci/test_main_site.py
+
       - name: Audit migrated engineering-language surfaces
         run: |
           python3 tools/ci/test_engineering_language_audit.py
@@ -360,7 +363,7 @@ jobs:
             -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
             web nginx -T 2>&1)
           printf '%s\n' "$rendered" \
-            | grep -Fq "connect-src 'self' https://api.example.test https://s3.example.test:9443;"
+            | grep -Fq "connect-src 'self' https://tiles.openfreemap.org https://api.example.test https://s3.example.test:9443;"
 
           set +e
           docker compose run --rm --no-deps \

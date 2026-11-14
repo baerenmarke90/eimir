@@ -1,15 +1,15 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import people from '../../src/i18n/locales/people';
 import sources from '../../src/i18n/locales/photoSources';
 import {
-  SPACE_ID,
-  PARTNER_ID,
-  ME,
-  TINY_PNG,
-  installMocks,
-  signIn,
   captureScreenshot,
+  installMocks,
+  ME,
+  PARTNER_ID,
+  SPACE_ID,
+  signIn,
+  TINY_PNG,
 } from '../support/storyTimelineFixture';
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
@@ -62,6 +62,8 @@ async function installAvatarSources(page: Page) {
       }
       return route.fulfill({ json: saved });
     }
+    if (path === `${base}/related-persons/new-person`)
+      return route.fulfill({ json: saved[0] });
     if (path === `${base}/photo-sources`)
       return route.fulfill({
         json: {
@@ -168,14 +170,14 @@ for (const view of [
       const state = await installAvatarSources(page);
       await signIn(page);
       await page.goto('/more/people');
-      await page.getByRole('button', { name: people.addPersonAction }).click();
-      const editor = page.getByRole('dialog', {
-        name: people.createTitle,
-        exact: true,
-      });
+      await page
+        .getByRole('link', { name: people.addPersonAction, exact: true })
+        .click();
+      const editor = page.locator('.person-editor-page');
       await editor
         .getByLabel(people.nameLabel, { exact: true })
         .fill(ME.displayName);
+      await editor.locator('.people-photo-options summary').click();
       await editor.getByRole('button', { name: sources.more }).click();
       const sheet = page.locator('.photo-source-sheet');
       await expect(sheet).toBeVisible();
@@ -215,7 +217,7 @@ for (const view of [
       await expect(
         editor.getByText(people.avatarUploading, { exact: true }),
       ).toHaveCount(0);
-      await expect(editor.locator('.people-editor-avatar img')).toBeVisible();
+      await expect(editor.locator('.people-portrait img')).toBeVisible();
       expect(state.saved).toHaveLength(0);
       expect(state.starts).toEqual([
         expect.objectContaining({ source, maxItems: 1, consent: true }),
@@ -227,25 +229,59 @@ for (const view of [
         }),
       ]);
       await expect(
-        editor.getByRole('button', { name: people.create, exact: true }),
+        editor.getByRole('button', { name: people.saveChanges, exact: true }),
       ).toBeEnabled();
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= innerWidth,
-        ),
-      ).toBe(true);
+      const reflow = await page.evaluate(() => ({
+        fits: document.documentElement.scrollWidth <= innerWidth,
+        overflow: Array.from(document.querySelectorAll('*'))
+          .filter(
+            (element) => element.getBoundingClientRect().right > innerWidth + 1,
+          )
+          .map((element) => ({
+            tag: element.tagName,
+            className: element.className,
+            width: element.getBoundingClientRect().width,
+            right: element.getBoundingClientRect().right,
+          }))
+          .slice(0, 15),
+      }));
+      expect(reflow.fits, JSON.stringify(reflow.overflow)).toBe(true);
       await captureScreenshot(
         page,
         info,
         `polish-avatar-${source}-${view.width}-${view.theme}.png`,
       );
-      await editor
-        .getByRole('button', { name: people.create, exact: true })
-        .click();
+      const save = editor.getByRole('button', {
+        name: people.saveChanges,
+        exact: true,
+      });
+      // The former import pointer can land at Save's edge. Hover must not
+      // move the hit target away and create an enter/leave feedback loop.
+      await page.mouse.move(0, 0);
+      await save.scrollIntoViewIfNeeded();
+      const bounds = await save.boundingBox();
+      if (!bounds) throw new Error('Person completion action is not visible');
+      await page.mouse.move(
+        bounds.x + bounds.width / 2,
+        bounds.y + bounds.height - 0.25,
+      );
+      const positions = await save.evaluate(async (element) => {
+        const values: number[] = [];
+        for (let frame = 0; frame < 4; frame += 1) {
+          await new Promise(requestAnimationFrame);
+          values.push(element.getBoundingClientRect().y);
+        }
+        return values;
+      });
+      expect(new Set(positions).size).toBe(1);
+      await save.click();
       await expect(editor).toHaveCount(0);
-      await expect(page.locator('.people-card')).toContainText(ME.displayName);
-      await expect(page.locator('.people-card img')).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: ME.displayName, exact: true }),
+      ).toBeVisible();
+      await expect(page.getByLabel(people.visibilityLabel)).toHaveCount(0);
+      await expect(page.locator('.people-profile-hero img')).toBeVisible();
       expect(state.saved).toEqual([
         expect.objectContaining({
           displayName: ME.displayName,

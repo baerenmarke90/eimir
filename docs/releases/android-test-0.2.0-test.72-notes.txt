@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.72
+
+- Swipe between the main tabs with movement that follows your finger.
+- Tap a tag on a Memory, Heart Moment, Plan or Wish to find other entries with that tag.
+- Manage device push and anniversary or birthday reminders with simpler notification settings.
+- Choose which categories appear in Saying of the Day.
+- Earlier recaps are prepared in the background, and completed periods are retained automatically.
+
+The product changes come from main at 16b7842e0d9c2d66aa967a8f5075d24d758ae889.
+Install over test.71 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 72.

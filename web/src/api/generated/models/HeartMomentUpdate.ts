@@ -27,6 +27,13 @@ import {
     AttachmentEntryToJSON,
     AttachmentEntryToJSONTyped,
 } from './AttachmentEntry';
+import type { HeartMomentLocation } from './HeartMomentLocation';
+import {
+    HeartMomentLocationFromJSON,
+    HeartMomentLocationFromJSONTyped,
+    HeartMomentLocationToJSON,
+    HeartMomentLocationToJSONTyped,
+} from './HeartMomentLocation';
 
 /**
  * Content update payload.
@@ -58,6 +65,18 @@ export interface HeartMomentUpdate {
     attachments?: Array<AttachmentEntry> | null;
     /**
      * 
+     * @type {string}
+     * @memberof HeartMomentUpdate
+     */
+    audioSpeakerName?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof HeartMomentUpdate
+     */
+    audioTitle?: string | null;
+    /**
+     * 
      * @type {HeartEmotion}
      * @memberof HeartMomentUpdate
      */
@@ -68,6 +87,12 @@ export interface HeartMomentUpdate {
      * @memberof HeartMomentUpdate
      */
     happenedOn?: Date | null;
+    /**
+     * 
+     * @type {HeartMomentLocation}
+     * @memberof HeartMomentUpdate
+     */
+    location?: HeartMomentLocation | null;
     /**
      * 
      * @type {string}
@@ -110,8 +135,11 @@ export function HeartMomentUpdateFromJSONTyped(json: any, ignoreDiscriminator: b
         'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
         'attachmentIsSensitive': json['attachmentIsSensitive'] === undefined ? undefined : json['attachmentIsSensitive'] === null ? null : json['attachmentIsSensitive'],
         'attachments': json['attachments'] === undefined ? undefined : json['attachments'] === null ? null : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
+        'audioSpeakerName': json['audioSpeakerName'] === undefined ? undefined : json['audioSpeakerName'] === null ? null : json['audioSpeakerName'],
+        'audioTitle': json['audioTitle'] === undefined ? undefined : json['audioTitle'] === null ? null : json['audioTitle'],
         'emotion': json['emotion'] === undefined ? undefined : json['emotion'] === null ? null : HeartEmotionFromJSON(json['emotion']),
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'location': json['location'] === undefined ? undefined : json['location'] === null ? null : HeartMomentLocationFromJSON(json['location']),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
         'text': json['text'] === undefined ? undefined : json['text'] === null ? null : json['text'],
@@ -132,8 +160,11 @@ export function HeartMomentUpdateToJSONTyped(value?: HeartMomentUpdate | null, i
         'attachmentId': value['attachmentId'],
         'attachmentIsSensitive': value['attachmentIsSensitive'],
         'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
+        'audioSpeakerName': value['audioSpeakerName'],
+        'audioTitle': value['audioTitle'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'location': HeartMomentLocationToJSON(value['location']),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'tags': value['tags'],
         'text': value['text'],

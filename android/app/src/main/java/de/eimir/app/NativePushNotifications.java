@@ -71,6 +71,14 @@ public final class NativePushNotifications {
         present(context, activation, notificationId, null);
     }
 
+    static void presentReference(Context context, PushActivation activation, String notificationId) {
+        synchronized (PushActivation.class) {
+            if (!PushActivation.current(context, activation)
+                || !PushReceipts.claim(context, activation, notificationId)) return;
+            present(context, activation, notificationId);
+        }
+    }
+
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public static void presentPreview(Context context, PushActivation activation, PushPreview preview) {
         present(context, activation, preview.notificationId, preview);

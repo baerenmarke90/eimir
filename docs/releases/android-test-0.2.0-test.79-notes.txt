@@ -1,0 +1,13 @@
+eimir. Android 0.2.0-test.79
+
+- See your seven daily vibes as expressive two-tone faces on Wir, in the feeling sheet and in your insights and history.
+- Open "Eure Rückblicke" directly from Momente, with the cover of your newest recap, and find the recaps in Eure Geschichte on Mehr.
+- Tap the page you are already on in the bottom bar to glide back to the top, and slide back into the previous page from the side when you go Back.
+- The add button in the bottom right steps aside while you scroll down and returns when you scroll up.
+- Find Mehr regrouped into "Eure Geschichte" and "Euer Alltag" with short secondary lines, and "Nur für mich" right below your profile.
+- Controls on photos and the map fade out and return more calmly while you browse.
+- Create and edit wishes in the same writing screen as plans, with title, description and tags in one place.
+- Start new Spaces with Vibe and Energy already on, and see your partner's entries together as soon as you add your own.
+
+The product changes come from main at 096b4c7816b535156dc3e61c5b63765ba3dad76e.
+Install over test.78 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 79.

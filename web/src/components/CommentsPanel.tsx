@@ -147,6 +147,7 @@ interface CommentsPanelProps {
   offline: boolean;
   triggerContainer?: HTMLElement | null;
   labelledComposer?: boolean;
+  inlineComposer?: boolean;
   linkPreviewsApi?: LinkPreviewsApi;
 }
 
@@ -174,6 +175,7 @@ function CommentsPanelContent({
   offline,
   triggerContainer,
   labelledComposer = false,
+  inlineComposer = false,
   linkPreviewsApi,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
@@ -186,16 +188,17 @@ function CommentsPanelContent({
       commentActionRefs.current.get(previousEditingId.current)?.focus();
     previousEditingId.current = editingId;
   }, [editingId]);
-  const [composerOpen, setComposerOpen] = useState(false);
+  const [requestedComposerOpen, setComposerOpen] = useState(false);
+  const composerOpen = inlineComposer || requestedComposerOpen;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const wasComposerOpen = useRef(false);
   useEffect(() => {
-    if (composerOpen) inputRef.current?.focus();
+    if (composerOpen && !inlineComposer) inputRef.current?.focus();
     else if (wasComposerOpen.current)
       triggerRef.current?.focus({ preventScroll: true });
     wasComposerOpen.current = composerOpen;
-  }, [composerOpen]);
+  }, [composerOpen, inlineComposer]);
   const [commentDraft, setCommentDraft] = useState('');
   const commentDraftRef = useRef('');
   const commentDraftRevisionRef = useRef(0);
@@ -267,6 +270,16 @@ function CommentsPanelContent({
         commentDraftRef.current = '';
         setCommentDraft('');
         setComposerOpen(false);
+        const input = inputRef.current;
+        const activeElement = document.activeElement;
+        if (
+          inlineComposer &&
+          input?.isConnected &&
+          (activeElement === document.body ||
+            activeElement === document.documentElement ||
+            input.form?.contains(activeElement))
+        )
+          input.focus({ preventScroll: true });
       }
     },
   });
@@ -346,16 +359,29 @@ function CommentsPanelContent({
   const headingId = `${parentKind}-comments-heading`;
   const formId = `${parentKind}-${parentId}-comment-form`;
   const trigger =
-    canComment && !offline && !composerOpen ? (
+    canComment &&
+    !offline &&
+    (!composerOpen || (inlineComposer && triggerContainer)) ? (
       <button
         ref={triggerRef}
         type="button"
         className={`comment-compose-trigger ${triggerContainer ? 'media-overlay' : 'tertiary'}${labelledComposer ? ' comment-compose-trigger-labelled' : ''}`}
         aria-controls={formId}
-        aria-expanded="false"
-        aria-label={t(labelledComposer ? 'comments.write' : 'comments.send')}
-        title={t(labelledComposer ? 'comments.write' : 'comments.send')}
-        onClick={() => setComposerOpen(true)}
+        aria-expanded={composerOpen}
+        aria-label={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        title={t(
+          labelledComposer || inlineComposer
+            ? 'comments.write'
+            : 'comments.send',
+        )}
+        onClick={() => {
+          if (inlineComposer) inputRef.current?.focus();
+          else setComposerOpen(true);
+        }}
       >
         <svg
           viewBox="0 0 24 24"
@@ -560,7 +586,7 @@ function CommentsPanelContent({
           onSubmit={submit}
         >
           <label
-            className="sr-only"
+            className={inlineComposer ? undefined : 'sr-only'}
             htmlFor={`${parentKind}-${parentId}-comment`}
           >
             {t('comments.inputLabel')}
@@ -569,7 +595,7 @@ function CommentsPanelContent({
             ref={inputRef}
             id={`${parentKind}-${parentId}-comment`}
             name="comment"
-            rows={3}
+            rows={2}
             maxLength={2000}
             required
             placeholder={t('comments.placeholder')}
@@ -586,6 +612,7 @@ function CommentsPanelContent({
             </button>
             <button
               type="button"
+              hidden={inlineComposer}
               className="tertiary"
               onClick={() => {
                 createMutation.reset();

@@ -56,8 +56,15 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
+from eimir.plans.files import change_files, clear_files
 from eimir.plans.media import PhotoSelection, replace_cover, replace_photos, select_cover
-from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
+from eimir.plans.models import (
+    DiscreetTitleMode,
+    Plan,
+    PlanPayload,
+    PlanStatus,
+    shared_privacy,
+)
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import runtime as reminder_runtime
 from eimir.wishes import service as wish_service
@@ -117,6 +124,12 @@ def _normalize_title(value: str) -> str:
     if not cleaned:
         raise ValidationError("Plan title must not be blank.", PLAN_TITLE_REQUIRED)
     return cleaned
+
+
+def _normalize_preview_title(value: str | None) -> str | None:
+    """Blank preview titles fall back to the client's neutral list title."""
+    cleaned = (value or "").strip()
+    return cleaned or None
 
 
 def _flush(session: Session) -> None:
@@ -332,6 +345,7 @@ def create_plan(
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    file_attachment_ids: list[UUID] | None = None,
     selected_cover_attachment_id: UUID | None = None,
     tags: list[str] | None = None,
 ) -> Plan:
@@ -358,6 +372,8 @@ def create_plan(
     else:
         replace_cover(session, context, plan, cover_attachment_id, is_sensitive=cover_is_sensitive)
     select_cover(session, plan, selected_cover_attachment_id)
+    if file_attachment_ids:
+        change_files(session, context, plan, add=file_attachment_ids)
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_CREATED)
     _flush(session)
@@ -380,6 +396,7 @@ def create_plan_once(
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    file_attachment_ids: list[UUID] | None = None,
     selected_cover_attachment_id: UUID | None = None,
     tags: list[str] | None = None,
 ) -> PlanCreateResult:
@@ -404,6 +421,7 @@ def create_plan_once(
             cover_attachment_id=cover_attachment_id,
             cover_is_sensitive=cover_is_sensitive,
             photos=photos,
+            file_attachment_ids=file_attachment_ids,
             selected_cover_attachment_id=selected_cover_attachment_id,
         )
         return PlanCreateResult(plan, created=True)
@@ -420,6 +438,11 @@ def create_plan_once(
                 else {}
             ),
             "description": description,
+            **(
+                {"file_attachment_ids": [str(identifier) for identifier in file_attachment_ids]}
+                if file_attachment_ids
+                else {}
+            ),
             **(
                 {"attachments": [(str(photo_id), sensitive) for photo_id, sensitive in photos]}
                 if photos is not None
@@ -474,6 +497,7 @@ def create_plan_once(
         cover_attachment_id=cover_attachment_id,
         cover_is_sensitive=cover_is_sensitive,
         photos=photos,
+        file_attachment_ids=file_attachment_ids,
         selected_cover_attachment_id=selected_cover_attachment_id,
     )
     create_receipts.attach(session, receipt_id, plan.id)
@@ -542,9 +566,14 @@ def update_plan(
     place_id: UUID | str | None,
     experienced_on: date | None,
     anticipation_enabled: bool | None = None,
+    discreet: bool | None = None,
+    discreet_title_mode: DiscreetTitleMode | None = None,
+    preview_title: str | None = None,
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    add_file_attachment_ids: list[UUID] | None = None,
+    remove_file_attachment_ids: list[UUID] | None = None,
     selected_cover_attachment_id: UUID | None = None,
     schedule_values: tuple[date | None, datetime | None, datetime | None] | None = None,
     tags: list[str] | None = None,
@@ -576,6 +605,14 @@ def update_plan(
         plan.updated_at = now()
     if "selected_cover_attachment_id" in changed_fields:
         select_cover(session, plan, selected_cover_attachment_id)
+    if (add_file_attachment_ids or remove_file_attachment_ids) and change_files(
+        session,
+        context,
+        plan,
+        add=add_file_attachment_ids or (),
+        remove=remove_file_attachment_ids or (),
+    ):
+        plan.updated_at = now()
     if "schedule" in changed_fields:
         if plan.status == PlanStatus.COMPLETED.value:
             raise ConflictError(
@@ -593,6 +630,14 @@ def update_plan(
     if "anticipation_enabled" in changed_fields:
         assert anticipation_enabled is not None
         plan.anticipation_enabled = anticipation_enabled
+    # Discreet presentation is shared state on the entry: either partner may
+    # set or clear it, exactly like any other collaborative Plan field.
+    if "discreet" in changed_fields:
+        assert discreet is not None
+        plan.discreet = discreet
+    if "discreet_title_mode" in changed_fields:
+        assert discreet_title_mode is not None
+        plan.discreet_title_mode = discreet_title_mode.value
 
     next_title = plan.payload.title
     next_description = plan.payload.description
@@ -609,7 +654,7 @@ def update_plan(
             )
         plan.experienced_on = _validate_experienced_on(session, context, experienced_on)
 
-    if "title" in changed_fields or "description" in changed_fields or "tags" in changed_fields:
+    if {"title", "description", "tags", "preview_title"} & changed_fields:
         plan.payload = plan.payload.model_copy(
             update={
                 "title": next_title,
@@ -617,6 +662,9 @@ def update_plan(
                 "tags": tags
                 if "tags" in changed_fields and tags is not None
                 else plan.payload.tags,
+                "preview_title": _normalize_preview_title(preview_title)
+                if "preview_title" in changed_fields
+                else plan.payload.preview_title,
             }
         )
 
@@ -757,6 +805,7 @@ def return_to_wish(
     removed_plan_id = plan.id
     actor_id = context.account_id
     replace_photos(session, context, plan, [])
+    clear_files(session, plan)
     _attendance_changed(
         session,
         plan,
@@ -794,6 +843,7 @@ def delete_plan(
 
     actor_id = context.account_id
     replace_photos(session, context, plan, [])
+    clear_files(session, plan)
     _attendance_changed(
         session,
         plan,

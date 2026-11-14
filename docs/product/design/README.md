@@ -15,6 +15,7 @@ Start with [Product Reference v1](product-reference-v1.md). It is the **normativ
 | Where do global utilities and account functions live? | [Mobile shell and More consolidation](mobile-header-more.md): PO decision #1507, headerless Compact/Medium, unchanged Expanded navigation and authoritative unread state. |
 | Which incoming events deserve motion? | [#1212 critical product review](1212-event-driven-arrival-motion.md): no global arrival animation for polling/reconciliation; scoped existing roles for verified future changes. |
 | How do shared flows support different contribution levels? | [#502 participation audit](502-participation-audit.md): current single-member outcomes, protected reveal and game exceptions, low-effort gaps and the UX Patterns participation contract. |
+| Which later composition governs shared composers and readers? | [Page-as-composer decision #1730](https://github.com/baerenmarke90/eimir/issues/1730), [reference PR #1731](https://github.com/baerenmarke90/eimir/pull/1731) and [implementation evidence](evidence/1730/README.md): non-experience Memory, HeartMoment and Plan create/edit/read, with the section 3a baseline audit and explicit deviations. |
 | Which sequence implemented the direction, and what is left? | [Implementation roadmap](implementation-roadmap.md): F1/F2 → R1–R5 → P1–P2 → C1 are complete; the former native-parity P3 slice is retired by ADR 0011. Only the final audit [#946](https://github.com/baerenmarke90/eimir/issues/946) remains. |
 | How are F1 roles implemented and proven? | [F1 visual foundations](f1-visual-foundations.md): token/adapter mapping, bounded internal proof, usage limits and exact-build evidence. |
 | How do focused tasks save and return safely? | [F2 task boundaries](f2-task-boundaries.md): short sheets, Memory capture/result, scoped Timeline return, interruption safety and production-consumer evidence. |
@@ -45,6 +46,7 @@ Classifications apply to the stated scope, not indiscriminately to every sentenc
 | Source / reference | Classification | Current relationship and superseded scope |
 | --- | --- | --- |
 | [Product Reference v1](product-reference-v1.md), [reference screens](reference-screens.md), [system direction](design-system-direction.md), [Web Motion Guideline](motion-guideline.md) | STILL_NORMATIVE | Current approved product/design direction. The Motion Guideline is the lower-level Web engineering contract for section 8; it cannot override Product Reference v1. |
+| [Page-as-composer decision #1730](https://github.com/baerenmarke90/eimir/issues/1730), [reference PR #1731](https://github.com/baerenmarke90/eimir/pull/1731) | STILL_NORMATIVE in its explicit scope | Later PO composition for non-experience Memory, HeartMoment and Plan create/edit/read; supersedes conflicting outer writing surfaces, filled Place/Tag actions, media placement and reader Place sheets from #1717/#1726. The [later PO review](https://github.com/baerenmarke90/eimir/pull/1735#issuecomment-6776422807) supersedes Heart lead-first order and media-management disclosure, restores explicit unscheduling and confirms the accepted boundaries. The subsequent PO correction removes redundant composer Arrange, automatic-cover-reset and inline Reveal rows; existing fullscreen privacy controls remain. Technical, privacy and entitlement contracts remain binding. [Implementation evidence](evidence/1730/README.md) records baseline, all section 3a capabilities and deviations; the approved #1731 reference snapshot is unchanged by this implementation. |
 | [Implementation roadmap](implementation-roadmap.md) | STILL_NORMATIVE | Accepted outcome order; issue states remain on GitHub. This does not change the repository's milestone order or declare completion. |
 | [Design Principles](../../DESIGN-PRINCIPLES.md) and [Partner-App Experience Standard](../../PARTNER-APP-EXPERIENCE-STANDARD.md) | STILL_NORMATIVE | Compatible product principles, Mobile Interaction Contract, Product Design Preflight and acceptance gates; reconciled to v1. |
 | [UX Patterns](../../UX-PATTERNS.md), [Screen Templates](../../SCREEN-TEMPLATES.md), [Component Contracts](../../COMPONENT-CONTRACTS.md), [Design System Delivery](../../DESIGN-SYSTEM-DELIVERY.md) | STILL_NORMATIVE | Lower-level mechanics, contracts and delivery evidence; generic defaults cannot override R1–R5. |
@@ -88,6 +90,8 @@ The [final audit #946](https://github.com/baerenmarke90/eimir/issues/946) applie
 
 [Relationship surfaces and saved-memory map (#1546)](references/1546/README.md) records the clarified Wir scope, games, calendar handoff, Pro map, implemented weekly AI and the completed Discover/capture/navigation follow-up.
 
+[Immersive relationship recaps (#1744)](references/1744/README.md) records the content-volume and reader rework, the photo-memory playback corrections and its evidence; the generated visual reference is still outstanding.
+
 [Journal, map and relationship-surface polish (#1570)](references/journal-map-polish/README.md)
 records the PO follow-up to #1568, generated preflight and exact implementation evidence.
 
@@ -97,3 +101,21 @@ records the follow-up to Android test.37, the generated preflight and validation
 [App continuity and content composition (#1651)](references/app-continuity-polish/README.md)
 records the complete Wish alphabet, one-time current attention, immersive Diary
 month positioning, distinct shared answers and authorized media reuse after restart.
+
+[Contextual creation (#1679)](references/contextual-create/README.md) records the
+local Moments capture entry and the one-time-message entry in partner-avatar
+actions, including generated references and return/gesture ownership acceptance.
+
+[Quiet mobile composers (#1717)](references/quiet-composer/README.md) records the
+approved compact native-submit header, grouped writing surface, date/schedule
+tasks, empty-tag disclosure and full HeartMoment feeling surfaces. It refines
+the affected #1715 story/planning composition while retaining its domain owners.
+
+[People profiles and occasions (#1683)](references/people-profiles/README.md)
+records the approved profile-first workflow, whole-avatar viewing, shared-only
+people and the dedicated occasions mode in Planning. This explicit PO decision
+supersedes person audience selection and the former combined People/date page.
+
+[Soft composers and integrated media intake (#1726)](references/soft-composer/README.md)
+records the later borderless writing surfaces and grouped full-width media
+choices, retaining the quiet task header and existing attachment lifecycles.

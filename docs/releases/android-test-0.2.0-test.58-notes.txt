@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.58
+
+- Fix App-Updates remaining on the update-search message for minutes.
+- Check the newest compatible publication first and stop after finding a valid offer. Unselected historical markers no longer delay the result.
+- Share one 20-second metadata-search budget and actively abort blocked connections; explicit retry starts a fresh search.
+- Fetch the selected marker and APK through GitHub's official public asset API while retaining exact metadata, checksum, package and signing checks.
+- Includes all test.57 Plan/list, Place continuity, filtering and video-upload functionality.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.57; increasing versionCode 58. Install this repair APK once over the existing installation to replace the old native updater. Physical-device installation and account/data continuity remain separate acceptance.

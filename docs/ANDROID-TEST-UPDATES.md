@@ -191,14 +191,19 @@ Build 14 distribution collision without weakening the updater's version policy.
 
 ## Public release assets
 
-The native catalog reads the public `baerenmarke90/eimir` GitHub Releases list,
-including prereleases. The channel is public distribution metadata; partner
+The native catalog reads the public `baerenmarke90/eimir` release feed
+(`https://github.com/baerenmarke90/eimir/releases.atom`), which includes
+prereleases, and fetches the marker and APK through the plain
+`github.com/.../releases/download/<tag>/` URLs of the same release. It never calls
+`api.github.com`: anonymous API calls are limited to 60 per hour and IP address,
+which a shared home network exhausts quickly and which made the update check
+unreachable. The channel is public distribution metadata; partner
 content remains on the authenticated eimir. installation. No account token,
 Space, content, device identifier or GitHub credential enters the updater.
 GitHub still receives ordinary request/network metadata. Requests are bounded,
 and automatic checks run on foreground/start at most once per six hours. Manual
-checks can retry immediately. API throttling/offline is an actionable unavailable
-state, never a false claim that the app is current.
+checks can retry immediately. A network failure or being offline is an actionable
+unavailable state, never a false claim that the app is current.
 
 Publication is an explicit separate operation. GitHub makes this repository's
 published releases immutable, so the complete asset set must be assembled while
@@ -222,10 +227,10 @@ incomplete release. Publish a verified higher version instead. The source and
 signing preparation for `0.2.0-test.14` is recorded in
 [the test.14 handoff](releases/android-test-0.2.0-test.14.md).
 
-An incomplete release without the marker is ignored. Invalid marked metadata
-fails closed. The highest compatible version code in the bounded 30-release
-catalog wins; do not bury the active test channel below 30 newer unrelated
-releases. No eligible marker is shown as “no test version published”, distinct
+An incomplete release without the marker (a missing asset, HTTP 404) is ignored.
+Invalid marked metadata fails closed. The highest compatible version code among the
+test releases in the feed (GitHub lists the 10 most recent releases) wins; do not
+bury the active test channel below 10 newer unrelated releases. No eligible marker is shown as “no test version published”, distinct
 from “current”. Local package generation or an APK attachment does not establish
 that the public feed has been published or that native installation works.
 

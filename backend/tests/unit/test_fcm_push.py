@@ -166,8 +166,10 @@ def test_endpoint_validation_rejects_untrusted_variants(
     assert not failure.value.retryable
 
 
+@pytest.mark.parametrize("ttl", [None, "17"])
 def test_send_uses_only_activation_wake_and_fixed_google_destination(
     fake_credentials: FakeCredentials,
+    ttl: str | None,
 ) -> None:
     observed: list[httpx.Request] = []
 
@@ -178,7 +180,10 @@ def test_send_uses_only_activation_wake_and_fixed_google_destination(
     client = httpx.Client(transport=httpx.MockTransport(capture))
     provider = fcm_push.FcmPushProvider(configuration(), client=client)
     try:
-        receipt = send(provider)
+        reference = {"id": "sensitive-reference", "kind": "PARTNER_KISS"}
+        if ttl is not None:
+            reference["ttl"] = ttl
+        receipt = send(provider, notification_reference=reference)
         assert receipt.provider_message_id == "projects/eimir-test/messages/accepted-123"
         assert len(observed) == 1
         request = observed[0]
@@ -195,7 +200,7 @@ def test_send_uses_only_activation_wake_and_fixed_google_destination(
                 "fid": FID,
                 "data": {"type": "wake", "activationId": ACTIVATION},
                 "android": {
-                    "ttl": "300s",
+                    "ttl": f"{ttl or '300'}s",
                     "restricted_package_name": "de.eimir.app",
                     "collapse_key": "eimir-wake",
                     "priority": "high",

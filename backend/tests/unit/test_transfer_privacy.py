@@ -90,3 +90,43 @@ def test_plan_comments_survive_selected_parent_export_and_import_validation():
     rows["plans"] = []
     service._prune_relations(rows)
     assert rows["comments"] == []
+
+
+def test_plan_list_links_require_both_portable_parents():
+    plan_id, collection_id = uuid4(), uuid4()
+    relation = {"plan_id": plan_id, "collection_id": collection_id}
+    rows = {
+        "plans": [{"id": plan_id}],
+        "collections": [{"id": collection_id}],
+        "plan_collections": [relation],
+    }
+    service._prune_relations(rows)
+    assert rows["plan_collections"] == [relation]
+    portable = {"plan_collections": [{"planId": str(plan_id), "collectionId": str(collection_id)}]}
+    service._validate_relations(portable, {"plans": {plan_id}, "collections": {collection_id}})
+    with pytest.raises(TransferArchiveError):
+        service._validate_relations(portable, {"plans": {plan_id}, "collections": set()})
+    rows["collections"] = []
+    service._prune_relations(rows)
+    assert rows["plan_collections"] == []
+
+
+@pytest.mark.parametrize(
+    "parent_class,relation_class",
+    [("OWNER_ONLY", "SPACE_SHARED"), ("OWNER_ONLY", "OWNER_ONLY"), ("SPACE_SHARED", "OWNER_ONLY")],
+)
+def test_plan_context_import_rejects_private_heart_associations(parent_class, relation_class):
+    heart_id, plan_id = uuid4(), uuid4()
+    tables = {
+        "heart_moments": [{"id": str(heart_id), "privacyClass": parent_class}],
+        "heart_moment_plans": [
+            {
+                "heartMomentId": str(heart_id),
+                "planId": str(plan_id),
+                "sourcePrivacyClass": relation_class,
+            }
+        ],
+    }
+    with pytest.raises(TransferArchiveError) as caught:
+        service._validate_relations(tables, {"heart_moments": {heart_id}, "plans": {plan_id}})
+    assert caught.value.code == ErrorCode.TRANSFER_RELATION_INVALID

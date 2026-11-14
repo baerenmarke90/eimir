@@ -7,7 +7,7 @@ Verifies:
   - Preference write
   - Catalog retrieval
 - Pro Space with `daily.quote` receives 200 OK with deterministic daily quote and metadata.
-- Rights classification is PUBLIC_DOMAIN and attribution is required.
+- Daily sayings follow the Account language and disclose their rights and attribution.
 - Preference read returns default when unset with strong ETag token.
 - Preference PATCH requires valid If-Match token; rejects conflicts with 409.
 - Validation rejects unknown source or category IDs with 422.
@@ -161,7 +161,7 @@ def test_downgrade_preserves_personal_preferences_for_restored_pro(
     assert restored.json()["selectedCategoryIds"] == ["serenity"]
     quote = client.get(f"/api/v1/spaces/{space_id}/daily-quote", headers=headers)
     assert quote.status_code == 200
-    assert quote.json()["quote"]["sourceId"] == "stoic_philosophy"
+    assert "serenity" in quote.json()["quote"]["categoryIds"]
 
 
 def test_pro_space_receives_deterministic_daily_quote_and_metadata(
@@ -181,9 +181,10 @@ def test_pro_space_receives_deterministic_daily_quote_and_metadata(
     assert quote is not None
     assert quote["id"]
     assert len(quote["text"]) > 0
-    assert len(quote["authorDisplay"]) > 0
     assert quote["rightsClassification"] == "PUBLIC_DOMAIN"
-    assert quote["attributionRequired"] is True
+    assert quote["attributionRequired"] is bool(quote["authorDisplay"])
+    if not quote["attributionRequired"]:
+        assert quote["sourceDisplay"] is None
     assert isinstance(quote["categoryIds"], list)
     assert quote["sourceId"] in {s.id for s in catalog.get_sources()}
 
@@ -193,6 +194,52 @@ def test_pro_space_receives_deterministic_daily_quote_and_metadata(
     data2 = response2.json()
     assert data2["quote"]["id"] == quote["id"]
     assert data2["quote"]["text"] == quote["text"]
+
+
+def test_daily_saying_follows_the_account_language(client, session: Session, couple) -> None:
+    space_id = couple["space"].id
+    _grant_quote_capability(session, space_id, couple["anna"].id)
+    headers = auth(couple["token_a"])
+    path = f"/api/v1/spaces/{space_id}/daily-quote"
+    preferences = client.get(f"{path}/preferences", headers=headers)
+    assert preferences.status_code == 200
+    changed = client.patch(
+        f"{path}/preferences",
+        headers={**headers, "If-Match": preferences.headers["etag"]},
+        json={"selectedCategoryIds": ["motivation"]},
+    )
+    assert changed.status_code == 200
+
+    before = client.get(path, headers=headers)
+    assert before.status_code == 200
+    assert before.json()["quote"]["locale"] == "de"
+    assert "motivation" in before.json()["quote"]["categoryIds"]
+
+    language_path = "/api/v1/account/language-preference"
+    language = client.get(language_path, headers=headers)
+    assert language.status_code == 200
+    changed_language = client.put(
+        language_path,
+        headers={**headers, "If-Match": language.headers["etag"]},
+        json={"preference": "en-US"},
+    )
+    assert changed_language.status_code == 200
+    assert changed_language.json()["effectiveLocale"] == "en"
+
+    after = client.get(path, headers=headers)
+    assert after.status_code == 200
+    saying = after.json()["quote"]
+    assert saying["locale"] == "en"
+    assert saying["id"].startswith("saying-en-")
+    assert saying["rightsClassification"] == "EDITORIAL_CURATED"
+    assert "motivation" in saying["categoryIds"]
+    translation = catalog.get_quote_by_id(saying["id"])
+    assert translation is not None
+    assert saying["sourceId"] == translation.source_id
+    assert saying["text"] == translation.text
+    assert saying["sourceDisplay"] == (
+        "English translation" if saying["attributionRequired"] else None
+    )
 
 
 def test_daily_quote_preferences_crud_and_optimistic_concurrency(
@@ -246,7 +293,7 @@ def test_daily_quote_preferences_crud_and_optimistic_concurrency(
     )
     assert patch_invalid_category.status_code == 422
 
-    # 6. Valid PATCH to filter sources and categories
+    # 6. PATCH accepts the legacy source IDs and the active category preference.
     patch_valid = client.patch(
         f"/api/v1/spaces/{space_id}/daily-quote/preferences",
         headers={**headers, "If-Match": etag},
@@ -265,11 +312,10 @@ def test_daily_quote_preferences_crud_and_optimistic_concurrency(
     assert updated_data["selectedCategoryIds"] == ["serenity"]
     assert updated_data["locale"] == "de"
 
-    # Verify daily quote now conforms to preferences
+    # Verify daily quote resolution follows the category preference.
     quote_res = client.get(f"/api/v1/spaces/{space_id}/daily-quote", headers=headers)
     assert quote_res.status_code == 200
     q = quote_res.json()["quote"]
-    assert q["sourceId"] == "stoic_philosophy"
     assert "serenity" in q["categoryIds"]
 
     # 7. Disabling daily quote in preferences returns enabled=False and quote=None

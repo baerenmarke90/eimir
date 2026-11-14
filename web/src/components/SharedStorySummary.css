@@ -1,62 +1,289 @@
 .shared-story-summary {
   margin-block: var(--space-6);
   padding-block: var(--space-4);
+  max-width: var(--reading-max);
 }
 .shared-story-summary h2 {
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-1);
   color: var(--color-text);
 }
-.shared-story-summary-values {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: 0;
-}
-.shared-story-summary-metric {
-  position: relative;
-  display: flex;
-  flex: 1 1 5rem;
-  flex-direction: column-reverse;
-  min-width: 0;
-  border-radius: var(--radius-card);
-  padding: var(--space-4) var(--space-3);
-  background: var(--color-surface);
-}
-.shared-story-summary-metric dt {
-  margin-top: var(--space-1);
+.shared-story-summary-caption {
+  margin: 0 0 var(--space-5);
   color: var(--color-text-secondary);
-  font: var(--font-navigation-label);
+  font: var(--font-story-category);
   overflow-wrap: anywhere;
 }
-.shared-story-summary-metric dd {
-  margin: 0;
+.shared-story-summary-category-memories {
+  --story-category-color: var(--color-story-memory);
 }
-.shared-story-summary-badge {
+.shared-story-summary-category-heartMoments {
+  --story-category-color: var(--color-story-heart-moment);
+}
+.shared-story-summary-category-milestones {
+  --story-category-color: var(--color-story-milestone);
+}
+
+/* Lifeline (#1770): every shared entry as a dot in its week, start to today. */
+.shared-story-lifeline {
+  position: relative;
+  margin-inline: var(--space-1);
+}
+.shared-story-lifeline-band {
+  position: relative;
+  block-size: var(--space-story-lifeline-band);
+  cursor: pointer;
+  /* Vertical swipes keep scrolling the page; horizontal ones scrub. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: var(--radius-small);
+}
+.shared-story-lifeline-band:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.shared-story-lifeline-axis {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 2px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-text-secondary) 30%, transparent);
+}
+.shared-story-lifeline-now {
+  position: absolute;
+  inset-inline-end: calc(var(--space-story-lifeline-dot) / -2);
+  inset-block-end: calc(var(--space-story-lifeline-dot) / -2 + 1px);
+  inline-size: var(--space-story-lifeline-dot);
+  block-size: var(--space-story-lifeline-dot);
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  box-shadow: 0 0 0 3px var(--color-background);
+}
+.shared-story-lifeline-column {
+  position: absolute;
+  inset-block-end: var(--space-2);
+  inset-inline-start: calc(var(--lifeline-x) * 100%);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column-reverse;
   align-items: center;
-  gap: var(--space-2);
+  gap: calc(var(--space-story-lifeline-step) - var(--space-story-lifeline-dot));
+  transform: translateX(-50%);
+  transition: opacity var(--duration-feedback) var(--easing-standard);
+}
+.shared-story-lifeline-dot {
+  flex: none;
+  inline-size: var(--space-story-lifeline-dot);
+  block-size: var(--space-story-lifeline-dot);
+  border-radius: var(--radius-pill);
+  background: var(--story-category-color);
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+.shared-story-lifeline.is-active
+  .shared-story-lifeline-column:not(.is-current) {
+  opacity: 0.35;
+}
+.shared-story-lifeline-column.is-current .shared-story-lifeline-dot {
+  transform: scale(1.2);
+}
+.shared-story-lifeline-cursor {
+  position: absolute;
+  inset-block: calc(var(--space-2) * -1) 0;
+  inset-inline-start: calc(var(--lifeline-x) * 100%);
+  inline-size: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.shared-story-lifeline-ticks {
+  position: relative;
+  block-size: var(--space-5);
+  margin-block-start: var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-media-caption);
+  font-weight: 400;
+}
+.shared-story-lifeline-tick {
+  position: absolute;
+  inset-inline-start: calc(var(--lifeline-x) * 100%);
+  white-space: nowrap;
+}
+.shared-story-lifeline-today {
+  position: absolute;
+  inset-inline-end: 0;
+  color: var(--color-text);
+  font-weight: 700;
+}
+.shared-story-lifeline-hint {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--font-media-caption);
+  font-weight: 400;
+}
+
+/* The preview floats above the band while a week is selected. */
+.shared-story-lifeline-preview {
+  --lifeline-preview-width: min(16rem, 100%);
+  position: absolute;
+  z-index: 2;
+  inset-block-end: calc(
+    var(--space-story-lifeline-band) +
+    var(--space-5) +
+    var(--space-3)
+  );
+  inset-inline-start: clamp(
+    0%,
+    calc(var(--lifeline-x) * 100% - var(--lifeline-preview-width) / 2),
+    calc(100% - var(--lifeline-preview-width))
+  );
+  inline-size: var(--lifeline-preview-width);
+  animation: shared-story-lifeline-preview-in var(--duration-feedback)
+    var(--easing-enter);
+}
+.shared-story-lifeline-preview-card {
+  display: flex;
+  min-inline-size: 0;
+  overflow: hidden;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-raised);
   color: var(--color-text);
   text-decoration: none;
 }
-.shared-story-summary-badge::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-card);
+.shared-story-lifeline-preview-card:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
-.shared-story-summary-badge svg {
-  color: var(--color-brand-text);
-  width: 1.25rem;
-  height: 1.25rem;
-  flex-shrink: 0;
+.shared-story-lifeline-preview-media {
+  position: relative;
+  flex: none;
+  /* Large text keeps room for the words instead of growing the photo. */
+  inline-size: min(var(--space-16), 30%);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+.shared-story-lifeline-preview-media img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.shared-story-lifeline-glyph {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--color-text-secondary);
+}
+.shared-story-lifeline-glyph svg {
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+}
+.shared-story-lifeline-preview-text {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+.shared-story-lifeline-preview-text strong {
+  font: var(--font-content-heading);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shared-story-lifeline-preview-text span {
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  font: var(--font-media-caption);
+  font-weight: 400;
+}
+@keyframes shared-story-lifeline-preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+/* Legend: the three counts as chips in their dots' colors, each an entry into
+   the filtered timeline. */
+.shared-story-summary-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+.shared-story-summary-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-web);
+  padding-inline: var(--space-4);
+  color: var(--color-text);
+  font: var(--font-story-category);
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--story-category-color) var(--opacity-story-chip-fill),
+    var(--color-background)
+  );
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+.shared-story-summary-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .shared-story-summary-number {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.shared-story-summary-metric:has(:focus-visible) {
+.shared-story-summary-dot {
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--story-category-color);
+}
+.shared-story-summary-row:is(:hover, :active) {
+  background: color-mix(
+    in srgb,
+    var(--story-category-color) var(--opacity-story-chip-fill-active),
+    var(--color-background)
+  );
+}
+.shared-story-summary-row:focus-visible {
   outline: 2px solid var(--color-focus);
-  outline-offset: 3px;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shared-story-summary-row,
+  .shared-story-lifeline-column,
+  .shared-story-lifeline-dot {
+    transition: none;
+  }
+  .shared-story-lifeline-preview {
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  .shared-story-summary-row {
+    border: 1px solid CanvasText;
+  }
+  .shared-story-lifeline-dot,
+  .shared-story-summary-dot {
+    forced-color-adjust: none;
+  }
+  .shared-story-lifeline-preview-card {
+    border: 1px solid CanvasText;
+  }
 }

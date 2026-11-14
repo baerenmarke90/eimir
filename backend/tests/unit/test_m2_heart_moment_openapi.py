@@ -55,7 +55,10 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "attachmentIsSensitive",
         "attachments",
         "selectedCoverAttachmentId",
+        "audioTitle",
+        "audioSpeakerName",
         "tags",
+        "location",
         "placeId",
     }
     assert set(create["required"]) == {"text", "emotion", "visibility", "happenedOn"}
@@ -70,7 +73,10 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "attachmentIsSensitive",
         "attachments",
         "selectedCoverAttachmentId",
+        "audioTitle",
+        "audioSpeakerName",
         "tags",
+        "location",
     }
     assert update["additionalProperties"] is False
 

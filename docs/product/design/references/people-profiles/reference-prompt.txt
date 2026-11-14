@@ -1,0 +1,14 @@
+Use case: ui-mockup. Create four complete Compact eimir. screens from the
+approved prototype screenshots: People overview, person reader, focused person
+editor and planning occasions. Baseline main be9b5ec3 plus the contextual creation
+dependency 7df91d6e. Retain pale-blue page, paper surfaces, navy type, blue actions,
+Instrument Sans controls and selective Literata personal names. Keep the existing
+four-destination bottom shell and central action on readers; no root navigation
+in the editor. Use synthetic names and the existing generated lake photo. No
+person visibility control, label, grouping or prose. Read before edit; tapping
+the portrait opens the whole photo. The short editor keeps photo, name,
+relationship, optional birthday/year, dashboard opt-in and one Save. Planning
+retains Plans/Wishes and adds occasions, deriving birthdays once from profiles
+and allowing independent anniversaries. No decorative romance, nested cards,
+statistics, unsupported features or redundant helper paragraphs. See the approved
+four-panel generated reference for localized labels and composition.

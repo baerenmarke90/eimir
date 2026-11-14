@@ -9,7 +9,8 @@ public class UpdatePolicyTest {
     private static final String SHA = "a".repeat(64);
 
     @Test public void acceptsOnlyThePublicReleaseSources() {
-        assertTrue(UpdatePolicy.allowedTransportUrl("https://api.github.com/repos/baerenmarke90/eimir/releases?per_page=30"));
+        assertTrue(UpdatePolicy.allowedTransportUrl(UpdatePolicy.FEED_URL));
+        assertFalse(UpdatePolicy.allowedTransportUrl("https://api.github.com/repos/baerenmarke90/eimir/releases?per_page=30"));
         assertTrue(UpdatePolicy.allowedTransportUrl("https://release-assets.githubusercontent.com/asset?signature=example"));
         for (String url : new String[]{"http://github.com/a", "https://github.com.evil.test/a",
             "https://github.com@evil.test/a", "https://secret@github.com/a", "file:///data/a",
@@ -31,16 +32,26 @@ public class UpdatePolicyTest {
     }
 
     @Test public void validatesTheIdentityAndBoundsBeforeAnyDownload() {
-        validate("de.sidebyside.app", "0.2.0-test.1", 2, 1024, SHA, 26, "b".repeat(40));
-        assertThrows(IllegalArgumentException.class, () -> validate("foreign.app", "0.2.0-test.1", 2, 1024, SHA, 26, "b".repeat(40)));
-        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.2", 2, 1024, SHA, 26, "b".repeat(40)));
-        for (long code : new long[]{0, -1, 2_100_000_001L}) assertThrows(IllegalArgumentException.class,
+        validate("de.sidebyside.app", "0.2.0-test.1", 1, 1024, SHA, 26, "b".repeat(40));
+        assertThrows(IllegalArgumentException.class, () -> validate("foreign.app", "0.2.0-test.1", 1, 1024, SHA, 26, "b".repeat(40)));
+        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.2", 1, 1024, SHA, 26, "b".repeat(40)));
+        for (long code : new long[]{0, -1, 2, 2_100_000_001L}) assertThrows(IllegalArgumentException.class,
             () -> validate("de.sidebyside.app", "0.2.0-test.1", code, 1024, SHA, 26, "b".repeat(40)));
         for (long size : new long[]{0, -1, UpdatePolicy.MAX_APK_BYTES + 1}) assertThrows(IllegalArgumentException.class,
-            () -> validate("de.sidebyside.app", "0.2.0-test.1", 2, size, SHA, 26, "b".repeat(40)));
-        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.1", 2, 1024, SHA.toUpperCase(), 26, "b".repeat(40)));
-        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.1", 2, 1024, SHA, 25, "b".repeat(40)));
-        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.1", 2, 1024, SHA, 26, "development"));
+            () -> validate("de.sidebyside.app", "0.2.0-test.1", 1, size, SHA, 26, "b".repeat(40)));
+        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.1", 1, 1024, SHA.toUpperCase(), 26, "b".repeat(40)));
+        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.1", 1, 1024, SHA, 25, "b".repeat(40)));
+        assertThrows(IllegalArgumentException.class, () -> validate("de.sidebyside.app", "0.2.0-test.1", 1, 1024, SHA, 26, "development"));
+    }
+
+    @Test public void versionOrderingAndAssetRequestsFollowTheProtectedPublisher() {
+        assertEquals(57, UpdatePolicy.testVersionCode("android-test-v0.2.0-test.57"));
+        assertEquals(58, UpdatePolicy.testVersionCode("android-test-v0.3.0-test.58"));
+        for (String tag : new String[]{"android-test-v0.2.0-test.0", "android-test-v0.2.0-test.01",
+            "android-test-v0.2.0-test.2100000001", "android-test-v0.2.0-test.99999999999999999999",
+            "android-test-v0.2.0", "android-fcm-v0.2.0-fcm.2"}) {
+            assertThrows(IllegalArgumentException.class, () -> UpdatePolicy.testVersionCode(tag));
+        }
     }
 
     @Test public void requiresTheExactNonemptySignerSetRegardlessOfOrder() {

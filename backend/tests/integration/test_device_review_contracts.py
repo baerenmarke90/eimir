@@ -392,18 +392,25 @@ def test_planning_tags_share_authored_vocabulary_without_private_labels(
     assert item["id"] in [entry["id"] for entry in found["items"]]
 
 
-def test_wish_conversion_and_create_identity_preserve_authored_tags(
+def test_wish_conversion_and_create_identity_preserve_authored_content(
     client: TestClient, world: dict[str, Any]
 ) -> None:
     base = f"/api/v1/spaces/{world['space']}"
     headers = {**world["a"], "Idempotency-Key": "11111111-1111-4111-8111-111111111111"}
-    body = {"title": "Summer trip", "tags": ["Sea"]}
+    body = {"title": "Summer trip", "description": "An evening by the sea.", "tags": ["Sea"]}
     first = client.post(base + "/wishes", headers=headers, json=body)
     assert first.status_code == 201, first.text
-    repeated = client.post(base + "/wishes", headers=headers, json=body)
+    repeated = client.post(
+        base + "/wishes", headers=headers, json={**body, "description": " An evening by the sea. "}
+    )
+    assert repeated.status_code == 200, repeated.text
     assert repeated.json()["id"] == first.json()["id"]
     changed = client.post(base + "/wishes", headers=headers, json={**body, "tags": ["Mountains"]})
     assert changed.status_code == 409, changed.text
+    changed_description = client.post(
+        base + "/wishes", headers=headers, json={**body, "description": "An evening in town."}
+    )
+    assert changed_description.status_code == 409, changed_description.text
     wish = first.json()
     converted = client.post(
         base + f"/wishes/{wish['id']}/plan",
@@ -412,6 +419,7 @@ def test_wish_conversion_and_create_identity_preserve_authored_tags(
     )
     assert converted.status_code == 201, converted.text
     assert converted.json()["plan"]["tags"] == ["Sea"]
+    assert converted.json()["wish"]["description"] == body["description"]
 
 
 def test_diary_places_follow_authored_order_and_private_parent_authorization(

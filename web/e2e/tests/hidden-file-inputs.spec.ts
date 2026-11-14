@@ -1,3 +1,5 @@
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import photoSources from '../../src/i18n/locales/photoSources';
@@ -64,11 +66,37 @@ async function expectHiddenGeometry(input: Locator): Promise<void> {
 }
 
 async function expectKeyboardFilePicker(page: Page): Promise<void> {
-  const trigger = page.getByRole('button', {
-    name: photoSources.addMedia,
-    exact: true,
-  });
-  const input = page.locator('input[type="file"]').last();
+  // #1790 D1: without an external source the diary intake opens the device
+  // picker directly instead of the shared source sheet.
+  const directIntake = page.locator(
+    '.composer-diary-intake .media-intake-device:not([aria-haspopup="dialog"])',
+  );
+  if (await directIntake.isVisible()) {
+    const intakeInput = page.locator(
+      '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type="file"]',
+    );
+    await expect(intakeInput).toHaveCount(1);
+    await expectHiddenGeometry(intakeInput);
+    await expect(intakeInput).not.toHaveAccessibleName('');
+    await expect(intakeInput).toHaveAttribute('tabindex', '-1');
+    await directIntake.focus();
+    await expect(directIntake).toHaveCSS('outline-style', 'solid');
+    for (const key of ['Enter', 'Space']) {
+      const native = page.waitForEvent('filechooser');
+      await directIntake.press(key);
+      await (await native).setFiles([]);
+      await expect(directIntake).toBeFocused();
+    }
+    return;
+  }
+  const trigger = page
+    .locator('.composer-tool-row button')
+    .filter({ has: page.locator('.eimir-icon-foto') })
+    .or(page.getByRole('button', { name: photoSources.addMedia, exact: true }))
+    .first();
+  const input = page.locator('input[type="file"]').first();
+  const nativeInput = await input.elementHandle();
+  if (!nativeInput) throw new Error('The persistent native input is missing.');
   await expect(input).toHaveCount(1);
   await expect(input).toBeEnabled();
   await expectHiddenGeometry(input);
@@ -78,17 +106,44 @@ async function expectKeyboardFilePicker(page: Page): Promise<void> {
   await expect(trigger).toHaveCSS('outline-style', 'solid');
   await expect(trigger).toHaveCSS('outline-width', '3px');
   for (const key of ['Enter', 'Space']) {
-    const native = page.waitForEvent('filechooser');
     await trigger.press(key);
+    const sheet = page.getByRole('dialog', {
+      name: photoSources.title,
+      exact: true,
+    });
+    await expect(sheet).toBeVisible();
+    const device = sheet.getByRole('button', {
+      name: photoSources.device,
+      exact: true,
+    });
+    await page.keyboard.press('Tab');
+    await expect(sheet.locator('.short-task-sheet-body')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(device).toBeFocused();
+    await expect(device).toHaveCSS('outline-style', 'solid');
+    const native = page.waitForEvent('filechooser');
+    await device.press(key);
     await (await native).setFiles([]);
-    await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
+    await expect(sheet).toBeVisible();
+    if (key === 'Enter') await device.press('Escape');
+    else
+      await sheet
+        .getByRole('button', { name: taskSheets.close, exact: true })
+        .last()
+        .click();
+    await expect(sheet).toHaveCount(0);
     await expect(trigger).toBeFocused();
+    await expect(input).toHaveCount(1);
+    expect(await nativeInput.evaluate((element) => element.isConnected)).toBe(
+      true,
+    );
   }
 }
 
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();

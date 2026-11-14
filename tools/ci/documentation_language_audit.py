@@ -51,6 +51,25 @@ FCM_PROVIDER_NOTICE_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact existing de-DE UI literals in the recorded #1679 generation input.
+    # Surrounding engineering prose remains audited.
+    Path("docs/product/design/references/contextual-create/reference-prompts.md"): (
+        "Für Ben",
+        "Wie geht’s dir?",
+        "Ohne Vibe oder Status offenzulegen.",
+        "Nur für dich",
+    ),
+    # Exact localized UI literals in the original #1672 image-generation prompt.
+    # Keep the recorded prompt intact; surrounding engineering prose is audited.
+    Path("docs/product/design/references/once-messages/prompt.md"): (
+        "Nur für dich",
+        "Von Ben",
+        "Für Ben",
+        "Von Anna",
+        "Einmal öffnen. Danach verschwindet der Inhalt.",
+        "Kopien lassen sich nicht verhindern.",
+        "Nach dem Schließen nicht erneut verfügbar.",
+    ),
     # Exact de-DE product-copy proposals; surrounding design/engineering prose
     # stays English and every other document remains audited.
     Path("docs/product/design/1661-wir-wording-proposal.md"): (

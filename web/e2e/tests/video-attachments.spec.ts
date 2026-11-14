@@ -5,10 +5,12 @@ import de from '../../src/i18n/locales/de';
 import photoSources from '../../src/i18n/locales/photoSources';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyCopy from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
+import { addComposerMedia } from '../support/mediaIntake';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
@@ -81,17 +83,25 @@ async function setup(
     retained?: boolean;
     sensitive?: boolean;
     processing?: boolean;
+    uploadGate?: Promise<void>;
+    failUploadOnce?: boolean;
+    failAdmissionOnce?: boolean;
   } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
   const state = {
-    videoStatus:
-      options.processing || !options.retained ? 'PROCESSING' : 'READY',
+    videoStatus: options.processing
+      ? 'PROCESSING'
+      : options.retained
+        ? 'READY'
+        : 'PENDING',
     bound: [] as string[],
     grants: 0,
     ranges: 0,
     originalVideoReads: 0,
     uploads: 0,
+    creates: 0,
+    videoAdmissions: 0,
     saved: options.retained
       ? memory([
           {
@@ -123,11 +133,16 @@ async function setup(
         videoMaxDurationSeconds: 180,
       });
     if (p.endsWith('/attachments') && method === 'POST') {
-      const body = request.postDataJSON(),
-        a = attachment(
-          body.mediaType === 'VIDEO' ? VIDEO : PHOTO,
-          body.mediaType,
-        );
+      const body = request.postDataJSON();
+      if (body.mediaType === 'VIDEO') {
+        state.videoAdmissions++;
+        if (options.failAdmissionOnce && state.videoAdmissions === 1)
+          return json({ status: 503, code: 'SERVICE_UNAVAILABLE' }, 503);
+      }
+      const a = attachment(
+        body.mediaType === 'VIDEO' ? VIDEO : PHOTO,
+        body.mediaType,
+      );
       return json(
         {
           attachment: { ...a, status: 'PENDING' },
@@ -144,9 +159,15 @@ async function setup(
         a = attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE');
       if (p.endsWith('/content') && method === 'PUT') {
         state.uploads++;
+        if (id === VIDEO && options.failUploadOnce && state.uploads === 1)
+          return route.abort('failed');
+        if (id === VIDEO) await options.uploadGate;
         return route.fulfill({ status: 204 });
       }
-      if (p.endsWith('/finalize')) return json({ status: 'PROCESSING' }, 202);
+      if (p.endsWith('/finalize')) {
+        if (id === VIDEO) state.videoStatus = 'PROCESSING';
+        return json({ status: id === VIDEO ? 'PROCESSING' : 'READY' }, 202);
+      }
       if (p.endsWith('/read-access'))
         return json({
           method: 'STREAM',
@@ -193,11 +214,25 @@ async function setup(
         ).toBe(true);
         return route.fulfill({ body: image, contentType: 'image/jpeg' });
       }
-      if (method === 'GET') return json(a);
+      if (method === 'GET')
+        return json({
+          ...a,
+          status: id === VIDEO ? state.videoStatus : a.status,
+        });
     }
     if (p === `/api/v1/spaces/${SPACE_ID}/memories` && method === 'POST') {
       const body = request.postDataJSON();
-      state.saved = memory([], body.body);
+      state.creates++;
+      state.bound = (body.attachments ?? []).map(
+        (item: { attachmentId: string }) => item.attachmentId,
+      );
+      state.saved = memory(
+        state.bound.map((id) => ({
+          ...attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE'),
+          status: id === VIDEO ? state.videoStatus : 'READY',
+        })),
+        body.body,
+      );
       state.saved.title = body.title ?? '';
       return json(state.saved, 201);
     }
@@ -238,6 +273,171 @@ async function setup(
     return route.fallback();
   });
   return { state, unknown };
+}
+
+// Exercise the production bridge observer without a native worker or device upload.
+async function observeNativeTransfer(page: Page) {
+  const state = { phase: 'uploading', progress: 17, complete: false, reads: 0 };
+  await page.exposeFunction('readVideoTransferFixture', () => {
+    state.reads++;
+    return {
+      items: state.complete
+        ? []
+        : [
+            {
+              attachmentId: VIDEO,
+              phase: state.phase,
+              progress: state.progress,
+            },
+          ],
+    };
+  });
+  await page.addInitScript(() => {
+    const host = window as unknown as {
+      CapacitorCustomPlatform: unknown;
+      Capacitor: unknown;
+      readVideoTransferFixture: () => Promise<unknown>;
+    };
+    host.CapacitorCustomPlatform = { name: 'android' };
+    host.Capacitor = {
+      PluginHeaders: [
+        {
+          name: 'App',
+          methods: [
+            { name: 'addListener', rtype: 'callback' },
+            ...['removeListener', 'getLaunchUrl'].map((name) => ({
+              name,
+              rtype: 'promise',
+            })),
+          ],
+        },
+        {
+          name: 'NativeSessionStorage',
+          methods: ['read', 'write', 'clear'].map((name) => ({
+            name,
+            rtype: 'promise',
+          })),
+        },
+        {
+          name: 'BackgroundMediaUploads',
+          methods: [
+            { name: 'addListener', rtype: 'callback' },
+            ...['list', 'removeListener'].map((name) => ({
+              name,
+              rtype: 'promise',
+            })),
+          ],
+        },
+      ],
+      nativeCallback: () => 'fixture-listener',
+      nativePromise: async (
+        plugin: string,
+        method: string,
+        options: { value?: string } = {},
+      ) => {
+        if (plugin === 'NativeSessionStorage') {
+          if (method === 'write')
+            sessionStorage.setItem(
+              'native-video-test-session',
+              options.value ?? '',
+            );
+          if (method === 'clear')
+            sessionStorage.removeItem('native-video-test-session');
+          return {
+            value:
+              sessionStorage.getItem('native-video-test-session') ?? undefined,
+          };
+        }
+        if (plugin === 'BackgroundMediaUploads' && method === 'list')
+          return host.readVideoTransferFixture();
+        return {};
+      },
+    };
+  });
+  return state;
+}
+
+for (const [width, colorScheme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [1280, 'light'],
+] as const) {
+  test(`upload observation preserves progress and page geometry ${width} ${colorScheme} (#1719)`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 500 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const transfer = await observeNativeTransfer(page);
+    const { state, unknown } = await setup(page, { retained: true });
+    state.videoStatus = 'PENDING';
+    if (state.saved) state.saved.body = Array(6).fill(momentBody).join('\n');
+    await signIn(page);
+    await page.goto(`/story/memories/${MEMORY}`);
+    const placeholder = page.locator('.media-processing-state');
+    const progress = placeholder.getByRole('progressbar');
+    await expect(progress).toHaveAttribute('value', '17');
+    expect((await progress.boundingBox())?.width).toBeGreaterThan(100);
+    await page
+      .locator('.memory-provenance-footer')
+      .evaluate((element) =>
+        element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+      );
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0);
+    const geometry = () =>
+      page.evaluate(() => {
+        const gallery = document
+          .querySelector('.media-gallery-carousel-viewport')
+          ?.getBoundingClientRect();
+        const body = document
+          .querySelector('.memory-detail-body')
+          ?.getBoundingClientRect();
+        return {
+          scroll: window.scrollY,
+          top: gallery?.top,
+          height: gallery?.height,
+          body: body?.top,
+        };
+      });
+    const initial = await geometry();
+    transfer.progress = 63;
+    await expect(progress).toHaveAttribute('value', '63');
+    const reads = transfer.reads;
+    transfer.progress = 28;
+    await expect.poll(() => transfer.reads).toBeGreaterThan(reads);
+    await expect(progress).toHaveAttribute('value', '63');
+    expect(await geometry()).toEqual(initial);
+    await page.screenshot({
+      path: info.outputPath(`shell-upload-stable-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    transfer.progress = 100;
+    transfer.phase = 'processing';
+    await expect(placeholder).toContainText(videoCopy.processing);
+    await expect(progress).not.toHaveAttribute('value');
+    expect(await geometry()).toEqual(initial);
+    transfer.complete = true;
+    const processingReads = transfer.reads;
+    await expect.poll(() => transfer.reads).toBeGreaterThan(processingReads);
+    await expect(placeholder).toContainText(videoCopy.processing);
+    expect(await geometry()).toEqual(initial);
+    state.videoStatus = 'READY';
+    await expect(placeholder).toHaveCount(0);
+    await expect(page.locator('.is-active .video-play-mark')).toHaveCount(1);
+    await expect(page.locator('.media-gallery-expand')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: videoCopy.play, exact: true }),
+    ).toHaveCount(1);
+    expect(await geometry()).toEqual(initial);
+    await page.screenshot({
+      path: info.outputPath(
+        `shell-video-single-play-${width}-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+    expect(unknown).toEqual([]);
+  });
 }
 
 test('retained sensitive video controls stay readable and separate at 320px with large text', async ({
@@ -320,12 +520,12 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    const device = page.locator('input[type=file][accept^="image/"]');
+    // #1790 D1: without an external source the diary intake owns the device input.
+    const device = page.locator(
+      '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type=file]',
+    );
     await expect(device).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
-    await expect(page.locator('input[type=file]')).toHaveCount(1);
+    await expect(device).toHaveCount(1);
     await device.setInputFiles([
       { name: 'sunrise.jpg', mimeType: 'image/jpeg', buffer: image },
       { name: 'jump.mp4', mimeType: 'video/mp4', buffer: movie },
@@ -390,7 +590,7 @@ for (const [width, colorScheme] of [
     state.videoStatus = 'READY';
     await expect(page.locator('.media-processing-state')).toHaveCount(0);
     await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-      storyCopy.gallery.counter
+      storyCopy.gallery.fraction
         .replace('{{index}}', '2')
         .replace('{{count}}', '2'),
     );
@@ -494,16 +694,23 @@ test('source selection waits for video eligibility and preserves photo fallback 
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  const input = page.locator('#memory-create-images');
+  await expect(page.locator('#memory-create-images')).toBeDisabled();
+  // #1790 D1: the diary intake shows video availability states inline.
+  const sources = page.locator('.composer-diary-intake');
+  const input = page.locator(
+    '.composer-diary-intake .media-device-choice:not(.media-device-choice--chooser) input[type=file]',
+  );
   await expect(input).toBeDisabled();
   release();
   await expect(
-    page.getByText(photoSources.videoAvailabilityUnavailable, { exact: true }),
+    sources.getByText(photoSources.videoAvailabilityUnavailable, {
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(input).toBeEnabled();
   await expect(input).not.toHaveAttribute('accept', /video/);
   expect(requests).toBe(1);
-  await page
+  await sources
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(input).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
@@ -519,10 +726,11 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
+  // #1790 D1: the diary intake offers the Pro video explanation inline.
   await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .locator('.composer-diary-intake')
+    .getByRole('button', { name: new RegExp(videoCopy.add) })
     .click();
-  await page.getByRole('button', { name: new RegExp(videoCopy.add) }).click();
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);
   await sheet
@@ -579,8 +787,8 @@ test('saved processing survives reload and a later failure remains replaceable w
     .getByRole('button', { name: new RegExp(videoCopy.savedFailed) })
     .click();
   await expect(
-    page.getByRole('group', { name: videoCopy.selectedItem, exact: true }),
-  ).toContainText(videoCopy.savedFailed);
+    page.locator('.photo-draft-inspector').getByRole('status'),
+  ).toHaveText(videoCopy.savedFailed);
   await expect(page.locator('dialog.photo-draft-preview-sheet')).toHaveCount(0);
   await page.screenshot({
     path: info.outputPath('followup-video-failed-recovery.png'),
@@ -590,3 +798,199 @@ test('saved processing survives reload and a later failure remains replaceable w
   expect(state.originalVideoReads).toBe(0);
   expect(unknown).toEqual([]);
 });
+
+test('an interrupted local journal does not block an atomic save while video bytes are uploading', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  let releaseUpload!: () => void;
+  const uploadGate = new Promise<void>((resolve) => {
+    releaseUpload = resolve;
+  });
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = () => {
+      throw new DOMException(
+        'Fixture storage is unavailable',
+        'QuotaExceededError',
+      );
+    };
+  });
+  const { state, unknown } = await setup(page, { uploadGate });
+  try {
+    await signIn(page);
+    await page.goto('/story/memories/new');
+    await page
+      .getByLabel(de.memory.bodyLabel, { exact: true })
+      .fill(momentBody);
+    await addComposerMedia(page, {
+      name: 'private-video.mp4',
+      mimeType: 'video/mp4',
+      buffer: movie,
+    });
+    await expect.poll(() => state.uploads).toBe(1);
+    await expect(
+      page.getByRole('button', { name: de.memory.save, exact: true }),
+    ).toBeEnabled();
+    await page
+      .getByRole('button', { name: de.memory.save, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp('/memories/' + MEMORY + '$'));
+    expect(state.bound).toEqual([VIDEO]);
+    expect(state.videoStatus).toBe('PENDING');
+    await expect(page.locator('.media-processing-state')).toContainText(
+      videoCopy.uploading,
+    );
+    await expect(page.locator('video')).toHaveCount(0);
+    await page.screenshot({
+      path: info.outputPath('saved-while-uploading-390-light.png'),
+      fullPage: true,
+    });
+    // Real client navigation leaves the admitted transfer alive outside its editor.
+    await page
+      .getByRole('link', { name: de.navigation.story, exact: true })
+      .click();
+    await page.goBack();
+    await expect(page.locator('.media-processing-state')).toContainText(
+      videoCopy.uploading,
+    );
+    releaseUpload();
+    await expect.poll(() => state.videoStatus).toBe('PROCESSING');
+    await expect(page.locator('.media-processing-state')).toContainText(
+      videoCopy.processing,
+    );
+    expect(state.uploads).toBe(1);
+    expect(unknown).toEqual([]);
+  } finally {
+    releaseUpload();
+  }
+});
+
+test('a saved interrupted video resumes the same upload without recreating its parent', async ({
+  page,
+}) => {
+  const { state, unknown } = await setup(page, { failUploadOnce: true });
+  await signIn(page);
+  await page.goto('/story/memories/new');
+  await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(momentBody);
+  await addComposerMedia(page, {
+    name: 'our-video.mp4',
+    mimeType: 'video/mp4',
+    buffer: movie,
+  });
+  await expect(
+    page.getByRole('button', { name: videoCopy.retryUpload, exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY}$`));
+  await expect(page.locator('.media-processing-state')).toContainText(
+    videoCopy.uploadInterrupted,
+  );
+  await expect(
+    page.getByText(videoCopy.savedFailed, { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator('video')).toHaveCount(0);
+  await page
+    .getByRole('button', { name: videoCopy.retryUpload, exact: true })
+    .click();
+  await expect.poll(() => state.videoStatus).toBe('PROCESSING');
+  await expect(page.locator('.media-processing-state')).toContainText(
+    videoCopy.processing,
+  );
+  expect(state.uploads).toBe(2);
+  expect(state.creates).toBe(1);
+  expect(state.bound).toEqual([VIDEO]);
+  expect(unknown).toEqual([]);
+});
+
+for (const [width, colorScheme] of [
+  [320, 'dark'],
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`rejected video admission explains recovery before save and retries the selection ${width} ${colorScheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    let releaseUpload!: () => void;
+    const uploadGate = new Promise<void>((resolve) => {
+      releaseUpload = resolve;
+    });
+    const { state, unknown } = await setup(page, {
+      uploadGate,
+      failAdmissionOnce: true,
+    });
+    try {
+      await signIn(page);
+      await page.goto('/story/memories/new');
+      if (width === 320)
+        await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+      await page
+        .getByLabel(de.memory.bodyLabel, { exact: true })
+        .fill(momentBody);
+      await addComposerMedia(page, {
+        name: `eimir-selected-${VIDEO}.mp4`,
+        mimeType: 'video/mp4',
+        buffer: movie,
+      });
+      await page
+        .getByRole('button', {
+          name: de.memory.photoReviewFailure,
+          exact: true,
+        })
+        .click();
+      await expect(
+        page.getByText(videoCopy.startFailed, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(videoCopy.failedNotSaved, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(de.flow.uploadFailed, { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText(taskBoundary.failedPhotos, { exact: true }),
+      ).toBeVisible();
+      const save = page.getByRole('button', {
+        name: de.memory.save,
+        exact: true,
+      });
+      await expect(save).toBeDisabled();
+      expect(state.creates).toBe(0);
+      await page.screenshot({
+        path: info.outputPath(
+          `video-admission-failed-${width}-${colorScheme}.png`,
+        ),
+        fullPage: true,
+      });
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      await page
+        .getByRole('button', { name: de.common.retry, exact: true })
+        .click();
+      await expect.poll(() => state.uploads).toBe(1);
+      await expect(save).toBeEnabled();
+      await save.click();
+      await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY}$`));
+      expect(state.bound).toEqual([VIDEO]);
+      expect(state.creates).toBe(1);
+      await expect(page.locator('.media-processing-state')).toContainText(
+        videoCopy.uploading,
+      );
+      await page
+        .getByRole('link', { name: de.navigation.story, exact: true })
+        .click();
+      await page.goBack();
+      await expect(page.locator('.media-processing-state')).toContainText(
+        videoCopy.uploading,
+      );
+      releaseUpload();
+      await expect.poll(() => state.videoStatus).toBe('PROCESSING');
+      expect(state.videoAdmissions).toBe(2);
+      expect(state.creates).toBe(1);
+      expect(unknown).toEqual([]);
+    } finally {
+      releaseUpload();
+    }
+  });
+}

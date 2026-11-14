@@ -15,9 +15,10 @@ import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescri
 import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
 import { Configuration, createSessionFetch } from './apiConfiguration';
+import { createBinaryUploadRequest } from './binaryUploadTransport';
 import { AttachmentsApi, StoryApi } from './mediaApis';
 import { loadAuthorizedStoryImage } from './storyMediaLoader';
-import { createBinaryUploadRequest } from './binaryUploadTransport';
+import { advanceUploadProgress } from './uploadProgress';
 
 export const UPLOAD_STALL_TIMEOUT_MS = 90_000;
 
@@ -164,6 +165,7 @@ export async function uploadAttachmentBytesWithProgress(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
+  let reportedProgress = 0;
   const xhrTransport: typeof fetch = (url, init) =>
     new Promise<Response>((resolve, reject) => {
       const request = createBinaryUploadRequest();
@@ -195,15 +197,18 @@ export async function uploadAttachmentBytesWithProgress(
       });
 
       request.upload.onprogress = (event) => {
+        if (finished) return;
         if (event.loaded > lastLoaded) {
           lastLoaded = event.loaded;
           armStallTimer();
         }
         if (!event.lengthComputable || event.total <= 0) return;
-        const progress = Math.min(
-          100,
-          Math.round((event.loaded / event.total) * 100),
+        const progress = advanceUploadProgress(
+          reportedProgress,
+          Math.min(99, Math.floor((event.loaded / event.total) * 100)),
         );
+        if (progress === reportedProgress) return;
+        reportedProgress = progress;
         options.onProgress?.(progress);
       };
       request.onload = () => {
@@ -286,30 +291,46 @@ export async function waitUntilAttachmentReady(
       attachment.status === 'DELETE_FAILED' ||
       attachment.status === 'DELETING'
     ) {
+      if (attachment.mediaType === MediaType.DOCUMENT) {
+        throw new ReferenceFlowError(
+          i18n.t(
+            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+              ? 'planFiles.tooLarge'
+              : 'planFiles.invalidPdf',
+          ),
+          attachment.failureCode ?? undefined,
+        );
+      }
       throw new ReferenceFlowError(
         i18n.t(
-          attachment.mediaType === 'VIDEO' &&
-            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-            ? 'video.tooLarge'
-            : attachment.failureCode?.startsWith('VIDEO_')
-              ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
-                ? 'video.unsupported'
-                : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
-                  ? 'video.tooLong'
-                  : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
-                    ? 'video.dimensions'
-                    : 'video.failed'
-              : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
-                  attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-                ? 'flow.imageTooLarge'
-                : attachment.failureCode === 'IMAGE_UNREADABLE'
-                  ? 'flow.imageUnreadable'
-                  : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
-                      attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
-                    ? 'flow.imageTypeMismatch'
-                    : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
-                      ? 'flow.imageNotSanitizable'
-                      : 'flow.processingStatus',
+          attachment.mediaType === 'AUDIO'
+            ? attachment.failureCode === 'AUDIO_DURATION_EXCEEDED'
+              ? 'voiceNotes.tooLong'
+              : attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+                ? 'voiceNotes.tooLarge'
+                : 'voiceNotes.unsupported'
+            : attachment.mediaType === 'VIDEO' &&
+                attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+              ? 'video.tooLarge'
+              : attachment.failureCode?.startsWith('VIDEO_')
+                ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
+                  ? 'video.unsupported'
+                  : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
+                    ? 'video.tooLong'
+                    : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
+                      ? 'video.dimensions'
+                      : 'video.failed'
+                : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
+                    attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+                  ? 'flow.imageTooLarge'
+                  : attachment.failureCode === 'IMAGE_UNREADABLE'
+                    ? 'flow.imageUnreadable'
+                    : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
+                        attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
+                      ? 'flow.imageTypeMismatch'
+                      : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
+                        ? 'flow.imageNotSanitizable'
+                        : 'flow.processingStatus',
         ),
         attachment.failureCode ?? undefined,
       );

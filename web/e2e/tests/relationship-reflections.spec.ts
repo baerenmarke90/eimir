@@ -1,15 +1,18 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import photoSources from '../../src/i18n/locales/photoSources';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
+import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { mockMapTiles } from '../support/mapTiles';
+import { openComposerMediaSources } from '../support/mediaIntake';
+import { openComposerPlace } from '../support/memoryDiary';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -103,6 +106,50 @@ async function fixture(
           capabilities: options.pro === false ? [] : ['relationship.passport'],
         },
       });
+    if (path === `${BASE}/story-lifeline`) {
+      const memory = (id: string, title: string, occurredOn: string) => ({
+        type: 'MEMORY',
+        id,
+        titleOrText: title,
+        occurredOn,
+        scheduledAt: null,
+        createdAt: null,
+      });
+      // Three weeks whose parts add up to the shared totals below.
+      return route.fulfill({
+        json: {
+          startsOn: '2023-06-17',
+          today: '2026-10-29',
+          weeks: [
+            {
+              weekStart: '2023-06-12',
+              memories: 40,
+              heartMoments: 4,
+              milestones: 2,
+              highlight: memory('lifeline-1', 'Our first summer', '2023-06-17'),
+            },
+            {
+              weekStart: '2025-01-06',
+              memories: 44,
+              heartMoments: 4,
+              milestones: 1,
+              highlight: memory(
+                'lifeline-2',
+                'New Year in the snow',
+                '2025-01-08',
+              ),
+            },
+            {
+              weekStart: '2026-10-26',
+              memories: 44,
+              heartMoments: 4,
+              milestones: 1,
+              highlight: memory('lifeline-3', 'Autumn walk', '2026-10-27'),
+            },
+          ],
+        },
+      });
+    }
     if (path === `${BASE}/relationship-passport`) {
       passportReads++;
       return route.fulfill({
@@ -422,8 +469,15 @@ for (const [width, theme, largeText] of [
       { fullPage: true },
     );
     await page.goto('/more');
+    // #1790 E1: Mehr opens years and recaps together; the years index leads on.
     await page
-      .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+      .getByRole('link', {
+        name: de.more.destinations.yearsAndRecaps,
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
       .click();
     await page.getByText(recapCopy.details, { exact: true }).click();
     if (largeText)
@@ -481,8 +535,15 @@ test('Free Passport remains reachable from More without requesting Pro counts', 
   await page.goto('/more/profile');
   await expect(page.locator('.profile-passport-entry')).toHaveCount(0);
   await page.goto('/more');
+  // #1790 E1: Mehr opens years and recaps together; the years index leads on.
   await page
-    .getByRole('link', { name: new RegExp(de.more.destinations.recaps) })
+    .getByRole('link', {
+      name: de.more.destinations.yearsAndRecaps,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('link', { name: new RegExp(de.storyYears.recapsEntryTitle) })
     .click();
   await expect(page.getByText(recapCopy.gateBody)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);
@@ -613,12 +674,7 @@ for (const [width, theme] of [
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: theme });
     const state = await fixture(page);
-    await page.route('https://tile.openstreetmap.org/**', (route) =>
-      route.fulfill({
-        contentType: 'image/svg+xml',
-        body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><path fill="#e5ecdc" d="M0 0h256v256H0z"/><path stroke="#c1d1ab" stroke-width="25" d="M0 40L256 200M40 0L200 256"/><path stroke="#fff" stroke-width="7" d="M0 40L256 200M40 0L200 256"/></svg>',
-      }),
-    );
+    await mockMapTiles(page);
     await signIn(page);
     await page.goto(`/plan/plans/${PLAN}`);
     await expect(
@@ -630,11 +686,9 @@ for (const [width, theme] of [
     await page
       .getByRole('button', { name: de.common.edit, exact: true })
       .click();
+    await openComposerMediaSources(page);
     await page
-      .getByRole('button', { name: photoSources.addMedia, exact: true })
-      .click();
-    await page
-      .locator('#plan-photos')
+      .locator('#plan-photos-source')
       .setInputFiles(
         fileURLToPath(
           new URL(
@@ -643,6 +697,7 @@ for (const [width, theme] of [
           ),
         ),
       );
+    await openComposerPlace(page);
     await page.getByRole('button', { name: planningCopy.map.open }).click();
     const sheet = page.getByRole('dialog', { name: planningCopy.map.title });
     await expect(sheet).toBeVisible();
@@ -654,7 +709,7 @@ for (const [width, theme] of [
     await sheet
       .getByRole('button', { name: /Sankt Peter-Ording.*Beach Road/ })
       .click();
-    await expect(sheet.locator('.leaflet-container')).toBeVisible();
+    await expect(sheet.locator('.maplibregl-map')).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await captureScreenshot(page, info, `map-picker-${width}-${theme}.png`);
     expect(
@@ -664,11 +719,17 @@ for (const [width, theme] of [
           .analyze()
       ).violations,
     ).toEqual([]);
-    await sheet.getByRole('button', { name: planningCopy.map.confirm }).click();
+    await sheet
+      .getByRole('button', { name: photoPlaces.saveSharedPlace, exact: true })
+      .click();
     await expect(sheet).toHaveCount(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(
-      page.getByLabel(planningCopy.common.place, { exact: true }),
+      page.locator('input[type="hidden"][name="placeId"]'),
     ).toHaveValue('map-place');
+    await expect(page.locator('.composer-place-context')).toContainText(
+      'Sankt Peter-Ording',
+    );
     await page.getByRole('switch', { name: copy.anticipation.show }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
     await captureScreenshot(

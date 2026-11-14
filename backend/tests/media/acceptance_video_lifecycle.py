@@ -22,11 +22,11 @@ from tests.support.video import processor as processor
 pytestmark = [pytest.mark.integration, requires_database]
 
 
-def test_hevc_hdr_uses_the_existing_intake_worker_and_ready_publication(
+def test_device_prepared_video_uses_the_existing_worker_and_ready_publication(
     client, session, owner, processor
 ):  # type: ignore[no-untyped-def]
     grant(session, owner)
-    content = (Path(__file__).parents[1] / "fixtures/media/hevc-hlg.mp4").read_bytes()
+    content = (Path(__file__).parents[1] / "fixtures/media/video-with-metadata.mp4").read_bytes()
     response = client.post(
         f"/api/v1/spaces/{owner[1].id}/attachments",
         json={

@@ -11,6 +11,7 @@ Name | Type
 `coverAttachmentId` | string
 `coverIsSensitive` | boolean
 `description` | string
+`fileAttachmentIds` | Array&lt;string&gt;
 `placeId` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
 `selectedCoverAttachmentId` | string
@@ -28,6 +29,7 @@ const example = {
   "coverAttachmentId": null,
   "coverIsSensitive": null,
   "description": null,
+  "fileAttachmentIds": null,
   "placeId": null,
   "schedule": null,
   "selectedCoverAttachmentId": null,

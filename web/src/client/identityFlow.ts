@@ -1,9 +1,9 @@
 import type { InitOverrideFunction } from '../api/generated/runtime';
 import { resolvedLocale } from '../i18n';
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
+import type { MembershipView } from '../api/generated/models/MembershipView';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
-import type { MembershipView } from '../api/generated/models/MembershipView';
 import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
@@ -230,6 +230,7 @@ export async function requestSignup(
   apiBaseUrl: string,
   email: string,
   invitationToken?: string | null,
+  acceptedTermsVersion?: string | null,
 ): Promise<void> {
   try {
     await createReferenceApis(
@@ -239,6 +240,7 @@ export async function requestSignup(
         signupEmailRequest: {
           email,
           ...(invitationToken ? { invitationToken } : {}),
+          ...(acceptedTermsVersion ? { acceptedTermsVersion } : {}),
         },
       },
       mailRequestLocale,
@@ -252,6 +254,7 @@ export async function consumeSignup(
   apiBaseUrl: string,
   token: string,
   invitationToken?: string,
+  acceptedTermsVersion?: string,
 ): Promise<SignupSessionView> {
   try {
     const session = await createReferenceApis(
@@ -261,6 +264,7 @@ export async function consumeSignup(
         token,
         deviceName: WEB_DEVICE_NAME,
         platform: WEB_PLATFORM,
+        ...(acceptedTermsVersion ? { acceptedTermsVersion } : {}),
       },
     });
     if (invitationToken && !session.spaceId) {

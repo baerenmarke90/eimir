@@ -1,13 +1,22 @@
-"""Photo reactions persist through the shared Memory's authorization boundary."""
+"""Photo reactions persist and notify through the shared Memory's authorization boundary."""
 
+from datetime import UTC, datetime, time
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import func, select
 
 from eimir.authorization import AuthorizationContext
+from eimir.core import clock
+from eimir.engagement import push, quiet_hours_preferences
 from eimir.engagement import service as engagement
-from eimir.engagement.models import Notification, NotificationKind, PushDelivery
+from eimir.engagement.models import (
+    Notification,
+    NotificationKind,
+    PushDelivery,
+    PushDeliveryStatus,
+)
+from eimir.jobs.errors import DeferredJobError
 from eimir.memories.models import Memory
 from eimir.outbox.models import OutboxEvent
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -20,6 +29,7 @@ from tests.integration.test_attachment_binding import (
 from tests.integration.test_attachment_binding import (
     couple as _couple,
 )
+from tests.integration.test_thinking_push import FakePushProvider
 from tests.support.encryption import EncryptionConfigurator
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -146,12 +156,35 @@ def test_rejects_foreign_unbound_missing_and_invalid_photo_targets(
     )
 
 
-def test_incoming_reactions_coalesce_without_push_and_retraction_removes_notice(
-    client, couple, photo_memory, session
+@pytest.fixture
+def reaction_push(couple, session):  # type: ignore[no-untyped-def]
+    provider = FakePushProvider()
+    push.providers.register("reaction-test", provider)
+    for member in ("anna", "ben"):
+        push.register_endpoint(
+            session,
+            account_id=couple[member].id,
+            provider_key="reaction-test",
+            endpoint_value=f"secret-{member}",
+        )
+    yield provider
+    push.providers.unregister("reaction-test")
+
+
+def test_incoming_reactions_coalesce_with_one_push_and_retraction_removes_notice(
+    client, couple, photo_memory, reaction_push, session, monkeypatch
 ):  # type: ignore[no-untyped-def]
     source, photo, _ = photo_memory
     endpoint = f"{source}/attachments/{photo}/reaction"
     context = AuthorizationContext(couple["anna"].id, couple["space"].id)
+    now = datetime(2026, 11, 13, 23, tzinfo=UTC)
+    monkeypatch.setattr(clock, "now", lambda: now)
+    couple["anna"].timezone = "UTC"
+    quiet_hours_preferences.set_own_window(
+        session,
+        account_id=context.account_id,
+        window=quiet_hours_preferences.QuietHoursWindow(time(22), time(7)),
+    )
 
     def project():
         for event in session.scalars(
@@ -169,7 +202,29 @@ def test_incoming_reactions_coalesce_without_push_and_retraction_removes_notice(
         select(Notification).where(Notification.kind == NotificationKind.PHOTO_REACTION.value)
     )
     assert notice is not None and notice.recipient_account_id == couple["anna"].id
-    assert session.scalar(select(func.count()).select_from(PushDelivery)) == 0
+    delivery = session.scalars(select(PushDelivery)).one()
+    assert delivery.notification_id == notice.id
+    with pytest.raises(DeferredJobError):
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.deferred_until == datetime(2026, 11, 14, 7, tzinfo=UTC)
+    assert not reaction_push.calls
+    now = datetime(2026, 11, 14, 7, tzinfo=UTC)
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    project()
+    assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+    assert len(reaction_push.calls) == 1
+    assert reaction_push.calls[0]["endpoint"] == "secret-anna"
+    assert reaction_push.calls[0]["notificationReference"] == {
+        "id": str(notice.id),
+        "kind": "PHOTO_REACTION",
+        "locale": "de",
+    }
+    notice_path = f"{base_path(couple['space'].id)}/notifications/{notice.id}/open"
+    assert client.post(notice_path, headers=auth(couple["token_b"])).status_code == 404
+    opened = client.post(notice_path, headers=auth(couple["token_a"]))
+    assert opened.status_code == 200
+    assert opened.json()["targetType"] == "MEMORY"
+    assert opened.json()["targetId"] == source.split("/")[-1]
     engagement.mark_notification_read(session, context, notice.id)
     project()
     session.refresh(notice)
@@ -182,9 +237,53 @@ def test_incoming_reactions_coalesce_without_push_and_retraction_removes_notice(
     session.refresh(notice)
     assert notice.read_at is None
     assert session.scalar(select(func.count()).select_from(Notification)) == 1
+    assert session.scalar(select(func.count()).select_from(PushDelivery)) == 1
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert len(reaction_push.calls) == 1
     assert (
         client.put(endpoint, json={"reaction": None}, headers=auth(couple["token_b"])).status_code
         == 200
     )
     project()
     assert not engagement.read_notifications(session, context).items
+
+
+@pytest.mark.parametrize("dismissal", ["preference", "retracted", "detached", "self"])
+def test_reaction_push_respects_recipient_choice_and_live_source(
+    client, couple, photo_memory, reaction_push, session, dismissal
+):  # type: ignore[no-untyped-def]
+    source, photo, _ = photo_memory
+    token_a = couple["token_a"]
+    token_b = couple["token_b"]
+    endpoint = f"{source}/attachments/{photo}/reaction"
+    if dismissal == "preference":
+        changed = client.patch(
+            "/api/v1/notification-preferences/COMMENT_CREATED/PUSH",
+            json={"enabled": False},
+            headers=auth(token_a),
+        )
+        assert changed.status_code == 200
+    reacted = client.put(
+        endpoint,
+        json={"reaction": "LOVE"},
+        headers=auth(token_a if dismissal == "self" else token_b),
+    )
+    assert reacted.status_code == 200
+    engagement.project_pending(session, limit=100)
+    if dismissal == "self":
+        assert not session.scalars(select(PushDelivery)).all()
+        return
+    delivery = session.scalars(select(PushDelivery)).one()
+    if dismissal == "retracted":
+        removed = client.put(endpoint, json={"reaction": None}, headers=auth(token_b))
+        assert removed.status_code == 200
+    if dismissal == "detached":
+        detached = client.put(
+            f"{source}/attachments",
+            json={"attachments": []},
+            headers=if_match(token_a, reacted.json()["version"]),
+        )
+        assert detached.status_code == 200
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert not reaction_push.calls

@@ -49,23 +49,31 @@ public final class SelectedMediaProvider extends ContentProvider {
         private final Set<String> tokens = new HashSet<>();
         private boolean closed;
 
-        Uri adopt(Context context, Uri selected) {
+        Uri adopt(Context context, Uri selected) { return adopt(context, selected, false); }
+
+        Uri adoptAudio(Context context, Uri selected) { return adopt(context, selected, true); }
+
+        private Uri adopt(Context context, Uri selected, boolean audio) {
             AssetFileDescriptor source = null;
             try {
                 synchronized (leases) { if (closed) return selected; }
                 String type = context.getContentResolver().getType(selected);
-                if (!"video/mp4".equals(type) && !"video/quicktime".equals(type)) return selected;
+                if (audio) {
+                    if (type == null || !type.startsWith("audio/")) return selected;
+                } else if (!"video/mp4".equals(type) && !"video/quicktime".equals(type)) return selected;
                 String name = "video" + ("video/mp4".equals(type) ? ".mp4" : ".mov");
-                try (Cursor cursor = context.getContentResolver().query(selected,
+                if (!audio) try (Cursor cursor = context.getContentResolver().query(selected,
                         new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                     if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) name = cursor.getString(0);
                 }
                 source = context.getContentResolver().openAssetFileDescriptor(selected, "r");
                 if (source == null) return selected;
-                Lease lease = new Lease(source, name, type);
+                if (audio && source.getLength() > 20L * 1024 * 1024) return selected;
+                Lease lease = new Lease(source, audio ? "voice" : name, type);
                 synchronized (leases) {
                     if (closed || leases.size() >= MAX_LEASES) return selected;
                     String token = UUID.randomUUID().toString();
+                    if (!audio) lease = new Lease(source, "eimir-selected-" + token + ("video/mp4".equals(type) ? ".mp4" : ".mov"), type);
                     leases.put(token, lease);
                     tokens.add(token);
                     source = null; // Ownership moves only after complete registration.
@@ -99,6 +107,22 @@ public final class SelectedMediaProvider extends ContentProvider {
         if (descriptor == null) return;
         try { descriptor.close(); }
         catch (IOException unavailable) { /* The lease is already invalidated. */ }
+    }
+
+    /** Resolve only a File produced by this process's explicit native selection. */
+    static AssetFileDescriptor openForTransfer(Context context, String name, String type) throws IOException {
+        if (name == null || !name.matches("eimir-selected-[0-9a-f-]{36}\\.(mp4|mov)"))
+            throw new FileNotFoundException("Selected video unavailable");
+        String token = name.substring("eimir-selected-".length(), name.lastIndexOf('.'));
+        synchronized (leases) {
+            Lease selected = leases.get(token);
+            if (selected == null || !name.equals(selected.name) || !type.equals(selected.type))
+                throw new FileNotFoundException("Selected video unavailable");
+        }
+        Uri uri = new Uri.Builder().scheme("content").authority(context.getPackageName() + ".selectedmedia").appendPath(token).build();
+        AssetFileDescriptor source = context.getContentResolver().openAssetFileDescriptor(uri, "r");
+        if (source == null) throw new FileNotFoundException("Selected video unavailable");
+        return source;
     }
 
     private Lease lease(Uri uri) throws FileNotFoundException {

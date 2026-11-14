@@ -18,18 +18,25 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
 import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.espresso.Espresso;
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
+import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.BySelector;
 import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.UiDeviceExt;
 import androidx.test.uiautomator.UiObject2;
-import androidx.test.uiautomator.UiObject2Ext;
 import androidx.test.uiautomator.Until;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,6 +55,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
+import org.hamcrest.Matcher;
 
 /** Real foreign-owned Android photo grants and Chromium File handoff. */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -259,8 +267,12 @@ public class PhotoFileChooserTest {
         List<String> permissions = Arrays.asList(context.getPackageManager()
             .getPackageInfo(context.getPackageName(), PackageManager.GET_PERMISSIONS).requestedPermissions);
         assertTrue(permissions.contains("android.permission.ACCESS_MEDIA_LOCATION"));
+        // Approximate and background location belong to partner distance (#1792,
+        // ApproximateLocationPlugin), not to the selected-file contract; precise
+        // location stays forbidden for the whole app.
+        assertTrue(permissions.contains("android.permission.ACCESS_COARSE_LOCATION"));
+        assertTrue(permissions.contains("android.permission.ACCESS_BACKGROUND_LOCATION"));
         for (String forbidden : new String[] {"android.permission.ACCESS_FINE_LOCATION",
-                "android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_BACKGROUND_LOCATION",
                 "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO",
                 "android.permission.READ_EXTERNAL_STORAGE",
                 "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.MANAGE_EXTERNAL_STORAGE"}) {
@@ -361,10 +373,19 @@ public class PhotoFileChooserTest {
             + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>`;"
             + "document.getElementById('photo').onchange=async(e)=>{"
             + "window.photoFileEvents=(window.photoFileEvents||0)+1;"
-            + "window.photoSelectedCount=e.target.files.length;try{"
-            + "const bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
+            + "window.photoSelectedCount=e.target.files.length;"
+            // The first read of a freshly granted picker URI can race the
+            // MediaProvider preparing its synthetic picker path on a just-booted
+            // API 37.1 image (NotFoundError). Retry a bounded number of times and
+            // record the attempts so a persistent failure stays diagnosable.
+            + "let bytes=null;window.photoReadAttempts=0;"
+            + "while(!bytes&&window.photoReadAttempts<6){window.photoReadAttempts++;try{"
+            + "bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
+            + "window.photoReadError=undefined;}catch(error){window.photoReadError=error.name;"
+            + "await new Promise(done=>setTimeout(done,500));}}"
+            + "if(!bytes)return;"
             + "let binary='';for(const value of bytes)binary+=String.fromCharCode(value);"
-            + "window.selectedPhotoBytes=btoa(binary);}catch(error){window.photoReadError=error.name;}};"
+            + "window.selectedPhotoBytes=btoa(binary);};"
             + "return document.getElementById('photo').type==='file';})()";
         assertEquals("Chromium creates the live multiple-photo input", "true",
             javascriptValue(view, fixtureScript));
@@ -379,9 +400,16 @@ public class PhotoFileChooserTest {
                 && event.getPackageName() != null
                 && (isSystemPhotoPicker(event.getPackageName())
                     || event.getPackageName().toString().contains("permissioncontroller")), 15000);
-        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
-        if (root != null && root.getPackageName() != null
-                && root.getPackageName().toString().contains("permissioncontroller")) {
+        // A window-state event can arrive before Android publishes its new
+        // accessibility root. Wait for the actual consent or picker control;
+        // inspecting the previous WebView root would skip the real decision.
+        AccessibilityNodeInfo entry = findDocument("Allow all", "Include location", token);
+        assertNotNull("Android publishes its consent or picker surface", entry);
+        CharSequence entryPackage = entry.getPackageName();
+        assertTrue("The entry belongs to Android's consent or photo picker",
+            isSystemPhotoPicker(entryPackage) || (entryPackage != null
+                && entryPackage.toString().contains("permissioncontroller")));
+        if (entryPackage.toString().contains("permissioncontroller")) {
             captureNativeDiagnostics("native-photo-permission");
             AccessibilityNodeInfo allow = findDocument("Allow all");
             assertNotNull("Android exposes the optional metadata permission decision", allow);
@@ -400,13 +428,13 @@ public class PhotoFileChooserTest {
             captureNativeDiagnostics("native-photo-location-consent");
             AccessibilityNodeInfo includeLocation = findDocument("Include location");
             assertNotNull("The system picker asks to include the selected photos' location", includeLocation);
-            activateStableNativeControl(includeLocation);
+            activateReadyNativeControl(includeLocation);
         }
         // Match the actual diary input's complete MIME list and multiple mode.
         captureNativeDiagnostics("native-photo-picker");
         AccessibilityNodeInfo document = findDocument(token);
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
-        activateStableNativeControl(document);
+        activateReadyNativeControl(document);
         // Picker UI updates independently of the metadata SDK extension. Both
         // deployed implementations require an explicit native confirmation.
         captureNativeDiagnostics("native-photo-confirmation");
@@ -415,7 +443,7 @@ public class PhotoFileChooserTest {
             confirm);
         assertTrue("The confirmation belongs to the native photo picker",
             isSystemPhotoPicker(confirm.getPackageName()));
-        activateStableNativeControl(confirm);
+        activateReadyNativeControl(confirm);
         byte[] uploadedBytes = selectedFileBytes(view);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
         assertArrayEquals("The existing Web File intake receives the original bytes",
@@ -489,7 +517,8 @@ public class PhotoFileChooserTest {
             + "video.onseeked=()=>window.videoSeeked=true;"
             + "video.requestVideoFrameCallback(()=>window.videoDecoded=true);"
             + "}catch(error){window.photoReadError=error.name;}};"
-            + "document.getElementById('play-video').onclick=()=>video.play().catch(e=>window.videoError=e.name);"
+            + "document.getElementById('play-video').onclick=event=>{window.videoPlayTrusted=event.isTrusted;"
+            + "return video.play().catch(e=>window.videoError=e.name);};"
             + "return input.type==='file';})()"));
         Rect input = photoInputScreenBounds(view);
         try {
@@ -507,7 +536,7 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-video-picker");
         AccessibilityNodeInfo selected = findDocument("Video taken");
         assertNotNull("The system video gallery exposes the foreign-owned video", selected);
-        activateStableNativeControl(selected);
+        activateReadyNativeControl(selected);
         // The Compose picker can expose Done before metadata extension 23.
         // Observe the real selection action instead of inferring its UI label
         // from an unrelated platform capability.
@@ -516,7 +545,7 @@ public class PhotoFileChooserTest {
         assertNotNull("The video gallery requires explicit confirmation", confirm);
         assertTrue("The confirmation belongs to the native video picker",
             isSystemVideoPicker(confirm.getPackageName()));
-        activateStableNativeControl(confirm);
+        activateReadyNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
         assertEquals("true", javascriptValue(view, "window.videoRepeatedReads===true"));
@@ -538,7 +567,8 @@ public class PhotoFileChooserTest {
         // Match production preload=none: only a deliberate Play requests metadata/frames.
         tapScreenBounds(webControlScreenBounds(view, "play-video"));
         awaitJavascript(view, "window.videoReady===true");
-        awaitJavascript(view, "window.videoDecoded===true && document.getElementById('video').currentTime>0 && !window.videoError");
+        awaitJavascript(view, "window.videoPlayTrusted===true && window.videoDecoded===true"
+            + " && document.getElementById('video').currentTime>0 && !window.videoError");
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').videoWidth===96"
             + " && document.getElementById('video').videoHeight===64"));
@@ -569,7 +599,8 @@ public class PhotoFileChooserTest {
         throw new AssertionError("The native video condition did not complete: " + condition
             + "; state=" + javascriptValue(view, "JSON.stringify((()=>{const v=document.getElementById('video');"
                 + "return {ready:v?.readyState,network:v?.networkState,error:window.videoError,"
-                + "mediaError:v?.error?.message,mime:window.videoMime,paused:v?.paused,time:v?.currentTime}})())"));
+                + "mediaError:v?.error?.message,mime:window.videoMime,paused:v?.paused,time:v?.currentTime,"
+                + "decoded:window.videoDecoded,playTrusted:window.videoPlayTrusted}})())"));
     }
 
     private void captureNativeDiagnostics(String label) throws Exception {
@@ -613,7 +644,8 @@ public class PhotoFileChooserTest {
         throw new AssertionError("The selected media never reached the Web File intake: "
             + javascriptValue(view, "JSON.stringify({handler:typeof document.getElementById('photo').onchange,"
                 + "events:window.photoFileEvents,count:window.photoSelectedCount,"
-                + "file:window.photoDescriptor,error:window.photoReadError})"));
+                + "file:window.photoDescriptor,error:window.photoReadError,"
+                + "attempts:window.photoReadAttempts})"));
     }
 
     private void awaitPhotoInput(WebView view) throws Exception {
@@ -684,44 +716,49 @@ public class PhotoFileChooserTest {
         return result.get();
     }
 
-    private void activateStableNativeControl(AccessibilityNodeInfo document) throws Exception {
+    private void activateReadyNativeControl(AccessibilityNodeInfo document) throws Exception {
         // Resolve the same system control through the cross-app test framework.
-        // A visible Compose node can precede its stable layout and touch target.
+        // A visible node can precede its enabled native action owner.
         BySelector selector = By.pkg(document.getPackageName().toString());
         CharSequence text = document.getText();
         CharSequence description = document.getContentDescription();
-        if (text != null) selector.text(text.toString());
+        String resource = document.getViewIdResourceName();
+        if (resource != null) selector.res(resource);
+        else if (text != null) selector.textStartsWith(text.toString());
         else {
             assertNotNull("The identified system control has a label", description);
             selector.desc(description.toString());
         }
         UiDevice device = UiDevice.getInstance(instrumentation);
-        UiObject2 control = device.wait(Until.findObject(selector), 10000);
-        assertNotNull("The identified system control remains available", control);
-        assertFalse("The system control's hierarchy and pixels become stable",
-            UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
-        // Stability screenshots can replace accessibility nodes. Reacquire before
-        // resolving the system control's actual action owner.
-        control = device.findObject(selector);
-        assertNotNull("The stable system control remains attached", control);
-        assertTrue("The stable system control is enabled", control.isEnabled());
-        Rect bounds = control.getVisibleBounds();
-        assertFalse("The stable system control is visible", bounds.isEmpty());
-        // Compose exposes the media description on a non-clickable image child.
-        // Reuse the existing native selection action on its actionable ancestor,
-        // rather than making external picker selection depend on renderer-delayed
-        // touch injection. WebView input and playback still use real native taps.
-        AccessibilityNodeInfo fresh = findDocument((text != null ? text : description).toString());
-        assertNotNull("The stable system control has a fresh accessibility node", fresh);
-        assertEquals("The fresh control belongs to the identified system picker",
-            document.getPackageName(), fresh.getPackageName());
-        activateNativeControl(fresh);
+        try {
+            // This helper performs an accessibility action, not a coordinate tap.
+            // Its readiness belongs to the enabled native control and its action
+            // owner, not pixel idleness while the external picker renders.
+            UiObject2 control = device.wait(Until.findObject(selector.enabled(true)), 10000);
+            assertNotNull("The identified native control becomes enabled", control);
+            assertFalse("The identified native control has visible bounds", control.getVisibleBounds().isEmpty());
+            AccessibilityNodeInfo fresh = findDocument((text != null ? text : description).toString());
+            assertNotNull("The ready native control has a fresh accessibility node", fresh);
+            assertEquals("The fresh control belongs to the identified native picker",
+                document.getPackageName(), fresh.getPackageName());
+            activateNativeControl(fresh);
+        } catch (Exception | AssertionError failure) {
+            try { captureNativeDiagnostics("native-control-failure"); }
+            catch (Exception diagnosticFailure) { failure.addSuppressed(diagnosticFailure); }
+            throw failure;
+        }
     }
 
     private void activateNativeControl(AccessibilityNodeInfo control) {
         assertTrue("The identified system control is still attached", control.refresh());
         assertTrue("The identified system control is visible", control.isVisibleToUser());
         assertTrue("The identified system control is enabled", control.isEnabled());
+        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
+        assertNotNull("The identified system control has an active native window", root);
+        assertEquals("The system control belongs to the active native window",
+            root.getWindowId(), control.getWindowId());
+        assertEquals("The active native window owns the system control",
+            root.getPackageName(), control.getPackageName());
         // DocumentsUI exposes its filename as a child of the actionable file row.
         AccessibilityNodeInfo action = control;
         for (int depth = 0; depth < 5 && action != null
@@ -729,6 +766,10 @@ public class PhotoFileChooserTest {
             action = action.getParent();
         }
         assertNotNull("The identified system control has an action owner", action);
+        assertEquals("The action owner remains in the identified native window",
+            control.getWindowId(), action.getWindowId());
+        assertEquals("The identified system package owns the action",
+            control.getPackageName(), action.getPackageName());
         assertTrue("The system action owner remains attached", action.refresh());
         assertTrue("The system action owner is visible and enabled",
             action.isVisibleToUser() && action.isEnabled());
@@ -740,15 +781,41 @@ public class PhotoFileChooserTest {
 
     private void tapScreenBounds(Rect bounds) throws Exception {
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
-        // UiAutomation synchronizes surfaces between injected events, even for
-        // asynchronous gestures. A slow renderer can hold DOWN until Android
-        // recognizes a long press. The platform input command dispatches one
-        // complete tap without that per-event surface synchronization. It still
-        // traverses the real touchscreen path; selection, confirmation and File
-        // handoff are verified below, with no action replay or accessibility click.
-        String output = UiDevice.getInstance(instrumentation).executeShellCommand(
-            "input touchscreen tap " + bounds.centerX() + " " + bounds.centerY());
-        assertEquals("Android accepts the identified control's native tap", "", output.trim());
+        // A selected File can arrive before the system picker's closing animation.
+        // Its remaining dim layer rejects touches as obscured even after the app
+        // regains focus. Await fresh-root/pixel stability before starting the tap.
+        assertFalse("The WebView window settles before native touch",
+            UiDeviceExt.waitForStableInActiveWindow(UiDevice.getInstance(instrumentation),
+                3000, 500, 50, true).isTimeout());
+        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
+        assertNotNull("The WebView owns an active window", root);
+        assertEquals("The touch belongs to the active app window",
+            context.getPackageName(), String.valueOf(root.getPackageName()));
+        Espresso.onView(ViewMatchers.isAssignableFrom(WebView.class)).perform(new ViewAction() {
+            @Override public Matcher<View> getConstraints() { return ViewMatchers.isDisplayed(); }
+            @Override public String getDescription() { return "Tap the identified live WebView control"; }
+            @Override public void perform(UiController controller, View view) {
+                long now = SystemClock.uptimeMillis();
+                MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN,
+                    bounds.centerX(), bounds.centerY(), 0);
+                MotionEvent up = MotionEvent.obtain(now, now, MotionEvent.ACTION_UP,
+                    bounds.centerX(), bounds.centerY(), 0);
+                down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+                up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+                try {
+                    // Espresso 3.7 queues the sequence asynchronously until its last
+                    // event. Shell input tap waits for DOWN processing before UP,
+                    // turning a short tap into a long press on a busy renderer.
+                    assertTrue("Android accepts the identified control's native tap",
+                        controller.injectMotionEventSequence(Arrays.asList(down, up)));
+                } catch (androidx.test.espresso.InjectEventSecurityException failure) {
+                    throw new AssertionError("The touch target belongs to the active WebView", failure);
+                } finally {
+                    down.recycle();
+                    up.recycle();
+                }
+            }
+        });
     }
 
     private AccessibilityNodeInfo findDocument(String... names) throws Exception {

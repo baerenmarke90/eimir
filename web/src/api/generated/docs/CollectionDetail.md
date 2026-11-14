@@ -12,6 +12,7 @@ Name | Type
 `creator` | [AuthorSummary](AuthorSummary.md)
 `id` | string
 `items` | [Array&lt;CollectionItemDetail&gt;](CollectionItemDetail.md)
+`kind` | [CollectionKind](CollectionKind.md)
 `spaceId` | string
 `title` | string
 `updatedAt` | Date
@@ -30,6 +31,7 @@ const example = {
   "creator": null,
   "id": null,
   "items": null,
+  "kind": null,
   "spaceId": null,
   "title": null,
   "updatedAt": null,

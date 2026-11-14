@@ -8,9 +8,15 @@ import {
   QueryClientProvider,
   useQuery,
 } from '@tanstack/react-query';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { App } from '@capacitor/app';
 import { checkAppUpdatesIfDue } from './client/appUpdates';
-import { handleNativeBackButton, useCapacitorShell } from './capacitorShell';
+import {
+  handleNativeBackButton,
+  markNativeRuntime,
+  useCapacitorShell,
+} from './capacitorShell';
 import { isCapacitorNative } from './pwa';
 
 vi.mock('@capacitor/app', () => ({
@@ -146,5 +152,29 @@ describe('Capacitor native shell integration', () => {
     expect(checkAppUpdatesIfDue).not.toHaveBeenCalled();
     unmount();
     expect(focusManager.isFocused()).toBe(false);
+  });
+});
+
+describe('native runtime marker', () => {
+  it('marks only the native app runtime, independent of viewport width', () => {
+    const root = document.createElement('html');
+    markNativeRuntime(root, true);
+    expect(root.dataset.runtime).toBe('native');
+    markNativeRuntime(root, false);
+    expect(root.dataset.runtime).toBeUndefined();
+  });
+
+  it('hides scrollbars only below the native runtime marker', () => {
+    const shell = readFileSync(resolve(__dirname, 'shell.css'), 'utf8');
+    const scoped = shell.match(
+      /:root\[data-runtime="native"\],\s*:root\[data-runtime="native"\] \* \{\s*scrollbar-width: none;/,
+    );
+    expect(scoped).not.toBeNull();
+    // No unscoped rule removes browser scrollbars.
+    const unscoped = shell
+      .split('}')
+      .filter((rule) => /scrollbar-width:\s*none/.test(rule))
+      .filter((rule) => !rule.includes('data-runtime="native"'));
+    expect(unscoped).toEqual([]);
   });
 });

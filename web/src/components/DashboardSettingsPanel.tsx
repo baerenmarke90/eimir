@@ -15,6 +15,7 @@ import {
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import {
+  COUPLE_HERO_MODULE_KEY,
   dashboardPreferencesQueryKey,
   effectiveUpcomingItemLimit,
   isDashboardModuleVisible,
@@ -31,15 +32,35 @@ import {
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { useTranslation } from '../i18n';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
+
+const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
+  relationship_presence: 'wir',
+  partner_distance: 'orte',
+  shared_experience: 'nurfuer',
+  daily_quote: 'quote',
+  keepsake: 'momente',
+  upcoming: 'kalender',
+  pinned_collection: 'listen',
+  retrospective: 'erinnerungen',
+  relationship_signal: 'gemeinsam',
+  monthly_highlights: 'highlights',
+  recent_shared: 'aktivitaet',
+  shared_story_summary: 'statistiken',
+};
 
 export interface DashboardSettingsPanelProps {
   dashboardApi: DashboardApi;
   accountId: string;
   spaceId: string;
   moduleControls?: Partial<Record<DashboardModuleKey, ReactNode>>;
+  /** Modules this account cannot use here; they stay out of the list. */
+  unavailableModuleKeys?: readonly DashboardModuleKey[];
+  /** Viewer-side controls for the always-visible couple hero. */
+  heroControls?: ReactNode;
 }
 
 type PreferenceQueryWrite = {
@@ -161,6 +182,8 @@ function settlePreferenceFacetWrite(
 
 export function DashboardSettingsPanel({
   moduleControls,
+  unavailableModuleKeys,
+  heroControls,
   dashboardApi,
   accountId,
   spaceId,
@@ -542,17 +565,44 @@ export function DashboardSettingsPanel({
     },
   });
 
-  const orderedKeys = orderedDashboardModuleKeys(preferencesQuery.data);
+  // The couple identity is always first; hidden standard modules remain
+  // available without crowding the everyday arrangement.
+  const allPersonalKeys = orderedDashboardModuleKeys(
+    preferencesQuery.data,
+  ).filter((key) => key !== COUPLE_HERO_MODULE_KEY);
+  const unavailableKeys = allPersonalKeys.filter((key) =>
+    unavailableModuleKeys?.includes(key),
+  );
+  const personalKeys = allPersonalKeys.filter(
+    (key) => !unavailableKeys.includes(key),
+  );
+  const hiddenKeys = personalKeys.filter(
+    (key) =>
+      moduleControls?.[key] === undefined &&
+      key !== 'shared_story_summary' &&
+      !isDashboardModuleVisible(preferencesQuery.data, key),
+  );
+  const visibleKeys = personalKeys.filter((key) => !hiddenKeys.includes(key));
   const reorder = useListItemReorder({
-    itemIds: orderedKeys,
+    itemIds: visibleKeys,
     animatePreview: true,
     disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
     onReorder: (keys, moved) => {
       const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
       if (!isCurrentQuery()) return;
-      const next = keys as DashboardModuleKey[];
+      const next = [
+        COUPLE_HERO_MODULE_KEY,
+        ...keys,
+        ...hiddenKeys,
+      ] as DashboardModuleKey[];
+      // Unavailable modules keep their saved place; they are not listed, so
+      // a reorder elsewhere must not move them.
+      const saved = orderedDashboardModuleKeys(preferencesQuery.data);
+      for (const key of unavailableKeys) {
+        next.splice(Math.min(saved.indexOf(key), next.length), 0, key);
+      }
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
-      const position = next.indexOf(moved as DashboardModuleKey) + 1;
+      const position = keys.indexOf(moved as DashboardModuleKey) + 1;
       const write: DashboardOrderWrite = {
         keys: next,
         sequence: ++latestOrderRequest.current,
@@ -607,6 +657,139 @@ export function DashboardSettingsPanel({
         ? t('profileIdentity.dashboardModuleSaved')
         : null;
 
+  function changeModuleVisibility(
+    moduleKey: DashboardModuleKey,
+    nextVisible: boolean,
+  ) {
+    const rowScope = `${settingsScope}:${moduleKey}`;
+
+    if (
+      visibilityWrites.current.has(rowScope) ||
+      (moduleKey === UPCOMING_MODULE_KEY &&
+        (upcomingWriteRef.current?.scope === settingsScope ||
+          queryClient.isMutating({
+            mutationKey: upcomingMutationKey,
+            exact: true,
+          }) > 0))
+    ) {
+      return;
+    }
+    // The mutation cache also prevents duplicate admission
+    // across a panel unmount/remount while a request is in flight.
+    const existing = queryClient
+      .getMutationCache()
+      .findAll({
+        mutationKey: visibilityMutationKey,
+        exact: true,
+      })
+      .some(
+        (mutation) =>
+          mutation.state.status === 'pending' &&
+          (mutation.state.variables as VisibilityWrite | undefined)
+            ?.moduleKey === moduleKey,
+      );
+    if (existing) return;
+    const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
+    if (!isCurrentQuery()) return;
+    const write: VisibilityWrite = {
+      id: ++nextVisibilityId.current,
+      scope: settingsScope,
+      rowScope,
+      moduleKey,
+      visible: nextVisible,
+      key: queryKey,
+      isCurrentQuery,
+      api: dashboardApi,
+      spaceId,
+    };
+    visibilityWrites.current.set(rowScope, write);
+    setPendingVisibility((current) => ({
+      ...current,
+      [rowScope]: { id: write.id, visible: write.visible },
+    }));
+    setSavedModuleKey(null);
+    setVisibilityError(null);
+    visibilityMutation.mutate(write);
+  }
+
+  function renderModuleRow(moduleKey: DashboardModuleKey, sortable: boolean) {
+    const entry = DASHBOARD_MODULE_CATALOG.find(
+      (item) => item.key === moduleKey,
+    );
+    if (!entry) return null;
+    const visible = isDashboardModuleVisible(preferencesQuery.data, entry.key);
+    const rowScope = `${settingsScope}:${entry.key}`;
+    const isRowPending =
+      pendingVisibility[rowScope] !== undefined ||
+      pendingVisibilityMutations.includes(entry.key) ||
+      (entry.key === UPCOMING_MODULE_KEY && isLimitPending);
+    const customControl = moduleControls?.[entry.key];
+    const hasDedicatedSetting =
+      customControl !== undefined || entry.key === 'shared_story_summary';
+
+    return (
+      <div
+        key={entry.key}
+        className={`dashboard-module-option${
+          sortable && reorder.activeItemId === entry.key ? ' is-dragging' : ''
+        }${sortable ? '' : ' is-hidden'}`}
+        data-sortable-item-id={sortable ? entry.key : undefined}
+      >
+        <span className="dashboard-module-icon" aria-hidden="true">
+          <EimirIcon name={MODULE_ICONS[entry.key]} />
+        </span>
+        {hasDedicatedSetting ? (
+          <span className="dashboard-module-option-label">
+            {t(entry.labelKey)} <ProMark label={t('dailyQuote.pro')} />
+          </span>
+        ) : (
+          <label
+            className="dashboard-module-option-label"
+            htmlFor={`dashboard-visible-${entry.key}`}
+          >
+            {t(entry.labelKey)}
+            {entry.key === 'partner_distance' ? (
+              <>
+                {' '}
+                <ProMark label={t('partnerLocation.pro')} />
+              </>
+            ) : null}
+          </label>
+        )}
+        {hasDedicatedSetting ? (
+          (customControl ?? null)
+        ) : (
+          <label className="dashboard-module-switch">
+            <input
+              id={`dashboard-visible-${entry.key}`}
+              aria-label={t(entry.labelKey)}
+              type="checkbox"
+              checked={pendingVisibility[rowScope]?.visible ?? visible}
+              disabled={
+                isRowPending ||
+                preferencesQuery.isPending ||
+                Boolean(preferencesQuery.error)
+              }
+              onChange={(event) =>
+                changeModuleVisibility(entry.key, event.target.checked)
+              }
+            />
+          </label>
+        )}
+        {sortable ? (
+          <ListEntryIconButton
+            icon="reorder"
+            label={t('profileIdentity.dashboardOrderHandle', {
+              name: t(entry.labelKey),
+            })}
+            aria-describedby="dashboard-order-instructions"
+            {...reorder.handleProps(entry.key)}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <section
       id="settings-dashboard"
@@ -617,135 +800,37 @@ export function DashboardSettingsPanel({
         <h2 id="settings-dashboard-heading">
           {t('profileIdentity.settingsDashboard')}
         </h2>
+        <p className="dashboard-personal-intro">
+          {t('profileIdentity.dashboardPersonalIntro')}
+        </p>
       </div>
+
+      <div className="dashboard-shared-core">
+        <span className="dashboard-module-icon" aria-hidden="true">
+          <EimirIcon name="wir" variant="duotone" />
+        </span>
+        <div className="dashboard-shared-core-copy">
+          <strong>{t('m5s5.today.roles.hero')}</strong>
+          <span>{t('profileIdentity.dashboardSharedFixed')}</span>
+        </div>
+        <span className="dashboard-shared-fixed">
+          {t('profileIdentity.dashboardAlwaysVisible')}
+        </span>
+      </div>
+      {heroControls}
 
       <fieldset
         className="dashboard-module-preference"
         aria-busy={preferencesQuery.isPending}
       >
-        <legend className="sr-only">
-          {t('profileIdentity.dashboardModulesTitle')}
-        </legend>
+        <legend>{t('profileIdentity.dashboardModulesTitle')}</legend>
         <p className="dashboard-module-question">
           {t('profileIdentity.dashboardModulesIntro')}
         </p>
         <div className="dashboard-module-list">
-          {reorder.orderedItemIds.map((moduleKey) => {
-            const entry = DASHBOARD_MODULE_CATALOG.find(
-              (item) => item.key === moduleKey,
-            );
-            if (!entry) return null;
-            const visible = isDashboardModuleVisible(
-              preferencesQuery.data,
-              entry.key,
-            );
-            const rowScope = `${settingsScope}:${entry.key}`;
-            const isRowPending =
-              pendingVisibility[rowScope] !== undefined ||
-              pendingVisibilityMutations.includes(entry.key) ||
-              (entry.key === UPCOMING_MODULE_KEY && isLimitPending);
-            const customControl = moduleControls?.[entry.key];
-            const hasDedicatedSetting =
-              customControl !== undefined ||
-              entry.key === 'shared_story_summary';
-            return (
-              <div
-                key={entry.key}
-                className={`dashboard-module-option${reorder.activeItemId === entry.key ? ' is-dragging' : ''}`}
-                data-sortable-item-id={entry.key}
-              >
-                {hasDedicatedSetting ? (
-                  <span className="dashboard-module-option-label">
-                    {t(entry.labelKey)} <ProMark label={t('dailyQuote.pro')} />
-                  </span>
-                ) : (
-                  <label
-                    className="dashboard-module-option-label"
-                    htmlFor={`dashboard-visible-${entry.key}`}
-                  >
-                    {t(entry.labelKey)}
-                  </label>
-                )}
-                {hasDedicatedSetting ? (
-                  (customControl ?? null)
-                ) : (
-                  <label className="dashboard-module-switch">
-                    <input
-                      id={`dashboard-visible-${entry.key}`}
-                      aria-label={t(entry.labelKey)}
-                      type="checkbox"
-                      checked={pendingVisibility[rowScope]?.visible ?? visible}
-                      disabled={isRowPending || preferencesQuery.isPending}
-                      onChange={(event) => {
-                        if (
-                          visibilityWrites.current.has(rowScope) ||
-                          (entry.key === UPCOMING_MODULE_KEY &&
-                            (upcomingWriteRef.current?.scope ===
-                              settingsScope ||
-                              queryClient.isMutating({
-                                mutationKey: upcomingMutationKey,
-                                exact: true,
-                              }) > 0))
-                        ) {
-                          return;
-                        }
-                        // The mutation cache also prevents duplicate admission
-                        // across a panel unmount/remount while a request is in flight.
-                        const existing = queryClient
-                          .getMutationCache()
-                          .findAll({
-                            mutationKey: visibilityMutationKey,
-                            exact: true,
-                          })
-                          .some(
-                            (mutation) =>
-                              mutation.state.status === 'pending' &&
-                              (
-                                mutation.state.variables as
-                                  | VisibilityWrite
-                                  | undefined
-                              )?.moduleKey === entry.key,
-                          );
-                        if (existing) return;
-                        const isCurrentQuery = captureAuthorizedQuery(
-                          queryClient,
-                          queryKey,
-                        );
-                        if (!isCurrentQuery()) return;
-                        const write: VisibilityWrite = {
-                          id: ++nextVisibilityId.current,
-                          scope: settingsScope,
-                          rowScope,
-                          moduleKey: entry.key,
-                          visible: event.target.checked,
-                          key: queryKey,
-                          isCurrentQuery,
-                          api: dashboardApi,
-                          spaceId,
-                        };
-                        visibilityWrites.current.set(rowScope, write);
-                        setPendingVisibility((current) => ({
-                          ...current,
-                          [rowScope]: { id: write.id, visible: write.visible },
-                        }));
-                        setSavedModuleKey(null);
-                        setVisibilityError(null);
-                        visibilityMutation.mutate(write);
-                      }}
-                    />
-                  </label>
-                )}
-                <ListEntryIconButton
-                  icon="reorder"
-                  label={t('profileIdentity.dashboardOrderHandle', {
-                    name: t(entry.labelKey),
-                  })}
-                  aria-describedby="dashboard-order-instructions"
-                  {...reorder.handleProps(entry.key)}
-                />
-              </div>
-            );
-          })}
+          {reorder.orderedItemIds.map((key) =>
+            renderModuleRow(key as DashboardModuleKey, true),
+          )}
         </div>
         <p
           id="dashboard-order-instructions"
@@ -755,6 +840,20 @@ export function DashboardSettingsPanel({
         </p>
       </fieldset>
 
+      {hiddenKeys.length ? (
+        <details className="dashboard-hidden-sections">
+          <summary>
+            <EimirIcon name="eye-off" />
+            {t('profileIdentity.dashboardHiddenTitle', {
+              count: hiddenKeys.length,
+            })}
+          </summary>
+          <div className="dashboard-module-list">
+            {hiddenKeys.map((key) => renderModuleRow(key, false))}
+          </div>
+        </details>
+      ) : null}
+
       <p className="sr-only" role="status" aria-live="polite">
         {orderAnnouncement?.scope === settingsScope
           ? orderAnnouncement.message
@@ -763,7 +862,6 @@ export function DashboardSettingsPanel({
       {orderError?.scope === settingsScope ? (
         <ProblemState error={orderError.error} />
       ) : null}
-
       {visibilityStatus ? (
         <p className="dashboard-module-status" role="status" aria-live="polite">
           {visibilityStatus}
@@ -773,57 +871,59 @@ export function DashboardSettingsPanel({
         <ProblemState error={visibilityError.error} />
       ) : null}
 
-      <fieldset
-        className="dashboard-upcoming-preference"
-        aria-busy={isLimitPending || preferencesQuery.isPending}
-      >
-        <legend>{t('profileIdentity.dashboardUpcomingTitle')}</legend>
-        <p className="dashboard-upcoming-question">
-          {t('profileIdentity.dashboardUpcomingQuestion')}
-        </p>
-        <div className="dashboard-upcoming-options">
-          {UPCOMING_ITEM_LIMITS.map((itemLimit) => (
-            <label
-              key={itemLimit}
-              className={
-                selectedLimit === itemLimit
-                  ? 'dashboard-upcoming-option is-selected'
-                  : 'dashboard-upcoming-option'
-              }
-            >
-              <input
-                type="radio"
-                name="dashboardUpcomingItemLimit"
-                value={itemLimit}
-                checked={selectedLimit === itemLimit}
-                disabled={
-                  isLimitPending ||
-                  isUpcomingVisibilityPending ||
-                  preferencesQuery.isPending ||
-                  Boolean(preferencesQuery.error)
-                }
-                onChange={() => changeUpcomingLimit(itemLimit)}
-              />
-              <span>
-                {itemLimit}
-                {selectedLimit === itemLimit ? (
-                  <span aria-hidden="true"> ✓</span>
-                ) : null}
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      {status ? (
-        <p
-          className="dashboard-upcoming-status"
-          role="status"
-          aria-live="polite"
+      <details className="dashboard-more-settings">
+        <summary>{t('profileIdentity.dashboardMoreOptions')}</summary>
+        <fieldset
+          className="dashboard-upcoming-preference"
+          aria-busy={isLimitPending || preferencesQuery.isPending}
         >
-          {status}
-        </p>
-      ) : null}
+          <legend>{t('profileIdentity.dashboardUpcomingTitle')}</legend>
+          <p className="dashboard-upcoming-question">
+            {t('profileIdentity.dashboardUpcomingQuestion')}
+          </p>
+          <div className="dashboard-upcoming-options">
+            {UPCOMING_ITEM_LIMITS.map((itemLimit) => (
+              <label
+                key={itemLimit}
+                className={
+                  selectedLimit === itemLimit
+                    ? 'dashboard-upcoming-option is-selected'
+                    : 'dashboard-upcoming-option'
+                }
+              >
+                <input
+                  type="radio"
+                  name="dashboardUpcomingItemLimit"
+                  value={itemLimit}
+                  checked={selectedLimit === itemLimit}
+                  disabled={
+                    isLimitPending ||
+                    isUpcomingVisibilityPending ||
+                    preferencesQuery.isPending ||
+                    Boolean(preferencesQuery.error)
+                  }
+                  onChange={() => changeUpcomingLimit(itemLimit)}
+                />
+                <span>
+                  {itemLimit}
+                  {selectedLimit === itemLimit ? (
+                    <span aria-hidden="true"> ✓</span>
+                  ) : null}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {status ? (
+          <p
+            className="dashboard-upcoming-status"
+            role="status"
+            aria-live="polite"
+          >
+            {status}
+          </p>
+        ) : null}
+      </details>
 
       {preferencesQuery.error ? (
         <ProblemState

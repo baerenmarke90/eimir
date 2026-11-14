@@ -1,18 +1,20 @@
 import { TaskBackButton } from './TaskBackButton';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { RemindersApi } from '../api/generated/apis/RemindersApi';
+import { WishesApi } from '../api/generated/apis/WishesApi';
 import type { Schedule } from '../api/generated/models/Schedule';
 import { Configuration } from '../client/apiConfiguration';
 import { authorDisplayName } from '../client/authorPresentation';
 import { normalizeClientError } from '../client/problemDetails';
-import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
+import { MORE_NOTIFICATIONS_ROUTE, wishDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { PageHeader } from './PageHeader';
 import { UiState } from './UiState';
+import { WishOriginMark } from './WishJourney';
 import './ReminderReadPage.css';
 import './StoryDetailContentFirst.css';
 
@@ -54,6 +56,40 @@ export function ReminderReadPage({
     },
     retry: false,
     refetchOnMount: 'always',
+  });
+  const originWish = query.data?.originWish ?? null;
+  // The reminder carries only the Wish's ID; its title comes from the Wish API,
+  // which applies the Wish's own access rules. Without it the line stays generic.
+  const wishApi = useMemo(
+    () =>
+      new WishesApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, accessToken],
+  );
+  const originWishQuery = useQuery({
+    queryKey: [
+      'reminder-origin-wish',
+      apiBaseUrl,
+      accountId,
+      spaceId,
+      originWish?.wishId,
+    ],
+    queryFn: async ({ signal }) => {
+      try {
+        return await wishApi.getWish(
+          { spaceId, wishId: originWish?.wishId ?? '' },
+          { signal },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: Boolean(originWish),
+    retry: false,
   });
   const returnToInbox = () =>
     requestReturn(
@@ -122,6 +158,25 @@ export function ReminderReadPage({
         eyebrow={t('m5s5.reminderDetail.title')}
       />
       <article className="reminder-read-content">
+        {reminder.originWish ? (
+          <Link
+            className="reminder-read-origin"
+            to={wishDetailPath(reminder.originWish.wishId)}
+          >
+            <WishOriginMark trailing>
+              {originWishQuery.data
+                ? reminder.originWish.seriesPosition > 1
+                  ? t('wishRepeat.reminder.fromWishTitledNth', {
+                      title: originWishQuery.data.title,
+                      position: reminder.originWish.seriesPosition,
+                    })
+                  : t('wishRepeat.reminder.fromWishTitled', {
+                      title: originWishQuery.data.title,
+                    })
+                : t('wishRepeat.reminder.fromWish')}
+            </WishOriginMark>
+          </Link>
+        ) : null}
         <p>{scheduleLabel(reminder.schedule)}</p>
         {reminder.description ? (
           <p className="story-body">{reminder.description}</p>

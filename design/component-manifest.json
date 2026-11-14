@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schemaVersion": 2,
-  "updated": "2026-09-19",
+  "updated": "2026-11-10",
   "statusValues": [
     "planned",
     "in_progress",
@@ -150,6 +150,12 @@
       "tier": "P1",
       "contract": "docs/COMPONENT-CONTRACTS.md#84-focused-task-short-sheet-and-return",
       "web": "in_progress"
+    },
+    {
+      "id": "page-composer",
+      "tier": "P1",
+      "contract": "docs/COMPONENT-CONTRACTS.md#85-page-composer",
+      "web": "implemented"
     }
   ],
   "patterns": [

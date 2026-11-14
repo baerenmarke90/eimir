@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.80
+
+- Share your daily check-in right on the couple avatars on Wir: your vibe face and battery sit on your avatar, tap it to change your day, and your partner's day opens from theirs.
+- See each wish's journey as a quiet path from wished to planned, experienced and remembered, with "Geplant", "Erfüllt" and "Offen" filters on Wünsche and a "Wunsch erfüllt" moment when you mark its plan as experienced.
+- Find plans that came from a wish marked on Planen, and jump from a plan back to its wish.
+- Add diary photos from one place: the photo area on the page opens your connected photo source or the device picker, and more photos join through the gallery plus tile.
+- Rediscover moments with varied wording such as the place, the first words, the time of day or the season instead of a bare date.
+
+The product changes come from main at 3644926a003aa6e82a53bf9531136e6301e8a11f.
+Install over test.79 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 80.

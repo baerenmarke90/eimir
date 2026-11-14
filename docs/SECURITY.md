@@ -641,11 +641,11 @@ required by the current Vite build:
 |---|---|---|
 | `script-src` / `style-src` | `'self'` | Vite bundle, theme bootstrap, and CSS are external files on the same origin |
 | `script-src-attr` / `style-src-attr` | `'none'` | no inline handlers or styles embedded in HTML; CSSOM property assignments require no source allowance |
-| `img-src` | `'self' blob: https://tile.openstreetmap.org` | local assets, authorized image bytes through short-lived object URLs and deliberately loaded OSM raster map tiles |
-| `connect-src` | `'self'` plus explicit hosting origins | API plus direct presigned uploads/reads through `fetch()` |
+| `img-src` | `'self' blob:` | local assets and authorized image bytes through short-lived object URLs; MapLibre decodes sprites and raster pieces from `fetch()` responses |
+| `connect-src` | `'self'`, `https://tiles.openfreemap.org` plus explicit hosting origins | API, direct presigned uploads/reads and the deliberately loaded vector basemap (style, tiles, glyphs, sprites) through `fetch()` |
 | `font-src` | `'self'` | no external font CDNs |
 | `media-src` | `'self'` plus explicit hosting origins | deliberate authorized video playback from the API/media store |
-| `worker-src` | `'self'` | bundled local video compression worker; no remote or blob workers |
+| `worker-src` | `'self'` | bundled local video compression and map-rendering workers; no remote or blob workers |
 | `object-src`, `frame-src`, `manifest-src` | `'none'` | no approved domain requirement |
 | `base-uri` / `frame-ancestors` | `'none'` | no base-URL rewriting and no framing |
 | `form-action` | `'self'` | forms may navigate only to the same origin |
@@ -771,7 +771,7 @@ encryption: the running application holds the keys and can read the content.
 
 ## End-to-end encryption
 
-**Not yet implemented.** The architecture is prepared for it; see
+**Product-wide E2EE is not yet implemented.** The architecture is prepared for it; see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 The claim that even the operator cannot read content may be used **only** after
@@ -782,9 +782,25 @@ Sensitive domain content is bound as a concrete `ProtectedPayload` class to a
 designated JSONB column; raw dictionaries are rejected. With `crypto_version = 2`
 the column holds application-encrypted ciphertext; `crypto_version = 0` is legacy
 plaintext that `required` mode rejects. In both cases the server can read the
-content: there is no client-side sealing and no protection from the server operator.
+content. Core records have no client-side sealing and no protection from the server operator.
 Application-controlled encryption at rest protects a stolen database dump, replica,
 or bucket, not a compromised or malicious operator.
+
+One-time partner messages (#1672) are a separate optional, client-sealed domain:
+standard JWE ciphertext is encrypted on the sender's device for the explicitly
+registered public keys of the recipient. Private keys stay on recipient devices.
+This recipient-only temporary domain uses the shared tenant guard plus an explicit
+current-membership/consent/expiry predicate; ordinary durable owner reads cannot
+represent a single claim. Metadata GETs never return the envelope.
+The server-side ProtectedPayload wrapper may add encryption at rest around that
+opaque JWE; it does not give the server the message decryption key. See the
+[threat model and lifetime contract](product/once-messages.md). The authenticated
+public-key directory and delivered client code remain trusted, and there is no
+device verification, forward secrecy, recovery or external audit. This does not
+upgrade Core encryption or authorize a product-wide E2EE marketing claim.
+Official database dumps omit temporary messages and recipient-device registration
+rows so restore does not replay pending content. External infrastructure snapshots
+may retain opaque envelopes until their normal retention expires.
 
 Outbox payloads are separately restricted to explicitly allowed,
 non-sensitive metadata. Free-text fields and `ProtectedPayload` objects are
@@ -806,11 +822,18 @@ transport retry maintain the existing 15-minute access / 60-day sliding refresh 
 180-day hard session-family policy. This feature does not issue non-expiring
 tokens, bypass revocation or extend the backend's absolute family lifetime.
 
-The place picker loads OSM tiles only after explicit map intent, with a visible
-service notice and attribution. The additional image origin is exact: no
-wildcard, external script, external stylesheet or arbitrary image host is
-allowed. The per-image origin-only referrer and native app User-Agent identify
-the tile client without disclosing an app route, Account or Space ID. The
-operator-configured Photon lookup is an authenticated backend operation and
-does not add a browser connect-src origin. `check_csp_header.sh` continues to
-require the complete exact restrictive policy, including this one image origin.
+The place picker and Memory map load vector basemap data from OpenFreeMap only
+after explicit map intent, with a visible service notice and attribution. The
+additional connect origin is exact: no wildcard, external script, external
+stylesheet or arbitrary image host is allowed, and the previous OSM image origin
+is removed. Map requests carry no application referrer (`Referrer-Policy:
+no-referrer`) and disclose no app route, Account or Space ID; the provider sees
+the user's IP address and the requested map area, as the in-app notice states.
+MapLibre runs its own first-party module worker file (a same-origin script), so no blob worker
+or `unsafe-eval` allowance is needed. The production service worker keeps public
+basemap responses in a bounded cache. They contain no account, Space or media
+data, are never prefetched in bulk and reveal only areas the device already
+requested from the provider. The operator-configured Photon lookup is an
+authenticated backend operation and does not add a browser connect-src origin.
+`check_csp_header.sh` continues to require the complete exact restrictive
+policy, including this one connect origin.

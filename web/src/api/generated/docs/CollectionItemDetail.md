@@ -9,11 +9,15 @@ Name | Type
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `collectionId` | string
 `completed` | boolean
+`completedAt` | Date
+`completedBy` | string
+`completer` | [AuthorSummary](AuthorSummary.md)
 `createdAt` | Date
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
 `id` | string
 `position` | number
+`quantity` | string
 `title` | string
 `updatedAt` | Date
 `version` | number
@@ -28,11 +32,15 @@ const example = {
   "capabilities": null,
   "collectionId": null,
   "completed": null,
+  "completedAt": null,
+  "completedBy": null,
+  "completer": null,
   "createdAt": null,
   "createdBy": null,
   "creator": null,
   "id": null,
   "position": null,
+  "quantity": null,
   "title": null,
   "updatedAt": null,
   "version": null,

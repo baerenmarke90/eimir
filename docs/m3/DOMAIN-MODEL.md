@@ -45,6 +45,7 @@ Wish
 - id
 - spaceId
 - title
+- description?
 - createdBy
 - createdAt
 - updatedAt
@@ -52,7 +53,8 @@ Wish
 - status: OPEN | PLANNED | COMPLETED
 ```
 
-The source does not define a free `description`/`body` field. Such a field is therefore not silently assumed in M3.
+The Product Owner extension [#1757](https://github.com/baerenmarke90/eimir/issues/1757)
+adds an optional description to the Wish's protected authored content.
 
 ### Source-bound behavior
 
@@ -405,7 +407,7 @@ The architecture boundary is source-bound, not each individual M3 column. The fo
 
 | Domain | Candidates |
 |---|---|
-| Wish | `title` and possible later free-text fields |
+| Wish | `title`, `description` |
 | Plan | `title`, `description` |
 | Place | `name`, `description`, `address`, precise coordinates |
 | Chapter | `title`, `description` |

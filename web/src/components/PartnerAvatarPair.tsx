@@ -1,4 +1,4 @@
-import { type Ref, useMemo, useState } from 'react';
+import { type ReactNode, type Ref, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { personInitials } from './PersonIdentity';
 import './PartnerAvatarPair.css';
@@ -10,6 +10,16 @@ export interface PartnerAvatarPerson {
 
 export type PartnerAvatarSize = 'small' | 'medium' | 'large' | 'hero';
 export type PartnerPresenceStatus = 'active' | 'recent' | 'waiting' | 'unknown';
+
+/** One avatar of a split pair that opens its own task (#1790 slice A). */
+export interface PartnerAvatarAction {
+  onActivate: () => void;
+  label: string;
+  ref?: Ref<HTMLButtonElement>;
+  expanded?: boolean;
+  controls?: string;
+  hasPopup?: 'dialog' | 'menu';
+}
 
 export interface PartnerAvatarPairProps {
   primaryPerson: PartnerAvatarPerson;
@@ -25,9 +35,18 @@ export interface PartnerAvatarPairProps {
   actionExpanded?: boolean;
   actionControls?: string;
   actionHasPopup?: 'dialog' | 'menu';
+  /**
+   * Gives the own (primary) avatar its own tap target. With a connected
+   * partner the pair then splits into two buttons instead of one shared
+   * button, so each person's avatar opens that person's task.
+   */
+  primaryAction?: PartnerAvatarAction;
+  /** Decorations anchored to the outer edge of each avatar. */
+  primaryAdornment?: ReactNode;
+  secondaryAdornment?: ReactNode;
 }
 
-function SingleAvatar({
+export function SingleAvatar({
   person,
   size,
   className = '',
@@ -79,6 +98,9 @@ export function PartnerAvatarPair({
   actionExpanded,
   actionControls,
   actionHasPopup,
+  primaryAction,
+  primaryAdornment,
+  secondaryAdornment,
 }: PartnerAvatarPairProps) {
   const { t } = useTranslation();
   const groupLabel = useMemo(() => {
@@ -144,6 +166,82 @@ export function PartnerAvatarPair({
       ) : null}
     </>
   );
+
+  if (secondaryPerson && primaryAction) {
+    const presence =
+      statusLabel && (status === 'active' || status === 'recent') ? (
+        <span
+          className={`partner-presence-avatar-state status-${status}`}
+          aria-hidden="true"
+          title={statusLabel}
+        />
+      ) : null;
+    const secondaryContent = (
+      <>
+        <SingleAvatar
+          person={secondaryPerson}
+          size={size}
+          className="partner-avatar-secondary"
+        />
+        {presence}
+        {secondaryAdornment}
+      </>
+    );
+    return (
+      <section
+        className={`partner-avatar-pair partner-avatar-pair-split partner-avatar-pair-${size} status-${status} ${className}`}
+        aria-label={accessibleGroupLabel}
+      >
+        <span className="partner-avatar-stack">
+          <button
+            ref={primaryAction.ref}
+            type="button"
+            className="partner-avatar-slot partner-avatar-slot-primary"
+            aria-label={primaryAction.label}
+            aria-expanded={primaryAction.expanded}
+            aria-controls={primaryAction.controls}
+            aria-haspopup={primaryAction.hasPopup}
+            onClick={primaryAction.onActivate}
+          >
+            <SingleAvatar
+              person={primaryPerson}
+              size={size}
+              className="partner-avatar-primary"
+            />
+            {primaryAdornment}
+          </button>
+          {onActivate ? (
+            <button
+              ref={actionRef}
+              type="button"
+              className="partner-avatar-slot partner-avatar-slot-secondary"
+              aria-label={
+                actionLabel
+                  ? statusLabel
+                    ? `${actionLabel}. ${statusLabel}`
+                    : actionLabel
+                  : secondaryPerson.displayName
+              }
+              aria-expanded={actionExpanded}
+              aria-controls={actionControls}
+              aria-haspopup={actionHasPopup}
+              onClick={onActivate}
+            >
+              {secondaryContent}
+            </button>
+          ) : (
+            <span
+              className="partner-avatar-slot partner-avatar-slot-secondary"
+              role="img"
+              aria-label={actionLabel ?? secondaryPerson.displayName}
+            >
+              {secondaryContent}
+            </span>
+          )}
+        </span>
+      </section>
+    );
+  }
 
   if (secondaryPerson && onActivate) {
     return (

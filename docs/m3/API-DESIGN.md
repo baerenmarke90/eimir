@@ -573,3 +573,19 @@ A later Preview needs its own Reuse/Security design.
 Before G3, it must be decided whether Backend/OpenAPI/PostgreSQL evidence alone is sufficient or whether — analogous to M2 — a thin Web/Android reference flow is required. M5 remains complete client productization.
 
 This question is **M3-D24** and must not first appear during the Gate Review.
+
+## Plan-linked shared lists (#1705)
+
+`GET /spaces/{spaceId}/plans/{planId}/collections` returns canonical
+`CollectionDetail` resources with batch-resolved items and authors.
+`PUT` and `DELETE` on `.../collections/{collectionId}` reuse the typed relation
+lifecycle, parent-then-target locking, membership checks and same-Space foreign
+keys. Link is idempotent. Unlink removes only the association. Both active
+partners can manage links, including on completed Plans. The ID-only relation
+events add no notification workflow. Export/import includes associations and
+remaps both parent identities.
+
+`GET /spaces/{spaceId}/collections?scope=OPEN|COMPLETED|ALL` filters before
+keyset pagination. The omitted scope remains `ALL` for existing API callers;
+the product defaults to `OPEN`. Empty lists remain open. Cursor signatures bind
+the requested scope. Linked-list reads do not inherit overview filters.

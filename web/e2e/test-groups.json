@@ -16,10 +16,20 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "page-composer.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 32,
+      "reason": "Feature-owned page-as-composer acceptance for Diary, HeartMoment and Plan create/edit/read, tools and sheets, fullscreen privacy and continuity, feeling/visibility, checklist progress, responsive Light/Dark, large text and reduced motion. The PO contract verifies persistent stage controls, independent preview/cover identity, original input order, failed-upload retry and canonical save. Gallery acceptance includes icon-only photo controls, position feedback and compact replies reachable from photo and video."
+    },
+    "moments-local-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Feature-owned local Memory/HeartMoment/Milestone creation, actual save/result/filtered return, dirty exit, all Moments views, Core availability, dialog focus and responsive accessible composition."
+    },
     "app-continuity-polish.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 8,
-      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention and persistent preview bytes across browser/native restoration."
+      "baselineTests": 11,
+      "reason": "Feature-owned acceptance for complete alphabetical Wishes, native safe-area Diary scrolling, distinct shared-answer surfaces, one-time current attention, persistent preview bytes across browser/native restoration, parent revocation on return, and parallel Diary and Memory cold-start reads with a current membership gate."
     },
     "media-url-continuity.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -55,17 +65,22 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 3
     },
+    "browser-push.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Browser-only opt-in through the authentic settings switch, authorized push tap and revocation across compact and expanded layouts."
+    },
     "chapter-create-navigation.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 2
     },
     "cloud-onboarding-entry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 14
     },
     "comments-offline-writes.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Production create/edit/delete must reject offline intent, preserve input and require deliberate retry instead of reconnect replay across all three Story comment consumers."
     },
     "create-surface-visual-checks.spec.ts": {
@@ -78,12 +93,13 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 18,
-      "reason": "Persistent navigation clearance, bounded account/Space-scoped primary context, browser history/native tab replacement and native touch swipe ownership."
+      "baselineTests": 21,
+      "reason": "Persistent navigation clearance, root and nested-task history, touch ownership, stable floating actions during entry, and continuity across delayed and cached reads."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 9
+      "baselineTests": 11,
+      "reason": "Docked navigation, icon-only local creation, native modal access and runtime-specific Expanded browser shortcut."
     },
     "heart-moment-create-product-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -142,11 +158,17 @@
     },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 5
+      "baselineTests": 6,
+      "reason": "Feature-owned People overview/profile/gallery/edit/save/result/return, shared-only capture, independent planning occasions, dirty Back, full retained 200%/400% zoom, keyboard, small-height, Expanded Light/Dark, reflow and axe acceptance."
     },
     "partner-nickname.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 1
+    },
+    "plan-files.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 2,
+      "reason": "Plan-owned PDF create/edit, retry, browser download and native runtime viewer handoff."
     },
     "plan-inline-place-create.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -158,7 +180,8 @@
     },
     "planning-focused-create.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8
+      "baselineTests": 8,
+      "reason": "Focused Plan and Wish creation, draft safety, live route entry, and Back to the active Planning segment."
     },
     "planning-reference.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -171,11 +194,21 @@
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 10
+      "baselineTests": 11
+    },
+    "wish-repeat.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9,
+      "reason": "Feature-owned #1816 acceptance: a series is one row under Erfüllt with its times folded away, repeating a completed wish from an editable proposal with one idempotency key and no write on dismiss, the open repeat mark, and the Wish line on a Plan reminder, with 360/390/430 px, Light/Dark, 200% text, reduced motion and Expanded evidence."
+    },
+    "wish-journey.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11,
+      "reason": "Feature-owned #1790 F2 Wish journey and #812 personal reminder acceptance, including confirmed save, reload, removal, focus return, Compact/Expanded, Light/Dark, large text and reduced motion."
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 72
+      "baselineTests": 75
     },
     "private-token-contrast.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -202,7 +235,8 @@
     },
     "quick-create-destination-handoff.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 18
+      "baselineTests": 18,
+      "reason": "Focused creation from contextual Compact actions and the Expanded browser shortcut, with scroll, focus, saved result and return continuity."
     },
     "r1-memory-capture-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -290,17 +324,13 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7
     },
-    "today-daily-energy.spec.ts": {
+    "today-daily-checkin.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 11
     },
     "today-daily-quote.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6
-    },
-    "today-daily-vibe.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 20
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -308,12 +338,12 @@
     },
     "today-keepsake-precedence.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10
+      "baselineTests": 11
     },
     "today-living-home.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 28,
-      "reason": "PO #1546 clarification retains monthly highlights and retrospectives; only the ready monthly invitation archive action is removed. Preserve the complete carousel, source, dismissal, reflow, keyboard and accessibility coverage."
+      "reason": "Feature-owned Today composition, monthly mosaic 1/2/3-photo reference states, concealed media, optional story summary, category navigation/return, reflow, keyboard and Light/Dark accessibility. PO #1736 supersedes the former monthly carousel presentation."
     },
     "today-pro-insights.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -333,12 +363,13 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 23,
+      "reason": "Existing gesture ownership and responsive menu acceptance plus one-time composer handoff, no-send/consent semantics, pending navigation guard and defined rounded action surfaces."
     },
-    "shared-photos.spec.ts": {
+    "media-overview.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3,
-      "reason": "Shared photo access, gallery navigation without duplicate controls, More origin return, cache ownership and responsive/accessibility evidence."
+      "baselineTests": 9,
+      "reason": "Media visibility, playback, gallery navigation, More origin return, cache ownership and responsive/accessibility evidence."
     },
     "app-icon-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -346,7 +377,7 @@
     },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Concealed two-person handoff, first input, neutral reveal, restart and local-session return must remain protected in the production browser."
     },
     "milestone-delete-ownership.spec.ts": {
@@ -361,12 +392,17 @@
     },
     "photo-places.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
-      "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility."
+      "baselineTests": 11,
+      "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility. Place addresses navigate to the existing map and return; draft trash remains beside the Place, and linked Plans identify their destination."
+    },
+    "rediscovery-wording.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "#1790 C2 varying rediscovery wording on Wir and Momente: untitled entries get a stable variant headline with the date below, authored titles keep a variant secondary line; accessible name, reload stability, 360/390/430 px, Light/Dark and large text."
     },
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
     },
     "wir-design-selection.spec.ts": {
@@ -383,6 +419,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
       "reason": "Headerless Compact navigation, More utility discovery, authoritative unread status, safe areas, sign-out and capability gating."
+    },
+    "discreet-plans.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "#1790 F3 discreet Plans: Planen shows only the list title, date, lock, neutral lines and a blurred cover; the detail conceals place, prose, tags and comments until a per-view reveal that conceals again in the background; the editor switch below Vorfreude saves preview/original title modes. 360/390/430/1280 px, Light/Dark, large text, reduced motion and axe."
     },
     "plan-cover-layout.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -401,8 +442,8 @@
     },
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
-      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes."
+      "baselineTests": 11,
+      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes; typed scenes, counted facts, touch paging and browser-only page arrows, the own-words and rhythm scenes, and the Momente entry with its redirects from the former More addresses for #1744."
     },
     "places-and-lists-design.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -412,7 +453,7 @@
     "memory-map-and-couple-games.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
-      "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics."
+      "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics. Feature-owned selection zoom, marker isolation and standard Place filter/reset across Compact/Expanded themes."
     },
     "contextual-reminder-notification.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -421,18 +462,18 @@
     },
     "plan-comments-links.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
-      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text."
+      "baselineTests": 11,
+      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text. Direct media controls retain inline saved-video failure status and replacement. Atomic save with unavailable local journal and pending bytes must preserve the placeholder and admitted transfer through route return."
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
-      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, narrow/large-text theme and accessibility evidence; ordinary Web remains unchanged."
+      "baselineTests": 13,
+      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound FCM/APNs endpoint confirmation, notification tap to the sealed message, independent registration and revocation, and narrow/large-text theme and accessibility evidence."
     },
     "content-reading.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -442,7 +483,7 @@
     "memory-experiences.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
-      "reason": "Period/cover/order-save-return acceptance across Compact/Expanded, Light/Dark, 200% text, reduced motion, pointer/keyboard movement and Axe."
+      "reason": "Memory periods, independent direct cover controls and whole-photo mouse/touch sorting retain identity and draft cancellation through Save/result/return."
     },
     "shared-experience-answers.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -457,7 +498,7 @@
     "device-review.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
-      "reason": "Device-review typed links, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded."
+      "reason": "Existing device-review typed links with draft-safe static destinations in Edit and verified canonical links after returning to read mode, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded; no new always-run cases."
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -466,7 +507,7 @@
     "media-planning-corrections.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 9,
-      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop and the real local video codec worker; broad theme/reflow variants do not expand the always-run core."
+      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, both photo-source entries, draft-safe media drop, the real local video codec worker and complete draft gallery zoom, pointer/touch sorting, sensitivity and cover through save; broad theme/reflow variants do not expand the always-run core."
     },
     "planning-search-private-profile.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -476,7 +517,7 @@
     "mobile-diary-planning-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 11,
-      "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, touch photo viewing and session-owned draft restoration."
+      "reason": "Feature-owned Compact/Expanded acceptance for shared planning tags, native media intake, saved Place selection, continuing Chapter context, floating month chips, grouped More, image-local pinch/pan/double-tap/fit with native photo swipes and no shell-navigation takeover, and session-owned draft restoration."
     },
     "polish-people-photo-sources.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -491,12 +532,52 @@
     "polish-sensitive-media.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 2,
-      "reason": "Feature-owned individual image authority, protected partner negative and mark-save-reload-unmark persistence."
+      "reason": "Shared Memory photo classification persists for either active partner regardless of photo or parent authorship; retains versioned Save and reopen semantics with direct lock controls."
     },
     "multilingual-product.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
+      "baselineTests": 11,
       "reason": "Personal locale persistence, ordered device negotiation, independent partners, draft/focus/date continuity, offline retry, reflow and accessible English/German Settings."
+    },
+    "heart-voice-notes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "HeartMoment-owned audio record/import/review/save/playback, permission/error recovery and accessible responsive reading."
+    },
+    "once-messages.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "Actual browser JWE across two accounts/devices, deliberate single view, uncertain-send idempotency, ephemeral audio and clear-on-close with mobile/reflow/theme evidence."
+    },
+    "private-location-and-capture-tags.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Feature-owned parent-private location capture, map selection without shared Place writes, save/edit/reload, subscribed feature marks, shared capture-tag reflow and de/en Heart Moment choice readability at 200% text. No always-run expansion."
+    },
+    "plan-linked-lists.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Feature-owned Plan-list disclosure and safe navigation, bidirectional persisted Plan/Story context, source capture, private HeartMoment isolation, scopes and responsive accessibility evidence."
+    },
+    "map-place-stacks.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Feature-owned map photo stacks, real camera motion, finite touch/button browsing, protected/text previews and fullscreen/detail scope return. No always-run expansion."
+    },
+    "partner-location-settings.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 10,
+      "reason": "Feature-owned #1792 partner-distance acceptance: one-time start sheet after the push prompt (Not now remembered, OS permission only after Share distance), Settings › Relationship › Location & distance share/duration/Stop with body-only coordinates, calm Pro state with Stop for a stored share, Android prominent background disclosure before Allow all the time, and Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
+    },
+    "partner-distance-wir.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11,
+      "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
+    },
+    "shopping-list-offline.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 18,
+      "reason": "Feature-owned acceptance for the shopping list (#1808): changes made offline are kept on the device, shown as waiting, sent once with the same request identity when the connection is back, survive a reload, and the waiting state is readable, accessible and bounded at 360/390/430px (Light, plus Dark at 390), in the Expanded 1280px view and at 320px with text enlarged to 200%. Step C1 adds the list composition (count, two-tone bar, partner markers, tray, optional quantity) at the same widths and themes with axe, quantity entry with a ready input, and the partner's change reaching an open list without a reload. Step C2 adds the cart bar that opens the cart as a sheet with put-back, the entry sheet with quantity, and creating a shopping list from the overview. No always-run expansion."
     }
   }
 }

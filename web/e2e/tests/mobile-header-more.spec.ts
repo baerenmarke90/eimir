@@ -1,14 +1,15 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import navigation from '../../src/i18n/locales/navigation';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
+import { storyDetailBack } from '../support/memoryDiary';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
-  SPACE_ID,
   captureScreenshot,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -233,7 +234,7 @@ test('headerless Compact content consumes the safe area once and retains Story r
     document.querySelector('.demo-instance-banner')?.remove(),
   );
   await page.goto('/story/memories/mem-canal');
-  const back = page.locator('.shell-detail-context button');
+  const back = storyDetailBack(page);
   await expect(back).toBeVisible();
   await captureScreenshot(page, info, 'memory-390-headerless-return.png');
   await back.click();

@@ -1,13 +1,24 @@
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { showMemoryDetails } from '../support/memoryDiary';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
-import contextTags from '../../src/i18n/locales/contextTags';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import storyProducts from '../../src/i18n/locales/storyProducts';
 import photoSources from '../../src/i18n/locales/photoSources';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import { expectLabeledComposerTool } from '../support/addAction';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillFreeEntitlements } from '../support/freeEntitlements';
+import { expectMediaIntakeAction } from '../support/mediaIntake';
+import {
+  closeComposerDate,
+  closeContextTags,
+  expectComposerDate,
+  showComposerDate,
+  showContextSuggestions,
+  showContextTags,
+  showMemoryDetails,
+} from '../support/memoryDiary';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -60,6 +71,35 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
+  if (dimensions.scrollWidth > dimensions.clientWidth) {
+    const elements = await page.evaluate(() =>
+      [...document.querySelectorAll('body *')]
+        .map((element) => {
+          const box = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            tag: element.tagName,
+            className: element.className.toString(),
+            id: element.id,
+            left: box.left,
+            right: box.right,
+            width: box.width,
+            position: style.position,
+            inlineSize: style.inlineSize,
+            minInlineSize: style.minInlineSize,
+            overflow: style.overflow,
+          };
+        })
+        .filter(
+          (element) => element.right > innerWidth + 1 && element.width > 0,
+        )
+        .slice(0, 30),
+    );
+    await test.info().attach('horizontal-overflow-geometry', {
+      body: JSON.stringify({ dimensions, elements }, null, 2),
+      contentType: 'application/json',
+    });
+  }
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
@@ -71,6 +111,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillFreeEntitlements(route, SPACE_ID)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
@@ -335,7 +376,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await showMemoryDetails(page);
-    await page.getByText(contextTags.suggestions, { exact: true }).click();
+    await showContextTags(page);
+    await showContextSuggestions(page);
     const homeTag = page.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
     });
@@ -378,8 +420,22 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await page.keyboard.press('Space');
     await expect(homeTag).not.toBeChecked();
 
+    const tagAxeResult = await new AxeBuilder({ page })
+      .include('dialog.composer-tag-sheet')
+      .withTags([
+        'wcag2a',
+        'wcag2aa',
+        'wcag21a',
+        'wcag21aa',
+        'wcag22a',
+        'wcag22aa',
+      ])
+      .analyze();
+    expect(tagAxeResult.violations).toEqual([]);
+    await closeContextTags(page);
+
     const axeResult = await new AxeBuilder({ page })
-      .include('.immersive-create-form')
+      .include('.page-composer')
       .withTags([
         'wcag2a',
         'wcag2aa',
@@ -394,7 +450,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 }
 
 for (const width of [390, 320] as const) {
-  test(`Memory Create keeps ordered Places and the empty photo picker compact at ${width}px (#855)`, async ({
+  test(`Memory Create keeps Place tools and the media-first intake bounded at ${width}px (#1730)`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -420,87 +476,55 @@ for (const width of [390, 320] as const) {
 
       const title = page.getByLabel(de.memory.titleLabelOptional);
       const media = page.locator('.immersive-create-media');
-      const picker = media.getByRole('button', {
-        name: photoSources.addMedia,
-        exact: true,
-      });
-      await expect(picker).toBeVisible();
-      await expect(picker).toHaveClass(/photo-source-trigger/);
-      await expect(media.locator('.file-picker')).toHaveCount(1);
+      const mediaGroup = media.locator('.media-action-group');
+      const picker = media.locator('.media-intake-device');
+      await expectMediaIntakeAction(picker, 'foto');
+      const fileInputs = media.locator('input[type="file"]');
+      await expect(fileInputs).toHaveCount(2);
+      expect(
+        await fileInputs.evaluateAll(
+          (inputs) => new Set(inputs.map((input) => input.id)).size,
+        ),
+      ).toBe(2);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
-      const dateField = page.locator('.immersive-create-date-field');
-      const places = page.locator('.ordered-moment-places');
-      const actions = page.locator('.form-actions');
+      const dateTrigger = page.locator('.composer-date-trigger');
+      const places = page
+        .locator('.composer-tool-row button')
+        .filter({ has: page.locator('.eimir-icon-orte') });
+      await expectLabeledComposerTool(places, 'orte');
+      // #1790 D1: Place and Tag remain; the on-page intake is the photo entry.
+      await expect(page.locator('.composer-tool-row button')).toHaveCount(2);
+      await expect(
+        page.locator('.composer-tool-row .eimir-icon-foto'),
+      ).toHaveCount(0);
       const saveButton = page.getByRole('button', { name: de.memory.save });
-      const quickCreateTrigger = page.locator(
-        '.mobile-quick-create .quick-create-trigger',
-      );
-
-      const domOrder = await page.evaluate(() => {
-        const form = document.querySelector('.immersive-create-form');
-        if (!form) return null;
-        // F2's disabled fieldset is a semantic wrapper with display:contents.
-        // Assert content order independently of that task ownership boundary.
-        const children = Array.from(
-          form.querySelectorAll(
-            '.immersive-create-media, .immersive-create-narrative, .immersive-create-title-field, .immersive-create-date-field, .ordered-moment-places, .form-actions',
-          ),
-        );
-        return {
-          mediaIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-media'),
-          ),
-          narrativeIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-narrative'),
-          ),
-          titleFieldIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-title-field'),
-          ),
-          dateFieldIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-date-field'),
-          ),
-          placesIndex: children.findIndex((el) =>
-            el.classList.contains('ordered-moment-places'),
-          ),
-          actionsIndex: children.findIndex((el) =>
-            el.classList.contains('form-actions'),
-          ),
-        };
-      });
-      if (!domOrder) {
-        throw new Error('Memory Create form children not found.');
-      }
-      expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
-      // #1547 makes the optional title the first Memory capture field.
-      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.dateFieldIndex);
-      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.narrativeIndex);
-      expect(domOrder.narrativeIndex).toBeLessThan(domOrder.mediaIndex);
-      expect(domOrder.mediaIndex).toBeLessThan(domOrder.placesIndex);
-      expect(domOrder.placesIndex).toBeLessThan(domOrder.actionsIndex);
-
+      const form = page.locator('.immersive-create-form');
+      await expect(page.locator('[data-floating-create]')).toHaveCount(0);
+      await expect(saveButton).toHaveCount(1);
+      await expect(saveButton).toHaveAttribute('type', 'submit');
+      expect(
+        await saveButton.evaluate(
+          (button: HTMLButtonElement) => button.form?.id,
+        ),
+      ).toBe(await form.getAttribute('id'));
+      await expect(saveButton).toBeInViewport();
       const [
         placesBox,
         mediaBox,
         pickerBox,
         narrativeBox,
         titleFieldBox,
-        dateFieldBox,
-        actionsBox,
+        dateBox,
         saveBox,
-        mediaBorder,
-        pickerBorder,
       ] = await Promise.all([
         places.boundingBox(),
         media.boundingBox(),
         picker.boundingBox(),
         narrative.boundingBox(),
         titleField.boundingBox(),
-        dateField.boundingBox(),
-        actions.boundingBox(),
+        dateTrigger.boundingBox(),
         saveButton.boundingBox(),
-        media.evaluate((element) => getComputedStyle(element).borderTopStyle),
-        picker.evaluate((element) => getComputedStyle(element).borderTopStyle),
       ]);
       if (
         !placesBox ||
@@ -508,75 +532,61 @@ for (const width of [390, 320] as const) {
         !pickerBox ||
         !narrativeBox ||
         !titleFieldBox ||
-        !dateFieldBox ||
-        !actionsBox ||
+        !dateBox ||
         !saveBox
-      ) {
-        throw new Error('Memory Create composition did not render.');
-      }
+      )
+        throw new Error('The compact capture composition did not render.');
 
-      // 1. Authored content precedes optional ordered Places.
-      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(placesBox.y);
-      expect(narrativeBox.y + narrativeBox.height).toBeLessThanOrEqual(
-        placesBox.y,
-      );
+      // #1730 keeps native completion in the header and media before writing.
+      expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(dateBox.y);
+      expect(dateBox.y + dateBox.height).toBeLessThanOrEqual(mediaBox.y);
+      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(titleFieldBox.y);
       expect(titleFieldBox.y + titleFieldBox.height).toBeLessThanOrEqual(
-        placesBox.y,
+        narrativeBox.y,
       );
-      expect(dateFieldBox.y + dateFieldBox.height).toBeLessThanOrEqual(
-        placesBox.y,
-      );
-
-      // 2. Place enrichment precedes the primary form action area and Save button.
-      expect(placesBox.y + placesBox.height).toBeLessThanOrEqual(actionsBox.y);
-      expect(placesBox.y + placesBox.height).toBeLessThanOrEqual(saveBox.y);
-
-      // 3. Optional enrichment and completion retain deliberate separation.
-      const spacingAbove = placesBox.y - (mediaBox.y + mediaBox.height);
-      const spacingBelow = actionsBox.y - (placesBox.y + placesBox.height);
-      expect(spacingAbove).toBeGreaterThanOrEqual(10);
-      expect(spacingBelow).toBeGreaterThanOrEqual(10);
-
-      // 4. Empty Places remain compact and keep a reachable add control.
-      await expect(places.getByRole('listitem')).toHaveCount(0);
+      expect(narrativeBox.y).toBeLessThan(placesBox.y);
+      expect(saveBox.height).toBeGreaterThanOrEqual(48);
+      expect(dateBox.height).toBeGreaterThanOrEqual(44);
+      expect(titleFieldBox.x).toBeGreaterThanOrEqual(0);
       expect(placesBox.height).toBeLessThan(125);
-      const addPlaceBox = await places.getByRole('button').boundingBox();
+      await expect(places.getByRole('listitem')).toHaveCount(0);
+      const addPlaceBox = await places.boundingBox();
       if (!addPlaceBox) throw new Error('Add Place did not render.');
       expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
-      // 5. Media picker remains compact with solid boundaries
-      expect(mediaBorder).toBe('solid');
-      expect(pickerBorder).toBe('solid');
-      expect(mediaBox.height).toBeLessThan(125);
-      expect(pickerBox.height).toBeLessThan(80);
+      // #1790 D1: the intake is the one diary entry. Without an external
+      // source it opens the device picker directly; no separate source link.
+      await expect(mediaGroup).toHaveCSS('border-top-width', '0px');
+      await expect(
+        page.locator('.composer-content .media-action-group'),
+      ).toHaveCount(1);
+      await expect(media.locator('.media-gallery')).toHaveCount(0);
+      await expect(
+        media.getByRole('button', { name: photoSources.more, exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        media.getByRole('button', { name: composer.addPhotos, exact: true }),
+      ).not.toHaveAttribute('aria-haspopup', 'dialog');
+      await expect(mediaGroup.locator('.media-action-group-label')).toHaveCount(
+        0,
+      );
+      await expect(mediaGroup).toHaveCSS(
+        'background-color',
+        'rgba(0, 0, 0, 0)',
+      );
+      expect(mediaBox.height).toBeGreaterThanOrEqual(pickerBox.height);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
-
-      // 6. One visible, labelled native date field; no second action.
-      const dateInput = dateField.locator('#happenedOn');
-      await expect(dateInput).toBeVisible();
+      await expect(dateTrigger).toHaveAttribute('aria-haspopup', 'dialog');
+      const dateInput = await showComposerDate(page);
       await expect(dateInput).toHaveAttribute('type', 'date');
-      await expect(dateField.getByRole('button')).toHaveCount(0);
-      const dateBox = await dateInput.boundingBox();
-      if (!dateBox) throw new Error('Date field did not render');
-      expect(dateBox.height + 0.001).toBeGreaterThanOrEqual(44);
-      expect(dateBox.width).toBeGreaterThanOrEqual(44);
+      const nativeBox = await dateInput.boundingBox();
+      if (!nativeBox) throw new Error('The native date task did not render.');
+      expect(nativeBox.height + 0.001).toBeGreaterThanOrEqual(44);
+      expect(nativeBox.width).toBeGreaterThanOrEqual(44);
       await dateInput.fill('2025-12-24');
+      await closeComposerDate(page);
       await title.tap();
-      await expect(dateInput).toHaveValue('2025-12-24');
-
-      // 7. Floating global Quick Create does not collide with optional Places.
-      if (await quickCreateTrigger.isVisible()) {
-        const fabBox = await quickCreateTrigger.boundingBox();
-        if (fabBox) {
-          const overlapsHorizontally =
-            placesBox.x < fabBox.x + fabBox.width &&
-            placesBox.x + placesBox.width > fabBox.x;
-          const overlapsVertically =
-            placesBox.y < fabBox.y + fabBox.height &&
-            placesBox.y + placesBox.height > fabBox.y;
-          expect(overlapsHorizontally && overlapsVertically).toBe(false);
-        }
-      }
+      await expectComposerDate(page, '2025-12-24');
 
       await expectNoHorizontalOverflow(page);
       await page.screenshot({
@@ -606,17 +616,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto('/today');
       await signIn(page);
       await page.goto('/story/memories/new');
-      const date = page.locator('#happenedOn');
+      const date = await showComposerDate(page);
       await expect(date).toHaveValue(localToday());
       await expect(date).toHaveAttribute('type', 'date');
-      await expect(
-        page.locator('.immersive-create-date-field').getByRole('button'),
-      ).toHaveCount(0);
+      await expect(page.locator('.composer-date-trigger')).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
       const before = await date.evaluate(
         (el) => getComputedStyle(el).backgroundColor,
       );
       await date.fill('2025-12-24');
+      await closeComposerDate(page);
       await page.getByLabel(de.memory.bodyLabel, { exact: true }).tap();
+      await showComposerDate(page);
       await expect(date).toHaveValue('2025-12-24');
       expect(
         await date.evaluate((el) => getComputedStyle(el).backgroundColor),
@@ -652,7 +665,7 @@ test('Memory Create native date supports 320px large text, reduced motion and fo
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
-    const date = page.locator('#happenedOn');
+    const date = await showComposerDate(page);
     await date.fill('2025-12-24');
     await expect(date).toHaveValue('2025-12-24');
     await expectNoHorizontalOverflow(page);
@@ -680,7 +693,7 @@ test('Memory Create native date keeps desktop keyboard focus and calendar semant
   await page.goto('/today');
   await signIn(page);
   await page.goto('/story/memories/new');
-  const date = page.locator('#happenedOn');
+  const date = await showComposerDate(page);
   await date.focus();
   await expect(date).toBeFocused();
   await date.fill('2025-12-24');
@@ -697,14 +710,17 @@ test('HeartMoment Create defaults the date to local today and stays typeable', a
   await signIn(page);
 
   await page.goto('/story/heart-moments/new');
-  const dateInput = page.getByLabel(
+  const dateInput = await showComposerDate(
+    page,
     storyProducts.heartMomentProduct.happenedOnLabel,
-    { exact: true },
   );
   await expect(dateInput).toHaveValue(localToday());
-
   await dateInput.fill('2025-12-24');
   await expect(dateInput).toHaveValue('2025-12-24');
+  await closeComposerDate(
+    page,
+    storyProducts.heartMomentProduct.happenedOnLabel,
+  );
 });
 
 test('Milestone Create defaults the date to local today and stays typeable', async ({
@@ -715,14 +731,15 @@ test('Milestone Create defaults the date to local today and stays typeable', asy
   await signIn(page);
 
   await page.goto('/story/milestones/new');
-  const dateInput = page.getByLabel(
+  const dateInput = await showComposerDate(
+    page,
     storyProducts.milestoneProduct.happenedOnLabel,
-    { exact: true },
   );
   await expect(dateInput).toHaveValue(localToday());
 
   await dateInput.fill('2025-12-24');
   await expect(dateInput).toHaveValue('2025-12-24');
+  await closeComposerDate(page, storyProducts.milestoneProduct.happenedOnLabel);
 });
 
 for (const colorScheme of ['light', 'dark'] as const) {
@@ -786,7 +803,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('link', { name: memoryProduct.edit }).click();
-    await page.getByText(contextTags.suggestions, { exact: true }).click();
+    await showContextTags(page);
+    await showContextSuggestions(page);
     await expect(
       page.getByRole('checkbox', { name: de.memory.tagLabels.home }),
     ).toBeChecked();

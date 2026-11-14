@@ -173,9 +173,12 @@ def create_memory(
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     experience_reply_to: UUID | None = None,
+    experience_question_id: str | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
+    attachments: list[tuple[UUID, int, bool | None]] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> Memory:
     from eimir.memories.periods import validate_period
 
@@ -196,10 +199,11 @@ def create_memory(
         existing = experiences.responses(session, context, [source]).get(reply_root, [])
         if any(entry.owner_id == context.account_id for entry in existing):
             raise ConflictError("Edit your existing answer instead.", "EXPERIENCE_ALREADY_ANSWERED")
-        title, happened_on, happened_until = (
+        title, happened_on, happened_until, experience_question_id = (
             source.payload.title,
             source.happened_on,
             source.happened_until,
+            source.payload.experience_question_id,
         )
     selected_places = place_ids if place_ids is not None else ([place_id] if place_id else [])
     memory_places.validate(selected_places)
@@ -212,7 +216,11 @@ def create_memory(
         happened_until=happened_until,
         experience_kind=experience_kind.value if experience_kind is not None else None,
         payload=MemoryPayload(
-            title=_normalize_title(title), body=body, tags=tags or [], place_order=selected_places
+            title=_normalize_title(title),
+            body=body,
+            tags=tags or [],
+            place_order=selected_places,
+            experience_question_id=experience_question_id if experience_kind is not None else None,
         ),
     )
     session.add(memory)
@@ -221,6 +229,18 @@ def create_memory(
         experiences.reconcile(session, context)
     if selected_places:
         memory_places.replace(session, context, memory, selected_places)
+    if attachments is not None:
+        memory = replace_attachments(
+            session,
+            context,
+            memory.id,
+            expected_version=memory.version,
+            entries=[(identifier, position) for identifier, position, _ in attachments],
+            sensitivity={identifier: sensitive for identifier, _, sensitive in attachments},
+            selected_cover_attachment_id=selected_cover_attachment_id,
+            cover_selection_supplied=True,
+            record_update=False,
+        )
     _flush(session)
     _record(
         session, memory, context.account_id, EventType.MEMORY_CREATED, recipient_id=recipient_id
@@ -240,9 +260,12 @@ def create_memory_once(
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     experience_reply_to: UUID | None = None,
+    experience_question_id: str | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
+    attachments: list[tuple[UUID, int, bool | None]] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> MemoryCreateResult:
     """Create a Memory, or return the one an earlier request with this identity created.
 
@@ -259,9 +282,12 @@ def create_memory_once(
             tags=tags,
             experience_kind=experience_kind,
             experience_reply_to=experience_reply_to,
+            experience_question_id=experience_question_id,
             place_id=place_id,
             place_ids=place_ids,
             happened_until=happened_until,
+            attachments=attachments,
+            selected_cover_attachment_id=selected_cover_attachment_id,
         )
         return MemoryCreateResult(memory, created=True)
 
@@ -273,9 +299,12 @@ def create_memory_once(
         tags=tags or [],
         experience_kind=experience_kind,
         experience_reply_to=experience_reply_to,
+        experience_question_id=experience_question_id,
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,
+        attachments=attachments,
+        selected_cover_attachment_id=selected_cover_attachment_id,
     )
     receipt_id = create_receipts.claim(session, context, idempotency_key, request_fingerprint)
     if receipt_id is None:
@@ -291,9 +320,12 @@ def create_memory_once(
         tags=tags,
         experience_kind=experience_kind,
         experience_reply_to=experience_reply_to,
+        experience_question_id=experience_question_id,
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,
+        attachments=attachments,
+        selected_cover_attachment_id=selected_cover_attachment_id,
     )
     create_receipts.attach(session, receipt_id, memory.id)
     return MemoryCreateResult(memory, created=True)
@@ -603,6 +635,7 @@ def replace_attachments(
     sensitivity: dict[UUID, bool | None] | None = None,
     selected_cover_attachment_id: UUID | None = None,
     cover_selection_supplied: bool = False,
+    record_update: bool = True,
 ) -> Memory:
     """Replace the complete attachment gallery of a memory.
 
@@ -679,8 +712,11 @@ def replace_attachments(
         binding.set_sensitive(
             attachment,
             (sensitivity or {}).get(attachment.id),
-            allow_change=binding.can_edit_sensitivity(
-                attachment, account_id=context.account_id, parent_owner_id=memory.owner_id
+            allow_change=(
+                (memory.experience_kind is None and attachment.media_type == "IMAGE")
+                or binding.can_edit_sensitivity(
+                    attachment, account_id=context.account_id, parent_owner_id=memory.owner_id
+                )
             ),
         )
 
@@ -725,6 +761,7 @@ def replace_attachments(
     for attachment in attachments:
         if attachment.id not in previous:
             binding.notify_video_failure(session, attachment)
-    _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
+    if record_update:
+        _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
     _flush(session)
     return memory

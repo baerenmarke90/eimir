@@ -109,7 +109,10 @@ def read_plan(path: Path) -> Plan:
 
 
 def fetch(url: str, limit: int) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": "eimir-android-test-publication-verifier"})
+    headers = {"User-Agent": "eimir-android-test-publication-verifier"}
+    if url.startswith(API + "/assets/"):
+        headers.update({"Accept": "application/octet-stream", "X-GitHub-Api-Version": "2022-11-28"})
+    request = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(request, timeout=30) as response:
         content = response.read(limit + 1)
     if len(content) > limit:
@@ -142,10 +145,13 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
         url = f"{DOWNLOAD}/{plan.tag}/{name}"
         if asset.get("browser_download_url") != url:
             raise ValueError("Public asset URL does not match its exact release")
+        asset_id = asset.get("id")
+        if type(asset_id) is not int or asset_id <= 0:
+            raise ValueError("Public asset ID is invalid")
         limit = MAX_APK_BYTES if name == plan.apk else 32768
         if type(asset.get("size")) is not int or not 0 < asset["size"] <= limit:
             raise ValueError("Public asset size is invalid")
-        content = reader(url, limit)
+        content = reader(f"{API}/assets/{asset_id}", limit)
         digest = hashlib.sha256(content).hexdigest()
         if len(content) != asset["size"] or asset.get("digest") != "sha256:" + digest:
             raise ValueError("Public asset bytes do not match immutable GitHub metadata")

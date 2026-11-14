@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Response
@@ -17,6 +17,7 @@ from eimir.api.schema import ApiModel
 from eimir.core import clock
 from eimir.recaps import invalidation as _invalidation  # noqa: F401
 from eimir.recaps import service
+from eimir.recaps.composition import MANUAL_SELECTION_LIMIT
 from eimir.recaps.models import RecapEdition, RecapKind, RecapSourceKind
 
 
@@ -39,6 +40,17 @@ class RecapRequest(RecapPeriod):
     refresh: bool = False
 
 
+RecapReaction = Literal["LOVE", "LAUGH", "CELEBRATE"]
+
+
+class RecapQuoteView(ApiModel):
+    """One shared comment, shown as written and cut at a word boundary."""
+
+    text: str
+    author_id: UUID
+    author_name: str
+
+
 class RecapSourceView(ApiModel):
     key: str
     kind: RecapSourceKind
@@ -50,6 +62,8 @@ class RecapSourceView(ApiModel):
     preview_attachment_id: UUID | None
     preview_is_sensitive: bool
     available: bool
+    quote: RecapQuoteView | None = None
+    mutual_reaction: RecapReaction | None = None
 
 
 class RecapReflectionView(ApiModel):
@@ -63,6 +77,33 @@ class RecapReflectionView(ApiModel):
 class RecapDraftView(ApiModel):
     text: str
     version: int
+
+
+class RecapFactsView(ApiModel):
+    """Counted shared entries of the edition period."""
+
+    memories: int
+    heart_moments: int
+    milestones: int
+    chapters: int
+    plans: int
+    active_days: int
+    busiest_month: int | None
+
+
+class RecapMoodBucketView(ApiModel):
+    """Mutual check-in days of one week (month edition) or one month (year edition)."""
+
+    index: int
+    mutual_days: int
+    good_days: int
+
+
+class RecapMoodView(ApiModel):
+    """Frozen rhythm of days on which both partners marked a good Vibe."""
+
+    buckets: list[RecapMoodBucketView]
+    leading: int | None
 
 
 class RecapView(RecapPeriod):
@@ -80,6 +121,8 @@ class RecapView(RecapPeriod):
     headline: str | None
     introduction: str | None
     sources: list[RecapSourceView]
+    facts: RecapFactsView | None = None
+    mood: RecapMoodView | None = None
     reflections: list[RecapReflectionView]
     own_draft: RecapDraftView | None
 
@@ -93,7 +136,7 @@ class RecapOverview(ApiModel):
 
 class RecapSelectionUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
-    source_keys: list[str] = Field(max_length=12)
+    source_keys: list[str] = Field(max_length=MANUAL_SELECTION_LIMIT)
 
 
 class RecapSelectionView(ApiModel):
@@ -150,7 +193,7 @@ def overview(
         ],
         periods=[
             RecapPeriod.model_validate(item)
-            for item in service.periods(session, authorization, clock.today_in(zone))
+            for item in service.unprepared(session, authorization, clock.today_in(zone))
         ]
         if allowed
         else [],

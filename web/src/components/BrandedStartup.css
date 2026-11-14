@@ -25,3 +25,44 @@
   font: var(--font-supporting-copy);
   text-align: center;
 }
+
+/* Android app: continue the system launch screen without a visible switch. */
+.branded-startup-native {
+  /* Mirrors LAUNCH_TILE_DP of the generated Android splash icon (dp = CSS px). */
+  --launch-tile-size: 128px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.branded-startup-mark {
+  display: block;
+  width: var(--launch-tile-size);
+  height: var(--launch-tile-size);
+}
+.branded-startup-copy {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(50% + var(--launch-tile-size) / 2 + var(--space-5));
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-6);
+  color: var(--color-text);
+  animation: branded-startup-copy-in var(--duration-context) var(--easing-enter)
+    var(--duration-context) both;
+}
+.branded-startup-copy p {
+  color: var(--color-text-secondary);
+}
+@keyframes branded-startup-copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .branded-startup-copy {
+    animation: none;
+  }
+}

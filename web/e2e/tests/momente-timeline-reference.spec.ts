@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { waitForSettledMotion } from '../support/settledMotion';
 import {
   captureScreenshot,
   installMocks,
@@ -40,12 +41,15 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
 
   const finalBody = panel.locator('.comment-card').last().locator('p');
   const trigger = panel.locator('.comment-compose-trigger');
+  const composer = panel.locator('form.comment-form');
+  const inline = await composer.isVisible();
+  const handoff = inline ? composer : trigger;
   await expect(finalBody).toBeVisible();
-  await expect(trigger).toBeVisible();
+  await expect(handoff).toBeVisible();
 
   const [bodyBox, triggerBox, rowGap] = await Promise.all([
     finalBody.boundingBox(),
-    trigger.boundingBox(),
+    handoff.boundingBox(),
     panel.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).rowGap),
     ),
@@ -70,15 +74,31 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
   }
   expect(panelHasHorizontalOverflow).toBe(false);
 
-  await trigger.click();
-  const textarea = panel.locator('.comment-form-compact textarea');
-  const cancelButton = panel.getByRole('button', { name: 'Abbrechen' });
+  if (!inline) await trigger.click();
+  const textarea = composer.getByRole('textbox', {
+    name: storyProducts.comments.inputLabel,
+    exact: true,
+  });
+  const cancelButton = panel.getByRole('button', {
+    name: storyProducts.comments.cancel,
+    exact: true,
+  });
+  const action = inline
+    ? composer.getByRole('button', {
+        name: storyProducts.comments.send,
+        exact: true,
+      })
+    : cancelButton;
   await expect(textarea).toBeVisible();
-  await expect(cancelButton).toBeVisible();
+  await expect(action).toBeVisible();
+  if (inline) {
+    await expect(textarea).not.toBeFocused();
+    await expect(cancelButton).toHaveCount(0);
+  }
 
   const [textareaBox, cancelBox] = await Promise.all([
     textarea.boundingBox(),
-    cancelButton.boundingBox(),
+    action.boundingBox(),
   ]);
   if (!textareaBox || !cancelBox) {
     throw new Error('Comment composer reflow geometry is unavailable.');
@@ -88,8 +108,17 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
     expect(box.x + box.width).toBeLessThanOrEqual(viewportWidth + 1);
   }
 
-  await cancelButton.click();
-  await expect(panel.locator('.comment-compose-trigger')).toBeVisible();
+  if (inline) {
+    await textarea.fill('An unsent reply');
+    await expect(textarea).toHaveValue('An unsent reply');
+    await expect(textarea).toBeFocused();
+    await textarea.clear();
+    await expect(textarea).toBeVisible();
+    await expect(textarea).toHaveValue('');
+  } else {
+    await cancelButton.click();
+    await expect(panel.locator('.comment-compose-trigger')).toBeVisible();
+  }
 }
 
 test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
@@ -499,7 +528,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
 
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
-    await expect(page.getByText('Thinking of you')).toBeVisible();
+    await expect(page.locator('.heart-moment-detail-text')).toHaveText(
+      'Thinking of you',
+    );
     const detailEmotion = page.locator('.heart-emotion-badge--detail');
     await expect(detailEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(detailEmotion.locator('.heart-emotion-label')).toBeVisible();
@@ -543,7 +574,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
     await expect(
-      page.getByRole('heading', { name: 'Two years together', level: 1 }),
+      page.getByRole('heading', { name: 'Two years together', level: 2 }),
     ).toBeVisible();
     const provenance = page.locator('.milestone-provenance-footer');
     await expect(provenance).toBeVisible();
@@ -753,6 +784,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
         colorScheme,
       );
 
+      await waitForSettledMotion(page);
       const result = await new AxeBuilder({ page })
         .withTags([
           'wcag2a',

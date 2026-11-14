@@ -221,3 +221,51 @@
     transform: none;
   }
 }
+
+/*
+ * Split pair (#1790 slice A): each avatar is its own tap target. The partner
+ * avatar keeps its existing negative margin inside its slot, so the overlap
+ * is unchanged; the own avatar stays on top of the shared lens, as before.
+ */
+.partner-avatar-slot {
+  position: relative;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: scale var(--duration-feedback) var(--easing-standard);
+}
+
+span.partner-avatar-slot {
+  cursor: default;
+}
+
+.partner-avatar-slot-primary {
+  z-index: 2;
+}
+
+.partner-avatar-slot-secondary {
+  z-index: 1;
+}
+
+.partner-avatar-slot:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+button.partner-avatar-slot:is(:active, [data-control-pressed]) {
+  scale: var(--control-pressed-scale-emphasis);
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.partner-avatar-slot:is(:active, [data-control-pressed]) {
+    scale: none;
+  }
+}

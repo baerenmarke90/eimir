@@ -28,6 +28,8 @@ from eimir.identity.deletion import (
 )
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
 from eimir.identity.models import AccountEmail, AuthIdentity, AuthProvider, DeviceSession
+from eimir.legal.models import TermsAcceptance, TermsAcceptanceOrigin
+from eimir.legal.terms import record_acceptance
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.private_notes.models import PrivateNote, PrivateNotePayload
 from eimir.profiles.models import (
@@ -209,6 +211,13 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
             ),
         ]
     )
+    for owner in (account, partner):
+        record_acceptance(
+            session,
+            account_id=owner.id,
+            version="test-terms",
+            origin=TermsAcceptanceOrigin.SIGNUP_REQUEST,
+        )
     sessions.start_session(session, account)
     register_endpoint(
         session,
@@ -283,6 +292,8 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
     assert _count(session, PartnerProfile, PartnerProfile.owner_id == partner.id) == 1
     assert _count(session, AccountEmail, AccountEmail.account_id == account.id) == 0
     assert _count(session, AuthIdentity, AuthIdentity.account_id == account.id) == 0
+    assert _count(session, TermsAcceptance, TermsAcceptance.account_id == account.id) == 0
+    assert _count(session, TermsAcceptance, TermsAcceptance.account_id == partner.id) == 1
     assert _count(session, DeviceSession, DeviceSession.account_id == account.id) == 0
     assert _count(session, PushEndpoint, PushEndpoint.account_id == account.id) == 0
     assert (

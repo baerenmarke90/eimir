@@ -144,6 +144,28 @@ loopback readiness. WebAuthn origins use the exact public HTTPS origin. Values
 are required rather than regenerated. Filled values, account emails, SMTP
 credentials, keys and the journal UUID never enter the generated Git branch.
 
+## Optional HeartMoment voice notes
+
+With the verified same-revision media image selected, the generated API, general
+worker and restricted media worker retain the instance-local
+`EIMIR_AUDIO_UPLOAD_ENABLED` expression. It defaults to `false`; publishing never
+freezes the runner's value. Without the reviewed media role, audio admission
+remains disabled even if a source or operator setting requests it.
+
+To enable the accepted Free/Core voice-note feature, append or update only
+`EIMIR_AUDIO_UPLOAD_ENABLED=true` in the existing `eimir-test` Arcane environment,
+sync the corrected channel, and redeploy the existing project. Confirm the
+restricted `cloud-video-worker` is running; it processes audio and video jobs.
+Do not replace the existing environment or change any credentials or stores.
+
+After restarting the app, the authenticated `/api/v1/auth/capabilities` response
+must report `audioProcessingEnabled: true`. Existing test.50 already contains the
+UI: **+ → HeartMoment → Voice note**, then record or choose an audio file and
+save. No new APK is required. Verify upload, processing, saved playback and
+parent visibility on the actual instance. Turning the setting off preserves
+authorized reads, deletion and essential export. See
+[the audio processing contract](operations/video-uploads.md#heartmoment-voice-intake-1671).
+
 ## Optional personal photo sources
 
 The generated API/worker environment retains instance-local expressions for
@@ -159,6 +181,21 @@ This is the product callback; the older standalone probe callback is separate.
 Google stays hidden until configured and still requires the operator's appropriate
 testing audience/verification. Personal Immich requires no shared operator key.
 See [the source contract](product/integrations/1444-photo-source-delivery.md).
+
+Google import remains blocked by the application gate (#1467). The only path past it is the
+private-test eligibility: `EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS` is a JSON list of at most ten
+verified Account email addresses (empty by default). An Account may use the Google import only when
+one of its **verified** addresses is listed and photo sources, required encryption, an HTTPS public
+address and a valid Google OAuth configuration are all in place; the `integration.external_sync`
+entitlement and every ownership check still apply, and demo instances never qualify. Emptying the
+list stops polling and reading immediately; cancelling and cleanup keep working. The list is
+operator-local, never committed, and not a production enablement: independent review and the
+remaining acceptance in #1467 are still required before the gate itself changes.
+
+Operator notes: list only addresses that the intended tester has already registered and verified,
+because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
+addresses as verified). Settings are cached per process, so a change to the list takes effect after the
+API is restarted or redeployed.
 ## Configure the selected live FCM transport
 
 The Product Owner selected FCM-only operation on 2026-11-01, superseding the

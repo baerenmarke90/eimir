@@ -6,8 +6,12 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import { expectLabeledAddAction } from '../support/addAction';
+import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
+import experiences from '../../src/i18n/locales/experiences';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -350,11 +354,17 @@ test('ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishe
   await plansTab.focus();
   await expect(plansTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText(PLAN_TITLE)).toBeVisible();
+  await expectLabeledAddAction(
+    page.getByRole('link', { name: m5s3.overview.addPlan, exact: true }),
+  );
 
   await page.keyboard.press('ArrowRight');
   await expect(wishesTab).toHaveAttribute('aria-selected', 'true');
   await expect(wishesTab).toBeFocused();
   await expect(page.getByText(WISH_TITLE)).toBeVisible();
+  await expectLabeledAddAction(
+    page.getByRole('link', { name: m5s3.overview.addWish, exact: true }),
+  );
 
   await page.keyboard.press('ArrowLeft');
   await expect(plansTab).toHaveAttribute('aria-selected', 'true');
@@ -374,7 +384,7 @@ test('clicking the focal Plan navigates from the Planning overview to the read-f
 
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
-    page.getByRole('heading', { name: PLAN_TITLE, level: 1 }),
+    page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: taskBoundary.back }),
@@ -423,7 +433,7 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
-
+  const scheduleTask = await showPlanSchedule(page);
   const disclosure = page.getByRole('button', { name: m5s3.plan.addEndTime });
   await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByLabel(m5s3.plan.endTime)).toBeHidden();
@@ -433,10 +443,13 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await expect(endTime).toBeVisible();
   await endTime.fill('13:30');
   await expect(page.getByText(m5s3.plan.endMustFollowStart)).toBeVisible();
-  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
+  await scheduleTask
+    .getByRole('button', { name: experiences.finish, exact: true })
+    .click();
   expect(scheduleBody).toBeNull();
 
   await endTime.fill('16:30');
+  await closePlanSchedule(page);
   await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect.poll(() => scheduleBody).not.toBeNull();
   expect(scheduleBody).toMatchObject({
@@ -505,7 +518,9 @@ test('cross-day Plan range reflows at 320px and keeps the same hierarchy when ex
   await capture(page, testInfo, '320-cross-day-light');
 
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await showPlanSchedule(page);
   await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
+  await closePlanSchedule(page);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.getByText(crossDayRange)).toBeVisible();
@@ -531,7 +546,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       colorScheme,
     );
     await expect(
-      page.getByRole('heading', { name: PLAN_TITLE, level: 1 }),
+      page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
     ).toBeVisible();
 
     const result = await new AxeBuilder({ page })
@@ -650,7 +665,7 @@ for (const [width, colorScheme] of [
       page.getByRole('heading', { name: PLAN_TITLE, exact: true }),
     ).toBeVisible();
     expect(reads).toBe(0);
-    const trigger = page.getByRole('button', {
+    const trigger = page.locator('.plan-wish-link').getByRole('button', {
       name: m5s3.plan.linkWish,
       exact: true,
     });
@@ -693,8 +708,10 @@ for (const [width, colorScheme] of [
       page.getByRole('textbox', { name: m5s3.common.description, exact: true }),
     ).toHaveValue(plan.description);
     await page.reload();
-    await expect(source).toBeVisible();
-    await source.click();
+    // #1790 F2: the read view presents the source wish above the Plan title.
+    const origin = page.getByRole('link', { name: wishJourney.fromWish });
+    await expect(origin).toBeVisible();
+    await origin.click();
     await expect(
       page.getByRole('heading', { name: WISH_TITLE, exact: true }),
     ).toBeVisible();

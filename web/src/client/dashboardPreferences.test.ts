@@ -32,7 +32,12 @@ describe('dashboardPreferences', () => {
     const migrated = orderedDashboardModuleKeys({
       items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
     });
-    expect(migrated.filter((key) => key !== 'daily_quote')).toEqual(legacy);
+    expect(migrated[0]).toBe('relationship_presence');
+    expect(
+      migrated.filter(
+        (key) => key !== 'daily_quote' && key !== 'relationship_presence',
+      ),
+    ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
     expect(migrated.indexOf('daily_quote')).toBe(
       migrated.indexOf('shared_experience') + 1,
     );
@@ -40,17 +45,31 @@ describe('dashboardPreferences', () => {
   it('preserves the old personal order while inserting both additive modules', () => {
     const legacy = [...DASHBOARD_MODULE_KEYS]
       .reverse()
-      .filter((key) => key !== 'daily_quote' && key !== 'shared_experience');
+      .filter(
+        (key) =>
+          key !== 'daily_quote' &&
+          key !== 'shared_experience' &&
+          key !== 'partner_distance',
+      );
     const migrated = orderedDashboardModuleKeys({
       items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
     });
     expect(
       migrated.filter(
-        (key) => key !== 'daily_quote' && key !== 'shared_experience',
+        (key) =>
+          key !== 'daily_quote' &&
+          key !== 'shared_experience' &&
+          key !== 'partner_distance' &&
+          key !== 'relationship_presence',
       ),
-    ).toEqual(legacy);
-    expect(migrated.indexOf('shared_experience')).toBe(
+    ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
+    expect(migrated[0]).toBe('relationship_presence');
+    // #1792 enters directly below the couple hero for older saved orders.
+    expect(migrated.indexOf('partner_distance')).toBe(
       migrated.indexOf('relationship_presence') + 1,
+    );
+    expect(migrated.indexOf('shared_experience')).toBe(
+      migrated.indexOf('partner_distance') + 1,
     );
     expect(migrated.indexOf('daily_quote')).toBe(
       migrated.indexOf('shared_experience') + 1,
@@ -65,7 +84,12 @@ describe('dashboardPreferences', () => {
       visible: moduleKey !== 'relationship_signal',
     }));
     const order = orderedDashboardModuleKeys({ items });
-    expect(order.filter((key) => key !== 'retrospective')).toEqual(legacy);
+    expect(order[0]).toBe('relationship_presence');
+    expect(
+      order.filter(
+        (key) => key !== 'retrospective' && key !== 'relationship_presence',
+      ),
+    ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
     expect(order.indexOf('retrospective')).toBe(
       order.indexOf('pinned_collection') + 1,
     );
@@ -73,6 +97,23 @@ describe('dashboardPreferences', () => {
       false,
     );
     expect(isDashboardModuleVisible({ items }, 'retrospective')).toBe(true);
+  });
+
+  it('pins the couple hero above older personal orders without dropping hidden preferences', () => {
+    const keys = [...DASHBOARD_MODULE_KEYS].reverse();
+    const value = {
+      items: keys.map((moduleKey) => ({
+        moduleKey,
+        visible:
+          moduleKey !== 'relationship_presence' && moduleKey !== 'keepsake',
+      })),
+    };
+    expect(orderedDashboardModuleKeys(value)).toEqual([
+      'relationship_presence',
+      ...keys.filter((key) => key !== 'relationship_presence'),
+    ]);
+    expect(isDashboardModuleVisible(value, 'relationship_presence')).toBe(true);
+    expect(isDashboardModuleVisible(value, 'keepsake')).toBe(false);
   });
 
   it('scopes query cache entries by account and Space', () => {

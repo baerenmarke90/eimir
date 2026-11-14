@@ -39,6 +39,8 @@ from eimir.identity import effects as account_effects
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.observability import safe_exception_summary
+from eimir.once_messages import service as once_messages
+from eimir.once_messages.models import OnceMessage
 from eimir.outbox import service as outbox_service
 from eimir.outbox.models import OutboxEvent
 from eimir.places.models import Place
@@ -49,7 +51,8 @@ from eimir.reminders.models import Reminder, ReminderSource
 from eimir.transfer.models import TransferExport, TransferImport
 from eimir.wish_selections import service as wish_selections
 from eimir.wish_selections.models import WishSelectionRound
-from eimir.wishes.models import Wish
+from eimir.wishes import reminders as wish_reminders
+from eimir.wishes.models import Wish, WishReminder, WishStatus
 
 log = logging.getLogger(__name__)
 
@@ -72,6 +75,7 @@ _OWN_NOISE_KINDS = {
 }
 
 _TARGET_MODELS: dict[EngagementTarget, Any] = {
+    EngagementTarget.ONCE_MESSAGE: OnceMessage,
     EngagementTarget.REMINDER: Reminder,
     EngagementTarget.TRANSFER_EXPORT: TransferExport,
     EngagementTarget.TRANSFER_IMPORT: TransferImport,
@@ -200,6 +204,18 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     if not _event_effects_allowed(session, event):
         return
 
+    if event_type is EventType.ONCE_MESSAGE_SENT:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.ONCE_MESSAGE,
+            event.subject_id,
+            NotificationKind.ONCE_MESSAGE_RECEIVED,
+            expires_at=event.payload.due_at,
+        )
+        push.ensure_deliveries_for_source_event(session, event.id)
+        return
+
     if event_type is EventType.GENTLE_PROMPT_READY:
         from eimir.engagement import gentle
 
@@ -221,6 +237,18 @@ def project_event(session: Session, event: OutboxEvent) -> None:
 
     if event_type is EventType.REMINDER_DUE:
         reminder_delivery.project_notification(session, event)
+    if event_type is EventType.WISH_REMINDER_DUE:
+        if event.payload.due_at is not None and event.payload.occurrence_id is not None:
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget.WISH,
+                event.subject_id,
+                NotificationKind.WISH_REMINDER_DUE,
+                expires_at=clock.ensure_utc(event.payload.due_at) + wish_reminders.MAX_LATENESS,
+            )
+            push.ensure_deliveries_for_source_event(session, event.id)
+        return
     if event_type is EventType.REMINDER_CREATED:
         _project_target_notification(
             session,
@@ -293,10 +321,7 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             else NotificationKind.WISH_SELECTION_READY,
         )
     if event_type is EventType.PHOTO_REACTION_CHANGED:
-        memory = session.get(Memory, event.subject_id)
-        if memory is not None and any(
-            reaction.account_id == event.actor_id for reaction in memory.payload.photo_reactions
-        ):
+        if _has_photo_reaction(session, event.subject_id, event.actor_id):
             _project_target_notification(
                 session,
                 event,
@@ -450,6 +475,7 @@ def _project_target_notification(
         NotificationKind.TRANSFER_READY,
         NotificationKind.TRANSFER_COMPLETED,
         NotificationKind.TRANSFER_FAILED,
+        NotificationKind.WISH_REMINDER_DUE,
     }
     if recipient_id is None or (recipient_id == event.actor_id and not self_outcome):
         return
@@ -478,6 +504,11 @@ def _project_target_notification(
     ):
         return
 
+    notice_id = (
+        {"id": event.payload.occurrence_id}
+        if notification_kind is NotificationKind.WISH_REMINDER_DUE
+        else {}
+    )
     insert = postgresql.insert(Notification).values(
         space_id=event.space_id,
         recipient_account_id=recipient_id,
@@ -491,6 +522,7 @@ def _project_target_notification(
         in_app_visible=notification_preferences.in_app_enabled(
             session, account_id=recipient_id, kind=notification_kind.value
         ),
+        **notice_id,
     )
     if notification_kind in {
         NotificationKind.PHOTO_REACTION,
@@ -531,6 +563,15 @@ def _target_is_projectable(
     *,
     allow_private_heart: bool = False,
 ) -> bool:
+    if target_type is EngagementTarget.ONCE_MESSAGE:
+        return (
+            session.scalar(
+                select(OnceMessage.id).where(
+                    OnceMessage.id == target_id, once_messages.available_predicate(context)
+                )
+            )
+            is not None
+        )
     if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
         model = _TARGET_MODELS[target_type]
         return (
@@ -567,6 +608,17 @@ def _projectable_predicate(
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
     for target_type, model in _TARGET_MODELS.items():
+        if target_type is EngagementTarget.ONCE_MESSAGE:
+            exists = (
+                select(OnceMessage.id)
+                .where(
+                    OnceMessage.id == target_id_column,
+                    once_messages.available_predicate(context),
+                )
+                .exists()
+            )
+            clauses.append(and_(target_type_column == target_type.value, exists))
+            continue
         if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
             if selection is None:
                 continue
@@ -659,8 +711,27 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
     return and_(
         or_(Notification.kind != NotificationKind.GENTLE_PROMPT.value, gentle_available),
         or_(
+            Notification.kind != NotificationKind.WISH_REMINDER_DUE.value,
+            select(WishReminder.id)
+            .join(Wish, Wish.id == WishReminder.wish_id)
+            .where(
+                WishReminder.id == Notification.id,
+                WishReminder.wish_id == Notification.target_id,
+                WishReminder.space_id == context.space_id,
+                WishReminder.account_id == context.account_id,
+                WishReminder.fired_at.is_not(None),
+                Wish.status == WishStatus.OPEN.value,
+            )
+            .exists(),
+        ),
+        or_(
+            Notification.target_type.is_distinct_from(EngagementTarget.PLAN.value),
             Notification.kind.not_in(
-                [NotificationKind.PLAN_CREATED.value, NotificationKind.PLAN_CHANGED.value]
+                [
+                    NotificationKind.PLAN_CREATED.value,
+                    NotificationKind.PLAN_CHANGED.value,
+                    NotificationKind.REMINDER_DUE.value,
+                ]
             ),
             select(Plan.id)
             .where(
@@ -751,16 +822,26 @@ def notification_target_available(
     session: Session, notification: Notification, context: AuthorizationContext
 ) -> bool:
     """Recheck the Center target authorization before external delivery."""
-    return (
-        session.execute(
-            select(Notification.id).where(
-                Notification.id == notification.id,
-                Notification.space_id == context.space_id,
-                Notification.recipient_account_id == context.account_id,
-                _current_notification_predicate(session, context),
-            )
-        ).scalar_one_or_none()
-        is not None
+    authorized = session.scalar(
+        select(Notification.id).where(
+            Notification.id == notification.id,
+            Notification.space_id == context.space_id,
+            Notification.recipient_account_id == context.account_id,
+            _current_notification_predicate(session, context),
+        )
+    )
+    return authorized is not None and (
+        notification.kind != NotificationKind.PHOTO_REACTION.value
+        or _has_photo_reaction(session, notification.target_id, notification.actor_id)
+    )
+
+
+def _has_photo_reaction(session: Session, memory_id: UUID | None, actor_id: UUID | None) -> bool:
+    if memory_id is None or actor_id is None:
+        return False
+    memory = session.get(Memory, memory_id, populate_existing=True)
+    return memory is not None and any(
+        reaction.account_id == actor_id for reaction in memory.payload.photo_reactions
     )
 
 

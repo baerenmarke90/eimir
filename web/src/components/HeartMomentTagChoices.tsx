@@ -1,4 +1,4 @@
-import { useEffect, useState, type Ref } from 'react';
+import { useEffect, useState, type Ref, type ReactNode } from 'react';
 import { useTranslation } from '../i18n';
 import {
   ContextTagEditor,
@@ -17,10 +17,22 @@ export function HeartMomentTagChoices({
   selected = [],
   editorRef,
   parentId,
+  discloseEmpty = false,
+  presentation,
+  renderTrigger,
+  onChange,
+  onDraftChange,
+  disabled,
 }: {
+  presentation?: 'composer';
+  renderTrigger?: (open: () => void) => ReactNode;
+  onChange?: (tags: string[]) => void;
+  onDraftChange?: (dirty: boolean) => void;
+  disabled?: boolean;
   selected?: readonly string[];
   editorRef?: Ref<ContextTagEditorHandle>;
   parentId?: string;
+  discloseEmpty?: boolean;
 }) {
   const { t } = useTranslation();
   const [tags, setTags] = useState<string[]>([...selected]);
@@ -30,11 +42,19 @@ export function HeartMomentTagChoices({
   }, [identity]);
   return (
     <ContextTagEditor
+      presentation={presentation}
+      renderTrigger={renderTrigger}
+      onDraftChange={onDraftChange}
+      disabled={disabled}
+      discloseEmpty={discloseEmpty}
       parentId={parentId}
       parentType="HEART_MOMENT"
       ref={editorRef}
       selected={tags}
-      onChange={setTags}
+      onChange={(next) => {
+        setTags(next);
+        onChange?.(next);
+      }}
       suggestions={HEART_MOMENT_TAGS}
       labelForTag={(tag) =>
         (HEART_MOMENT_TAGS as readonly string[]).includes(tag)

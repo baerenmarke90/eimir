@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.56
+
+- Memories and HeartMoments save immediately with an ordered video placeholder while the upload continues.
+- Admitted Android video uploads continue outside the editor and in the background, with generic notification progress. Stored video is capped at 1080p, including compatible input.
+- Places have an inline trash action. Related wishes and plans show the destination type and title.
+- Place addresses open the existing internal map. Selecting a place zooms to it and hides other markers; the standard filter changes or resets the selection.
+- Shared wish selection sorts the complete candidate collection alphabetically.
+- Includes main 3ecbbe16 (#1702), previous test.55 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.55; increasing versionCode 56. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Android transfers require initial local staging; browser transfers remain bounded by the open document. Deploy matching API and media worker together. Physical-device installation and session/data continuity remain separate acceptance.

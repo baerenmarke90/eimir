@@ -4,13 +4,24 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PlacesApi } from '../api/generated/apis/PlacesApi';
+import { PlansApi } from '../api/generated/apis/PlansApi';
+import { StoryPlanningRelationsApi } from '../api/generated/apis/StoryPlanningRelationsApi';
+import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { AudioProcessingContext } from '../client/voiceNotes';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
+import contextTags from '../i18n/locales/contextTags';
+import composer from '../i18n/locales/composer';
+import experiences from '../i18n/locales/experiences';
+import m5s3 from '../i18n/locales/m5s3';
+import de from '../i18n/locales/de';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
@@ -21,8 +32,14 @@ import { QuickCreateMenu } from './QuickCreateMenu';
 const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
   window.matchMedia = (query: string) => ({
-    matches: false,
+    matches: query === '(prefers-reduced-motion: reduce)',
     media: query,
     onchange: null,
     addListener: () => {},
@@ -134,53 +151,243 @@ function renderDetail(
   );
 }
 
-function renderCreate() {
+function renderCreate(entryState?: object, audioProcessing = false) {
   const createHeartMoment = vi.fn().mockResolvedValue({ id: 'heart-new' });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/story/heart-moments/new']}>
-        <Routes>
-          <Route
-            path="/story/heart-moments/new"
-            element={
-              <HeartMomentProductPage
-                mode="create"
-                apis={
-                  {
-                    heartMoments: { createHeartMoment },
-                  } as unknown as ReferenceApis
-                }
-                apiBaseUrl="https://example.test"
-                accessToken="token"
-                spaceId="space-1"
-                currentAccountId="account-1"
-                loadAttachment={async () => 'blob:test-image'}
-              />
-            }
-          />
-          <Route
-            path="/story/heart-moments/:heartMomentId"
-            element={<p>Heart Moment result</p>}
-          />
-          <Route path="/story" element={<p>Story landing</p>} />
-        </Routes>
-      </MemoryRouter>
+      <AudioProcessingContext value={audioProcessing}>
+        <MemoryRouter
+          initialEntries={[
+            { pathname: '/story/heart-moments/new', state: entryState },
+          ]}
+        >
+          <Routes>
+            <Route
+              path="/story/heart-moments/new"
+              element={
+                <HeartMomentProductPage
+                  mode="create"
+                  apis={
+                    {
+                      heartMoments: { createHeartMoment },
+                    } as unknown as ReferenceApis
+                  }
+                  apiBaseUrl="https://example.test"
+                  accessToken="token"
+                  spaceId="space-1"
+                  currentAccountId="account-1"
+                  loadAttachment={async () => 'blob:test-image'}
+                />
+              }
+            />
+            <Route
+              path="/story/heart-moments/:heartMomentId"
+              element={<p>Heart Moment result</p>}
+            />
+            <Route path="/story" element={<p>Story landing</p>} />
+          </Routes>
+        </MemoryRouter>
+      </AudioProcessingContext>
     </QueryClientProvider>,
   );
   return createHeartMoment;
 }
 
+async function selectSuggestedContext(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+) {
+  await user.click(screen.getByRole('button', { name: composer.tag }));
+  await user.click(screen.getByRole('checkbox', { name: label }));
+  await user.click(screen.getByRole('button', { name: experiences.finish }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+}
+
+function expectContentOrder(...selectors: string[]) {
+  const elements = selectors.map((selector) => {
+    const element = document.querySelector(selector);
+    expect(element, `Expected rendered content for ${selector}`).not.toBeNull();
+    if (!element) throw new Error(`Missing rendered content: ${selector}`);
+    return element;
+  });
+  for (let index = 1; index < elements.length; index += 1)
+    expect(
+      elements[index - 1].compareDocumentPosition(elements[index]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      `${selectors[index - 1]} must precede ${selectors[index]}`,
+    ).not.toBe(0);
+}
+
+function protectedMediaApis() {
+  return {
+    attachments: {},
+    comments: {
+      listHeartMomentComments: async () => ({ items: [], hasMore: false }),
+    },
+    story: { recordStoryView: async () => undefined },
+  } as unknown as ReferenceApis;
+}
+
+const orderedMediaHeart: HeartMomentDetail = {
+  ...heartMoment,
+  tags: ['everyday'],
+  attachments: [
+    {
+      id: 'heart-photo',
+      position: 0,
+      status: 'READY',
+      mediaType: 'IMAGE',
+      mimeType: 'image/jpeg',
+      size: 1024,
+      width: 800,
+      height: 600,
+      hasThumbnail: true,
+      isSensitive: true,
+    },
+    {
+      id: 'heart-voice',
+      position: 1,
+      status: 'READY',
+      mediaType: 'AUDIO',
+      mimeType: 'audio/mp4',
+      size: 1024,
+      width: null,
+      height: null,
+      hasThumbnail: false,
+      isSensitive: true,
+      durationSeconds: 3,
+    },
+  ],
+};
+
+describe('HeartMoment media-first composition (#1735)', () => {
+  it('keeps the existing create media owners ahead of native text and feelings without an empty preview', async () => {
+    renderCreate(undefined, true);
+    const text = await screen.findByRole('textbox', {
+      name: storyProducts.heartMomentProduct.textLabel,
+    });
+    expectContentOrder(
+      '.composer-context-row',
+      '.composer-audience',
+      '.plan-photos-editor',
+      '.voice-editor[data-empty="true"]',
+      '#heart-moment-text',
+      '.heart-emotion-picker',
+    );
+    expect(document.querySelector('.photo-draft-gallery')).toBeNull();
+    expect(document.querySelector('.voice-player')).toBeNull();
+    expect(document.activeElement).not.toBe(text);
+    expect(screen.getAllByRole('radio')).toHaveLength(6);
+    await userEvent.setup().type(text, 'A thought worth keeping');
+    const form = document.querySelector<HTMLFormElement>(
+      '#heart-moment-create-form',
+    );
+    if (!form) throw new Error('The native create form is unavailable.');
+    expect(new FormData(form).get('text')).toBe('A thought worth keeping');
+    expect(new FormData(form).get('emotion')).toBe(HeartEmotion.LOVED);
+  });
+
+  it('orders existing editor photos and voice before the lead, feelings and tags without changing native values', async () => {
+    renderDetail(undefined, orderedMediaHeart, 'edit', protectedMediaApis());
+    await screen.findByDisplayValue(orderedMediaHeart.text);
+    await waitFor(() =>
+      expect(
+        document.querySelector('.plan-photos-editor[data-has-media="true"]'),
+      ).not.toBeNull(),
+    );
+    expectContentOrder(
+      '.composer-context-row',
+      '.plan-photos-editor[data-has-media="true"]',
+      '.voice-editor[data-empty="false"]',
+      '#heart-moment-text',
+      '.heart-emotion-picker',
+      '.context-tag-selected',
+    );
+    expect(screen.getAllByRole('radio')).toHaveLength(6);
+    const choice = screen.getByRole('radio', {
+      name: storyProducts.heartEmotion.GRATEFUL,
+    });
+    await userEvent.setup().click(choice.closest('label') ?? choice);
+    const form = document.querySelector<HTMLFormElement>(
+      '#heart-moment-edit-form',
+    );
+    if (!form) throw new Error('The native edit form is unavailable.');
+    expect(new FormData(form).get('text')).toBe(orderedMediaHeart.text);
+    expect(new FormData(form).get('emotion')).toBe(HeartEmotion.GRATEFUL);
+    expect(new FormData(form).getAll('tags')).toEqual(['everyday']);
+  });
+
+  it('reads photos, then voice, then authored text, feeling and tags', async () => {
+    renderDetail(undefined, orderedMediaHeart, 'detail', protectedMediaApis());
+    await screen.findByText(orderedMediaHeart.text);
+    expectContentOrder(
+      '.moment-metadata',
+      '.heart-moment-detail-container .media-gallery-carousel',
+      '.heart-moment-detail-container .voice-player',
+      '.heart-moment-detail-text',
+      '.heart-moment-detail-emotion',
+      '.memory-tag-summary',
+    );
+    expect(
+      document.querySelector('.heart-moment-detail-container audio'),
+    ).toBeNull();
+  });
+
+  it('keeps voice before authored text when no photo exists', async () => {
+    renderDetail(
+      undefined,
+      {
+        ...orderedMediaHeart,
+        attachments: orderedMediaHeart.attachments?.filter(
+          (attachment) => attachment.mediaType === 'AUDIO',
+        ),
+      },
+      'detail',
+      protectedMediaApis(),
+    );
+    await screen.findByText(orderedMediaHeart.text);
+    expect(document.querySelector('.media-gallery-carousel')).toBeNull();
+    expectContentOrder(
+      '.moment-metadata',
+      '.heart-moment-detail-container .voice-player',
+      '.heart-moment-detail-text',
+      '.heart-moment-detail-emotion',
+      '.memory-tag-summary',
+    );
+  });
+
+  it.each(['edit', 'detail'] as const)(
+    'starts with existing text ahead of feeling in a media-free %s',
+    async (mode) => {
+      renderDetail(undefined, heartMoment, mode);
+      if (mode === 'edit') {
+        await screen.findByDisplayValue(heartMoment.text);
+        expectContentOrder('#heart-moment-text', '.heart-emotion-picker');
+      } else {
+        await screen.findByText(heartMoment.text);
+        expectContentOrder(
+          '.heart-moment-detail-text',
+          '.heart-moment-detail-emotion',
+        );
+      }
+      expect(document.querySelector('.photo-draft-gallery')).toBeNull();
+      expect(document.querySelector('.media-gallery-carousel')).toBeNull();
+      expect(document.querySelector('.voice-player')).toBeNull();
+    },
+  );
+});
+
 describe('Heart Moment create request identity', () => {
   it('sends an idempotency key with the submitted snapshot', async () => {
     const createHeartMoment = renderCreate();
     const user = userEvent.setup();
-    await user.type(
+    await user.click(
       screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
-      'A quiet, wonderful evening',
     );
+    await user.paste('A quiet, wonderful evening');
     await user.click(
       screen.getByRole('button', {
         name: storyProducts.heartMomentProduct.save,
@@ -205,10 +412,9 @@ describe('Heart Moment create request identity', () => {
   it('saves a chosen context without opening the keyboard or requiring prose', async () => {
     const createHeartMoment = renderCreate();
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole('checkbox', {
-        name: storyProducts.heartMomentProduct.tagLabels.everyday,
-      }),
+    await selectSuggestedContext(
+      user,
+      storyProducts.heartMomentProduct.tagLabels.everyday,
     );
     await user.click(
       screen.getByRole('button', {
@@ -235,6 +441,148 @@ describe('Heart Moment create request identity', () => {
     expect(createHeartMoment).not.toHaveBeenCalled();
     expect(screen.getByRole('alert').textContent).toBe(
       storyProducts.heartMomentProduct.contentRequired,
+    );
+  });
+
+  it('keeps header completion bound to its form and blocks duplicate pending saves', async () => {
+    const createHeartMoment = renderCreate();
+    let resolveCreate!: (value: { id: string }) => void;
+    createHeartMoment.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreate = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      'A thought worth keeping',
+    );
+    const save = screen.getByRole('button', {
+      name: storyProducts.heartMomentProduct.save,
+    }) as HTMLButtonElement;
+    expect(save.closest('form')).toBeNull();
+    expect(save.form?.id).toBe('heart-moment-create-form');
+    await user.click(save);
+    await waitFor(() => expect(createHeartMoment).toHaveBeenCalledOnce());
+    expect(save.disabled).toBe(true);
+    expect(save.getAttribute('aria-label')).toBe(
+      storyProducts.heartMomentProduct.saving,
+    );
+    await user.click(save);
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+    resolveCreate({ id: 'heart-new' });
+    expect(await screen.findByText('Heart Moment result')).toBeTruthy();
+  });
+
+  it('commits an unfinished tag when the sheet finishes before header Save', async () => {
+    const createHeartMoment = renderCreate();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: composer.tag }));
+    await user.type(screen.getByLabelText(contextTags.newLabel), 'Quiet time');
+    await user.click(screen.getByRole('button', { name: experiences.finish }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    expect(createHeartMoment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heartMomentCreate: expect.objectContaining({
+          text: '',
+          tags: ['Quiet time'],
+        }),
+      }),
+    );
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+  });
+
+  it('retries failed Plan associations against the known saved parent without creating twice', async () => {
+    const plan = { id: 'plan-1', title: 'Our picnic' };
+    vi.spyOn(PlansApi.prototype, 'listPlans').mockResolvedValue({
+      items: [plan],
+      nextCursor: null,
+    } as Awaited<ReturnType<PlansApi['listPlans']>>);
+    const link = vi
+      .spyOn(StoryPlanningRelationsApi.prototype, 'linkHeartMomentPlan')
+      .mockRejectedValueOnce(new Error('Association unavailable'))
+      .mockResolvedValue(undefined);
+    const create = renderCreate();
+    create.mockResolvedValue({ ...heartMoment, id: 'heart-new' });
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      'A thought worth keeping',
+    );
+    await user.click(
+      screen.getByRole('button', { name: m5s3.planStory.addPlan }),
+    );
+    await user.click(await screen.findByRole('button', { name: plan.title }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    await screen.findByText(composer.planSavedLinkFailed);
+    expect(create).toHaveBeenCalledOnce();
+    expect(
+      (
+        screen.getByLabelText(
+          storyProducts.heartMomentProduct.textLabel,
+        ) as HTMLTextAreaElement
+      ).disabled ||
+        (
+          screen
+            .getByLabelText(storyProducts.heartMomentProduct.textLabel)
+            .closest('fieldset') as HTMLFieldSetElement
+        ).disabled,
+    ).toBe(true);
+    await user.click(screen.getByRole('button', { name: de.common.retry }));
+    expect(await screen.findByText('Heart Moment result')).toBeTruthy();
+    expect(create).toHaveBeenCalledOnce();
+    expect(link).toHaveBeenCalledTimes(2);
+    expect(link).toHaveBeenLastCalledWith({
+      spaceId: 'space-1',
+      heartMomentId: 'heart-new',
+      targetId: 'plan-1',
+    });
+  });
+
+  it('keeps the chosen audience in native form data and restores its modal trigger focus', async () => {
+    const createHeartMoment = renderCreate();
+    const user = userEvent.setup();
+    const audience = screen.getByRole('button', {
+      name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityShared}`,
+    });
+    await user.click(audience);
+    await user.click(
+      screen.getByRole('radio', {
+        name: storyProducts.heartMomentProduct.visibilityPrivate,
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(audience);
+    expect(audience.textContent).toContain(
+      storyProducts.heartMomentProduct.visibilityPrivate,
+    );
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      'Only for me',
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    expect(createHeartMoment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heartMomentCreate: expect.objectContaining({
+          text: 'Only for me',
+          visibility: ContentVisibility.PRIVATE,
+          emotion: HeartEmotion.LOVED,
+        }),
+      }),
     );
   });
 });
@@ -264,7 +612,7 @@ describe('Quick Create Heart Moment continuity (#509)', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/today']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
-            <QuickCreateMenu variant="desktop" />
+            <QuickCreateMenu />
             <Routes>
               <Route path="/today" element={<p>Today origin</p>} />
               <Route
@@ -313,10 +661,9 @@ describe('Quick Create Heart Moment continuity (#509)', () => {
     expect(document.activeElement).not.toBe(
       screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
     );
-    await user.click(
-      screen.getByRole('checkbox', {
-        name: storyProducts.heartMomentProduct.tagLabels.everyday,
-      }),
+    await selectSuggestedContext(
+      user,
+      storyProducts.heartMomentProduct.tagLabels.everyday,
     );
     await user.click(
       screen.getByRole('button', {
@@ -382,7 +729,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       screen.getAllByText(text, { normalizer: (value) => value }),
     ).toHaveLength(1);
     expect(
-      document.querySelector('header time')?.getAttribute('datetime'),
+      document.querySelector('.moment-metadata time')?.getAttribute('datetime'),
     ).toBe('2026-08-25');
   });
 
@@ -397,7 +744,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
       screen.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
     ).toBeTruthy();
   });
-  it('replaces the oversized text button with a compact icon-only edit link', async () => {
+  it('offers editing as the shared round pencil control in the read header', async () => {
     renderDetail();
     const editLink = await screen.findByRole('link', {
       name: storyProducts.heartMomentProduct.edit,
@@ -405,9 +752,8 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     expect(editLink.getAttribute('href')).toBe(
       '/story/heart-moments/heart-1/edit',
     );
-    // Icon-only: the accessible name comes from aria-label, not visible text.
-    expect(editLink.textContent?.trim()).toBe('');
-    expect(editLink.className).not.toContain('button-link');
+    expect(editLink.className).toContain('story-detail-edit-link');
+    expect(editLink.querySelector('svg')).not.toBeNull();
     expect(editLink.className).not.toContain('secondary-link');
   });
 
@@ -486,7 +832,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     );
   });
 
-  it('keeps the visibility toggle as plain text beside the status, no heading or warning card', async () => {
+  it('keeps visibility readable on detail and leaves privacy changes inside the editor', async () => {
     renderDetail(undefined, {
       ...heartMoment,
       authorId: 'account-1',
@@ -494,11 +840,18 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     });
     await screen.findByText('I love you more each day');
     expect(
-      screen.getByRole('button', {
-        name: storyProducts.heartMomentProduct.makePrivate,
+      screen.getByRole('status', {
+        name: relationshipComponents.visibilityShared,
       }),
     ).toBeTruthy();
-    expect(screen.queryByText(/Sichtbarkeit ändern/)).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: storyProducts.heartMomentProduct.makePrivate,
+      }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('link', { name: storyProducts.heartMomentProduct.edit }),
+    ).toBeTruthy();
   });
 });
 
@@ -674,4 +1027,205 @@ describe('Heart Moment view receipt', () => {
     // MUST NOT EMIT
     expect(recordStoryViewMock).not.toHaveBeenCalled();
   });
+});
+
+describe('Completed Plan handoff to HeartMoment', () => {
+  it('leaves an unchanged editor clean after confirming capture from a source Place', async () => {
+    const place = {
+      id: 'place-1',
+      name: 'Bostalsee',
+      address: 'Am See',
+      latitude: 49.56,
+      longitude: 7.07,
+    } as PlaceDetail;
+    vi.spyOn(PlansApi.prototype, 'getPlan').mockResolvedValue({
+      id: 'plan-1',
+      spaceId: 'space-1',
+      status: 'COMPLETED',
+      title: 'Our day',
+      description: 'Quiet by the water',
+      experiencedOn: new Date('2026-11-08T00:00:00Z'),
+      placeId: place.id,
+      capabilities: { canEdit: true },
+    } as PlanDetail);
+    vi.spyOn(PlacesApi.prototype, 'getPlace').mockResolvedValue(place);
+    vi.spyOn(PlacesApi.prototype, 'listMomentPlaces').mockResolvedValue({
+      items: [place],
+      nextCursor: null,
+      hasMore: false,
+    });
+    vi.spyOn(
+      StoryPlanningRelationsApi.prototype,
+      'listHeartMomentPlans',
+    ).mockResolvedValue({ items: ['plan-1'] });
+    vi.spyOn(
+      StoryPlanningRelationsApi.prototype,
+      'linkHeartMomentPlan',
+    ).mockResolvedValue(undefined);
+    const saved = { ...heartMoment, text: 'Quiet by the water' };
+    const createHeartMoment = vi.fn().mockResolvedValue(saved);
+    const updateHeartMoment = vi.fn();
+    const apis = {
+      heartMoments: {
+        createHeartMoment,
+        updateHeartMoment,
+        getHeartMoment: vi.fn().mockResolvedValue(saved),
+      },
+      story: { recordStoryView: vi.fn().mockResolvedValue(undefined) },
+      comments: {
+        listHeartMomentComments: vi.fn().mockResolvedValue({
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        }),
+      },
+    } as unknown as ReferenceApis;
+    function CaptureLifecycle() {
+      const { pathname } = useLocation();
+      const mode = pathname.endsWith('/new')
+        ? 'create'
+        : pathname.endsWith('/edit')
+          ? 'edit'
+          : 'detail';
+      return (
+        <HeartMomentProductPage
+          mode={mode}
+          apis={apis}
+          apiBaseUrl="https://example.test"
+          accessToken="token"
+          spaceId="space-1"
+          currentAccountId="account-1"
+          loadAttachment={async () => 'blob:test-image'}
+        />
+      );
+    }
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/story/heart-moments/new',
+              state: {
+                sourcePlan: {
+                  id: 'plan-1',
+                  spaceId: 'space-1',
+                  accountId: 'account-1',
+                  instance: 'https://example.test',
+                },
+              },
+            },
+          ]}
+        >
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <Routes>
+              <Route
+                path="/story/heart-moments/:heartMomentId/*"
+                element={<CaptureLifecycle />}
+              />
+            </Routes>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await screen.findByRole('button', { name: place.name });
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    const edit = await screen.findByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+    });
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+    expect(createHeartMoment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heartMomentCreate: expect.objectContaining({ placeId: place.id }),
+      }),
+    );
+    await user.click(edit);
+    await screen.findByRole('heading', {
+      level: 1,
+      name: storyProducts.heartMomentProduct.editHeading,
+    });
+    await user.click(screen.getByRole('link', { name: taskBoundary.back }));
+    await screen.findByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+    });
+    expect(screen.queryByText(taskBoundary.discardTitle)).toBeNull();
+    expect(updateHeartMoment).not.toHaveBeenCalled();
+    expect(createHeartMoment).toHaveBeenCalledOnce();
+  });
+
+  it.each(['PRIVATE', 'SHARED'] as const)(
+    'retains the source Place with %s privacy',
+    async (visibility) => {
+      const place = {
+        id: 'place-1',
+        name: 'Bostalsee',
+        address: 'Am See',
+        latitude: 49.56,
+        longitude: 7.07,
+      } as PlaceDetail;
+      vi.spyOn(PlansApi.prototype, 'getPlan').mockResolvedValue({
+        id: 'plan-1',
+        spaceId: 'space-1',
+        status: 'COMPLETED',
+        title: 'Our day',
+        description: 'Quiet by the water',
+        experiencedOn: new Date('2026-11-08T00:00:00Z'),
+        placeId: place.id,
+        capabilities: { canEdit: true },
+      } as PlanDetail);
+      vi.spyOn(PlacesApi.prototype, 'getPlace').mockResolvedValue(place);
+      const create = renderCreate({
+        sourcePlan: {
+          id: 'plan-1',
+          spaceId: 'space-1',
+          accountId: 'account-1',
+          instance: 'https://example.test',
+        },
+      });
+      const user = userEvent.setup();
+      await screen.findByRole('button', { name: place.name });
+      if (visibility === 'PRIVATE') {
+        await user.click(
+          screen.getByRole('button', {
+            name: `${storyProducts.heartMomentProduct.visibilityLabel}: ${storyProducts.heartMomentProduct.visibilityShared}`,
+          }),
+        );
+        await user.click(
+          screen.getByRole('radio', {
+            name: storyProducts.heartMomentProduct.visibilityPrivate,
+          }),
+        );
+      }
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await user.click(
+        screen.getByRole('button', {
+          name: storyProducts.heartMomentProduct.save,
+        }),
+      );
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      const payload = create.mock.calls[0][0].heartMomentCreate;
+      expect(payload.visibility).toBe(visibility);
+      expect(payload.text).toBe('Quiet by the water');
+      expect(payload.happenedOn).toEqual(new Date('2026-11-08T00:00:00Z'));
+      if (visibility === 'PRIVATE') {
+        expect(payload.location).toEqual({
+          name: place.name,
+          address: place.address,
+          latitude: place.latitude,
+          longitude: place.longitude,
+        });
+        expect(payload.placeId).toBeUndefined();
+      } else expect(payload.placeId).toBe(place.id);
+    },
+  );
 });

@@ -137,6 +137,47 @@ PRIVATE_COLLECTION_FIXTURES = {
 
 SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}"),
+    # Temporary messages own recipient/consent/claim rules in test_once_messages.
+    # Every route also participates in the shared tenant and absence contract.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages/status"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/once-messages"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/once-messages/reception",
+        body={"enabled": False, "expectedVersion": 0},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages",
+        body={"requestId": str(uuid4()), "recipientId": str(uuid4()), "envelope": {}},
+        body_fixture_aliases={"recipientId": "accountId"},
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/open",
+        body={"deviceId": str(uuid4()), "token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}/acknowledge",
+        body={"token": str(uuid4())},
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/once-messages/{messageId}",
+        resource_absence="ONCE_MESSAGE_UNAVAILABLE",
+        fixture_aliases={"messageId": "memoryId"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
@@ -144,6 +185,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/memory-map"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/story-lifeline"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
@@ -236,6 +278,39 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/configuration",
         body={"loveNotesEnabled": True},
         if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-location/settings"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/settings",
+        body={"level": "OFF"},
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/snapshot",
+        body={
+            "latitude": 53.55,
+            "longitude": 9.99,
+            "accuracyMeters": 1500,
+            "capturedAt": clock.now().isoformat(),
+            "consentGeneration": 1,
+        },
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/partner-location/distance",
+        body={"latitude": 50.94, "longitude": 6.96, "capturedAt": clock.now().isoformat()},
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-location/map"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-location/device-credential",
+        body={"deviceId": str(uuid4())},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/partner-location/device-credential/{deviceId}",
+        fixture_aliases={"deviceId": "exportId"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/today"),
     Endpoint(
@@ -408,6 +483,24 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/heart-moments"),
+    *(
+        Endpoint(
+            "GET",
+            f"/api/v1/spaces/{{spaceId}}/{source}/{{{parameter}}}/plans",
+            resource_absence="RESOURCE_NOT_FOUND",
+        )
+        for source, parameter in (("heart-moments", "heartMomentId"), ("milestones", "milestoneId"))
+    ),
+    *(
+        Endpoint(
+            method,
+            f"/api/v1/spaces/{{spaceId}}/{source}/{{{parameter}}}/plans/{{targetId}}",
+            resource_absence="RESOURCE_NOT_FOUND",
+            fixture_aliases={"targetId": "planId"},
+        )
+        for source, parameter in (("heart-moments", "heartMomentId"), ("milestones", "milestoneId"))
+        for method in ("PUT", "DELETE")
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",
@@ -469,6 +562,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/media"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/discover/renew"),
@@ -698,6 +792,27 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/wishes/{wishId}/plan",
         body={},
         if_match=True,
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/repeat",
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
+        body={"dueAt": (clock.now() + timedelta(days=1)).isoformat()},
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
         resource_absence="WISH_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
@@ -1010,6 +1125,26 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="GIFT_IDEA_NOT_FOUND",
         placeholders=("giftIdeaId",),
     ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/collections/{collectionId}",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/story",
+        resource_absence="PLAN_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/plans"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/plans", body=PLAN),
     Endpoint(
@@ -1218,6 +1353,11 @@ PLAYBACK_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback"),
 )
 """Video reads use a scoped grant, never general bearer/public authorization."""
+
+PRESENCE_DEVICE_ENDPOINTS: tuple[tuple[str, str], ...] = (
+    ("PUT", "/api/v1/partner-location/device-snapshot"),
+)
+"""Background uploads use a scoped presence credential, never bearer authorization."""
 
 PUBLIC_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/health"),
@@ -1537,6 +1677,7 @@ def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:
             "dateId",
             "accountId",
             "memoryId",
+            "messageId",
             "notificationId",
             "heartMomentId",
             "attachmentId",
@@ -1641,3 +1782,24 @@ def test_playback_requires_its_scoped_grant(scenario, method: str, template: str
     invalid = client.request(method, path, params={"token": "x" * 48})
     assert invalid.status_code == 404
     assert invalid.json()["code"] == "RESOURCE_NOT_FOUND"
+
+
+@pytest.mark.parametrize(("method", "template"), PRESENCE_DEVICE_ENDPOINTS, ids=str)
+def test_presence_device_upload_requires_its_scoped_credential(  # type: ignore[no-untyped-def]
+    scenario, method: str, template: str
+) -> None:
+    client = scenario["client"]
+    body = {
+        "latitude": 53.55,
+        "longitude": 9.99,
+        "accuracyMeters": 1500,
+        "capturedAt": clock.now().isoformat(),
+    }
+    for headers in (
+        None,
+        scenario["owner_headers"],
+        {"Authorization": "Presence " + "x" * 43},
+    ):
+        response = client.request(method, template, json=body, headers=headers)
+        assert response.status_code == 401
+        assert response.json()["code"] == "AUTHENTICATION_REQUIRED"

@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import NotificationKind
 
-POLICY_VERSION = 8
+POLICY_VERSION = 11
 GENERIC_PRESENTATION_KEY = "notification.generic"
 DIGEST_WINDOW = timedelta(hours=1)
 
@@ -71,6 +71,9 @@ class NotificationPolicy:
 # the reviewed comment Push path without changing Email frequency.
 POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
     {
+        NotificationKind.ONCE_MESSAGE_RECEIVED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.GENTLE_PROMPT: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
@@ -89,9 +92,7 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.VIDEO_PROCESSING_FAILED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        NotificationKind.PLAN_CREATED: NotificationPolicy(
-            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
-        ),
+        NotificationKind.PLAN_CREATED: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         NotificationKind.PLAN_CHANGED: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         NotificationKind.PLAN_CANCELLED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
@@ -103,10 +104,10 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.PHOTO_REACTION: NotificationPolicy(
-            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.PARTNER_JOINED: NotificationPolicy(
-            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
@@ -122,6 +123,9 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.REMINDER_DUE: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.WISH_REMINDER_DUE: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
     }
 )
 
@@ -172,14 +176,21 @@ def push_choice_allowed(kind: str) -> bool:
 
 
 def _external_choice_allowed(kind: str) -> bool:
-    """Both external channels share the current reviewed kind eligibility."""
+    """Return the reviewed baseline for external delivery."""
     policy = for_kind(kind)
     return policy is not None and (policy.push_immediately or digest_kind_allowed(kind))
 
 
 def email_choice_allowed(kind: str) -> bool:
     """Expose only reviewed immediate or digest Email kinds as a choice."""
-    return kind != NotificationKind.GENTLE_PROMPT.value and _external_choice_allowed(kind)
+    return kind not in {
+        NotificationKind.GENTLE_PROMPT.value,
+        NotificationKind.ONCE_MESSAGE_RECEIVED.value,
+        NotificationKind.PHOTO_REACTION.value,
+        NotificationKind.PLAN_CREATED.value,
+        NotificationKind.PARTNER_JOINED.value,
+        NotificationKind.WISH_REMINDER_DUE.value,
+    } and _external_choice_allowed(kind)
 
 
 def digest_window(at: datetime) -> tuple[datetime, datetime]:

@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.59
+
+- Keep list linking and removal behind Plan Edit while retaining existing linked lists in the reading view.
+- Show a completed Plan's linked Memories, shared HeartMoments and Milestones, with the original Plan reachable in the other direction.
+- Refresh the Plan when a saved entry's association finishes after returning to it.
+- Add image-local pinch zoom, double tap, panning, wheel/drag and accessible zoom/fit controls to the full-screen gallery while preserving photo swipes and native video controls.
+- Include the server correction for washed-out HDR highlights and moving-video detail from #1711. Improved processing applies to new uploads after the matching test-server media worker is deployed; already processed videos require their original to be uploaded again.
+- Retain test.58's bounded native update discovery and include both merged #1709 and #1711.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.58; increasing versionCode 59. Physical-device installation, session/data continuity and the actual recording's appearance remain separate acceptance.

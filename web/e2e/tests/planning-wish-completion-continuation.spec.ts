@@ -7,6 +7,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -374,7 +375,7 @@ async function captureEvidence(
 }
 
 for (const scenario of visualScenarios) {
-  test(`Wish continuation uses standard borderless filled controls: ${scenario.name}`, async ({
+  test(`Wish continuation keeps authoring and utility controls soft and borderless: ${scenario.name}`, async ({
     page,
   }, info) => {
     await page.setViewportSize(scenario.viewport);
@@ -408,10 +409,7 @@ for (const scenario of visualScenarios) {
     ]) {
       const control = page.locator(selector);
       await expect(control).toBeVisible();
-      const border = await control.evaluate(
-        (node) => getComputedStyle(node).borderTopWidth,
-      );
-      expect(parseFloat(border)).toBe(0);
+      await expect(control).toHaveCSS('border-top-width', '0px');
       expect(
         await control.evaluate(
           (node) => getComputedStyle(node).backgroundColor,
@@ -431,7 +429,7 @@ for (const scenario of visualScenarios) {
     await captureScreenshot(
       page,
       info,
-      `wish-borderless-controls-${scenario.name}.png`,
+      `wish-authored-controls-${scenario.name}.png`,
       { fullPage: true },
     );
     await assertNoWcagViolations(page);
@@ -441,8 +439,16 @@ for (const scenario of visualScenarios) {
         'border-top-width',
         '1px',
       );
+      await expect(page.locator('#wish-plan-place')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
       await page.emulateMedia({ forcedColors: 'none' });
       await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '0px',
+      );
+      await expect(page.locator('#wish-plan-place')).toHaveCSS(
         'border-top-width',
         '0px',
       );
@@ -575,9 +581,12 @@ for (const scenario of pendingScenarios) {
       .filter({ hasText: m5s3.wish.completePending });
     await expect(status).toHaveCount(1);
     await expect(status).toBeVisible();
+    // #1790 F2: the journey path replaces the status word.
     await expect(
-      page.getByText(m5s3.wish.status.OPEN, { exact: true }),
-    ).toBeVisible();
+      page
+        .getByRole('list', { name: wishJourney.pathLabel })
+        .locator('[aria-current="step"]'),
+    ).toHaveText(wishJourney.stages.wished);
     await expect(
       page.getByRole('button', { name: m5s3.wish.completing, exact: true }),
     ).toBeFocused();
@@ -850,7 +859,7 @@ for (const [width, colorScheme] of [
     });
     await signIn(page);
     await page.goto('/plan#wishes');
-    await page.getByRole('link', { name: new RegExp(WISH_TITLE) }).click();
+    await page.getByRole('link', { name: WISH_TITLE, exact: true }).click();
     await page.getByText(m5s3.wish.actionsHeading, { exact: true }).click();
     await page
       .getByRole('button', { name: m5s3.wish.complete, exact: true })
@@ -865,7 +874,7 @@ for (const [width, colorScheme] of [
     await scope
       .getByRole('button', { name: m5s3.overview.fulfilledWishes, exact: true })
       .click();
-    const wish = page.getByRole('link', { name: new RegExp(WISH_TITLE) });
+    const wish = page.getByRole('link', { name: WISH_TITLE, exact: true });
     await expect(wish).toBeVisible();
     await expect(
       scope.getByRole('button', {

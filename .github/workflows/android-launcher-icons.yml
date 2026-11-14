@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/android-launcher-icons.yml'
       - 'android/**'
+      - 'scripts/prepare_android_video_fixtures.sh'
+      - 'backend/tests/fixtures/media/**'
       - 'web/src/client/selectedPhotoLocation.e2e.test.ts'
       - 'scripts/test_android_photo_pipeline.sh'
       - 'web/src/client/nativeAppIcon.ts'
@@ -82,10 +84,11 @@ jobs:
             --path "$ANDROID_AVD_HOME/eimir-launcher.avd" \
             --package 'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           test -s "$ANDROID_AVD_HOME/eimir-launcher.ini"
-          if [ '${{ matrix.api }}' = '36' ]; then
+          if [ '${{ matrix.api }}' = '36' ] || [ '${{ matrix.api }}' = '37.1' ]; then
             # Headless software rendering saturated the two-core 1080p guest
-            # during cold boot: the Pixel Launcher ANR then covered the photo
-            # input. Keep the same ~392 dp phone viewport with fewer pixels and
+            # during cold boot: API 36 covered the input with a Launcher ANR;
+            # API 37.1 delayed notification expansion and turned a tap into a
+            # long press. Keep the same ~392 dp phone viewport with fewer pixels and
             # allow the guest to use the runner's four cores. No app/system
             # packages, ANR checks, picker assertions or deadlines are disabled.
             # https://developer.android.com/studio/run/managing-avds
@@ -126,6 +129,9 @@ jobs:
         working-directory: android
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          bash ../scripts/prepare_android_video_fixtures.sh
           ./gradlew --no-daemon --dependency-verification strict \
             :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug :app:testDebugUnitTest
       - name: Boot the emulator and verify every launcher choice
@@ -213,6 +219,12 @@ jobs:
           adb -e shell wm size > guest-display-before-tests.log
           adb -e shell wm density >> guest-display-before-tests.log
           adb -e shell getprop | tr -d '\r' > guest-properties-before-tests.log
+          if [ '${{ matrix.api }}' = '36' ] || [ '${{ matrix.api }}' = '37.1' ]; then
+            # Verify actual guest resources, rather than assuming AVD settings applied.
+            test "$(tr -d '\r\n' < guest-cpu-before-tests.log)" = '0-3'
+            grep -Fx 'Physical size: 720x1560' guest-display-before-tests.log
+            grep -Fx 'Physical density: 294' guest-display-before-tests.log
+          fi
           if [ '${{ matrix.api }}' = '36' ]; then
             ! grep -Eq '^\[(ro\.boot\.)?qemu\.hwcodec\.(avcdec|hevcdec|vpxdec)\]: \[2\]$' \
               guest-properties-before-tests.log
@@ -251,6 +263,25 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee photo-file-chooser.log
           grep -Eq '^OK \(11 tests\)' photo-file-chooser.log
+          # Actual staged bytes, ownership revocation and background OS transport.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.BackgroundMediaTransfersTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee background-media-transfers.log
+          grep -Eq '^OK \(8 tests\)' background-media-transfers.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NativeVideoPreparationTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee native-video-preparation.log
+          grep -Eq '^OK \(4 tests\)' native-video-preparation.log
+          adb -e exec-out run-as de.eimir.app.debug cat files/native-media-upload-background.png > native-media-upload-background.png
+          test -s native-media-upload-background.png
+          # Voice handoff owns a separate volatile Activity/provider contract.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.VoiceNotesContractTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee voice-notes.log
+          grep -Eq '^OK \(4 tests\)' voice-notes.log
           # Keep deliberate renderer termination isolated from other WebViews.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.RuntimeRecoveryTest \
@@ -315,7 +346,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+          for proof in native-media-upload-background.png native-media-upload-background.xml push-contextual-content.png push-contextual-content.xml push-contextual-content-dark-large.png push-contextual-content-dark-large.xml renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
             # `test` is a shell builtin, not a run-as executable on these images.
             if "$ANDROID_HOME/platform-tools/adb" -e shell \
                 "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then
@@ -364,6 +395,9 @@ jobs:
             android/guest-display-before-tests.log
             android/guest-properties-before-tests.log
             android/instrumentation.log
+            android/background-media-transfers.log
+            android/native-media-upload-background.png
+            android/native-media-upload-background.xml
             android/photo-file-chooser.log
             android/runtime-recovery.log
             android/renderer-background-return.png

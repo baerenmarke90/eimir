@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.77
+
+- Zoom the saved-memory map and the place picker smoothly with animated zoom buttons, double tap and pinch, instead of jumping between zoom levels.
+- See a calmer, more familiar map: light land, white streets, warm yellow highways, soft green parks and pale blue water, in Light and Dark.
+- Use round zoom buttons in the bottom right corner, within thumb reach.
+- Revisit map areas faster: map tiles are fetched as compact vector data and cached by the app.
+- The map privacy notice now names the map service OpenFreeMap as the recipient of your IP address and the visible map area.
+
+The product changes come from main at ee71994eec9b49352016c6b3eb1c3b25527b02fd.
+Install over test.76 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 77.

@@ -1,0 +1,9 @@
+eimir. Android 0.2.0-test.53
+
+- People, authored tags and important dates use the same circular blue plus action.
+- People support an optional note, saved with the profile and shown after saving.
+- Relationship choices use concrete family and social labels; existing relationships remain readable and editable.
+- The complete note stays visible above Save, and shared button hover targets remain stationary after photo import.
+- Includes main ab4590db (#1694), previous test.52 functionality and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.52; increasing versionCode 53. Publication verifies exact-source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

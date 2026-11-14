@@ -43,13 +43,16 @@ from eimir.gift_ideas import models as _gift_ideas  # noqa: F401
 from eimir.heart_moments import models as _heart_moments  # noqa: F401
 from eimir.identity import models as _identity  # noqa: F401
 from eimir.jobs import models as _jobs  # noqa: F401
+from eimir.legal import models as _legal  # noqa: F401
 from eimir.memories import models as _memories  # noqa: F401
 from eimir.milestones import models as _milestones  # noqa: F401
+from eimir.once_messages import models as _once_messages  # noqa: F401
 from eimir.outbox import models as _outbox  # noqa: F401
 from eimir.people import models as _people  # noqa: F401
 from eimir.photo_sources import models as _photo_sources  # noqa: F401
 from eimir.places import models as _places  # noqa: F401
 from eimir.plans import models as _plans  # noqa: F401
+from eimir.presence import models as _presence  # noqa: F401
 from eimir.private_collections import models as _private_collections  # noqa: F401
 from eimir.private_notes import models as _private_notes  # noqa: F401
 from eimir.profiles import models as _profiles  # noqa: F401

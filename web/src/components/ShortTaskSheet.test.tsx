@@ -21,7 +21,10 @@ import {
   EDITOR_HISTORY_STATE_KEY,
   useEditorHistoryEntry,
 } from '../client/useEditorHistoryEntry';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import taskSheets from '../i18n/locales/taskSheets';
+import { DraftExitPrompt } from './DraftExitPrompt';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 function fireReactAnimationEnd(element: Element): void {
@@ -129,6 +132,96 @@ function Task({
 }
 
 describe('ShortTaskSheet history ownership', () => {
+  for (const reducedMotion of [true, false]) {
+    it(`hands a discard destination off after child and parent teardown (reduced motion: ${reducedMotion})`, async () => {
+      mockMatchMedia(reducedMotion);
+      const onDefaultExit = vi.fn();
+      const destination = vi.fn(() => {
+        expect(document.querySelector('dialog[open]')).toBeNull();
+        expect(document.body.style.overflow).not.toBe('hidden');
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeUndefined();
+      });
+      function DraftTask() {
+        const editor = useTaskEditorLifecycle({
+          isDirty: true,
+          onClose: onDefaultExit,
+        });
+        return (
+          <>
+            <input aria-label="Draft" defaultValue="A thought worth keeping" />
+            <button
+              type="button"
+              onClick={() => editor.requestClose(destination)}
+            >
+              Leave draft
+            </button>
+            <DraftExitPrompt
+              open={editor.showDiscardConfirm}
+              onKeep={editor.keepEditing}
+              onDiscard={editor.closeConfirmed}
+            />
+          </>
+        );
+      }
+      render(<DraftTask />);
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
+      );
+      const parent = window.history.state[EDITOR_HISTORY_STATE_KEY];
+      fireEvent.click(screen.getByText('Leave draft'));
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).not.toBe(parent),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: taskBoundary.discard }),
+      );
+      if (!reducedMotion) {
+        const dialog = screen.getByRole('dialog');
+        await waitFor(() =>
+          expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+        );
+        expect(destination).not.toHaveBeenCalled();
+        fireReactAnimationEnd(dialog);
+      }
+      await waitFor(() => expect(destination).toHaveBeenCalledTimes(1));
+      expect(onDefaultExit).not.toHaveBeenCalled();
+    });
+  }
+
+  it('keeps the draft and parent guard when Back dismisses its discard prompt', async () => {
+    const onExit = vi.fn();
+    function DraftTask() {
+      const editor = useTaskEditorLifecycle({ isDirty: true, onClose: onExit });
+      return (
+        <>
+          <input aria-label="Draft" defaultValue="A thought worth keeping" />
+          <DraftExitPrompt
+            open={editor.showDiscardConfirm}
+            onKeep={editor.keepEditing}
+            onDiscard={editor.closeConfirmed}
+          />
+        </>
+      );
+    }
+    render(<DraftTask />);
+    await waitFor(() =>
+      expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
+    );
+    const parent = window.history.state[EDITOR_HISTORY_STATE_KEY];
+    await back();
+    expect(screen.getByRole('dialog')).toBeDefined();
+    await back();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('textbox').getAttribute('value')).toBe(
+      'A thought worth keeping',
+    );
+    expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBe(parent);
+    expect(onExit).not.toHaveBeenCalled();
+    await back();
+    fireEvent.click(screen.getByRole('button', { name: taskBoundary.discard }));
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1));
+  });
+
   it('lets only the innermost task consume Back and preserves the parent guard', async () => {
     const onExit = vi.fn();
     const onDiscard = vi.fn();
@@ -291,6 +384,148 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
     expect(document.body.style.overflow).toBe('auto');
+  });
+
+  describe('nested native cancel ownership', () => {
+    async function openNestedSheets(guard: 'none' | 'dirty' | 'blocked') {
+      const onParentClose = vi.fn();
+      const onChildClose = vi.fn();
+      const onDiscardRequested = vi.fn();
+      const onCloseBlocked = vi.fn();
+      function NestedSheets() {
+        const [parentOpen, setParentOpen] = useState(false);
+        const [childOpen, setChildOpen] = useState(false);
+        const parentTrigger = useRef<HTMLButtonElement>(null);
+        const childTrigger = useRef<HTMLButtonElement>(null);
+        return (
+          <>
+            <button
+              ref={parentTrigger}
+              type="button"
+              onClick={() => setParentOpen(true)}
+            >
+              Open parent
+            </button>
+            <ShortTaskSheet
+              open={parentOpen}
+              title="Parent choice"
+              restoreFocusRef={parentTrigger}
+              onClose={() => {
+                onParentClose();
+                setParentOpen(false);
+              }}
+            >
+              <button
+                ref={childTrigger}
+                type="button"
+                onClick={() => setChildOpen(true)}
+              >
+                Open child
+              </button>
+              <ShortTaskSheet
+                open={childOpen}
+                title="Child choice"
+                restoreFocusRef={childTrigger}
+                isDirty={guard === 'dirty'}
+                isCloseBlocked={guard === 'blocked'}
+                onDiscardRequested={onDiscardRequested}
+                onCloseBlocked={onCloseBlocked}
+                onClose={() => {
+                  onChildClose();
+                  setChildOpen(false);
+                }}
+              >
+                <input aria-label="Child draft" defaultValue="Unsaved choice" />
+              </ShortTaskSheet>
+            </ShortTaskSheet>
+          </>
+        );
+      }
+      render(<NestedSheets />);
+      fireEvent.click(screen.getByRole('button', { name: 'Open parent' }));
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
+      );
+      const parentMarker = window.history.state[EDITOR_HISTORY_STATE_KEY];
+      const trigger = screen.getByRole('button', { name: 'Open child' });
+      trigger.focus();
+      fireEvent.click(trigger);
+      await waitFor(() =>
+        expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).not.toBe(
+          parentMarker,
+        ),
+      );
+      const parent = screen.getByRole('dialog', { name: 'Parent choice' });
+      const child = screen.getByRole('dialog', { name: 'Child choice' });
+      expect(child.parentElement).toBe(document.body);
+      expect(parent.contains(child)).toBe(false);
+      const input = screen.getByRole('textbox', { name: 'Child draft' });
+      input.focus();
+      return {
+        parent,
+        child,
+        input,
+        trigger,
+        parentMarker,
+        onParentClose,
+        onChildClose,
+        onDiscardRequested,
+        onCloseBlocked,
+      };
+    }
+
+    it('closes only the child portal and returns focus to its parent control', async () => {
+      const task = await openNestedSheets('none');
+      const cancel = new Event('cancel', { cancelable: true });
+      fireEvent(task.child, cancel);
+      expect(cancel.defaultPrevented).toBe(true);
+      await waitFor(() => expect(task.onChildClose).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('dialog', { name: 'Child choice' }),
+        ).toBeNull(),
+      );
+      expect(task.onParentClose).not.toHaveBeenCalled();
+      expect(task.onDiscardRequested).not.toHaveBeenCalled();
+      expect(task.onCloseBlocked).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog', { name: 'Parent choice' })).toBe(
+        task.parent,
+      );
+      expect(task.parent.hasAttribute('open')).toBe(true);
+      expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBe(
+        task.parentMarker,
+      );
+      await waitFor(() => expect(document.activeElement).toBe(task.trigger));
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+
+    for (const guard of ['dirty', 'blocked'] as const) {
+      it(`keeps both portals open when the child cancel is ${guard}`, async () => {
+        const task = await openNestedSheets(guard);
+        const cancel = new Event('cancel', { cancelable: true });
+        fireEvent(task.child, cancel);
+        expect(cancel.defaultPrevented).toBe(true);
+        expect(task.onChildClose).not.toHaveBeenCalled();
+        expect(task.onParentClose).not.toHaveBeenCalled();
+        expect(task.onDiscardRequested).toHaveBeenCalledTimes(
+          guard === 'dirty' ? 1 : 0,
+        );
+        expect(task.onCloseBlocked).toHaveBeenCalledTimes(
+          guard === 'blocked' ? 1 : 0,
+        );
+        expect(screen.getByRole('dialog', { name: 'Parent choice' })).toBe(
+          task.parent,
+        );
+        expect(screen.getByRole('dialog', { name: 'Child choice' })).toBe(
+          task.child,
+        );
+        expect(task.parent.hasAttribute('open')).toBe(true);
+        expect(task.child.hasAttribute('open')).toBe(true);
+        expect(task.input.getAttribute('value')).toBe('Unsaved choice');
+        expect(document.activeElement).toBe(task.input);
+        expect(document.body.style.overflow).toBe('hidden');
+      });
+    }
   });
 
   it('keeps one localized semantic dismissal control for Compact and Expanded', () => {
@@ -528,29 +763,79 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('does not claim controls or primarily horizontal gestures', () => {
+  it('lets a pull start on buttons and rows without activating them', () => {
     mockMatchMedia(false);
-    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
-    fireEvent.click(screen.getByText('Task choices'));
-
+    const onChoose = vi.fn();
+    render(
+      <ShortTaskSheet open title="Places" onClose={vi.fn()}>
+        <button type="button" onClick={onChoose}>
+          Riverside cafe
+        </button>
+      </ShortTaskSheet>,
+    );
     const dialog = screen.getByRole('dialog') as HTMLDialogElement;
-    const control = screen.getByText('Continue to result');
-    const surface = screen.getByTestId('sheet-surface');
+    const row = screen.getByText('Riverside cafe');
 
-    fireEvent.pointerDown(control, {
+    fireEvent.pointerDown(row, {
       pointerId: 21,
       button: 0,
       isPrimary: true,
       clientX: 100,
       clientY: 100,
     });
-    fireEvent.pointerMove(control, {
-      pointerId: 21,
+    fireEvent.pointerMove(row, { pointerId: 21, clientX: 102, clientY: 180 });
+    expect(dialog.getAttribute('data-dragging')).toBe('true');
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('80px');
+    fireEvent.pointerUp(row, { pointerId: 21, clientX: 102, clientY: 180 });
+    // The settled pull's synthetic click must not choose the row.
+    fireEvent.click(row, { detail: 1 });
+    expect(onChoose).not.toHaveBeenCalled();
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+
+    // A fresh ordinary press still activates the row.
+    fireEvent.pointerDown(row, {
+      pointerId: 22,
+      button: 0,
+      isPrimary: true,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerUp(row, { pointerId: 22, clientX: 100, clientY: 100 });
+    fireEvent.click(row, { detail: 1 });
+    expect(onChoose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not claim text entry or primarily horizontal gestures', () => {
+    mockMatchMedia(false);
+    render(
+      <ShortTaskSheet open title="Places" onClose={vi.fn()}>
+        <input aria-label="Search places" />
+        <div data-testid="sheet-surface">Swipe surface</div>
+      </ShortTaskSheet>,
+    );
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const field = screen.getByLabelText('Search places');
+    const surface = screen.getByTestId('sheet-surface');
+
+    fireEvent.pointerDown(field, {
+      pointerId: 23,
+      button: 0,
+      isPrimary: true,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(field, {
+      pointerId: 23,
       clientX: 102,
       clientY: 180,
     });
-    fireEvent.pointerUp(control, {
-      pointerId: 21,
+    fireEvent.pointerUp(field, {
+      pointerId: 23,
       clientX: 102,
       clientY: 180,
     });
@@ -561,19 +846,19 @@ describe('ShortTaskSheet history ownership', () => {
     ).toBe('0px');
 
     fireEvent.pointerDown(surface, {
-      pointerId: 22,
+      pointerId: 24,
       button: 0,
       isPrimary: true,
       clientX: 100,
       clientY: 100,
     });
     fireEvent.pointerMove(surface, {
-      pointerId: 22,
+      pointerId: 24,
       clientX: 180,
       clientY: 120,
     });
     fireEvent.pointerUp(surface, {
-      pointerId: 22,
+      pointerId: 24,
       clientX: 180,
       clientY: 120,
     });
@@ -583,6 +868,62 @@ describe('ShortTaskSheet history ownership', () => {
       dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
     ).toBe('0px');
   });
+
+  it.each(['pointer', 'touch'] as const)(
+    'leaves a downward %s drag on map tiles to the map',
+    (input) => {
+      mockMatchMedia(false);
+      const onClose = vi.fn();
+      render(
+        <ShortTaskSheet open title="Map" onClose={onClose}>
+          <div className="place-map-viewport">
+            <span data-testid="map-tile">Map tile</span>
+          </div>
+        </ShortTaskSheet>,
+      );
+      const dialog = screen.getByRole('dialog');
+      const tile = screen.getByTestId('map-tile');
+      if (input === 'touch') {
+        fireEvent.touchStart(tile, {
+          touches: [{ identifier: 41, clientX: 100, clientY: 100 }],
+        });
+        fireEvent.touchMove(tile, {
+          touches: [{ identifier: 41, clientX: 100, clientY: 300 }],
+        });
+      } else {
+        fireEvent.pointerDown(tile, {
+          pointerId: 41,
+          button: 0,
+          isPrimary: true,
+          clientX: 100,
+          clientY: 100,
+        });
+        fireEvent.pointerMove(tile, {
+          pointerId: 41,
+          clientX: 100,
+          clientY: 300,
+        });
+      }
+      expect(dialog.getAttribute('data-dragging')).toBeNull();
+      expect(
+        dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+      ).toBe('0px');
+      if (input === 'touch') {
+        fireEvent.touchEnd(tile, {
+          touches: [],
+          changedTouches: [{ identifier: 41, clientX: 100, clientY: 300 }],
+        });
+      } else {
+        fireEvent.pointerUp(tile, {
+          pointerId: 41,
+          clientX: 100,
+          clientY: 300,
+        });
+      }
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog')).toBe(dialog);
+    },
+  );
 
   it('keeps scroll ownership until the sheet body is at its top boundary', () => {
     mockMatchMedia(false);

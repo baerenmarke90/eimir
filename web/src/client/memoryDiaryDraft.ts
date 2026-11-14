@@ -9,7 +9,11 @@ import {
 
 /** Owner-local work, never a shared read-cache entry or an offline outbox. */
 export interface MemoryDiaryDraft {
+  planningLinks?: { id: string; title: string; kind: 'plans' | 'wishes' }[];
+  linkRecoveryMemory?: MemoryDetail;
   title: string;
+  /** Daily question key of a guided experience draft, if one was selected. */
+  experienceQuestionId?: string;
   body: string;
   tags: string[];
   tagDraft?: string;

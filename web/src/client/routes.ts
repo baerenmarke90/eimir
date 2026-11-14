@@ -231,6 +231,8 @@ export const STORY_YEAR_ROUTE_PATTERN = '/story/years/:year';
  * and Wir link to the same library. The former More addresses are rewritten.
  */
 export const STORY_RECAPS_ROUTE = '/story/recaps';
+/** Prototype: the couple's own story overview as a page of its own. */
+export const STORY_OURS_ROUTE = '/story/our-story';
 export const RECAP_DETAIL_ROUTE_PATTERN = `${STORY_RECAPS_ROUTE}/:recapId`;
 export function recapDetailPath(recapId: string): string {
   return `${STORY_RECAPS_ROUTE}/${encodeURIComponent(recapId)}`;
@@ -286,7 +288,7 @@ export const LEGACY_ROUTE_REWRITES = [
   { from: '/memory', to: '/story/memories' },
   { from: '/heart-moment', to: '/story/heart-moments' },
   { from: '/milestone', to: '/story/milestones' },
-  { from: MORE_PASSPORT_ROUTE, to: STORY_RECAPS_ROUTE },
+  { from: MORE_PASSPORT_ROUTE, to: STORY_OURS_ROUTE },
 ] as const satisfies readonly { from: string; to: string }[];
 
 /**

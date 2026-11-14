@@ -22,6 +22,7 @@ import {
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
+  STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_YEARS_ROUTE,
 } from '../client/routes';
@@ -56,6 +57,14 @@ const PRIVATE_DESTINATION: MoreDestination = {
  * index, whose quiet entry leads on to the recaps, so no route is lost.
  */
 const STORY_DESTINATIONS: readonly MoreDestination[] = [
+  // Prototype: the couple's own story overview, first in its own group.
+  {
+    path: STORY_OURS_ROUTE,
+    icon: 'story',
+    titleKey: 'relationshipReflections.passport.title',
+    subtitleKey: 'relationshipReflections.passport.intro',
+    badgeKey: 'relationshipReflections.passport.pro',
+  },
   {
     path: STORY_PHOTOS_ROUTE,
     icon: 'media',

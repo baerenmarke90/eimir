@@ -67,6 +67,7 @@ import {
   ACTIVITY_ROUTE,
   appRoutePath,
   MORE_COLLECTIONS_ROUTE,
+  STORY_OURS_ROUTE,
 } from '../client/routes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
@@ -1444,12 +1445,12 @@ export function TodayPage({
   );
   const heroBridge = partner ? (
     heroBridgeLead ? (
-      // Leaves with its origin, so Back on the relationship profile returns
-      // to Wir rather than to the Mehr hierarchy the page lives in.
+      // The heart line opens the couple's own story. It leaves with its
+      // origin, so Back returns to Wir.
       <TodayDestinationLink
-        to="/more/profile#relationship-profile-title"
+        to={STORY_OURS_ROUTE}
         className="wir-bridge"
-        ariaLabel={`${heroDurationText}. ${t('m5s5.dashboard.openRelationshipSettings')}`}
+        ariaLabel={`${heroDurationText}. ${t('relationshipReflections.passport.title')}`}
       >
         <strong className="wir-bridge-lead">{heroBridgeLead}</strong>
         {heroBridgeLine}

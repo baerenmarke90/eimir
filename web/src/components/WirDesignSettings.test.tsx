@@ -162,6 +162,7 @@ it.each([
   'quiet_together',
   'handwriting',
   'home_rooms',
+  'shared_rhythm',
 ] as const)(
   'previews %s without writing, cancels, and saves once only after confirmation',
   async (designId) => {
@@ -218,7 +219,12 @@ it.each([
   },
   15_000,
 );
-it.each(['quiet_together', 'handwriting', 'home_rooms'] as const)(
+it.each([
+  'quiet_together',
+  'handwriting',
+  'home_rooms',
+  'shared_rhythm',
+] as const)(
   'keeps saved %s after downgrade and permits the Free reset',
   async (designId) => {
     const f = fixture({ pro: false, initial: designId });
@@ -243,7 +249,12 @@ it.each(['quiet_together', 'handwriting', 'home_rooms'] as const)(
     await waitFor(() => expect(f.writes[0]?.value).toBe('warm'));
   },
 );
-it.each(['quiet_together', 'handwriting', 'home_rooms'] as const)(
+it.each([
+  'quiet_together',
+  'handwriting',
+  'home_rooms',
+  'shared_rhythm',
+] as const)(
   'offers a Pro path instead of writing when Free selects %s',
   async (designId) => {
     const f = fixture({ pro: false });

@@ -429,7 +429,7 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
 
 
 @pytest.mark.parametrize(
-    "design_id", ["shared_album", "quiet_together", "handwriting", "home_rooms"]
+    "design_id", ["shared_album", "quiet_together", "handwriting", "home_rooms", "shared_rhythm"]
 )
 def test_personal_import_maps_requester_ignores_appearance_and_is_idempotent(
     session: Session,

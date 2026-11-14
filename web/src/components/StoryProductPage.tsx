@@ -116,6 +116,7 @@ import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import './HomeRoomChapters.css';
+import './SharedRhythmAreas.css';
 import {
   formatStoryDate,
   resolveStoryKindLabel,
@@ -289,6 +290,7 @@ export function StoryProductPage({
   const { t } = useTranslation();
   const design = useWirDesign()?.current;
   const homeRooms = design === WirDesignId.home_rooms;
+  const sharedRhythm = design === WirDesignId.shared_rhythm;
   const inlineCreate =
     homeRooms ||
     design === WirDesignId.quiet_together ||
@@ -906,7 +908,11 @@ export function StoryProductPage({
         variant="root"
         className="content-overview-heading"
         title={t(
-          homeRooms ? 'wirDesign.homeRooms.remember' : 'story.timelineTitle',
+          homeRooms
+            ? 'wirDesign.homeRooms.remember'
+            : sharedRhythm
+              ? 'wirDesign.rhythm.history'
+              : 'story.timelineTitle',
         )}
         titleContext={
           homeRooms ? (

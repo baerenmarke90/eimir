@@ -272,6 +272,7 @@ export function useNavigationMotion({
   skipEntry = false,
   createEntry = false,
   returning = false,
+  enablePrimarySwipe = true,
   onNavigate,
 }: {
   surfaceRef: RefObject<HTMLElement | null>;
@@ -281,6 +282,7 @@ export function useNavigationMotion({
   createEntry?: boolean;
   /** The route change is a Back/return to where the person came from. */
   returning?: boolean;
+  enablePrimarySwipe?: boolean;
   onNavigate: (root: string) => void;
 }): void {
   const navigateRef = useRef(onNavigate);
@@ -375,7 +377,7 @@ export function useNavigationMotion({
     const index = PRIMARY_APP_ROUTES.findIndex(
       (route) => route.path === pathname,
     );
-    if (!surface || index < 0) return;
+    if (!enablePrimarySwipe || !surface || index < 0) return;
     let gesture: Gesture | null = null;
     let settle: Settle | null = null;
     let frame = 0;
@@ -610,5 +612,5 @@ export function useNavigationMotion({
       window.removeEventListener('blur', interrupt);
       window.removeEventListener('resize', interrupt);
     };
-  }, [pathname, routeKey, surfaceRef]);
+  }, [enablePrimarySwipe, pathname, routeKey, surfaceRef]);
 }

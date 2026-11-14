@@ -902,6 +902,10 @@
     },
     "wir-design-selection.spec.ts": {
       "roots": [
+        "web/src/components/SharedRhythm.tsx",
+        "web/src/components/SharedRhythm.css",
+        "web/src/components/SharedRhythmAreas.css",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/AppShell.tsx",
         "web/src/components/HomeRoomsNavigation.tsx",
         "web/src/components/HomeRoomsLanding.tsx",

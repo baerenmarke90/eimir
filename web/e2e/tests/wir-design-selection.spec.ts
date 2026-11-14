@@ -715,6 +715,41 @@ test('Zuhause keeps the room picker on details and returns from focused creation
   expect(f.unexpected).toEqual([]);
 });
 
+test('Unser Takt persists and keeps the active chapter on a detail route', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const f = await fixture(page, { initial: 'connected' });
+  await signIn(page);
+  await open(page);
+  await page
+    .getByRole('radio', { name: new RegExp(copy.names.shared_rhythm) })
+    .check();
+  await page.getByRole('button', { name: copy.save, exact: true }).click();
+  await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(f.writes).toEqual(['shared_rhythm']);
+
+  const detail = '/story/memories/mem-canal';
+  await page.goto(detail);
+  const chapterIndex = page.locator('.rhythm-index');
+  const story = chapterIndex.getByRole('link', { name: copy.rhythm.history });
+  await expect(story).toHaveAttribute('aria-current', 'location');
+  await expect(page.locator('.mobile-bottom-nav')).toHaveCount(0);
+  await captureScreenshot(page, info, 'unser-takt-detail-390-light.png');
+  await page.reload();
+  await expect(story).toHaveAttribute('aria-current', 'location');
+
+  await chapterIndex.getByRole('link', { name: 'Wir' }).click();
+  await expect(
+    page.getByRole('heading', { name: copy.rhythm.today }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`${detail}$`));
+  await expect(story).toHaveAttribute('aria-current', 'location');
+  expect(f.unexpected).toEqual([]);
+});
+
 test('Free can preview, cancel, retain a saved Pro design and reset to Geborgen', async ({
   page,
 }) => {

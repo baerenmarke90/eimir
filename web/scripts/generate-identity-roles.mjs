@@ -19,16 +19,21 @@ const roles = {
     'identity-icon-accent',
     'identity-icon-warm-fill',
     'color-private',
+    // Partner A of a shared list: the creator is rose (#1808).
+    'color-partner-a',
   ],
   accentSky: [
     'identity-icon-cool',
     'identity-icon-cool-fill',
     'color-shared-accent',
+    // Partner B of a shared list: the other person is blue (#1808).
+    'color-partner-b',
   ],
   softRose: [
     'identity-surface-warm',
     'color-brand-surface',
     'color-page-tint-brand',
+    'color-partner-a-surface',
   ],
   softBlue: [
     'identity-surface-cool',
@@ -36,6 +41,7 @@ const roles = {
     'color-surface-panel-tint',
     'color-shared-surface',
     'color-page-tint-shared',
+    'color-partner-b-surface',
   ],
   focus: ['color-focus'],
   pressed: [],

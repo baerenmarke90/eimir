@@ -29,6 +29,8 @@ const ZOOM_OFFSET = 1;
 const toMapZoom = (zoom: number) => zoom - ZOOM_OFFSET;
 const fromMapZoom = (zoom: number) => zoom + ZOOM_OFFSET;
 const MAX_ZOOM = 19;
+/** MapLibre keeps 5 by default; zoom-heavy browsing benefits from more. */
+const TILE_CACHE_ZOOM_LEVELS = 8;
 const PLACE_ZOOM = 15;
 const OVERVIEW_MAX_ZOOM = 12;
 const MARKER_KEYS = ['Enter', ' '];
@@ -239,6 +241,10 @@ export default function PlaceMapCanvas({
       center: point ? lngLat(point) : [10.45, 51.16],
       zoom: toMapZoom(restoredViewport.current?.zoom ?? (point ? 15 : 5)),
       maxZoom: toMapZoom(MAX_ZOOM),
+      // Keep more decoded zoom levels in memory so zooming in and out over the
+      // same area reuses tiles instead of reloading and re-parsing them. The
+      // network side is already cached by the service worker and the browser.
+      maxTileCacheZoomLevels: TILE_CACHE_ZOOM_LEVELS,
       // The page scrolls past an embedded map; zoom stays on buttons, double
       // tap and pinch. Rotation/tilt would need a compass the product lacks.
       scrollZoom: false,

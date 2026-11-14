@@ -485,22 +485,18 @@ exceptions.
 
 ## Freemium / entitlement behavior
 
-The demo does not use a frontend-only, unconditional, or "all Premium" bypass. Free/Core behavior
-continues to use the same entitlement model as for ordinary users.
+The entitlement service records a space-scoped `TEST_FIXTURE` grant named `canonical-demo-pro`.
+Both Lea and Alex receive the current Pro capability catalog through the same tenant-scoped
+endpoint and server-side checks as any other Pro Space. Self-Hosted filters out the Cloud-only
+storage quota. Operational prerequisites such as a configured provider or media worker, platform
+availability and each person's consent still apply. Daily Quote uses distinct personal preferences
+for both personas through the ordinary preference service.
 
-The canonical dataset records purpose-scoped normalized `TEST_FIXTURE` grants through the ordinary
-entitlement service. One grant exposes `games.couple` for Couple Games; a second exposes
-`daily.insights` and `daily.quote` for the implemented Today Pro capability boundary. The Daily
-Quote preferences are deterministic for both personas and use the same entitlement and preference
-contracts as ordinary Accounts.
-
-All fixture grants are evaluated through the same tenant-scoped entitlement endpoint and server-side
-capability checks as ordinary grants. Production forbids creating `TEST_FIXTURE` grants and excludes
-restored fixture grants from effective Production entitlement evaluation.
-
-Curated media, richer seed content, and reset behavior do not themselves change paywall,
-storage-tier, billing, or capability semantics. Future Demo Premium scenarios must continue to use
-the authoritative capability/entitlement model rather than a client-side or Demo-only bypass.
+After updating the Demo backend image, run `demo-init` to grant Pro to the existing canonical
+Space in place. The normal scheduled reset also grants Pro when it creates the next Space.
+The earlier, narrower test grants are removed with the old Space during that reset.
+Production forbids creating `TEST_FIXTURE` grants and excludes restored fixtures from its
+entitlement evaluation.
 
 ## Practical QA loop
 

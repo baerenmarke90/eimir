@@ -88,8 +88,15 @@ repository currently contains project-specific product-preview, roadmap and
 M2 handoff graphics. Their paths and provenance classification are recorded
 in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
-The product-preview files under `docs/assets/playstore/` are mockups for
-eimir., not screenshots or assets copied from a predecessor. The
+The product-preview images under `docs/assets/readme/` are real screenshots
+of the current eimir. Web client (smartphone width, Light theme), captured with
+a Playwright-driven browser against a locally running eimir. backend seeded with
+the canonical demo Space (`docs/DEMO-SPACE.md`). They contain only the fictional
+demo identities and content and the CC0 demo photographs recorded in
+`backend/demo_assets/manifest.json`; no real couple data, account data or
+third-party artwork. The earlier AI-generated mockups under
+`docs/assets/playstore/` no longer represented the product and were removed.
+They were never screenshots or assets copied from a predecessor. The
 roadmap graphics under `docs/assets/roadmap/` and the M2 SVG diagrams were
 created specifically for this repository's documentation and handoff.
 

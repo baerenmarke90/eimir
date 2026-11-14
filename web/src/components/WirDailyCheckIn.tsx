@@ -469,7 +469,9 @@ export function useWirDailyCheckIn({
 
   // Escape closes the inline panel from the panel or the own avatar; an open
   // modal sheet owns Escape first.
-  const closePanelRef = useRef<() => void>(() => undefined);
+  const closePanelRef = useRef<(restoreFocus?: boolean) => void>(
+    () => undefined,
+  );
   useEffect(() => {
     if (!panelOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -488,6 +490,30 @@ export function useWirDailyCheckIn({
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
+  }, [panelId, panelOpen]);
+
+  // A press anywhere outside the panel and its own avatar closes it, saving
+  // the open note and energy like Done does. The press still reaches its
+  // target and focus stays where the person put it. The own avatar toggles
+  // itself, and an open modal sheet or a snackbar action owns the press.
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (document.getElementById(panelId)?.contains(target)) return;
+      if (ownTriggerRef.current?.contains(target)) return;
+      // A snackbar action such as Undo belongs to the open panel's edit.
+      if (
+        target instanceof Element &&
+        target.closest('dialog[open], [role="dialog"], .snackbar')
+      )
+        return;
+      if (document.querySelector('dialog[open]')) return;
+      closePanelRef.current(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [panelId, panelOpen]);
 
   if (!active || !accountId || !api) return null;
@@ -563,11 +589,11 @@ export function useWirDailyCheckIn({
     write(writer === vibeWrite ? 'vibe' : 'energy', update);
   }
 
-  function closePanel(): void {
+  function closePanel(restoreFocus = true): void {
     commitNote();
     commitEnergy();
     setPanelOpen(false);
-    ownTriggerRef.current?.focus({ preventScroll: true });
+    if (restoreFocus) ownTriggerRef.current?.focus({ preventScroll: true });
   }
 
   closePanelRef.current = closePanel;
@@ -902,7 +928,7 @@ export function useWirDailyCheckIn({
               <button
                 type="button"
                 className="primary wir-checkin-done"
-                onClick={closePanel}
+                onClick={() => closePanel()}
               >
                 {t('wirCheckIn.done')}
               </button>

@@ -928,8 +928,10 @@ for (const outcome of ['failure', 'success'] as const) {
       'aria-pressed',
       'false',
     );
+    // The finished entry (Brot) sits in the tray after the open ones, so the
+    // revised entry is second among Äpfel, Hafermilch and Kaffee.
     await expect(
-      page.locator('[data-sortable-item-id]').nth(2),
+      page.locator('[data-sortable-item-id]').nth(1),
     ).toHaveAttribute('data-sortable-item-id', itemId);
     await expect(
       page.locator(

@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from PIL import Image
+from pydantic import SecretStr
 from sqlalchemy import select, text
 
 from eimir.auth.sessions import resolve
@@ -479,13 +480,22 @@ def test_missing_match_headers_cannot_replace_or_disconnect_link(client, session
 @pytest.fixture
 def synthetic_google(monkeypatch):
     from eimir.auth.tokens import generate_token
+    from eimir.providers.google_photos_config import GooglePhotosClient
+
+    oauth_client = GooglePhotosClient(
+        "synthetic.apps.googleusercontent.com",
+        SecretStr("synthetic-client-secret"),
+        "https://eimir.example/api/v1/photo-sources/google/callback",
+    )
+    monkeypatch.setattr(service.google_photos, "client_configuration", lambda: oauth_client)
 
     # Deliberately test the future binding behind the unchanged literal gate.
     # No production setting or test application configuration enables Google.
     monkeypatch.setattr(service, "google_import_available", lambda: True)
     states = []
 
-    def authorization():
+    def authorization(*, client):
+        assert client == oauth_client
         state = generate_token()
         states.append(state)
         return "https://accounts.google.com/synthetic", state, "synthetic-verifier"
@@ -497,6 +507,7 @@ def synthetic_google(monkeypatch):
     picker.create.return_value = {
         "id": "synthetic-picker",
         "pickerUri": "https://photos.google.com/synthetic",
+        "pollingConfig": {"pollInterval": "5s", "timeoutIn": "600s"},
     }
     monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", Mock(return_value=picker))
     return states, exchange, picker
@@ -577,7 +588,12 @@ def test_google_callback_requires_the_initiating_browser_and_consumes_once(
         assert row.status == "AUTHORIZING" and row.state_hash == hash_token(state)
         accepted = google_callback(initiating, state)
         assert accepted.status_code == 303
-        exchange.assert_called_once_with("synthetic-code", state, "synthetic-verifier")
+        exchange.assert_called_once_with(
+            "synthetic-code",
+            state,
+            "synthetic-verifier",
+            client=service.google_photos.client_configuration(),
+        )
         assert initiating.cookies.get(cookie_name(state)) is None
         session.refresh(row)
         assert row.status == "PICKING" and row.state_hash is None

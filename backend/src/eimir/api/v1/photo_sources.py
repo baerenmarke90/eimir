@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -15,6 +16,7 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.auth.tokens import generate_token
 from eimir.config import get_settings
+from eimir.core.clock import now
 from eimir.entitlements.models import Capability
 from eimir.entitlements.service import has_capability
 from eimir.photo_sources import browser_binding, service
@@ -75,6 +77,11 @@ def _view(row: PhotoSelection, authorization_url: str | None = None) -> PhotoSel
         status=row.status,
         authorization_url=authorization_url,
         picker_uri=row.payload.picker_uri,
+        poll_after_seconds=(
+            max(1, math.ceil((row.next_poll_at - now()).total_seconds()))
+            if row.status == "PICKING"
+            else 5
+        ),
         items=[PhotoSelectionItemView(id=item.id) for item in row.payload.items],
         has_more=row.payload.next_page is not None,
     )
@@ -101,7 +108,7 @@ def sources(
         google_available=(
             service.enabled()
             and service.google_import_available()
-            and bool(settings.google_photos_client_id)
+            and bool(settings.google_photos_client_id or settings.google_photos_web_client_file)
         ),
         immich_connected=linked is not None,
         immich_connection_token=service.connection_token(linked, authorization.account_id),

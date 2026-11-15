@@ -1580,32 +1580,9 @@
     "accountTitle": "My account",
     "accountName": "Display name",
     "premium": {
-      "eyebrow": "Premium",
       "title": "eimir. Pro",
-      "badge": "Pro",
-      "gamesTitle": "Games, insights and personal extras.",
-      "gamesBody": "Pro adds games, deeper insights, a saying of the day and additional personal partner actions to your shared world. Your ordinary memories, wishes, plans and Thinking of you remain independent of it.",
-      "action": "Explore Pro",
-      "detailsTitle": "One subscription for both of you",
-      "detailsBody": "One Pro subscription applies to your shared space and unlocks its included Pro features for both of you. Your existing content and free relationship features remain available independently.",
-      "features": {
-        "experiences": {
-          "title": "Games and shared experiences",
-          "body": "Play together, capture happy moments or send each other a trip through time."
-        },
-        "history": {
-          "title": "Recaps, insights and memory map",
-          "body": "Explore your story on the map, in recaps and through deeper insights into your time together."
-        },
-        "personal": {
-          "title": "Quotes and personal appearance",
-          "body": "A quote for your day, additional app icons and personal extras for your Us page."
-        },
-        "photos": {
-          "title": "Connected photo services",
-          "body": "Choose photos from your connected Immich or Google Photos too. Photos from your own devices remain free to use."
-        }
-      }
+      "rowInactive": "All Pro features and prices for both of you",
+      "rowActive": "Pro is active for both of you"
     },
     "relationshipTitle": "Your relationship",
     "relationshipIntro": "Where your story began, for anniversaries and your time together.",

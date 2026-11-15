@@ -8,34 +8,9 @@ const profiles = {
   accountTitle: 'Mein Konto',
   accountName: 'Anzeigename',
   premium: {
-    eyebrow: 'Premium',
     title: 'eimir. Pro',
-    badge: 'Pro',
-    gamesTitle: 'Spiele, Einblicke und persönliche Extras.',
-    gamesBody:
-      'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, den Spruch des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
-    action: 'Pro ansehen',
-    detailsTitle: 'Ein Zugang für euch beide',
-    detailsBody:
-      'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die enthaltenen Pro-Funktionen für euch beide frei. Eure bestehenden Inhalte und die kostenlosen Beziehungsfunktionen bleiben unabhängig davon erhalten.',
-    features: {
-      experiences: {
-        title: 'Spiele und gemeinsame Erlebnisse',
-        body: 'Spielt zusammen, haltet Glücksmomente fest oder schickt euch eine Zeitreise.',
-      },
-      history: {
-        title: 'Rückblicke, Einblicke und Erinnerungskarte',
-        body: 'Entdeckt eure Geschichte auf der Karte, in Rückblicken und mit vertiefenden Einblicken in eure gemeinsame Zeit.',
-      },
-      personal: {
-        title: 'Zitate und persönliche Gestaltung',
-        body: 'Ein Zitat für euren Tag, zusätzliche App-Symbole und persönliche Extras für eure Wir-Seite.',
-      },
-      photos: {
-        title: 'Verbundene Fotodienste',
-        body: 'Wählt auch Fotos aus eurem verbundenen Immich oder Google Fotos aus. Eure eigenen Gerätefotos bleiben kostenlos nutzbar.',
-      },
-    },
+    rowInactive: 'Alle Pro-Funktionen und Preise für euch beide',
+    rowActive: 'Pro ist für euch beide aktiv',
   },
   relationshipTitle: 'Eure Beziehung',
   relationshipIntro:

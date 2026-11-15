@@ -90,7 +90,7 @@ describe('Profile page reorganization', () => {
     const html = renderProfilePageFixture();
     expect(html).not.toContain('profile-premium-section');
     expect(html).not.toContain(profiles.premium.title);
-    expect(html).not.toContain(profiles.premium.action);
+    expect(html).not.toContain(profiles.premium.rowInactive);
   });
 
   it('keeps authored personal preferences in the profile', () => {

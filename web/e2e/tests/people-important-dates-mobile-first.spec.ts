@@ -13,10 +13,10 @@ import {
   expectOverviewActionPlacement,
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
-import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -1189,6 +1189,15 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
     path: info.outputPath('planning-occasions-plans-december-390-dark.png'),
     fullPage: true,
   });
+  // Expanded keeps the same calendar in the centered Planen column.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(
+    sheet.locator('a.occasion-plan-card', { hasText: 'Christmas market' }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: info.outputPath('planning-occasions-plans-december-1280-dark.png'),
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
 
   // Opening a Plan shows its detail; Back returns to the same month.
   await sheet

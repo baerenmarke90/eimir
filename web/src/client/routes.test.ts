@@ -47,6 +47,7 @@ import {
   STORY_RECAPS_ROUTE,
   settingsCategoryIdFromHash,
   settingsCategoryPath,
+  subpageParentPath,
   WISH_CREATE_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
   wishDetailPath,
@@ -216,9 +217,15 @@ describe('content deep links', () => {
     );
   });
 
+  it('treats Activity as a More destination for its shell Back fallback', () => {
+    expect(subpageParentPath(ACTIVITY_ROUTE)).toBe('/more');
+    expect(subpageParentPath(`${ACTIVITY_ROUTE}/`)).toBe('/more');
+    expect(subpageParentPath('/today/only-you/x')).toBe('/today');
+  });
+
   it('resolves active navigation area with corrected domain semantics', () => {
     expect(activeNavigationArea('/today')).toBe('today');
-    expect(activeNavigationArea('/today/activity')).toBe('today');
+    expect(activeNavigationArea('/today/activity')).toBe('more');
     expect(activeNavigationArea('/story')).toBe('story');
     expect(activeNavigationArea('/story/chapters')).toBe('story');
     expect(activeNavigationArea('/plan/chapters/c1')).toBe('story');

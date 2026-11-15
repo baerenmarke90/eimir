@@ -1,6 +1,5 @@
-import { TaskBackButton } from './TaskBackButton';
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { RemindersApi } from '../api/generated/apis/RemindersApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
@@ -11,8 +10,9 @@ import { normalizeClientError } from '../client/problemDetails';
 import { MORE_NOTIFICATIONS_ROUTE, wishDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { ProblemState } from './ProblemState';
 import { PageHeader } from './PageHeader';
+import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { WishOriginMark } from './WishJourney';
 import './ReminderReadPage.css';
@@ -155,7 +155,7 @@ export function ReminderReadPage({
       {back}
       <PageHeader
         title={reminder.title}
-        eyebrow={t('m5s5.reminderDetail.title')}
+        itemLabel={t('m5s5.reminderDetail.title')}
       />
       <article className="reminder-read-content">
         {reminder.originWish ? (

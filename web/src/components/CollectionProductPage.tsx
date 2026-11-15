@@ -21,20 +21,11 @@ import {
   CollectionDetailToJSON,
 } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
+import type { CollectionSuggestion } from '../api/generated/models/CollectionSuggestion';
 import {
   authorSummaryQueryKeys,
   invalidateCollectionConsumers,
 } from '../client/authorSummaryConsumers';
-import { sharedAchievementKind } from '../client/sharedAchievements';
-import {
-  knownPersonName,
-  listPeople,
-  partnerTone,
-  summarizeSharedList,
-} from '../client/sharedListSummary';
-import { visibleSuggestions } from '../client/shoppingSuggestions';
-import type { CollectionSuggestion } from '../api/generated/models/CollectionSuggestion';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
@@ -55,10 +46,19 @@ import {
 } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import { sharedAchievementKind } from '../client/sharedAchievements';
+import {
+  knownPersonName,
+  listPeople,
+  partnerTone,
+  summarizeSharedList,
+} from '../client/sharedListSummary';
 import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import { visibleSuggestions } from '../client/shoppingSuggestions';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import {
@@ -74,6 +74,7 @@ import {
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
 import { SharedCollectionItemRow } from './SharedCollectionItemRow';
+import { SharedContentSheet } from './SharedContentSheet';
 import { SharedListCartBar } from './SharedListCartBar';
 import {
   type FinishBlock,
@@ -81,7 +82,6 @@ import {
   SharedListTripEnd,
   type TripEnd,
 } from './SharedListFinish';
-import { SharedContentSheet } from './SharedContentSheet';
 import { SharedListSuggestions } from './SharedListSuggestions';
 import { SharedListSummary } from './SharedListSummary';
 import { UiState } from './UiState';
@@ -1084,6 +1084,7 @@ function CollectionProductDetail({
       {!embedded && !inSheet ? (
         <PageHeader
           className="shared-authored-heading"
+          itemLabel={t('m5s3.collection.detailEyebrow')}
           title={
             <span
               style={{

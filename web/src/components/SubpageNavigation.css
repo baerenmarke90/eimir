@@ -10,7 +10,7 @@
   padding: 0;
   margin: 0;
   border: var(--border-surface-width) solid transparent;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   color: var(--color-text);
   text-decoration: none;

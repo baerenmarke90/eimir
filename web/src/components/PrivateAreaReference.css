@@ -4,13 +4,16 @@
 }
 
 .private-area-page:has(> .private-area-reference-overview)
+  > .private-area-head
   > .private-area-context,
 body.theme-vault
   .private-area-page:has(> .private-area-reference-overview)
+  > .private-area-head
   > .private-area-context,
 :root[data-theme="dark"]
   body.theme-vault
   .private-area-page:has(> .private-area-reference-overview)
+  > .private-area-head
   > .private-area-context {
   padding: 0;
   border: 0;

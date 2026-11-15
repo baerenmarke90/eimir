@@ -1185,6 +1185,7 @@
         "web/src/components/SettingsPage.tsx",
         "web/src/components/SettingsIndex.tsx",
         "web/src/client/calendarSync.ts",
+        "web/src/client/useCalendarGoogleAppReturn.ts",
         "web/src/client/settingsNavigation.ts",
         "web/src/i18n/locales/calendarSync.ts"
       ]

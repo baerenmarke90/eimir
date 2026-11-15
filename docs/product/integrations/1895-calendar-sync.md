@@ -47,6 +47,11 @@ CalDAV needs no operator setup.
 
 The consent may finish in a different browser than the eimir. session (the
 Android app uses the system browser), so no browser-binding cookie is used.
+The start request names the return (`returnTo`: `web` same tab, `app` the
+app link `de.eimir.app://calendar/google`, `page` the localized return page
+for older app builds); every return carries only the fixed outcome. Another
+app claiming the custom scheme could at most learn that outcome: the pending
+connection still needs the signed-in person's confirmation inside eimir.
 State + PKCE bind the code to the started transaction (10 minutes, single
 use, encrypted verifier). A returned consent only creates a **pending**
 connection for the starting Account; it is listed to that Account only and
@@ -77,4 +82,4 @@ token or provider text.
 | Google Calendar API behaviour (ids, ETags, cancelled ids, rate limits, refresh, revoke) | Automated (API double) |
 | Live CalDAV server | Radicale 3.5.4: protocol check passed locally (discovery, listing, conditional create/update/delete, 412 semantics, full-URL fallback; transport shimmed for loopback). Nextcloud/Sabre, SOGo, Baïkal: **not yet verified** |
 | Live Google account with the operator's OAuth client | **Not yet verified**; requires the Google setup above |
-| Android app consent via system browser | Not verified on a device |
+| Android app consent via system browser and app return link | Not verified on a device |

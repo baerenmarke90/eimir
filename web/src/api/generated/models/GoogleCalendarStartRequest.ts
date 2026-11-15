@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface GoogleCalendarStartRequest {
     /**
-     * web: Google returns to the calendar settings in the same browser tab; page: a short return page for the system browser of the app.
+     * web: Google returns to the calendar settings in the same browser tab; app: the system browser hands the outcome back to the eimir. Android app; page: a short return page (kept for older app builds).
      * @type {GoogleCalendarStartRequestReturnToEnum}
      * @memberof GoogleCalendarStartRequest
      */
@@ -33,7 +33,8 @@ export interface GoogleCalendarStartRequest {
  */
 export const GoogleCalendarStartRequestReturnToEnum = {
     web: 'web',
-    page: 'page'
+    page: 'page',
+    app: 'app'
 } as const;
 export type GoogleCalendarStartRequestReturnToEnum = typeof GoogleCalendarStartRequestReturnToEnum[keyof typeof GoogleCalendarStartRequestReturnToEnum];
 

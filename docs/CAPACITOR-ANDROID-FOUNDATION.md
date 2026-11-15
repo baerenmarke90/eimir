@@ -128,7 +128,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ### Compatible security toolchain
 
-The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.5.2** and
+The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.6.0** and
 JDK **21**. Gradle 9.8.1 and later contain the fixes for three advisories also repaired
 in the 8.14.6 patch used before this migration:
 [worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),

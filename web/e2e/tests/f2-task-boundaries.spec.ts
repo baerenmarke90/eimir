@@ -1353,6 +1353,46 @@ test('edit header Back and Browser Back keep the selected Memory origin', async 
   expect(api.unexpected).toEqual([]);
 });
 
+test('leaving the Memory editor reuses the detail entry so Back returns to the origin (#1907)', async ({
+  page,
+}) => {
+  const api = await installProductApi(page);
+  await signIn(page);
+  const source = page.locator('.story-card-link').filter({
+    has: page.getByRole('heading', { name: firstPage[0].title, exact: true }),
+  });
+  await source.click();
+  const detailHeading = page.getByRole('heading', {
+    name: firstPage[0].title,
+    exact: true,
+  });
+  await expect(detailHeading).toBeVisible();
+  const detailIndex = await page.evaluate(() => window.history.state?.idx);
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', {
+      name: memoryProduct.editHeading,
+      exact: true,
+      level: 1,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(detailHeading).toBeVisible();
+  // The editor closed into the existing detail entry instead of a copy of it.
+  expect(await page.evaluate(() => window.history.state?.idx)).toBe(
+    detailIndex,
+  );
+  // System Back therefore leaves the detail at once instead of showing it again.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/story\?.*year=2025/);
+  await expect(source).toBeVisible();
+  expect(api.unexpected).toEqual([]);
+});
+
 test('large text and a short Compact viewport keep task actions reachable', async ({
   page,
 }, testInfo) => {

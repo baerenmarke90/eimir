@@ -1091,6 +1091,8 @@ test('People creation and dirty edit return to the originating control', async (
   await addPerson.click();
   await page.getByRole('button', { name: taskBoundary.back }).click();
   await expect(addPerson).toBeFocused();
+  const historyIndex = () => page.evaluate(() => window.history.state?.idx);
+  const listIndex = await historyIndex();
   await openPerson(page);
   await openEditor(page);
   await page
@@ -1113,6 +1115,8 @@ test('People creation and dirty edit return to the originating control', async (
   await expect(
     page.getByRole('heading', { name: LONG_PERSON_NAME, exact: true }),
   ).toBeVisible();
+  // Discarding the editor reuses the profile entry instead of stacking a copy.
+  expect(await historyIndex()).toBe(listIndex + 1);
   await expectHorizontalReflow(page);
   await capture(page, info, 'person-return-360-light');
   await page.locator('.task-back-control[data-page-back]').click();
@@ -1120,6 +1124,8 @@ test('People creation and dirty edit return to the originating control', async (
   await expect(
     page.getByRole('link', { name: new RegExp(LONG_PERSON_NAME) }),
   ).toBeFocused();
+  // Back returns to the list entry, so system Back cannot reopen the profile (#1907).
+  expect(await historyIndex()).toBe(listIndex);
   await addPerson.click();
   await page.getByLabel(people.nameLabel, { exact: true }).fill('Nora Winter');
   await page

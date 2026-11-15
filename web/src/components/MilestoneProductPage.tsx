@@ -1,4 +1,3 @@
-import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import {
   useIsMutating,
   useMutation,
@@ -13,6 +12,7 @@ import {
   MilestoneDetailToJSON,
 } from '../api/generated/models/MilestoneDetail';
 import type { MilestoneUpdate } from '../api/generated/models/MilestoneUpdate';
+import { useApiRuntime } from '../client/apiRuntimeContext';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -23,29 +23,32 @@ import {
 } from '../client/createRequestIdentity';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
+import {
+  previousEntryIs,
+  useLeaveDeletedEntries,
+  useReturnTo,
+} from '../client/historyEntries';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { loadProductWithReadCache } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { formatRelativeElapsed } from '../client/relativeElapsed';
 import {
   appRoutePath,
   milestoneDetailPath,
   milestoneEditPath,
 } from '../client/routes';
-import { formatRelativeElapsed } from '../client/relativeElapsed';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
-import { useApiRuntime } from '../client/apiRuntimeContext';
-import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
-import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { usePlanCaptureSource } from '../client/usePlanCaptureSource';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
-import { ExpandableDescription } from './ExpandableDescription';
 import {
   ComposerDateContext,
   type ComposerDateContextHandle,
 } from './ComposerDateContext';
+import { ExpandableDescription } from './ExpandableDescription';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -56,7 +59,9 @@ import {
   StoryCreatePageShell,
   StoryEditorPageShell,
 } from './StoryFormPageShell';
+import { StoryPlanningLinks } from './StoryPlanningLinks';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import './MilestoneProductPage.css';
 
@@ -108,6 +113,8 @@ export function MilestoneProductPage({
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn } = useTaskOrigin();
+  const returnTo = useReturnTo();
+  const leaveDeleted = useLeaveDeletedEntries();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const params = useParams();
@@ -268,8 +275,7 @@ export function MilestoneProductPage({
         queryClient.invalidateQueries({ queryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(milestoneDetailPath(milestone.id), {
-        replace: true,
+      returnTo(milestoneDetailPath(milestone.id), {
         state: { taskOriginKey: originKey },
       });
     },
@@ -291,7 +297,11 @@ export function MilestoneProductPage({
         milestoneId: milestone.id,
         ifMatch: String(milestone.version),
       }),
-    onDeleted: () => navigate(appRoutePath('story'), { replace: true }),
+    onDeleted: () =>
+      leaveDeleted(
+        milestoneDetailPath(milestoneId ?? ''),
+        appRoutePath('story'),
+      ),
   });
   const deleting = deleteMutation.isPending;
   const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
@@ -525,7 +535,20 @@ export function MilestoneProductPage({
                 className="button-link secondary-link"
                 to={milestoneDetailPath(milestone.id)}
                 state={{ taskOriginKey: originKey }}
-                onClick={() => setConfirmDelete(false)}
+                onClick={(event) => {
+                  setConfirmDelete(false);
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey ||
+                    !previousEntryIs(milestoneDetailPath(milestone.id))
+                  )
+                    return;
+                  event.preventDefault();
+                  void navigate(-1);
+                }}
               >
                 {t('common.cancel')}
               </Link>

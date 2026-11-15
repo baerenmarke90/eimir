@@ -531,6 +531,32 @@ for (const scenario of [
   });
 }
 
+test('system Back closes the Expanded quick-actions popover without leaving Wir (#1907)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await installMocks(page);
+  await signIn(page);
+  const popover = page.locator('.partner-quick-actions-popover');
+  await triggerLocator(page).click();
+  await expect(popover).toBeVisible();
+  const openIndex = await page.evaluate(() => window.history.state?.idx);
+  await page.goBack();
+  await expect(popover).toHaveCount(0);
+  await expect(page).toHaveURL(/\/today$/);
+  expect(await page.evaluate(() => window.history.state?.idx)).toBe(openIndex);
+  // Escape releases the entry too, so the next Back is not swallowed.
+  await triggerLocator(page).click();
+  await expect(popover).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(popover).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => Boolean(window.history.state?.__eimirEditorEntry)),
+    )
+    .toBe(false);
+});
+
 test('gesture failure survives leaving and returning; explicit retry reconciles the same request identity', async ({
   page,
 }, testInfo) => {

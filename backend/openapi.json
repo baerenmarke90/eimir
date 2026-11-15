@@ -3063,6 +3063,210 @@
         "title": "DashboardView",
         "type": "object"
       },
+      "DateIdea": {
+        "description": "One curated idea; all texts come from one locale entry.",
+        "properties": {
+          "budgetEurForTwo": {
+            "description": "Spending cap in whole EUR for two; 0 means no new spending.",
+            "title": "Budgeteurfortwo",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/DateIdeaCategory"
+          },
+          "contentLocale": {
+            "description": "Locale of all texts of this idea.",
+            "title": "Contentlocale",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "description": "Persistent editorial ID. Never a Wish or Plan ID.",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "$ref": "#/components/schemas/DateIdeaImage",
+            "description": "The idea's own image, otherwise its category image."
+          },
+          "minutes": {
+            "description": "Editorial time budget in minutes.",
+            "title": "Minutes",
+            "type": "integer"
+          },
+          "placeType": {
+            "$ref": "#/components/schemas/DateIdeaPlaceType"
+          },
+          "planTitle": {
+            "description": "Editable prefill for the Plan composer.",
+            "title": "Plantitle",
+            "type": "string"
+          },
+          "prerequisites": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Prerequisites",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "wishTitle": {
+            "description": "Editable prefill for the Wish composer.",
+            "title": "Wishtitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "placeType",
+          "minutes",
+          "budgetEurForTwo",
+          "title",
+          "description",
+          "wishTitle",
+          "planTitle",
+          "prerequisites",
+          "contentLocale",
+          "image"
+        ],
+        "title": "DateIdea",
+        "type": "object"
+      },
+      "DateIdeaCatalog": {
+        "properties": {
+          "catalogVersion": {
+            "title": "Catalogversion",
+            "type": "string"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/DateIdeaLabel"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "currency": {
+            "description": "ISO 4217 currency of all budget amounts.",
+            "title": "Currency",
+            "type": "string"
+          },
+          "ideas": {
+            "items": {
+              "$ref": "#/components/schemas/DateIdea"
+            },
+            "title": "Ideas",
+            "type": "array"
+          },
+          "locale": {
+            "description": "Resolved catalog locale for this response.",
+            "title": "Locale",
+            "type": "string"
+          },
+          "placeTypes": {
+            "items": {
+              "$ref": "#/components/schemas/DateIdeaLabel"
+            },
+            "title": "Placetypes",
+            "type": "array"
+          },
+          "totalCount": {
+            "description": "Ideas in the catalog before filtering.",
+            "title": "Totalcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "catalogVersion",
+          "locale",
+          "currency",
+          "totalCount",
+          "categories",
+          "placeTypes",
+          "ideas"
+        ],
+        "title": "DateIdeaCatalog",
+        "type": "object"
+      },
+      "DateIdeaCategory": {
+        "enum": [
+          "food_drink",
+          "creative",
+          "play",
+          "nature",
+          "culture",
+          "movement",
+          "relaxation",
+          "connection",
+          "memories",
+          "discovery"
+        ],
+        "title": "DateIdeaCategory",
+        "type": "string"
+      },
+      "DateIdeaImage": {
+        "description": "Editorial image; fetch the bytes from `getDateIdeaImage` with `id`.",
+        "properties": {
+          "alt": {
+            "description": "Alternative text in the idea's `contentLocale`.",
+            "title": "Alt",
+            "type": "string"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "width",
+          "height",
+          "alt"
+        ],
+        "title": "DateIdeaImage",
+        "type": "object"
+      },
+      "DateIdeaLabel": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "description": "Label in the response `locale`.",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "DateIdeaLabel",
+        "type": "object"
+      },
+      "DateIdeaPlaceType": {
+        "enum": [
+          "home",
+          "out"
+        ],
+        "title": "DateIdeaPlaceType",
+        "type": "string"
+      },
       "DateRepeat": {
         "description": "How often an important date recurs.\n\nDeliberately limited to two values. A full recurrence rule belongs to\nlater reminder logic; birthdays and anniversaries do not need it.",
         "enum": [
@@ -25909,6 +26113,249 @@
         "summary": "Update Dashboard Module Preference",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/date-ideas": {
+      "get": {
+        "description": "Curated ideas in editorial order; all filters combine with AND.\n\n`maxMinutes` and `maxBudget` are inclusive upper bounds; `maxBudget=0`\nselects ideas without new spending. Omitting `place` means anywhere.",
+        "operationId": "listDateIdeas",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Locale"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DateIdeaCategory"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "maxMinutes",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 60,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Maxminutes"
+            }
+          },
+          {
+            "in": "query",
+            "name": "maxBudget",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 20,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Maxbudget"
+            }
+          },
+          {
+            "in": "query",
+            "name": "place",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DateIdeaPlaceType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Place"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateIdeaCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `planning.date_inspiration`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Date Ideas",
+        "tags": [
+          "date-ideas"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}": {
+      "get": {
+        "description": "One editorial catalog image (WebP). Protected like the catalog itself.",
+        "operationId": "getDateIdeaImage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "imageId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^(eimir-date-\\d{3}|category-[a-z_]+)$",
+              "title": "Imageid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `planning.date_inspiration`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DATE_IDEA_IMAGE_NOT_FOUND` or `SPACE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Date Idea Image",
+        "tags": [
+          "date-ideas"
         ]
       }
     },

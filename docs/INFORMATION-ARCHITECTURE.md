@@ -163,12 +163,14 @@ Links. IDs are opaque, stable identifiers.
 | Planen hub | `/plan` |
 | Wishes | `/plan/wishes` |
 | Open wish | `/plan/wishes/:wishId` |
+| Discover date ideas (Pro, from Wishes) | `/plan/ideas` |
 | Plans | `/plan/plans` |
 | Open plan | `/plan/plans/:planId` |
 | Open an authorized reminder | `/plan/reminders/:reminderId` |
 | Shopping reserved for later domain | `/plan/shopping` |
 | Games hub (Spielen, entry under Mehr) | `/games` |
 | More | `/more` |
+| eimir. Pro paywall (context in `?context=`) | `/more/pro` |
 | Places (Mehr) | `/plan/places` |
 | Open place | `/plan/places/:placeId` |
 | Collections (Mehr) | `/plan/collections` |

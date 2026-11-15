@@ -13,7 +13,7 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { passportLandmarks } from '../client/relationshipPassport';
-import { MORE_PLACES_ROUTE, PRO_INFORMATION_ROUTE } from '../client/routes';
+import { MORE_PLACES_ROUTE, proPaywallPath } from '../client/routes';
 import {
   entitlementLoader,
   useSpaceCapability,
@@ -99,7 +99,7 @@ function PassportProEntry() {
       <p className="passport-support">
         {t('relationshipReflections.passport.dataRights')}
       </p>
-      <Link to={PRO_INFORMATION_ROUTE}>
+      <Link to={proPaywallPath('recaps')}>
         {t('relationshipReflections.passport.learnMore')}
       </Link>
     </div>

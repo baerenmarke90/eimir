@@ -5,7 +5,7 @@ import {
   ClientProblemError,
   clientProblemKind,
 } from '../client/problemDetails';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
 import {
   DEFAULT_WIR_DESIGN,
   isFreeWirDesign,
@@ -231,7 +231,7 @@ function Settings({
                 type="button"
                 onClick={() =>
                   sheet.current?.closeForNavigation(() =>
-                    navigate(PRO_INFORMATION_ROUTE),
+                    navigate(proPaywallPath()),
                   )
                 }
               >

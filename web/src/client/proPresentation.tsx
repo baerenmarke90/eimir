@@ -18,7 +18,12 @@ const ProPresentationContext = createContext<boolean | null>(null);
  * (`useSpaceCapability`); navigation never triggers another one. The backend
  * still authorizes capabilities and every protected action independently.
  */
-export function ProPresentationProvider({ children }: { children: ReactNode }) {
+/**
+ * The session's Space entitlement read for the active runtime. It shares the
+ * single cached query (`staleTime: Infinity`), so callers never refetch on
+ * navigation; `hasOwner` is false outside an authenticated shell.
+ */
+export function useSessionSpaceEntitlement() {
   const runtime = useApiRuntime();
   const instance = runtime?.apiBaseUrl ?? '';
   const accountId = runtime?.accountId ?? '';
@@ -41,6 +46,11 @@ export function ProPresentationProvider({ children }: { children: ReactNode }) {
     [hasOwner, instance, accessToken, spaceId],
   );
   const query = useSpaceEntitlement({ accountId, spaceId, load });
+  return { query, hasOwner, accountId, spaceId };
+}
+
+export function ProPresentationProvider({ children }: { children: ReactNode }) {
+  const { query, hasOwner, accountId, spaceId } = useSessionSpaceEntitlement();
   // Returning after a pause counts as a new start for the Pro check.
   useRecheckSpaceEntitlementOnResume({ accountId, spaceId, enabled: hasOwner });
   // Unknown/new scope never borrows another Space's tier. This controls only

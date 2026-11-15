@@ -753,6 +753,38 @@ class OptionalPhotoConfigurationTest(unittest.TestCase):
             "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET",
             exported["services"]["cloud-migrate"]["environment"],
         )
+
+    def test_calendar_settings_are_instance_expressions_and_never_runner_values(self):
+        canonical = {"services": {name: {"environment": {}} for name in channel.CLOUD_SERVICES}}
+        with patch.dict(
+            os.environ,
+            {
+                "EIMIR_CALENDAR_SYNC_ENABLED": "false",
+                "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "runner-calendar-client",
+                "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "runner-calendar-secret",
+            },
+        ):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            env = exported["services"][name]["environment"]
+            self.assertEqual(
+                env["EIMIR_CALENDAR_SYNC_ENABLED"], "${EIMIR_CALENDAR_SYNC_ENABLED:-true}"
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_CALENDAR_CLIENT_ID"],
+                "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET"],
+                "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",
+            )
+            # Cloud never admits private CalDAV targets.
+            self.assertNotIn("EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS", env)
+        self.assertNotIn("runner-calendar", json.dumps(exported))
+        self.assertNotIn(
+            "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET",
+            exported["services"]["cloud-migrate"]["environment"],
+        )
 class FCMSenderMountContractTest(unittest.TestCase):
     def setUp(self):
         channel.fcm_sender_mount.cache_clear()

@@ -196,6 +196,23 @@ Operator notes: list only addresses that the intended tester has already registe
 because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
 addresses as verified). Settings are cached per process, so a change to the list takes effect after the
 API is restarted or redeployed.
+## Optional calendar sync
+
+The generated API/worker environment retains instance-local expressions for
+`EIMIR_CALENDAR_SYNC_ENABLED` (default true), `EIMIR_GOOGLE_CALENDAR_CLIENT_ID`
+and `EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET` (both empty by default). CalDAV needs no
+operator value. Private CalDAV hosts are a Self-Hosted option and are never passed
+to this Cloud-profile channel.
+
+To offer Google Calendar, append the Google Web OAuth client values to the existing
+Arcane environment without replacing any current key, register the exact
+`${EIMIR_PUBLIC_BASE_URL}/api/v1/calendar-sync/google/callback` redirect, enable the
+Google Calendar API and add the `calendar.calendarlist.readonly` and `calendar.events`
+scopes. The Google Photos client may be reused when both redirects are registered.
+Redeploy so API and worker read the values. While the Google app is in testing,
+only listed test users can consent and Google expires their grants after seven days.
+See [calendar sync operations](product/integrations/1895-calendar-sync.md).
+
 ## Configure the selected live FCM transport
 
 The Product Owner selected FCM-only operation on 2026-11-01, superseding the

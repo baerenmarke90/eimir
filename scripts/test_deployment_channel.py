@@ -457,6 +457,11 @@ def export_compose(
         "EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS": (
             "${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}"
         ),
+        # Calendar sync (#1895): the instance supplies its Google OAuth client.
+        # Private CalDAV hosts are a Self-Hosted option and stay off on Cloud.
+        "EIMIR_CALENDAR_SYNC_ENABLED": "${EIMIR_CALENDAR_SYNC_ENABLED:-true}",
+        "EIMIR_GOOGLE_CALENDAR_CLIENT_ID": "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}",
+        "EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET": "${EIMIR_GOOGLE_CALENDAR_CLIENT_SECRET:-}",
         # The selected private target uses FCM only (PO 2026-11-01).
         "EIMIR_PUSH_VAPID_PRIVATE_KEY": "",
         "EIMIR_PUSH_VAPID_SUBJECT": "",

@@ -42,7 +42,8 @@ def schedule_is_current(session: Session, notice: Notification, account: Account
         return False
     actor = session.get(Account, notice.actor_id) if notice.actor_id else account
     zone = clock.resolve_zone(actor.timezone if actor else "UTC")
-    return notice.expires_at.astimezone(zone).date() == plan.planned_on + timedelta(days=1)
+    last_day = plan.planned_until or plan.planned_on
+    return notice.expires_at.astimezone(zone).date() == last_day + timedelta(days=1)
 
 
 def overlaps_attempted_delivery(

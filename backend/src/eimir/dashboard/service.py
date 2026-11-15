@@ -85,6 +85,7 @@ class DashboardItem:
     title_or_text: str | None = None
     occurred_on: date | None = None
     scheduled_on: date | None = None
+    scheduled_until: date | None = None
     scheduled_at: datetime | None = None
     created_at: datetime | None = None
     preview_attachment_id: UUID | None = None
@@ -759,7 +760,8 @@ def _upcoming(
         .where(
             Plan.status == PlanStatus.PLANNED.value,
             Plan.planned_on.is_not(None),
-            Plan.planned_on >= today,
+            # A running multi-day Plan stays on the agenda through its last day.
+            func.coalesce(Plan.planned_until, Plan.planned_on) >= today,
         )
         .order_by(Plan.planned_on, Plan.id)
         .limit(SECTION_LIMIT)
@@ -774,6 +776,7 @@ def _upcoming(
                 title_or_text=_bounded(discreet.list_title(plan)),
                 concealed=plan.discreet,
                 scheduled_on=plan.planned_on,
+                scheduled_until=plan.planned_until,
             )
         )
 

@@ -36,6 +36,7 @@ import {
   useDevicePush,
 } from './client/devicePush';
 import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import { useHistoryEntryTracker } from './client/historyEntries';
 import {
   ActiveAccountMismatchError,
   revokeUnacceptedSession,
@@ -65,6 +66,7 @@ import {
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_CREATE_ROUTE,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  DATE_IDEAS_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
@@ -95,6 +97,7 @@ import {
   PLACE_DETAIL_ROUTE_PATTERN,
   PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
+  PRO_PAYWALL_ROUTE,
   RECAP_DETAIL_ROUTE_PATTERN,
   REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
@@ -149,6 +152,7 @@ import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
 import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
+import { DateIdeasPage } from './components/DateIdeasPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
@@ -184,6 +188,7 @@ import {
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
+import { ProPaywallPage } from './components/ProPaywallPage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
 import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
@@ -604,6 +609,7 @@ function AuthenticatedApp({
         account={account}
         spaceId={spaceId}
         serverAdmin={serverAdmin}
+        openNotification={devicePush.openNotification}
         primaryTabs={
           <PrimaryTabPanels
             panels={primaryTabPanels}
@@ -689,6 +695,11 @@ function AuthenticatedApp({
               path={WISH_SELECTION_ROUTE}
               element={<WishSelectionPage {...planningProductProps} />}
             />
+            <Route
+              path={DATE_IDEAS_ROUTE}
+              element={<DateIdeasPage {...planningProductProps} />}
+            />
+            <Route path={PRO_PAYWALL_ROUTE} element={<ProPaywallPage />} />
             <Route
               path={WISH_CREATE_ROUTE}
               element={
@@ -1167,6 +1178,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const config = useMemo(loadReferenceClientConfig, []);
   const location = useLocation();
   const navigate = useNavigate();
+  useHistoryEntryTracker();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);

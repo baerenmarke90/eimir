@@ -130,6 +130,7 @@ describe('settings category routes', () => {
       memories: '/more/settings/memories',
       appearance: '/more/settings/appearance',
       media: '/more/settings/media',
+      calendar: '/more/settings/calendar',
       data: '/more/settings/data',
       account: '/more/settings/account',
       updates: '/more/settings/updates',

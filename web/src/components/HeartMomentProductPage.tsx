@@ -7,15 +7,15 @@ import {
 } from '@tanstack/react-query';
 import {
   type FormEvent,
-  type Ref,
   type ReactNode,
+  type Ref,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
@@ -38,6 +38,7 @@ import {
 } from '../client/createRequestIdentity';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
+import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
@@ -71,15 +72,15 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
-import { ContextTagList } from './ContextTagList';
 import {
   ComposerDateContext,
   type ComposerDateContextHandle,
 } from './ComposerDateContext';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { ContextTagList } from './ContextTagList';
 import { DraftExitPrompt } from './DraftExitPrompt';
-import { ExpandableDescription } from './ExpandableDescription';
 import { EimirIcon } from './EimirIcon';
+import { ExpandableDescription } from './ExpandableDescription';
 import {
   HeartEmotionBadge,
   HeartEmotionPicker,
@@ -101,25 +102,25 @@ import {
   type MomentPlaceSelection,
 } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
-import { PageHeader } from './PageHeader';
 import { ComposerTool, ComposerToolRow } from './PageComposer';
-import { ShortTaskSheet } from './ShortTaskSheet';
+import { PageHeader } from './PageHeader';
 import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { ProblemState } from './ProblemState';
 import { SavedVoiceNote } from './SavedVoiceNote';
+import { ShortTaskSheet } from './ShortTaskSheet';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import {
   ComposerHeader,
   StoryCreatePageShell,
   StoryEditorPageShell,
 } from './StoryFormPageShell';
 import {
-  StoryPlanningLinks,
-  StoryPlanningDraftLinks,
   linkDraftPlanningTargets,
+  StoryPlanningDraftLinks,
+  StoryPlanningLinks,
   type StoryPlanningTarget,
 } from './StoryPlanningLinks';
 import { storyAuthorLabel } from './storyPresentation';
-import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { UiState } from './UiState';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
@@ -211,6 +212,8 @@ export function HeartMomentProductPage({
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn } = useTaskOrigin();
+  const returnTo = useReturnTo();
+  const leaveDeleted = useLeaveDeletedEntries();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const params = useParams();
@@ -701,9 +704,9 @@ export function HeartMomentProductPage({
       ]);
       if (!request.isCurrent()) return;
       editorLifecycle.closeConfirmed(() =>
-        navigate(heartMomentDetailPath(heartMoment.id), {
-          replace: true,
-          state: { taskOriginKey: originKey, saved: true },
+        returnTo(heartMomentDetailPath(heartMoment.id), {
+          state: { taskOriginKey: originKey },
+          restoredState: { saved: true },
         }),
       );
     },
@@ -814,7 +817,13 @@ export function HeartMomentProductPage({
         heartMomentId: heartMoment.id,
         ifMatch: String(heartMoment.version),
       }),
-    onDeleted: () => navigate(appRoutePath('story'), { replace: true }),
+    onDeleted: () =>
+      editorLifecycle.closeConfirmed(() =>
+        leaveDeleted(
+          heartMomentDetailPath(heartMomentId ?? ''),
+          appRoutePath('story'),
+        ),
+      ),
   });
   const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
     deleteMutation;
@@ -846,8 +855,7 @@ export function HeartMomentProductPage({
           });
         else requestReturn(originKey);
       } else if (heartMomentId)
-        navigate(heartMomentDetailPath(heartMomentId), {
-          replace: true,
+        returnTo(heartMomentDetailPath(heartMomentId), {
           state: { taskOriginKey: originKey },
         });
     },

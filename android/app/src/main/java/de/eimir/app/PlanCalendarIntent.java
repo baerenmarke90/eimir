@@ -20,8 +20,9 @@ final class PlanCalendarIntent {
         long start = timestamp(data.opt("startTime"));
         Long end = data.has("endTime") ? timestamp(data.opt("endTime")) : null;
         if (end != null && end <= start) throw invalid();
-        // DATE values use UTC midnight and an exclusive next-day end.
-        if (allDay && (start % DAY != 0 || end == null || end != start + DAY))
+        // DATE values use UTC midnight and an exclusive end after the last day;
+        // a multi-day Plan (#1895) spans whole days only.
+        if (allDay && (start % DAY != 0 || end == null || (end - start) % DAY != 0))
             throw invalid();
         Intent intent = new Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI)
                 .putExtra(CalendarContract.Events.TITLE, title)

@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "catalogFile": "eimir-date-ideas.v1.json",
+  "catalogVersion": "1.0.0",
+  "source": {
+    "type": "ai-generated",
+    "tool": "OpenAI ImageGen",
+    "mode": "built-in",
+    "referenceImages": []
+  },
+  "lookupOrder": [
+    "ideaId",
+    "category"
+  ],
+  "imagesByIdeaId": {
+    "eimir-date-001": {
+      "file": "images/eimir-date-001.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Drei Snacks und zwei Teller auf einer Decke im Wohnzimmer.",
+        "en": "Three snacks and two plates on a blanket in a living room."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: In a compact apartment living room, photograph a floor picnic from just above seated eye level. A rust-colored cotton blanket holds two mismatched china plates and three modest snacks: grapes, crackers and apple wedges. Two adults in socks sit cross-legged on opposite sides, partly cropped naturally at the shoulders. Window daylight from one side, crease lines in the blanket and a lived-in sofa behind them. Nothing luxury or styled symmetrically."
+    },
+    "eimir-date-002": {
+      "file": "images/eimir-date-002.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Eine Person probiert mit geschlossenen Augen, vor ihr stehen vier kleine Schälchen.",
+        "en": "One person tastes with their eyes closed beside four small bowls."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: At a small kitchen table in late morning, an adult with close-cropped hair closes their eyes as they taste a bite with a teaspoon held naturally in their own hand. Their amused partner sits opposite, softly out of focus and resting their hands on the table. Exactly four plain small bowls of familiar bite-sized snacks in the center foreground. Eye-level medium close-up, natural window light, believable fingers and spoon geometry, no blindfold."
+    },
+    "eimir-date-003": {
+      "file": "images/eimir-date-003.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen bereiten gemeinsam Gemüse in einer kleinen Küche zu.",
+        "en": "Two people prepare vegetables together in a small kitchen."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Two adults cooking together in a small, practical apartment kitchen. One is cutting a bell pepper on a scratched board, holding it with tucked fingers. The other gently stirs a skillet of vegetables with a wooden utensil on the stove. Side-on from the doorway, medium framing with clear separate bodies and tasks, a folded recipe sheet turned away from camera. Ordinary pots, muted winter daylight, no prominent appliances, no excessive steam."
+    },
+    "eimir-date-011": {
+      "file": "images/eimir-date-011.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen unterhalten sich bei zwei Tassen Kaffee am Caféfenster.",
+        "en": "Two people talk over two coffees by a café window."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Capture an unguarded conversation at a little street café table for two, from a neighboring table at seated height. A woman in her forties with short graying dark hair listens to her partner, both profiles partly visible. Their two ordinary ceramic cups and saucers are clearly visible near the center. Overcast daylight through a rain-marked window, authentic muted coffee shop, no phone or laptop visible. Quiet smiles, everyday clothes, 50 mm documentary feel."
+    },
+    "eimir-date-031": {
+      "file": "images/eimir-date-031.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen fotografieren wiederkehrende rote Formen in einer ruhigen Straße.",
+        "en": "Two people photograph repeating red shapes on a quiet street."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: On a quiet neighborhood pavement with rusty-red brick and two arched openings, two adults notice the repeated arches as one raises a plain smartphone to take a picture. Show the phone from its back at a believable distance and angle so the viewer sees the same arch being framed. The other adult looks toward a second red detail, not at the photographer. Side-on at shoulder height, muted brick reds, a grey afternoon, a simple cotton jacket and a faded denim sleeve. The photo should feel like someone documenting the photo walk as it happens."
+    },
+    "eimir-date-071": {
+      "file": "images/eimir-date-071.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen sitzen am Wasser und sehen der untergehenden Sonne zu.",
+        "en": "Two people sit by the water and watch the sun set."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Photograph from the side of a public lakeside path just before dusk. Two adults in distinct muted mustard and slate outer layers sit close on a broad, low brick seat wall by a lake, in soft profile looking toward a low sun. Frame the gentle sunset reflection on the choppy lake behind them and a few grasses near the camera; both figures and the setting sun remain in the middle portion of the picture. A believable pale amber rim falls on faces and worn jacket fabric, rest of sky soft with faint clouds. The lake looks ordinary and local, no lens flare, painted effects, large sun, or poster-like silhouette."
+    },
+    "eimir-date-072": {
+      "file": "images/eimir-date-072.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen blicken von einem dunklen Wiesenrand in den Sternenhimmel.",
+        "en": "Two people look up at the stars from the edge of a dark field."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A believable late-evening outdoor exposure from behind two bundled adults sitting on a low wooden bench at a dark field edge outside town. Frame a few dozen small, sparse, sharp stars against an indigo night sky and hints of treetops, with the two heads and shoulders clearly readable as natural silhouettes in the lower center. Their eyes are dark-adapted and no lights or devices show. A faint residual glow near the horizon only. No Milky Way spectacle, oversized stars, dramatic clouds or impossible exposure."
+    },
+    "eimir-date-081": {
+      "file": "images/eimir-date-081.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen wählen aus Plattenhüllen ein Lied für ihre gemeinsame Auswahl.",
+        "en": "Two people pick a song from record sleeves for their shared selection."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: At a low record cabinet in a real apartment with a faded blue wall, a Black woman with salt-and-pepper cropped natural hair and a South Asian woman with a wavy gray bob choose music together. One is standing, holding a thin record sleeve with two fingers along its lower edge, glancing sideways at the other, who sits comfortably near the plain working turntable and has just turned to respond. A short stack of paper sleeves with worn edges and abstract artwork near the player, no readable titles. Slightly wider reportage crop from an adjacent doorway, quiet rainy-day daylight, unstyled home, natural facial lines, no eye contact with the camera."
+    },
+    "eimir-date-091": {
+      "file": "images/eimir-date-091.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen zeigen sich die ersten Seiten ausgesuchter Bücher in einem Buchladen.",
+        "en": "Two people show each other chosen books in a bookshop."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A candid standing portrait of two adults in a small independent bookshop aisle. One, in a plum cardigan, has opened a paperback about one-third of the way at chest height and tilts it slightly toward their partner, who leans in to read with an unforced smile. Shelves fill the middle distance, with softly defocused spines and no legible titles. Modest window light blends with existing shop light. No staged eye contact, brand marks, at most one open book in hands so the anatomy is simple."
+    },
+    "eimir-date-092": {
+      "file": "images/eimir-date-092.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen suchen ein kleines Detail in einem Wandbild.",
+        "en": "Two people look for a small detail in a mural."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: On a pedestrian side street, two adults in everyday outerwear stand an arm's length from a painted stucco wall. They study a small pale yellow shape among half-faded blue and rust abstract shapes. One points to the detail with a single relaxed gesture, the other leans closer. Photograph in soft afternoon light from a slight side angle; crop the original fictional mural to a section, include brush-edge texture and little chips in the plaster. No graffiti lettering or signature."
+    },
+    "eimir-date-101": {
+      "file": "images/eimir-date-101.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen tanzen ungezwungen im Wohnzimmer.",
+        "en": "Two people dance casually in their living room."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Two adult men with different builds dance facing each other in socks in a small ordinary living room, with clear space between them and no contact. One shifts his weight mid-step, the other is just laughing and lifting a relaxed forearm, elbows natural. Framed from head to feet with the action inside the middle, faded striped top, scuffed oak floor, bookcase and a sofa pushed back. A bright diffuse window, gentle real motion only in one sock, modest joyful energy, no dance performance or synchronized choreography."
+    },
+    "eimir-date-121": {
+      "file": "images/eimir-date-121.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen machen zuhause ein Fußbad in schlichten Schüsseln.",
+        "en": "Two people take a foot soak at home in simple basins."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A low, natural side view at floor level of a modest home foot soak. Two adults sit side by side on two plain wooden seats with trouser cuffs rolled up, each person's feet resting in a separate wide, sturdy blue or cream enamel basin. Keep the toes mostly submerged and naturally softened by water reflection rather than facing the camera. Two dry terrycloth towels on the chair arms. Soft diffuse daylight from a left window and a slightly worn tile floor; no flowers, candles, excessive steam or spa styling. Leave roomy space around the two basins for a card crop."
+    },
+    "eimir-date-141": {
+      "file": "images/eimir-date-141.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen schreiben zusammen eine Postkarte am Küchentisch.",
+        "en": "Two people write a postcard together at the kitchen table."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: An intimate shoulder-level view looking down on a small kitchen table in slanting neutral daylight. Two adults sit alongside each other, one writing on a single landscape postcard with a plain ballpoint pen, the other gently leaning close to follow along with their hands relaxed, not touching the pen. You can see the margin, the shape of the card and a few out-of-focus handwritten marks, not readable text. One worn cotton sleeve and one rolled chambray cuff, a slight coffee ring on the wood. Focus on the card and real hand posture, no stylized fountain pen, vintage staging or crowded props."
+    },
+    "eimir-date-161": {
+      "file": "images/eimir-date-161.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen lachen an einem Tisch mit einer alten Aufnahme und zwei Gläsern.",
+        "en": "Two people laugh at a table with an old photograph and two glasses."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: At home, an adult Black woman with neat short twists and her adult partner with a gray-streaked bob are trying to recreate the slightly awkward way they sat on their first date. Capture the moment they break into a warm laugh across a small plain table, from a side-on seated angle. Between them are two short glasses of orange soda and one small, gently worn snapshot on the table with indistinct figures, never prominent enough to analyze faces. A wall painted warm gray, ordinary painted wooden chairs, subtle evening window light falling off naturally. Honest facial texture, physically relaxed hands, ordinary outfits with distinct colors."
+    },
+    "eimir-date-191": {
+      "file": "images/eimir-date-191.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen entdecken ein Detail an einem alten Eingang auf einem kleinen Stadtplatz.",
+        "en": "Two people notice a detail on an old doorway on a small town square."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A small, lived-in Central European town square without a famous landmark, with unassuming stucco façades, a water-worn stone threshold and a faded teal door in a recessed archway. Two adults, seen three-quarter from behind at mid-distance, slow down near the door as one turns to show the other a detail on the frame. Include the back of a modest directional arrow farther down the square. Dry late-afternoon light with shade along half the pavement; distinct observational travel snapshot. No tourist props, readable signs, crowds or entrance into private space."
+    }
+  },
+  "imagesByCategory": {
+    "connection": {
+      "file": "images/category-connection.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen sitzen Schulter an Schulter und lächeln sich an.",
+        "en": "Two people sit shoulder to shoulder and smile at each other."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Candid close medium shot of two adult partners seated shoulder to shoulder on a simple balcony step in early evening. A dark-skinned woman with natural close soft coils wearing a muted copper shirt turns to share an understated smile with a lightly freckled woman wearing a well-worn indigo jacket. The two faces are framed together in side profile near the center, gazes directed to one another. Hands are naturally out of frame on their laps. Dull blue early evening with a little warm light spilling from the apartment, ordinary balcony plaster and railing blurred in the near background, no flowers or props, quiet warmth."
+    },
+    "creative": {
+      "file": "images/category-creative.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen arbeiten mit Papierresten und Farbe an einem gemeinsamen Muster.",
+        "en": "Two people make a pattern together with scraps of paper and paint."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A slightly off-center overhead editorial photo of two adults collaborating on a simple block-printed pattern, on a practical kitchen oilcloth with faded blue checks. On an unbleached sheet are a few uneven hand-stamped cobalt and muted brick red marks and several plain scraps of paper. One natural adult hand places down a small rectangular homemade stamp, the other is just holding the edge of the paper with a thumb. Use authentic dry paper texture, worn wood, tiny irregularities in pigment, broad afternoon window light. Keep it recognizably improvised and attainable, with only the materials actually being used."
+    },
+    "culture": {
+      "file": "images/category-culture.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Menschen sehen sich Keramik in einer kleinen Ausstellung an.",
+        "en": "Two people look at ceramics in a small exhibition."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A small municipal gallery with quiet, gently worn wood floors and limewashed walls. Two adult visitors of different ages pause side by side in a sunlit room, viewing an original, modest group of ceramics on a low pedestal. Three distinct plausible hand-thrown objects: a green glazed vase, a small matte footed bowl, and a taller unglazed pitcher. Seen from a middle-distance side angle, one person has a canvas tote and the other a camel jacket. Soft slanting light, ordinary local exhibition, no recognizable art, no signage or text, and people and ceramics readable together."
+    },
+    "discovery": {
+      "file": "images/category-discovery.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Menschen entdecken von einer Terrasse aus den Blick über die Dächer.",
+        "en": "Two people discover the view across the rooftops from a terrace."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A documentary photo from the side at a modest public rooftop terrace overlooking familiar small-town slate and red tile roofs. Two adults with different silhouettes, one wearing a muted maroon jacket, pause near the safe chest-high railing, both looking out across the ordinary roofs with quiet curiosity. One keeps their forearm relaxed on the top rail, the other has their hands in pockets. The terrace is paved and level, with a low old wall and a glimpse of a public stair. Clear afternoon after a shower, honest perspective, subtle reflected light, no epic city panorama, signage or famous landmark."
+    },
+    "food_drink": {
+      "file": "images/category-food_drink.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Hände reichen einen Teller mit Brot und buntem Gemüse weiter.",
+        "en": "Two hands pass a plate with bread and colorful vegetables."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Documentary overhead view of an everyday meal for two on a faded sage-green table. Two unmatching plain plates with rustic bread, sliced ripe tomato, thin radishes and a small portion of spread. One person's hand sets down one plate from the top of the frame, and the other adult's hand reaches from the opposite side to receive it without any hands directly overlapping. Daylight, visible bread crumbs, imperfect cuts, plain linen napkin with a fold. Food looks edible and simply prepared. Tight crop, enough separation from the floor picnic photographs."
+    },
+    "memories": {
+      "file": "images/category-memories.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen schauen sich Fotoabzüge aus einer Schachtel an.",
+        "en": "Two people look at photo prints from a box."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A close three-quarter overhead snapshot of two adults reminiscing over a small slightly worn shoebox of real-looking photo prints. One hand rests alongside the box and one fingers the white margin of a small print of an unremarkable trip to a lakeside bus stop. Two loose prints of other everyday places, e.g. a windswept beach or a balcony, lie slightly askew on loosely folded indigo cotton. Analog print gloss is subtle, edges catch soft daylight from an open balcony door. Keep the photos landscape-only with no writing, personal identifiers, duplicated imagery, faces, or intentionally antique effects."
+    },
+    "movement": {
+      "file": "images/category-movement.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen gehen eine breite Außentreppe hinauf.",
+        "en": "Two people walk up a broad outdoor staircase."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Photograph an easy movement break from the side at nearly waist height: two adult partners are walking up a short public set of wide, low, worn stone steps together. One is a petite middle-aged East Asian woman in a red windbreaker and plain trainers; the other is a heavier bearded adult in a worn teal sweatshirt and walking shoes. They are a half-step apart, lifting their own weight in physically plausible stages of a step, no effort pose. A plain central handrail and a glimpse of a neighborhood sports ground beyond, muted morning light, gentle motion and no artificial blur."
+    },
+    "nature": {
+      "file": "images/category-nature.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen gehen an einem schmalen Bach entlang.",
+        "en": "Two people walk alongside a narrow stream."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Wide documentary photograph of two adults in light practical jackets pausing on a flat gravel path beside a small stream. Seen from behind at a comfortable distance, placed together near the middle of the scene. Alder leaves, exposed roots on the far bank, soft cloudy daylight, visible calm water, no spectacle and no grand mountains. An accessible-looking ordinary public green space close to town."
+    },
+    "play": {
+      "file": "images/category-play.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Personen bauen am Tisch einen Turm aus Holzklötzen.",
+        "en": "Two people build a tower of wooden blocks at a table."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A casual after-lunch tabletop game at a modest kitchen table, seen at table height from one end. Near the center, a small tower of simple unmarked rectangular unfinished wooden blocks stands with a very slight lean, each block on solid support. An adult carefully lowers one matching light block onto the top with a natural pinch grip from the side. Their partner's amused face is softly visible beyond the tower, focused on the move. Two loose blocks lie flat on the table, with real grain, wear and varied spacing. Soft afternoon daylight, close enough to understand the activity immediately, no print, numbers, recognizable brand or over-staged symmetry."
+    },
+    "relaxation": {
+      "file": "images/category-relaxation.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Zwei Menschen sitzen entspannt nebeneinander am offenen Fenster.",
+        "en": "Two people sit quietly beside each other by an open window."
+      },
+      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: Two adults in separate well-used armchairs next to an ajar apartment window. One is a grey-haired man in a faded red cotton sweater leaning back with eyes closed, hands loosely resting on his thighs. His older partner with dark brown skin and short curls sits quietly angled toward the open window, with one plain wool throw folded over their knees. Capture the moment from the corner of the room, calm, soft natural overcast light, subtle goosebumps and fabric detail, matte green-grey old plaster, gently out-of-focus foliage in the distance. It feels like a short breather at home, without candles, books, mugs or spa styling."
+    }
+  }
+}

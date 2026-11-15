@@ -435,10 +435,20 @@
       "baselineTests": 11,
       "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow. Saved Wir content and module choices appear during background refresh only after current membership authorization."
     },
+    "date-inspiration.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Pro date inspiration and shared Pro paywall (#1892): Free hint without catalog read and deliberate context paywall with return, editorial catalog filters, adoption only through the existing Wish/Plan composers and Wish-to-Plan conversion, active Pro, retry, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
+    },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Explicit private favorites, authorized shared/zero-match/solo results, canonical Plan conversion and return, offline no-replay and Compact/Expanded theme/reflow acceptance for #1535."
+    },
+    "wish-selection-date-ideas.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Pro date ideas as typed candidates of the one shared selection (#465 within #1535): Free Wish-only round with the calm Pro hint and no catalog read, combined Wish/idea round, private choice and deliberate publication, common idea planned only through the existing composer with return, downgrade pause with a Wish-only replacement, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
     },
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -583,6 +593,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 41,
       "reason": "Feature-owned acceptance for the shopping list (#1808): changes made offline are kept on the device, shown as waiting, sent once with the same request identity when the connection is back, survive a reload, and the waiting state is readable, accessible and bounded at 360/390/430px (Light, plus Dark at 390), in the Expanded 1280px view and at 320px with text enlarged to 200%. Step C1 adds the list composition (count, two-tone bar, partner markers, tray, optional quantity) at the same widths and themes with axe, quantity entry with a ready input, and the partner's change reaching an open list without a reload. Step C2 adds the cart bar that opens the cart as a sheet with put-back, the entry sheet with quantity, and creating a shopping list from the overview. Step D2 adds the list opening from its Wir tile as a tall sheet with the cart bar at its bottom edge. Step E2 adds suggestions from earlier trips (one tap to add, removal, the privacy note), Einkauf fertig with its end state and the shared moment, and its wait for a connection. Step F adds the suggestions, cart and finish action at Dark 390, 360, 430, Expanded and 320px with text enlarged, and the glide of a checked entry with its reduced-motion behavior. Step G adds the short way to a first shopping list on the lists overview: the card at 390, 360 dark and Expanded with axe, creating and opening the default list with one tap, and the card staying away once a shopping list exists. Step H adds the people discs next to the count at 390 and Expanded with axe, and the flight of a checked entry into the cart at 390, 360 dark and Expanded, including the first entry of a trip and reduced motion without a flying copy. No always-run expansion."
+    },
+    "settings-calendar-sync.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7,
+      "reason": "Feature-owned acceptance for Settings > Kalender verbinden (#1895): CalDAV connect, Google consent with explicit account confirmation, calendar choice with read-only calendars disabled, exact If-Match on the shared target, partner view without credentials, conflict resolution, pause/resume, calm Free explanation, rejected credentials, accessibility and Compact/Expanded Light/Dark composition. Not a cross-surface contract, so it stays out of the always-run core."
     },
     "settings-google-account.spec.ts": {
       "disposition": "FULL_REGRESSION",

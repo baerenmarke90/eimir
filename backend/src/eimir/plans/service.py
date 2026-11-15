@@ -105,6 +105,10 @@ class WishToPlanResult:
     created: bool
 
 
+PlanScheduleValues = tuple[date | None, datetime | None, datetime | None, date | None]
+"""``(planned_on, planned_start, planned_end, planned_until)`` of one schedule."""
+
+
 @dataclass(frozen=True)
 class PlanCreateResult:
     plan: Plan
@@ -199,9 +203,9 @@ def _schedule_deadline(session: Session, plan: Plan, actor_id: UUID) -> datetime
         return clock.ensure_utc(plan.planned_start)
     if plan.planned_on is not None:
         actor = session.get(Account, actor_id)
-        # Date-only Plans remain relevant for their whole local calendar day.
+        # Date-only Plans remain relevant through their last local calendar day.
         return clock.resolve_local(
-            plan.planned_on + timedelta(days=1),
+            (plan.planned_until or plan.planned_on) + timedelta(days=1),
             time.min,
             clock.resolve_zone(actor.timezone if actor else "UTC"),
         )
@@ -277,6 +281,7 @@ def _validate_schedule(
     planned_on: date | None,
     planned_start: datetime | None,
     planned_end: datetime | None,
+    planned_until: date | None = None,
 ) -> None:
     if planned_on is None and planned_start is None:
         raise ValidationError(
@@ -303,16 +308,32 @@ def _validate_schedule(
             "A plan cannot end before it starts.",
             PLAN_DATE_RANGE_INVALID,
         )
+    if planned_until is not None and planned_on is None:
+        raise ValidationError(
+            "A last calendar day requires a date-only plan.",
+            PLAN_SCHEDULE_CONFLICT,
+        )
+    if planned_until is not None and planned_on is not None and planned_until < planned_on:
+        raise ValidationError(
+            "A plan cannot end before it starts.",
+            PLAN_DATE_RANGE_INVALID,
+        )
 
 
 def _initial_schedule_status(
     planned_on: date | None,
     planned_start: datetime | None,
     planned_end: datetime | None,
+    planned_until: date | None = None,
 ) -> PlanStatus:
-    if planned_on is None and planned_start is None and planned_end is None:
+    if (
+        planned_on is None
+        and planned_start is None
+        and planned_end is None
+        and planned_until is None
+    ):
         return PlanStatus.IDEA
-    _validate_schedule(planned_on, planned_start, planned_end)
+    _validate_schedule(planned_on, planned_start, planned_end, planned_until)
     return PlanStatus.PLANNED
 
 
@@ -342,6 +363,7 @@ def create_plan(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    planned_until: date | None = None,
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
@@ -350,7 +372,7 @@ def create_plan(
     tags: list[str] | None = None,
 ) -> Plan:
     """Create a direct unscheduled, date-only, or timed Plan atomically."""
-    status = _initial_schedule_status(planned_on, planned_start, planned_end)
+    status = _initial_schedule_status(planned_on, planned_start, planned_end, planned_until)
     plan = Plan(
         space_id=context.space_id,
         owner_id=context.account_id,
@@ -361,6 +383,7 @@ def create_plan(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        planned_until=planned_until,
         payload=PlanPayload(
             title=_normalize_title(title), description=description, tags=tags or []
         ),
@@ -393,6 +416,7 @@ def create_plan_once(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    planned_until: date | None = None,
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
@@ -418,6 +442,7 @@ def create_plan_once(
             planned_on=planned_on,
             planned_start=planned_start,
             planned_end=planned_end,
+            planned_until=planned_until,
             cover_attachment_id=cover_attachment_id,
             cover_is_sensitive=cover_is_sensitive,
             photos=photos,
@@ -460,6 +485,8 @@ def create_plan_once(
             "planned_on": planned_on.isoformat() if planned_on else None,
             "planned_start": planned_start.isoformat() if planned_start else None,
             "planned_end": planned_end.isoformat() if planned_end else None,
+            # Absent for single-day Plans so receipts claimed before #1895 still replay.
+            **({"planned_until": planned_until.isoformat()} if planned_until else {}),
         },
     )
     receipt_id = create_receipts.claim(
@@ -494,6 +521,7 @@ def create_plan_once(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        planned_until=planned_until,
         cover_attachment_id=cover_attachment_id,
         cover_is_sensitive=cover_is_sensitive,
         photos=photos,
@@ -575,7 +603,7 @@ def update_plan(
     add_file_attachment_ids: list[UUID] | None = None,
     remove_file_attachment_ids: list[UUID] | None = None,
     selected_cover_attachment_id: UUID | None = None,
-    schedule_values: tuple[date | None, datetime | None, datetime | None] | None = None,
+    schedule_values: PlanScheduleValues | None = None,
     tags: list[str] | None = None,
 ) -> Plan:
     """Correct content, cover and schedule atomically; completion stays explicit."""
@@ -618,12 +646,20 @@ def update_plan(
             raise ConflictError(
                 "A completed plan cannot be scheduled.", PLAN_STATUS_TRANSITION_INVALID
             )
-        planned_on, planned_start, planned_end = schedule_values or (None, None, None)
-        plan.status = _initial_schedule_status(planned_on, planned_start, planned_end).value
-        plan.planned_on, plan.planned_start, plan.planned_end = (
+        planned_on, planned_start, planned_end, planned_until = schedule_values or (
+            None,
+            None,
+            None,
+            None,
+        )
+        plan.status = _initial_schedule_status(
+            planned_on, planned_start, planned_end, planned_until
+        ).value
+        plan.planned_on, plan.planned_start, plan.planned_end, plan.planned_until = (
             planned_on,
             planned_start,
             planned_end,
+            planned_until,
         )
     if "place_id" in changed_fields:
         plan.place_id = next_place_id
@@ -686,6 +722,7 @@ def schedule_plan(
     planned_on: date | None = None,
     planned_start: datetime | None,
     planned_end: datetime | None,
+    planned_until: date | None = None,
 ) -> Plan:
     """Apply ``IDEA -> PLANNED`` or replace a ``PLANNED`` schedule."""
     plan = _lock_plan(session, context, plan_id)
@@ -699,10 +736,11 @@ def schedule_plan(
             PLAN_STATUS_TRANSITION_INVALID,
         )
 
-    _validate_schedule(planned_on, planned_start, planned_end)
+    _validate_schedule(planned_on, planned_start, planned_end, planned_until)
     plan.planned_on = planned_on
     plan.planned_start = planned_start
     plan.planned_end = planned_end
+    plan.planned_until = planned_until
     plan.status = PlanStatus.PLANNED.value
 
     _flush(session)
@@ -735,6 +773,7 @@ def unschedule_plan(
     plan.planned_on = None
     plan.planned_start = None
     plan.planned_end = None
+    plan.planned_until = None
     plan.status = PlanStatus.IDEA.value
 
     _flush(session)
@@ -913,10 +952,11 @@ def convert_wish_to_plan(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    planned_until: date | None = None,
 ) -> WishToPlanResult:
     """Convert one wish into exactly one Plan atomically and idempotently."""
     resolved_place_id = _resolve_place(session, context, place_id)
-    status = _initial_schedule_status(planned_on, planned_start, planned_end)
+    status = _initial_schedule_status(planned_on, planned_start, planned_end, planned_until)
 
     wish = wish_service.lock(session, context, wish_id)
     existing = session.execute(
@@ -955,6 +995,7 @@ def convert_wish_to_plan(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        planned_until=planned_until,
         payload=PlanPayload(
             title=_normalize_title(title if title is not None else wish.payload.title),
             description=description,

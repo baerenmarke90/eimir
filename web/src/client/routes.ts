@@ -93,6 +93,8 @@ export const PRIMARY_APP_ROUTES = APP_ROUTES.filter(
 
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
 export const WISH_SELECTION_ROUTE = '/plan/choose';
+/** Pro date inspiration (#1892); a Planning subpage, not a Wish detail path. */
+export const DATE_IDEAS_ROUTE = '/plan/ideas';
 
 /** Safe direct-entry fallback; existing task origins take precedence. */
 export function subpageParentPath(pathname: string): string {
@@ -107,6 +109,8 @@ export function subpageParentPath(pathname: string): string {
     return '/story';
   if (/^\/plan\/(?:plans|wishes|reminders)\/(?:new|[^/]+)$/.test(path))
     return '/plan';
+  // Date inspiration belongs to the Wishes peer mode of Planning.
+  if (path === DATE_IDEAS_ROUTE) return '/plan#wishes';
   if (path.startsWith('/today/only-you')) return '/today';
   if (path === '/search' || path === '/games' || path === '/server-admin')
     return '/more';
@@ -142,6 +146,29 @@ export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
 export const PRO_INFORMATION_ROUTE = `${MORE_SETTINGS_ROUTE}/account#eimir-pro`;
+/** Shared eimir. Pro paywall; the context only selects copy, never access. */
+export const PRO_PAYWALL_ROUTE = '/more/pro';
+export const PRO_PAYWALL_CONTEXTS = [
+  'dateIdeas',
+  'recaps',
+  'memoryMap',
+  'photoSources',
+  'calendar',
+  'games',
+  'general',
+] as const;
+export type ProPaywallContext = (typeof PRO_PAYWALL_CONTEXTS)[number];
+
+export function proPaywallPath(context: ProPaywallContext = 'general'): string {
+  return context === 'general'
+    ? PRO_PAYWALL_ROUTE
+    : `${PRO_PAYWALL_ROUTE}?context=${context}`;
+}
+
+export function proPaywallContext(search: string): ProPaywallContext {
+  const value = new URLSearchParams(search).get('context');
+  return PRO_PAYWALL_CONTEXTS.find((context) => context === value) ?? 'general';
+}
 
 export const SETTINGS_CATEGORY_IDS = [
   'relationship',
@@ -150,6 +177,7 @@ export const SETTINGS_CATEGORY_IDS = [
   'memories',
   'appearance',
   'media',
+  'calendar',
   'data',
   'account',
   'updates',
@@ -166,6 +194,7 @@ export const SETTINGS_CATEGORY_ROUTES = {
   memories: `${MORE_SETTINGS_ROUTE}/memories`,
   appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
   media: `${MORE_SETTINGS_ROUTE}/media`,
+  calendar: `${MORE_SETTINGS_ROUTE}/calendar`,
   data: `${MORE_SETTINGS_ROUTE}/data`,
   account: `${MORE_SETTINGS_ROUTE}/account`,
   updates: `${MORE_SETTINGS_ROUTE}/updates`,

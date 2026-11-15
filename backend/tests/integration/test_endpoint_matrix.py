@@ -182,6 +182,19 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
+    # Store billing (#1525) owns its purchase flow in test_billing_google_play;
+    # here every route joins the shared tenant and absence contract.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/billing/channels"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/billing/purchases",
+        body={"store": "GOOGLE_PLAY", "plan": "yearly"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/billing/google-play/purchases",
+        body={"purchaseToken": "matrix-token"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/memory-map"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/context-tag-suggestions"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
@@ -263,6 +276,63 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/photo-sources/google/account",
         if_match=True,
         verification_template="/api/v1/spaces/{spaceId}/photo-sources",
+    ),
+    # Own connections, Pro and provider behaviour are exercised in test_calendar_sync.
+    # This matrix additionally proves every route rejects anonymous/foreign Spaces.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/calendar-sync"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/caldav",
+        body={
+            "url": "https://calendar.example.org/dav/",
+            "username": "synthetic",
+            "password": "synthetic-password",
+            "consent": True,
+        },
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/calendars",
+        fixture_aliases={"connectionId": "memoryId"},
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/connections/google"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}/confirm",
+        fixture_aliases={"connectionId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/calendar-sync/connections/{connectionId}",
+        fixture_aliases={"connectionId": "memoryId"},
+        verification_template="/api/v1/spaces/{spaceId}/calendar-sync",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/calendar-sync/target",
+        body={
+            "connectionId": "00000000-0000-7000-8000-000000000001",
+            "calendarRef": "/dav/calendars/synthetic/shared/",
+        },
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/calendar-sync/target",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/calendar-sync",
+    ),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/target/pause", if_match=True),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/target/resume", if_match=True),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/calendar-sync/sync"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/calendar-sync/plans/{planId}/resolve",
+        body={"action": "DETACH"},
     ),
     Endpoint(
         "POST",
@@ -361,6 +431,8 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"enabled": True},
         if_match=True,
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint(
@@ -1582,6 +1654,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "targetId": memory["id"],
             "kind": "memories",
             "experienceKind": "HAPPINESS",
+            # A catalog image ID, not a database row; tenant checks come first.
+            "imageId": "category-nature",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

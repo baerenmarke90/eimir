@@ -18,6 +18,7 @@ const CATEGORY_ICONS: Record<SettingsCategoryId, EimirIconName> = {
   appearance: 'einstellungen',
   memories: 'momente',
   media: 'foto',
+  calendar: 'kalender',
   data: 'listen',
   account: 'profil',
   updates: 'einstellungen',

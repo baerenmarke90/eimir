@@ -89,7 +89,7 @@ are development-only and are never shipped with the production Web bundle.
 
 The Android application is the Capacitor wrapper in `android/` around the
 canonical Web bundle (ADR 0011). Its release CI evidence pins JDK 21, Gradle
-9.8.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
+9.9.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
 9.4.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
 artifact under `--dependency-verification strict` against
 `android/gradle/verification-metadata.xml`. The toolchain and direct dependency
@@ -219,6 +219,11 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
+| defusedxml | 0.7.1 | PyPI | PSFL |
+
+`defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
+entity expansion, external entities or DTD retrieval. It has no runtime
+dependencies, sends no data and is replaceable by a hardened stdlib parser.
 
 The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 `hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.
@@ -385,7 +390,7 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 | Component | Version | Source | License |
 |---|---|---|---|
 | Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
-| nginx-unprivileged | 1.31.6, `sha256:e44b470e571b20d935336bfb9f8277c1468d15e1e4d105a12ab5609d0b4682cb` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
+| nginx-unprivileged | 1.31.8, `sha256:e4264279b179f0e654579a90a1a9c1eab3ba9124c17551794bee20f68a38b5ce` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
 No eimir. user data is sent to Node.js, NGINX, or their registries;
@@ -408,9 +413,11 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
+| @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
+| com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
-| com.google.firebase:firebase-bom | 35.0.2 | Google Maven | Apache-2.0 |
-| com.google.firebase:firebase-messaging | 26.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-bom | 35.1.0 | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-messaging | 26.0.1 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-installations | 20.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.nimbusds:nimbus-jose-jwt | 10.10 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
@@ -441,6 +448,24 @@ contains no server sender private key. The Google Services plugin activates only
 when that configured build input is present. Official distribution and Firebase
 project/package alignment are separate from server credential installation.
 
+### Store billing (2026-11-15, #1525)
+
+`@capgo/native-purchases` is used unmodified as the native store sheet bridge:
+Google Play Billing Library 9.1.0 on Android and StoreKit 2 on iOS (prepared,
+not yet connected). It was selected over a hand-written plugin, RevenueCat and
+`cordova-plugin-purchase` because it covers both stores behind one Capacitor
+interface, lets the backend acknowledge purchases
+(`autoAcknowledgePurchases: false`) and sends nothing to a third-party billing
+service. Only the opaque purchase reference (`appAccountToken`, sent to Google
+as the obfuscated account ID) and the selected base plan reach the store. The
+MPL notice and source location ship in
+`web/public/licenses/capgo-native-purchases-NOTICE.txt`; the complete license
+is the existing `mediabunny-MPL-2.0.txt` text. The Play Billing Library is a
+Google SDK component distributed under the Android SDK license; its artifacts
+are pinned in the strict Gradle verification metadata. Purchase verification
+runs on the eimir. Cloud backend with the already adopted `google-auth` and
+`httpx`; no new backend dependency is added.
+
 ## iOS — Capacitor wrapper runtime
 
 The official Capacitor iOS runtime and Swift Package Manager template (8.5.2,
@@ -453,13 +478,13 @@ storage and remote notifications without another SDK.
 | Package / tool | Version | Source | License |
 |---|---|---|---|
 | Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
-| Gradle | 9.8.1 | gradle.org / CI setup-gradle | Apache-2.0 |
+| Gradle | 9.9.1 | gradle.org / CI setup-gradle | Apache-2.0 |
 | Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | JSON-java (sideload host parser tests only; excluded from APKs) | 20250517 | Maven Central / stleary/JSON-java | Public Domain |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |
-| androidx.test.uiautomator:uiautomator (instrumentation only) | 2.4.0 | Google Maven | Apache-2.0 |
+| androidx.test.uiautomator:uiautomator (instrumentation only) | 2.4.1 | Google Maven | Apache-2.0 |
 
 UI Automator provides bounded native-control stability checks and genuine
 cross-app touches in the selected-media instrumentation fixture. It is an
@@ -548,6 +573,7 @@ decision for the project's own source code.
 | `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
 | `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/readme/01-anmelden.webp` … `07-mehr.webp` (seven named files) | README product preview: actual browser captures of the current Web client at ~390 px width in the Light theme, taken from the canonical demo Space (fictional identities and content) | eimir. project workflow; embedded demo photographs by the creators named in `backend/demo_assets/manifest.json` (Pixabay) | UI screenshots: project asset, no separate public license grant; embedded photographs: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
+| `backend/src/eimir/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |

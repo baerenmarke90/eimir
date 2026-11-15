@@ -2,7 +2,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -13,7 +19,6 @@ import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MilestoneProductPage } from './MilestoneProductPage';
-import { QuickCreateMenu } from './QuickCreateMenu';
 
 const backToStoryName = taskBoundary.back;
 
@@ -185,7 +190,24 @@ function ReturnFromResult() {
   );
 }
 
-describe('Quick Create Milestone continuity (#509)', () => {
+/** Stands in for any page-level add action that opens a create task. */
+function StartCreate({ to }: { to: string }) {
+  const { captureOrigin } = useTaskOrigin();
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const taskOriginKey = captureOrigin();
+        void navigate(to, { state: { taskOriginKey } });
+      }}
+    >
+      Start create
+    </button>
+  );
+}
+
+describe('Create Milestone continuity (#509)', () => {
   it('returns from a confirmed result to its originating context', async () => {
     const createMilestone = vi.fn().mockResolvedValue({ id: 'milestone-new' });
     const queryClient = new QueryClient({
@@ -198,7 +220,7 @@ describe('Quick Create Milestone continuity (#509)', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/today']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
-            <QuickCreateMenu />
+            <StartCreate to="/story/milestones/new" />
             <Routes>
               <Route path="/today" element={<p>Today origin</p>} />
               <Route
@@ -228,12 +250,7 @@ describe('Quick Create Milestone continuity (#509)', () => {
     );
 
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole('button', { name: navigation.newContent }),
-    );
-    await user.click(
-      screen.getByRole('menuitem', { name: navigation.quickCreateMilestone }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Start create' }));
     expect(document.activeElement).not.toBe(
       screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
     );

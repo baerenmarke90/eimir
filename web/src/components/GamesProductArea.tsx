@@ -6,12 +6,14 @@ import { Configuration } from '../client/apiConfiguration';
 import {
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
+  proPaywallPath,
 } from '../client/routes';
 import {
   entitlementLoader,
   useSpaceEntitlement,
 } from '../client/spaceEntitlement';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PageHeader } from './PageHeader';
@@ -77,6 +79,15 @@ export function GamesProductArea({
     entitlementQuery.data?.capabilities.includes(GAMES_COUPLE_CAPABILITY),
   );
 
+  // The local game replaces the overview in place; system Back ends it like
+  // its own back control instead of leaving Games.
+  const exitLocalGame = useEditorHistoryEntry({
+    isActive: gamesUnlocked && activeLocalGame === 'perspective',
+    isDirty: false,
+    onClose: () => setActiveLocalGame(null),
+    onDiscardRequested: () => setActiveLocalGame(null),
+  });
+
   if (gamesUnlocked && activeLocalGame === 'perspective') {
     return (
       <div className="page games-product-page">
@@ -84,7 +95,7 @@ export function GamesProductArea({
           apiBaseUrl={apiBaseUrl}
           accessToken={accessToken}
           spaceId={spaceId}
-          onExit={() => setActiveLocalGame(null)}
+          onExit={() => exitLocalGame()}
           loadParticipants={loadPerspectiveParticipants}
         />
       </div>
@@ -99,6 +110,16 @@ export function GamesProductArea({
         className="games-heading"
       />
 
+      {entitlementQuery.data && !gamesUnlocked ? (
+        <p className="games-pro-hint">
+          <Link
+            className="button-link secondary-link"
+            to={proPaywallPath('games')}
+          >
+            {t('proPaywall.contextAction')}
+          </Link>
+        </p>
+      ) : null}
       {entitlementQuery.isPending ? (
         <UiState kind="loading" title={t('states.loading.title')} />
       ) : entitlementQuery.error ? (

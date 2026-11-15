@@ -45,6 +45,19 @@ public class PlanCalendarTest {
     }
 
     @Test
+    public void multiDayAllDayPlansKeepTheirExclusiveEndAfterTheLastDay() throws Exception {
+        Intent intent = PlanCalendarIntent.create(event(true,
+                "2026-11-20T00:00:00Z", "2026-11-23T00:00:00Z"));
+        assertTrue(intent.getBooleanExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, false));
+        assertEquals(Instant.parse("2026-11-23T00:00:00Z").toEpochMilli(),
+                intent.getLongExtra(CalendarContract.EXTRA_EVENT_END_TIME, -1));
+        assertThrows(IllegalArgumentException.class, () -> PlanCalendarIntent.create(
+                event(true, "2026-11-20T00:00:00Z", "2026-11-22T12:00:00Z")));
+        assertThrows(IllegalArgumentException.class, () -> PlanCalendarIntent.create(
+                event(true, "2026-11-20T00:00:00Z", null)));
+    }
+
+    @Test
     public void timedInstantsRetainDstOffsetsAndUnknownEnds() throws Exception {
         Intent intent = PlanCalendarIntent.create(event(false,
                 "2026-10-25T00:30:00Z", "2026-10-25T02:30:00Z"));

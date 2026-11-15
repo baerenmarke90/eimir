@@ -12,6 +12,7 @@ import type { PrivateCollectionItemDetail } from '../api/generated/models/Privat
 import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
+import { useReturnTo } from '../client/historyEntries';
 import {
   capturePrivateCreate,
   capturePrivateDelete,
@@ -1226,6 +1227,7 @@ export function PrivateCollectionDetailPage({
 export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
@@ -1264,8 +1266,7 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateCollectionPath(collection.id), {
-          replace: true,
+        returnTo(privateCollectionPath(collection.id), {
           state: navigationState,
         });
       });

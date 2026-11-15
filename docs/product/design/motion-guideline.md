@@ -44,6 +44,8 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
 | overlaid controls returning after browsing (#1796) | `motion.duration.controlsReturn` | 480 ms | `--duration-controls-return` |
 | one beat of a staged opening sequence (#1861) | `motion.duration.sequenceBeat` | 200 ms | `--duration-sequence-beat` |
+| one expressive beat of a received partner gesture (#455) | `motion.duration.gestureMoment` | 900 ms | `--duration-gesture-moment` |
+| the whole one-shot partner gesture choreography (#455) | `motion.duration.gestureSequence` | 1800 ms | `--duration-gesture-sequence` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |
 | exit / dismissal | `motion.easing.exit` | 0.4, 0, 1, 1 | `--easing-exit` |

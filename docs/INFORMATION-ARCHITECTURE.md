@@ -64,7 +64,7 @@ their route IDs are not.
   `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
 - **Web, Compact/Medium windows below 840 px:** Bottom Navigation with four icon-and-label destinations. The contextual add action floats separately on Wir, Moments discovery/diary and Planning.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
-- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation, with the cross-area shortcut in the browser header. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
+- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header. Expanded retains horizontal primary navigation and page-level creation; the 2026-11-14 Product Owner correction removed the cross-area create shortcut from the browser header. On Expanded, the Planen column and the Planen/Momente view switches are centered like the diary reading column. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
 - Order remains identical on all platforms.
 - Current area is recognizable through color, icon, and text state.
 
@@ -163,12 +163,14 @@ Links. IDs are opaque, stable identifiers.
 | Planen hub | `/plan` |
 | Wishes | `/plan/wishes` |
 | Open wish | `/plan/wishes/:wishId` |
+| Discover date ideas (Pro, from Wishes) | `/plan/ideas` |
 | Plans | `/plan/plans` |
 | Open plan | `/plan/plans/:planId` |
 | Open an authorized reminder | `/plan/reminders/:reminderId` |
 | Shopping reserved for later domain | `/plan/shopping` |
 | Games hub (Spielen, entry under Mehr) | `/games` |
 | More | `/more` |
+| eimir. Pro paywall (context in `?context=`) | `/more/pro` |
 | Places (Mehr) | `/plan/places` |
 | Open place | `/plan/places/:placeId` |
 | Collections (Mehr) | `/plan/collections` |

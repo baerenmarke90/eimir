@@ -315,6 +315,17 @@ class Settings(IdentityCompatibleSettings):
     # an Account is eligible only when one of its verified addresses is listed here.
     google_photos_test_account_emails: list[str] = Field(default_factory=list)
 
+    # Automatic Plan calendar sync (#1895). Credentials are encrypted at rest,
+    # so the feature is only offered with EIMIR_ENCRYPTION_AT_REST=required.
+    calendar_sync_enabled: bool = True
+    # Self-Hosted only: exact host names of private CalDAV servers (LAN, VPN)
+    # that may resolve to non-public addresses. Loopback stays blocked.
+    calendar_caldav_private_hosts: list[str] = Field(default_factory=list)
+    # Operator-owned Google OAuth Web client for Google Calendar sync. The same
+    # client as for Google Photos may be used when both redirect URIs are listed.
+    google_calendar_client_id: str = ""
+    google_calendar_client_secret: SecretStr | None = None
+
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
     # must not be valid for "evil.example".
@@ -358,6 +369,23 @@ class Settings(IdentityCompatibleSettings):
     push_apns_key_file: str = ""
     push_apns_environment: Literal["development", "production"] = "production"
 
+    # Google Play Billing (#1525). eimir. Cloud only: store purchases are
+    # verified by the publisher's backend, so a Self-Hosted instance never
+    # holds these credentials and keeps the signed offline license instead.
+    # The service-account file stays in the operator's secret mount; it never
+    # reaches the app, the browser or ordinary user configuration.
+    billing_google_play_package: str = ""
+    billing_google_play_credentials_file: str = ""
+    # One subscription product with one auto-renewing base plan per period.
+    billing_google_play_product_id: str = "eimir_pro"
+    billing_google_play_monthly_base_plan: str = "monthly"
+    billing_google_play_yearly_base_plan: str = "yearly"
+    # Real-time developer notifications arrive as authenticated Pub/Sub push
+    # requests. The audience and the push service account are both required;
+    # without them the notification endpoint rejects every request.
+    billing_google_play_rtdn_audience: str = ""
+    billing_google_play_rtdn_service_account: str = ""
+
     # Observability and logging configuration.
     log_format: LogFormat | None = None
     log_level: str = "INFO"
@@ -372,6 +400,7 @@ class Settings(IdentityCompatibleSettings):
         "encryption_active_key_id",
         "push_vapid_private_key",
         "google_photos_client_secret",
+        "google_calendar_client_secret",
         mode="before",
     )
     @classmethod
@@ -536,6 +565,18 @@ class Settings(IdentityCompatibleSettings):
             if connection.id == connection_id:
                 return connection
         return None
+
+    @model_validator(mode="after")
+    def calendar_private_hosts_are_self_hosted(self) -> Self:
+        if self.calendar_caldav_private_hosts and self.deployment is Deployment.CLOUD:
+            raise ValueError(
+                "EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS is a Self-Hosted option; the Cloud "
+                "never admits private network targets."
+            )
+        self.calendar_caldav_private_hosts = sorted(
+            {host.strip().lower().rstrip(".") for host in self.calendar_caldav_private_hosts} - {""}
+        )
+        return self
 
     @model_validator(mode="after")
     def demo_mode_matches_environment(self) -> Self:
@@ -744,6 +785,70 @@ class Settings(IdentityCompatibleSettings):
         ):
             raise ValueError("EIMIR_PUSH_FCM_CREDENTIALS_FILE must be an absolute file path.")
         return self
+
+    @model_validator(mode="after")
+    def google_play_billing_is_complete(self) -> Self:
+        required = (self.billing_google_play_package, self.billing_google_play_credentials_file)
+        rtdn = (
+            self.billing_google_play_rtdn_audience,
+            self.billing_google_play_rtdn_service_account,
+        )
+        if not any(required) and not any(rtdn):
+            return self
+        if self.deployment is not Deployment.CLOUD:
+            raise ValueError(
+                "Google Play Billing is an eimir. Cloud channel; Self-Hosted keeps the "
+                "signed offline license."
+            )
+        if not all(required):
+            raise ValueError(
+                "Google Play Billing requires EIMIR_BILLING_GOOGLE_PLAY_PACKAGE and "
+                "EIMIR_BILLING_GOOGLE_PLAY_CREDENTIALS_FILE."
+            )
+        if any(rtdn) and not all(rtdn):
+            raise ValueError(
+                "Play notifications require EIMIR_BILLING_GOOGLE_PLAY_RTDN_AUDIENCE and "
+                "EIMIR_BILLING_GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT."
+            )
+        if (
+            re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+",
+                self.billing_google_play_package,
+            )
+            is None
+        ):
+            raise ValueError("EIMIR_BILLING_GOOGLE_PLAY_PACKAGE is invalid.")
+        for value in (
+            self.billing_google_play_product_id,
+            self.billing_google_play_monthly_base_plan,
+            self.billing_google_play_yearly_base_plan,
+        ):
+            # Play product and base-plan IDs: lowercase letters, digits, "_", "." and "-".
+            if re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,62}", value) is None:
+                raise ValueError("Google Play product and base-plan IDs are invalid.")
+        if self.billing_google_play_monthly_base_plan == self.billing_google_play_yearly_base_plan:
+            raise ValueError("The monthly and yearly Google Play base plans must differ.")
+        path = self.billing_google_play_credentials_file
+        if not Path(path).is_absolute() or any(
+            ord(character) < 33 or ord(character) == 127 for character in path
+        ):
+            raise ValueError(
+                "EIMIR_BILLING_GOOGLE_PLAY_CREDENTIALS_FILE must be an absolute file path."
+            )
+        audience = self.billing_google_play_rtdn_audience
+        if audience and (not audience.startswith("https://") or len(audience) > 512):
+            raise ValueError("EIMIR_BILLING_GOOGLE_PLAY_RTDN_AUDIENCE must be an HTTPS URL.")
+        account = self.billing_google_play_rtdn_service_account
+        if account and re.fullmatch(r"[^@\s]{1,128}@[A-Za-z0-9.-]{1,253}", account) is None:
+            raise ValueError("EIMIR_BILLING_GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT is invalid.")
+        return self
+
+    @property
+    def google_play_billing_configured(self) -> bool:
+        """The Cloud Play channel is offered only with complete operator config."""
+        return self.deployment is Deployment.CLOUD and bool(
+            self.billing_google_play_package and self.billing_google_play_credentials_file
+        )
 
     @model_validator(mode="after")
     def apns_configuration_is_complete(self) -> Self:

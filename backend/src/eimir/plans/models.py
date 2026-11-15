@@ -161,6 +161,13 @@ class Plan(
     field. Existing timed schedules continue to use ``planned_start``.
     """
 
+    planned_until: Mapped[date | None] = mapped_column(Date)
+    """Inclusive last calendar day of a multi-day date-only Plan, or NULL (#1895).
+
+    Only a date-only schedule carries it; a timed Plan expresses its range
+    through ``planned_end``. NULL means the Plan covers ``planned_on`` alone.
+    """
+
     planned_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     anticipation_enabled: Mapped[bool] = mapped_column(
@@ -224,6 +231,10 @@ class Plan(
         CheckConstraint(
             "planned_end IS NULL OR planned_end >= planned_start",
             name="planned_end_not_before_start",
+        ),
+        CheckConstraint(
+            "planned_until IS NULL OR (planned_on IS NOT NULL AND planned_until >= planned_on)",
+            name="planned_until_extends_planned_on",
         ),
         CheckConstraint(
             "status <> 'IDEA' OR "

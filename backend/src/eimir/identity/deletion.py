@@ -24,6 +24,7 @@ from eimir.administration.models import AdministrationAction
 from eimir.appearance.models import AppIconPreference
 from eimir.auth import sessions
 from eimir.authorization.retention import hard_delete_owner_only
+from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
 from eimir.core.clock import now
 from eimir.engagement.models import Notification, PushEndpoint, ThinkingOfYouRequest
 from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
@@ -258,6 +259,11 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     _delete_account_rows(session, PhotoSelection, account_id, PhotoSelection.account_id)
     _delete_account_rows(session, PhotoConnection, account_id, PhotoConnection.account_id)
     _delete_account_rows(session, GoogleAccountHint, account_id, GoogleAccountHint.account_id)
+    # Calendar credentials go with the Account; sponsored Space targets cascade.
+    _delete_account_rows(session, CalendarConnection, account_id, CalendarConnection.account_id)
+    _delete_account_rows(
+        session, CalendarOAuthTransaction, account_id, CalendarOAuthTransaction.account_id
+    )
     from eimir.attachments.photo_locations import discard_owner
 
     discard_owner(session, account_id)

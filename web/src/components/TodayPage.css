@@ -590,6 +590,14 @@
   text-align: left;
 }
 
+@media (min-width: 840px) {
+  /* Expanded: the sparse welcome sits under the centered hero, not at the edge. */
+  .new-space-experience {
+    margin-inline: auto;
+    text-align: center;
+  }
+}
+
 .new-space-title {
   margin: 0;
   color: var(--color-text);

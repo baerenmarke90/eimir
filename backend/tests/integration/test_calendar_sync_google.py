@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from eimir.calendar_sync.models import CalendarConnection, CalendarOAuthTransaction
 from eimir.config import get_settings
+from eimir.core import clock
 from eimir.providers import google_calendar
 from eimir.relationship.service import add_member
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -64,9 +66,11 @@ def fake(monkeypatch: pytest.MonkeyPatch) -> FakeGoogleCalendar:
     return double
 
 
-def start(client, couple, headers="a") -> str:  # type: ignore[no-untyped-def]
+def start(client, couple, headers="a", return_to=None) -> str:  # type: ignore[no-untyped-def]
     response = client.post(
-        base(couple) + "/calendar-sync/connections/google", headers=couple[headers]
+        base(couple) + "/calendar-sync/connections/google",
+        headers=couple[headers],
+        json={"returnTo": return_to} if return_to else None,
     )
     assert response.status_code == 201, response.text
     url = response.json()["authorizationUrl"]
@@ -198,3 +202,56 @@ def test_a_revoked_grant_breaks_the_connection_visibly(client, session, couple, 
     target = state(client, couple)["target"]
     assert (target["status"], target["statusReason"]) == ("SUSPENDED", "CONNECTION_BROKEN")
     assert state(client, couple)["connections"][0]["status"] == "BROKEN"
+
+
+def test_web_consent_returns_to_the_settings_in_the_same_tab(  # type: ignore[no-untyped-def]
+    client, session, couple, fake
+) -> None:
+    grant(session, couple)
+    oauth_state = start(client, couple, return_to="web")
+    back = client.get(
+        CALLBACK, params={"state": oauth_state, "code": "good-code"}, follow_redirects=False
+    )
+    assert back.status_code == 303
+    assert back.headers["location"] == (
+        "https://eimir.example/more/settings/calendar?calendarGoogle=connected"
+    )
+    assert "good-code" not in back.headers["location"]
+    denied_state = start(client, couple, return_to="web")
+    denied = client.get(
+        CALLBACK,
+        params={"state": denied_state, "error": "access_denied"},
+        follow_redirects=False,
+    )
+    assert denied.headers["location"].endswith("?calendarGoogle=denied")
+
+
+def test_opening_the_settings_never_drops_an_unconfirmed_consent(  # type: ignore[no-untyped-def]
+    client, session, couple, fake, monkeypatch
+) -> None:
+    grant(session, couple)
+    client.get(CALLBACK, params={"state": start(client, couple), "code": "good-code"})
+    later = clock.now() + timedelta(hours=2)
+    monkeypatch.setattr(clock, "now", lambda: later)
+    assert state(client, couple)["connections"][0]["status"] == "PENDING"
+
+
+def test_the_primary_calendar_is_marked_for_a_human_name(  # type: ignore[no-untyped-def]
+    client, session, couple, fake
+) -> None:
+    grant(session, couple)
+    client.get(CALLBACK, params={"state": start(client, couple), "code": "good-code"})
+    connection = state(client, couple)["connections"][0]
+    confirmed = client.post(
+        base(couple) + f"/calendar-sync/connections/{connection['id']}/confirm",
+        headers=couple["a"],
+    ).json()
+    primary = next(item for item in confirmed["calendars"] if item["primary"])
+    assert primary["ref"] == "anna@example.com"
+    view = state(client, couple)
+    client.put(
+        base(couple) + "/calendar-sync/target",
+        json={"connectionId": connection["id"], "calendarRef": primary["ref"]},
+        headers={**couple["a"], "If-Match": f'"{view["targetToken"]}"'},
+    )
+    assert state(client, couple)["target"]["calendarPrimary"] is True

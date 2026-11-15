@@ -11,6 +11,7 @@ cannot silently attach a foreign calendar to someone's Plans.
 from __future__ import annotations
 
 import hashlib
+import logging
 from datetime import timedelta
 from typing import Literal
 from urllib.parse import urlsplit
@@ -39,9 +40,20 @@ from eimir.providers import google_calendar
 from eimir.providers.calendar import CalendarAuthError, CalendarProviderError, CalendarSummary
 
 TRANSACTION_LIFETIME = timedelta(minutes=10)
-PENDING_LIFETIME = timedelta(minutes=30)
+# Long enough to come back from Google's window later; purged only when the
+# same Account starts another consent, never by merely opening the settings.
+PENDING_LIFETIME = timedelta(hours=24)
 
 Outcome = Literal["connected", "denied", "failed", "expired"]
+ReturnTo = Literal["web", "page"]
+
+log = logging.getLogger(__name__)
+
+
+def _logged(outcome: Outcome, reason: str) -> Outcome:
+    # Fixed codes only: never the state, code, token or provider text.
+    log.info("calendar google consent", extra={"outcome": outcome, "reason": reason})
+    return outcome
 
 
 def client() -> google_calendar.GoogleCalendarClient | None:
@@ -107,7 +119,7 @@ def purge_stale(session: Session, account_id: UUID) -> None:
     )
 
 
-def start(session: Session, auth: AuthorizationContext) -> str:
+def start(session: Session, auth: AuthorizationContext, return_to: ReturnTo = "page") -> str:
     """Create one consent attempt and return Google's authorization URL."""
     configured = _require_client()
     service.require_pro(session, auth.space_id)
@@ -130,6 +142,7 @@ def start(session: Session, auth: AuthorizationContext) -> str:
                 space_id=auth.space_id,
                 code_verifier=verifier,
                 client_binding=configured.binding,
+                return_to=return_to,
             ),
         )
     )
@@ -139,10 +152,14 @@ def start(session: Session, auth: AuthorizationContext) -> str:
 
 def complete(
     session: Session, *, state: str | None, code: str | None, error: str | None
-) -> Outcome:
-    """Public callback: consume the attempt exactly once and store a pending connection."""
+) -> tuple[Outcome, ReturnTo]:
+    """Public callback: consume the attempt exactly once and store a pending connection.
+
+    Returns the outcome and where the person started (``web`` returns to the
+    settings page in the same tab; ``page`` shows the localized return page).
+    """
     if not state or len(state) > 512:
-        return "failed"
+        return _logged("failed", "STATE_MISSING"), "page"
     configured = client()
     transaction = session.execute(
         select(CalendarOAuthTransaction)
@@ -150,29 +167,32 @@ def complete(
         .with_for_update()
     ).scalar_one_or_none()
     if transaction is None:
-        return "expired"
+        return _logged("expired", "TRANSACTION_UNKNOWN"), "page"
     session.delete(transaction)
     session.flush()
     payload = transaction.payload
+    return_to: ReturnTo = "web" if payload.return_to == "web" else "page"
     if (
         transaction.expires_at <= clock.now()
         or payload.account_id != transaction.account_id
         or configured is None
         or payload.client_binding != configured.binding
     ):
-        return "expired"
+        return _logged("expired", "TRANSACTION_EXPIRED"), return_to
     if error or not code or len(code) > 2048:
-        return "denied" if error == "access_denied" else "failed"
+        if error == "access_denied":
+            return _logged("denied", "ACCESS_DENIED"), return_to
+        return _logged("failed", "PROVIDER_ERROR"), return_to
     if not has_active_membership(
         session, account_id=transaction.account_id, space_id=transaction.space_id
     ):
-        return "failed"
+        return _logged("failed", "MEMBERSHIP_ENDED"), return_to
     try:
         refresh = google_calendar.exchange(configured, code, state, payload.code_verifier)
         api = google_calendar.GoogleCalendarApi(configured, refresh)
         label = api.account_label()
-    except CalendarProviderError:
-        return "failed"
+    except CalendarProviderError as failure:
+        return _logged("failed", failure.code), return_to
     lock_subject(session, "calendar-connection", str(transaction.account_id))
     session.add(
         CalendarConnection(
@@ -188,7 +208,7 @@ def complete(
         )
     )
     session.flush()
-    return "connected"
+    return _logged("connected", "PENDING_CREATED"), return_to
 
 
 def confirm(

@@ -112,6 +112,7 @@ class SpaceCalendarTargetPayload(ProtectedPayload):
     space_id: UUID
     calendar_ref: str = Field(repr=False)
     calendar_name: str = Field(repr=False)
+    calendar_primary: bool = False
 
 
 class SpaceCalendarTarget(IdMixin, TimestampMixin, VersionMixin, Base):
@@ -192,6 +193,8 @@ class CalendarOAuthPayload(ProtectedPayload):
     space_id: UUID
     code_verifier: str = Field(repr=False)
     client_binding: str = Field(repr=False)
+    return_to: str = "page"
+    """``web`` returns to the settings page in the same tab; ``page`` shows a return page."""
 
 
 class CalendarOAuthTransaction(IdMixin, Base):

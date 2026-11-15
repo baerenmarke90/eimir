@@ -13,7 +13,7 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Request, Response, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ConfigDict, Field, SecretStr
 
 from eimir.api.authors import resolve_author_summary
@@ -53,6 +53,7 @@ class CalendarOption(ApiModel):
     ref: str = Field(description="Opaque provider calendar reference.")
     name: str
     writable: bool
+    primary: bool = Field(default=False, description="The account's own main calendar.")
 
 
 class CalendarConflictView(ApiModel):
@@ -63,6 +64,9 @@ class CalendarConflictView(ApiModel):
 class SpaceCalendarTargetView(ApiModel):
     service: ServiceKind
     calendar_name: str
+    calendar_primary: bool = Field(
+        default=False, description="Shown as the provider's main calendar, not by its raw name."
+    )
     sponsor: AuthorSummary
     sponsored_by_me: bool
     connection_id: UUID | None = Field(
@@ -139,7 +143,8 @@ def _connection_view(row: CalendarConnection) -> CalendarConnectionView:
 
 def _options(calendars: list[CalendarSummary]) -> list[CalendarOption]:
     return [
-        CalendarOption(ref=item.ref, name=item.name, writable=item.writable) for item in calendars
+        CalendarOption(ref=item.ref, name=item.name, writable=item.writable, primary=item.primary)
+        for item in calendars
     ]
 
 
@@ -151,6 +156,7 @@ def _view(session: DbSession, authorization: Authorization) -> CalendarSyncView:
         target_view = SpaceCalendarTargetView(
             service=target.provider,  # type: ignore[arg-type]
             calendar_name=target.payload.calendar_name,
+            calendar_primary=target.payload.calendar_primary,
             sponsor=resolve_author_summary(
                 session, target.sponsor_account_id, resource="Calendar sponsor"
             ),
@@ -195,8 +201,6 @@ def get_calendar_sync(
     authorization: Authorization, session: DbSession, response: Response
 ) -> CalendarSyncView:
     response.headers.update(_HEADERS)
-    if service.available():
-        google.purge_stale(session, authorization.account_id)
     return _view(session, authorization)
 
 
@@ -400,6 +404,17 @@ class GoogleCalendarStart(ApiModel):
     )
 
 
+class GoogleCalendarStartRequest(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    return_to: Literal["web", "page"] = Field(
+        default="page",
+        description=(
+            "web: Google returns to the calendar settings in the same browser tab; "
+            "page: a short return page for the system browser of the app."
+        ),
+    )
+
+
 @router.post(
     "/spaces/{spaceId}/calendar-sync/connections/google",
     response_model=GoogleCalendarStart,
@@ -408,12 +423,18 @@ class GoogleCalendarStart(ApiModel):
     responses=problem_responses(401, 403, 404, 409, 429, 503),
 )
 def start_google(
-    authorization: Authorization, session: DbSession, response: Response
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: GoogleCalendarStartRequest | None = None,
 ) -> GoogleCalendarStart:
     response.headers.update(_HEADERS)
     if len(service.connections_of(session, authorization.account_id)) >= _MAX_CONNECTIONS:
         raise ConflictError("Too many calendar connections.", "CALENDAR_CONNECTION_LIMIT")
-    return GoogleCalendarStart(authorization_url=google.start(session, authorization))
+    return_to = body.return_to if body is not None else "page"
+    return GoogleCalendarStart(
+        authorization_url=google.start(session, authorization, return_to=return_to)
+    )
 
 
 @router.post(
@@ -444,9 +465,14 @@ def google_callback(
     error: Annotated[str | None, Query(max_length=128)] = None,
 ) -> Response:
     """External return page; provider details never reach the browser."""
-    outcome = google.complete(session, state=state, code=code, error=error)
+    outcome, return_to = google.complete(session, state=state, code=code, error=error)
     locale = request_locale(request.headers.get("accept-language"))
     back = f"{get_settings().public_base_url.rstrip('/')}/more/settings/calendar"
+    if return_to == "web":
+        # Same tab: back to the settings, which show the confirmation directly.
+        return RedirectResponse(
+            f"{back}?calendarGoogle={outcome}", status_code=303, headers=_HEADERS
+        )
     page = (
         f"<!doctype html><html lang={locale}><meta charset=utf-8>"
         "<meta name=viewport content='width=device-width,initial-scale=1'>"

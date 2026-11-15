@@ -26,6 +26,12 @@ export interface CalendarOption {
      */
     name: string;
     /**
+     * The account's own main calendar.
+     * @type {boolean}
+     * @memberof CalendarOption
+     */
+    primary?: boolean;
+    /**
      * Opaque provider calendar reference.
      * @type {string}
      * @memberof CalendarOption
@@ -60,6 +66,7 @@ export function CalendarOptionFromJSONTyped(json: any, ignoreDiscriminator: bool
     return {
         
         'name': json['name'],
+        'primary': json['primary'] == null ? undefined : json['primary'],
         'ref': json['ref'],
         'writable': json['writable'],
     };
@@ -77,6 +84,7 @@ export function CalendarOptionToJSONTyped(value?: CalendarOption | null, ignoreD
     return {
         
         'name': value['name'],
+        'primary': value['primary'],
         'ref': value['ref'],
         'writable': value['writable'],
     };

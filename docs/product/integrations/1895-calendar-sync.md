@@ -52,8 +52,11 @@ use, encrypted verifier). A returned consent only creates a **pending**
 connection for the starting Account; it is listed to that Account only and
 must be confirmed in eimir. with the shown Google account address before it
 can list calendars or become a target. Unconfirmed connections expire after
-30 minutes. A forwarded or injected consent therefore cannot silently attach
-a foreign calendar.
+24 hours and are purged only when the same Account starts another consent,
+never by opening the settings. A forwarded or injected consent therefore
+cannot silently attach a foreign calendar. The callback logs only a fixed
+outcome and reason code (`calendar google consent`), never state, code,
+token or provider text.
 
 ## Data flow and privacy
 

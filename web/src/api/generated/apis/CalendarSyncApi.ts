@@ -44,6 +44,11 @@ import {
     GoogleCalendarStartToJSON,
 } from '../models/GoogleCalendarStart';
 import {
+    type GoogleCalendarStartRequest,
+    GoogleCalendarStartRequestFromJSON,
+    GoogleCalendarStartRequestToJSON,
+} from '../models/GoogleCalendarStartRequest';
+import {
     type PlanCalendarSyncView,
     PlanCalendarSyncViewFromJSON,
     PlanCalendarSyncViewToJSON,
@@ -121,6 +126,7 @@ export interface SetCalendarSyncTargetRequest {
 
 export interface StartGoogleCalendarConnectionRequest {
     spaceId: string;
+    googleCalendarStartRequest?: GoogleCalendarStartRequest | null;
 }
 
 /**
@@ -796,6 +802,8 @@ export class CalendarSyncApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        headerParameters['Content-Type'] = 'application/json';
+
 
         let urlPath = `/api/v1/spaces/{spaceId}/calendar-sync/connections/google`;
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
@@ -805,6 +813,7 @@ export class CalendarSyncApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            body: GoogleCalendarStartRequestToJSON(requestParameters['googleCalendarStartRequest']),
         };
     }
 

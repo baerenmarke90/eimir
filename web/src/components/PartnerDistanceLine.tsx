@@ -5,7 +5,9 @@ import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { PartnerLocationApi } from '../api/generated/apis/PartnerLocationApi';
 import type { PartnerLocationSettingsView } from '../api/generated/models/PartnerLocationSettingsView';
 import {
+  type DistanceWords,
   deviceLanguages,
+  distanceBandWords,
   distanceUnitFor,
   formatDistanceBand,
   isDistanceFresh,
@@ -55,10 +57,34 @@ export function useDistanceAsOfLabel() {
   };
 }
 
-/** The band as the localized `partnerLocation.distanceBetween` sentence. */
+const WORDS = {
+  aroundCorner: {
+    sentence: 'partnerLocation.distanceAroundCorner',
+    short: 'partnerLocation.distanceAroundCornerShort',
+  },
+  stonesThrow: {
+    sentence: 'partnerLocation.distanceStonesThrow',
+    short: 'partnerLocation.distanceStonesThrowShort',
+  },
+  notFar: {
+    sentence: 'partnerLocation.distanceNotFar',
+    short: 'partnerLocation.distanceNotFarShort',
+  },
+  shortTrip: {
+    sentence: 'partnerLocation.distanceShortTrip',
+    short: 'partnerLocation.distanceShortTripShort',
+  },
+} as const satisfies Record<DistanceWords, { sentence: string; short: string }>;
+
+/**
+ * The band as a localized sentence: words for nearby and range bands
+ * (#1907 H4), otherwise `partnerLocation.distanceBetween` with the value.
+ */
 export function useDistanceText() {
   const { t } = useTranslation();
   return (band: Parameters<typeof formatDistanceBand>[0]) => {
+    const words = distanceBandWords(band);
+    if (words) return t(WORDS[words].sentence);
     const locale = resolvedLocale();
     const distance = formatDistanceBand(
       band,
@@ -134,12 +160,14 @@ export function PartnerDistanceLine({
       );
     }
     const locale = resolvedLocale();
-    const value =
-      formatDistanceBand(
-        line.band,
-        locale,
-        distanceUnitFor(locale, deviceLanguages()),
-      ) ?? t('partnerLocation.distanceNearShort');
+    const words = distanceBandWords(line.band);
+    const value = words
+      ? t(WORDS[words].short)
+      : (formatDistanceBand(
+          line.band,
+          locale,
+          distanceUnitFor(locale, deviceLanguages()),
+        ) ?? t('partnerLocation.distanceNearShort'));
     const compactFresh = isDistanceFresh(line.asOf, now);
     const compactDescription = compactFresh
       ? distanceText(line.band)

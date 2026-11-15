@@ -248,6 +248,28 @@ function roundTo(value: number, step: number): number {
   return Math.max(step, Math.round(value / step) * step);
 }
 
+/** How a range band is put into words (#1907 H4). */
+export type DistanceWords =
+  | 'aroundCorner'
+  | 'stonesThrow'
+  | 'notFar'
+  | 'shortTrip';
+
+/**
+ * Range bands (2–50 km) are described in words instead of a numeric range,
+ * which says little to a couple (Product Owner, 2026-11-15). The words follow
+ * the server band only, so they are never more precise than the band.
+ */
+export function distanceBandWords(
+  band: DistanceBandView,
+): DistanceWords | null {
+  if (band.kind !== 'RANGE' || band.maxKm == null) return null;
+  if (band.maxKm <= 5) return 'aroundCorner';
+  if (band.maxKm <= 10) return 'stonesThrow';
+  if (band.maxKm <= 25) return 'notFar';
+  return 'shortTrip';
+}
+
 /**
  * The band as display text, or `null` for "nearby", which never shows a
  * number. Converted miles stay as coarse as the kilometre band.

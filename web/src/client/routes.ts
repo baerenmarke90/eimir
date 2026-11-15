@@ -112,6 +112,8 @@ export function subpageParentPath(pathname: string): string {
   // Date inspiration belongs to the Wishes peer mode of Planning.
   if (path === DATE_IDEAS_ROUTE) return '/plan#wishes';
   if (path.startsWith('/today/only-you')) return '/today';
+  // Activity is a More destination with a Today-owned path (#1907 A2).
+  if (path === ACTIVITY_ROUTE) return '/more';
   if (path === '/search' || path === '/games' || path === '/server-admin')
     return '/more';
   const parent = path.slice(0, path.lastIndexOf('/'));
@@ -130,9 +132,9 @@ export function appRoutePath(id: AppRouteId): string {
 export const SEARCH_ROUTE = '/search';
 
 /**
- * Stable Activity route. The Web shell exposes it from the personal account
- * tree; route placement remains under `today` for Deep-Link compatibility and
- * domain ownership.
+ * Stable Activity route. More is its home: it highlights More and its shell
+ * Back falls back to More (#1907 A2). Route placement remains under `today`
+ * for Deep-Link compatibility and domain ownership.
  */
 export const ACTIVITY_ROUTE = '/today/activity';
 
@@ -351,7 +353,7 @@ export function rewriteLegacyPath(pathname: string): string | null {
  * while keeping existing deep links stable without URL migrations.
  */
 export function activeNavigationArea(pathname: string): AppRouteId | null {
-  if (pathname === SEARCH_ROUTE) return 'more';
+  if (pathname === SEARCH_ROUTE || pathname === ACTIVITY_ROUTE) return 'more';
   if (pathname === '/today' || pathname.startsWith('/today/')) return 'today';
   if (
     pathname === '/story' ||

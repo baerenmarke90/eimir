@@ -1298,6 +1298,9 @@
       "PARTNER_KISS": "{{name}} sends you a kiss.",
       "PARTNER_KISS_ANON": "Your partner sends you a kiss.",
       "PARTNER_CHECK_IN": "{{name}} asks how you are.",
+      "WISH_DATE_PROPOSED": "{{name}} suggested a date",
+      "WISH_DATE_COUNTERED": "{{name}} suggested a different date",
+      "WISH_DATE_ACCEPTED": "{{name}} accepted the date",
       "PARTNER_CHECK_IN_ANON": "Your partner asks how you are.",
       "REMINDER_DUE_WITH_TARGET": "Reminder: {{target}}",
       "REMINDER_DUE": "A reminder is coming up"
@@ -3421,6 +3424,37 @@
     "preparing": "Preparing …",
     "saving": "Saving …",
     "offline": "Not saved yet. Connect to the internet and try again."
+  },
+  "wishDateProposal": {
+    "action": "Suggest a date",
+    "counter": "Suggest another date",
+    "send": "Send suggestion",
+    "sendCounter": "Send new suggestion",
+    "accept": "Works for me",
+    "decline": "Not this time",
+    "withdraw": "Withdraw suggestion",
+    "incoming": "Date suggestion from {{name}}",
+    "incomingAnonymous": "A date suggestion for you two",
+    "counterFrom": "New date suggestion from {{name}}",
+    "counterAnonymous": "A new date suggestion",
+    "waiting": "Your date suggestion",
+    "waitingForReply": "Your suggestion is waiting for a reply.",
+    "sent": "Your suggestion was sent.",
+    "declined": "Your Wish stays open.",
+    "withdrawn": "You withdrew the suggestion.",
+    "loading": "Loading date suggestion …",
+    "offline": "Date suggestions need a connection.",
+    "when": "Date and time",
+    "invalid": "Choose a valid date and time in the future.",
+    "sameTime": "Choose a different date or time for your suggestion.",
+    "changed": "The suggestion has changed. Check the current details.",
+    "review": "View suggestion",
+    "openPlan": "View Plan",
+    "receipt": {
+      "proposed": "{{name}} suggests a date",
+      "countered": "{{name}} suggests another date",
+      "accepted": "{{name}} accepted the date"
+    }
   },
   "wishJourney": {
     "stages": {

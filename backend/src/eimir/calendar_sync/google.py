@@ -44,8 +44,11 @@ TRANSACTION_LIFETIME = timedelta(minutes=10)
 # same Account starts another consent, never by merely opening the settings.
 PENDING_LIFETIME = timedelta(hours=24)
 
+# Registered by the Android app (AndroidManifest.xml); carries the outcome only.
+APP_RETURN_URL = "de.eimir.app://calendar/google"
+
 Outcome = Literal["connected", "denied", "failed", "expired"]
-ReturnTo = Literal["web", "page"]
+ReturnTo = Literal["web", "page", "app"]
 
 log = logging.getLogger(__name__)
 
@@ -156,7 +159,8 @@ def complete(
     """Public callback: consume the attempt exactly once and store a pending connection.
 
     Returns the outcome and where the person started (``web`` returns to the
-    settings page in the same tab; ``page`` shows the localized return page).
+    settings page in the same tab, ``app`` hands the outcome back to the
+    Android app, ``page`` shows the localized return page).
     """
     if not state or len(state) > 512:
         return _logged("failed", "STATE_MISSING"), "page"
@@ -171,7 +175,9 @@ def complete(
     session.delete(transaction)
     session.flush()
     payload = transaction.payload
-    return_to: ReturnTo = "web" if payload.return_to == "web" else "page"
+    return_to: ReturnTo = (
+        "web" if payload.return_to == "web" else "app" if payload.return_to == "app" else "page"
+    )
     if (
         transaction.expires_at <= clock.now()
         or payload.account_id != transaction.account_id

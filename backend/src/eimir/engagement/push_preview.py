@@ -1,4 +1,4 @@
-"""Ephemeral, recipient-authorized fields for encrypted native presentation only."""
+"""Ephemeral, recipient-authorized fields for encrypted device presentation."""
 
 from __future__ import annotations
 
@@ -12,8 +12,14 @@ from eimir.authorization import AuthorizationContext, readable
 from eimir.comments.models import Comment
 from eimir.core import clock
 from eimir.domain.events import EventType
-from eimir.engagement import presentation
-from eimir.engagement.models import EngagementTarget, Notification, NotificationKind
+from eimir.engagement import notification_policy, presentation, wish_date_notice
+from eimir.engagement.models import (
+    WISH_DATE_NOTICE_KINDS,
+    EngagementTarget,
+    Notification,
+    NotificationKind,
+)
+from eimir.i18n import account_locale, text
 from eimir.identity.models import Account
 from eimir.memories.models import Memory
 from eimir.outbox.models import OutboxEvent
@@ -34,6 +40,11 @@ def _label(value: str, limit: int) -> str:
 
 
 def _content(session: Session, notification: Notification, context: AuthorizationContext) -> str:
+    if notification.kind in WISH_DATE_NOTICE_KINDS:
+        if not notification_policy.allows_wish_date_preview(notification.kind):
+            return ""
+        start = wish_date_notice.appointment_start(notification)
+        return clock.ensure_utc(start).isoformat() if start is not None else ""
     if notification.kind == NotificationKind.COMMENT_CREATED.value:
         # The parent was reauthorized by for_notification. Read only the exact
         # current comment referenced by this event, never the latest sibling.
@@ -143,3 +154,25 @@ def for_notification(
         ensure_ascii=False,
         separators=(",", ":"),
     )
+
+
+def wish_date_web_push(
+    session: Session, notification: Notification, recipient: Account
+) -> dict[str, str] | None:
+    """Reuse the same authorization and size bounds for encrypted RFC 8291 devices."""
+    if not notification_policy.allows_wish_date_preview(notification.kind):
+        return None
+    encoded = for_notification(session, notification, digest=False, version=2)
+    if encoded is None:
+        return None
+    preview = json.loads(encoded)
+    if not preview["title"] or not preview["body"]:
+        return None
+    locale = account_locale(recipient)
+    name = preview["name"] or text("push.wish_date.partner", locale)
+    return {
+        "kind": preview["kind"],
+        "headline": text(f"push.wish_date.{notification.kind.lower()}", locale, name=name),
+        "title": preview["title"],
+        "appointmentStart": preview["body"],
+    }

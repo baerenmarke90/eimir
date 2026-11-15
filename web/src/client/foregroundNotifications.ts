@@ -1,5 +1,8 @@
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
-import { isPartnerGestureKind } from './partnerGestureReceipt';
+import {
+  isPartnerGestureKind,
+  isWishDateReceiptKind,
+} from './partnerGestureReceipt';
 
 export const NOTIFICATION_WAKE_EVENT = 'eimir:notification-wake';
 
@@ -39,8 +42,14 @@ export function selectArrivedNotification(
   for (const item of items) {
     if (item.readAt || handled.has(notificationArrivalKey(item))) continue;
     if (item.createdAt.getTime() <= notBefore) continue;
+    const wishDate = isWishDateReceiptKind(item.kind);
     if (
-      isPartnerGestureKind(item.kind) &&
+      wishDate &&
+      (!item.appointmentStart || !item.target?.title || item.target.concealed)
+    )
+      continue;
+    if (
+      (wishDate || isPartnerGestureKind(item.kind)) &&
       (item.actorId === accountId || item.actor?.id === accountId)
     )
       continue;

@@ -119,6 +119,14 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
                 '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
             ),
             (
+                ".xml",
+                '<string name="push_wish_date_proposed">%1$s schlägt einen Termin vor</string>',
+            ),
+            (
+                ".xml",
+                '<string name="push_wish_date_countered">%1$s schlägt einen anderen Termin vor</string>',
+            ),
+            (
                 ".java",
                 'assertEquals("Alex hat die Erinnerung „Einkaufen“ erstellt.", body);',
             ),

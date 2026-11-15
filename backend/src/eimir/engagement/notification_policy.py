@@ -13,10 +13,11 @@ from enum import StrEnum
 from types import MappingProxyType
 from uuid import UUID
 
-from eimir.engagement.models import NotificationKind
+from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 11
+POLICY_VERSION = 12
 GENERIC_PRESENTATION_KEY = "notification.generic"
+WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
 
 
@@ -36,9 +37,8 @@ class PushPreviewPolicy:
     presentation_key: str
 
 
-# The current provider contract has one privacy-safe external presentation.
-# Richer previews require an explicit adapter and domain privacy review; a
-# catalog edit alone must never enable them.
+# Generic delivery is the baseline. The shared-Wish proposal exception also
+# requires a compatible encrypted device adapter and an authorized source.
 GENERIC_PREVIEW = PushPreviewPolicy(
     allow_sender_name=False,
     allow_event_category=False,
@@ -46,6 +46,14 @@ GENERIC_PREVIEW = PushPreviewPolicy(
     generic_only=True,
     neutral_lockscreen=True,
     presentation_key=GENERIC_PRESENTATION_KEY,
+)
+WISH_DATE_PREVIEW = PushPreviewPolicy(
+    allow_sender_name=True,
+    allow_event_category=True,
+    allow_title=True,
+    generic_only=False,
+    neutral_lockscreen=False,
+    presentation_key=WISH_DATE_PRESENTATION_KEY,
 )
 
 
@@ -126,6 +134,10 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_REMINDER_DUE: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        **{
+            kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
+            for kind in WISH_DATE_NOTICE_KINDS
+        },
     }
 )
 
@@ -138,10 +150,23 @@ def for_kind(kind: str) -> NotificationPolicy | None:
         return None
 
 
-def presentation_for(kind: str, notification_id: UUID) -> PushPresentation | None:
-    """Allow only the reviewed generic preview at the provider boundary."""
+def allows_wish_date_preview(kind: str) -> bool:
     policy = for_kind(kind)
-    if policy is None or not policy.push_immediately or policy.preview != GENERIC_PREVIEW:
+    return (
+        kind in WISH_DATE_NOTICE_KINDS
+        and policy is not None
+        and policy.preview == WISH_DATE_PREVIEW
+    )
+
+
+def presentation_for(kind: str, notification_id: UUID) -> PushPresentation | None:
+    """Build a reference; reviewed encrypted transports can add device copy."""
+    policy = for_kind(kind)
+    if (
+        policy is None
+        or not policy.push_immediately
+        or (policy.preview != GENERIC_PREVIEW and not allows_wish_date_preview(kind))
+    ):
         return None
     return PushPresentation(
         reference={"id": str(notification_id), "kind": NotificationKind(kind).value},
@@ -190,6 +215,7 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.PLAN_CREATED.value,
         NotificationKind.PARTNER_JOINED.value,
         NotificationKind.WISH_REMINDER_DUE.value,
+        *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 
 

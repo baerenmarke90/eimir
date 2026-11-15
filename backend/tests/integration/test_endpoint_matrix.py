@@ -105,6 +105,11 @@ MILESTONE = {
 }
 COMMENT = {"body": "Matrix Comment"}
 WISH = {"title": "Matrix Wish"}
+WISH_DATE_PROPOSAL_PATH = "/api/v1/spaces/{spaceId}/wishes/{wishId}/date-proposal"
+WISH_DATE_PROPOSAL = {
+    "clientRequestId": str(uuid4()),
+    "plannedStart": (clock.now() + timedelta(days=1)).isoformat(),
+}
 PLAN = {"title": "Matrix Plan", "description": "Text"}
 REMINDER = {
     "title": "Matrix Reminder",
@@ -904,6 +909,33 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/wishes/{wishId}/reminder",
         resource_absence="WISH_NOT_FOUND",
     ),
+    Endpoint("GET", WISH_DATE_PROPOSAL_PATH, resource_absence="WISH_NOT_FOUND"),
+    Endpoint(
+        "POST",
+        WISH_DATE_PROPOSAL_PATH,
+        body=WISH_DATE_PROPOSAL,
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    # A proposal ID is a command version. Wish IDs govern resource absence.
+    Endpoint(
+        "POST",
+        f"{WISH_DATE_PROPOSAL_PATH}/{{proposalId}}/counter",
+        body={
+            "clientRequestId": str(uuid4()),
+            "plannedStart": (clock.now() + timedelta(days=2)).isoformat(),
+        },
+        resource_absence="WISH_NOT_FOUND",
+        placeholders=("wishId",),
+    ),
+    *(
+        Endpoint(
+            "POST",
+            f"{WISH_DATE_PROPOSAL_PATH}/{{proposalId}}/{command}",
+            resource_absence="WISH_NOT_FOUND",
+            placeholders=("wishId",),
+        )
+        for command in ("accept", "decline", "withdraw")
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
     Endpoint(
         "GET",
@@ -1577,6 +1609,15 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
     recap_id = str(uuid4())
     callspec = getattr(request.node, "callspec", None)
     endpoint = callspec.params.get("endpoint") if callspec else None
+    proposal_id = str(uuid4())
+    if endpoint and "{proposalId}" in endpoint.template:
+        proposal = client.post(
+            f"{base_path}/wishes/{wish['id']}/date-proposal",
+            json=WISH_DATE_PROPOSAL,
+            headers=headers,
+        )
+        assert proposal.status_code == 200, proposal.text
+        proposal_id = proposal.json()["proposal"]["id"]
     if endpoint and "/wish-selection" in endpoint.template:
         second_wish = client.post(
             f"{base_path}/wishes", json={"title": "Another Matrix Wish"}, headers=headers
@@ -1632,6 +1673,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "milestoneId": milestone["id"],
             "commentId": comment["id"],
             "wishId": wish["id"],
+            "proposalId": proposal_id,
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",

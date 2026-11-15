@@ -5,6 +5,7 @@ import { fulfillDefaultAppIcon } from './appIcon';
 import { mockEmptyPartnerNickname } from './partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from './photoSources';
 import { fulfillEmptyPlanComments } from './planComments';
+import { fulfillNoWishDateProposal } from './productContext';
 
 /*
  * Mocked API for the Pro date inspiration journey. The catalog response is
@@ -206,6 +207,7 @@ export async function installDateIdeaMocks(
   };
   let sequence = 0;
   await page.route('**/api/v1/**', async (route: Route) => {
+    if (await fulfillNoWishDateProposal(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;

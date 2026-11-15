@@ -588,6 +588,10 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
         "web/src/components/WishReminderAction.tsx",
+        "web/src/components/WishDateProposalAction.tsx",
+        "web/src/components/PartnerGestureReceipt.tsx",
+        "web/src/client/devicePush.ts",
+        "web/src/client/foregroundNotifications.ts",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/TodayPage.tsx"
       ]
@@ -991,6 +995,17 @@
         "web/src/components/StoryYearsPage.tsx"
       ]
     },
+    "activity-navigation-return.spec.ts": {
+      "roots": [
+        "web/src/components/M4ProductPages.tsx",
+        "web/src/components/ActivityCard.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/PlacesOverviewPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SubpageNavigation.tsx",
+        "web/src/client/routes.ts"
+      ]
+    },
     "media-planning-corrections.spec.ts": {
       "roots": [
         "web/src/components/AddAction.tsx",
@@ -1185,6 +1200,7 @@
         "web/src/components/SettingsPage.tsx",
         "web/src/components/SettingsIndex.tsx",
         "web/src/client/calendarSync.ts",
+        "web/src/client/useCalendarGoogleAppReturn.ts",
         "web/src/client/settingsNavigation.ts",
         "web/src/i18n/locales/calendarSync.ts"
       ]

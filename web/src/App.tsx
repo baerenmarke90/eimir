@@ -134,6 +134,7 @@ import {
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
+import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
@@ -349,6 +350,7 @@ function AuthenticatedApp({
   const browserPush = useBrowserPush({
     accountId: account.id,
     apiBaseUrl,
+    spaceId,
     notificationsApi: m4Apis.notifications,
     queryClient,
     openNotification: devicePush.openNotification,
@@ -1182,6 +1184,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
+  useCalendarGoogleAppReturn();
   const [initialStoredSession] = useState(loadStoredSession);
   const [startupLocation] = useState(() => ({
     pathname: location.pathname,

@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session
 
 from eimir.core.ids import new_id
 from eimir.engagement import notification_policy
-from eimir.engagement.models import NotificationChannel, NotificationKind, NotificationPreference
+from eimir.engagement.models import (
+    WISH_DATE_NOTICE_KINDS,
+    NotificationChannel,
+    NotificationKind,
+    NotificationPreference,
+)
 from eimir.identity import effects as account_effects
 
 # Extend existing recipient choices without adding another settings surface.
@@ -30,6 +35,7 @@ INHERITED_KINDS = {
     NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,
     NotificationKind.PLAN_CANCELLED: NotificationKind.REMINDER_DUE,
     NotificationKind.PHOTO_REACTION: NotificationKind.COMMENT_CREATED,
+    **{kind: NotificationKind.REMINDER_DUE for kind in WISH_DATE_NOTICE_KINDS},
 }
 
 

@@ -25,6 +25,10 @@
     <string name="push_reminder_due">A reminder is due.</string>
     <string name="push_reminder_due_title">Your reminder “%2$s” is due.</string>
     <string name="push_wish_reminder_due">You asked to be reminded about a wish.</string>
+    <string name="push_wish_date_proposed">%1$s suggested a date</string>
+    <string name="push_wish_date_countered">%1$s suggested a different date</string>
+    <string name="push_wish_date_accepted">%1$s accepted the date</string>
+    <string name="push_view_wish_date">View suggestion</string>
     <string name="push_shared_moment">%1$s shared a moment with you.</string>
     <string name="push_shared_moment_title">%1$s shared the moment “%2$s” with you.</string>
     <string name="push_plan_created">%1$s scheduled a shared plan.</string>

@@ -38,7 +38,10 @@ export const NotificationKind = {
     PARTNER_KISS: 'PARTNER_KISS',
     PARTNER_CHECK_IN: 'PARTNER_CHECK_IN',
     REMINDER_DUE: 'REMINDER_DUE',
-    WISH_REMINDER_DUE: 'WISH_REMINDER_DUE'
+    WISH_REMINDER_DUE: 'WISH_REMINDER_DUE',
+    WISH_DATE_PROPOSED: 'WISH_DATE_PROPOSED',
+    WISH_DATE_COUNTERED: 'WISH_DATE_COUNTERED',
+    WISH_DATE_ACCEPTED: 'WISH_DATE_ACCEPTED'
 } as const;
 export type NotificationKind = typeof NotificationKind[keyof typeof NotificationKind];
 

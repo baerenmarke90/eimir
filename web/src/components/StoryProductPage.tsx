@@ -91,7 +91,7 @@ import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
-import { RecapEntry } from './RecapEntryLink';
+import { RecapDiscoverLead } from './RecapDiscoverLead';
 import {
   RediscoverySecondaryLine,
   useRediscoveryWording,
@@ -282,15 +282,6 @@ export function StoryProductPage({
 }) {
   const rootIntro = useRootTabIntro('story');
   const { t } = useTranslation();
-  const recapEntry = (
-    <RecapEntry
-      api={recapsApi}
-      mediaApis={apis}
-      account={{ id: accountId }}
-      spaceId={spaceId}
-      onOpen={openDiscoverItem}
-    />
-  );
   const queryClient = useQueryClient();
   const [renewing, setRenewing] = useState(false);
   const [renewProblem, setRenewProblem] = useState<ClientProblemError | null>(
@@ -584,6 +575,18 @@ export function StoryProductPage({
   // paired with a new Dashboard day or presented as today's retrospective.
   const discoverDay = discoverQuery.data?.value.selectionDate;
   const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
+  // #1907 F4: a new monthly recap leads the experiences only until opened,
+  // on the same viewer day and receipt as the Wir invitation.
+  const recapLead = recapsApi ? (
+    <RecapDiscoverLead
+      api={recapsApi}
+      today={dashboardDay ?? new Date()}
+      mediaApis={apis}
+      account={{ id: accountId }}
+      spaceId={spaceId}
+      onOpen={openDiscoverItem}
+    />
+  ) : null;
   const sameSelectionDay =
     discoverDay != null &&
     dashboardDay != null &&
@@ -1005,10 +1008,7 @@ export function StoryProductPage({
               </article>
             ) : null}
 
-            <CoupleExperienceLinks
-              onOpen={openDiscoverItem}
-              extra={recapEntry}
-            />
+            <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
 
             {/* 2. Keepsake / Editorial Tapestry — an asymmetric mixed archive,
               not a fixed-width carousel of equal cards. Column height is the
@@ -1213,7 +1213,7 @@ export function StoryProductPage({
         {activeView === 'discover' &&
         !featuredItem &&
         discoverItems.length === 0 ? (
-          <CoupleExperienceLinks onOpen={openDiscoverItem} extra={recapEntry} />
+          <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
         ) : null}
       </div>
       <div

@@ -214,8 +214,12 @@
 .wir-stage-distance {
   position: absolute;
   top: calc(100% + var(--space-1) + 2 * var(--space-2) + 1.56rem);
-  right: calc(-1 * var(--space-2));
-  left: calc(-1 * var(--space-2));
+  /* Centred on its own line: the words of a range band (#1907 H4) are wider
+     than the gap between the avatars and must not wrap there. */
+  left: 50%;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2 * var(--space-4)));
+  translate: -50% 0;
   display: flex;
   justify-content: center;
   pointer-events: auto;

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "catalogFile": "eimir-date-ideas.v1.json",
-  "catalogVersion": "1.0.0",
+  "catalogVersion": "1.1.0",
   "source": {
     "type": "ai-generated",
     "tool": "OpenAI ImageGen",
@@ -22,16 +22,6 @@
         "en": "Three snacks and two plates on a blanket in a living room."
       },
       "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: In a compact apartment living room, photograph a floor picnic from just above seated eye level. A rust-colored cotton blanket holds two mismatched china plates and three modest snacks: grapes, crackers and apple wedges. Two adults in socks sit cross-legged on opposite sides, partly cropped naturally at the shoulders. Window daylight from one side, crease lines in the blanket and a lived-in sofa behind them. Nothing luxury or styled symmetrically."
-    },
-    "eimir-date-002": {
-      "file": "images/eimir-date-002.webp",
-      "width": 1200,
-      "height": 800,
-      "alt": {
-        "de": "Eine Person probiert mit geschlossenen Augen, vor ihr stehen vier kleine Schälchen.",
-        "en": "One person tastes with their eyes closed beside four small bowls."
-      },
-      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: At a small kitchen table in late morning, an adult with close-cropped hair closes their eyes as they taste a bite with a teaspoon held naturally in their own hand. Their amused partner sits opposite, softly out of focus and resting their hands on the table. Exactly four plain small bowls of familiar bite-sized snacks in the center foreground. Eye-level medium close-up, natural window light, believable fingers and spoon geometry, no blindfold."
     },
     "eimir-date-003": {
       "file": "images/eimir-date-003.webp",
@@ -162,6 +152,16 @@
         "en": "Two people notice a detail on an old doorway on a small town square."
       },
       "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A small, lived-in Central European town square without a famous landmark, with unassuming stucco façades, a water-worn stone threshold and a faded teal door in a recessed archway. Two adults, seen three-quarter from behind at mid-distance, slow down near the door as one turns to show the other a detail on the frame. Include the back of a modest directional arrow farther down the square. Dry late-afternoon light with shade along half the pavement; distinct observational travel snapshot. No tourist props, readable signs, crowds or entrance into private space."
+    },
+    "eimir-date-201": {
+      "file": "images/eimir-date-201.webp",
+      "width": 1200,
+      "height": 800,
+      "alt": {
+        "de": "Eine Person belegt eine frisch gebackene Pizza mit Basilikum, die andere hält das Brett.",
+        "en": "One person adds basil to a freshly baked pizza while the other holds the board."
+      },
+      "prompt": "Use case: photorealistic-natural. Asset: 3:2 landscape editorial photograph for eimir.'s at-home date “Pizza aus dem eigenen Ofen”. An unstaged evening in a small German apartment kitchen: from slightly overhead, show exactly two different normal adult hands finishing a freshly baked small homemade sheet-pan pizza, one holds the wooden board, the other is adding a leaf of basil from a little bowl. Real irregular golden crust and blistering, tomato sauce, mozzarella, mushrooms on only one half. Dark scuffed roasting tray beneath, crumbs, linen tea towel, subdued warm daylight coming from a side window with a little shadow. Authentic lived-in kitchen, not an upmarket staged advert; 35mm documentary photography with subtle natural grain, matte highlights, visible normal textures, tightly framed around food and hands, comfortable uncluttered margins for a center crop. Nothing else suggesting a different dish. No faces, readable text, logos, watermarks, implausible finger anatomy or fake blur."
     }
   },
   "imagesByCategory": {
@@ -250,10 +250,10 @@
       "width": 1200,
       "height": 800,
       "alt": {
-        "de": "Zwei Personen bauen am Tisch einen Turm aus Holzklötzen.",
-        "en": "Two people build a tower of wooden blocks at a table."
+        "de": "Eine Bowlingkugel liegt auf dem Kugelrücklauf vor zwei Bahnen.",
+        "en": "A bowling ball rests on the ball return in front of two lanes."
       },
-      "prompt": "Use case: photorealistic-natural. One original lifestyle photograph for an eimir. date-idea card, horizontal 3:2 frame. Keep the main activity in the central two-thirds with enough margin for a mobile cover crop. Make it feel observed in a real, modest everyday setting: truthful light and shadows, natural texture, slightly imperfect placement, subdued color and plausible depth of field. Any people are adults engaged in the activity, with relaxed body language. No posing for the camera, glamour retouching, exaggerated bokeh, artificial bloom, text overlay, brand marks, border, or collage.\nScene: A casual after-lunch tabletop game at a modest kitchen table, seen at table height from one end. Near the center, a small tower of simple unmarked rectangular unfinished wooden blocks stands with a very slight lean, each block on solid support. An adult carefully lowers one matching light block onto the top with a natural pinch grip from the side. Their partner's amused face is softly visible beyond the tower, focused on the move. Two loose blocks lie flat on the table, with real grain, wear and varied spacing. Soft afternoon daylight, close enough to understand the activity immediately, no print, numbers, recognizable brand or over-staged symmetry."
+      "prompt": "Use case: photorealistic-natural. Asset: 3:2 landscape category cover editorial photograph for eimir.'s “Ausgehen & Freizeit”. Candid real-world adult leisure: a single dark teal bowling ball with exactly three finger holes in the lower middle, on a scuffed ball return at a modest neighborhood bowling alley in Germany. Beyond are two correctly aligned amber wood lanes and pins, softly out of focus in the distance, an empty pair of unbranded rental shoes beside a low bench at left, subdued late afternoon ambient lighting. Shot chest-height from the bench, not symmetrical, 35mm normal focal length, faint natural grain, practical light reflected in polished boards, film-like but not orange tinted. Modest, familiar, quietly inviting. Crop-safe primary ball near center. No people required, no glowing neon, no signs, no readable text, no logos, no watermarks, no staged stock aesthetic."
     },
     "relaxation": {
       "file": "images/category-relaxation.webp",

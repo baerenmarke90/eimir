@@ -23,6 +23,68 @@ const games = {
       title: 'Wer von euch?',
       description: 'Vergleicht spielerisch eure Sicht auf euch beide.',
     },
+    paarMinutes: {
+      role: 'Loslegen',
+      title: 'Paar Minuten',
+      description: 'Kleine Spiele für zwischendurch. Ein Handy reicht.',
+    },
+  },
+  paarMinutes: {
+    back: 'Zurück zu Spielen',
+    progress: '{{current}} von {{total}} · {{minutes}} Min.',
+    materials: 'Ihr braucht: {{items}}',
+    next: 'Nächste Karte',
+    restart: 'Zur ersten Karte',
+    cards: {
+      invented: {
+        title: 'Eine ist erfunden',
+        items: 'nichts',
+        rules:
+          'Erzähl drei Dinge über dich: Zwei stimmen, eins ist erfunden. Die andere Person rät, was du dir ausgedacht hast. Danach tauscht ihr die Rollen.',
+      },
+      wrongNumber: {
+        title: 'Falsch verbunden',
+        items: 'nichts',
+        rules:
+          'Stell schnelle Fragen wie „Was steht im Kühlschrank?“ Die Antwort muss völlig unpassend sein, etwa „Ein Ruderboot!“ Nach drei Fragen tauscht ihr die Rollen.',
+      },
+      missing: {
+        title: 'Was fehlt?',
+        items: 'fünf kleine Gegenstände',
+        rules:
+          'Legt fünf Dinge vor euch. Eine Person prägt sie sich ein und dreht sich um. Die andere nimmt ein Teil weg. Ratet, was fehlt, und tauscht dann die Rollen.',
+      },
+      doodle: {
+        title: 'Mach mein Gekritzel fertig',
+        items: 'Papier und einen Stift',
+        rules:
+          'Kritzel drei Linien oder Formen aufs Papier. Die andere Person macht daraus ein Bild. Erzählt euch, was ihr in den Formen gesehen habt, und tauscht die Rollen.',
+      },
+      story: {
+        title: 'Ein Satz von dir',
+        items: 'nichts',
+        rules:
+          'Beginnt mit „Im Brief stand nur: Komm allein.“ Ergänzt abwechselnd je einen Satz. Wenn ihr beide dreimal dran wart, findet gemeinsam ein Ende.',
+      },
+      mime: {
+        title: 'Ganz ohne Worte',
+        items: 'nichts',
+        rules:
+          'Spiel stumm etwas Alltägliches vor, zum Beispiel eine Orange schälen oder nasse Socken ausziehen. Die andere Person rät, was du darstellst. Dann wechselt ihr.',
+      },
+      lastStone: {
+        title: 'Der letzte Stein',
+        items: 'zwölf Münzen, Steine oder getrocknete Bohnen',
+        rules:
+          'Legt alle zwölf Teile aus. Nehmt abwechselnd eins, zwei oder drei weg. Wer das letzte nimmt, gewinnt. In der nächsten Runde beginnt die andere Person.',
+      },
+      blindTaste: {
+        title: 'Was war das für ein Bissen?',
+        items: 'drei vertraute Snacks',
+        rules:
+          'Sucht die Snacks zusammen aus und prüft die Zutaten. Eine Person schaut weg, während die andere ihr ein kleines Stück anbietet. Ratet, was es war, und tauscht, wenn ihr beide mögt.',
+      },
+    },
   },
   momentsGame: {
     back: 'Zurück zu Spielen',

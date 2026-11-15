@@ -99,6 +99,15 @@
         "$ref": "#/$defs/idea"
       },
       "description": "Exactly 200 ideas in v1. Imports must also check ID uniqueness across items."
+    },
+    "retiredIdeaIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^eimir-date-(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$"
+      },
+      "description": "Permanent record of retired idea IDs. Include every previously retired ID and every ID removed by this revision. Active ideas must not reuse these IDs."
     }
   },
   "required": [
@@ -140,7 +149,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^eimir-date-(00[1-9]|0[1-9][0-9]|1[0-9]{2}|200)$",
+          "pattern": "^eimir-date-(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",
           "description": "Persistent editorial identifier. Keep it stable across locales, copy edits and reordering. Never use it as a Wish or Plan ID or assign it to a different idea."
         },
         "minutes": {

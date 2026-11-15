@@ -67,12 +67,16 @@ collection, not a record table.
   only; one Space grant serves both partners. No new check on Wish or Plan
   endpoints. The catalog is never a public or bundled client asset.
 - Catalog: the editorial handoff `eimir-date-ideas.v1.json` (200 ideas, de/en,
-  `catalogVersion` 1.0.0) is stored verbatim as
+  `catalogVersion` 1.1.0) is stored verbatim as
   `backend/src/eimir/date_ideas/data/catalog.json`. Its format is the editorial
   [JSON Schema](../date-inspiration/catalog.schema.json); the Pydantic models
-  mirror it and additionally require unique IDs. `backend/scripts/date_ideas_catalog.py validate|import`
-  re-checks any revision and rejects files that would drop a persistent ID.
-  IDs stay stable across translations, copy edits and reordering.
+  mirror it and additionally require unique active IDs and no overlap with
+  `retiredIdeaIds`. IDs stay stable across translations, copy edits and reordering.
+  Replacing an activity requires an unused ID; the previous ID is retired,
+  with no automatic remap. `backend/scripts/date_ideas_catalog.py validate|import`
+  rejects undeclared removals and requires the existing retirement list to be
+  carried forward. A missing catalog reference must stay missing. A Wish or Plan
+  that already copied the text remains ordinary couple content.
 - Filters: category, `maxMinutes` and `maxBudget` as inclusive upper bounds
   (presets 20/30/45/60 minutes, free/5/10/20 EUR; 0 EUR means free) and place
   home/out, where no place filter means anywhere. All combine with AND.
@@ -98,6 +102,32 @@ collection, not a record table.
   client removes cached catalog responses as soon as the capability is absent
   or denied; Space changes and sign-out clear the query cache, and the page
   remounts per Account/Space.
+
+## Editorial standard
+
+Suggest time a couple would choose to spend together: a meal they make or go
+out for, a short outing with a real destination, or an activity that produces
+something they want to keep or do again. Give one clear starting point or
+reason to choose it. Conversation can happen naturally during the date;
+scavenger tasks and quick turn-taking games belong in Games.
+
+Estimates cover one date from a nearby starting point, for two people. Include
+setup, cleanup, travel to nearby venues, entry and waiting where they matter.
+Indicate when a short slot, equipment the couple already owns, a free event
+or an off-peak tariff is essential. The euro amounts are planning estimates,
+not quotes. Do not suggest a venue that requires longer stays or higher prices
+as a fit. The existing `play` category key now labels outings and leisure
+activities, such as a nearby bowling lane or minigolf course.
+
+Examples used to check that the conditions can be met include
+[off-peak bowling with shoe rental](https://www.bowlforfun.de/preise/),
+[free lunch concerts](https://www.berliner-philharmoniker.de/leichte-sprache/kostenlose-konzerte-in-der-philharmonie/),
+[pick-your-own strawberry prices](https://erdbeeren-hannover.de/selbstpfluecken/),
+[a walk-in ceramics workshop priced per piece](https://www.toepferkurse-becker.de/WordPress/keramik-mal-werkstatt/),
+[municipal sauna prices](https://www.seckach.de/freizeit-tourismus/freizeiteinrichtungen/hallenbad),
+and [public park facilities](https://stadt.muenchen.de/infos/muenchner-parks-gruenanlagen.html).
+These references inform the editorial estimates; they are not required
+destinations or runtime providers.
 
 ## Reuse review
 

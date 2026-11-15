@@ -35,6 +35,21 @@ async function expectSecondaryProIcons(page: Page) {
   }
 }
 
+async function mockProGames(page: Page) {
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/entitlements`, (route) =>
+    route.fulfill({
+      json: {
+        spaceId: SPACE_ID,
+        tier: 'PREMIUM',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: ['games.couple'],
+      },
+    }),
+  );
+}
+
 async function exerciseMapTouchOwnership(page: Page, tiles: MapTileMock) {
   const sheet = page.getByRole('dialog', { name: mapCopy.title });
   const map = sheet.locator('.place-map-viewport');
@@ -484,22 +499,11 @@ test('map entitlement denial explains Pro without loading external tiles', async
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
 
-test('three Pro games retain their existing independent home', async ({
+test('existing Pro games keep their home alongside Paar Minuten', async ({
   page,
 }, info) => {
   await installMocks(page);
-  await page.route(`**/api/v1/spaces/${SPACE_ID}/entitlements`, (route) =>
-    route.fulfill({
-      json: {
-        spaceId: SPACE_ID,
-        tier: 'PREMIUM',
-        status: 'ACTIVE',
-        effectiveUntil: null,
-        isInGracePeriod: false,
-        capabilities: ['games.couple'],
-      },
-    }),
-  );
+  await mockProGames(page);
   await page.route(`**/api/v1/spaces/${SPACE_ID}`, (route) =>
     route.fulfill({
       json: {
@@ -514,19 +518,112 @@ test('three Pro games retain their existing independent home', async ({
   await signIn(page);
   await page.goto('/games');
   await expect(page.locator('.games-entry-status')).toHaveText(
-    Array(3).fill(gameCopy.status.playNow),
+    Array(4).fill(gameCopy.status.playNow),
+  );
+  await expect(page.locator('.games-shelf h2')).toHaveText(
+    Object.values(gameCopy.entries).map((entry) => entry.title),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {
-    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.evaluate(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight });
+  });
+  await captureScreenshot(page, info, 'games-390-light-scrolled.png', {
+    animations: 'disabled',
   });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ colorScheme: 'dark' });
   await captureScreenshot(page, info, 'games-1280-dark.png', {
     fullPage: true,
+    animations: 'disabled',
   });
   await page.setViewportSize({ width: 390, height: 844 });
 });
+
+for (const [width, theme] of [
+  [320, 'light'],
+  [360, 'light'],
+  [390, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`Paar Minuten opens, advances and returns at ${width}px ${theme}`, async ({
+    page,
+  }, info) => {
+    await installMocks(page);
+    await mockProGames(page);
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await signIn(page);
+    await page.goto('/games');
+    const open = page.getByRole('button', {
+      name: new RegExp(gameCopy.entries.paarMinutes.title),
+    });
+    await expect(open).toBeVisible();
+    if (width === 320) {
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
+    }
+    await open.click();
+
+    const deck = gameCopy.paarMinutes;
+    const card = page.getByRole('region', { name: deck.cards.invented.title });
+    const next = page.getByRole('button', { name: deck.next });
+    await expect(card.getByText(deck.cards.invented.rules)).toBeVisible();
+    await expect(card.getByRole('heading')).toBeFocused();
+    await expect(
+      page.locator('.subpage-back-slot .task-back-control'),
+    ).toHaveCount(1);
+    const fits = await page
+      .locator('.paar-minutes-game')
+      .evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        return (
+          bounds.left >= 0 &&
+          bounds.right <= window.innerWidth &&
+          element.scrollWidth <= element.clientWidth + 1
+        );
+      });
+    expect(fits).toBe(true);
+    expect((await next.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    await captureScreenshot(page, info, `paar-minuten-${width}-${theme}.png`, {
+      animations: 'disabled',
+    });
+    if (width === 320) {
+      await next.scrollIntoViewIfNeeded();
+      await captureScreenshot(page, info, 'paar-minuten-320-light-action.png', {
+        animations: 'disabled',
+      });
+    }
+
+    await next.press('Enter');
+    await expect(
+      page.getByRole('heading', { name: deck.cards.wrongNumber.title }),
+    ).toBeFocused();
+
+    if (width === 390 && theme === 'light') {
+      const axe = await new AxeBuilder({ page })
+        .include('.paar-minutes-game')
+        .analyze();
+      expect(axe.violations).toEqual([]);
+      for (const rules of Object.values(deck.cards).slice(2)) {
+        await next.click();
+        await expect(
+          page.getByRole('heading', { name: rules.title }),
+        ).toBeFocused();
+      }
+      await page.getByRole('button', { name: deck.restart }).click();
+      await expect(card.getByRole('heading')).toBeFocused();
+    }
+
+    await page.getByRole('button', { name: deck.back }).click();
+    await expect(open).toBeFocused();
+  });
+}
 
 for (const kind of ['happiness', 'timeTravel'] as const) {
   for (const [width, theme] of [

@@ -3039,6 +3039,60 @@
         "role": "Discover",
         "title": "Which of you?",
         "description": "Playfully compare how you see the two of you."
+      },
+      "paarMinutes": {
+        "role": "Get playing",
+        "title": "A Few for Two",
+        "description": "Quick games for two. One phone is enough."
+      }
+    },
+    "paarMinutes": {
+      "back": "Back to Games",
+      "progress": "{{current}} of {{total}} · {{minutes}} min",
+      "materials": "You'll need: {{items}}",
+      "next": "Next card",
+      "restart": "Back to the first card",
+      "cards": {
+        "invented": {
+          "title": "One is made up",
+          "items": "nothing",
+          "rules": "Tell your partner three things about yourself: two are true and one is made up. They guess which one you invented. Then swap roles."
+        },
+        "wrongNumber": {
+          "title": "Wrong answers only",
+          "items": "nothing",
+          "rules": "Ask quick questions like “What’s in the fridge?” Your partner answers with something that makes no sense, like “A rowing boat!” Swap roles after three questions."
+        },
+        "missing": {
+          "title": "What's missing?",
+          "items": "five small objects",
+          "rules": "Set out five small things you can find nearby. One of you takes a good look and turns away while the other removes one. Guess what’s missing, then swap roles."
+        },
+        "doodle": {
+          "title": "Finish my doodle",
+          "items": "paper and a pen",
+          "rules": "Draw three random lines or shapes. Pass the paper over and let your partner turn them into a picture. Show each other what you saw in the shapes, then swap roles."
+        },
+        "story": {
+          "title": "One sentence each",
+          "items": "nothing",
+          "rules": "Start with “A letter arrived with one instruction: come alone.” Take turns adding a sentence. When you’ve both had three turns, find an ending together."
+        },
+        "mime": {
+          "title": "Silent scenes",
+          "items": "nothing",
+          "rules": "Act out something ordinary without speaking, like peeling an orange or taking off wet socks. Your partner guesses what it is. Then swap roles."
+        },
+        "lastStone": {
+          "title": "The last stone",
+          "items": "12 coins, stones, or dried beans",
+          "rules": "Set out all 12 pieces. Take turns removing one, two, or three. Whoever takes the last piece wins. In the next round, let the other person go first."
+        },
+        "blindTaste": {
+          "title": "What’s that bite?",
+          "items": "three familiar snacks",
+          "rules": "Agree on the snacks first and check the ingredients. One of you looks away or closes their eyes while the other offers a small piece. Guess which one it was, then swap if you both want to."
+        }
       }
     },
     "momentsGame": {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
@@ -15,6 +15,7 @@ import {
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { PaarMinutesGamePanel } from './PaarMinutesGamePanel';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -22,9 +23,16 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
+const GAME_ENTRIES = {
+  moments: 'foto',
+  wishes: 'wuensche',
+  perspective: 'gemeinsam',
+  paarMinutes: 'sparkle',
+} as const satisfies Record<string, EimirIconName>;
 
-type GameEntry = (typeof GAME_ENTRIES)[number];
+type GameEntry = keyof typeof GAME_ENTRIES;
+type LocalGame = 'perspective' | 'paarMinutes';
+const gameEntries = Object.keys(GAME_ENTRIES) as GameEntry[];
 
 function gameRoute(entry: GameEntry): string | null {
   if (entry === 'moments') return GAMES_MOMENTS_ROUTE;
@@ -50,9 +58,11 @@ export function GamesProductArea({
   >;
 }) {
   const { t } = useTranslation();
-  const [activeLocalGame, setActiveLocalGame] = useState<'perspective' | null>(
+  const [activeLocalGame, setActiveLocalGame] = useState<LocalGame | null>(
     null,
   );
+  const quickGameEntry = useRef<HTMLButtonElement>(null);
+  const restoreQuickGameFocus = useRef(false);
   const entitlementApi = useMemo(
     () =>
       new EntitlementsApi(
@@ -77,6 +87,26 @@ export function GamesProductArea({
   const gamesUnlocked = Boolean(
     entitlementQuery.data?.capabilities.includes(GAMES_COUPLE_CAPABILITY),
   );
+
+  useLayoutEffect(() => {
+    if (activeLocalGame === null && restoreQuickGameFocus.current) {
+      restoreQuickGameFocus.current = false;
+      quickGameEntry.current?.focus();
+    }
+  }, [activeLocalGame]);
+
+  if (gamesUnlocked && activeLocalGame === 'paarMinutes') {
+    return (
+      <div className="page games-product-page">
+        <PaarMinutesGamePanel
+          onExit={() => {
+            restoreQuickGameFocus.current = true;
+            setActiveLocalGame(null);
+          }}
+        />
+      </div>
+    );
+  }
 
   if (gamesUnlocked && activeLocalGame === 'perspective') {
     return (
@@ -119,24 +149,18 @@ export function GamesProductArea({
         />
       ) : (
         <section className="games-shelf" aria-label={t('games.title')}>
-          {GAME_ENTRIES.map((entry, index) => {
+          {gameEntries.map((entry) => {
             const route = gamesUnlocked ? gameRoute(entry) : null;
-            const localGameAvailable = gamesUnlocked && entry === 'perspective';
-            const playable = Boolean(route || localGameAvailable);
+            const localGame =
+              gamesUnlocked &&
+              (entry === 'perspective' || entry === 'paarMinutes')
+                ? entry
+                : null;
+            const playable = Boolean(route || localGame);
             const content = (
               <>
                 <div className="games-entry-index" aria-hidden="true">
-                  <EimirIcon
-                    name={
-                      (
-                        [
-                          'foto',
-                          'wuensche',
-                          'gemeinsam',
-                        ] satisfies EimirIconName[]
-                      )[index]
-                    }
-                  />
+                  <EimirIcon name={GAME_ENTRIES[entry]} />
                 </div>
                 <div className="games-entry-copy">
                   <p className="games-entry-role">
@@ -167,15 +191,14 @@ export function GamesProductArea({
               );
             }
 
-            if (localGameAvailable) {
+            if (localGame) {
               return (
                 <button
                   type="button"
                   className="games-entry games-entry-link games-entry-button"
                   key={entry}
-                  onClick={() => {
-                    if (entry === 'perspective') setActiveLocalGame(entry);
-                  }}
+                  ref={entry === 'paarMinutes' ? quickGameEntry : undefined}
+                  onClick={() => setActiveLocalGame(localGame)}
                 >
                   {content}
                 </button>

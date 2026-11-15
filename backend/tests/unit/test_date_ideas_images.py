@@ -60,7 +60,7 @@ def test_lookup_prefers_the_idea_image_then_the_category_image() -> None:
         ),
         lambda d: d["imagesByIdeaId"]["eimir-date-001"]["alt"].pop("en"),
         lambda d: d["imagesByIdeaId"]["eimir-date-001"].update(file="../secret.webp"),
-        lambda d: d["imagesByIdeaId"]["eimir-date-002"].update(
+        lambda d: d["imagesByIdeaId"]["eimir-date-201"].update(
             file=d["imagesByIdeaId"]["eimir-date-001"]["file"]
         ),
         lambda d: d.update(lookupOrder=["category", "ideaId"]),

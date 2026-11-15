@@ -100,9 +100,12 @@ def test_bundled_catalog_is_the_valid_editorial_handoff() -> None:
     assert _schema_errors(data, SCHEMA) == []
     catalog = get_catalog()
     assert catalog.version == data["catalogVersion"]
-    ids = [idea.id for idea in catalog.data.ideas]
-    assert len(ids) == len(set(ids)) == IDEA_COUNT
-    assert ids == [f"eimir-date-{n:03d}" for n in range(1, IDEA_COUNT + 1)]
+    active = {idea.id for idea in catalog.data.ideas}
+    retired = set(catalog.data.retired_idea_ids)
+    first_edition = {f"eimir-date-{n:03d}" for n in range(1, IDEA_COUNT + 1)}
+    assert len(active) == IDEA_COUNT
+    assert active.isdisjoint(retired)
+    assert first_edition <= active | retired
 
 
 def test_models_mirror_the_handoff_schema_limits() -> None:
@@ -118,7 +121,9 @@ def test_models_mirror_the_handoff_schema_limits() -> None:
     "mutate",
     [
         lambda d: d["ideas"][1].update(id=d["ideas"][0]["id"]),
-        lambda d: d["ideas"][0].update(id="eimir-date-201"),
+        lambda d: d["ideas"][0].update(id="eimir-date-000"),
+        lambda d: d["ideas"][0].update(id="eimir-date-1000"),
+        lambda d: d["retiredIdeaIds"].append(d["retiredIdeaIds"][0]),
         lambda d: d["ideas"][0].update(minutes=61),
         lambda d: d["ideas"][0].update(minutes=0),
         lambda d: d["ideas"][0].update(budgetEurForTwo=21),
@@ -218,3 +223,10 @@ def test_removed_ids_are_detected_for_import() -> None:
     reordered = _bundled()
     reordered["ideas"].reverse()
     assert removed_idea_ids(previous, parse_catalog(json.dumps(reordered))) == []
+
+
+def test_an_active_idea_cannot_reuse_a_retired_identifier() -> None:
+    data = _bundled()
+    data["ideas"][0]["id"] = data["retiredIdeaIds"][0]
+    with pytest.raises(ValidationError, match=r"retired idea id .* cannot be active"):
+        parse_catalog(json.dumps(data))

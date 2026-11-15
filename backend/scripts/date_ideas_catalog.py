@@ -10,7 +10,8 @@ Usage (from ``backend/``):
 ``validate`` checks one file against the catalog models, which mirror the
 editorial JSON Schema (``docs/product/date-inspiration/catalog.schema.json``)
 and additionally require unique idea IDs. It also compares the file with the
-bundled catalog: persistent idea IDs must never disappear. ``import`` runs the
+bundled catalog: removed IDs must be explicitly retired and the retirement
+list must retain all earlier IDs. ``import`` runs the
 same checks and then copies the file byte for byte to the bundled location
 (``src/eimir/date_ideas/data/catalog.json``), so the repository keeps exactly
 the editorial handoff.
@@ -98,10 +99,16 @@ def main(argv: list[str] | None = None) -> int:
         sys.stderr.write(f"error: {args.path} is not a valid catalog\n{error}\n")
         return 1
     if BUNDLED.exists() and BUNDLED.resolve() != args.path.resolve():
-        dropped = removed_idea_ids(parse_catalog(BUNDLED.read_bytes()), candidate)
-        if dropped:
+        previous = parse_catalog(BUNDLED.read_bytes())
+        required_retirements = set(previous.retired_idea_ids) | set(
+            removed_idea_ids(previous, candidate)
+        )
+        missing_retirements = sorted(required_retirements - set(candidate.retired_idea_ids))
+        if missing_retirements:
             sys.stderr.write(
-                "error: persistent idea IDs would disappear: " + ", ".join(dropped) + "\n"
+                "error: persistent idea IDs would disappear without retirement: "
+                + ", ".join(missing_retirements)
+                + "\n"
             )
             return 1
 

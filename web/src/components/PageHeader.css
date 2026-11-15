@@ -49,7 +49,9 @@
   margin: 0;
   font: var(--font-subpage-title);
   letter-spacing: var(--tracking-subpage-title);
-  overflow-wrap: anywhere;
+  /* Hyphenate long words before breaking them anywhere (320 px, 200 %). */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* Align the first title line with the centre of the Back control. */
@@ -80,7 +82,10 @@
 }
 
 .page-heading-item-label {
+  min-inline-size: 0;
   margin: 0;
+  overflow-wrap: break-word;
+  hyphens: auto;
   color: var(--color-text-secondary);
   font: var(--font-supporting-copy);
   letter-spacing: 0.06em;

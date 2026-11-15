@@ -1215,6 +1215,22 @@
         "web/src/client/usePhotoSources.ts",
         "web/src/client/photoSources.ts"
       ]
+    },
+    "occasion-memory-mark.spec.ts": {
+      "roots": [
+        "web/src/client/occasionMatches.ts",
+        "web/src/client/useSpaceOccasions.ts",
+        "web/src/client/authorSummaryConsumers.ts",
+        "web/src/components/OccasionMark.tsx",
+        "web/src/components/OccasionMark.css",
+        "web/src/components/StoryList.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanningOccasions.tsx",
+        "web/src/i18n/locales/occasionMarks.ts"
+      ]
     }
   }
 }

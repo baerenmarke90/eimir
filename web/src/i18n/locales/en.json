@@ -5306,5 +5306,16 @@
       "paused": "Calendar sync paused",
       "review": "View"
     }
+  },
+  "occasionMarks": {
+    "anniversary_ordinal_one": "On your {{count}}st anniversary",
+    "anniversary_ordinal_two": "On your {{count}}nd anniversary",
+    "anniversary_ordinal_few": "On your {{count}}rd anniversary",
+    "anniversary_ordinal_other": "On your {{count}}th anniversary",
+    "relationshipStart": "On the day it all began",
+    "ownBirthday": "On your birthday",
+    "partnerBirthday": "On {{name}}'s birthday",
+    "more_one": "and one more occasion",
+    "more_other": "and {{count}} more occasions"
   }
 }

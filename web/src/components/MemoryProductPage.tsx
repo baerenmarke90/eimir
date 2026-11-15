@@ -36,6 +36,7 @@ import {
   memoryUpdatePayload,
 } from '../client/memoryProduct';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { occasionsOn } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -60,6 +61,7 @@ import {
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
 import { orderedPhotoKeys } from '../client/useOrderedPhotoDrafts';
+import { useSpaceOccasions } from '../client/useSpaceOccasions';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
@@ -88,6 +90,7 @@ import { MomentDate } from './MomentDate';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
 import { NativeDateInput } from './NativeDateField';
+import { OccasionMark } from './OccasionMark';
 import { ComposerTool, ComposerToolRow } from './PageComposer';
 import { PageHeader } from './PageHeader';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
@@ -180,6 +183,7 @@ export function MemoryProductPage({
     }) > 0;
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
+  const occasions = useSpaceOccasions(spaceId, currentAccountId);
   const deleteKey = [
     'memory-delete',
     currentAccountId,
@@ -1257,6 +1261,17 @@ export function MemoryProductPage({
     nicknameFor,
   );
 
+  const occasionMark = (
+    <OccasionMark
+      matches={occasionsOn(
+        memory.happenedOn,
+        memory.happenedUntil,
+        occasions,
+        resolvedLocale(),
+      )}
+      revealKey={`memory:${memory.id}`}
+    />
+  );
   const dateContext = (
     <MomentDate
       dateTime={
@@ -1358,7 +1373,10 @@ export function MemoryProductPage({
       }
       titleContext={
         memory.experienceKind && !hasAuthoredTitle ? (
-          <div className="moment-metadata">{placeContext}</div>
+          <>
+            <div className="moment-metadata">{placeContext}</div>
+            {occasionMark}
+          </>
         ) : undefined
       }
       metadata={
@@ -1373,6 +1391,7 @@ export function MemoryProductPage({
               {dateContext}
               {placeContext}
             </div>
+            {occasionMark}
           </div>
         ) : undefined
       }

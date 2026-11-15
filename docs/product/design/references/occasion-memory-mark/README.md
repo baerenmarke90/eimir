@@ -35,3 +35,23 @@ icon's accent stroke gives one soft pulse and the line fades in
 movement). It never loops and never delays reading or interaction. With
 reduced motion the line is simply present, without movement, with the same
 text and semantics.
+
+## Product Owner decision (2026-11-15)
+
+Approved with one change: birthdays and other dates of related people are not
+marked, because a date match alone does not mean the moment concerns that
+person. A deliberate memory–person link is parked in #1918. The partner's
+birthday shown in `04-timeline-birthday-390-light.jpg` remains in scope.
+
+## Implementation evidence
+
+Captured by `web/e2e/tests/occasion-memory-mark.spec.ts` with
+`OCCASION_MARK_EVIDENCE=1` (reduced motion, animations disabled):
+
+- `20-impl-timeline-390-light.jpg`: anniversary and partner birthday on the
+  Timeline; a private date and a person-linked date on the hike's day leave
+  that card unmarked.
+- `21-impl-detail-390-light.jpg`: the same line in the memory detail.
+- `22-impl-timeline-390-dark.jpg`, `22-impl-timeline-360-light-large.jpg`
+  (200 % root font size, the line wraps), `22-impl-timeline-1280-light.jpg`
+  (Expanded, same card system).

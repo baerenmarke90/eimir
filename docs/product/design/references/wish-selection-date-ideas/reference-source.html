@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e5ebf8; --surface: #f1f5fd; --surface-strong: #dbe3f6; --text: #19213a;
+    --muted: #59627a; --brand: #2f55b7; --brand-text: #2a4fae; --tint: #e9dcf4;
+    --rose: #b4507a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #cfd6e6; font-family: "Instrument Sans", system-ui, sans-serif; color: var(--text); }
+  .board { display: flex; gap: 28px; padding: 28px; align-items: flex-start; }
+  .label { font: 600 15px/1.3 "Instrument Sans"; color: #3b4560; margin: 0 0 10px 4px; }
+  .phone { width: 390px; height: 844px; background: var(--bg); border-radius: 28px; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgb(20 30 60 / 18%); }
+  .screen { padding: 22px 20px 120px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .screen * { min-width: 0; overflow-wrap: anywhere; }
+  .back { font: 600 15px "Instrument Sans"; color: var(--muted); padding: 10px 0 6px 18px; }
+  .eyebrow { font: 700 12px/1 "Instrument Sans"; letter-spacing: .08em; color: var(--brand-text); text-transform: uppercase; }
+  h1 { font: 700 27px/1.15 Literata, serif; margin: 0; }
+  h2 { font: 700 21px/1.2 Literata, serif; margin: 0; }
+  .intro { font: 400 15px/1.45 "Instrument Sans"; color: var(--muted); margin: 0; }
+  .support { font: 400 13px/1.4 "Instrument Sans"; color: var(--muted); margin: 0; }
+  .field span { display: block; font: 500 14px "Instrument Sans"; margin-bottom: 6px; }
+  .field div { background: var(--surface); border-radius: 14px; padding: 13px 14px; font-size: 15px; }
+  .tray { display: grid; gap: 6px; }
+  .tray-item { display: flex; align-items: center; gap: 10px; font: 500 14px "Instrument Sans"; padding: 4px 0; }
+  .src { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; background: var(--surface-strong); color: var(--brand-text); flex: none; }
+  .src.idea { background: var(--tint); color: #7a3f9a; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-strong); border-radius: 999px; padding: 4px; }
+  .seg div { text-align: center; padding: 10px 6px; border-radius: 999px; font: 600 14px "Instrument Sans"; color: var(--muted); }
+  .seg .on { background: var(--surface); color: var(--brand-text); box-shadow: 0 1px 3px rgb(0 0 0 / 8%); }
+  .pro { display: inline-block; font: 700 10px/1 "Instrument Sans"; letter-spacing: .06em; color: #7a3f9a; background: var(--tint); padding: 4px 6px; border-radius: 6px; margin-left: 4px; vertical-align: 1px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pills div { padding: 8px 12px; border-radius: 999px; font: 600 13px "Instrument Sans"; color: var(--muted); }
+  .pills .on { background: var(--surface); color: var(--brand-text); }
+  .idea { display: grid; grid-template-columns: 92px 1fr; gap: 12px; background: var(--surface); border-radius: 18px; padding: 10px; align-items: center; }
+  .idea img { width: 92px; height: 92px; object-fit: cover; border-radius: 12px; }
+  .cat { font: 500 12px "Instrument Sans"; color: var(--muted); margin: 0 0 2px; }
+  .idea h3 { font: 700 16px/1.25 Literata, serif; margin: 0 0 4px; }
+  .facts { font: 400 12px "Instrument Sans"; color: var(--muted); margin: 0 0 8px; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; font: 600 13px "Instrument Sans"; background: var(--surface-strong); color: var(--brand-text); }
+  .toggle.on { background: var(--brand); color: #fff; }
+  .btn { background: var(--brand); color: #fff; border-radius: 14px; padding: 14px; text-align: center; font: 600 16px "Instrument Sans"; }
+  .btn.pill { border-radius: 999px; }
+  .btn.secondary { background: var(--surface-strong); color: var(--brand-text); }
+  .tertiary { text-align: center; font: 600 15px "Instrument Sans"; color: var(--muted); padding: 8px; }
+  .private { display: flex; gap: 8px; align-items: center; font: 400 14px "Instrument Sans"; color: var(--muted); }
+  .choice { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; background: var(--surface); border-radius: 18px; padding: 14px 16px; font: 500 16px "Instrument Sans"; }
+  .choice.idea-choice { grid-template-columns: auto 64px 1fr; padding: 10px 14px; }
+  .choice img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; }
+  .choice.checked { background: #dfe6f8; }
+  .box { width: 22px; height: 22px; border-radius: 5px; border: 2px solid #454f68; display: grid; place-items: center; color: #fff; font-size: 14px; }
+  .checked .box { background: #213a86; border-color: #213a86; }
+  .choice small { display: block; font: 400 12px "Instrument Sans"; color: var(--muted); margin-top: 2px; }
+  .result { background: var(--surface); border-radius: 22px; overflow: hidden; }
+  .result img { width: 100%; height: 170px; object-fit: cover; display: block; }
+  .result .body { padding: 16px 18px 18px; display: grid; gap: 10px; }
+  .result h2 { font-size: 26px; }
+  .source { display: flex; gap: 8px; align-items: center; font: 400 14px "Instrument Sans"; color: var(--muted); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .nav { position: absolute; bottom: 0; left: 0; right: 0; height: 74px; background: #eef2fb; display: grid; grid-template-columns: repeat(4, 1fr); align-items: center; text-align: center; font: 600 12px "Instrument Sans"; color: #3b4560; }
+  .nav .on { background: #dbe4fa; border-radius: 16px; margin: 6px; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div>
+    <p class="label">1 · Zusammenstellen: Wünsche + Date-Ideen (Pro)</p>
+    <div class="phone">
+      <div class="back">Zurück</div>
+      <div class="screen">
+        <h1>Was kommt in die Auswahl?</h1>
+        <p class="intro">Nehmt zwei bis fünf Ideen, auf die ihr gerade neugierig seid.</p>
+        <div class="tray">
+          <p class="support">In der Auswahl · 3 von höchstens 5</p>
+          <div class="tray-item"><span class="src">♡</span>Gemeinsam ans Meer fahren</div>
+          <div class="tray-item"><span class="src">♡</span>Neues Restaurant ausprobieren</div>
+          <div class="tray-item"><span class="src idea">★</span>Picknick im Wohnzimmer</div>
+        </div>
+        <div class="seg"><div>Unsere Wünsche</div><div class="on">Date-Ideen <span class="pro">PRO</span></div></div>
+        <div class="pills"><div class="on">Alle</div><div>Essen &amp; Trinken</div><div>Kreativ werden</div><div>Natur</div><div>⚲ Dauer, Budget, Ort</div></div>
+        <div class="idea"><img src="category-food_drink.webp" alt=""><div><p class="cat">Essen &amp; Trinken</p><h3>Picknick im Wohnzimmer</h3><p class="facts">40 Min. · bis 10 € · Zuhause</p><span class="toggle on">✓ In der Auswahl</span></div></div>
+        <div class="idea"><img src="category-creative.webp" alt=""><div><p class="cat">Kreativ werden</p><h3>Ein Bild mit einer Linie</h3><p class="facts">30 Min. · kostenlos · Zuhause</p><span class="toggle">＋ Hinzufügen</span></div></div>
+        <div class="btn">Auswahl starten</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <p class="label">2 · Privat wählen (unverändert, gemischte Karten)</p>
+    <div class="phone">
+      <div class="back">Zurück</div>
+      <div class="screen">
+        <span class="eyebrow">Unser Wochenende</span>
+        <h1>Worauf hast du Lust?</h1>
+        <p class="intro">Markiere alles, was für dich gerade passt.</p>
+        <div class="private">🔒 Deine Auswahl · nur für dich</div>
+        <div class="choice checked"><span class="box">✓</span><span>Gemeinsam ans Meer fahren<small>Aus euren Wünschen</small></span></div>
+        <div class="choice"><span class="box"></span><span>Neues Restaurant ausprobieren<small>Aus euren Wünschen</small></span></div>
+        <div class="choice idea-choice checked"><span class="box">✓</span><img src="category-food_drink.webp" alt=""><span>Picknick im Wohnzimmer<small>Date-Idee · 40 Min. · bis 10 €</small></span></div>
+        <div class="choice idea-choice"><span class="box"></span><img src="category-nature.webp" alt=""><span>Sonnenuntergangsspaziergang<small>Date-Idee · 45 Min. · kostenlos</small></span></div>
+        <p class="support">Nach dem Teilen seht ihr eure gemeinsamen Favoriten. Eure vollständigen Auswahllisten werden nicht gegenübergestellt.</p>
+        <div class="btn">Auswahl teilen</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <p class="label">3 · Gemeinsamer Treffer aus Date-Ideen</p>
+    <div class="phone">
+      <div class="back">Zurück</div>
+      <div class="screen">
+        <span class="eyebrow">Unser Wochenende</span>
+        <h1>Darauf habt ihr beide Lust.</h1>
+        <div class="result"><img src="category-food_drink.webp" alt=""><div class="body">
+          <p class="support">Ihr habt beide Lust auf</p>
+          <h2>Picknick im Wohnzimmer</h2>
+          <div class="source">✦ Aus den Date-Ideen · 40 Min. · bis 10 €</div>
+          <div class="btn pill">📅 Jetzt planen</div>
+          <div class="row"><div class="btn secondary">Als Wunsch merken</div><div class="btn secondary">Später</div></div>
+        </div></div>
+        <div class="tertiary">Meine Auswahl ändern</div>
+        <p class="support">Ein Treffer ist noch kein Plan. Erst wenn ihr speichert, entsteht ein Wunsch oder Plan.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

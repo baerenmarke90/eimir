@@ -671,6 +671,11 @@
       "endsAnotherDay": "Ends on another day",
       "endDate": "End date",
       "endMustFollowStart": "The end time must be after the start time.",
+      "addLastDay": "Several days",
+      "removeLastDay": "Just one day",
+      "lastDay": "Last day",
+      "lastDayBeforeFirst": "The last day cannot be before the first day.",
+      "multiDayHint": "Multi-day plans last all day, without a time.",
       "experiencedOn": "Experienced on",
       "schedule": "When shall it be?",
       "reschedule": "Change date",
@@ -886,7 +891,9 @@
     },
     "collection": {
       "overviewHeading": "Lists",
-      "menu": { "open": "List menu" },
+      "menu": {
+        "open": "List menu"
+      },
       "defaultShopping": {
         "title": "Shopping",
         "heading": "Shop together",
@@ -894,7 +901,10 @@
         "action": "Create shopping list"
       },
       "kindLabel": "Type of list",
-      "kind": { "GENERIC": "List", "SHOPPING": "Shopping list" },
+      "kind": {
+        "GENERIC": "List",
+        "SHOPPING": "Shopping list"
+      },
       "progress": "{{count}} entries · {{completed}} done",
       "progress_one": "{{count}} entry · {{completed}} done",
       "progress_other": "{{count}} entries · {{completed}} done",
@@ -1288,6 +1298,9 @@
       "PARTNER_KISS": "{{name}} sends you a kiss.",
       "PARTNER_KISS_ANON": "Your partner sends you a kiss.",
       "PARTNER_CHECK_IN": "{{name}} asks how you are.",
+      "WISH_DATE_PROPOSED": "{{name}} suggested a date",
+      "WISH_DATE_COUNTERED": "{{name}} suggested a different date",
+      "WISH_DATE_ACCEPTED": "{{name}} accepted the date",
       "PARTNER_CHECK_IN_ANON": "Your partner asks how you are.",
       "REMINDER_DUE_WITH_TARGET": "Reminder: {{target}}",
       "REMINDER_DUE": "A reminder is coming up"
@@ -1570,32 +1583,9 @@
     "accountTitle": "My account",
     "accountName": "Display name",
     "premium": {
-      "eyebrow": "Premium",
       "title": "eimir. Pro",
-      "badge": "Pro",
-      "gamesTitle": "Games, insights and personal extras.",
-      "gamesBody": "Pro adds games, deeper insights, a saying of the day and additional personal partner actions to your shared world. Your ordinary memories, wishes, plans and Thinking of you remain independent of it.",
-      "action": "Explore Pro",
-      "detailsTitle": "One subscription for both of you",
-      "detailsBody": "One Pro subscription applies to your shared space and unlocks its included Pro features for both of you. Your existing content and free relationship features remain available independently.",
-      "features": {
-        "experiences": {
-          "title": "Games and shared experiences",
-          "body": "Play together, capture happy moments or send each other a trip through time."
-        },
-        "history": {
-          "title": "Recaps, insights and memory map",
-          "body": "Explore your story on the map, in recaps and through deeper insights into your time together."
-        },
-        "personal": {
-          "title": "Quotes and personal appearance",
-          "body": "A quote for your day, additional app icons and personal extras for your Us page."
-        },
-        "photos": {
-          "title": "Connected photo services",
-          "body": "Choose photos from your connected Immich or Google Photos too. Photos from your own devices remain free to use."
-        }
-      }
+      "rowInactive": "All Pro features and prices for both of you",
+      "rowActive": "Pro is active for both of you"
     },
     "relationshipTitle": "Your relationship",
     "relationshipIntro": "Where your story began, for anniversaries and your time together.",
@@ -2356,6 +2346,7 @@
     "accept": "Copy selected photos into my draft",
     "continue": "Continue to selection",
     "waiting": "Google Photos is open. Choose your photos there. This page continues automatically afterwards.",
+    "nothingChosen": "No photos chosen. You can open Google Photos again any time.",
     "progress": "Importing photos …",
     "retryImport": "Try again",
     "waitingMedia": "Google Photos is open. Choose your photos and videos there. This page continues automatically afterwards.",
@@ -3322,13 +3313,22 @@
     "entryAction": "Choose ideas",
     "compactEntryAction": "Choose together",
     "setupTitle": "What goes into the selection?",
-    "setupIntro": "Choose two to five wishes you are curious about right now.",
+    "setupIntro": "Choose two to five ideas you are curious about right now.",
     "occasion": "Occasion · optional",
     "occasionPlaceholder": "For example: Our weekend",
     "openWishes": "Your open wishes",
-    "selected": "{{count}} of at most 5 wishes selected",
-    "chooseMore": "Choose at least two wishes.",
-    "chooseLess": "Choose at most five wishes.",
+    "selected": "{{count}} of at most 5 selected",
+    "chooseMore": "Choose at least two.",
+    "chooseLess": "Choose at most five.",
+    "inSelection": "In the selection",
+    "removeCandidate": "Remove “{{title}}” from the selection",
+    "sourceLabel": "Where do the ideas come from?",
+    "sourceWishes": "Our wishes",
+    "sourceIdeas": "Date ideas",
+    "ideaAdd": "Add",
+    "ideaAdded": "In the selection",
+    "ideasFull": "The selection is full. Take something out to add another idea.",
+    "ideasLockedBody": "With eimir. Pro you can also add curated date ideas to your selection. Your wishes always stay free to use.",
     "start": "Start selection",
     "replace": "Start new round",
     "replaceNotice": "A new round resets your previous favourites. Your wishes are retained.",
@@ -3364,14 +3364,24 @@
     "changeOwn": "Change my selection",
     "changeIdeas": "Choose other wishes",
     "wishSource": "From your wishes",
+    "ideaSource": "From the date ideas",
+    "ideaSourceShort": "Date idea",
+    "sharedIdea": "You both feel like",
+    "ideaResultNote": "A shared match is not a plan yet. A wish or plan is only created once you save it.",
+    "later": "Later",
+    "pausedTitle": "This selection is paused.",
+    "pausedBody": "It contains date ideas from eimir. Pro. With Pro you continue right here – or start a new selection with your wishes.",
+    "pausedIdeas_one": "{{count}} date idea paused",
+    "pausedIdeas_other": "{{count}} date ideas paused",
+    "pausedReplace": "New selection with wishes",
     "prepare": "Turn this into a plan",
     "keepWishes": "Your other wishes are retained.",
     "refresh": "Refresh selection",
     "moreActions": "More options",
     "changedTitle": "Your selection has changed.",
-    "changedBody": "A wish or your round has changed in the meantime. Load the latest version before sharing your selection.",
+    "changedBody": "A wish, a date idea or your round has changed in the meantime. Load the latest version before sharing your selection.",
     "reload": "Use latest version",
-    "reviewIdeas": "Choose wishes again",
+    "reviewIdeas": "Put the selection together again",
     "prepareTitle": "Something to look forward to.",
     "prepareIntro": "You can add a date later too.",
     "planTitle": "Your plan",
@@ -3392,6 +3402,37 @@
     "preparing": "Preparing …",
     "saving": "Saving …",
     "offline": "Not saved yet. Connect to the internet and try again."
+  },
+  "wishDateProposal": {
+    "action": "Suggest a date",
+    "counter": "Suggest another date",
+    "send": "Send suggestion",
+    "sendCounter": "Send new suggestion",
+    "accept": "Works for me",
+    "decline": "Not this time",
+    "withdraw": "Withdraw suggestion",
+    "incoming": "Date suggestion from {{name}}",
+    "incomingAnonymous": "A date suggestion for you two",
+    "counterFrom": "New date suggestion from {{name}}",
+    "counterAnonymous": "A new date suggestion",
+    "waiting": "Your date suggestion",
+    "waitingForReply": "Your suggestion is waiting for a reply.",
+    "sent": "Your suggestion was sent.",
+    "declined": "Your Wish stays open.",
+    "withdrawn": "You withdrew the suggestion.",
+    "loading": "Loading date suggestion …",
+    "offline": "Date suggestions need a connection.",
+    "when": "Date and time",
+    "invalid": "Choose a valid date and time in the future.",
+    "sameTime": "Choose a different date or time for your suggestion.",
+    "changed": "The suggestion has changed. Check the current details.",
+    "review": "View suggestion",
+    "openPlan": "View Plan",
+    "receipt": {
+      "proposed": "{{name}} suggests a date",
+      "countered": "{{name}} suggests another date",
+      "accepted": "{{name}} accepted the date"
+    }
   },
   "wishJourney": {
     "stages": {
@@ -4102,6 +4143,29 @@
     "cooldown": "Available again later.",
     "sendError": "Sending could not be confirmed. Please try again."
   },
+  "partnerGestureReceipt": {
+    "label": "Gesture from {{name}}",
+    "labelAnon": "Gesture from your partner",
+    "close": "Close",
+    "thinking": {
+      "title": "{{name}} is thinking of you right now",
+      "titleAnon": "Someone is thinking of you right now",
+      "detail": "A small hello, just for you.",
+      "reply": "Send one back"
+    },
+    "kiss": {
+      "title": "A kiss from {{name}}",
+      "titleAnon": "A kiss for you",
+      "detail": "For you.",
+      "reply": "Send a kiss back"
+    },
+    "checkIn": {
+      "title": "{{name}} would like to know how you are",
+      "titleAnon": "Your partner would like to know how you are",
+      "detail": "Only if you feel like it.",
+      "reply": "Share how you feel"
+    }
+  },
   "comments": {
     "kicker": "Conversation",
     "write": "Write a comment",
@@ -4707,7 +4771,9 @@
     "mapUnavailableBody": "An approximate area appears here only while it is shared.",
     "mapAreaDescription": "{{partner}} is somewhere in an area with a {{radius}} radius. As of: {{time}}.",
     "mapOwnDescription": "Your own approximate location is marked for you only.",
-    "mapPeopleLabel": "The two of you on the map"
+    "mapPeopleLabel": "The two of you on the map",
+    "mapConnectionLine": "A line on the map connects you and {{partner}}.",
+    "mapConnectionNear": "A heart on the map shows that you are close to each other."
   },
   "wirCheckIn": {
     "ownPrompt": "How are you?",
@@ -5006,6 +5072,24 @@
           }
         }
       },
+      "calendar": {
+        "title": "Plan together. Sync automatically.",
+        "description": "Your plans appear in the calendar you already share – without copying them by hand.",
+        "benefits": {
+          "first": {
+            "title": "Your shared calendar",
+            "body": "New and changed plans land once in the calendar you both use."
+          },
+          "second": {
+            "title": "CalDAV or Google",
+            "body": "Connect a compatible CalDAV calendar or Google Calendar."
+          },
+          "third": {
+            "title": "Safe by design",
+            "body": "Changes made in the calendar are never overwritten without asking."
+          }
+        }
+      },
       "general": {
         "title": "More possibilities for your shared story.",
         "description": "eimir. Pro adds ideas, recaps and special experiences to your shared home.",
@@ -5037,6 +5121,16 @@
       "monthly": {
         "name": "Monthly",
         "price": "{{price}} per month"
+      },
+      "trial": {
+        "day_one": "Try {{count}} day free",
+        "day_other": "Try {{count}} days free",
+        "week_one": "Try {{count}} week free",
+        "week_other": "Try {{count}} weeks free",
+        "month_one": "Try {{count}} month free",
+        "month_other": "Try {{count}} months free",
+        "year_one": "Try {{count}} year free",
+        "year_other": "Try {{count}} years free"
       }
     },
     "forBoth": "One subscription. For both of you.",
@@ -5048,6 +5142,11 @@
     },
     "purchasing": "Starting purchase …",
     "restore": "Restore purchase",
+    "manage": "Manage subscription in Google Play",
+    "storeNote": "Payment runs securely through Google Play. eimir. sees no payment details.",
+    "loadingOffers": "Loading current prices from Google Play …",
+    "storeUnavailableTitle": "Google Play cannot be reached right now",
+    "storeUnavailableBody": "The prices could not be loaded. Please try again in a moment. Your content is not affected.",
     "unavailableTitle": "Purchase not available here yet",
     "unavailableBody": "Pro cannot be bought in eimir. yet. As soon as it can, you will find the purchase right here.",
     "active": {
@@ -5081,9 +5180,133 @@
       "network": "No connection. Please try again in a moment.",
       "restored": "Your purchase was restored.",
       "partnerActive": "Pro is already active for your shared space.",
-      "expired": "Your Pro access has expired. Your content stays fully intact."
+      "expired": "Your Pro access has expired. Your content stays fully intact.",
+      "nothingToRestore": "We found no Pro purchase to restore. Nothing was charged."
     },
     "settingsAction": "View plans",
     "contextAction": "Discover with eimir. Pro"
+  },
+  "calendarSync": {
+    "settingsTitle": "Connect calendar",
+    "settingsIntro": "Connect your calendar to sync shared plans automatically and find free time for each other.",
+    "sharedHeading": "Shared calendar",
+    "pro": "Pro",
+    "sharedIntro": "Choose a calendar you both already use. New and changed plans appear there automatically – once, for both of you.",
+    "handoffStaysFree": "“Add to calendar” for single plans stays free.",
+    "proRequired": "Automatic sync is part of eimir. Pro and covers both of you.",
+    "unavailable": "Calendar sync is not set up on this eimir.",
+    "loadFailed": "The calendar settings could not be loaded.",
+    "providers": {
+      "CALDAV": "CalDAV",
+      "CALDAV_hint": "For compatible calendars such as Nextcloud, SOGo, Radicale or Baïkal",
+      "GOOGLE": "Google Calendar",
+      "GOOGLE_hint": "Secure sign-in directly with Google"
+    },
+    "caldav": {
+      "sheetTitle": "Connect CalDAV",
+      "privateConnection": "The credentials belong only to your account. Your partner never sees them.",
+      "address": "Server address",
+      "addressHint": "The address of your calendar server or of one calendar, starting with https://.",
+      "username": "Username",
+      "password": "Password or app password",
+      "passwordHint": "A dedicated app password is safer and can be revoked at any time.",
+      "consent": "Connect this calendar access to my eimir. account",
+      "check": "Check connection",
+      "checking": "Checking the connection …"
+    },
+    "choose": {
+      "title": "Which calendar should it be?",
+      "readOnly": "read-only",
+      "otherConnection": "Another connection",
+      "connect_CALDAV": "Connect CalDAV",
+      "connect_GOOGLE": "Connect Google Calendar",
+      "confirm": "Use as shared calendar",
+      "saving": "Setting up …"
+    },
+    "google": {
+      "confirmTitle": "Is this your Google account?",
+      "confirmBody": "{{label}} – eimir. writes your shared plans into a calendar of this account that you choose next.",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "return": {
+        "denied": "Connecting to Google was cancelled. You can try again at any time.",
+        "failed": "Connecting to Google did not work. Please try again."
+      },
+      "waiting": "Sign in with Google and allow access. Then continue here."
+    },
+    "connected": {
+      "title": "Calendar connected"
+    },
+    "target": {
+      "via": "{{provider}} · connected by {{name}}",
+      "viaYou": "{{provider}} · connected by you",
+      "synced_one": "{{count}} plan is in your calendar.",
+      "synced_other": "{{count}} plans are in your calendar.",
+      "kept_one": "{{count}} event stayed in the calendar because it was changed there.",
+      "kept_other": "{{count}} events stayed in the calendar because they were changed there.",
+      "primaryCalendar": "Main calendar",
+      "explain": "New and changed plans appear here automatically – once, for both of you."
+    },
+    "status": {
+      "synced": "Synced",
+      "ready": "Ready · no plans transferred yet",
+      "syncedAt": "Synced · {{time}}",
+      "running": "Syncing",
+      "broken": "Connection interrupted",
+      "attention": "Attention needed",
+      "paused": "Paused",
+      "proPaused": "Paused until you have eimir. Pro again",
+      "calendarGone": "The calendar can no longer be reached or written to.",
+      "brokenHint": "The credentials are no longer accepted. Reconnect the calendar.",
+      "brokenPartner": "{{name}} needs to renew the connection. You can end the sync at any time."
+    },
+    "conflict": {
+      "EVENT_CHANGED": "“{{title}}” was changed in the calendar. eimir. won’t overwrite it without asking.",
+      "EVENT_MISSING": "“{{title}}” was deleted in the calendar. eimir. won’t recreate it without asking.",
+      "unknownPlan": "A plan",
+      "overwrite": "Match with eimir.",
+      "detach": "Stop syncing"
+    },
+    "actions": {
+      "syncNow": "Sync now",
+      "pause": "Pause",
+      "resume": "Resume",
+      "end": "End sync",
+      "endConfirm": "Sync ends for both of you. Events already transferred stay in the calendar.",
+      "endConfirmAction": "End",
+      "keepSyncing": "Keep syncing",
+      "moreOptions": "More options",
+      "disconnectProvider": "Remove {{provider}} access",
+      "eventsStay": "Events already transferred stay in the calendar.",
+      "reconnect": "Reconnect",
+      "changeCalendar": "Choose another calendar",
+      "connectAnother": "Connect another calendar"
+    },
+    "errors": {
+      "CALENDAR_AUTH_FAILED": "Username or password is not correct. Check them or create a new app password.",
+      "CALENDAR_NOT_FOUND": "No calendar was found at this address. Try the full calendar address.",
+      "CALENDAR_NOT_WRITABLE": "eimir. may not write to this calendar.",
+      "CALENDAR_ADDRESS_INVALID": "Please enter a full address starting with https://.",
+      "CALENDAR_TARGET_BLOCKED": "This address cannot be reached for security reasons.",
+      "CALENDAR_TLS_INVALID": "The connection is not secure: the server’s certificate is not trusted.",
+      "CALENDAR_UNREACHABLE": "The calendar server can’t be reached right now. Try again later.",
+      "CALENDAR_TIMEOUT": "The calendar server took too long. Try again later.",
+      "CALENDAR_RATE_LIMITED": "The calendar service asks for a short break. Try again in a moment.",
+      "CALENDAR_TARGET_CHANGED": "The settings were just changed. We loaded the current state.",
+      "CALENDAR_CONNECTION_LIMIT": "You already connected several calendars. Remove one first.",
+      "CALENDAR_GOOGLE_UNAVAILABLE": "Google Calendar is not set up on this eimir. right now.",
+      "CALENDAR_GOOGLE_EXPIRED": "The Google sign-in expired. Please connect Google Calendar again.",
+      "fallback": "That didn’t work. Please try again."
+    },
+    "plan": {
+      "SYNCED": "In your shared calendar",
+      "PENDING": "Being transferred to your calendar",
+      "FAILED": "Could not be transferred",
+      "CONFLICT": "Changed in the calendar",
+      "DETACHED": "No longer synced",
+      "KEPT": "Kept in the calendar",
+      "paused": "Calendar sync paused",
+      "review": "View"
+    }
   }
 }

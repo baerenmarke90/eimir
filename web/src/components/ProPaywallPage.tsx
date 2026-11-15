@@ -1,9 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useId, useMemo, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   type BillingChannel,
-  currentBillingChannel,
   type ProPlanId,
   type ProPurchaseOutcome,
   REFERENCE_PRO_PLANS,
@@ -20,6 +19,7 @@ import {
   STORY_RECAPS_ROUTE,
 } from '../client/routes';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
+import { useBillingChannel } from '../client/storeBilling';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { TaskBackButton } from './TaskBackButton';
@@ -33,6 +33,7 @@ const CONTEXT_ICONS: Record<
   recaps: ['erinnerungen', 'notes', 'statistiken'],
   memoryMap: ['orte', 'momente', 'erinnerungen'],
   photoSources: ['photo-library', 'foto', 'video'],
+  calendar: ['kalender', 'gemeinsam', 'check'],
   games: ['spiele', 'smile-plus', 'highlights'],
   general: ['sparkle', 'erinnerungen', 'spiele'],
 };
@@ -43,6 +44,7 @@ const CONTEXT_HOME: Record<ProPaywallContext, string> = {
   recaps: STORY_RECAPS_ROUTE,
   memoryMap: MEMORY_MAP_ROUTE,
   photoSources: `${MORE_SETTINGS_ROUTE}/account`,
+  calendar: `${MORE_SETTINGS_ROUTE}/calendar`,
   games: '/games',
   general: '/more',
 };
@@ -53,7 +55,9 @@ const BENEFITS = ['first', 'second', 'third'] as const;
  * The one eimir. Pro paywall for every Pro entry point (#1892). It opens only
  * through a deliberate navigation, reads the session's existing Space
  * entitlement (no extra request) and offers a purchase only when a real
- * billing channel exists. Context changes copy and benefits, never access.
+ * billing channel exists: Google Play inside the Android app (#1525), none in
+ * the browser or the iOS app yet. Context changes copy and benefits, never
+ * access.
  */
 export function ProPaywallPage({
   billingChannel,
@@ -66,11 +70,10 @@ export function ProPaywallPage({
   const navigate = useNavigate();
   const client = useQueryClient();
   const context = proPaywallContext(location.search);
-  const channel = useMemo(
-    () => billingChannel ?? currentBillingChannel(),
-    [billingChannel],
-  );
+  const { channel, retry: retryChannel } = useBillingChannel(billingChannel);
   const { query, accountId, spaceId } = useSessionSpaceEntitlement();
+  // Until the store answers, the target prices stay visible as product
+  // information; only live store offers come with a purchase action.
   const offers =
     channel.kind === 'available' ? channel.offers : REFERENCE_PRO_PLANS;
   const [plan, setPlan] = useState<ProPlanId>('yearly');
@@ -160,6 +163,15 @@ export function ProPaywallPage({
           <button type="button" onClick={returnToOrigin}>
             {t('proPaywall.active.continue')}
           </button>
+          {channel.kind === 'available' && channel.manage ? (
+            <button
+              type="button"
+              className="tertiary"
+              onClick={() => void channel.manage?.()}
+            >
+              {t('proPaywall.manage')}
+            </button>
+          ) : null}
         </section>
       ) : (
         <>
@@ -197,6 +209,13 @@ export function ProPaywallPage({
                       price: price(offer.amount, offer.currency),
                     })}
                   </span>
+                  {offer.trial ? (
+                    <span className="pro-paywall-plan-trial">
+                      {t(`proPaywall.plans.trial.${offer.trial.unit}`, {
+                        count: offer.trial.count,
+                      })}
+                    </span>
+                  ) : null}
                   {offer.id === 'yearly' ? (
                     <span className="pro-paywall-plan-hint">
                       {t('proPaywall.plans.yearly.perMonth', {
@@ -252,7 +271,22 @@ export function ProPaywallPage({
               >
                 {t('proPaywall.restore')}
               </button>
+              <p className="pro-paywall-store-note">
+                {t('proPaywall.storeNote')}
+              </p>
             </div>
+          ) : channel.kind === 'loading' ? (
+            <p className="pro-paywall-loading" role="status">
+              {t('proPaywall.loadingOffers')}
+            </p>
+          ) : channel.reason === 'store' ? (
+            <section className="pro-paywall-unavailable" role="note">
+              <h2>{t('proPaywall.storeUnavailableTitle')}</h2>
+              <p>{t('proPaywall.storeUnavailableBody')}</p>
+              <button type="button" className="tertiary" onClick={retryChannel}>
+                {t('proPaywall.statusRetry')}
+              </button>
+            </section>
           ) : (
             <section className="pro-paywall-unavailable" role="note">
               <h2>{t('proPaywall.unavailableTitle')}</h2>

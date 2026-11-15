@@ -56,9 +56,14 @@ export function PlanScheduleFields({
   const timeRef = useRef<HTMLInputElement>(null);
   const endTimeRef = useRef<HTMLInputElement>(null);
   const endDateRef = useRef<HTMLInputElement>(null);
+  const untilRef = useRef<HTMLInputElement>(null);
+  const untilPanelId = useId();
+  const untilErrorId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
-  const invalidFocusRef = useRef<'end-time' | 'end-date' | null>(null);
+  const invalidFocusRef = useRef<'end-time' | 'end-date' | 'until' | null>(
+    null,
+  );
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(defaultDate);
   const [time, setTime] = useState(defaultDate ? defaultTime : '');
@@ -69,12 +74,19 @@ export function PlanScheduleFields({
   const [crossDay, setCrossDay] = useState(
     Boolean(initialEnd && initialEnd.slice(0, 10) !== defaultDate),
   );
+  // A date-only Plan may span several days through an inclusive last day.
+  const initialUntil = defaultDate && !defaultTime ? defaultEnd : '';
+  const [showUntil, setShowUntil] = useState(Boolean(initialUntil));
+  const [untilDate, setUntilDate] = useState(initialUntil);
 
   const selectedEndDate = crossDay ? endDate : date;
-  const endValue =
+  const timedEndValue =
     includeEnd && showEnd && endTime && selectedEndDate
       ? `${selectedEndDate}T${endTime}`
       : '';
+  const untilValue =
+    includeEnd && showUntil && !time && date && untilDate ? untilDate : '';
+  const endValue = time ? timedEndValue : untilValue;
   const startValue = date && time ? `${date}T${time}` : '';
   const endRangeInvalid = Boolean(
     startValue && endValue && endValue <= startValue,
@@ -83,16 +95,33 @@ export function PlanScheduleFields({
   const missingEndDate = Boolean(
     includeEnd && showEnd && endTime && crossDay && !endDate,
   );
+  const untilInvalid = Boolean(untilValue && untilValue < date);
+  const untilError = untilInvalid ? t('m5s3.plan.lastDayBeforeFirst') : '';
 
   const restoreDefaults = useCallback(() => {
     const nextEnd = defaultDate && defaultTime ? defaultEnd : '';
+    const nextUntil = defaultDate && !defaultTime ? defaultEnd : '';
     setDate(defaultDate);
     setTime(defaultDate ? defaultTime : '');
     setShowEnd(Boolean(nextEnd));
     setEndTime(nextEnd.slice(11, 16));
     setEndDate(nextEnd.slice(0, 10));
     setCrossDay(Boolean(nextEnd && nextEnd.slice(0, 10) !== defaultDate));
+    setShowUntil(Boolean(nextUntil));
+    setUntilDate(nextUntil);
   }, [defaultDate, defaultEnd, defaultTime]);
+
+  function clearUntil() {
+    setShowUntil(false);
+    setUntilDate('');
+  }
+
+  /** Default the last day to the following calendar day without UTC drift. */
+  function nextDay(value: string): string {
+    const day = new Date(`${value}T00:00:00Z`);
+    day.setUTCDate(day.getUTCDate() + 1);
+    return day.toISOString().slice(0, 10);
+  }
 
   function clearEnd() {
     setShowEnd(false);
@@ -119,6 +148,11 @@ export function PlanScheduleFields({
   }, [compact, endError, open]);
 
   useEffect(() => {
+    if (compact && !open) return;
+    untilRef.current?.setCustomValidity(untilError);
+  }, [compact, untilError, open]);
+
+  useEffect(() => {
     const form = (compact ? backingDateRef : dateRef).current?.form;
     if (!form) return;
     const reset = () => restoreDefaults();
@@ -128,11 +162,19 @@ export function PlanScheduleFields({
 
   const reportValidity = useCallback(() => {
     if (disabled) return true;
-    if (compact && (endRangeInvalid || missingEndDate)) {
-      invalidFocusRef.current = missingEndDate ? 'end-date' : 'end-time';
+    if (compact && (endRangeInvalid || missingEndDate || untilInvalid)) {
+      invalidFocusRef.current = untilInvalid
+        ? 'until'
+        : missingEndDate
+          ? 'end-date'
+          : 'end-time';
       setOpen(true);
       if (open) {
-        const target = missingEndDate ? endDateRef.current : endTimeRef.current;
+        const target = untilInvalid
+          ? untilRef.current
+          : missingEndDate
+            ? endDateRef.current
+            : endTimeRef.current;
         target?.focus({ preventScroll: true });
         target?.reportValidity();
         invalidFocusRef.current = null;
@@ -144,19 +186,22 @@ export function PlanScheduleFields({
       timeRef.current,
       endTimeRef.current,
       endDateRef.current,
+      untilRef.current,
     ]
       .filter((input): input is HTMLInputElement => Boolean(input))
       .every((input) => input.reportValidity());
-  }, [compact, disabled, endRangeInvalid, missingEndDate, open]);
+  }, [compact, disabled, endRangeInvalid, missingEndDate, open, untilInvalid]);
 
   useImperativeHandle(ref, () => ({ reportValidity }), [reportValidity]);
 
   useEffect(() => {
     if (!compact || !open || !invalidFocusRef.current) return;
     const target =
-      invalidFocusRef.current === 'end-date'
-        ? endDateRef.current
-        : endTimeRef.current;
+      invalidFocusRef.current === 'until'
+        ? untilRef.current
+        : invalidFocusRef.current === 'end-date'
+          ? endDateRef.current
+          : endTimeRef.current;
     if (!target) return;
     target.focus({ preventScroll: true });
     target.reportValidity();
@@ -189,6 +234,7 @@ export function PlanScheduleFields({
           if (!nextDate) {
             setTime('');
             clearEnd();
+            clearUntil();
           }
         }}
       />
@@ -205,7 +251,7 @@ export function PlanScheduleFields({
         name={compact ? undefined : 'plannedTime'}
         type="time"
         value={time}
-        disabled={disabled || !date}
+        disabled={disabled || !date || (includeEnd && showUntil)}
         aria-describedby={hintId}
         onChange={(event) => {
           const nextTime = event.target.value;
@@ -214,8 +260,72 @@ export function PlanScheduleFields({
         }}
       />
       <small id={hintId} className="field-help planning-schedule-help">
-        {t('m5s3.plan.plannedTimeHint')}
+        {includeEnd && showUntil
+          ? t('m5s3.plan.multiDayHint')
+          : t('m5s3.plan.plannedTimeHint')}
       </small>
+
+      {includeEnd && date && !time ? (
+        <>
+          <button
+            type="button"
+            className={
+              showUntil ? 'tertiary planning-schedule-disclosure' : 'add-action'
+            }
+            aria-expanded={showUntil}
+            aria-controls={untilPanelId}
+            disabled={disabled}
+            onClick={() => {
+              if (showUntil) {
+                clearUntil();
+              } else {
+                setShowUntil(true);
+                if (!untilDate) setUntilDate(nextDay(date));
+              }
+            }}
+          >
+            {showUntil ? (
+              t('m5s3.plan.removeLastDay')
+            ) : (
+              <AddActionContent label={t('m5s3.plan.addLastDay')} />
+            )}
+          </button>
+          <div
+            id={untilPanelId}
+            className="planning-schedule-end-fields"
+            hidden={!showUntil}
+          >
+            <label htmlFor={`${idPrefix}-until`}>
+              {t('m5s3.plan.lastDay')}
+            </label>
+            <NativeDateInput
+              ref={untilRef}
+              form={formId}
+              id={`${idPrefix}-until`}
+              min={date}
+              value={untilDate}
+              disabled={disabled || !showUntil}
+              required={showUntil}
+              aria-invalid={untilInvalid || undefined}
+              aria-describedby={untilInvalid ? untilErrorId : undefined}
+              onChange={(event) => setUntilDate(event.target.value)}
+            />
+            {untilInvalid ? (
+              <p id={untilErrorId} className="field-error" role="alert">
+                {untilError}
+              </p>
+            ) : null}
+          </div>
+          {!compact && showUntil ? (
+            <input
+              form={formId}
+              type="hidden"
+              name="plannedEnd"
+              value={endValue}
+            />
+          ) : null}
+        </>
+      ) : null}
 
       {includeEnd && date && time ? (
         <>
@@ -321,6 +431,7 @@ export function PlanScheduleFields({
   const summary =
     planScheduleLabel({
       plannedOn: schedule?.plannedOn ?? null,
+      plannedUntil: schedule?.plannedUntil ?? null,
       plannedStart: schedule?.plannedStart ?? null,
       plannedEnd: schedule?.plannedEnd ?? null,
     }) ?? t('m5s3.overview.undatedHeading');
@@ -356,7 +467,9 @@ export function PlanScheduleFields({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={sheetId}
-        aria-invalid={endRangeInvalid || missingEndDate || undefined}
+        aria-invalid={
+          endRangeInvalid || missingEndDate || untilInvalid || undefined
+        }
         onClick={() => setOpen(true)}
       >
         <EimirIcon name="kalender" />
@@ -366,9 +479,9 @@ export function PlanScheduleFields({
         </span>
         <EimirIcon name="chevron-right" />
       </button>
-      {!open && endError ? (
+      {!open && (endError || untilError) ? (
         <p className="field-error" role="alert">
-          {endError}
+          {endError || untilError}
         </p>
       ) : null}
       <ShortTaskSheet

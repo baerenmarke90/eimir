@@ -238,7 +238,7 @@ jobs:
         shell: bash
         run: |
           printf '%s  %s\n' \
-            '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98' \
+            '621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8' \
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 
@@ -549,7 +549,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Download exact evidence set
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-evidence-${{ github.sha }}
           path: release-evidence

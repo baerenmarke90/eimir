@@ -173,6 +173,12 @@ export interface PlanDetail {
     plannedStart: Date | null;
     /**
      * 
+     * @type {Date}
+     * @memberof PlanDetail
+     */
+    plannedUntil?: Date | null;
+    /**
+     * 
      * @type {string}
      * @memberof PlanDetail
      */
@@ -279,6 +285,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'plannedEnd': (json['plannedEnd'] == null ? null : new Date(json['plannedEnd'])),
         'plannedOn': json['plannedOn'] === undefined ? undefined : json['plannedOn'] === null ? null : (new Date(json['plannedOn'])),
         'plannedStart': (json['plannedStart'] == null ? null : new Date(json['plannedStart'])),
+        'plannedUntil': json['plannedUntil'] === undefined ? undefined : json['plannedUntil'] === null ? null : (new Date(json['plannedUntil'])),
         'previewTitle': json['previewTitle'] === undefined ? undefined : json['previewTitle'] === null ? null : json['previewTitle'],
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'sourceWishId': json['sourceWishId'],
@@ -319,6 +326,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),
         'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
         'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
+        'plannedUntil': value['plannedUntil'] == null ? value['plannedUntil'] : value['plannedUntil'].toISOString().substring(0,10),
         'previewTitle': value['previewTitle'],
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'sourceWishId': value['sourceWishId'],

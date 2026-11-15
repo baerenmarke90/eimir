@@ -8,7 +8,15 @@ notification surface is justified. This review specifies **which visible
 transitions, if any, warrant motion**; it does not create new event delivery,
 UI, keyframes or notification priorities.
 
-## Critical product/UX decision
+> **Scoped Product Owner approvals.** The [partner gesture
+> receipt](partner-gesture-receipt.md) from #455 uses expressive one-shot
+> motion. [Wish date proposals](https://github.com/baerenmarke90/eimir/issues/1910)
+> reuse the check-in receipt's calm avatar breath, three waves and settled
+> badge treatment with a calendar icon and the same reduced-motion behavior.
+> This applies to the explicit proposal exchange. Vibe and Energy status
+> updates still reconcile silently.
+
+## Original product/UX decision before the scoped approvals
 
 **No new global incoming-event animation is approved now.** The current
 notification shell refreshes its unread count every 30 seconds; a count delta

@@ -44,9 +44,16 @@ Compact/smartphone is the normative interaction reference. Expanded may adapt ge
 | map photo-stack settling | `motion.duration.mapStack` | 600 ms | `--duration-map-stack` |
 | overlaid controls returning after browsing (#1796) | `motion.duration.controlsReturn` | 480 ms | `--duration-controls-return` |
 | one beat of a staged opening sequence (#1861) | `motion.duration.sequenceBeat` | 200 ms | `--duration-sequence-beat` |
+| one expressive beat of a received partner gesture (#455) | `motion.duration.gestureMoment` | 900 ms | `--duration-gesture-moment` |
+| the whole one-shot partner gesture choreography (#455) | `motion.duration.gestureSequence` | 1800 ms | `--duration-gesture-sequence` |
+| the map connection drawing in between the partner avatars (#1907 H1) | `motion.duration.connectionDraw` | 700 ms | `--duration-connection-draw` |
+| one heartbeat of the nearby map connection (#1907 H1) | `motion.duration.connectionBeat` | 450 ms | `--duration-connection-beat` |
+| one round trip of the glow on a regional map connection (#1907 H1) | `motion.duration.connectionTravel` | 3200 ms | `--duration-connection-travel` |
+| one round trip of the glow on a far map connection (#1907 H1) | `motion.duration.connectionTravelFar` | 6000 ms | `--duration-connection-travel-far` |
 | state / settled movement | `motion.easing.standard` | 0.2, 0, 0, 1 | `--easing-standard` |
 | entering / spatial arrival | `motion.easing.enter` | 0, 0, 0.2, 1 | `--easing-enter` |
 | exit / dismissal | `motion.easing.exit` | 0.4, 0, 1, 1 | `--easing-exit` |
+| a decorative point travelling between two ends and back (#1907 H1) | `motion.easing.travel` | 0.45, 0, 0.55, 1 | `--easing-travel` |
 
 The 320 ms token is a guardrail, not a fourth default speed. Continuous loading indicators may have a longer visual cycle when the cycle itself does not delay interaction or state and is removed for reduced motion.
 
@@ -55,6 +62,11 @@ durations: camera travel and the existing photo stack need time to convey their
 spatial relationship. These are interruptible presentation durations, never a
 delay before filtering, navigation or publication. Reduced motion remains
 immediate. Do not apply these roles to ordinary controls, sheets or routes.
+
+The Product Owner approved the partner map connection (#1907 H1, 2026-11-15)
+as a decorative, self-ending motion: the arc draws in once, the glow makes
+three round trips and then rests, and a longer trip expresses a greater
+distance. It never delays interaction and is absent with reduced motion.
 
 Do not add component-local duration scales or `cubic-bezier(...)` curves. If the three easing roles cannot truthfully express a repeated interaction, extend the token contract first and migrate equivalent consumers deliberately.
 

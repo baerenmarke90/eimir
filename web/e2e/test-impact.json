@@ -257,7 +257,7 @@
         "web/src/components/MemoryMapPage.tsx",
         "web/src/components/ProfilePage.tsx",
         "web/src/components/ProfileAppearancePanel.tsx",
-        "web/src/components/ProInformationPanel.tsx",
+        "web/src/components/ProSettingsRow.tsx",
         "web/src/components/M4ProductPages.tsx"
       ]
     },
@@ -334,6 +334,7 @@
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/AccountSettingsPanel.tsx",
+        "web/src/components/ProSettingsRow.tsx",
         "web/src/components/GamesProductArea.tsx",
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/PlaceMapCanvas.tsx",
@@ -411,6 +412,12 @@
     "partner-quick-actions.spec.ts": {
       "roots": [
         "web/src/components/PartnerQuickActions.tsx",
+        "web/src/components/PartnerGestureReceipt.tsx",
+        "web/src/components/NotificationMotion.tsx",
+        "web/src/components/WishSelectionPage.tsx",
+        "web/src/client/devicePush.ts",
+        "web/src/client/foregroundNotifications.ts",
+        "web/src/client/partnerGestureReceipt.ts",
         "web/src/components/OnceMessages.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"
@@ -582,6 +589,10 @@
         "web/src/components/SharedPlanningOverviewPage.tsx",
         "web/src/components/WishProductPage.tsx",
         "web/src/components/WishReminderAction.tsx",
+        "web/src/components/WishDateProposalAction.tsx",
+        "web/src/components/PartnerGestureReceipt.tsx",
+        "web/src/client/devicePush.ts",
+        "web/src/client/foregroundNotifications.ts",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/TodayPage.tsx"
       ]
@@ -750,6 +761,8 @@
         "web/src/components/DateIdeasPage.tsx",
         "web/src/components/DateIdeasEntry.tsx",
         "web/src/components/DateIdeaImage.tsx",
+        "web/src/components/DateIdeaFilters.tsx",
+        "web/src/components/DateIdeaFacts.tsx",
         "web/src/client/dateIdeas.ts",
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
@@ -760,9 +773,24 @@
         "web/src/client/proPresentation.tsx"
       ]
     },
+    "wish-selection-date-ideas.spec.ts": {
+      "roots": [
+        "web/src/components/WishSelectionPage.tsx",
+        "web/src/components/WishSelectionIdeaPicker.tsx",
+        "web/src/client/wishSelection.ts",
+        "web/src/components/DateIdeaFilters.tsx",
+        "web/src/components/DateIdeaFacts.tsx",
+        "web/src/components/DateIdeaImage.tsx",
+        "web/src/client/dateIdeas.ts",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/client/taskOrigin.tsx",
+        "web/src/components/ProPaywallPage.tsx"
+      ]
+    },
     "shared-wish-selection.spec.ts": {
       "roots": [
         "web/src/components/WishSelectionPage.tsx",
+        "web/src/client/wishSelection.ts",
         "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/PlanProductPage.tsx",
         "web/src/components/WishProductPage.tsx"
@@ -968,6 +996,17 @@
         "web/src/components/StoryYearsPage.tsx"
       ]
     },
+    "activity-navigation-return.spec.ts": {
+      "roots": [
+        "web/src/components/M4ProductPages.tsx",
+        "web/src/components/ActivityCard.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/PlacesOverviewPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SubpageNavigation.tsx",
+        "web/src/client/routes.ts"
+      ]
+    },
     "media-planning-corrections.spec.ts": {
       "roots": [
         "web/src/components/AddAction.tsx",
@@ -1153,6 +1192,18 @@
       "roots": [
         "web/src/components/CollectionProductPage.tsx",
         "web/src/components/CollectionsOverviewPage.tsx"
+      ]
+    },
+    "settings-calendar-sync.spec.ts": {
+      "roots": [
+        "web/src/components/CalendarSyncSettings.tsx",
+        "web/src/components/CalendarSyncSettings.css",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/SettingsIndex.tsx",
+        "web/src/client/calendarSync.ts",
+        "web/src/client/useCalendarGoogleAppReturn.ts",
+        "web/src/client/settingsNavigation.ts",
+        "web/src/i18n/locales/calendarSync.ts"
       ]
     },
     "settings-google-account.spec.ts": {

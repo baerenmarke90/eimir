@@ -163,6 +163,14 @@ export function notificationPath(item: {
   targetType: EngagementTarget | null;
   targetId: string | null;
 }): string | null {
+  if (
+    (item.kind === 'WISH_DATE_PROPOSED' ||
+      item.kind === 'WISH_DATE_COUNTERED') &&
+    item.targetType === 'WISH' &&
+    item.targetId
+  )
+    return `${wishDetailPath(item.targetId)}#terminvorschlag`;
+
   return (
     engagementTargetPath(item.targetType, item.targetId) ??
     (item.kind === 'GENTLE_PROMPT'

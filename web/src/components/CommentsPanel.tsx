@@ -1,4 +1,3 @@
-import { AutoLoadMore } from './AutoLoadMore';
 import {
   type QueryClient,
   type QueryKey,
@@ -8,12 +7,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type {
   CommentsApi,
   DeleteCommentRequest,
 } from '../api/generated/apis/CommentsApi';
+import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import { authorFirstName } from '../client/authorPresentation';
 import {
@@ -36,11 +36,12 @@ import {
   captureAuthorizedQuery,
   captureQueryIdentity,
 } from '../client/queryIdentity';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { CommentEditor } from './CommentEditor';
 import { AuthoredText } from './AuthoredText';
-import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
+import { AutoLoadMore } from './AutoLoadMore';
+import { CommentEditor } from './CommentEditor';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -182,6 +183,31 @@ function CommentsPanelContent({
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const commentActionRefs = useRef(new Map<string, HTMLElement>());
+  // An open comment menu owns a history entry so system Back closes it
+  // instead of leaving the page.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const openMenuIdRef = useRef(openMenuId);
+  openMenuIdRef.current = openMenuId;
+  const closeOpenMenu = useCallback(() => {
+    const current = openMenuIdRef.current;
+    const menu = current
+      ? commentActionRefs.current.get(current)?.closest('details')
+      : null;
+    if (menu) menu.open = false;
+    setOpenMenuId(null);
+  }, []);
+  useEditorHistoryEntry({
+    isActive: openMenuId !== null,
+    isDirty: false,
+    onClose: closeOpenMenu,
+    onDiscardRequested: closeOpenMenu,
+  });
+  // A menu that unmounts while open (editing, a deleted comment, going
+  // offline) gets no toggle event; release its history entry with it.
+  useEffect(() => {
+    if (openMenuId && !commentActionRefs.current.get(openMenuId)?.isConnected)
+      setOpenMenuId(null);
+  });
   const previousEditingId = useRef<string | null>(null);
   useEffect(() => {
     if (previousEditingId.current && !editingId)
@@ -452,6 +478,16 @@ function CommentsPanelContent({
                   {own && !offline && editingId !== comment.id ? (
                     <details
                       className="comment-menu"
+                      onToggle={(event) => {
+                        const open = event.currentTarget.open;
+                        setOpenMenuId((current) =>
+                          open
+                            ? comment.id
+                            : current === comment.id
+                              ? null
+                              : current,
+                        );
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === 'Escape') {
                           event.preventDefault();
@@ -502,6 +538,9 @@ function CommentsPanelContent({
                             event.currentTarget
                               .closest('details')
                               ?.removeAttribute('open');
+                            // The menu unmounts while editing, before its
+                            // toggle event, so release its entry here.
+                            setOpenMenuId(null);
                             setEditingId(comment.id);
                           }}
                         >
@@ -515,6 +554,7 @@ function CommentsPanelContent({
                               'details',
                             );
                             if (details) details.open = false;
+                            setOpenMenuId(null);
                             removeComment(comment);
                           }}
                           disabled={deleting}

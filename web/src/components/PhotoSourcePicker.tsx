@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
+import type { PhotoSelectionItemView } from '../api/generated/models/PhotoSelectionItemView';
 import type { PhotoSelectionView } from '../api/generated/models/PhotoSelectionView';
 import {
   createOwnedObjectUrl,
@@ -7,9 +8,9 @@ import {
 } from '../client/objectUrlResource';
 import {
   closePhotoBrowser,
+  type ItemOutcome,
   importFailure,
   initialOutcomes,
-  type ItemOutcome,
   itemAvailability,
   itemKind,
   openPhotoBrowser,
@@ -20,28 +21,30 @@ import {
   selectionReady,
   videoVerdictReason,
   waitForPhotoPoll,
+  watchPhotoBrowserReturn,
 } from '../client/photoSources';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   ReferenceFlowError,
   waitUntilAttachmentReady,
 } from '../client/referenceFlow';
-import { usePhotoSources } from '../client/usePhotoSources';
 import type {
   AttachmentDraftSelection,
   StagedVideo,
 } from '../client/useAttachmentDrafts';
-import type { PhotoSelectionItemView } from '../api/generated/models/PhotoSelectionItemView';
-import type { VideoCaptureContext } from './VideoUploadAction';
+import { usePhotoSources } from '../client/usePhotoSources';
 import { useTranslation } from '../i18n';
+import { AutoLoadTrigger } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
-import { AutoLoadTrigger } from './AutoLoadMore';
+import type { VideoCaptureContext } from './VideoUploadAction';
 import './PhotoSourcePicker.css';
 import { MediaIntakeButton } from './MediaIntakeButton';
 
 // How long one imported video may take to be checked before it is added as "still preparing".
 const VIDEO_CHECK_MILLISECONDS = 90_000;
+// Google answers still awaited after the person closed its browser in the app.
+const RETURN_POLLS = 2;
 
 interface SelectionTask {
   api: PhotoSourcesApi;
@@ -540,11 +543,26 @@ export function PhotoSourcePicker({
       if (!ready.authorizationUrl)
         throw new Error('Photo authorization is unavailable.');
       await openPhotoBrowser(ready.authorizationUrl, current.popup);
+      const watching = new AbortController();
+      current.request.signal.addEventListener('abort', () => watching.abort(), {
+        once: true,
+      });
+      const returned = watchPhotoBrowserReturn(watching.signal);
+      let pollsSinceReturn = 0;
       setAwaitingGoogle(true);
       setMessage(
         t(allowVideo ? 'photoSources.waitingMedia' : 'photoSources.waiting'),
       );
       while (!selectionReady(ready)) {
+        // Back in the app without a choice: stop waiting after two more
+        // answers from Google, so a just-confirmed choice still arrives.
+        pollsSinceReturn = returned() ? pollsSinceReturn + 1 : 0;
+        if (pollsSinceReturn > RETURN_POLLS) {
+          release();
+          setAwaitingGoogle(false);
+          setMessage(t('photoSources.nothingChosen'));
+          return;
+        }
         await waitForPhotoPoll(
           ready.pollAfterSeconds ?? 5,
           current.request.signal,
@@ -555,6 +573,7 @@ export function PhotoSourcePicker({
         );
         if (task.current !== current) return;
       }
+      watching.abort();
       await closePhotoBrowser(current.popup);
       setAwaitingGoogle(false);
       if (selectionIsTyped(ready)) {

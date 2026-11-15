@@ -9,6 +9,7 @@ import {
   moveItemIds,
   planningIfMatch,
   planScheduleDateInput,
+  planScheduleEndInput,
   planScheduleFromInputs,
   planScheduleTimeInput,
   storyRelationTarget,
@@ -34,6 +35,29 @@ describe('shared planning client helpers', () => {
   it('keeps a Plan unscheduled when no date was chosen', () => {
     expect(planScheduleFromInputs('', '')).toBeUndefined();
     expect(planScheduleFromInputs('', '10:00')).toBeUndefined();
+  });
+
+  it('keeps a multi-day date-only period and treats the same day as one day', () => {
+    const period = planScheduleFromInputs('2026-11-20', '', '2026-11-22');
+    expect(period?.plannedOn?.toISOString()).toBe('2026-11-20T00:00:00.000Z');
+    expect(period?.plannedUntil?.toISOString()).toBe(
+      '2026-11-22T00:00:00.000Z',
+    );
+    expect(period?.plannedStart).toBeUndefined();
+    expect(planScheduleFromInputs('2026-11-20', '', '2026-11-20')).toEqual({
+      plannedOn: new Date('2026-11-20T00:00:00Z'),
+    });
+    // A timed end never turns into a last calendar day.
+    expect(
+      planScheduleFromInputs('2026-11-20', '', '2026-11-22T10:00'),
+    ).toEqual({ plannedOn: new Date('2026-11-20T00:00:00Z') });
+    expect(
+      planScheduleEndInput({
+        plannedOn: period?.plannedOn ?? null,
+        plannedUntil: period?.plannedUntil ?? null,
+        plannedEnd: null,
+      }),
+    ).toBe('2026-11-22');
   });
 
   it('builds a genuine date-only Plan schedule without a fabricated time', () => {

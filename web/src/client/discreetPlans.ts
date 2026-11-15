@@ -33,6 +33,7 @@ type CalendarSource = Pick<
   | 'title'
   | 'description'
   | 'plannedOn'
+  | 'plannedUntil'
   | 'plannedStart'
   | 'plannedEnd'
   | 'updatedAt'

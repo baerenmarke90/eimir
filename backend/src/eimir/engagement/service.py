@@ -26,8 +26,15 @@ from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
 from eimir.domain.events import EventType
-from eimir.engagement import email_delivery, notification_preferences, push, thinking
+from eimir.engagement import (
+    email_delivery,
+    notification_preferences,
+    push,
+    thinking,
+    wish_date_notice,
+)
 from eimir.engagement.models import (
+    WISH_DATE_NOTICE_KINDS,
     Activity,
     ActivityKind,
     EngagementTarget,
@@ -197,11 +204,32 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     except ValueError:
         return
 
+    # Calendar sync (#1895) reads the current Plan later in its own job, so it
+    # only schedules work here and never depends on notification eligibility.
+    from eimir.calendar_sync import service as calendar_sync
+
+    calendar_sync.on_outbox_event(session, event, event_type)
+
     # Lock all actor/recipient Accounts in deterministic order before any
     # projection. This serializes stale Outbox work with deletion acceptance
     # and makes accepted deletion a hard boundary for new activity,
     # Notification and PushDelivery state.
     if not _event_effects_allowed(session, event):
+        return
+
+    if event_type.value in WISH_DATE_NOTICE_KINDS:
+        if wish_date_notice.event_is_current(session, event):
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget.PLAN
+                if event_type is EventType.WISH_DATE_ACCEPTED
+                else EngagementTarget.WISH,
+                event.subject_id,
+                NotificationKind(event_type.value),
+                expires_at=event.payload.due_at,
+            )
+            push.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type is EventType.ONCE_MESSAGE_SENT:
@@ -751,6 +779,7 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
             notification_kind_column=Notification.kind,
         ),
         _current_video_failure_predicate(context),
+        wish_date_notice.current_predicate(),
         or_(
             Notification.kind != NotificationKind.WISH_SELECTION_READY.value,
             literal(current.result_state == "READY"),

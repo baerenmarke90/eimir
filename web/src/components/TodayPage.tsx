@@ -6,7 +6,7 @@ import {
   useLayoutEffect,
   useState,
 } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
@@ -47,6 +47,7 @@ import {
 } from '../client/m4Product';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { decodeDashboardOverview } from '../client/overviewSnapshots';
+import { OPEN_OWN_DAILY_CHECK_IN_STATE } from '../client/partnerGestureReceipt';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { firstNameFromDisplayName } from '../client/personalName';
 import { planScheduleLabel } from '../client/planningPresentation';
@@ -353,6 +354,7 @@ function TodayAgendaRow({
     item.type === 'PLAN' && (item.scheduledAt || item.scheduledOn)
       ? planScheduleLabel({
           plannedOn: item.scheduledOn ?? null,
+          plannedUntil: item.scheduledUntil ?? null,
           plannedStart: item.scheduledAt,
           plannedEnd: null,
         })
@@ -1018,6 +1020,28 @@ export function TodayPage({
     vibeEnabled: vibeCheckEnabled,
     energyEnabled: energyCheckInEnabled,
   });
+  // "Gefühl teilen" from a partner check-in receipt opens the viewer's own
+  // daily check-in once; the flag is removed so Back never reopens it.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const openOwnCheckIn = dailyCheckIn?.ownAction.onActivate;
+  useEffect(() => {
+    const state = location.state as Record<string, unknown> | null;
+    if (!state?.[OPEN_OWN_DAILY_CHECK_IN_STATE] || !openOwnCheckIn) return;
+    const { [OPEN_OWN_DAILY_CHECK_IN_STATE]: _consumed, ...rest } = state;
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: Object.keys(rest).length > 0 ? rest : null,
+    });
+    openOwnCheckIn();
+  }, [
+    location.state,
+    location.pathname,
+    location.search,
+    location.hash,
+    navigate,
+    openOwnCheckIn,
+  ]);
   const presenceQuery = usePartnerPresence({
     accountId: account?.id ?? '',
     spaceId,
@@ -2029,13 +2053,13 @@ export function TodayPage({
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
             headerAction={
-              <Link
+              <TodayDestinationLink
                 to={ACTIVITY_ROUTE}
                 className="today-section-link today-recent-activity-link"
-                aria-label={t('m5s5.dashboard.allActivityAction')}
+                ariaLabel={t('m5s5.dashboard.allActivityAction')}
               >
                 {t('m5s5.today.recent.allAction')}
-              </Link>
+              </TodayDestinationLink>
             }
           >
             <ol className="today-stream today-stream-recent today-activity-trace">

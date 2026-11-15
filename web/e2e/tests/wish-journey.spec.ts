@@ -1,7 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
+import { NOTIFICATION_WAKE_EVENT } from '../../src/client/foregroundNotifications';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import wishDateProposal from '../../src/i18n/locales/wishDateProposal';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
@@ -23,6 +25,11 @@ const MARKET_WISH = '55555555-5555-4555-8555-555555555551';
 const TRAIN_WISH = '55555555-5555-4555-8555-555555555552';
 const CONCERT_WISH = '55555555-5555-4555-8555-555555555553';
 const OPEN_WISH = '55555555-5555-4555-8555-555555555554';
+const OPEN_WISH_PLAN = '44444444-4444-4444-8444-444444444444';
+const PARTNER_ID = '11111111-1111-4111-8111-111111111112';
+const PARTNER_PROPOSAL = '22222222-2222-4222-8222-222222222223';
+const SOURCE_URL =
+  'https://www.bvb.de/de/de/signal-iduna-park/stadiontouren.html';
 const MARKET_PLAN = '44444444-4444-4444-8444-444444444441';
 const TRAIN_PLAN = '44444444-4444-4444-8444-444444444442';
 const CONCERT_PLAN = '44444444-4444-4444-8444-444444444443';
@@ -44,6 +51,16 @@ type JourneyState = {
   marketCompleted: boolean;
   reminderAt: string | null;
   unexpected: string[];
+  dateProposalEnabled: boolean;
+  proposal: {
+    id: string;
+    proposedBy: string;
+    recipientId: string;
+    plannedStart: string;
+    counter: boolean;
+  } | null;
+  acceptedStart: string | null;
+  proposalNotificationAt: string | null;
 };
 
 function planBody(
@@ -110,7 +127,23 @@ function wishBody(
 
 function wishes(state: JourneyState) {
   return [
-    wishBody(OPEN_WISH, 'Sterne gucken', 'OPEN', null),
+    state.dateProposalEnabled
+      ? {
+          ...wishBody(
+            OPEN_WISH,
+            'Stadionführung',
+            state.acceptedStart ? 'PLANNED' : 'OPEN',
+            state.acceptedStart
+              ? {
+                  id: OPEN_WISH_PLAN,
+                  status: 'PLANNED',
+                  plannedStart: state.acceptedStart,
+                }
+              : null,
+          ),
+          description: SOURCE_URL,
+        }
+      : wishBody(OPEN_WISH, 'Sterne gucken', 'OPEN', null),
     wishBody(
       MARKET_WISH,
       'Flohmarkt',
@@ -146,11 +179,18 @@ function wishes(state: JourneyState) {
   ];
 }
 
-async function installMocks(page: Page): Promise<JourneyState> {
+async function installMocks(
+  page: Page,
+  dateProposalEnabled = false,
+): Promise<JourneyState> {
   const state: JourneyState = {
     marketCompleted: false,
     reminderAt: null,
     unexpected: [],
+    dateProposalEnabled,
+    proposal: null,
+    acceptedStart: null,
+    proposalNotificationAt: null,
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -262,6 +302,32 @@ async function installMocks(page: Page): Promise<JourneyState> {
       });
     if (method === 'GET' && pathname === `${space}/notifications/unread-count`)
       return json({ unreadCount: 0 });
+    if (dateProposalEnabled && state.proposalNotificationAt && state.proposal) {
+      const notice = {
+        id: PARTNER_PROPOSAL,
+        sourceEventId: PARTNER_PROPOSAL,
+        kind: 'WISH_DATE_COUNTERED',
+        actorId: PARTNER_ID,
+        actor: { id: PARTNER_ID, displayName: 'Lea' },
+        targetId: OPEN_WISH,
+        targetType: 'WISH',
+        target: {
+          targetId: OPEN_WISH,
+          targetType: 'WISH',
+          title: 'Stadionführung',
+        },
+        createdAt: state.proposalNotificationAt,
+        readAt: null,
+        appointmentStart: state.proposal.plannedStart,
+      };
+      if (method === 'GET' && pathname === `${space}/notifications`)
+        return page_([notice]);
+      if (
+        method === 'POST' &&
+        pathname === `${space}/notifications/${PARTNER_PROPOSAL}/open`
+      )
+        return json({ ...notice, readAt: NOW });
+    }
     if (method === 'POST' && pathname === `${space}/presence`)
       return json({ state: null });
     if (method === 'GET' && pathname === `${space}/places`) return page_([]);
@@ -304,6 +370,33 @@ async function installMocks(page: Page): Promise<JourneyState> {
       if (method === 'GET' || method === 'PUT')
         return json({ dueAt: state.reminderAt });
     }
+    const dateProposal = `${space}/wishes/${OPEN_WISH}/date-proposal`;
+    if (pathname === dateProposal) {
+      if (method === 'POST' && dateProposalEnabled) {
+        const data = request.postDataJSON();
+        state.proposal = {
+          id: data.clientRequestId,
+          proposedBy: ACCOUNT_ID,
+          recipientId: PARTNER_ID,
+          plannedStart: data.plannedStart,
+          counter: false,
+        };
+      }
+      if (method === 'GET' || method === 'POST')
+        return json({
+          canPropose: dateProposalEnabled,
+          proposal: state.proposal,
+        });
+    }
+    if (
+      method === 'POST' &&
+      pathname === `${dateProposal}/${PARTNER_PROPOSAL}/accept` &&
+      state.proposal?.id === PARTNER_PROPOSAL
+    ) {
+      state.acceptedStart = state.proposal.plannedStart;
+      state.proposal = null;
+      return json({ planId: OPEN_WISH_PLAN });
+    }
     const wishMatch = pathname.match(/\/wishes\/([^/]+)$/);
     if (method === 'GET' && wishMatch) {
       const wish = wishes(state).find((item) => item.id === wishMatch[1]);
@@ -313,6 +406,21 @@ async function installMocks(page: Page): Promise<JourneyState> {
       const plan = marketPlan(state);
       return json(plan, 200, { ETag: `"${plan.version}"` });
     }
+    if (
+      method === 'GET' &&
+      pathname === `${space}/plans/${OPEN_WISH_PLAN}` &&
+      state.acceptedStart
+    ) {
+      return json(
+        planBody(OPEN_WISH_PLAN, 'Stadionführung', OPEN_WISH, {
+          description: SOURCE_URL,
+          status: 'PLANNED',
+          plannedStart: state.acceptedStart,
+        }),
+      );
+    }
+    if (dateProposalEnabled && pathname === `${space}/link-previews`)
+      return json({ items: [] });
     if (
       method === 'POST' &&
       pathname === `${space}/plans/${MARKET_PLAN}/complete`
@@ -443,6 +551,112 @@ test.describe('wish journey (#1790 F2)', () => {
       expect(state.unexpected).toEqual([]);
     });
   }
+
+  test('sends a date, receives a counterproposal and opens the confirmed Plan', async ({
+    page,
+  }, info) => {
+    const copy = wishDateProposal;
+    const wishPath = `/plan/wishes/${OPEN_WISH}`;
+    await page.setViewportSize({ width: 390, height: 844 });
+    const state = await installMocks(page, true);
+    await signIn(page);
+    await page.goto(wishPath);
+    await expectCurrentStep(page, wishJourney.stages.wished);
+    await expect(page.locator(`a[href="${SOURCE_URL}"]`)).toBeVisible();
+    await page.getByRole('button', { name: copy.action }).click();
+    const sheet = page.getByRole('dialog', { name: copy.action });
+    const start = `${isoDay(8)}T14:00`;
+    await sheet.getByLabel(copy.when).fill(start);
+    const documentLeaveBlocked = () =>
+      page.evaluate(
+        () =>
+          !window.dispatchEvent(
+            new Event('beforeunload', { cancelable: true }),
+          ),
+      );
+    await expect.poll(documentLeaveBlocked).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(sheet).not.toBeVisible();
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await expect.poll(documentLeaveBlocked).toBe(false);
+    expect(state.proposal).toBeNull();
+    await page.getByRole('button', { name: copy.action }).click();
+    await expect(sheet.getByLabel(copy.when)).toHaveValue(start);
+    await sheet.getByRole('button', { name: copy.send, exact: true }).click();
+    await expect(page.getByText(copy.waitingForReply)).toBeVisible();
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: copy.accept, exact: true }),
+    ).toHaveCount(0);
+    expect(state.proposal?.plannedStart).toBe(new Date(start).toISOString());
+    expect(state.acceptedStart).toBeNull();
+
+    await page.getByRole('link', { name: 'Planen', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Planen', exact: true }),
+    ).toBeVisible();
+    const counter = new Date(`${isoDay(8)}T15:30`).toISOString();
+    state.proposal = {
+      id: PARTNER_PROPOSAL,
+      proposedBy: PARTNER_ID,
+      recipientId: ACCOUNT_ID,
+      plannedStart: counter,
+      counter: true,
+    };
+    state.proposalNotificationAt = new Date().toISOString();
+    await page.bringToFront();
+    await page.evaluate(
+      ({ type, scope }) => {
+        window.dispatchEvent(new CustomEvent(type, { detail: scope }));
+      },
+      {
+        type: NOTIFICATION_WAKE_EVENT,
+        scope: {
+          accountId: ACCOUNT_ID,
+          apiBaseUrl: new URL(page.url()).origin,
+          spaceId: SPACE_ID,
+        },
+      },
+    );
+    const receipt = page.getByTestId('partner-gesture-receipt');
+    await expect(receipt).toHaveAttribute('data-variant', 'calm-ring');
+    await expect(receipt.locator('[data-glyph="calendar"]')).toBeVisible();
+    await receipt.hover();
+    await captureScreenshot(page, info, 'wish-date-in-app-receipt-390.png');
+    await receipt.getByRole('button', { name: copy.review }).click();
+    await expect(page).toHaveURL(new RegExp(`${wishPath}#terminvorschlag$`));
+    const active = page.locator('#terminvorschlag');
+    await expect(
+      active.getByRole('button', { name: copy.counter }),
+    ).toBeVisible();
+    await expect(active).toBeInViewport();
+    await assertNoHorizontalOverflow(page);
+    await captureScreenshot(page, info, 'wish-date-counterproposal-390.png');
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await assertNoHorizontalOverflow(page);
+    await captureScreenshot(
+      page,
+      info,
+      'wish-date-counterproposal-expanded.png',
+    );
+    await active
+      .getByRole('button', { name: copy.accept, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/plan/plans/${OPEN_WISH_PLAN}$`));
+    await expect(page.getByText(wishJourney.fromWish)).toBeVisible();
+    await expect(page.locator(`a[href="${SOURCE_URL}"]`)).toBeVisible();
+    expect(state.acceptedStart).toBe(counter);
+    await page.goto(wishPath);
+    await expectCurrentStep(page, wishJourney.stages.planned);
+    await expect(
+      page.getByRole('link', { name: new RegExp(`^${wishJourney.openPlan}`) }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: copy.action })).toHaveCount(
+      0,
+    );
+    expect(state.unexpected).toEqual([]);
+  });
 
   test('follows a wish from planned to fulfilled and back to Planen', async ({
     page,

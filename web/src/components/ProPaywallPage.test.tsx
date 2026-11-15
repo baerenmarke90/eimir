@@ -83,7 +83,7 @@ describe('billing contract', () => {
     expect(yearlySavingPercent(REFERENCE_PRO_PLANS)).toBe(37);
   });
 
-  it('has no purchase channel until a real provider adapter exists', () => {
+  it('has no purchase channel in the browser (in-app purchases only)', () => {
     expect(currentBillingChannel()).toEqual({
       kind: 'unavailable',
       platform: 'web',
@@ -177,6 +177,74 @@ describe('ProPaywallPage', () => {
     expect(test.purchase).toHaveBeenCalledWith('monthly');
     expect(await screen.findByText(proPaywall.outcomes.cancelled)).toBeTruthy();
     expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('shows no purchase action while the store offers are loading', () => {
+    renderPaywall('/more/pro', { kind: 'loading' });
+    expect(screen.getByText(proPaywall.loadingOffers)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /abonnieren/ })).toBeNull();
+  });
+
+  it('explains an unreachable store without offering a purchase', () => {
+    renderPaywall('/more/pro', {
+      kind: 'unavailable',
+      platform: 'native',
+      reason: 'store',
+    });
+    expect(screen.getByText(proPaywall.storeUnavailableTitle)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /abonnieren/ })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: proPaywall.statusRetry }),
+    ).toBeTruthy();
+  });
+
+  it('presents live store offers with an eligible trial', () => {
+    const test = channel('confirmed');
+    renderPaywall('/more/pro', {
+      ...test.channel,
+      offers: [
+        {
+          id: 'yearly',
+          amount: 62.99,
+          currency: 'EUR',
+          period: 'year',
+          source: 'provider',
+          trial: { unit: 'day', count: 14 },
+        },
+        {
+          id: 'monthly',
+          amount: 8.49,
+          currency: 'EUR',
+          period: 'month',
+          source: 'provider',
+        },
+      ],
+    });
+    expect(screen.getByText(/62,99\s€ pro Jahr/)).toBeTruthy();
+    expect(screen.getByText(/8,49\s€ pro Monat/)).toBeTruthy();
+    expect(screen.getByText('14 Tage kostenlos testen')).toBeTruthy();
+    expect(screen.getByText(proPaywall.storeNote)).toBeTruthy();
+  });
+
+  it('reports a restore without purchases as an alert and stays', async () => {
+    const test = channel('confirmed');
+    test.restore.mockResolvedValue('nothingToRestore');
+    renderPaywall('/more/pro?context=dateIdeas', test.channel);
+    fireEvent.click(screen.getByRole('button', { name: proPaywall.restore }));
+    expect(
+      await screen.findByText(proPaywall.outcomes.nothingToRestore),
+    ).toBeTruthy();
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('offers store subscription management to an active Space', () => {
+    session.data = { tier: 'PREMIUM' };
+    const test = channel('confirmed');
+    const manage = vi.fn().mockResolvedValue(undefined);
+    renderPaywall('/more/pro', { ...test.channel, manage });
+    fireEvent.click(screen.getByRole('button', { name: proPaywall.manage }));
+    expect(manage).toHaveBeenCalled();
+    expect(screen.queryByRole('radio')).toBeNull();
   });
 
   it('returns to the requested feature after a confirmed unlock', async () => {

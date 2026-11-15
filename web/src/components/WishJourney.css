@@ -317,6 +317,40 @@
   margin-block: var(--space-1) var(--space-5);
 }
 
+.wish-date-proposal {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  scroll-margin-block-start: var(--space-4);
+}
+
+.wish-date-proposal > :is(h3, p) {
+  margin: 0;
+}
+
+.wish-date-proposal .wish-date-proposal-date {
+  color: var(--color-shared);
+  font-weight: 600;
+}
+
+.wish-detail:has(.wish-date-proposal) .wish-operations > summary.button-link {
+  background: var(--color-surface);
+  color: var(--color-shared);
+  box-shadow: none;
+}
+
+.wish-date-proposal-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 839px) {
+  .wish-date-proposal .wish-date-proposal-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+}
+
 .wish-detail-plan-action {
   justify-self: start;
   margin-block-end: var(--space-5);

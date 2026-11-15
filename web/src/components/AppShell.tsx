@@ -48,6 +48,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
+import { ForegroundNotificationHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
@@ -160,6 +161,7 @@ interface AppShellProps {
   account: AccountView;
   spaceId: string;
   serverAdmin?: boolean;
+  openNotification?: (notificationId: string, sourceEventId: string) => void;
 }
 
 export function AppShell(props: AppShellProps) {
@@ -196,6 +198,7 @@ function AuthenticatedAppShell({
   account,
   spaceId,
   serverAdmin = false,
+  openNotification,
   primaryTabs,
 }: AppShellProps) {
   const { t } = useTranslation();
@@ -405,6 +408,18 @@ function AuthenticatedAppShell({
           </div>
         ) : null}
 
+        {spaceId && accessToken ? (
+          <ForegroundNotificationHost
+            key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+            accountId={account.id}
+            spaceId={spaceId}
+            unreadCount={unreadCount}
+            suppressed={isFocusedTask}
+            openNotification={openNotification}
+          />
+        ) : null}
         <Snackbar />
       </div>
     </ShellUtilitiesContext.Provider>

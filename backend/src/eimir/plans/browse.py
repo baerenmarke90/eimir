@@ -62,7 +62,8 @@ def list_overview(
         cast(Plan.planned_on, DateTime), func.timezone(str(zone), Plan.planned_start)
     )
     upcoming = (Plan.status == PlanStatus.PLANNED.value) & or_(
-        Plan.planned_on >= local_day, Plan.planned_start >= anchor
+        func.coalesce(Plan.planned_until, Plan.planned_on) >= local_day,
+        Plan.planned_start >= anchor,
     )
     undated = Plan.planned_on.is_(None) & Plan.planned_start.is_(None)
     bucket_key = case((upcoming, 0), (undated, 1), else_=2)

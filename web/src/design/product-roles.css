@@ -111,10 +111,17 @@
   --duration-map-stack: 600ms;
   --duration-controls-return: 480ms;
   --duration-sequence-beat: 200ms;
+  --duration-gesture-moment: 900ms;
+  --duration-gesture-sequence: 1800ms;
+  --duration-connection-draw: 700ms;
+  --duration-connection-beat: 450ms;
+  --duration-connection-travel: 3200ms;
+  --duration-connection-travel-far: 6000ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --easing-playback: cubic-bezier(0, 0, 1, 1);
+  --easing-travel: cubic-bezier(0.45, 0, 0.55, 1);
   --elevation-overlay: 0px 8px 32px 0px var(--color-shadow-overlay);
   --color-link-text: #3055b8;
   --color-action-primary: #3055b8;
@@ -182,6 +189,12 @@
     --duration-map-stack: 0ms;
     --duration-controls-return: 0ms;
     --duration-sequence-beat: 0ms;
+    --duration-gesture-moment: 0ms;
+    --duration-gesture-sequence: 0ms;
+    --duration-connection-draw: 0ms;
+    --duration-connection-beat: 0ms;
+    --duration-connection-travel: 0ms;
+    --duration-connection-travel-far: 0ms;
   }
 }
 

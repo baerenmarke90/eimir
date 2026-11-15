@@ -7,6 +7,7 @@ type CalendarPlan = Pick<
   | 'title'
   | 'description'
   | 'plannedOn'
+  | 'plannedUntil'
   | 'plannedStart'
   | 'plannedEnd'
   | 'updatedAt'
@@ -30,7 +31,12 @@ export function planCalendarEvent(
   const start = plan.plannedOn ?? plan.plannedStart;
   if (!start) return null;
   const allDay = Boolean(plan.plannedOn);
-  const end = allDay ? new Date(start) : plan.plannedEnd;
+  // iCalendar and native all-day ends are exclusive: the day after the last day.
+  const lastDay =
+    plan.plannedOn && plan.plannedUntil && plan.plannedUntil > plan.plannedOn
+      ? plan.plannedUntil
+      : start;
+  const end = allDay ? new Date(lastDay) : plan.plannedEnd;
   if (allDay) end?.setUTCDate(end.getUTCDate() + 1);
   return {
     title: plan.title,

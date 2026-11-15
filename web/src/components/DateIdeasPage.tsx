@@ -1,8 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   type MouseEvent,
   useEffect,
-  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -11,44 +10,32 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { DateIdea } from '../api/generated/models/DateIdea';
 import {
-  BUDGET_LIMITS,
   createDateIdeasApi,
-  DATE_INSPIRATION_CAPABILITY,
   type DateIdeasFilterState,
-  dateIdeasQueryKey,
-  dateIdeasScopeKey,
   filterDateIdeas,
-  formatEuros,
-  formatMinutes,
-  hasDateIdeasFilter,
-  MINUTE_LIMITS,
-  PLACE_FILTERS,
   sanitizeDateIdeasFilter,
   savedDateIdeaWishes,
   secondaryFilterCount,
+  useDateIdeasCatalog,
   useDateInspirationCapability,
 } from '../client/dateIdeas';
-import {
-  type ClientProblemError,
-  normalizeClientError,
-} from '../client/problemDetails';
 import {
   PLAN_CREATE_ROUTE,
   proPaywallPath,
   WISH_CREATE_ROUTE,
   wishDetailPath,
 } from '../client/routes';
-import { withdrawSpaceCapability } from '../client/spaceEntitlement';
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
+import { DateIdeaFacts } from './DateIdeaFacts';
+import { DateIdeaFilters } from './DateIdeaFilters';
 import { DateIdeaImage } from './DateIdeaImage';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
-import { StatusScope } from './StatusScope';
 import { UiState } from './UiState';
 import './PlanningReference.css';
 import './DateIdeas.css';
@@ -60,7 +47,6 @@ interface Props {
   accessToken?: string;
 }
 
-const ALL = '__all__';
 /** Ideas rendered per step; keeps the Compact DOM and first paint light. */
 const PAGE_SIZE = 24;
 
@@ -104,38 +90,14 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
   });
   const allowed = capability.data === true;
 
-  const catalog = useQuery({
-    queryKey: dateIdeasQueryKey(accountId, spaceId, locale),
-    queryFn: async ({ signal }) => {
-      try {
-        return await api.listDateIdeas({ spaceId, locale }, { signal });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    enabled: allowed && Boolean(apiBaseUrl && accessToken),
-    // The catalog changes only with a release. Filtering is local.
-    staleTime: 5 * 60_000,
-    retry: false,
+  const { catalog, denied } = useDateIdeasCatalog({
+    api,
+    accountId,
+    spaceId,
+    locale,
+    capability: capability.data,
+    enabled: Boolean(apiBaseUrl && accessToken),
   });
-  const denied =
-    (catalog.error as ClientProblemError | null)?.code ===
-    'PREMIUM_ENTITLEMENT_REQUIRED';
-  useEffect(() => {
-    if (denied)
-      withdrawSpaceCapability(
-        client,
-        accountId,
-        spaceId,
-        DATE_INSPIRATION_CAPABILITY,
-      );
-  }, [denied, client, accountId, spaceId]);
-  // Without the capability no protected catalog response may remain cached
-  // (downgrade, revoked grant or a server denial).
-  useEffect(() => {
-    if (capability.data === false || denied)
-      client.removeQueries({ queryKey: dateIdeasScopeKey(accountId, spaceId) });
-  }, [capability.data, denied, client, accountId, spaceId]);
 
   const [filter, setFilter] = useState<DateIdeasFilterState>({});
   const [moreOpen, setMoreOpen] = useState(false);
@@ -196,7 +158,6 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
     void navigate(to, { state: { taskOriginKey: key } });
   };
 
-  const moreId = useId();
   const header = (
     <PageHeader
       title={t('dateIdeas.title')}
@@ -255,23 +216,10 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
   const placeLabels = new Map(
     (data?.placeTypes ?? []).map((item) => [item.id, item.label]),
   );
-  const moreCount = secondaryFilterCount(filter);
   const reset = () => {
     setFilter({});
     setMoreOpen(false);
     setVisibleCount(PAGE_SIZE);
-  };
-  const choose = (key: keyof DateIdeasFilterState, value: string) => {
-    setVisibleCount(PAGE_SIZE);
-    setFilter((current) => ({
-      ...current,
-      [key]:
-        value === ALL
-          ? undefined
-          : key === 'maxMinutes' || key === 'maxBudget'
-            ? Number(value)
-            : value,
-    }));
   };
   const listFormat = new Intl.ListFormat(locale, {
     style: 'long',
@@ -297,112 +245,17 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
         <OverviewCacheNotice cachedAt={new Date(catalog.dataUpdatedAt)} />
       ) : null}
       {data && data.totalCount > 0 ? (
-        <section
-          className="date-ideas-filters"
-          aria-label={t('dateIdeas.filters.label')}
-        >
-          <StatusScope
-            label={t('dateIdeas.filters.categoryLegend')}
-            value={filter.category ?? ALL}
-            options={[
-              { value: ALL, label: t('dateIdeas.filters.all') },
-              ...data.categories.map((item) => ({
-                value: item.id,
-                label: item.label,
-              })),
-            ]}
-            onChange={(value) => choose('category', value)}
-          />
-          <div className="date-ideas-filter-bar">
-            <button
-              type="button"
-              className="tertiary date-ideas-more"
-              aria-expanded={moreOpen}
-              aria-controls={moreId}
-              onClick={() => setMoreOpen((current) => !current)}
-            >
-              <EimirIcon name="filter" />
-              {moreCount
-                ? t('dateIdeas.filters.moreActive', { count: moreCount })
-                : t('dateIdeas.filters.more')}
-            </button>
-            <p className="date-ideas-count" role="status">
-              {hasDateIdeasFilter(filter)
-                ? t('dateIdeas.countFiltered', {
-                    count: ideas.length,
-                    total: data.totalCount,
-                  })
-                : t('dateIdeas.count', { count: data.totalCount })}
-            </p>
-          </div>
-          <div
-            id={moreId}
-            className="date-ideas-more-filters eimir-motion-disclosure"
-            hidden={!moreOpen}
-          >
-            <p className="date-ideas-filter-label" aria-hidden="true">
-              {t('dateIdeas.filters.durationLegend')}
-            </p>
-            <StatusScope
-              label={t('dateIdeas.filters.durationLegend')}
-              value={String(filter.maxMinutes ?? ALL)}
-              options={[
-                { value: ALL, label: t('dateIdeas.filters.anyDuration') },
-                ...MINUTE_LIMITS.map((limit) => ({
-                  value: String(limit),
-                  label: t('dateIdeas.filters.upTo', {
-                    value: formatMinutes(limit, locale),
-                  }),
-                })),
-              ]}
-              onChange={(value) => choose('maxMinutes', value)}
-            />
-            <p className="date-ideas-filter-label" aria-hidden="true">
-              {t('dateIdeas.filters.budgetLegend')}
-            </p>
-            <StatusScope
-              label={t('dateIdeas.filters.budgetLegend')}
-              value={String(filter.maxBudget ?? ALL)}
-              options={[
-                { value: ALL, label: t('dateIdeas.filters.anyBudget') },
-                ...BUDGET_LIMITS.map((limit) => ({
-                  value: String(limit),
-                  label:
-                    limit === 0
-                      ? t('dateIdeas.filters.free')
-                      : t('dateIdeas.filters.upTo', {
-                          value: formatEuros(limit, locale),
-                        }),
-                })),
-              ]}
-              onChange={(value) => choose('maxBudget', value)}
-            />
-            <p className="date-ideas-filter-label" aria-hidden="true">
-              {t('dateIdeas.filters.placeLegend')}
-            </p>
-            <StatusScope
-              label={t('dateIdeas.filters.placeLegend')}
-              value={filter.place ?? ALL}
-              options={[
-                { value: ALL, label: t('dateIdeas.filters.anywhere') },
-                ...PLACE_FILTERS.map((place) => ({
-                  value: place,
-                  label: placeLabels.get(place) ?? place,
-                })),
-              ]}
-              onChange={(value) => choose('place', value)}
-            />
-          </div>
-          {hasDateIdeasFilter(filter) ? (
-            <button
-              type="button"
-              className="tertiary date-ideas-reset"
-              onClick={reset}
-            >
-              {t('dateIdeas.filters.reset')}
-            </button>
-          ) : null}
-        </section>
+        <DateIdeaFilters
+          catalog={data}
+          filter={filter}
+          matchCount={ideas.length}
+          moreOpen={moreOpen}
+          onMoreOpenChange={setMoreOpen}
+          onChange={(next) => {
+            setVisibleCount(PAGE_SIZE);
+            setFilter(next);
+          }}
+        />
       ) : null}
       {data && data.totalCount === 0 ? (
         <UiState
@@ -459,24 +312,10 @@ function DateIdeasView({ accountId, spaceId, apiBaseUrl, accessToken }: Props) {
                     <p className="date-idea-description" lang={textLang}>
                       {idea.description}
                     </p>
-                    <ul
-                      className="date-idea-facts"
-                      aria-label={t('dateIdeas.card.detailsLabel')}
-                    >
-                      <li>
-                        {t('dateIdeas.card.duration', {
-                          value: formatMinutes(idea.minutes, locale),
-                        })}
-                      </li>
-                      <li>
-                        {idea.budgetEurForTwo > 0
-                          ? t('dateIdeas.card.budget', {
-                              value: formatEuros(idea.budgetEurForTwo, locale),
-                            })
-                          : t('dateIdeas.card.budgetFree')}
-                      </li>
-                      <li>{placeLabels.get(idea.placeType)}</li>
-                    </ul>
+                    <DateIdeaFacts
+                      idea={idea}
+                      placeLabel={placeLabels.get(idea.placeType)}
+                    />
                     {idea.prerequisites.length ? (
                       <p className="date-idea-requirements" lang={textLang}>
                         {t('dateIdeas.card.requirements', {

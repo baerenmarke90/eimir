@@ -387,6 +387,7 @@ def end_membership(
     from eimir.memories import create_receipts
     from eimir.story import view_service
     from eimir.wish_selections.service import purge_space
+    from eimir.wishes import date_proposals as wish_date_proposals
     from eimir.wishes import reminders as wish_reminders
 
     gentle.purge_space_member(session, membership.account_id, membership.space_id)
@@ -412,6 +413,7 @@ def end_membership(
 
     once_messages.purge_space(session, membership.space_id)
     purge_space(session, membership.space_id)
+    wish_date_proposals.purge_space(session, membership.space_id)
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value
     membership.ended_at = now()
 

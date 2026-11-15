@@ -76,6 +76,25 @@ const proPaywall = {
         },
       },
     },
+    calendar: {
+      title: 'Gemeinsam planen. Automatisch synchronisieren.',
+      description:
+        'Eure Pläne erscheinen in dem Kalender, den ihr schon teilt – ohne sie abzutippen.',
+      benefits: {
+        first: {
+          title: 'Euer gemeinsamer Kalender',
+          body: 'Neue und geänderte Pläne landen einmal in dem Kalender, den ihr beide nutzt.',
+        },
+        second: {
+          title: 'CalDAV oder Google',
+          body: 'Verbindet einen kompatiblen CalDAV-Kalender oder Google Kalender.',
+        },
+        third: {
+          title: 'Sicher abgestimmt',
+          body: 'Änderungen im Kalender werden nie ungefragt überschrieben.',
+        },
+      },
+    },
     games: {
       title: 'Mehr besondere Momente miteinander.',
       description:
@@ -128,6 +147,16 @@ const proPaywall = {
       name: 'Monatlich',
       price: '{{price}} pro Monat',
     },
+    trial: {
+      day_one: '{{count}} Tag kostenlos testen',
+      day_other: '{{count}} Tage kostenlos testen',
+      week_one: '{{count}} Woche kostenlos testen',
+      week_other: '{{count}} Wochen kostenlos testen',
+      month_one: '{{count}} Monat kostenlos testen',
+      month_other: '{{count}} Monate kostenlos testen',
+      year_one: '{{count}} Jahr kostenlos testen',
+      year_other: '{{count}} Jahre kostenlos testen',
+    },
   },
   forBoth: 'Ein Abo. Für euch beide.',
   forBothBody:
@@ -139,6 +168,13 @@ const proPaywall = {
   },
   purchasing: 'Kauf wird gestartet …',
   restore: 'Kauf wiederherstellen',
+  manage: 'Abo in Google Play verwalten',
+  storeNote:
+    'Bezahlt wird sicher über Google Play. eimir. sieht keine Zahlungsdaten.',
+  loadingOffers: 'Aktuelle Preise werden aus Google Play geladen …',
+  storeUnavailableTitle: 'Google Play ist gerade nicht erreichbar',
+  storeUnavailableBody:
+    'Die Preise konnten nicht geladen werden. Bitte versucht es gleich noch einmal. Eure Inhalte sind davon nicht betroffen.',
   unavailableTitle: 'Kauf hier noch nicht möglich',
   unavailableBody:
     'Pro kann in eimir. noch nicht gekauft werden. Sobald es möglich ist, findet ihr den Kauf genau an dieser Stelle.',
@@ -175,6 +211,8 @@ const proPaywall = {
     network: 'Keine Verbindung. Bitte versucht es gleich noch einmal.',
     restored: 'Euer Kauf wurde wiederhergestellt.',
     partnerActive: 'Pro ist bereits für euren gemeinsamen Bereich aktiv.',
+    nothingToRestore:
+      'Wir haben keinen Pro-Kauf zum Wiederherstellen gefunden. Es wurde nichts berechnet.',
     expired:
       'Euer Pro-Zugang ist abgelaufen. Eure Inhalte bleiben vollständig erhalten.',
   },

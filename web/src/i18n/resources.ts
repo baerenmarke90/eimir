@@ -1,6 +1,7 @@
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import calendarPlan from './locales/calendarPlan';
+import calendarSync from './locales/calendarSync';
 import composer from './locales/composer';
 import contextTags from './locales/contextTags';
 import coupleExperiences from './locales/coupleExperiences';
@@ -59,6 +60,7 @@ import voiceNotes from './locales/voiceNotes';
 import weeklyInsights from './locales/weeklyInsights';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
+import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
 import wishRepeat from './locales/wishRepeat';
 import wishSelection from './locales/wishSelection';
@@ -68,6 +70,7 @@ export const germanResources = {
   onceMessages,
   memoryMap,
   calendarPlan,
+  calendarSync,
   planFiles,
   gentlePrompts,
   coupleExperiences,
@@ -82,6 +85,7 @@ export const germanResources = {
   wirDesign,
   wishSelection,
   wishJourney,
+  wishDateProposal,
   wishRepeat,
   navigation: { ...de.navigation, ...navigation },
   notificationSettings,

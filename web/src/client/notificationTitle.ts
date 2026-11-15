@@ -20,6 +20,15 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  if (
+    item.kind === 'WISH_DATE_PROPOSED' ||
+    item.kind === 'WISH_DATE_COUNTERED' ||
+    item.kind === 'WISH_DATE_ACCEPTED'
+  ) {
+    return t(`m5s5.notificationAction.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
   if (item.kind === 'REMINDER_CREATED') {
     return t(
       targetTitle

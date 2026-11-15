@@ -31,19 +31,20 @@ import {
   AnniversaryReminderSettings,
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
+import { CalendarSyncSettings } from './CalendarSyncSettings';
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { GoogleAccountSettings } from './GoogleAccountSettings';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { OccasionHolidaySettings } from './OccasionHolidaySettings';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { WirDashboardSettingsPanel } from './PartnerDistanceWirSetting';
 import { PartnerLocationSettingsEntry } from './PartnerLocationSettingsEntry';
-import { GoogleAccountSettings } from './GoogleAccountSettings';
 import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
-import { ProInformationPanel } from './ProInformationPanel';
+import { ProSettingsRow } from './ProSettingsRow';
 import { SettingsIndex } from './SettingsIndex';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
@@ -252,6 +253,16 @@ export function SettingsPage(props: SettingsPageProps) {
         />
       </div>
     );
+  } else if (categoryId === 'calendar') {
+    categoryContent = (
+      <CalendarSyncSettings
+        key={`calendar:${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+        apiBaseUrl={props.apiBaseUrl}
+        accessToken={props.accessToken}
+        accountId={props.account.id}
+        spaceId={props.spaceId}
+      />
+    );
   } else if (categoryId === 'media') {
     categoryContent = (
       <>
@@ -290,7 +301,7 @@ export function SettingsPage(props: SettingsPageProps) {
   } else if (categoryId === 'account') {
     categoryContent = (
       <div className="settings-category-content">
-        <ProInformationPanel />
+        <ProSettingsRow />
         <section
           id="settings-account"
           className="settings-sensitive-zone"

@@ -562,6 +562,11 @@
 @media (min-width: 768px) {
   .today-page .wir-stage {
     --wir-avatar: 9rem;
+    /* The page content is a grid: an auto margin alone would shrink the
+       stage to its content, so it keeps the full width up to the cap. */
+    width: 100%;
     max-width: 34rem;
+    /* The capped stage sits in the middle of the page, like the quote below. */
+    margin-inline: auto;
   }
 }

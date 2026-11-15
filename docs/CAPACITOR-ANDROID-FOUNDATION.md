@@ -128,8 +128,8 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ### Compatible security toolchain
 
-The wrapper uses Gradle **9.8.1**, AGP **9.4.0**, Capacitor **8.5.2** and
-JDK **21**. Gradle 9.8.1 contains the fixes for three advisories also repaired
+The wrapper uses Gradle **9.9.1**, AGP **9.4.0**, Capacitor **8.6.0** and
+JDK **21**. Gradle 9.8.1 and later contain the fixes for three advisories also repaired
 in the 8.14.6 patch used before this migration:
 [worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),
 [client/daemon authentication](https://github.com/gradle/gradle/security/advisories/GHSA-xwqc-3h47-hg64),
@@ -143,7 +143,7 @@ later according to the
 The Capacitor project documents AGP 8.13.0 for
 [Capacitor 8](https://capacitorjs.com/docs/updating/8-0) and AGP 9.2.1 with
 Gradle 9.5.1 only in the [unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
-AGP 9.4.0 on Capacitor 8.5.2 is therefore a pairing Capacitor does not
+AGP 9.4.0 on Capacitor 8.6.0 is therefore a pairing Capacitor does not
 document. It is accepted for this repository because the wrapper builds and
 passes its own gates on it (debug APK, unsigned release APK/AAB, lint, unit
 tests, Android launcher tests under strict dependency verification), and the
@@ -348,7 +348,7 @@ Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and public
   - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
   - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (`v7.1.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
-  - Pinned Gradle Wrapper: distribution SHA-256 `5ceda8d2425eb2af196dec31b6fc1f38af2fb638fd621f86fa685805f2262224`; wrapper JAR SHA-256 `3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`.
+  - Pinned Gradle Wrapper: distribution SHA-256 `f20c816177c0ff192881874852260771b462903aef3e794b0dac4759d1fda284`; wrapper JAR SHA-256 `621008afc4f5d59357fcf06ffa644dd5aade5e091bdc363742710445f73cdaf8`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
   - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
   - Strict Dependency Verification: `android/gradle/verification-metadata.xml` holds sha256 checksums and is enforced via `--dependency-verification strict`. It is the only Android dependency verification metadata in the repository.
@@ -449,7 +449,7 @@ death, and this policy cannot establish the root cause of an unlogged device
 crash.
 
 Android's [termination handling guidance](https://developer.android.com/develop/ui/views/layout/webapps/handle-termination)
-and Capacitor 8.5.2's existing `BridgeActivity`/`Bridge` lifecycle own the
+and Capacitor 8.6.0's existing `BridgeActivity`/`Bridge` lifecycle own the
 implementation. No new dependency, service, account, data egress or cost.
 `RuntimeRecoveryTest` exercises real non-crash termination through
 `WebViewRenderProcess.terminate()` on API 29+, healthy return and real

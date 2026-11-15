@@ -66,7 +66,7 @@
   align-items: stretch;
 }
 
-.page-heading.page-heading-item .page-heading-item-row {
+.page-heading-item-row {
   display: grid;
   flex: none;
   grid-template-columns:
@@ -77,7 +77,7 @@
   margin-block-end: var(--space-3);
 }
 
-.page-heading.page-heading-item .page-heading-item-row > .page-back-host:empty {
+.page-heading-item-row > .page-back-host:empty {
   display: block;
 }
 
@@ -118,4 +118,12 @@
 > div:first-child:not(.page-heading-item-row) {
   flex: 1 1 auto;
   min-inline-size: 0;
+}
+
+.page-heading-item-label .private-item-lock-icon {
+  display: inline-block;
+  inline-size: 1em;
+  block-size: 1em;
+  margin-inline-end: var(--space-1);
+  vertical-align: -0.125em;
 }

@@ -535,3 +535,10 @@ body.theme-vault .back-link:hover {
   flex: 1 1 14rem;
   min-inline-size: 0;
 }
+
+/* The quiet privacy line below one private item's name (#1907 C4). */
+.private-item-privacy {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}

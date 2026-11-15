@@ -21,35 +21,39 @@ export function PrivateAreaFrame({
   overviewAction,
   showNavigation = true,
   editorFirst = false,
+  itemFirst = false,
 }: {
   children: ReactNode;
   overviewAction?: ReactNode;
   showNavigation?: boolean;
   editorFirst?: boolean;
+  /** One note, list or gift idea: its own header row leads; no card or tabs. */
+  itemFirst?: boolean;
 }) {
   const { t } = useTranslation();
-  const navigation = showNavigation ? (
-    <nav
-      className="private-area-nav"
-      aria-label={t('privateArea.navigation.aria')}
-    >
-      <NavLink to={PRIVATE_NOTES_PATH}>
-        {t('privateArea.navigation.notes')}
-      </NavLink>
-      <NavLink to={PRIVATE_GIFT_IDEAS_PATH}>
-        {t('privateArea.navigation.gifts')}
-      </NavLink>
-      <NavLink to={PRIVATE_COLLECTIONS_PATH}>
-        {t('privateArea.navigation.collections')}
-      </NavLink>
-      <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
-        {t('privateArea.partnerNotes.shortTitle')}
-      </NavLink>
-    </nav>
-  ) : null;
+  const navigation =
+    showNavigation && !itemFirst ? (
+      <nav
+        className="private-area-nav"
+        aria-label={t('privateArea.navigation.aria')}
+      >
+        <NavLink to={PRIVATE_NOTES_PATH}>
+          {t('privateArea.navigation.notes')}
+        </NavLink>
+        <NavLink to={PRIVATE_GIFT_IDEAS_PATH}>
+          {t('privateArea.navigation.gifts')}
+        </NavLink>
+        <NavLink to={PRIVATE_COLLECTIONS_PATH}>
+          {t('privateArea.navigation.collections')}
+        </NavLink>
+        <NavLink to={PRIVATE_PARTNER_NOTES_PATH}>
+          {t('privateArea.partnerNotes.shortTitle')}
+        </NavLink>
+      </nav>
+    ) : null;
   return (
     <div className="page private-area-page">
-      {editorFirst ? null : (
+      {editorFirst || itemFirst ? null : (
         // Back sits beside the area card, the page's title (#1907 C4).
         <div className="private-area-head">
           <BackSlotHost className="private-area-back" />
@@ -242,5 +246,23 @@ export function DeleteConfirmation({
       )}
       {error ? <ProblemState error={error} /> : null}
     </section>
+  );
+}
+
+/** The type label of one private item, marked with the area lock. */
+export function PrivateItemLabel({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <EimirIcon name="nurfuer" className="private-item-lock-icon" />
+      {children}
+    </>
+  );
+}
+
+/** The quiet privacy line below a private item's name. */
+export function PrivateItemPrivacy() {
+  const { t } = useTranslation();
+  return (
+    <p className="private-item-privacy">{t('privateArea.entry.privacy')}</p>
   );
 }

@@ -234,7 +234,10 @@ For both variants:
 
 - Back never sits alone in a row above a visible page title. A page without a
   visible title (map views, loading and error states) keeps Back alone and does not
-  invent one; its accessible page name remains.
+  invent one; its accessible page name remains. A media-led page whose hero precedes
+  its title (the Pro paywall) keeps Back alone above the hero; a page that heads its
+  own composition (recaps, insights, a Person) hosts Back with `BackSlotHost` in
+  that row.
 - Secondary pages show no eyebrow or area label above the title; the active
   navigation item carries the area.
 - Titles and names wrap and are never truncated; Back aligns with the first line.
@@ -261,7 +264,7 @@ heading. Page implementations must not add textual Back chrome.
 The accessible name remains localized, and keyboard/focus, modified links,
 pending/dirty guards and task-origin return remain owned by the existing task. A
 direct entry falls back to its canonical parent. The separate administration shell
-uses the same row. See [the composition and evidence](product/design/subpage-navigation-context/README.md)
+keeps its top bar with Back and the brand. See [the composition and evidence](product/design/subpage-navigation-context/README.md)
 and [the header decisions](product/design/references/1907-secondary-page-header/README.md).
 
 ### 5.5 Moment date and Place context

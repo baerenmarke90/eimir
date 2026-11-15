@@ -130,6 +130,7 @@ class TestJourneyContext:
             "id": result["plan"]["id"],
             "status": "PLANNED",
             "plannedOn": "2026-11-21",
+            "plannedUntil": None,
             "plannedStart": None,
             "experiencedOn": None,
         }

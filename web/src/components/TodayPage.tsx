@@ -354,6 +354,7 @@ function TodayAgendaRow({
     item.type === 'PLAN' && (item.scheduledAt || item.scheduledOn)
       ? planScheduleLabel({
           plannedOn: item.scheduledOn ?? null,
+          plannedUntil: item.scheduledUntil ?? null,
           plannedStart: item.scheduledAt,
           plannedEnd: null,
         })

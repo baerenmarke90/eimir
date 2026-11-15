@@ -2696,6 +2696,18 @@
             ],
             "title": "Scheduledon"
           },
+          "scheduledUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduleduntil"
+          },
           "titleOrText": {
             "anyOf": [
               {
@@ -8746,6 +8758,18 @@
             ],
             "title": "Plannedstart"
           },
+          "plannedUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planneduntil"
+          },
           "previewTitle": {
             "anyOf": [
               {
@@ -8937,7 +8961,7 @@
       },
       "PlanSchedule": {
         "additionalProperties": false,
-        "description": "One explicit Plan schedule representation.\n\n``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware\ninstant. Exactly one of those semantic starts must be supplied; clients may\nnever synthesize a wall-clock time merely to encode ``plannedOn``.",
+        "description": "One explicit Plan schedule representation.\n\n``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware\ninstant. Exactly one of those semantic starts must be supplied; clients may\nnever synthesize a wall-clock time merely to encode ``plannedOn``.\n``plannedUntil`` is the optional inclusive last calendar day of a\nmulti-day date-only Plan; a timed Plan uses ``plannedEnd`` instead.",
         "properties": {
           "plannedEnd": {
             "format": "date-time",
@@ -8952,6 +8976,11 @@
           "plannedStart": {
             "format": "date-time",
             "title": "Plannedstart",
+            "type": "string"
+          },
+          "plannedUntil": {
+            "format": "date",
+            "title": "Planneduntil",
             "type": "string"
           }
         },
@@ -15445,6 +15474,18 @@
               }
             ],
             "title": "Plannedstart"
+          },
+          "plannedUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planneduntil"
           },
           "status": {
             "$ref": "#/components/schemas/PlanStatus"

@@ -325,7 +325,10 @@ def set_target(
     target = target_of(session, auth.space_id, lock=True)
     _check_token(auth.space_id, target, expected)
     payload = SpaceCalendarTargetPayload(
-        space_id=auth.space_id, calendar_ref=chosen.ref, calendar_name=chosen.name
+        space_id=auth.space_id,
+        calendar_ref=chosen.ref,
+        calendar_name=chosen.name,
+        calendar_primary=chosen.primary,
     )
     if target is None:
         target = SpaceCalendarTarget(

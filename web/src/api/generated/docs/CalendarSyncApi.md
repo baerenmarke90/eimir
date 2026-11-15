@@ -887,7 +887,7 @@ No authorization required
 
 ## startGoogleCalendarConnection
 
-> GoogleCalendarStart startGoogleCalendarConnection(spaceId)
+> GoogleCalendarStart startGoogleCalendarConnection(spaceId, googleCalendarStartRequest)
 
 Start Google
 
@@ -907,6 +907,8 @@ async function example() {
   const body = {
     // string
     spaceId: spaceId_example,
+    // GoogleCalendarStartRequest (optional)
+    googleCalendarStartRequest: ...,
   } satisfies StartGoogleCalendarConnectionRequest;
 
   try {
@@ -927,6 +929,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **googleCalendarStartRequest** | [GoogleCalendarStartRequest](GoogleCalendarStartRequest.md) |  | [Optional] |
 
 ### Return type
 
@@ -938,7 +941,7 @@ No authorization required
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
 

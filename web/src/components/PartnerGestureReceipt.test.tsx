@@ -203,7 +203,9 @@ describe('PartnerGestureReceiptHost', () => {
     const incoming = await screen.findByTestId('partner-gesture-receipt');
     expect(incoming.getAttribute('data-variant')).toBe('calm-ring');
     expect(incoming.querySelector('[data-glyph="calendar"]')).not.toBeNull();
-    expect(incoming.textContent).toContain('Ronja schlägt einen Termin vor');
+    expect(incoming.textContent).toContain(
+      wishDateProposal.receipt.proposed.replace('{{name}}', 'Ronja'),
+    );
     expect(incoming.textContent).toContain('Stadionführung');
     expect(notifications.openNotification).not.toHaveBeenCalled();
     await act(async () => {

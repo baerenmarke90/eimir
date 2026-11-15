@@ -631,7 +631,9 @@ test.describe('wish journey (#1790 F2)', () => {
     expect(state.acceptedStart).toBe(counter);
     await page.goto(wishPath);
     await expectCurrentStep(page, wishJourney.stages.planned);
-    await expect(page.getByRole('link', { name: /^Zum Plan/ })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: new RegExp(`^${wishJourney.openPlan}`) }),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: copy.action })).toHaveCount(
       0,
     );

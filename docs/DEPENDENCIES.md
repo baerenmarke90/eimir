@@ -89,7 +89,7 @@ are development-only and are never shipped with the production Web bundle.
 
 The Android application is the Capacitor wrapper in `android/` around the
 canonical Web bundle (ADR 0011). Its release CI evidence pins JDK 21, Gradle
-9.8.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
+9.9.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
 9.4.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
 artifact under `--dependency-verification strict` against
 `android/gradle/verification-metadata.xml`. The toolchain and direct dependency
@@ -416,8 +416,8 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | @capgo/native-purchases | 8.9.16 | npm / [upstream](https://github.com/Cap-go/capacitor-native-purchases) | MPL-2.0 |
 | com.android.billingclient:billing (via @capgo/native-purchases) | 9.1.0 | Google Maven | Android Software Development Kit License |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
-| com.google.firebase:firebase-bom | 35.0.2 | Google Maven | Apache-2.0 |
-| com.google.firebase:firebase-messaging | 26.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-bom | 35.1.0 | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-messaging | 26.0.1 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-installations | 20.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.nimbusds:nimbus-jose-jwt | 10.10 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
@@ -478,12 +478,12 @@ storage and remote notifications without another SDK.
 | Package / tool | Version | Source | License |
 |---|---|---|---|
 | Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
-| Gradle | 9.8.1 | gradle.org / CI setup-gradle | Apache-2.0 |
+| Gradle | 9.9.1 | gradle.org / CI setup-gradle | Apache-2.0 |
 | Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |
-| androidx.test.uiautomator:uiautomator (instrumentation only) | 2.4.0 | Google Maven | Apache-2.0 |
+| androidx.test.uiautomator:uiautomator (instrumentation only) | 2.4.1 | Google Maven | Apache-2.0 |
 
 UI Automator provides bounded native-control stability checks and genuine
 cross-app touches in the selected-media instrumentation fixture. It is an

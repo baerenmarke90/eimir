@@ -1,6 +1,7 @@
 import type { ApproximatePosition } from './approximateLocation';
 import {
   DISTANCE_FRESH_MS,
+  distanceBandWords,
   distanceUnitFor,
   formatDistanceBand,
   isDistanceFresh,
@@ -182,6 +183,21 @@ describe('formatDistanceBand', () => {
     expect(
       formatDistanceBand({ kind: 'RANGE', minKm: 2, maxKm: 5 }, 'en', 'mile'),
     ).toBe('1–3 mi');
+  });
+});
+
+describe('distanceBandWords', () => {
+  it('puts each range band into words and leaves other bands as they are', () => {
+    const range = (minKm: number, maxKm: number) =>
+      distanceBandWords({ kind: 'RANGE', minKm, maxKm });
+    expect(range(2, 5)).toBe('aroundCorner');
+    expect(range(5, 10)).toBe('stonesThrow');
+    expect(range(10, 25)).toBe('notFar');
+    expect(range(25, 50)).toBe('shortTrip');
+    expect(distanceBandWords({ kind: 'NEARBY' })).toBeNull();
+    expect(
+      distanceBandWords({ kind: 'APPROXIMATE', approximateKm: 340 }),
+    ).toBeNull();
   });
 });
 

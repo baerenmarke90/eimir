@@ -346,7 +346,9 @@ test('distance line states: nearby, range, earlier, own location missing, unavai
   });
   await page.reload();
   await settleStartSheet(page);
-  await expect(hero(page).getByText(between('5–10 km'))).toBeVisible();
+  // A range band is put into words, not a numeric range (#1907 H4).
+  await expect(hero(page).getByText(copy.distanceStonesThrow)).toBeVisible();
+  await expect(hero(page).getByText(/\d+–\d+/)).toHaveCount(0);
 
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   await distanceMocks(page, {
@@ -531,6 +533,119 @@ test('partner shares nothing: the map still opens from the settings link', async
     page,
     info,
     'partner-distance-map-partner-not-sharing-1280.png',
+  );
+});
+
+/** The default Verbunden hero with both partners' daily marks (#1790). */
+async function connectedHeroWithMarks(page: Page) {
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    const space = `/api/v1/spaces/${SPACE_ID}`;
+    if (pathname.endsWith('/appearance/wir-design'))
+      return route.fulfill({ json: { designId: 'connected', version: 1 } });
+    if (request.method() === 'GET' && pathname === `${space}/configuration`)
+      return route.fulfill({
+        json: {
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: 'Europe/Berlin',
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: true,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled: true,
+          version: 7,
+          vibeCheckEnabled: true,
+          vibeVisibilityMode: 'IMMEDIATE',
+        },
+        headers: { ETag: '"7"' },
+      });
+    if (pathname === `${space}/daily-check-in/today`)
+      return route.fulfill({
+        json: {
+          checkedOn: '2026-11-13',
+          dailyContextTimezone: 'Europe/Berlin',
+          own: { energyLevel: 70, vibe: 'GOOD', vibeNote: null, version: 1 },
+          energy: {
+            visibilityMode: 'IMMEDIATE',
+            partner: { state: 'VISIBLE', value: 40 },
+          },
+          vibe: {
+            visibilityMode: 'IMMEDIATE',
+            partner: { state: 'VISIBLE', value: 'OKAY' },
+            partnerNote: null,
+          },
+        },
+        headers: { ETag: '"2026-11-13:check-in-1:1"' },
+      });
+    return route.fallback();
+  });
+}
+
+test('Verbunden hero: range words beside the daily marks, below them when tight', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await grantBrowserLocation(page);
+  await distanceMocks(page, {
+    distance: {
+      band: { kind: 'RANGE', minKm: 5, maxKm: 10 },
+      asOf: minutesAgo(10),
+    },
+  });
+  await connectedHeroWithMarks(page);
+  await openWir(page);
+  const slot = hero(page).locator('.wir-stage-distance');
+  const value = slot.getByRole('link', {
+    name: `${copy.distanceStonesThrow}. ${copy.distanceOpenMap}`,
+  });
+  await expect(value).toHaveText(copy.distanceStonesThrowShort);
+  const marks = hero(page).locator('.wir-checkin-badge');
+  await expect(marks).toHaveCount(2);
+  await expect(slot).not.toHaveClass(/\bis-below-marks\b/);
+  await captureScreenshot(
+    page,
+    info,
+    'partner-distance-verbunden-marks-390.png',
+  );
+
+  // Narrow screens and larger text move the value onto its own line.
+  for (const [width, scale] of [
+    [320, '100%'],
+    [390, '130%'],
+  ] as const) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.evaluate((size) => {
+      document.documentElement.style.fontSize = size;
+    }, scale);
+    await expect(slot).toHaveClass(/\bis-below-marks\b/);
+    const valueBox = await value.boundingBox();
+    for (const mark of await marks.all()) {
+      const box = await mark.boundingBox();
+      expect(valueBox && box).toBeTruthy();
+      if (valueBox && box)
+        expect(valueBox.y).toBeGreaterThanOrEqual(box.y + box.height);
+    }
+    await expectNoHorizontalOverflow(page);
+    await captureScreenshot(
+      page,
+      info,
+      `partner-distance-verbunden-marks-${width}-${scale.replace('%', '')}.png`,
+    );
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(slot).not.toHaveClass(/\bis-below-marks\b/);
+  await captureScreenshot(
+    page,
+    info,
+    'partner-distance-verbunden-marks-390-dark.png',
   );
 });
 

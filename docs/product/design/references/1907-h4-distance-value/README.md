@@ -63,3 +63,25 @@ German copy is in the issue proposal and will live in the
 The value no longer wraps inside the narrow slot under the "&"; it is centred
 on its own line. At 200 % text the Verbunden hero already overlaps today
 (avatars and days); the value then wraps centred within the screen width.
+
+## Product Owner approval and live preview
+
+Approved on 2026-11-15 after a live preview of the real app (e2e build with
+fixture data and a band switcher, never committed): the words over the
+numeric ranges. Checking them beside the daily vibe and energy marks showed
+that the longest short forms come within 7 px of the marks at 360 px, so the
+Product Owner also approved shorter short forms (`distanceStonesThrowShort`,
+`distanceShortTripShort`) and a fallback: when the value would come closer
+than 8 px to a mark, it moves to its own line below the marks.
+
+## Implementation evidence
+
+Captured from the implementation branch in the e2e harness (mocked API):
+
+- `20-impl-verbunden-5-10-390-light.jpg`, `21-impl-verbunden-5-10-390-dark.jpg`:
+  Verbunden with both daily marks, the value beside them.
+- `22-impl-verbunden-5-10-320-below-marks.jpg`: 320 px, the value on its own
+  line below the marks.
+- `23-impl-verbunden-5-10-390-text-130-below-marks.jpg`: 130 % text, own line.
+- `24-impl-pill-nearby-360-light.jpg`, `25-impl-pill-far-390-light.jpg`: the
+  pill of the other designs, unchanged for nearby and far values.

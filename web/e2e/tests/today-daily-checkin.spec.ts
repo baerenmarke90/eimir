@@ -9,6 +9,7 @@ import fixtureCopy from '../fixtures/locales/de';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import onceMessages from '../../src/i18n/locales/onceMessages';
 import wirCheckIn from '../../src/i18n/locales/wirCheckIn';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 /**
  * Daily check-in on the couple avatars on Wir (#1790 slice A): badges on
@@ -247,6 +248,7 @@ async function installMocks(page: Page, options: MockOptions = {}) {
       }
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     return json(
       { code: 'E2E_UNEXPECTED_REQUEST', status: 500, title: 'Unexpected' },

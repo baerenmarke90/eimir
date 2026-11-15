@@ -16,6 +16,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -616,6 +617,7 @@ async function installPeopleApiMocks(
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

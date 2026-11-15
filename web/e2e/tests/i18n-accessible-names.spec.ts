@@ -3,6 +3,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -230,6 +231,7 @@ async function installPlanDetailMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (await fulfillNoOccasionSources(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

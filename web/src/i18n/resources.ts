@@ -29,6 +29,7 @@ import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
+import occasionMarks from './locales/occasionMarks';
 import offlinePage from './locales/offlinePage';
 import onceMessages from './locales/onceMessages';
 import partnerConnection from './locales/partnerConnection';
@@ -100,6 +101,7 @@ export const germanResources = {
   games,
   experiences,
   importantDates,
+  occasionMarks,
   legal,
   m5s3,
   m5s5,

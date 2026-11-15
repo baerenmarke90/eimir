@@ -13,6 +13,7 @@ export * from './ContextTagsApi';
 export * from './DailyCheckInsApi';
 export * from './DailyQuoteApi';
 export * from './DashboardApi';
+export * from './DateIdeasApi';
 export * from './EntitlementsApi';
 export * from './GamesApi';
 export * from './HealthApi';

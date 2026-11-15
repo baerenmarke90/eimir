@@ -23,6 +23,7 @@ from eimir.api.v1 import (
     daily_checkins,
     daily_quote,
     dashboard,
+    date_ideas,
     demo,
     engagement,
     entitlements,
@@ -109,6 +110,7 @@ normal_router.include_router(link_previews.router)
 normal_router.include_router(daily_checkins.router)
 normal_router.include_router(partner_location.router)
 normal_router.include_router(daily_quote.router)
+normal_router.include_router(date_ideas.router)
 normal_router.include_router(people.router)
 normal_router.include_router(profiles.router)
 normal_router.include_router(spaces.router)

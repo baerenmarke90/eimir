@@ -40,7 +40,7 @@ import {
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   MEMORY_CREATE_ROUTE,
-  PRO_INFORMATION_ROUTE,
+  proPaywallPath,
   recapDetailPath,
   STORY_RECAPS_ROUTE,
 } from '../client/routes';
@@ -369,7 +369,7 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           <section className="recap-gate">
             <h2>{t('recaps.gateTitle')}</h2>
             <p>{t('recaps.gateBody')}</p>
-            <Link to={PRO_INFORMATION_ROUTE}>{t('recaps.gateLink')}</Link>
+            <Link to={proPaywallPath('recaps')}>{t('recaps.gateLink')}</Link>
           </section>
         ) : null}
         {editions.length > 0 ? (

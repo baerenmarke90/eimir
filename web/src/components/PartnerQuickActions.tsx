@@ -15,7 +15,7 @@ import {
   PARTNER_QUICK_ACTIONS_CAPABILITY,
   PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
 } from '../client/partnerQuickActions';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
 import {
   entitlementLoader,
   useSpaceCapability,
@@ -230,7 +230,7 @@ export function PartnerQuickActions({
 
   const navigateToPro = () => {
     if (gesture.isInFlight()) return;
-    const destination = PRO_INFORMATION_ROUTE;
+    const destination = proPaywallPath();
     if (!isExpanded && sheetRef.current) {
       sheetRef.current.closeForNavigation(() => navigate(destination));
       return;

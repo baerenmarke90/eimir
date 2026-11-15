@@ -361,6 +361,8 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"enabled": True},
         if_match=True,
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint(
@@ -1582,6 +1584,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "targetId": memory["id"],
             "kind": "memories",
             "experienceKind": "HAPPINESS",
+            # A catalog image ID, not a database row; tenant checks come first.
+            "imageId": "category-nature",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

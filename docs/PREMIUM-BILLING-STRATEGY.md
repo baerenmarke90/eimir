@@ -1,9 +1,9 @@
 # eimir. - Premium Billing Strategy
 
 **Status:** authoritative commercial packaging baseline  
-**Version:** 1.0  
-**Decision date:** 2026-09-10  
-**Owning product decision:** #876  
+**Version:** 1.1  
+**Decision date:** 2026-09-10; price revised 2026-11-14  
+**Owning product decision:** #876; price superseded by the Product Owner decision recorded with #1892  
 **Freemium strategy:** [FREEMIUM-FEATURE-MATRIX.md](./FREEMIUM-FEATURE-MATRIX.md)  
 **Business model:** [BUSINESS-MODEL.md](./BUSINESS-MODEL.md)  
 **Entitlement architecture:** [ADR 0006](m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md)
@@ -62,14 +62,17 @@ Do not pre-build Family billing, family-specific entitlement types, or a tier la
 
 ## Reference pricing
 
-Initial EUR reference pricing is defined **per relationship/Space**:
+EUR target pricing is defined **per relationship/Space**. The Product Owner decision of 2026-11-14 (#1892) supersedes the #876 reference price of EUR 5.99 monthly / EUR 49.99 annual:
 
-| Billing period | Reference price |
+| Billing period | Target price |
 | --- | ---: |
-| Monthly | **EUR 5.99** |
-| Annual | **EUR 49.99** |
+| Monthly | **EUR 7.99** |
+| Annual | **EUR 59.99** |
+| eimir. Free | **free, permanently** |
 
-Twelve monthly payments equal EUR 71.88. The annual plan therefore saves EUR 21.89, approximately **30.5%** relative to twelve monthly payments.
+Twelve monthly payments equal EUR 95.88. The annual plan therefore saves EUR 35.89, approximately **37%** relative to twelve monthly payments.
+
+Production purchase prices must come from the valid offer of the connected billing provider (Stripe for Web, Google Play Billing for the Android app). Until an adapter exists, the shared Pro paywall shows these target prices as product information and offers no purchase action, no simulated confirmation and no local unlock (see [docs/product/design/pro-paywall.md](product/design/pro-paywall.md)).
 
 ### Space-level purchase semantics
 
@@ -81,7 +84,7 @@ The purchaser remains the billing owner/sponsor for provider renewal, invoice, c
 
 ### Currency and tax presentation
 
-EUR is the initial reference price frozen by #876.
+EUR is the reference currency; the current target price is the 2026-11-14 decision above.
 
 This document does not freeze independent USD or other regional price points. Provider/store catalogs may localize currency, tax display, and regional pricing where legally or commercially required, but those values belong to the commercial adapter/catalog boundary rather than the domain entitlement model.
 
@@ -89,9 +92,9 @@ This document does not freeze independent USD or other regional price points. Pr
 
 ## Cloud and Self-Hosted pricing
 
-The initial consumer product direction uses the same EUR Pro reference price for both operating models:
+The consumer product direction uses the same EUR Pro target price for both operating models:
 
-> **eimir. Pro: EUR 5.99/month or EUR 49.99/year per Space, whether the Space is Cloud/Managed or Self-Hosted.**
+> **eimir. Pro: EUR 7.99/month or EUR 59.99/year per Space, whether the Space is Cloud/Managed or Self-Hosted.**
 
 This does not make the operating models technically identical.
 
@@ -351,9 +354,9 @@ Default grandfathering is **commercial-price grandfathering**, not a frozen hist
 Example:
 
 ```text
-Customer subscribed at EUR 5.99/month
+Customer subscribed at EUR 7.99/month
 Public price later changes
-=> billing policy may preserve EUR 5.99/month for that existing subscription
+=> billing policy may preserve EUR 7.99/month for that existing subscription
 ```
 
 An active normal Premium customer receives the current normalized Premium capability set unless an explicit product/migration decision defines a legacy exception.
@@ -498,8 +501,8 @@ As of 2026-09-10 / #876:
 
 1. Consumer packaging is **Free + eimir. Pro**.
 2. `eimir. Pro` maps to the internal `PREMIUM` entitlement tier/capability set.
-3. Price is **EUR 5.99/month** or **EUR 49.99/year** per Space.
-4. Annual pricing represents approximately **30.5%** savings versus twelve monthly payments.
+3. Price is **EUR 7.99/month** or **EUR 59.99/year** per Space (Product Owner decision 2026-11-14, #1892; supersedes the #876 values EUR 5.99/EUR 49.99). eimir. Free stays free permanently.
+4. Annual pricing represents approximately **37%** savings versus twelve monthly payments.
 5. One current relationship Space requires one consumer Premium entitlement, not one subscription per partner.
 6. No Family tier is introduced for v1.
 7. No artificial count limit is introduced for Memories or other core relationship entities.

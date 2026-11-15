@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useContext, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { PRO_INFORMATION_ROUTE } from '../client/routes';
+import { proPaywallPath } from '../client/routes';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
 import { AddActionContent } from './AddAction';
@@ -102,9 +102,7 @@ function EnabledVideoUploadAction({
         <button
           type="button"
           onClick={() =>
-            sheet.current?.closeForNavigation(() =>
-              navigate(PRO_INFORMATION_ROUTE),
-            )
+            sheet.current?.closeForNavigation(() => navigate(proPaywallPath()))
           }
         >
           {t('video.proAction')}

@@ -745,6 +745,21 @@
         "web/src/components/SettingsPage.tsx"
       ]
     },
+    "date-inspiration.spec.ts": {
+      "roots": [
+        "web/src/components/DateIdeasPage.tsx",
+        "web/src/components/DateIdeasEntry.tsx",
+        "web/src/components/DateIdeaImage.tsx",
+        "web/src/client/dateIdeas.ts",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/client/taskOrigin.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/ProPaywallPage.tsx",
+        "web/src/client/proBilling.ts",
+        "web/src/client/proPresentation.tsx"
+      ]
+    },
     "shared-wish-selection.spec.ts": {
       "roots": [
         "web/src/components/WishSelectionPage.tsx",

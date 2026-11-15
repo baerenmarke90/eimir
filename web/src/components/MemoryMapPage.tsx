@@ -9,7 +9,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
@@ -19,7 +24,7 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
-import { memoryDetailPath } from '../client/routes';
+import { memoryDetailPath, proPaywallPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import {
   parseStoryFilters,
@@ -445,6 +450,14 @@ export function MemoryMapPage({
             kind="empty"
             title={t('memoryMap.proTitle')}
             body={t('memoryMap.proBody')}
+            action={
+              <Link
+                className="button-link secondary-link"
+                to={proPaywallPath('memoryMap')}
+              >
+                {t('proPaywall.contextAction')}
+              </Link>
+            }
           />
         ) : query.error ? (
           <ProblemState

@@ -8,6 +8,7 @@ import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
+import dateIdeas from './locales/dateIdeas';
 import de from './locales/de';
 import demo from './locales/demo';
 import discreetPlans from './locales/discreetPlans';
@@ -41,6 +42,7 @@ import privateArea from './locales/privateArea';
 import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
+import proPaywall from './locales/proPaywall';
 import recaps from './locales/recaps';
 import rediscovery from './locales/rediscovery';
 import relationshipComponents from './locales/relationshipComponents';
@@ -90,6 +92,7 @@ export const germanResources = {
   weeklyInsights,
   dailyQuote,
   dailyVibe,
+  dateIdeas,
   games,
   experiences,
   importantDates,
@@ -103,6 +106,7 @@ export const germanResources = {
   partnerLocation,
   people,
   privateArea,
+  proPaywall,
   profileIdentity,
   profiles,
   productTour,

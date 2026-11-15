@@ -8,6 +8,7 @@ import type { DevicePushConfiguration } from '../api/generated/models/DevicePush
 import { ResponseError } from '../api/generated/runtime';
 import { isCapacitorNative } from '../pwa';
 import { dashboardQueryKey } from './dashboardQueries';
+import { reportNotificationWake } from './foregroundNotifications';
 import { notificationPath } from './m4Product';
 import {
   notificationsListQueryKey,
@@ -16,7 +17,6 @@ import {
 import {
   receiptScope,
   requestPartnerGestureReceipt,
-  requestPartnerReceiptRefresh,
 } from './partnerGestureReceipt';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
 import { postSnackbar } from './snackbar';
@@ -370,7 +370,9 @@ export function useDevicePush({
   notificationsApi: NotificationsApi;
   queryClient: QueryClient;
   spaceId: string;
-}): DevicePushController & { openNotification(id?: string): void } {
+}): DevicePushController & {
+  openNotification(id?: string, sourceEventId?: string): void;
+} {
   const native = isCapacitorNative();
   const navigate = useNavigate();
   const navigateRef = useRef(navigate);
@@ -379,7 +381,13 @@ export function useDevicePush({
   }, [navigate]);
   const blocked = useDocumentLeaveBlocked();
   const [pendingInbox, setPendingInbox] = useState<string | null>(null);
-  const pendingNotification = useRef<string | undefined>(undefined);
+  const pendingNotification = useRef<
+    | {
+        id?: string;
+        sourceEventId?: string;
+      }
+    | undefined
+  >(undefined);
   const openedHints = useRef(new Set<string>());
   const [state, setState] = useState<DevicePushState>(
     native ? 'loading' : 'unavailable',
@@ -412,9 +420,9 @@ export function useDevicePush({
   errorRef.current = error;
 
   const openInbox = useCallback(
-    (notificationId?: string) => {
+    (notificationId?: string, sourceEventId?: string) => {
       if (isDocumentLeaveBlocked()) {
-        pendingNotification.current = notificationId;
+        pendingNotification.current = { id: notificationId, sourceEventId };
         setPendingInbox(`${key}:${currentSpaceId.current}`);
         postSnackbar('snackbar.notificationWaiting');
         return;
@@ -427,7 +435,7 @@ export function useDevicePush({
         navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
         return;
       }
-      const hintKey = `${key}:${notificationId}`;
+      const hintKey = `${key}:${notificationId}:${sourceEventId ?? ''}`;
       if (openedHints.current.has(hintKey)) return;
       openedHints.current.add(hintKey);
       if (openedHints.current.size > 64)
@@ -457,7 +465,7 @@ export function useDevicePush({
           });
           if (isDocumentLeaveBlocked()) {
             openedHints.current.delete(hintKey);
-            pendingNotification.current = notificationId;
+            pendingNotification.current = { id: notificationId, sourceEventId };
             setPendingInbox(`${key}:${currentSpaceId.current}`);
             postSnackbar('snackbar.notificationWaiting');
             return;
@@ -497,9 +505,9 @@ export function useDevicePush({
     }
     if (blocked) return;
     setPendingInbox(null);
-    const notificationId = pendingNotification.current;
+    const notification = pendingNotification.current;
     pendingNotification.current = undefined;
-    openInbox(notificationId);
+    openInbox(notification?.id, notification?.sourceEventId);
   }, [blocked, key, spaceId, pendingInbox, openInbox]);
 
   const syncRegistered = useCallback(async () => {
@@ -736,7 +744,11 @@ export function useDevicePush({
         void (async () => {
           if (!(await currentEvent(event, generation))) return;
           const activeSpaceId = currentSpaceId.current;
-          requestPartnerReceiptRefresh(receiptScope(accountId, activeSpaceId));
+          reportNotificationWake({
+            accountId,
+            apiBaseUrl,
+            spaceId: activeSpaceId,
+          });
           void queryClient.invalidateQueries({
             queryKey: notificationUnreadCountQueryKey(activeSpaceId),
           });

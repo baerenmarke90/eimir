@@ -36,6 +36,7 @@ import {
   useDevicePush,
 } from './client/devicePush';
 import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import { useHistoryEntryTracker } from './client/historyEntries';
 import {
   ActiveAccountMismatchError,
   revokeUnacceptedSession,
@@ -66,7 +67,6 @@ import {
   COLLECTION_CREATE_ROUTE,
   COLLECTION_DETAIL_ROUTE_PATTERN,
   DATE_IDEAS_ROUTE,
-  PRO_PAYWALL_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
@@ -97,6 +97,7 @@ import {
   PLACE_DETAIL_ROUTE_PATTERN,
   PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
+  PRO_PAYWALL_ROUTE,
   RECAP_DETAIL_ROUTE_PATTERN,
   REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
@@ -152,7 +153,6 @@ import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
 import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DateIdeasPage } from './components/DateIdeasPage';
-import { ProPaywallPage } from './components/ProPaywallPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
@@ -188,6 +188,7 @@ import {
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
+import { ProPaywallPage } from './components/ProPaywallPage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
 import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
@@ -609,6 +610,7 @@ function AuthenticatedApp({
         account={account}
         spaceId={spaceId}
         serverAdmin={serverAdmin}
+        openNotification={devicePush.openNotification}
         primaryTabs={
           <PrimaryTabPanels
             panels={primaryTabPanels}
@@ -1177,6 +1179,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const config = useMemo(loadReferenceClientConfig, []);
   const location = useLocation();
   const navigate = useNavigate();
+  useHistoryEntryTracker();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);

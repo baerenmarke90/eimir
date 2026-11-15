@@ -1,8 +1,3 @@
-import { createPortal } from 'react-dom';
-import { ComposerTool, ComposerToolRow } from './PageComposer';
-import { EimirIcon } from './EimirIcon';
-import { loadVideoSource } from '../client/video';
-import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   useIsMutating,
   useMutation,
@@ -16,6 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import {
@@ -31,6 +27,7 @@ import { bindVideoTransferTargets } from '../client/backgroundVideoUploads';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { isGalleryAttachment } from '../client/galleryMedia';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
+import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import {
   isGeneratedMemoryTitle,
   type MemoryEditValues,
@@ -55,6 +52,7 @@ import {
 } from '../client/routes';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { postSnackbar } from '../client/snackbar';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
@@ -65,17 +63,19 @@ import { orderedPhotoKeys } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
-import { ContextTagList } from './ContextTagList';
 import {
   ComposerDateContext,
   type ComposerDateContextHandle,
 } from './ComposerDateContext';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { ContextTagList } from './ContextTagList';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { DraftMediaPreview } from './DraftMediaPreview';
+import { EimirIcon } from './EimirIcon';
 import { ExpandableDescription } from './ExpandableDescription';
 import { ExperienceAnswers } from './ExperienceAnswers';
 import { MediaProcessingState } from './MediaProcessingState';
@@ -88,6 +88,7 @@ import { MomentDate } from './MomentDate';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
 import { NativeDateInput } from './NativeDateField';
+import { ComposerTool, ComposerToolRow } from './PageComposer';
 import { PageHeader } from './PageHeader';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { ProblemState } from './ProblemState';
@@ -151,6 +152,8 @@ export function MemoryProductPage({
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn } = useTaskOrigin();
+  const returnTo = useReturnTo();
+  const leaveDeleted = useLeaveDeletedEntries();
   const taskState = location.state as {
     taskOriginKey?: unknown;
     memorySaved?: boolean;
@@ -489,9 +492,9 @@ export function MemoryProductPage({
       ]);
       if (!request.isCurrent()) return;
       editorLifecycle.closeConfirmed(() =>
-        navigate(memoryDetailPath(memory.id), {
-          replace: true,
-          state: { taskOriginKey: originKey, memorySaved: true },
+        returnTo(memoryDetailPath(memory.id), {
+          state: { taskOriginKey: originKey },
+          restoredState: { memorySaved: true },
         }),
       );
     },
@@ -514,7 +517,9 @@ export function MemoryProductPage({
         ifMatch: memoryIfMatch(memory),
       }),
     onDeleted: () => {
-      navigate(appRoutePath('story'), { replace: true });
+      editorLifecycle.closeConfirmed(() =>
+        leaveDeleted(memoryDetailPath(memoryId ?? ''), appRoutePath('story')),
+      );
       postSnackbar('snackbar.memoryDeleted');
     },
   });
@@ -537,8 +542,7 @@ export function MemoryProductPage({
       planningPending,
     onClose: () => {
       if (memoryId)
-        navigate(memoryDetailPath(memoryId), {
-          replace: true,
+        returnTo(memoryDetailPath(memoryId), {
           state: { taskOriginKey: originKey },
         });
     },

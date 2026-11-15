@@ -3450,7 +3450,6 @@
     "changed": "The suggestion has changed. Check the current details.",
     "review": "View suggestion",
     "openPlan": "View Plan",
-    "openError": "The notification could not be opened right now.",
     "receipt": {
       "proposed": "{{name}} suggests a date",
       "countered": "{{name}} suggests another date",

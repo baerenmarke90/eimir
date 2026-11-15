@@ -23,7 +23,6 @@ export default {
   changed: 'Der Vorschlag hat sich geändert. Schau dir den aktuellen Stand an.',
   review: 'Vorschlag ansehen',
   openPlan: 'Plan ansehen',
-  openError: 'Die Mitteilung konnte gerade nicht geöffnet werden.',
   receipt: {
     proposed: '{{name}} schlägt einen Termin vor',
     countered: '{{name}} schlägt einen anderen Termin vor',

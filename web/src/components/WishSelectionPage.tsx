@@ -51,6 +51,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import {
   ownIdeaSelectionIds,
@@ -227,6 +228,15 @@ function WishSelectionTask({
     isDirty: dirty,
     isCloseBlocked: busy,
     onClose,
+  });
+  // The plan step is a nested task: system Back returns to the selection like
+  // the header control, and asks first when the plan draft has changes.
+  const closePlanStep = useEditorHistoryEntry({
+    isActive: activeMode === 'plan',
+    isDirty: planDirty,
+    isCloseBlocked: busy,
+    onClose: () => setMode('view'),
+    onDiscardRequested: () => setCancelPlan(true),
   });
 
   const adopt = useCallback((current: WishSelectionView) => {
@@ -531,12 +541,15 @@ function WishSelectionTask({
       ]);
       if (!vars.current()) return;
       const taskOriginKey = captureOrigin();
-      lifecycle.closeConfirmed(() => {
-        void navigate(planDetailPath(saved.plan.id), {
-          replace: true,
-          state: { taskOriginKey, planningCreated: true },
-        });
-      });
+      // Release the plan step's entry before the task's own entry.
+      closePlanStep(() =>
+        lifecycle.closeConfirmed(() => {
+          void navigate(planDetailPath(saved.plan.id), {
+            replace: true,
+            state: { taskOriginKey, planningCreated: true },
+          });
+        }),
+      );
     },
     onSettled: finish,
   });

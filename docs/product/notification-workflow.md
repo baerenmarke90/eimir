@@ -61,13 +61,16 @@ foundation. It does not introduce the previously rejected daily summary.
    destination. An unavailable target falls back to the Center. Account/Space
    changes invalidate pending navigation, and an active editor defers navigation
    through the existing document-leave guard. Dismissing/receiving is not reading.
-7. Reconciliation remains silent. The focused app reads the newest authorized
-   items after an unread-count increase or a wake from the current native
-   activation or a bound browser Wish date notification. A wake can trigger
-   the read with an unchanged count. Only the scoped
-   [partner gesture](design/partner-gesture-receipt.md) and Wish date receipts
-   use that identity to animate a verified new arrival. Cached items, old inbox
-   entries and active editors do not trigger the receipt.
+7. A wake from the current native activation or a bound browser Wish date
+   notification can trigger a fresh, authorized inbox read in the focused
+   app even with an unchanged unread count. An increase in the observed count
+   can also trigger a read. A recent unread item can appear in the
+   [shared foreground banner](design/partner-gesture-receipt.md), with a
+   one-shot animation or the settled symbol for reduced motion. Only one banner
+   is visible. Focused tasks keep the screen, and notifications that arrived
+   while the app was away stay in the inbox. The active native app suppresses
+   system presentation. The [browser Web Push contract](multi-platform-push.md)
+   governs browser system notifications.
 
 ## Complete module inventory
 
@@ -139,11 +142,12 @@ The existing device setup negotiates the preview. The recipient's device time
 zone is used consistently for the local date and time in the preview and in the
 app. The Wish date exchange adds no separate private-preview setting and no Email.
 
-The in-app receipt reuses [#455](design/partner-gesture-receipt.md) at the top
-of the current screen with the avatar, three one-shot waves and a calendar
-badge. It uses a stable authorized entry, leaves focus and active tasks alone
-and shows the settled state immediately with reduced motion. Timeout or dismissal
-leaves the proposal and the Center's read state alone.
+The in-app receipt uses the shared foreground banner
+[#1912](design/partner-gesture-receipt.md) at the top of the current screen. Its
+avatar, three one-shot waves and calendar badge follow the check-in motion from
+#455. The receipt uses a stable authorized entry, leaves focus and active tasks
+alone and shows the settled state immediately with reduced motion. Timeout or
+dismissal leaves the proposal and the Center's read state alone.
 
 ## Bounds, privacy and business model
 

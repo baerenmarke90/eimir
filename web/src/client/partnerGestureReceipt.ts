@@ -54,60 +54,21 @@ export function isPartnerGestureKind(kind: string): kind is PartnerGestureKind {
   return (PARTNER_GESTURE_KINDS as readonly string[]).includes(kind);
 }
 
-export function isWishDateReceiptKind(kind: string): boolean {
-  return (
-    kind === 'WISH_DATE_PROPOSED' ||
-    kind === 'WISH_DATE_COUNTERED' ||
-    kind === 'WISH_DATE_ACCEPTED'
-  );
-}
+const WISH_DATE_RECEIPT_KINDS = [
+  'WISH_DATE_PROPOSED',
+  'WISH_DATE_COUNTERED',
+  'WISH_DATE_ACCEPTED',
+] as const;
 
-export function isPartnerReceipt(item: NotificationItem): boolean {
-  return (
-    isPartnerGestureKind(item.kind) ||
-    (isWishDateReceiptKind(item.kind) &&
-      item.target?.concealed !== true &&
-      Boolean(item.appointmentStart && item.target?.title))
-  );
-}
+export type WishDateReceiptKind = (typeof WISH_DATE_RECEIPT_KINDS)[number];
 
-/**
- * The newest unread gesture from the partner that arrived after this shell
- * instance started and was never handled. Anything older stays only in the
- * Notification Center, so a normal app start never replays a receipt.
- */
-export function selectArrivedGesture(
-  items: readonly NotificationItem[],
-  {
-    accountId,
-    notBefore,
-    handled,
-  }: {
-    accountId: string;
-    notBefore: number;
-    handled: ReadonlySet<string>;
-  },
-): NotificationItem | null {
-  let newest: NotificationItem | null = null;
-  for (const item of items) {
-    if (!isPartnerReceipt(item)) continue;
-    if (item.readAt || handled.has(item.id)) continue;
-    if (item.actorId === accountId || item.actor?.id === accountId) continue;
-    if (item.createdAt.getTime() <= notBefore) continue;
-    if (!newest || item.createdAt > newest.createdAt) newest = item;
-  }
-  return newest;
+export function isWishDateReceiptKind(
+  kind: string,
+): kind is WishDateReceiptKind {
+  return (WISH_DATE_RECEIPT_KINDS as readonly string[]).includes(kind);
 }
 
 export const PARTNER_GESTURE_RECEIPT_EVENT = 'eimir:partner-gesture-receipt';
-export const PARTNER_RECEIPT_REFRESH_EVENT = 'eimir:partner-receipt-refresh';
-
-/** A verified provider wake carries no notification content into the shell. */
-export function requestPartnerReceiptRefresh(scope: string): void {
-  window.dispatchEvent(
-    new CustomEvent(PARTNER_RECEIPT_REFRESH_EVENT, { detail: scope }),
-  );
-}
 
 export interface PartnerGestureReceiptRequest {
   /** `${accountId}:${spaceId}` of the shell that resolved the item. */

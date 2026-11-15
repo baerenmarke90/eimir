@@ -251,7 +251,7 @@ describe('HeartMoment delete response ownership', () => {
       heartMoment.id,
     );
     expect(h.client.getQueryData(key)).toBeUndefined();
-    expect(screen.getByText('Timeline result')).toBeTruthy();
+    expect(await screen.findByText('Timeline result')).toBeTruthy();
   });
 
   it('does not navigate after actual departure or after returning to a new activation', async () => {
@@ -558,7 +558,7 @@ describe('HeartMoment delete response ownership', () => {
     await waitFor(() => expect(h.deleteHeartMoment).toHaveBeenCalledTimes(2));
     await act(async () => retry.resolve());
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
-    expect(screen.getByText('Timeline result')).toBeTruthy();
+    expect(await screen.findByText('Timeline result')).toBeTruthy();
   });
   it('deletes an owner-only Heart Moment without publishing it first', async () => {
     const h = setup();
@@ -577,7 +577,7 @@ describe('HeartMoment delete response ownership', () => {
       'heartMoment',
       heartMoment.id,
     );
-    expect(screen.getByText('Timeline result')).toBeTruthy();
+    expect(await screen.findByText('Timeline result')).toBeTruthy();
   });
 
   it('prevents a visibility write after detail reopens Edit while deletion is pending', async () => {

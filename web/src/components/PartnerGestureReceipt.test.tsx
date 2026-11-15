@@ -20,26 +20,30 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { reportNotificationWake } from '../client/foregroundNotifications';
 import {
+  isPartnerGestureKind,
+  isWishDateReceiptKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
   receiptScope,
   requestPartnerGestureReceipt,
-  requestPartnerReceiptRefresh,
 } from '../client/partnerGestureReceipt';
 import { ClientProblemError } from '../client/problemDetails';
 import { proPaywallPath } from '../client/routes';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
+import coupleExperiences from '../i18n/locales/coupleExperiences';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import wishDateProposal from '../i18n/locales/wishDateProposal';
+import wishSelection from '../i18n/locales/wishSelection';
+import { NotificationMotion } from './NotificationMotion';
 import {
-  PARTNER_GESTURE_RECEIPT_VISIBLE_MS,
-  PartnerGestureReceiptHost,
+  FOREGROUND_NOTIFICATION_VISIBLE_MS,
+  ForegroundNotificationHost,
 } from './PartnerGestureReceipt';
 
 const notifications = {
   getNotifications: vi.fn(),
-  openNotification: vi.fn(),
   sendThinkingOfYou: vi.fn(),
   sendPartnerQuickAction: vi.fn(),
 };
@@ -83,7 +87,7 @@ function LocationProbe() {
   const location = useLocation();
   return (
     <div data-testid="location">
-      {`${location.pathname}${location.hash}|${JSON.stringify(location.state)}`}
+      {`${location.pathname}|${JSON.stringify(location.state)}`}
     </div>
   );
 }
@@ -97,11 +101,13 @@ function setup({
   capabilities,
   unreadCount = 0,
   accountId = ACCOUNT,
+  openNotification,
 }: {
   configuration?: Record<string, boolean>;
   capabilities?: string[];
   unreadCount?: number;
   accountId?: string;
+  openNotification?: (notificationId: string, sourceEventId: string) => void;
 } = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -119,7 +125,7 @@ function setup({
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/story']}>
         {extra}
-        <PartnerGestureReceiptHost
+        <ForegroundNotificationHost
           key={`${owner}:${SPACE}`}
           apiBaseUrl="https://eimir.test"
           accessToken="token"
@@ -127,6 +133,7 @@ function setup({
           spaceId={SPACE}
           unreadCount={count}
           suppressed={false}
+          openNotification={openNotification}
         />
         <LocationProbe />
       </MemoryRouter>
@@ -162,7 +169,6 @@ beforeEach(() => {
   clock = Date.now();
   vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   notifications.getNotifications.mockReset();
-  notifications.openNotification.mockReset();
   notifications.sendThinkingOfYou.mockReset();
   notifications.sendPartnerQuickAction.mockReset();
   onlineManager.setOnline(true);
@@ -184,45 +190,53 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('PartnerGestureReceiptHost', () => {
-  it('uses the Vibe motion and opens the authorized incoming Wish proposal', async () => {
-    const proposal = gesture('proposal-1', 'WISH_DATE_PROPOSED', {
-      appointmentStart: new Date('2026-11-21T14:00:00Z'),
-      targetType: 'WISH',
-      targetId: 'wish-123',
-      target: {
-        title: 'Stadionführung',
+describe('ForegroundNotificationHost', () => {
+  it('keeps the Vibe motion and opens the exact shared Wish proposal', async () => {
+    const openNotification = vi.fn();
+    setup({ unreadCount: 1, openNotification });
+    const proposal = gesture(
+      'proposal-1',
+      NotificationKind.WISH_DATE_PROPOSED,
+      {
+        createdAt: new Date(Date.now() + 1),
+        appointmentStart: new Date('2026-11-21T14:00:00Z'),
         targetType: 'WISH',
         targetId: 'wish-123',
+        target: {
+          title: 'Stadionführung',
+          targetType: 'WISH',
+          targetId: 'wish-123',
+        },
       },
-    });
-    notifications.getNotifications.mockResolvedValue(page(proposal));
-    notifications.openNotification.mockResolvedValue(proposal);
-    setup({ unreadCount: 1 });
-    act(() => requestPartnerReceiptRefresh(receiptScope(ACCOUNT, SPACE)));
-    const incoming = await screen.findByTestId('partner-gesture-receipt');
+    );
+    const concealed = {
+      ...proposal,
+      id: 'concealed',
+      createdAt: new Date(proposal.createdAt.getTime() + 1),
+      target: { ...proposal.target!, concealed: true },
+    };
+    notifications.getNotifications.mockResolvedValue(page(proposal, concealed));
+    await act(async () =>
+      reportNotificationWake({
+        accountId: ACCOUNT,
+        apiBaseUrl: 'https://eimir.test',
+        spaceId: SPACE,
+      }),
+    );
+    const incoming = screen.getByTestId('partner-gesture-receipt');
     expect(incoming.getAttribute('data-variant')).toBe('calm-ring');
     expect(incoming.querySelector('[data-glyph="calendar"]')).not.toBeNull();
     expect(incoming.textContent).toContain(
       wishDateProposal.receipt.proposed.replace('{{name}}', 'Ronja'),
     );
     expect(incoming.textContent).toContain('Stadionführung');
-    expect(notifications.openNotification).not.toHaveBeenCalled();
-    await act(async () => {
-      fireEvent.click(
-        screen.getByRole('button', { name: wishDateProposal.review }),
-      );
-    });
-    await waitFor(() =>
-      expect(notifications.openNotification).toHaveBeenCalledWith({
-        spaceId: SPACE,
-        notificationId: proposal.id,
-      }),
+    expect(openNotification).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: wishDateProposal.review }),
     );
-    await waitFor(() =>
-      expect(screen.getByTestId('location').textContent).toContain(
-        '/plan/wishes/wish-123#terminvorschlag',
-      ),
+    expect(openNotification).toHaveBeenCalledExactlyOnceWith(
+      proposal.id,
+      proposal.sourceEventId,
     );
   });
 
@@ -231,6 +245,81 @@ describe('PartnerGestureReceiptHost', () => {
     await act(async () => undefined);
     expect(notifications.getNotifications).not.toHaveBeenCalled();
     expect(receipt()).toHaveLength(0);
+  });
+
+  it('opens a Wish invitation from a scoped wake even if the unread count did not change', async () => {
+    const openNotification = vi.fn();
+    const invitation = gesture(
+      'wish-invite',
+      NotificationKind.WISH_SELECTION_SHARED,
+      {
+        targetType: 'WISH_SELECTION',
+        targetId: 'round-1',
+      },
+    );
+    notifications.getNotifications.mockResolvedValue(page(invitation));
+    setup({ unreadCount: 1, openNotification });
+
+    const scope = {
+      accountId: ACCOUNT,
+      apiBaseUrl: 'https://eimir.test',
+      spaceId: SPACE,
+    };
+    act(() => reportNotificationWake({ ...scope, spaceId: 'different-space' }));
+    expect(notifications.getNotifications).not.toHaveBeenCalled();
+    act(() => reportNotificationWake(scope));
+
+    const banner = await screen.findByTestId('foreground-notification');
+    expect(banner.textContent).toContain(
+      coupleExperiences.notifications.WISH_SELECTION_SHARED.replace(
+        '{{name}}',
+        'Ronja',
+      ),
+    );
+    expect(banner.querySelector('[data-motion="wish-fan"]')).not.toBeNull();
+    expect(openNotification).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: wishSelection.openOwn }),
+    );
+    expect(openNotification).toHaveBeenCalledWith(
+      invitation.id,
+      invitation.sourceEventId,
+    );
+  });
+
+  it('does not replay arrivals that occurred while the window was away', async () => {
+    const focus = vi.mocked(document.hasFocus);
+    const { rerender } = setup();
+    focus.mockReturnValue(false);
+    fireEvent(window, new Event('blur'));
+    const notification = gesture('comment', NotificationKind.COMMENT_CREATED);
+    notifications.getNotifications.mockResolvedValue(page(notification));
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    focus.mockReturnValue(true);
+    fireEvent(window, new Event('focus'));
+    rerender(1);
+    await waitFor(() =>
+      expect(notifications.getNotifications).toHaveBeenCalled(),
+    );
+    expect(screen.queryByTestId('foreground-notification')).toBeNull();
+  });
+
+  it('assigns distinguishable animation names to each ordinary kind', () => {
+    const kinds = Object.values(NotificationKind).filter(
+      (kind) => !isPartnerGestureKind(kind) && !isWishDateReceiptKind(kind),
+    );
+    const { container } = render(
+      kinds.map((kind) => <NotificationMotion key={kind} kind={kind} />),
+    );
+    const names = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        '.notification-motion > span:first-child',
+      ),
+      (element) => element.style.getPropertyValue('--notification-animation'),
+    );
+    expect(names).toHaveLength(kinds.length);
+    expect(new Set(names).size).toBe(kinds.length);
+    expect(names).not.toContain('');
   });
 
   it.each([
@@ -385,7 +474,7 @@ describe('PartnerGestureReceiptHost', () => {
     const close = screen.getByRole('button', { name: copy.close });
     act(() => close.focus());
     await act(async () =>
-      vi.advanceTimersByTimeAsync(PARTNER_GESTURE_RECEIPT_VISIBLE_MS + 100),
+      vi.advanceTimersByTimeAsync(FOREGROUND_NOTIFICATION_VISIBLE_MS + 100),
     );
     expect(surface.isConnected).toBe(true);
     fireEvent.keyDown(close, { key: 'Escape' });
@@ -402,7 +491,7 @@ describe('PartnerGestureReceiptHost', () => {
     rerender(1);
     await screen.findByTestId('partner-gesture-receipt');
     await act(async () =>
-      vi.advanceTimersByTimeAsync(PARTNER_GESTURE_RECEIPT_VISIBLE_MS + 100),
+      vi.advanceTimersByTimeAsync(FOREGROUND_NOTIFICATION_VISIBLE_MS + 100),
     );
     finishExit();
     expect(receipt()).toHaveLength(0);
@@ -469,7 +558,7 @@ describe('PartnerGestureReceiptHost', () => {
     expect(notifications.sendThinkingOfYou).not.toHaveBeenCalled();
     // The receipt stays until the person closes it.
     await act(async () =>
-      vi.advanceTimersByTimeAsync(PARTNER_GESTURE_RECEIPT_VISIBLE_MS + 100),
+      vi.advanceTimersByTimeAsync(FOREGROUND_NOTIFICATION_VISIBLE_MS + 100),
     );
     expect(receipt()).toHaveLength(1);
   });

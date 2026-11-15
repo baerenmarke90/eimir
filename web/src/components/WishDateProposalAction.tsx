@@ -18,6 +18,7 @@ import {
   dateTimeFromInput,
   localDateTimeInput,
 } from '../client/sharedPlanning';
+import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 import { wishDateProposalQueryKey } from '../client/wishDateProposal';
 import { useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
@@ -174,6 +175,11 @@ export function WishDateProposalAction({
       }
     },
   });
+
+  useDocumentLeaveGuard(
+    editorOpen &&
+      (write.isPending || Boolean(editor && draft !== editor.original)),
+  );
 
   function run(command: Command) {
     if (!online || writesPending || inFlight.current) return;

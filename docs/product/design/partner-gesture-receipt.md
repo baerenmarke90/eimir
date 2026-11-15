@@ -12,13 +12,14 @@ Owning issue: [#455](https://github.com/baerenmarke90/eimir/issues/455)
 (receipt part only; the global sender entry is unchanged). Related: #1206
 (quick actions), #515 (notification policy), #1790 (everyday closeness).
 
-The [Wish date proposal follow-up](../notification-workflow.md#wish-date-exchange-presentation-1910)
-reuses this receipt's presentation, timing and suppression rules. It puts a
-calendar badge on the check-in variant's calm arrival. Its action opens the
-proposal or confirmed Plan and never sends a reply on the recipient's behalf.
-Ordinary check-in status updates remain silent.
+[#1912](https://github.com/baerenmarke90/eimir/pull/1912) extends the shared
+receipt to new, authorized in-app notifications. The
+[Wish date proposal follow-up](../notification-workflow.md#wish-date-exchange-presentation-1910)
+uses the same host, timing and suppression rules. It puts a calendar badge on
+the check-in variant's calm arrival and gives the recipient a direct action to
+open the proposal or confirmed Plan. Ordinary check-in status updates remain silent.
 
-## Scope
+## Original scope (#455)
 
 - One shared presentation primitive, `PartnerGestureReceipt`, for the existing
   notification kinds `THINKING_OF_YOU`, `PARTNER_KISS` and `PARTNER_CHECK_IN`.
@@ -43,6 +44,14 @@ every other duration role. The big heart briefly covers the partner's face
 before settling as a badge; this was part of the reviewed variant.
 
 ## Generated visual reference
+
+The 2026-11-15 foreground-notification follow-up uses this same composition and
+Mobile Interaction Contract for ordinary in-app notifications. The
+Wish invitation opens the existing private favorite selection and fans out two
+symbols. The result brings a wish and a sparkle together. Other events have
+distinct motion on the same badge. Existing Notifications copy, the authorized
+open endpoint and the canonical destination define the action. Native wakes
+trigger a fresh inbox read even when a coalesced row leaves the count unchanged.
 
 ![Compact reference](references/partner-gesture-receipt/compact-reference.png)
 
@@ -97,36 +106,35 @@ the shared `AuthorAvatar` with its initials fallback.
 **Foreground arrival.** There is no realtime notification transport. The
 receipt reuses the existing signals only:
 
-1. The shell observes the existing unread-count query. It refreshes every
-   30 seconds and on focus. An **increase** after the first observed value
-   can trigger one read of the newest notification page (`limit: 5`)
-   through the existing authorized list endpoint.
-2. A wake from the current native activation or a bound browser Wish date
-   wake can trigger the same read even when the unread count stays unchanged.
-   Reads require a visible, focused window and current Account and Space.
-   The wake supplies the signal, and the authorized response supplies the content.
-3. An unread gesture or Wish date notice from the partner qualifies only if
-   it is newer than the shell's arrival boundary and has not been handled.
-   The newest one wins. Other eligible items from the same read stay in the
-   Notification Center.
+1. The shell observes the existing unread-count query, a wake from the
+   current native activation and a scoped browser Wish date wake. The query
+   retains its 30-second and focus refreshes.
+2. An increase after the first observed count, or a scoped wake with any
+   count, triggers a bounded read of the authorized inbox (`limit: 5`) for the
+   current Account and Space in the visible, focused window. Concurrent
+   signals share the same in-flight read, with one pending read for arrivals
+   that may have followed it.
+3. An unread notification created during the current foreground session can
+   appear once. The newest item appears. Other items in that read stay in the
+   Notification Center. The source event distinguishes updates to coalesced rows.
 
 A wake can reach the focused app without waiting for the next refresh.
 Without a wake, a notice can trigger the receipt on the next unread-count
 increase, usually within the refresh interval. Items that leave the count
 unchanged still appear in the Notification Center.
 
-**Push open.** Opening a push still resolves the item through
-`openNotification` and navigates exactly as before. For a gesture item, the
-receipt is then presented once for that deliberately opened item.
+**Open.** A system notification or the banner's open action resolves the item
+through `openNotification` and navigates to the current authorized destination.
+A deliberately opened gesture can also present its reply.
 
 **Suppression (no later interruption).** The receipt is not shown — the item
 stays in the Center — when a focused task route is active, a draft blocks
 leaving, a modal layer or dialog is open, or a text field has focus. A receipt
-on screen closes when a focused task or modal begins.
+on screen closes when the shell gives the screen to a focused task or loses focus.
 
 **Never.** No stacking (one receipt; a newer arrival replaces it), no queue, no
-replay after reload/app start (items older than the shell instance never
-qualify), no replay of handled IDs, no presentation after an Account or Space
+replay from before the current foreground session, no replay of handled events,
+no presentation after an Account or Space
 change (scope check on every asynchronous result, host keyed by scope), no
 read-state change (arrival, timeout and close do not mark read; the Center
 remains canonical).
@@ -152,8 +160,9 @@ error it stays until closed.
   defer external Push and Email only ([contract](../../m4/NOTIFICATION-QUIET-HOURS.md));
   the receipt is in-app, appears only in the focused, active window, makes no
   sound or vibration and never replaces a suppressed push.
-- **Push privacy:** unchanged. Push payloads stay neutral; the receipt content
-  is read from the authorized API after opening.
+- **Push privacy:** the foreground receipt reads its content from the
+  authorized API. The [delivery contract](../notification-workflow.md) owns
+  system copy and the encrypted Wish date preview.
 - **Haptics:** no existing haptic primitive exists. None is added, so no new
   native dependency.
 - **Business/freemium:** reviewed. Receiving and reading a gesture is the same
@@ -186,10 +195,9 @@ Known limits, documented instead of simulated:
 - **No realtime transport.** Arrival follows the existing unread-count
   refresh and the scoped foreground wakes documented above. Without a wake
   or a count increase, an item stays in the Notification Center.
-- **Native foreground push.** This slice does not change how the Android app
-  presents a push while it is in the foreground; the receipt only adds the
-  in-app moment after the existing wake refresh.
+- **Native foreground push.** The active Android app receives the scoped wake
+  and presents the in-app receipt after the authorized inbox refresh.
 - **No device acceptance yet.** Android (Capacitor) behavior, including the
   push-open receipt, still needs a Pixel check.
-- **Read state** is unchanged by design: seeing, replying to or closing the
-  receipt does not mark the Center entry read.
+- **Read state.** The authorized open action follows the existing Center
+  behavior. Seeing, replying to or closing the receipt leaves read state alone.

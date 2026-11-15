@@ -22,6 +22,7 @@ import {
 } from '../client/spaceEntitlement';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useMediaQuery } from '../client/useMediaQuery';
 import { useTranslation } from '../i18n';
 import { AvatarPhoto, type AvatarPhotoHandle } from './AvatarPhoto';
@@ -103,6 +104,19 @@ export function PartnerQuickActions({
     },
   );
   const desiredExpandedOpen = isOpen && isExpanded && !compactPresent;
+  // The Expanded popover owns a history entry like the Compact sheet, so
+  // system Back closes it. Handoffs release that entry before navigating.
+  const releaseExpanded = useEditorHistoryEntry({
+    isActive: desiredExpandedOpen,
+    isDirty: false,
+    onClose: close,
+    onDiscardRequested: close,
+  });
+  const closeExpandedThen = (next: () => void) =>
+    releaseExpanded(() => {
+      close();
+      next();
+    });
   useEffect(() => {
     const key = (location.state as { taskReturnKey?: unknown } | null)
       ?.taskReturnKey;
@@ -235,8 +249,7 @@ export function PartnerQuickActions({
       sheetRef.current.closeForNavigation(() => navigate(destination));
       return;
     }
-    close();
-    navigate(destination);
+    closeExpandedThen(() => navigate(destination));
   };
 
   const openOnceComposer = () => {
@@ -250,10 +263,7 @@ export function PartnerQuickActions({
       });
     };
     if (compactPresent) sheetRef.current?.closeForNavigation(handoff);
-    else {
-      close();
-      handoff();
-    }
+    else closeExpandedThen(handoff);
   };
 
   const hasExtendedCapability = capabilityQuery.data === true;
@@ -291,10 +301,7 @@ export function PartnerQuickActions({
               };
               if (compactPresent)
                 sheetRef.current?.closeForNavigation(showPhoto);
-              else {
-                close();
-                showPhoto();
-              }
+              else closeExpandedThen(showPhoto);
             }}
           >
             <span className="partner-quick-action-icon" aria-hidden="true">

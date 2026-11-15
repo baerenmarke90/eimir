@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
+import { NOTIFICATION_WAKE_EVENT } from '../../src/client/foregroundNotifications';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import wishDateProposal from '../../src/i18n/locales/wishDateProposal';
@@ -566,9 +567,18 @@ test.describe('wish journey (#1790 F2)', () => {
     const sheet = page.getByRole('dialog', { name: copy.action });
     const start = `${isoDay(8)}T14:00`;
     await sheet.getByLabel(copy.when).fill(start);
+    const documentLeaveBlocked = () =>
+      page.evaluate(
+        () =>
+          !window.dispatchEvent(
+            new Event('beforeunload', { cancelable: true }),
+          ),
+      );
+    await expect.poll(documentLeaveBlocked).toBe(true);
     await page.keyboard.press('Escape');
     await expect(sheet).not.toBeVisible();
     await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await expect.poll(documentLeaveBlocked).toBe(false);
     expect(state.proposal).toBeNull();
     await page.getByRole('button', { name: copy.action }).click();
     await expect(sheet.getByLabel(copy.when)).toHaveValue(start);
@@ -595,11 +605,19 @@ test.describe('wish journey (#1790 F2)', () => {
     };
     state.proposalNotificationAt = new Date().toISOString();
     await page.bringToFront();
-    await page.evaluate((scope) => {
-      window.dispatchEvent(
-        new CustomEvent('eimir:partner-receipt-refresh', { detail: scope }),
-      );
-    }, `${ACCOUNT_ID}:${SPACE_ID}`);
+    await page.evaluate(
+      ({ type, scope }) => {
+        window.dispatchEvent(new CustomEvent(type, { detail: scope }));
+      },
+      {
+        type: NOTIFICATION_WAKE_EVENT,
+        scope: {
+          accountId: ACCOUNT_ID,
+          apiBaseUrl: new URL(page.url()).origin,
+          spaceId: SPACE_ID,
+        },
+      },
+    );
     const receipt = page.getByTestId('partner-gesture-receipt');
     await expect(receipt).toHaveAttribute('data-variant', 'calm-ring');
     await expect(receipt.locator('[data-glyph="calendar"]')).toBeVisible();

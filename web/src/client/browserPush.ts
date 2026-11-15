@@ -11,11 +11,11 @@ import { ResponseError } from '../api/generated/runtime';
 import { isCapacitorNative } from '../pwa';
 import { isClientOnline } from './connectivity';
 import type { DevicePushController, DevicePushState } from './devicePush';
-import { notificationUnreadCountQueryKey } from './notificationQueries';
+import { reportNotificationWake } from './foregroundNotifications';
 import {
-  receiptScope,
-  requestPartnerReceiptRefresh,
-} from './partnerGestureReceipt';
+  notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+} from './notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
 
 const CACHE = 'eimir-browser-push-v1';
@@ -456,7 +456,14 @@ export function useBrowserPush({
             void queryClient.invalidateQueries({
               queryKey: notificationUnreadCountQueryKey(targetSpace),
             });
-            requestPartnerReceiptRefresh(receiptScope(accountId, targetSpace));
+            void queryClient.invalidateQueries({
+              queryKey: notificationsListQueryKey(targetSpace),
+            });
+            reportNotificationWake({
+              accountId,
+              apiBaseUrl,
+              spaceId: targetSpace,
+            });
           })
           .catch(() => undefined);
         return;
@@ -519,7 +526,15 @@ export function useBrowserPush({
       navigator.serviceWorker.removeEventListener('controllerchange', onFocus);
       navigator.serviceWorker.removeEventListener('message', receive);
     };
-  }, [available, scope, initialize, settingsOpen, accountId, queryClient]);
+  }, [
+    available,
+    scope,
+    initialize,
+    settingsOpen,
+    accountId,
+    apiBaseUrl,
+    queryClient,
+  ]);
 
   async function enable() {
     if (browserRegistration) return;

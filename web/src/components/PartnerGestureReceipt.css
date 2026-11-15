@@ -1,5 +1,5 @@
 /*
- * One small, transient receipt for a partner gesture (#455).
+ * One small, transient foreground notification surface.
  *
  * Product Owner choice (2026-11-15): the expressive, one-shot choreography
  * ("variant B"). The surface enters, the gesture plays once on the partner's
@@ -219,7 +219,7 @@
   --partner-gesture-on-tint: var(--color-shared);
 }
 
-.partner-gesture-receipt::before {
+.partner-gesture-receipt[data-variant]::before {
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -287,9 +287,16 @@
 .partner-gesture-receipt-placeholder {
   position: relative;
   z-index: 1;
-  display: block;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   background: var(--partner-gesture-tint);
+  color: var(--partner-gesture-on-tint);
+}
+
+.partner-gesture-receipt-placeholder svg {
+  width: var(--space-6);
+  height: var(--space-6);
 }
 
 /* Decorative waves around the avatar; invisible at rest. */
@@ -326,7 +333,18 @@
   fill: currentColor;
 }
 
+.partner-gesture-receipt-glyph.notification-motion-badge {
+  width: calc(var(--space-6) + var(--space-2));
+  height: calc(var(--space-6) + var(--space-2));
+}
+
 .partner-gesture-receipt-glyph[data-glyph="calendar"] svg {
+  fill: none;
+}
+
+.partner-gesture-receipt-glyph.notification-motion-badge svg {
+  width: var(--space-5);
+  height: var(--space-5);
   fill: none;
 }
 

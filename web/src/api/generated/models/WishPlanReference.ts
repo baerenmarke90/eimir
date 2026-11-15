@@ -60,6 +60,12 @@ export interface WishPlanReference {
     plannedStart: Date | null;
     /**
      * 
+     * @type {Date}
+     * @memberof WishPlanReference
+     */
+    plannedUntil?: Date | null;
+    /**
+     * 
      * @type {PlanStatus}
      * @memberof WishPlanReference
      */
@@ -94,6 +100,7 @@ export function WishPlanReferenceFromJSONTyped(json: any, ignoreDiscriminator: b
         'id': json['id'],
         'plannedOn': (json['plannedOn'] == null ? null : new Date(json['plannedOn'])),
         'plannedStart': (json['plannedStart'] == null ? null : new Date(json['plannedStart'])),
+        'plannedUntil': json['plannedUntil'] === undefined ? undefined : json['plannedUntil'] === null ? null : (new Date(json['plannedUntil'])),
         'status': PlanStatusFromJSON(json['status']),
     };
 }
@@ -113,6 +120,7 @@ export function WishPlanReferenceToJSONTyped(value?: WishPlanReference | null, i
         'id': value['id'],
         'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
         'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
+        'plannedUntil': value['plannedUntil'] == null ? value['plannedUntil'] : value['plannedUntil'].toISOString().substring(0,10),
         'status': PlanStatusToJSON(value['status']),
     };
 }

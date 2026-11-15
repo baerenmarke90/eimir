@@ -144,6 +144,7 @@ class WishPlanReference(ApiModel):
     id: UUID
     status: PlanStatus
     planned_on: date | None
+    planned_until: date | None = None
     planned_start: datetime | None
     experienced_on: date | None
 
@@ -301,6 +302,7 @@ def wish_detail(
                 id=plan.id,
                 status=PlanStatus(plan.status),
                 planned_on=plan.planned_on,
+                planned_until=plan.planned_until,
                 planned_start=plan.planned_start,
                 experienced_on=plan.experienced_on,
             )

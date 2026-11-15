@@ -132,9 +132,16 @@ def test_no_request_body_accepts_server_owned_fields() -> None:
 
 def test_schedule_contract_distinguishes_calendar_date_from_instant() -> None:
     schedule = _components()["PlanSchedule"]
-    assert set(schedule["properties"]) == {"plannedOn", "plannedStart", "plannedEnd"}
+    assert set(schedule["properties"]) == {
+        "plannedOn",
+        "plannedStart",
+        "plannedEnd",
+        "plannedUntil",
+    }
     assert "required" not in schedule
     assert schedule["properties"]["plannedOn"]["format"] == "date"
+    # The inclusive last day of a date-only period is a calendar date too (#1895).
+    assert schedule["properties"]["plannedUntil"]["format"] == "date"
     assert schedule["properties"]["plannedStart"]["format"] == "date-time"
     assert schedule["properties"]["plannedEnd"]["format"] == "date-time"
 

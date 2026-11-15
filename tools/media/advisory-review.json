@@ -173,6 +173,96 @@
       "evidenceSha256": "f9163e7c7955f952171c8edb6c251b81392f369c96cb7ab0c9e77717062de89b",
       "reviewedAt": "2026-11-15",
       "review": "The affected DVD subtitle encoder (libavcodec/dvdsubenc.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_DVDSUB_ENCODER 0."
+    },
+    "CVE-2026-125217": {
+      "evidenceSha256": "310961fd04a3a2f912c68d00bdbb63e36d7b53fe445ff426de8629a57dcf1be0",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected RoQ DPCM audio encoder (roq_dpcm_encode_frame() in libavcodec/roqaudioenc.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds roqaudioenc.o only with CONFIG_ROQ_DPCM_ENCODER."
+    },
+    "CVE-2026-125218": {
+      "evidenceSha256": "fb62c9df31cce9645579e4b277b900228965b3ec609f17dff7f8415dea175747",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected APNG encoder (encode_apng() in libavcodec/pngenc.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds pngenc.o only with CONFIG_APNG_ENCODER or CONFIG_PNG_ENCODER."
+    },
+    "CVE-2026-125219": {
+      "evidenceSha256": "8caa97b72c9113f20e44dc8525154c81154378ca62c1527644873436d002f11d",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected VDPAU HEVC acceleration (vdpau_hevc_start_frame() in libavcodec/vdpau_hevc.c) is built only with CONFIG_HEVC_VDPAU_HWACCEL, which requires vdpau (hevc_vdpau_hwaccel_deps in configure). build-ffmpeg.sh enables no hwaccel after --disable-everything and sets --disable-autodetect, so HEVC is decoded by the software decoder only."
+    },
+    "CVE-2026-125220": {
+      "evidenceSha256": "4a4e6b6bb1d3a2adbf148c58a6b588718c14e73a25657caf2d93b4bd6d3f51e0",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Mimic decoder (mimic_decode_frame() in libavcodec/mimic.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds mimic.o only with CONFIG_MIMIC_DECODER."
+    },
+    "CVE-2026-125221": {
+      "evidenceSha256": "0b88e8fb31cff096686f2c202b8f3555720d0ab17c3008605203c9a5a2f86495",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected FLAC parser (score_header() in libavcodec/flac_parser.c) is not compiled. The explicit parser list (h264, hevc, aac, mpegaudio, opus and vorbis) does not include it, libavcodec/Makefile builds flac_parser.o only with CONFIG_FLAC_PARSER, and the FLAC demuxer that selects it is not enabled. No FLAC decoder is enabled either."
+    },
+    "CVE-2026-125222": {
+      "evidenceSha256": "b4f53d612300e298d0db3d80e3f9aa4052a2c60852369cea267f929adac8e27c",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Hap decoder (hap_parse_frame_header() in libavcodec/hapdec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds hapdec.o only with CONFIG_HAP_DECODER. The advisory also describes a 32-bit-only overflow."
+    },
+    "CVE-2026-125223": {
+      "evidenceSha256": "ca8c540b4c3e37f087be42fd7d80c768fa49980d9e10a4cf3256d93b1eb3a883",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected VP9 decoder (vp9_decode_frame() in libavcodec/vp9.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds vp9.o only with CONFIG_VP9_DECODER. The Matroska demuxer is enabled, but a VP9 stream finds no decoder."
+    },
+    "CVE-2026-125224": {
+      "evidenceSha256": "fe44c9b527c81834308f1bdfb61107f57c8705f5e8b225fb5559cc32fc620c43",
+      "reviewedAt": "2026-11-15",
+      "review": "Applicable: vorbis_parser.o is part of the unconditional libavcodec core object list and the Vorbis parser is enabled for Ogg and Matroska voice input, so crafted Vorbis extradata can force repeated parsing. The impact is CPU consumption inside the ffmpeg child process, which is bounded: audio input is limited to 20 MiB and 180 decoded seconds (limits.py), and every ffmpeg/ffprobe child runs through the shared runner in attachments/videos.py with RLIMIT_CPU and a wall-clock timeout of 600 seconds, a 768 MiB address-space limit and a 512 KiB probe output cap. A timeout is reported as VIDEO_PROCESSING_TIMEOUT or AUDIO_PROCESSING_TIMEOUT. This is a reviewed bounded-resource defense, not an upstream closure claim."
+    },
+    "CVE-2026-125225": {
+      "evidenceSha256": "93e65640a9ffa2a65b5c829d92bb3787e7444787aa34905112ee4be29a400831",
+      "reviewedAt": "2026-11-15",
+      "review": "Applicable: the aac_adtstoasc bitstream filter is enabled for the AAC/M4A remux path. The crash needs one packet larger than 256 MiB, so that its bit count overflows 31 bits. Uploads are rejected before processing above AUDIO_MAX_SIZE (20 MiB) and VIDEO_MAX_SIZE (250 MiB) (limits.py, checked in attachments/audios.py and attachments/videos.py), so no single packet can reach 256 MiB. A crash would also stay inside the resource-limited ffmpeg child process. This is a reviewed size-bound defense, not an upstream closure claim."
+    },
+    "CVE-2026-125226": {
+      "evidenceSha256": "053cd36d23f888b7ba66eed009407c549c274b3929c654d5f58637b15c2b6df7",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected SBaGen demuxer (sbg_read_header() in libavformat/sbgdec.c) is not compiled. The restricted build starts with --disable-everything and forces the mov, ogg, matroska, mp3, wav and aac demuxers only; libavformat/Makefile builds sbgdec.o only with CONFIG_SBG_DEMUXER."
+    },
+    "CVE-2026-125227": {
+      "evidenceSha256": "2c2b1d861b49438637232b9963b5b3548464592e9aa5d290a0b885f737b9c297",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected JPEG coded bitstream backend (cbs_jpeg_write_scan() in libavcodec/cbs_jpeg.c) is not compiled: libavcodec/Makefile builds cbs_jpeg.o only with CONFIG_CBS_JPEG, and configure selects it only for the mjpeg_vaapi_encoder, which needs VAAPI. build-ffmpeg.sh sets --disable-autodetect and enables no VAAPI encoder. The enabled filter_units bitstream filter therefore has no JPEG support. The advisory also describes a 32-bit-only overflow."
+    },
+    "CVE-2026-125229": {
+      "evidenceSha256": "43e01dc16076c9458f860d92c93f1dac6181309bb09b8bfcfc647fb9429adaec",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected HuffYUV encoder (encode_frame() in libavcodec/huffyuvenc.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds huffyuvenc.o only with CONFIG_HUFFYUV_ENCODER (and its ffvhuff variant)."
+    },
+    "CVE-2026-125230": {
+      "evidenceSha256": "a3749470c85b69e619a2c455cbd8d8d3366efa98cc76f5d6b667efa2997fed6c",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected pcm_rechunk bitstream filter (libavcodec/bsf/pcm_rechunk.c) is not compiled. The restricted build enables only the filter_units, h264_metadata, h264_mp4toannexb and aac_adtstoasc bitstream filters, and the bsf Makefile builds pcm_rechunk.o only with CONFIG_PCM_RECHUNK_BSF. The MXF, GXF and DAUD muxers named in the advisory are not enabled either (only mp4, image2, null and wav)."
+    },
+    "CVE-2026-125231": {
+      "evidenceSha256": "36b28da21ffe510bcd72eca010f3e305263c0657d68755d3743a24cc152d7bb2",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected ADX decoder (adx_decode_header() in libavcodec/adxdec.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it, and libavcodec/Makefile builds adxdec.o only with CONFIG_ADPCM_ADX_DECODER."
+    },
+    "CVE-2026-125232": {
+      "evidenceSha256": "08a37ae4d7daca99ccb30979fcca01545983c4db704bb50d0e741b249d0890ce",
+      "reviewedAt": "2026-11-15",
+      "review": "Not reachable. motion_est.c is linked because the mjpeg encoder selects mpegvideoenc, but estimate_motion_b() only runs through ff_estimate_b_frame_motion() for B-frames. The MPEG-4 and MPEG-1/2 encoders named in the advisory are not compiled, and mpegvideo_enc.c rejects a non-zero max_b_frames with B-frames not supported by codec unless the encoder sets AV_CODEC_CAP_DELAY, which ff_mjpeg_encoder does not. The only mpegvideo-based encoder in the build therefore never estimates B-frame motion."
+    },
+    "CVE-2026-125233": {
+      "evidenceSha256": "24771f997ecc51f1ff9a7751c4a073833dad06f47f1323a9dc108d93cbd4421e",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected DVB subtitle encoder (dvbsub_encode() in libavcodec/dvbsubenc.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds dvbsubenc.o only with CONFIG_DVBSUB_ENCODER. No subtitle decoder is enabled either."
+    },
+    "CVE-2026-125234": {
+      "evidenceSha256": "5f2d6a541e4bbd0ee2f20551a30f53dbc7ed6d9b08058f253931c987ca8ba4e8",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected WavPack encoder (wavpack_encode_init() in libavcodec/wavpackenc.c) is not compiled. The restricted build starts with --disable-everything and its explicit encoder list (libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le) does not include it, and libavcodec/Makefile builds wavpackenc.o only with CONFIG_WAVPACK_ENCODER. Audio output is limited to AAC and PCM."
+    },
+    "CVE-2026-125235": {
+      "evidenceSha256": "ea004821113616a7cfd42f3037ba344586a242d4f70a4dc7bb4327f82c62e35f",
+      "reviewedAt": "2026-11-15",
+      "review": "The affected Quick Sync encoder wrapper (libavcodec/qsvenc.c) is built only with CONFIG_QSVENC, which requires the external libmfx (qsv_deps in configure). build-ffmpeg.sh sets --disable-autodetect, enables no QSV encoder and links no Intel media library."
     }
   },
   "dependencies": {

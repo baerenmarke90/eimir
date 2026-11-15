@@ -438,8 +438,8 @@
     },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
-      "reason": "Explicit private favorites, authorized shared/zero-match/solo results, canonical Plan conversion and return, offline no-replay and Compact/Expanded theme/reflow acceptance for #1535."
+      "baselineTests": 14,
+      "reason": "Explicit private favorites, authorized shared/zero-match/solo results, canonical Plan conversion and return, offline no-replay and Compact/Expanded theme/reflow acceptance for #1535; the one Wishes entry row, the composing hub with two sources, heart favourites and a manual choice among several common favourites (#1907 J1)."
     },
     "wish-selection-date-ideas.spec.ts": {
       "disposition": "PR_CRITICAL",

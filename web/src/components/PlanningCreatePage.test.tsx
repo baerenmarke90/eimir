@@ -11,6 +11,7 @@ import {
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import dateIdeas from '../i18n/locales/dateIdeas';
 import m5s3 from '../i18n/locales/m5s3';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { i18n } from '../i18n';
@@ -76,6 +77,7 @@ function renderCreate(
           <Route path="/plan/plans/:planId" element={<p>Plan result</p>} />
           <Route path="/plan/wishes/:wishId" element={<p>Wish result</p>} />
           <Route path="/plan" element={<p>Planning overview</p>} />
+          <Route path="/plan/ideas" element={<p>Date ideas catalog</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -438,5 +440,31 @@ describe('PlanningCreatePage', () => {
         name: taskBoundary.discardTitle,
       }),
     ).toBeDefined();
+  });
+
+  it('keeps solo date-idea browsing reachable from the Wish composer (#1907 J1)', async () => {
+    renderCreate('wish');
+    const hint = screen.getByRole('link', {
+      name: new RegExp(dateIdeas.composerHintAction),
+    });
+    expect(hint.getAttribute('href')).toBe('/plan/ideas');
+    fireEvent.change(screen.getByLabelText(m5s3.wish.intentionLabel), {
+      target: { value: 'Sunrise swim' },
+    });
+    fireEvent.click(hint);
+    // A written draft is never dropped silently on the way to the catalog.
+    expect(
+      screen.getByRole('alertdialog', { name: taskBoundary.discardTitle }),
+    ).toBeDefined();
+  });
+
+  it('opens the catalog directly from a clean Wish composer', async () => {
+    renderCreate('wish');
+    fireEvent.click(
+      screen.getByRole('link', {
+        name: new RegExp(dateIdeas.composerHintAction),
+      }),
+    );
+    expect(await screen.findByText('Date ideas catalog')).toBeDefined();
   });
 });

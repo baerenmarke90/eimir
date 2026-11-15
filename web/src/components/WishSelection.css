@@ -199,3 +199,174 @@
     transition: none;
   }
 }
+
+/* Typed candidates (#465 within #1535): Wishes and Pro date ideas share one
+   in-task draft. The summary keeps both sources visible while the source
+   switch shows one list at a time. */
+.wish-selection-tray {
+  display: grid;
+  gap: var(--space-2);
+}
+.wish-selection-tray > h2 {
+  margin: 0;
+  font: var(--font-section-heading);
+}
+.wish-selection-tray > ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wish-selection-tray li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target-web);
+  font: var(--font-reading-body);
+}
+.wish-selection-tray li > span {
+  overflow-wrap: anywhere;
+}
+.wish-selection-tray-source {
+  width: var(--space-5);
+  height: var(--space-5);
+  color: var(--color-brand-text);
+}
+.wish-selection-tray-source.is-idea {
+  color: var(--color-discovery);
+}
+.wish-selection-tray-remove {
+  min-width: var(--touch-target-web);
+  min-height: var(--touch-target-web);
+  padding: 0;
+}
+.wish-selection-tray-remove svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+.wish-selection-source {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.wish-selection-source[hidden] {
+  display: none;
+}
+.wish-selection-ideas {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.wish-selection-ideas-locked > h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font: var(--font-section-heading);
+}
+.wish-selection-idea-list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wish-selection-idea {
+  display: grid;
+  grid-template-columns: minmax(5rem, 30%) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  padding: var(--space-3);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+}
+.wish-selection-idea > .date-idea-media {
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+}
+.wish-selection-idea-body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  justify-items: start;
+}
+.wish-selection-idea-body > h3 {
+  margin: 0;
+  font: var(--font-content-heading);
+  overflow-wrap: anywhere;
+}
+.wish-selection-idea-body > .add-action {
+  max-width: 100%;
+  white-space: normal;
+}
+.wish-selection-choice.is-idea {
+  padding-block: var(--space-3);
+}
+.wish-selection-choice-media {
+  flex: 0 0 4rem;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+}
+.wish-selection-choice-text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.wish-selection-choice-text > small {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.wish-selection-result.is-idea {
+  padding: 0;
+  overflow: hidden;
+}
+.wish-selection-result.is-idea > .date-idea-media {
+  max-height: 14rem;
+}
+.wish-selection-result-body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  min-width: 0;
+}
+.wish-selection-result-body > h2 {
+  margin: 0;
+  font: var(--font-personal-heading);
+  overflow-wrap: anywhere;
+}
+.wish-selection-later {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  text-align: center;
+}
+.wish-selection-paused {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-content);
+  background: var(--color-discovery-surface-soft);
+}
+.wish-selection-paused > h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font: var(--font-section-heading);
+}
+.wish-selection-paused > p {
+  margin: 0;
+  font: var(--font-reading-body);
+}
+.wish-selection-paused > a {
+  justify-self: start;
+}
+@media (max-width: 22rem) {
+  .wish-selection-idea {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,12 +1,24 @@
-import type { QueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import {
+  type QueryClient,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { DateIdeasApi } from '../api/generated/apis/DateIdeasApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DateIdea } from '../api/generated/models/DateIdea';
 import type { DateIdeaCategory } from '../api/generated/models/DateIdeaCategory';
 import type { DateIdeaPlaceType } from '../api/generated/models/DateIdeaPlaceType';
 import { Configuration } from './apiConfiguration';
-import { entitlementLoader, useSpaceCapability } from './spaceEntitlement';
+import {
+  type ClientProblemError,
+  normalizeClientError,
+} from './problemDetails';
+import {
+  entitlementLoader,
+  useSpaceCapability,
+  withdrawSpaceCapability,
+} from './spaceEntitlement';
 
 /** Space capability for curated date inspiration (#1892). Server-authorized. */
 export const DATE_INSPIRATION_CAPABILITY = 'planning.date_inspiration';
@@ -207,4 +219,59 @@ export function useDateInspirationCapability({
     load,
     capability: DATE_INSPIRATION_CAPABILITY,
   });
+}
+
+/**
+ * The protected catalog read shared by discovery and the shared selection.
+ * A server denial withdraws the cached capability, and without the capability
+ * no catalog response of this Account/Space stays cached (downgrade, revoked
+ * grant or denial).
+ */
+export function useDateIdeasCatalog({
+  api,
+  accountId,
+  spaceId,
+  locale,
+  capability,
+  enabled = true,
+}: {
+  api: Pick<DateIdeasApi, 'listDateIdeas'>;
+  accountId: string;
+  spaceId: string;
+  locale: string;
+  capability: boolean | undefined;
+  enabled?: boolean;
+}) {
+  const client = useQueryClient();
+  const catalog = useQuery({
+    queryKey: dateIdeasQueryKey(accountId, spaceId, locale),
+    queryFn: async ({ signal }) => {
+      try {
+        return await api.listDateIdeas({ spaceId, locale }, { signal });
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: capability === true && enabled,
+    // The catalog changes only with a release. Filtering is local.
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const denied =
+    (catalog.error as ClientProblemError | null)?.code ===
+    'PREMIUM_ENTITLEMENT_REQUIRED';
+  useEffect(() => {
+    if (denied)
+      withdrawSpaceCapability(
+        client,
+        accountId,
+        spaceId,
+        DATE_INSPIRATION_CAPABILITY,
+      );
+  }, [denied, client, accountId, spaceId]);
+  useEffect(() => {
+    if (capability === false || denied)
+      client.removeQueries({ queryKey: dateIdeasScopeKey(accountId, spaceId) });
+  }, [capability, denied, client, accountId, spaceId]);
+  return { catalog, denied };
 }

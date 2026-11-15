@@ -118,13 +118,29 @@ function generateTimelineItems() {
   return items;
 }
 
-async function installApiMocks(page: Page): Promise<void> {
+async function installApiMocks(
+  page: Page,
+  { connectedWir = false } = {},
+): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
-    if (await fulfillDefaultAppIcon(route)) return;
-    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
+
+    if (
+      connectedWir &&
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/appearance/wir-design`
+    ) {
+      await route.fulfill({
+        json: { designId: 'connected', version: 1 },
+        headers: { ETag: '"connected:1"' },
+      });
+      return;
+    }
+
+    if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
 
     const fulfillJson = async (body: unknown, status = 200) =>
       route.fulfill({
@@ -752,17 +768,18 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     await expect(header).toBeHidden();
     await expect(hero).toBeVisible();
 
-    // The glow is a faded layer so route changes can transition it.
-    const glow = () =>
-      shell.evaluate((element) => {
-        const style = getComputedStyle(element, '::before');
-        return {
-          backgroundImage: style.backgroundImage,
-          opacity: style.opacity,
-        };
-      });
-    expect((await glow()).backgroundImage).toContain('radial-gradient');
-    await expect.poll(async () => (await glow()).opacity).toBe('1');
+    // The full-bleed glow moves with Wir even when the header is hidden.
+    const backdrop = await page.locator('.today-page').evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        backgroundImage: style.backgroundImage,
+        opacity: style.opacity,
+        width: style.width,
+      };
+    });
+    expect(backdrop.backgroundImage).toContain('radial-gradient');
+    expect(backdrop.opacity).toBe('1');
+    expect(backdrop.width).toBe('390px');
 
     const headerMaterial = await header.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -785,6 +802,17 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       ),
     ).toBe('none');
 
+    const finishEntry = () =>
+      page.locator('main.product-main').evaluate(async (element) => {
+        // Contrast should be measured once both the route and its content
+        // have finished entering.
+        const finite = element
+          .getAnimations({ subtree: true })
+          .filter((animation) =>
+            Number.isFinite(animation.effect?.getComputedTiming().endTime),
+          );
+        await Promise.allSettled(finite.map((animation) => animation.finished));
+      });
     const more = page.locator('.mobile-bottom-nav a[href="/more"]');
     await more.focus();
     await expect(more).toBeFocused();
@@ -797,11 +825,13 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     );
     await notifications.focus();
     await expect(notifications).toBeFocused();
+    await finishEntry();
     const moreAxe = await new AxeBuilder({ page })
       .include('.more-page')
       .analyze();
     expect(moreAxe.violations).toEqual([]);
     await page.goBack();
+    await finishEntry();
     const axe = await new AxeBuilder({ page }).include('.today-hero').analyze();
     expect(axe.violations).toEqual([]);
 
@@ -1069,6 +1099,7 @@ async function dragTouch(
   page: Page,
   from: { x: number; y: number },
   to: { x: number; y: number },
+  beforeRelease?: () => Promise<void>,
 ) {
   const session = await page.context().newCDPSession(page);
   try {
@@ -1089,6 +1120,7 @@ async function dragTouch(
         ],
       });
     }
+    await beforeRelease?.();
     await session.send('Input.dispatchTouchEvent', {
       type: 'touchEnd',
       touchPoints: [],
@@ -1507,6 +1539,75 @@ test.describe('primary tab touch navigation', () => {
     ).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
+
+  for (const variant of [
+    { width: 390, theme: 'dark', nav: '.mobile-bottom-nav' },
+    { width: 1280, theme: 'light', nav: '.shell-nav' },
+  ] as const) {
+    test(`Wir keeps its background when swiped in from Momente at ${variant.width}px ${variant.theme}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: variant.width, height: 844 });
+      await page.emulateMedia({
+        colorScheme: variant.theme,
+        reducedMotion: 'no-preference',
+      });
+      await installApiMocks(page, { connectedWir: true });
+      await page.goto('/login');
+      await signIn(page);
+      await expect(page).toHaveURL(/\/today$/);
+      await expectPrimaryReadingSurface(page);
+
+      const wir = page.locator(
+        'main > .primary-tab-panel[data-primary-tab="/today"]',
+      );
+      const background = () =>
+        wir.locator('.today-page').evaluate((element) => {
+          const style = getComputedStyle(element, '::before');
+          return {
+            content: style.content,
+            image: style.backgroundImage,
+            opacity: style.opacity,
+            top: style.top,
+            width: style.width,
+          };
+        });
+      const atRest = await background();
+      expect(atRest.content).toBe('""');
+      expect(atRest.image).toContain('radial-gradient');
+      expect(atRest.opacity).toBe('1');
+      const shellWidth = await page
+        .locator('.product-shell')
+        .evaluate((shell) => shell.clientWidth);
+      expect(Number.parseFloat(atRest.width)).toBeCloseTo(shellWidth, 0);
+
+      await page.locator(`${variant.nav} a[href="/story"]`).tap();
+      await expect(page).toHaveURL(/\/story$/);
+      const { width, startX, y } = await primarySwipeStart(page, 'previous');
+      const capture = (phase: 'during' | 'after') =>
+        page.screenshot({
+          path: testInfo.outputPath(
+            `today-wir-backdrop-${variant.width}-${variant.theme}-${phase}-swipe.png`,
+          ),
+        });
+      await dragTouch(
+        page,
+        { x: startX, y },
+        { x: startX + width / 2, y },
+        async () => {
+          await expect(wir).toHaveAttribute('data-primary-tab-peek', 'true');
+          await expect(wir.locator('.today-hero')).toBeVisible();
+          expect(await background()).toEqual(atRest);
+          await capture('during');
+        },
+      );
+      await expect(page).toHaveURL(/\/today$/);
+      await expect(wir).not.toHaveAttribute('data-primary-tab-peek');
+      expect(await background()).toEqual(atRest);
+      await expectNoHorizontalOverflow(page);
+      await capture('after');
+    });
+  }
 
   test('primary swipe restores reading position and resets Planning segment without growing native history or refetching fresh content', async ({
     page,

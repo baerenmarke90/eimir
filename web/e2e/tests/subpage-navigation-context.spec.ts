@@ -552,3 +552,77 @@ for (const shared of [true, false]) {
     await expect(page).toHaveURL(/\/story$/);
   });
 }
+
+for (const [width, theme, large] of [
+  [390, 'light', false],
+  [430, 'dark', false],
+  [1280, 'light', false],
+  [320, 'light', true],
+] as const) {
+  test(`secondary title shares the Back row at ${width} ${theme}${large ? ' large' : ''} (#1907 C4)`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await installMocks(page);
+    await page.route(`**${base}/media*`, (route) =>
+      route.fulfill({
+        json: { items: [], totalCount: 0, hasMore: false, nextCursor: null },
+      }),
+    );
+    await signIn(page);
+    await page.goto('/story/chapters');
+    if (large)
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+    const back = page.getByRole('button', { name: taskCopy.back, exact: true });
+    const title = page.getByRole('heading', { level: 1 });
+    await expect(back).toHaveCount(1);
+    await expect(title).toHaveCount(1);
+    await expect(page.locator('.eyebrow')).toHaveCount(0);
+    const backBox = await back.boundingBox();
+    const titleBox = await title.boundingBox();
+    expect(backBox?.width).toBeGreaterThanOrEqual(44);
+    expect(backBox?.height).toBeGreaterThanOrEqual(44);
+    expect(
+      await back.evaluate((element) => getComputedStyle(element).borderRadius),
+    ).not.toBe('0px');
+    if (large) {
+      // A title that cannot keep a readable measure moves below Back.
+      expect(titleBox?.y ?? 0).toBeGreaterThanOrEqual(
+        (backBox?.y ?? 0) + (backBox?.height ?? 0) - 1,
+      );
+    } else {
+      // Back and the first title line share one row in the content column.
+      expect(titleBox?.x ?? 0).toBeGreaterThan(
+        (backBox?.x ?? 0) + (backBox?.width ?? 0),
+      );
+      expect(titleBox?.y ?? 0).toBeLessThan(
+        (backBox?.y ?? 0) + (backBox?.height ?? 0),
+      );
+      const column = await page.locator('.page-heading').first().boundingBox();
+      expect(backBox?.x ?? 0).toBeGreaterThanOrEqual((column?.x ?? 0) - 1);
+    }
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    ).toBe(true);
+    await captureScreenshot(
+      page,
+      info,
+      `secondary-header-${width}-${theme}${large ? '-large' : ''}.png`,
+    );
+    await page.goto('/story/photos');
+    await expect(back).toHaveCount(1);
+    await expect(
+      page.locator('.page-heading-title-row').getByRole('button', {
+        name: taskCopy.back,
+        exact: true,
+      }),
+    ).toHaveCount(1);
+    await back.click();
+    await expect(page).toHaveURL(/\/story$/);
+  });
+}

@@ -196,7 +196,7 @@ The [2026-10-29 Product Owner decision](product/design/mobile-header-more.md), t
 - Notifications opens `/more/notifications`. Its row shows the authoritative unread count. A static dot on More, with an accessible unread label, remains until read state changes; entering More alone does not mark anything read.
 - Profile, Activity, Settings, capability-gated Server Administration and the existing safe sign-out action are named More destinations/actions. The existing brand is placed quietly in its footer.
 - Expanded retains the horizontal primary navigation and creation action. Utility/account destinations have the same More home on both sizes.
-- Search and Notifications do not acquire extra primary-navigation slots. Search highlights More; Activity keeps its existing Today domain ownership and all canonical paths remain compatible.
+- Search and Notifications do not acquire extra primary-navigation slots. Search and Activity highlight More, and the shell Back of Activity falls back to More when no originating context is known (#1907 A2). Activity keeps its Today domain ownership and canonical `/today/activity` path; all canonical paths remain compatible.
 
 ### Signed-in landing and Deep-Link return
 

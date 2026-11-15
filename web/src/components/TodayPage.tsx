@@ -2053,13 +2053,13 @@ export function TodayPage({
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
             headerAction={
-              <Link
+              <TodayDestinationLink
                 to={ACTIVITY_ROUTE}
                 className="today-section-link today-recent-activity-link"
-                aria-label={t('m5s5.dashboard.allActivityAction')}
+                ariaLabel={t('m5s5.dashboard.allActivityAction')}
               >
                 {t('m5s5.today.recent.allAction')}
-              </Link>
+              </TodayDestinationLink>
             }
           >
             <ol className="today-stream today-stream-recent today-activity-trace">

@@ -19,6 +19,7 @@ import {
   type DeleteFocusTarget,
   deleteFocusTarget,
 } from '../client/deleteFocusTarget';
+import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   canConfirmRelatedPersonDelete,
@@ -265,6 +266,8 @@ export function RelatedPeoplePage({
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const returnToParent = useReturnTo();
+  const leaveDeleted = useLeaveDeletedEntries();
   const queryClient = useQueryClient();
   const parts = location.pathname
     .slice('/more/people'.length)
@@ -393,6 +396,7 @@ export function RelatedPeoplePage({
       }
     },
     onSuccess: async () => {
+      const deletedId = deleteTarget?.id;
       if (deleteTarget)
         setPendingFocus(
           deleteFocusTarget(
@@ -412,7 +416,8 @@ export function RelatedPeoplePage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate('/more/people', { replace: true });
+      if (deletedId) leaveDeleted(personPath(deletedId), '/more/people');
+      else navigate('/more/people', { replace: true });
     },
   });
   useEffect(() => {
@@ -464,22 +469,24 @@ export function RelatedPeoplePage({
         accountId={currentAccountId}
         attachmentsApi={attachmentsApi}
         onCancel={() =>
-          navigate(
+          returnToParent(
             creating
               ? '/more/people'
               : personPath(personId ?? person?.id ?? ''),
-            {
-              replace: true,
-              state: originState,
-            },
+            // The list restores focus and scroll from this origin state.
+            { restoredState: originState },
           )
         }
         onSubmit={(fields) => save.mutateAsync(fields)}
         onSaved={(saved) =>
-          navigate(personPath(saved.id), {
-            replace: true,
-            state: { ...originState, personSaved: true },
-          })
+          creating
+            ? navigate(personPath(saved.id), {
+                replace: true,
+                state: { ...originState, personSaved: true },
+              })
+            : returnToParent(personPath(saved.id), {
+                restoredState: { ...originState, personSaved: true },
+              })
         }
       />
     );

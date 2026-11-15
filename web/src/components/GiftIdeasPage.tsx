@@ -10,6 +10,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
 import { GiftIdeaStatus } from '../api/generated/models/GiftIdeaStatus';
+import { useReturnTo } from '../client/historyEntries';
 import {
   capturePrivateCreate,
   capturePrivateDelete,
@@ -546,6 +547,7 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
 export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const returnTo = useReturnTo();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
   const { giftIdeaId, query } = useGiftIdea(api, accountId, spaceId);
@@ -614,10 +616,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
       if (!context.isCurrent()) return;
       closeTask(() => {
         if (!context.isCurrent()) return;
-        navigate(privateGiftIdeaPath(gift.id), {
-          replace: true,
-          state: navigationState,
-        });
+        returnTo(privateGiftIdeaPath(gift.id), { state: navigationState });
       });
     },
   });

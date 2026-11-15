@@ -18,8 +18,8 @@ import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
 import { UiState } from './UiState';
 
-/** Ideas rendered per step; keeps the Compact DOM light inside the task. */
-const PAGE_SIZE = 12;
+/** Ideas per step; keeps the round's primary action within reach on Compact. */
+const PAGE_SIZE = 6;
 
 /**
  * Curated date ideas as candidates of the shared selection (#465 within

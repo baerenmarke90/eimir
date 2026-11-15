@@ -246,12 +246,12 @@
   width: var(--space-5);
   height: var(--space-5);
 }
-.wish-selection-source {
+.wish-selection-source-panel {
   display: grid;
   gap: var(--space-4);
   min-width: 0;
 }
-.wish-selection-source[hidden] {
+.wish-selection-source-panel[hidden] {
   display: none;
 }
 .wish-selection-ideas {

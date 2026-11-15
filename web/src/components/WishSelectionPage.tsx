@@ -938,7 +938,10 @@ function WishSelectionTask({
                 if (value === 'ideas') setIdeasOpened(true);
               }}
             />
-            <div className="wish-selection-source" hidden={source !== 'wishes'}>
+            <div
+              className="wish-selection-source-panel"
+              hidden={source !== 'wishes'}
+            >
               {wishes.error ? (
                 <ProblemState
                   error={wishes.error}
@@ -1007,7 +1010,7 @@ function WishSelectionTask({
             </div>
             {ideasOpened ? (
               <div
-                className="wish-selection-source"
+                className="wish-selection-source-panel"
                 hidden={source !== 'ideas'}
               >
                 <WishSelectionIdeaPicker

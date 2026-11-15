@@ -708,7 +708,9 @@ describe('WishSelectionPage', () => {
       await screen.findByRole('button', { name: copy.sourceIdeas }),
     );
     expect(
-      await screen.findByRole('heading', { name: /Ideen für eure/ }),
+      await screen.findByRole('heading', {
+        name: new RegExp(dateCopy.locked.title),
+      }),
     ).toBeTruthy();
     expect(screen.getByText(copy.ideasLockedBody)).toBeTruthy();
     expect(
@@ -757,7 +759,7 @@ describe('WishSelectionPage', () => {
     // The summary keeps both sources visible and removable.
     expect(
       screen.getByRole('button', {
-        name: `„${picnic.title}“ aus der Auswahl nehmen`,
+        name: copy.removeCandidate.replace('{{title}}', picnic.title),
       }),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: copy.start }));
@@ -792,11 +794,13 @@ describe('WishSelectionPage', () => {
     fireEvent.click(second);
     expect(screen.getByText(copy.ideasFull)).toBeTruthy();
     expect(third).toHaveProperty('disabled', true);
-    expect(screen.getByText('5 von höchstens 5 ausgewählt')).toBeTruthy();
+    expect(
+      screen.getByText(copy.selected.replace('{{count}}', '5')),
+    ).toBeTruthy();
     // Removing one from the summary frees a place again.
     fireEvent.click(
       screen.getByRole('button', {
-        name: `„${picnic.title}“ aus der Auswahl nehmen`,
+        name: copy.removeCandidate.replace('{{title}}', picnic.title),
       }),
     );
     expect(third).toHaveProperty('disabled', false);
@@ -861,7 +865,9 @@ describe('WishSelectionPage', () => {
     expect(
       await screen.findByRole('heading', { name: copy.pausedTitle }),
     ).toBeTruthy();
-    expect(screen.getByText('2 Date-Ideen pausiert')).toBeTruthy();
+    expect(
+      screen.getByText(copy.pausedIdeas_other.replace('{{count}}', '2')),
+    ).toBeTruthy();
     expect(screen.queryByText(picnic.title)).toBeNull();
     expect(
       screen.getByRole('link', { name: dateCopy.locked.action }),
@@ -874,7 +880,7 @@ describe('WishSelectionPage', () => {
     expect(screen.getByText(copy.chooseMore)).toBeTruthy();
     expect(
       screen.getByRole('button', {
-        name: `„${candidates[0].title}“ aus der Auswahl nehmen`,
+        name: copy.removeCandidate.replace('{{title}}', candidates[0].title),
       }),
     ).toBeTruthy();
     expect(screen.queryByText(copy.ideaSource)).toBeNull();

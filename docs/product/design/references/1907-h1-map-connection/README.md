@@ -30,6 +30,10 @@ Images (`390` Light/Dark, `360` with 200 % root font size):
 - `near-*.jpg`, `regional-*.jpg`, `far-*.jpg`, `earlier-*.jpg`
 - `*-motion.jpg`: three frames of the motion for each band plus the
   reduced-motion result (static arc without the glow point; static heart).
+- `*-animation.gif`: the motion at real speed (20 fps, 390 Light; far also
+  Dark). Lines draw in from the viewer to the partner on open, then the glow
+  point travels there and back once (the product plays three round trips,
+  then rests). Near: the heart appears and beats twice.
 - `one-way-390-light.jpg`: the viewer does not share; the page stays exactly
   as today, with no connection and no hint.
 

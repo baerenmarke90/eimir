@@ -2,10 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
-import profiles from '../i18n/locales/profiles';
 import accountSettings from '../i18n/locales/accountSettings';
 import dailyQuote from '../i18n/locales/dailyQuote';
 import profileIdentity from '../i18n/locales/profileIdentity';
+import profiles from '../i18n/locales/profiles';
 import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SettingsPage } from './SettingsPage';
 
@@ -83,15 +83,13 @@ function renderSettingsPageFixture(route = '/more/settings'): string {
 }
 
 describe('SettingsPage', () => {
-  it('describes current Pro capabilities under App and Account', () => {
+  it('leads from App and Account to the Pro page with one row (#1907 D1)', () => {
     const html = renderSettingsPageFixture('/more/settings/account');
     expect(html).toContain(profiles.premium.title);
-    for (const feature of Object.values(profiles.premium.features)) {
-      expect(html).toContain(feature.title);
-      expect(html).toContain(feature.body);
-    }
-    expect(html).toContain(profiles.premium.detailsTitle);
-    expect(html).toContain(profiles.premium.detailsBody);
+    expect(html).toContain(profiles.premium.rowInactive);
+    expect(html).toContain('href="/more/pro"');
+    // Features and prices live on the Pro page only.
+    expect(html).not.toContain('settings-pro-information');
     expect(html).toContain('settings-account');
   });
   it('renders a calm category index instead of every settings form at once', () => {

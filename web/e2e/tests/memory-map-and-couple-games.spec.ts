@@ -19,20 +19,8 @@ import {
   TINY_PNG,
 } from '../support/storyTimelineFixture';
 
-async function expectSecondaryProIcons(page: Page) {
-  const pro = page.locator('.settings-pro-information');
-  const lead = await pro
-    .locator('.settings-pro-lead > .eimir-icon')
-    .boundingBox();
-  expect(lead).not.toBeNull();
-  const features = await pro.locator('li > .eimir-icon').all();
-  expect(features).toHaveLength(4);
-  for (const icon of features) {
-    const box = await icon.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box?.width).toBeLessThanOrEqual(lead?.width ?? 0);
-    expect(box?.height).toBeLessThanOrEqual(lead?.height ?? 0);
-  }
+function proSettingsRow(page: Page) {
+  return page.locator('.settings-category-link[href="/more/pro"]');
 }
 
 async function exerciseMapTouchOwnership(page: Page, tiles: MapTileMock) {
@@ -338,21 +326,17 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('link', { name: /Afternoon by the canal/ }),
     ).toBeVisible();
+    // #1907 D1: the account settings category leads to the Pro page with one row.
     await page.goto('/more/settings/account');
-    await expect(page.locator('.settings-pro-information h2')).toHaveText(
-      'eimir. Pro',
-    );
-    await expect(page.locator('.settings-pro-information li')).toHaveCount(4);
-    await expectSecondaryProIcons(page);
+    const proRow = proSettingsRow(page);
+    await expect(proRow).toContainText('eimir. Pro');
+    await expect(page.locator('.settings-pro-information')).toHaveCount(0);
     await captureScreenshot(page, info, `planning-pro-${width}-${theme}.png`, {
       fullPage: true,
     });
     expect(
-      (
-        await new AxeBuilder({ page })
-          .include('.settings-pro-information')
-          .analyze()
-      ).violations,
+      (await new AxeBuilder({ page }).include('.settings-index').analyze())
+        .violations,
     ).toEqual([]);
   });
 }
@@ -433,32 +417,22 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
   await expect(fullscreen).toBeHidden();
   await page.goto('/more/settings/account');
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-  const pro = page.locator('.settings-pro-information');
-  await expect(pro.locator('li')).toHaveCount(4);
-  await expectSecondaryProIcons(page);
-  const firstFeature = pro.locator('li').first();
-  const icon = await firstFeature.locator(':scope > .eimir-icon').boundingBox();
-  const copy = await firstFeature.locator(':scope > div').boundingBox();
-  expect(icon).not.toBeNull();
-  expect(copy).not.toBeNull();
-  expect(copy?.y).toBeGreaterThanOrEqual((icon?.y ?? 0) + (icon?.height ?? 0));
+  const proRow = proSettingsRow(page);
+  await expect(proRow).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
   expect(
-    await pro.evaluate((node) => node.scrollWidth <= node.clientWidth),
+    await proRow.evaluate((node) => node.scrollWidth <= node.clientWidth),
   ).toBe(true);
   await captureScreenshot(page, info, 'planning-pro-320-dark-large.png', {
     fullPage: true,
   });
   expect(
-    (
-      await new AxeBuilder({ page })
-        .include('.settings-pro-information')
-        .analyze()
-    ).violations,
+    (await new AxeBuilder({ page }).include('.settings-index').analyze())
+      .violations,
   ).toEqual([]);
 });
 

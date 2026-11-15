@@ -1,0 +1,12 @@
+eimir. Android 0.2.0-test.85
+
+- Get ideas for your dates with eimir. Pro: 200 curated ideas under Planen, Wünsche that you can save as a wish or plan right away, and that join your shared choice "Worauf habt ihr Lust?" next to your own wishes. One shared Pro page now explains Pro everywhere in the app, and buying through Google Play only works once the store listing is set up.
+- Feel a gesture from your partner as a small moment with their avatar and a motion of its own, and answer it once.
+- Plan a weekend or a trip without times as one plan with a last day, and hand it to your calendar as a single all-day event.
+- Sync your plans automatically into one shared calendar with eimir. Pro, through CalDAV or Google Calendar, see which calendar is connected by name, switch to another one, and stay in the same tab while you allow Google.
+- See notifications as a small animated banner while eimir. is open.
+- Go back with the Android Back gesture the same way everywhere: editors no longer leave a duplicate detail page behind.
+- Start Wir without the "saved overview" hint interrupting the start animation, and see Planen, Momente and the Wir portraits centered in wide windows.
+
+The product changes come from main at 5f658d353aca641a1c58419f18a2826e4b8d32f7.
+Install over test.84 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 85.

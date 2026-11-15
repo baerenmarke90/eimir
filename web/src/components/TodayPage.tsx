@@ -131,6 +131,7 @@ import { UiState } from './UiState';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WirLists } from './WirLists';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
+import { WirStageDistance } from './WirStageDistance';
 import './TodayPage.css';
 import { WirDesignId } from '../api/generated/models/WirDesignId';
 import { concealedTitle } from '../client/discreetPlans';
@@ -1587,7 +1588,7 @@ export function TodayPage({
                 {t('wirDesign.nameJoiner')}
               </span>
               {partnerDistanceInHero && heroDistance ? (
-                <span className="wir-stage-distance">{heroDistance}</span>
+                <WirStageDistance>{heroDistance}</WirStageDistance>
               ) : null}
             </>
           ) : undefined

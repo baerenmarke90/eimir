@@ -120,11 +120,11 @@ const partnerLocation = {
   distanceAroundCorner: 'Ihr seid gleich um die Ecke',
   distanceAroundCornerShort: 'Um die Ecke',
   distanceStonesThrow: 'Nur ein Katzensprung zwischen euch',
-  distanceStonesThrowShort: 'Ein Katzensprung',
+  distanceStonesThrowShort: 'Katzensprung',
   distanceNotFar: 'Ihr seid nicht weit voneinander',
   distanceNotFarShort: 'Nicht weit',
   distanceShortTrip: 'Nur eine kurze Fahrt zwischen euch',
-  distanceShortTripShort: 'Eine kurze Fahrt',
+  distanceShortTripShort: 'Kurze Fahrt',
   distanceOwnMissingLabel:
     'Dein Standort fehlt. Nur du siehst diesen Hinweis. Einschalten',
   distanceSharing: 'Du teilst deine Entfernung mit {{partner}}',

@@ -25,8 +25,9 @@ from eimir.date_ideas.catalog import (
     DateIdeaCategory,
     DateIdeaPlaceType,
     IdeaFilter,
+    ResolvedIdea,
 )
-from eimir.date_ideas.images import IMAGE_ID_PATTERN, get_images
+from eimir.date_ideas.images import IMAGE_ID_PATTERN, DateIdeaImages, get_images
 from eimir.entitlements.models import Capability
 
 router = APIRouter(tags=["date-ideas"])
@@ -73,6 +74,24 @@ class DateIdeaCatalog(ApiModel):
     categories: list[DateIdeaLabel]
     place_types: list[DateIdeaLabel]
     ideas: list[DateIdea]
+
+
+def date_idea_view(idea: ResolvedIdea, images: DateIdeaImages) -> DateIdea:
+    """Public API projection of one resolved idea; callers enforce the capability."""
+    return DateIdea(
+        id=idea.id,
+        category=idea.category,
+        place_type=idea.place_type,
+        minutes=idea.minutes,
+        budget_eur_for_two=idea.budget_eur_for_two,
+        title=idea.title,
+        description=idea.description,
+        wish_title=idea.wish_title,
+        plan_title=idea.plan_title,
+        prerequisites=list(idea.prerequisites),
+        content_locale=idea.content_locale,
+        image=DateIdeaImage(**vars(images.for_idea(idea.id, idea.category, idea.content_locale))),
+    )
 
 
 @router.get(
@@ -129,25 +148,7 @@ def list_date_ideas(
         total_count=listing.total_count,
         categories=[DateIdeaLabel(id=item.id, label=item.label) for item in listing.categories],
         place_types=[DateIdeaLabel(id=item.id, label=item.label) for item in listing.place_types],
-        ideas=[
-            DateIdea(
-                id=idea.id,
-                category=idea.category,
-                place_type=idea.place_type,
-                minutes=idea.minutes,
-                budget_eur_for_two=idea.budget_eur_for_two,
-                title=idea.title,
-                description=idea.description,
-                wish_title=idea.wish_title,
-                plan_title=idea.plan_title,
-                prerequisites=list(idea.prerequisites),
-                content_locale=idea.content_locale,
-                image=DateIdeaImage(
-                    **vars(images.for_idea(idea.id, idea.category, idea.content_locale))
-                ),
-            )
-            for idea in listing.ideas
-        ],
+        ideas=[date_idea_view(idea, images) for idea in listing.ideas],
     )
 
 

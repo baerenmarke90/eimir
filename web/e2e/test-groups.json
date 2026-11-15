@@ -441,6 +441,11 @@
       "baselineTests": 8,
       "reason": "Explicit private favorites, authorized shared/zero-match/solo results, canonical Plan conversion and return, offline no-replay and Compact/Expanded theme/reflow acceptance for #1535."
     },
+    "wish-selection-date-ideas.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Pro date ideas as typed candidates of the one shared selection (#465 within #1535): Free Wish-only round with the calm Pro hint and no catalog read, combined Wish/idea round, private choice and deliberate publication, common idea planned only through the existing composer with return, downgrade pause with a Wish-only replacement, and 320 (200 % text)/360/390/430/Expanded Light/Dark reflow and axe acceptance."
+    },
     "automatic-recaps.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,

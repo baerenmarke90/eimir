@@ -19,7 +19,12 @@ import {
   type DeleteFocusTarget,
   deleteFocusTarget,
 } from '../client/deleteFocusTarget';
+import { useLeaveDeletedEntries, useReturnTo } from '../client/historyEntries';
 import { normalizeClientError } from '../client/problemDetails';
+import {
+  settleEditorHistory,
+  useEditorHistoryEntry,
+} from '../client/useEditorHistoryEntry';
 import {
   canConfirmRelatedPersonDelete,
   INITIAL_RELATED_PERSON_DELETE_CHOICE,
@@ -216,6 +221,13 @@ function DeleteRelatedPersonDialog({
     active: true,
     initialFocusRef: cancelButtonRef,
   });
+  // System Back cancels like the Cancel button; a running delete keeps it open.
+  useEditorHistoryEntry({
+    isDirty: false,
+    isCloseBlocked: pending,
+    onClose: onCancel,
+    onDiscardRequested: onCancel,
+  });
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === 'Escape' && !pending) {
@@ -265,6 +277,8 @@ export function RelatedPeoplePage({
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const returnToParent = useReturnTo();
+  const leaveDeleted = useLeaveDeletedEntries();
   const queryClient = useQueryClient();
   const parts = location.pathname
     .slice('/more/people'.length)
@@ -393,6 +407,7 @@ export function RelatedPeoplePage({
       }
     },
     onSuccess: async () => {
+      const deletedId = deleteTarget?.id;
       if (deleteTarget)
         setPendingFocus(
           deleteFocusTarget(
@@ -412,7 +427,10 @@ export function RelatedPeoplePage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate('/more/people', { replace: true });
+      // The closed dialog removes its history entry; leave only after that.
+      await settleEditorHistory();
+      if (deletedId) leaveDeleted(personPath(deletedId), '/more/people');
+      else navigate('/more/people', { replace: true });
     },
   });
   useEffect(() => {
@@ -464,22 +482,24 @@ export function RelatedPeoplePage({
         accountId={currentAccountId}
         attachmentsApi={attachmentsApi}
         onCancel={() =>
-          navigate(
+          returnToParent(
             creating
               ? '/more/people'
               : personPath(personId ?? person?.id ?? ''),
-            {
-              replace: true,
-              state: originState,
-            },
+            // The list restores focus and scroll from this origin state.
+            { restoredState: originState },
           )
         }
         onSubmit={(fields) => save.mutateAsync(fields)}
         onSaved={(saved) =>
-          navigate(personPath(saved.id), {
-            replace: true,
-            state: { ...originState, personSaved: true },
-          })
+          creating
+            ? navigate(personPath(saved.id), {
+                replace: true,
+                state: { ...originState, personSaved: true },
+              })
+            : returnToParent(personPath(saved.id), {
+                restoredState: { ...originState, personSaved: true },
+              })
         }
       />
     );

@@ -41,18 +41,21 @@ export interface CloseWishSelectionRoundRequest {
 
 export interface GetWishSelectionRequest {
     spaceId: string;
+    locale?: string | null;
 }
 
 export interface ReplaceWishSelectionRoundRequest {
     spaceId: string;
     ifMatch: string;
     wishSelectionRoundUpdate: WishSelectionRoundUpdate;
+    locale?: string | null;
 }
 
 export interface UpdateOwnWishSelectionRequest {
     spaceId: string;
     ifMatch: string;
     wishSelectionUpdate: WishSelectionUpdate;
+    locale?: string | null;
 }
 
 /**
@@ -128,6 +131,10 @@ export class WishSelectionsApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters['locale'] != null) {
+            queryParameters['locale'] = requestParameters['locale'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
 
@@ -186,6 +193,10 @@ export class WishSelectionsApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters['locale'] != null) {
+            queryParameters['locale'] = requestParameters['locale'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -252,6 +263,10 @@ export class WishSelectionsApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters['locale'] != null) {
+            queryParameters['locale'] = requestParameters['locale'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 

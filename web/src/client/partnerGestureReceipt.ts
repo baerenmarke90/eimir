@@ -54,34 +54,6 @@ export function isPartnerGestureKind(kind: string): kind is PartnerGestureKind {
   return (PARTNER_GESTURE_KINDS as readonly string[]).includes(kind);
 }
 
-/**
- * The newest unread gesture from the partner that arrived after this shell
- * instance started and was never handled. Anything older stays only in the
- * Notification Center, so a normal app start never replays a receipt.
- */
-export function selectArrivedGesture(
-  items: readonly NotificationItem[],
-  {
-    accountId,
-    notBefore,
-    handled,
-  }: {
-    accountId: string;
-    notBefore: number;
-    handled: ReadonlySet<string>;
-  },
-): NotificationItem | null {
-  let newest: NotificationItem | null = null;
-  for (const item of items) {
-    if (!isPartnerGestureKind(item.kind)) continue;
-    if (item.readAt || handled.has(item.id)) continue;
-    if (item.actorId === accountId || item.actor?.id === accountId) continue;
-    if (item.createdAt.getTime() <= notBefore) continue;
-    if (!newest || item.createdAt > newest.createdAt) newest = item;
-  }
-  return newest;
-}
-
 export const PARTNER_GESTURE_RECEIPT_EVENT = 'eimir:partner-gesture-receipt';
 
 export interface PartnerGestureReceiptRequest {

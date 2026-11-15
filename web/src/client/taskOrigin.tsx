@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { DateIdeasFilterState } from './dateIdeas';
+import { previousEntryIs } from './historyEntries';
 import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
@@ -330,7 +331,10 @@ export function TaskOriginProvider({
       if (!generation.active || storeRef.current !== generation) return;
       const origin = resolveStored(key);
       if (!origin) {
-        void navigate(fallback, { replace: true });
+        // Without a captured origin, a parent directly below is still the
+        // natural Back target; replacing would leave it in history twice.
+        if (previousEntryIs(fallback)) void navigate(-1);
+        else void navigate(fallback, { replace: true });
         return;
       }
       if (

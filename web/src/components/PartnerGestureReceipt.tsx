@@ -15,8 +15,15 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import { Configuration } from '../client/apiConfiguration';
 import { authorDisplayName } from '../client/authorPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import {
+  NOTIFICATION_WAKE_EVENT,
+  type NotificationWakeScope,
+  notificationArrivalKey,
+  selectArrivedNotification,
+} from '../client/foregroundNotifications';
 import { createM4ProductApis, type M4ProductApis } from '../client/m4Product';
 import { ProfilesApi } from '../client/mediaApis';
+import { getNotificationItemTitle } from '../client/notificationTitle';
 import {
   isPartnerGestureKind,
   OPEN_OWN_DAILY_CHECK_IN_STATE,
@@ -24,7 +31,6 @@ import {
   PARTNER_GESTURE_VARIANTS,
   type PartnerGestureReceiptRequest,
   receiptScope,
-  selectArrivedGesture,
 } from '../client/partnerGestureReceipt';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { PARTNER_QUICK_ACTIONS_CAPABILITY } from '../client/partnerQuickActions';
@@ -36,6 +42,7 @@ import {
 import { useSpaceCapability } from '../client/spaceEntitlement';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { useTranslation } from '../i18n';
+import { NotificationMotion } from './NotificationMotion';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProMark } from './ProMark';
 import { isModalLayerActive } from './useModalLifecycle';
@@ -44,7 +51,7 @@ import { isGestureCooldown, usePartnerGesture } from './usePartnerGesture';
 import './PartnerGestureReceipt.css';
 
 /** Long enough to read the sentence and reach the reply comfortably. */
-export const PARTNER_GESTURE_RECEIPT_VISIBLE_MS = 8_000;
+export const FOREGROUND_NOTIFICATION_VISIBLE_MS = 8_000;
 const HANDLED_LIMIT = 64;
 const ARRIVAL_PAGE_SIZE = 5;
 
@@ -61,16 +68,29 @@ function Heart() {
 
 type NameOf = (item: NotificationItem) => string | null;
 
-function receiptCopy(item: NotificationItem, t: TFunction, nameOf: NameOf) {
-  if (!isPartnerGestureKind(item.kind)) return null;
+function receiptCopy(
+  item: NotificationItem,
+  t: TFunction,
+  nameOf: NameOf,
+  accountId: string,
+) {
+  if (!isPartnerGestureKind(item.kind)) {
+    return {
+      variant: null,
+      title: getNotificationItemTitle(item, t, accountId),
+      detail: null,
+      reply: t(
+        item.kind === 'WISH_SELECTION_SHARED'
+          ? 'wishSelection.openOwn'
+          : 'm5s5.common.open',
+      ),
+    };
+  }
   const variant = PARTNER_GESTURE_VARIANTS[item.kind];
   const name = nameOf(item);
   const base = `partnerGestureReceipt.${variant.copy}`;
   return {
     variant,
-    label: name
-      ? t('partnerGestureReceipt.label', { name })
-      : t('partnerGestureReceipt.labelAnon'),
     title: name ? t(`${base}.title`, { name }) : t(`${base}.titleAnon`),
     detail: t(`${base}.detail`),
     reply: t(`${base}.reply`),
@@ -117,7 +137,7 @@ function windowOwnsAttention(): boolean {
   );
 }
 
-interface PartnerGestureReceiptProps {
+interface NotificationReceiptProps {
   item: NotificationItem;
   accountId: string;
   spaceId: string;
@@ -127,14 +147,14 @@ interface PartnerGestureReceiptProps {
   onClose: () => void;
   onExitComplete: () => void;
   onHoldChange: (hold: boolean) => void;
+  openNotification?: (notificationId: string, sourceEventId: string) => void;
 }
 
 /**
- * The shared presentation for all three partner gestures. The gesture kind
- * selects copy, glyph, motion variant and the allowed reply; presentation,
- * accessibility, lifecycle and dismissal are identical.
+ * One foreground surface. Partner gestures provide their own reply and motion;
+ * other notifications open the same destination as a system notification.
  */
-export function PartnerGestureReceipt({
+function NotificationReceipt({
   item,
   accountId,
   spaceId,
@@ -144,13 +164,14 @@ export function PartnerGestureReceipt({
   onClose,
   onExitComplete,
   onHoldChange,
-}: PartnerGestureReceiptProps) {
+  openNotification,
+}: NotificationReceiptProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const client = useQueryClient();
   const nameOf = useActorName();
   const titleId = useId();
-  const copy = receiptCopy(item, t, nameOf);
+  const copy = receiptCopy(item, t, nameOf, accountId);
   const [replied, setReplied] = useState(false);
   const [pointerInside, setPointerInside] = useState(false);
   const [focusInside, setFocusInside] = useState(false);
@@ -175,7 +196,6 @@ export function PartnerGestureReceipt({
     onHoldChange(hold);
   }, [hold, onHoldChange]);
 
-  if (!copy) return null;
   const { variant } = copy;
 
   const configuration = client.getQueryData<SpaceConfigurationSnapshot>(
@@ -196,7 +216,17 @@ export function PartnerGestureReceipt({
   };
 
   let reply: { label: string; run: () => void; pro?: boolean } | null = null;
-  if (variant.reply === 'THINKING') {
+  if (!variant) {
+    if (openNotification) {
+      reply = {
+        label: copy.reply,
+        run: () => {
+          onClose();
+          openNotification(item.id, item.sourceEventId);
+        },
+      };
+    }
+  } else if (variant.reply === 'THINKING') {
     if (
       gesturesEnabled &&
       !coolingDown(gesture.cooldowns.THINKING) &&
@@ -277,9 +307,11 @@ export function PartnerGestureReceipt({
   return (
     <aside
       className="partner-gesture-receipt"
-      data-variant={variant.motion}
+      data-variant={variant?.motion}
       data-presence={presenceState}
-      data-testid="partner-gesture-receipt"
+      data-testid={
+        variant ? 'partner-gesture-receipt' : 'foreground-notification'
+      }
       aria-labelledby={titleId}
       onPointerEnter={() => setPointerInside(true)}
       onPointerLeave={() => setPointerInside(false)}
@@ -296,8 +328,10 @@ export function PartnerGestureReceipt({
     >
       <div className="partner-gesture-receipt-body">
         <div className="partner-gesture-receipt-person" aria-hidden="true">
-          <span className="partner-gesture-receipt-wave" data-wave="1" />
-          {variant.motion === 'calm-ring' ? (
+          {variant ? (
+            <span className="partner-gesture-receipt-wave" data-wave="1" />
+          ) : null}
+          {variant?.motion === 'calm-ring' ? (
             <>
               <span className="partner-gesture-receipt-wave" data-wave="2" />
               <span className="partner-gesture-receipt-wave" data-wave="3" />
@@ -311,21 +345,29 @@ export function PartnerGestureReceipt({
               size="medium"
             />
           ) : (
-            <span className="partner-gesture-receipt-placeholder" />
+            <span className="partner-gesture-receipt-placeholder">
+              {variant ? null : <NotificationMotion kind={item.kind} />}
+            </span>
           )}
-          <span className="partner-gesture-receipt-glyph">
-            {variant.motion === 'heart-pulse' ? (
-              <Heart />
-            ) : variant.motion === 'kiss' ? (
-              <span className="partner-gesture-receipt-kiss">
+          {variant ? (
+            <span className="partner-gesture-receipt-glyph">
+              {variant.motion === 'heart-pulse' ? (
                 <Heart />
-                <Heart />
-              </span>
-            ) : (
-              '?'
-            )}
-          </span>
-          {variant.motion !== 'calm-ring' ? (
+              ) : variant.motion === 'kiss' ? (
+                <span className="partner-gesture-receipt-kiss">
+                  <Heart />
+                  <Heart />
+                </span>
+              ) : (
+                '?'
+              )}
+            </span>
+          ) : item.actor ? (
+            <span className="partner-gesture-receipt-glyph notification-motion-badge">
+              <NotificationMotion kind={item.kind} />
+            </span>
+          ) : null}
+          {variant && variant.motion !== 'calm-ring' ? (
             <span className="partner-gesture-receipt-hero">
               <Heart />
               {variant.motion === 'kiss' ? <Heart /> : null}
@@ -336,7 +378,9 @@ export function PartnerGestureReceipt({
           <p id={titleId} className="partner-gesture-receipt-title">
             {copy.title}
           </p>
-          <p className="partner-gesture-receipt-detail">{copy.detail}</p>
+          {copy.detail ? (
+            <p className="partner-gesture-receipt-detail">{copy.detail}</p>
+          ) : null}
         </div>
         {showReply || status ? (
           <div className="partner-gesture-receipt-actions">
@@ -349,7 +393,7 @@ export function PartnerGestureReceipt({
                   if (!replyBusy) reply.run();
                 }}
               >
-                {variant.motion === 'calm-ring' ? null : <Heart />}
+                {variant && variant.motion !== 'calm-ring' ? <Heart /> : null}
                 <span>{reply.label}</span>
                 {reply.pro ? (
                   <ProMark label={t('partnerQuickActions.pro')} />
@@ -381,31 +425,31 @@ export function PartnerGestureReceipt({
   );
 }
 
-interface PartnerGestureReceiptHostProps {
+interface ForegroundNotificationHostProps {
   apiBaseUrl: string;
   accessToken: string;
   accountId: string;
   spaceId: string;
-  /** The shell's existing unread count; the only arrival signal. */
+  /** The shell's existing unread count also detects arrivals without Push. */
   unreadCount: number | undefined;
   /** A focused task route is active. */
   suppressed: boolean;
+  openNotification?: (notificationId: string, sourceEventId: string) => void;
 }
 
 /**
- * Mounted once by `AppShell`, keyed by Account/Space. Detects a newly
- * arrived gesture from the existing unread-count refresh, or presents one the
- * user deliberately opened from a push. See
- * `docs/product/design/partner-gesture-receipt.md`.
+ * Account/Space-scoped foreground presentation for the notification inbox.
+ * A wake is a refresh signal. All displayed content comes from the inbox.
  */
-export function PartnerGestureReceiptHost({
+export function ForegroundNotificationHost({
   apiBaseUrl,
   accessToken,
   accountId,
   spaceId,
   unreadCount,
   suppressed,
-}: PartnerGestureReceiptHostProps) {
+  openNotification,
+}: ForegroundNotificationHostProps) {
   const { t } = useTranslation();
   const nameOf = useActorName();
   const scope = receiptScope(accountId, spaceId);
@@ -438,6 +482,8 @@ export function PartnerGestureReceiptHost({
   const notBefore = useRef(Date.now());
   const handled = useRef(new Set<string>());
   const previousCount = useRef<number | undefined>(undefined);
+  const loadingArrivals = useRef(false);
+  const arrivalReadPending = useRef(false);
 
   const [entry, setEntry] = useState<NotificationItem | null>(null);
   const [open, setOpen] = useState(false);
@@ -455,16 +501,17 @@ export function PartnerGestureReceiptHost({
 
   const show = useCallback(
     (item: NotificationItem) => {
-      markHandled(item.id);
+      markHandled(notificationArrivalKey(item));
       if (taskOwnsScreen(suppressedRef.current)) return;
-      const copy = receiptCopy(item, t, nameOf);
-      if (!copy) return;
+      const copy = receiptCopy(item, t, nameOf, accountId);
       setEntry(item);
       setHold(false);
       setOpen(true);
-      setAnnouncement(`${copy.title}. ${copy.detail}`);
+      setAnnouncement(
+        copy.detail ? `${copy.title}. ${copy.detail}` : copy.title,
+      );
     },
-    [markHandled, nameOf, t],
+    [accountId, markHandled, nameOf, t],
   );
 
   const close = useCallback(() => {
@@ -472,40 +519,88 @@ export function PartnerGestureReceiptHost({
     setAnnouncement('');
   }, []);
 
-  // Arrival: only an increase of the existing unread count, in the focused
-  // window, triggers one read of the newest page. No polling of its own.
   useEffect(() => {
-    if (unreadCount === undefined) return;
-    const previous = previousCount.current;
-    previousCount.current = unreadCount;
-    if (previous === undefined || unreadCount <= previous) return;
+    let foreground = windowOwnsAttention();
+    function visibilityChanged() {
+      const visible = windowOwnsAttention();
+      if (visible === foreground) return;
+      foreground = visible;
+      notBefore.current = Date.now();
+      if (!visible) close();
+    }
+    window.addEventListener('focus', visibilityChanged);
+    window.addEventListener('blur', visibilityChanged);
+    document.addEventListener('visibilitychange', visibilityChanged);
+    return () => {
+      window.removeEventListener('focus', visibilityChanged);
+      window.removeEventListener('blur', visibilityChanged);
+      document.removeEventListener('visibilitychange', visibilityChanged);
+    };
+  }, [close]);
+
+  const refreshArrivals = useCallback(async () => {
     if (!windowOwnsAttention() || taskOwnsScreen(suppressedRef.current)) {
-      // Whatever arrived until now stays in the Notification Center; it never
-      // turns into a delayed interruption later.
       notBefore.current = Date.now();
       return;
     }
-    const requestedScope = scope;
-    void apis.notifications
-      .getNotifications({ spaceId, limit: ARRIVAL_PAGE_SIZE })
-      .then((page) => {
+    if (loadingArrivals.current) {
+      arrivalReadPending.current = true;
+      return;
+    }
+    loadingArrivals.current = true;
+    try {
+      do {
+        arrivalReadPending.current = false;
+        const page = await apis.notifications.getNotifications({
+          spaceId,
+          limit: ARRIVAL_PAGE_SIZE,
+        });
         if (
           !live.current.mounted ||
-          live.current.scope !== requestedScope ||
+          live.current.scope !== scope ||
           !windowOwnsAttention()
         )
           return;
-        const arrived = selectArrivedGesture(page.items, {
+        const arrived = selectArrivedNotification(page.items, {
           accountId,
           notBefore: notBefore.current,
           handled: handled.current,
         });
         for (const item of page.items)
-          if (isPartnerGestureKind(item.kind)) markHandled(item.id);
+          markHandled(notificationArrivalKey(item));
         if (arrived) show(arrived);
-      })
-      .catch(() => undefined);
-  }, [accountId, apis, markHandled, scope, show, spaceId, unreadCount]);
+      } while (
+        arrivalReadPending.current &&
+        !taskOwnsScreen(suppressedRef.current)
+      );
+    } catch {
+      // A failed foreground read leaves the inbox as the fallback.
+    } finally {
+      loadingArrivals.current = false;
+    }
+  }, [accountId, apis, markHandled, scope, show, spaceId]);
+
+  useEffect(() => {
+    if (unreadCount === undefined) return;
+    const previous = previousCount.current;
+    previousCount.current = unreadCount;
+    if (previous !== undefined && unreadCount > previous)
+      void refreshArrivals();
+  }, [refreshArrivals, unreadCount]);
+
+  useEffect(() => {
+    function onWake(event: Event) {
+      const detail = (event as CustomEvent<NotificationWakeScope>).detail;
+      if (
+        detail?.accountId === accountId &&
+        detail.apiBaseUrl === apiBaseUrl &&
+        detail.spaceId === spaceId
+      )
+        void refreshArrivals();
+    }
+    window.addEventListener(NOTIFICATION_WAKE_EVENT, onWake);
+    return () => window.removeEventListener(NOTIFICATION_WAKE_EVENT, onWake);
+  }, [accountId, apiBaseUrl, refreshArrivals, spaceId]);
 
   // Push open: the item was already resolved through the authorized API.
   useEffect(() => {
@@ -514,7 +609,11 @@ export function PartnerGestureReceiptHost({
         .detail;
       if (!detail || detail.scope !== live.current.scope) return;
       if (!isPartnerGestureKind(detail.item.kind)) return;
-      if (handled.current.has(detail.item.id) && entry?.id !== detail.item.id)
+      const key = notificationArrivalKey(detail.item);
+      if (
+        handled.current.has(key) &&
+        (!entry || notificationArrivalKey(entry) !== key)
+      )
         return;
       show(detail.item);
     }
@@ -529,15 +628,15 @@ export function PartnerGestureReceiptHost({
   }, [close, suppressed]);
 
   // A newer arrival replaces the current one and restarts its reading time.
-  const entryId = entry?.id;
+  const entryKey = entry ? notificationArrivalKey(entry) : null;
   useEffect(() => {
-    if (!open || hold || !entryId) return;
+    if (!open || hold || !entryKey) return;
     const timeout = window.setTimeout(
       close,
-      PARTNER_GESTURE_RECEIPT_VISIBLE_MS,
+      FOREGROUND_NOTIFICATION_VISIBLE_MS,
     );
     return () => window.clearTimeout(timeout);
-  }, [close, entryId, hold, open]);
+  }, [close, entryKey, hold, open]);
 
   return (
     <>
@@ -552,8 +651,8 @@ export function PartnerGestureReceiptHost({
         {announcement}
       </div>
       {present && entry ? (
-        <PartnerGestureReceipt
-          key={entry.id}
+        <NotificationReceipt
+          key={entryKey}
           item={entry}
           accountId={accountId}
           spaceId={spaceId}
@@ -563,6 +662,7 @@ export function PartnerGestureReceiptHost({
           onClose={close}
           onExitComplete={completeExit}
           onHoldChange={setHold}
+          openNotification={openNotification}
         />
       ) : null}
     </>

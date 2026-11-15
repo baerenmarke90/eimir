@@ -85,7 +85,7 @@ No authorization required
 
 ## getWishSelection
 
-> WishSelectionView getWishSelection(spaceId)
+> WishSelectionView getWishSelection(spaceId, locale)
 
 Get Wish Selection
 
@@ -105,6 +105,8 @@ async function example() {
   const body = {
     // string
     spaceId: spaceId_example,
+    // string | Preferred locale for date-idea content. (optional)
+    locale: locale_example,
   } satisfies GetWishSelectionRequest;
 
   try {
@@ -125,6 +127,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **locale** | `string` | Preferred locale for date-idea content. | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -152,7 +155,7 @@ No authorization required
 
 ## replaceWishSelectionRound
 
-> WishSelectionView replaceWishSelectionRound(spaceId, ifMatch, wishSelectionRoundUpdate)
+> WishSelectionView replaceWishSelectionRound(spaceId, ifMatch, wishSelectionRoundUpdate, locale)
 
 Replace Wish Selection Round
 
@@ -176,6 +179,8 @@ async function example() {
     ifMatch: ifMatch_example,
     // WishSelectionRoundUpdate
     wishSelectionRoundUpdate: ...,
+    // string | Preferred locale for date-idea content. (optional)
+    locale: locale_example,
   } satisfies ReplaceWishSelectionRoundRequest;
 
   try {
@@ -198,6 +203,7 @@ example().catch(console.error);
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **ifMatch** | `string` | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
 | **wishSelectionRoundUpdate** | [WishSelectionRoundUpdate](WishSelectionRoundUpdate.md) |  | |
+| **locale** | `string` | Preferred locale for date-idea content. | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -218,6 +224,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: the round contains curated date ideas and the Space lacks the Pro capability &#x60;planning.date_inspiration&#x60;. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
@@ -227,7 +234,7 @@ No authorization required
 
 ## updateOwnWishSelection
 
-> WishSelectionView updateOwnWishSelection(spaceId, ifMatch, wishSelectionUpdate)
+> WishSelectionView updateOwnWishSelection(spaceId, ifMatch, wishSelectionUpdate, locale)
 
 Update Own Wish Selection
 
@@ -251,6 +258,8 @@ async function example() {
     ifMatch: ifMatch_example,
     // WishSelectionUpdate
     wishSelectionUpdate: ...,
+    // string | Preferred locale for date-idea content. (optional)
+    locale: locale_example,
   } satisfies UpdateOwnWishSelectionRequest;
 
   try {
@@ -273,6 +282,7 @@ example().catch(console.error);
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **ifMatch** | `string` | The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
 | **wishSelectionUpdate** | [WishSelectionUpdate](WishSelectionUpdate.md) |  | |
+| **locale** | `string` | Preferred locale for date-idea content. | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -293,6 +303,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: the round contains curated date ideas and the Space lacks the Pro capability &#x60;planning.date_inspiration&#x60;. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |

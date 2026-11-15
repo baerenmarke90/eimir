@@ -38,6 +38,14 @@ before settling as a badge; this was part of the reviewed variant.
 
 ## Generated visual reference
 
+The 2026-11-15 foreground-notification follow-up uses this same composition and
+Mobile Interaction Contract for ordinary in-app notifications. The
+Wish invitation opens the existing private favorite selection and fans out two
+symbols. The result brings a wish and a sparkle together. Other events have
+distinct motion on the same badge. Existing Notifications copy, the authorized
+open endpoint and the canonical destination define the action. Native wakes
+trigger a fresh inbox read even when a coalesced row leaves the count unchanged.
+
 ![Compact reference](references/partner-gesture-receipt/compact-reference.png)
 
 Composed before runtime UI implementation from the real running app on
@@ -91,33 +99,32 @@ the shared `AuthorAvatar` with its initials fallback.
 **Foreground arrival.** There is no realtime notification transport. The
 receipt reuses the existing signals only:
 
-1. The shell's existing unread-count query (30-s refresh, focus refresh, and
-   the native push `wake` invalidation) is observed.
-2. Only an **increase** after the first observed value, in the visible and
-   focused window, triggers one read of the newest notification page
-   (`limit: 5`) through the existing authorized list endpoint. Tab switches,
-   focus without an increase and decreases cause no request.
-3. Only an unread gesture item from the partner, created after this shell
-   instance started and never handled before, qualifies. The newest one wins;
-   older qualifying items of the same read are marked handled and stay only in
-   the Notification Center.
+1. The shell observes the existing unread-count query and a scoped native push
+   wake. The query continues its 30-second and focus refreshes.
+2. An increase after the first observed count, or a native wake even when the
+   count stays the same, triggers a bounded read of the authorized inbox
+   (`limit: 5`) in the visible, focused window. Concurrent signals share the
+   same in-flight read, with one pending read for arrivals that may have followed it.
+3. A newly created, unread notification qualifies while the shell has the
+   foreground. The newest item appears. Other items in that read stay in the
+   Notification Center. The source event distinguishes updates to coalesced rows.
 
 So arrival latency is up to the existing 30-s refresh, or immediate when a
 native push wake reaches the foreground app. This is a documented limit, not a
 simulated realtime feature.
 
-**Push open.** Opening a push still resolves the item through
-`openNotification` and navigates exactly as before. For a gesture item, the
-receipt is then presented once for that deliberately opened item.
+**Open.** A system notification or the banner's open action resolves the item
+through `openNotification` and navigates to the current authorized destination.
+A deliberately opened gesture can also present its reply.
 
 **Suppression (no later interruption).** The receipt is not shown — the item
 stays in the Center — when a focused task route is active, a draft blocks
 leaving, a modal layer or dialog is open, or a text field has focus. A receipt
-on screen closes when a focused task or modal begins.
+on screen closes when the shell gives the screen to a focused task or loses focus.
 
 **Never.** No stacking (one receipt; a newer arrival replaces it), no queue, no
-replay after reload/app start (items older than the shell instance never
-qualify), no replay of handled IDs, no presentation after an Account or Space
+replay from before the current foreground session, no replay of handled events,
+no presentation after an Account or Space
 change (scope check on every asynchronous result, host keyed by scope), no
 read-state change (arrival, timeout and close do not mark read; the Center
 remains canonical).

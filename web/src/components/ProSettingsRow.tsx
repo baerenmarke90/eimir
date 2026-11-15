@@ -15,7 +15,12 @@ export function ProSettingsRow() {
   const { query } = useSessionSpaceEntitlement();
   const active = query.data?.tier === 'PREMIUM';
   return (
-    <nav className="settings-index" aria-label={t('profiles.premium.title')}>
+    // Keeps the legacy `#eimir-pro` anchor (old profile links) working.
+    <nav
+      id="eimir-pro"
+      className="settings-index"
+      aria-label={t('profiles.premium.title')}
+    >
       <ul className="settings-category-list">
         <li>
           <Link className="settings-category-link" to={proPaywallPath()}>

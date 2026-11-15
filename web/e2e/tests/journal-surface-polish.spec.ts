@@ -301,7 +301,7 @@ test('inline reading comments retain deliberate focus and one canonical save', a
   await expect(input).toBeFocused();
 });
 
-test('Pro information lives in App and Account and legacy profile links reach it', async ({
+test('Pro entry lives in App and Account and legacy profile links reach it', async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -313,11 +313,13 @@ test('Pro information lives in App and Account and legacy profile links reach it
   ).toHaveCount(0);
   await page.goto('/more/profile#profile-premium');
   await expect(page).toHaveURL(/\/more\/settings\/account#eimir-pro$/);
-  await expect(
-    page.getByRole('heading', { name: profiles.premium.title, exact: true }),
-  ).toBeVisible();
-  for (const feature of Object.values(profiles.premium.features))
-    await expect(page.getByText(feature.title, { exact: true })).toBeVisible();
+  // #1907 D1: one row leads to the Pro page, which owns features and prices.
+  const proRow = page.getByRole('link', {
+    name: new RegExp(profiles.premium.title),
+  });
+  await expect(proRow).toBeVisible();
+  await expect(proRow).toHaveAttribute('href', '/more/pro');
+  await expect(page.getByText(profiles.premium.rowInactive)).toBeVisible();
   await captureScreenshot(page, info, 'pro-app-account-390.png', {
     fullPage: true,
   });

@@ -1109,19 +1109,19 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
   const unknown = await installPeopleApiMocks(page, {
     now,
     listedPlans: [
-      listedPlan('plan-cinema', 'Kinoabend', {
+      listedPlan('plan-cinema', 'Cinema night', {
         plannedStart: '2026-11-21T19:00:00Z',
       }),
-      listedPlan('plan-market', 'Weihnachtsmarkt', {
+      listedPlan('plan-market', 'Christmas market', {
         plannedOn: '2026-12-05',
       }),
-      listedPlan('plan-secret', 'Überraschung im Wald', {
+      listedPlan('plan-secret', 'Surprise in the woods', {
         plannedOn: '2026-12-18',
         discreet: true,
         discreetTitleMode: 'PREVIEW',
-        previewTitle: 'Abend zu zweit',
+        previewTitle: 'Evening for two',
       }),
-      listedPlan('plan-cabin', 'Hüttenwochenende', {
+      listedPlan('plan-cabin', 'Cabin weekend', {
         plannedOn: '2026-12-30',
         plannedUntil: '2027-01-02',
       }),
@@ -1139,7 +1139,7 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
 
   // A Plan is a link row with the Planen symbol; its day carries a bar.
   const cinema = sheet.locator('a.occasion-plan-card', {
-    hasText: 'Kinoabend',
+    hasText: 'Cinema night',
   });
   await expect(cinema).toHaveAttribute('href', '/plan/plans/plan-cinema');
   await expect(
@@ -1148,7 +1148,7 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
   await expect(cinema.locator('.important-date-meta')).toContainText('Plan');
   const day = sheet.locator('button.occasions-grid-day.has-plan');
   await expect(day).toHaveText('21');
-  await expect(day).toHaveAttribute('aria-label', /Plan: Kinoabend$/);
+  await expect(day).toHaveAttribute('aria-label', /Plan: Cinema night$/);
   await expect(
     page
       .locator('.occasions-band-month.is-active')
@@ -1165,11 +1165,11 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
   );
   // Discreet Plans show their list title and the lock only.
   const secret = sheet.locator('a.occasion-plan-card', {
-    hasText: 'Abend zu zweit',
+    hasText: 'Evening for two',
   });
   await expect(secret.locator('.discreet-lock')).toBeVisible();
   await expect(page.locator('#main-content')).not.toContainText(
-    'Überraschung im Wald',
+    'Surprise in the woods',
   );
   // A multi-day Plan marks each of its December days.
   for (const cabinDay of ['30', '31'])
@@ -1190,11 +1190,11 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
 
   // Opening a Plan shows its detail; Back returns to the same month.
   await sheet
-    .locator('a.occasion-plan-card', { hasText: 'Weihnachtsmarkt' })
+    .locator('a.occasion-plan-card', { hasText: 'Christmas market' })
     .click();
   await expect(page).toHaveURL(/\/plan\/plans\/plan-market$/);
   await expect(
-    page.getByRole('heading', { name: 'Weihnachtsmarkt' }),
+    page.getByRole('heading', { name: 'Christmas market' }),
   ).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/plan#dates$/);
@@ -1202,7 +1202,7 @@ test('the occasions calendar shows dated Plans with the Planen symbol and return
     'Dezember 2026',
   );
   await expect(
-    sheet.locator('a.occasion-plan-card', { hasText: 'Weihnachtsmarkt' }),
+    sheet.locator('a.occasion-plan-card', { hasText: 'Christmas market' }),
   ).toBeVisible();
   expect(unknown).toEqual([]);
 });
